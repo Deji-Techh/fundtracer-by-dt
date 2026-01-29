@@ -5,6 +5,7 @@ import path from 'path';
 export default defineConfig({
     define: {
         global: 'globalThis',
+        'process.env': {},
     },
     plugins: [react()],
     resolve: {
@@ -19,5 +20,27 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         sourcemap: true,
+        commonjsOptions: {
+            transformMixedEsModules: true,
+        },
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'appkit': ['@reown/appkit', '@reown/appkit-adapter-ethers'],
+                },
+            },
+        },
+    },
+    optimizeDeps: {
+        include: [
+            '@reown/appkit',
+            '@reown/appkit-adapter-ethers',
+            '@reown/appkit/networks',
+            '@walletconnect/universal-provider',
+            'ethers',
+        ],
+        esbuildOptions: {
+            target: 'es2020',
+        },
     },
 });
