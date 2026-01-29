@@ -16,8 +16,14 @@ services:
         sync: false
       - key: FIREBASE_PRIVATE_KEY
         sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_BASE64
+        sync: false
       - key: DEFAULT_ALCHEMY_API_KEY
         sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 3001
     healthCheckPath: /health
 
   # Frontend (Web App)

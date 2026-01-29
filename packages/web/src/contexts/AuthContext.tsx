@@ -56,7 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 try {
                     const userProfile = await getProfile();
                     setProfile(userProfile);
-                    setUser({ address: userProfile.email });
+                    // Use uid or walletAddress from profile (both are the wallet address)
+                    setUser({ address: userProfile.uid });
                 } catch {
                     removeAuthToken();
                 }
@@ -124,6 +125,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             completeSignIn();
         }
     }, [isConnected, walletProvider, address, completeSignIn, user]);
+
+    // Auto sign-in when wallet is connected but user is not authenticated
+    useEffect(() => {
+        // Only proceed if wallet is connected, we have an address, and no user is logged in
+        if (isConnected && address && !user && !signInInProgress.current && !loading) {
+            console.log('[AuthContext] Wallet connected but no user session, auto-signing in...');
+            completeSignIn();
+        }
+    }, [isConnected, address, user, completeSignIn, loading]);
 
     const signIn = async () => {
         if (user) return;
