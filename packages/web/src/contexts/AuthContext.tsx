@@ -21,6 +21,8 @@ import {
     getAuthToken,
     UserProfile
 } from '../api';
+import { useIsMobile } from '../hooks/useIsMobile';
+import MobileWalletModal from '../components/MobileWalletModal';
 
 const AUTH_PENDING_KEY = 'fundtracer_auth_pending';
 
@@ -40,7 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<{ address: string } | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showMobileModal, setShowMobileModal] = useState(false);
     const signInInProgress = useRef(false);
+
+    // Mobile detection hook
+    const isMobile = useIsMobile();
 
     // Reown AppKit hooks
     const { open } = useAppKit();
@@ -56,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 try {
                     const userProfile = await getProfile();
                     setProfile(userProfile);
-                    // Use uid or walletAddress from profile (both are the wallet address)
                     setUser({ address: userProfile.uid });
                 } catch {
                     removeAuthToken();
@@ -77,7 +82,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 throw new Error('Wallet not connected');
             }
 
-            // Use Ethers v6 with the wallet provider
             const provider = new ethers.BrowserProvider(walletProvider as any);
             const signer = await provider.getSigner();
             const walletAddress = await signer.getAddress();
@@ -117,7 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [walletProvider, address]);
 
     // Check for pending auth on mount (for mobile redirect recovery)
-    // Also handle automatic sign-in when wallet connects
     useEffect(() => {
         const pendingAuth = sessionStorage.getItem(AUTH_PENDING_KEY);
         if (pendingAuth && isConnected && walletProvider && address && !signInInProgress.current && !user) {
@@ -128,7 +131,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Auto sign-in when wallet is connected but user is not authenticated
     useEffect(() => {
-        // Only proceed if wallet is connected, we have an address, and no user is logged in
         if (isConnected && address && !user && !signInInProgress.current && !loading) {
             console.log('[AuthContext] Wallet connected but no user session, auto-signing in...');
             completeSignIn();
@@ -149,12 +151,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
 
         try {
-            // Open Reown AppKit modal - it will show all available wallets
-            await open();
+            if (isMobile) {
+                // Show mobile wallet modal with deep links
+                console.log('[AuthContext] Mobile detected, showing wallet selection modal');
+                setShowMobileModal(true);
+                setLoading(false);
+            } else {
+                // Desktop: Open Reown AppKit modal
+                console.log('[AuthContext] Desktop detected, opening AppKit modal');
+                await open();
+            }
         } catch (error) {
             sessionStorage.removeItem(AUTH_PENDING_KEY);
             setLoading(false);
         }
+    };
+
+    const handleMobileWalletClose = () => {
+        setShowMobileModal(false);
+        if (!isConnected) {
+            sessionStorage.removeItem(AUTH_PENDING_KEY);
+            setLoading(false);
+        }
+    };
+
+    const handleMobileWalletConnect = () => {
+        // User chose to use WalletConnect QR instead of direct app link
+        setShowMobileModal(false);
+        open();
     };
 
     const signOut = async () => {
@@ -197,7 +221,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             throw new Error('Wallet not connected');
         }
 
-        // Use Ethers v6 with the wallet provider
         const provider = new ethers.BrowserProvider(walletProvider as any);
         return provider.getSigner();
     }, [walletProvider, address]);
@@ -213,6 +236,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             getSigner
         }}>
             {children}
+            <MobileWalletModal
+                isOpen={showMobileModal}
+                onClose={handleMobileWalletClose}
+                onWalletConnect={handleMobileWalletConnect}
+            />
         </AuthContext.Provider>
     );
 }
