@@ -1,9 +1,9 @@
 // ============================================================
-// User Routes - Alchemy API Key Management & Account Info
+// User Routes - Profile, Alchemy API Key & Wallet Management
 // ============================================================
 
 import { Router, Response } from 'express';
-import { AuthenticatedRequest } from '../middleware/auth.js';
+import { AuthenticatedRequest, requireWallet } from '../middleware/auth.js';
 import { getFirestore } from '../firebase.js';
 import axios from 'axios';
 
@@ -27,7 +27,7 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
                 email: req.user.email,
                 displayName: req.user.name,
                 tier: 'free',
-                pohVerified: false,
+                isVerified: false,
                 blacklisted: false,
                 analysisCount: 0,
                 createdAt: Date.now(),
@@ -67,14 +67,16 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
             isVerified: !!userData?.isVerified,
             tier,
             hasAlchemyApiKey: hasAlchemyKey,
+            hasCustomApiKey: hasAlchemyKey,
             usage: {
                 today: usageToday,
                 limit,
                 remaining,
             },
             createdAt: userData?.createdAt,
-            profilePicture: userData?.profilePicture,
-            walletAddress: req.user.uid // return address for fallback display
+            profilePicture: userData?.profilePicture || req.user.photoURL,
+            walletAddress: userData?.walletAddress || req.user.walletAddress || null,
+            authProvider: userData?.authProvider || 'wallet'
         });
 
         //Track login (async, don't await)
@@ -86,13 +88,13 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-// Update user profile
+// Update user profile (only displayName and profilePicture, email is read-only from Google)
 router.post('/profile', async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const { displayName, email, profilePicture } = req.body;
+    const { displayName, profilePicture } = req.body;
 
     // Validate inputs
     if (displayName && displayName.length > 50) {
@@ -105,7 +107,6 @@ router.post('/profile', async (req: AuthenticatedRequest, res: Response) => {
 
         const updates: any = {};
         if (displayName) updates.displayName = displayName;
-        if (email) updates.email = email;
         if (profilePicture !== undefined) updates.profilePicture = profilePicture;
 
         // Only update if there are changes
@@ -124,6 +125,82 @@ router.post('/profile', async (req: AuthenticatedRequest, res: Response) => {
     } catch (error) {
         console.error('Profile update error:', error);
         res.status(500).json({ error: 'Failed to update profile' });
+    }
+});
+
+// NEW: Get wallet info
+router.get('/wallet', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const db = getFirestore();
+        const userRef = db.collection('users').doc(req.user.uid);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+
+        res.json({
+            walletAddress: userData?.walletAddress || null,
+            isVerified: userData?.isVerified || false,
+            linkedAt: userData?.walletLinkedAt || null
+        });
+    } catch (error) {
+        console.error('Wallet fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch wallet info' });
+    }
+});
+
+// NEW: Update wallet info (after linking via /auth/link-wallet)
+router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { walletAddress, isVerified } = req.body;
+
+    try {
+        const db = getFirestore();
+        const userRef = db.collection('users').doc(req.user.uid);
+
+        await userRef.set({
+            walletAddress: walletAddress?.toLowerCase(),
+            isVerified: isVerified || false,
+            walletLinkedAt: Date.now()
+        }, { merge: true });
+
+        res.json({
+            success: true,
+            walletAddress,
+            isVerified
+        });
+    } catch (error) {
+        console.error('Wallet update error:', error);
+        res.status(500).json({ error: 'Failed to update wallet' });
+    }
+});
+
+// NEW: Unlink wallet (soft delete - just removes the link)
+router.delete('/wallet', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const db = getFirestore();
+        const userRef = db.collection('users').doc(req.user.uid);
+        const { FieldValue } = await import('firebase-admin/firestore');
+
+        await userRef.update({
+            walletAddress: FieldValue.delete(),
+            isVerified: false,
+            walletUnlinkedAt: Date.now()
+        });
+
+        res.json({ success: true, message: 'Wallet unlinked successfully' });
+    } catch (error) {
+        console.error('Wallet unlink error:', error);
+        res.status(500).json({ error: 'Failed to unlink wallet' });
     }
 });
 

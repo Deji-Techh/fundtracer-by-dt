@@ -88,6 +88,11 @@ export async function logOut(): Promise<void> {
     }
 }
 
+// Alias for consistency
+export async function signOutFromGoogle(): Promise<void> {
+    return logOut();
+}
+
 // Get current user
 export function getCurrentUser(): User | null {
     return auth?.currentUser || null;

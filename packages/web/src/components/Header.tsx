@@ -1,5 +1,7 @@
-import { Settings, Github, Mail, Zap, MessageSquare, User } from 'lucide-react';
+import { Settings, Github, Mail, Zap, MessageSquare, User, Wallet, AlertCircle } from 'lucide-react';
 import logo from '../assets/logo.png';
+import { WalletButton } from './WalletButton';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
     onSettingsClick?: () => void;
@@ -10,8 +12,33 @@ interface HeaderProps {
 }
 
 function Header({ onSettingsClick, onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActive }: HeaderProps) {
+    const { isAuthenticated, wallet } = useAuth();
+    const showWalletBanner = isAuthenticated && !wallet?.isConnected;
+
     return (
         <header className="header">
+            {showWalletBanner && (
+                <div 
+                    className="wallet-banner"
+                    style={{
+                        background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%)',
+                        borderBottom: '1px solid rgba(245, 158, 11, 0.3)',
+                        padding: '8px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '12px',
+                        fontSize: '14px',
+                        color: '#f59e0b',
+                        animation: 'slideDown 0.3s ease-out',
+                    }}
+                >
+                    <AlertCircle size={16} />
+                    <span>Link your wallet to analyze contracts</span>
+                    <WalletButton size="sm" showIcon={false} />
+                </div>
+            )}
+            
             <div className="header-inner">
                 <div className="logo">
                     <img
@@ -34,6 +61,10 @@ function Header({ onSettingsClick, onUpgradeClick, onFeedbackClick, onProfileCli
                             <Zap size={14} /> Upgrade
                         </button>
                     )}
+                    
+                    {/* Wallet Button - Only show when authenticated */}
+                    {isAuthenticated && <WalletButton size="md" />}
+                    
                     {onFeedbackClick && (
                         <button
                             className="btn btn-ghost btn-icon"
@@ -87,5 +118,3 @@ function Header({ onSettingsClick, onUpgradeClick, onFeedbackClick, onProfileCli
 }
 
 export default Header;
-
-

@@ -24,7 +24,9 @@ export interface UserProfile {
     uid: string;
     email: string;
     name?: string;
+    displayName?: string;
     hasCustomApiKey: boolean;
+    hasAlchemyApiKey?: boolean;
     tier?: 'free' | 'pro' | 'max';
     isVerified?: boolean;
     usage: {
@@ -32,6 +34,10 @@ export interface UserProfile {
         limit: number | 'unlimited';
         remaining: number | 'unlimited';
     };
+    walletAddress?: string | null;
+    profilePicture?: string | null;
+    photoURL?: string | null;
+    authProvider?: 'google' | 'wallet';
 }
 
 // Token management
@@ -93,6 +99,32 @@ export async function loginWithWallet(address: string, signature: string, messag
     });
     setAuthToken(data.token);
     return data;
+}
+
+export async function loginWithGoogle(idToken: string): Promise<{ token: string, user: any }> {
+    const data = await apiRequest<{ token: string, user: any }>('/api/auth/google-login', 'POST', {
+        idToken
+    });
+    setAuthToken(data.token);
+    return data;
+}
+
+export async function linkWalletToGoogle(
+    idToken: string,
+    address: string,
+    signature: string,
+    message: string
+): Promise<{ success: boolean; walletAddress: string; isVerified: boolean }> {
+    return apiRequest('/api/auth/link-wallet', 'POST', {
+        idToken,
+        address,
+        signature,
+        message
+    });
+}
+
+export async function unlinkWalletFromGoogle(idToken: string): Promise<{ success: boolean }> {
+    return apiRequest('/api/auth/unlink-wallet', 'POST', { idToken });
 }
 
 // User endpoints

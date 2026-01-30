@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 // const { parseEther } = ethers; // Removed to prevent runtime crash in v6 if default export structure differs
 import { ChainId, AnalysisResult, MultiWalletResult, getEnabledChains, CHAINS } from '@fundtracer/core';
@@ -22,6 +22,9 @@ import PaymentModal from './components/PaymentModal';
 import FirstTimeModal from './components/FirstTimeModal';
 import ActionDelayOverlay from './components/ActionDelayOverlay';
 import ContractSearch from './components/ContractSearch';
+import { KeyboardShortcuts } from './components/KeyboardShortcuts';
+import { WalletGuard } from './components/WalletGuard';
+import { PoHGuard } from './components/PoHGuard';
 
 import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import ProfilePage from './components/ProfilePage';
