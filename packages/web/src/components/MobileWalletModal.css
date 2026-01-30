@@ -120,14 +120,10 @@
     transform: none;
 }
 
-.mobile-wallet-option.connecting {
-    background: rgba(34, 197, 94, 0.1);
-    border-color: rgba(34, 197, 94, 0.3);
-}
-
 .wallet-spinner {
     display: inline-block;
     animation: spin 1s linear infinite;
+    margin-right: 8px;
 }
 
 @keyframes spin {
@@ -147,9 +143,35 @@
 }
 
 .mobile-wallet-qr-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.7;
     cursor: not-allowed;
     transform: none;
+}
+
+.mobile-wallet-info {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.mobile-wallet-info span {
+    font-size: 1.25rem;
+}
+
+.mobile-wallet-info p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+}
+
+.mobile-wallet-qr-btn.connecting {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
 }
 
 .mobile-wallet-icon {

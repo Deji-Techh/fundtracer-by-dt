@@ -240,11 +240,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isOpen={showMobileModal}
                 onClose={handleMobileWalletClose}
                 onWalletConnect={handleMobileWalletConnect}
-                onSuccess={() => {
-                    // Wallet connected via mobile modal
-                    // Auto-signin will be triggered by the useEffect watching isConnected
-                    setShowMobileModal(false);
-                }}
             />
         </AuthContext.Provider>
     );
