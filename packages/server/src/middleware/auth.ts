@@ -1,23 +1,23 @@
 // ============================================================
-// Authentication Middleware - Verify Firebase ID Token
+// Authentication Middleware - Verify JWT (Wallet or Google)
 // ============================================================
 
 import express, { Response, NextFunction } from 'express';
-import { getAuth, getFirestore } from '../firebase.js';
+import { getFirestore } from '../firebase.js';
+import jwt from 'jsonwebtoken';
 
 export interface AuthenticatedRequest extends express.Request {
     user?: {
         uid: string;
-        email: string;
+        email?: string;
         name?: string;
+        walletAddress?: string;
     };
     body: any;
     params: any;
     query: any;
     headers: express.Request['headers'];
 }
-
-import jwt from 'jsonwebtoken';
 
 export async function authMiddleware(
     req: AuthenticatedRequest,
@@ -35,22 +35,31 @@ export async function authMiddleware(
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
-        const uid = decoded.address.toLowerCase();
+        
+        // Check if this is a wallet-based or Google-based auth
+        const isGoogleAuth = decoded.authProvider === 'google';
+        const uid = isGoogleAuth ? decoded.uid : decoded.address?.toLowerCase();
+        
+        if (!uid) {
+            return res.status(401).json({ error: 'Invalid token structure' });
+        }
 
-        // 1. Fetch latest user data from Firestore (Single Source of Truth)
+        // Fetch latest user data from Firestore
         const db = getFirestore();
         let userDoc;
+        
         try {
-            userDoc = await db.collection('users').doc(uid).get();
+            // For Google auth, use uid directly; for wallet auth, use address
+            const docId = isGoogleAuth ? uid : uid;
+            userDoc = await db.collection('users').doc(docId).get();
         } catch (dbError) {
             console.error('Firestore fetch failed in authMiddleware:', dbError);
-            // Fallback to JWT claims if DB fails (resilience)
             userDoc = null;
         }
 
         const userData = userDoc?.exists ? userDoc.data() : null;
 
-        // 2. Check Blacklist (Fail Closed)
+        // Check Blacklist (Fail Closed)
         if (userData?.blacklisted === true) {
             console.warn(`[AUTH] Blocked blacklisted user: ${uid}`);
             return res.status(403).json({
@@ -59,21 +68,51 @@ export async function authMiddleware(
             });
         }
 
-        // 3. Populate Request User with FRESH data
+        // Populate Request User with FRESH data
         req.user = {
             uid: uid,
-            email: userData?.email || uid,
-            name: userData?.displayName || uid.slice(0, 6) + '...' + uid.slice(-4),
+            email: userData?.email || decoded.email || uid,
+            name: userData?.displayName || decoded.name || uid.slice(0, 6) + '...' + uid.slice(-4),
+            walletAddress: userData?.walletAddress || decoded.walletAddress || null
         };
 
-        // 4. Set Locals for downstream routes (using DB values over JWT)
+        // Set Locals for downstream routes (using DB values over JWT)
         res.locals.tier = userData?.tier || decoded.tier || 'free';
-        res.locals.isVerified = userData?.pohVerified === true; // Strict boolean check
-        res.locals.usageRemaining = userData?.usage?.remaining; // Optional, logic elsewhere might handle this
+        res.locals.isVerified = userData?.isVerified === true || decoded.isVerified === true;
+        res.locals.authProvider = userData?.authProvider || decoded.authProvider || 'wallet';
+        res.locals.walletAddress = userData?.walletAddress || decoded.walletAddress || null;
 
         next();
     } catch (error) {
         console.error('Auth error:', error);
         return res.status(401).json({ error: 'Invalid authentication token' });
     }
+}
+
+// Middleware to check if wallet is linked (for Google auth users)
+export function requireWallet(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    const walletAddress = res.locals.walletAddress;
+    
+    if (!walletAddress) {
+        return res.status(403).json({
+            error: 'Wallet not linked',
+            message: 'Please link a wallet to perform this action'
+        });
+    }
+    
+    next();
+}
+
+// Middleware to check PoH verification
+export function requirePoH(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    const isVerified = res.locals.isVerified;
+    
+    if (!isVerified) {
+        return res.status(403).json({
+            error: 'Not PoH verified',
+            message: 'Your wallet is not Proof of Humanity verified. Please complete verification on Linea.'
+        });
+    }
+    
+    next();
 }
