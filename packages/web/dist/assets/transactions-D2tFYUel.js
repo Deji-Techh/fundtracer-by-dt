@@ -1,4 +1,4 @@
-import{d as f,i as a,b as d,a as p}from"./appkit-Bz4ik9Gz.js";import"./index-CtmOMkq1.js";import"./wagmi-DcZqQoR7.js";import"./vendor-DlsDZ-Ab.js";import"./firebase-CQEMoNG2.js";const m=f`
+import{d as f,i as a,b as d,a as p}from"./appkit-PPANCitZ.js";import"./index-B08Z505Y.js";import"./wagmi-DcZqQoR7.js";import"./vendor-DlsDZ-Ab.js";import"./firebase-CQEMoNG2.js";const m=f`
   :host > wui-flex:first-child {
     height: 500px;
     overflow-y: auto;
