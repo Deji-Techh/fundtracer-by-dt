@@ -46,13 +46,65 @@ const PORT = process.env.PORT || 3001;
 
 // Security middleware
 app.use(helmet({
+    crossOriginOpenerPolicy: {
+        policy: "unsafe-none" // Required for Google Sign-In popup to work
+    },
     contentSecurityPolicy: {
         directives: {
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-            "connect-src": ["'self'", "https://rpc.linea.build", "wss://relay.walletconnect.org", "https://api.web3modal.org", "https://secure.walletconnect.org", "https://*.walletconnect.com", "https://*.walletconnect.org", "https://*.rpc.linea.build"],
-            "frame-src": ["'self'", "https://secure.walletconnect.org", "verify.walletconnect.com"],
-            "img-src": ["'self'", "data:", "blob:", "https://api.web3modal.org", "https://walletconnect.org", "https://*.walletconnect.com"],
-            "script-src": ["'self'", "'unsafe-inline'"], // unsafe-inline often needed for some wallet injection scripts, refine if possible
+            "connect-src": [
+                "'self'",
+                "https://rpc.linea.build",
+                "wss://relay.walletconnect.org",
+                "https://api.web3modal.org",
+                "https://secure.walletconnect.org",
+                "https://*.walletconnect.com",
+                "https://*.walletconnect.org",
+                "https://*.rpc.linea.build",
+                "https://cca-lite.coinbase.com",
+                "https://*.coinbase.com",
+                "https://*.googleapis.com",
+                "https://*.google.com",
+                "https://fonts.reown.com",
+                "https://*.firebaseio.com",
+                "https://*.firebasedatabase.app"
+            ],
+            "frame-src": [
+                "'self'",
+                "https://secure.walletconnect.org",
+                "https://verify.walletconnect.com",
+                "https://accounts.google.com",
+                "https://*.google.com"
+            ],
+            "img-src": [
+                "'self'",
+                "data:",
+                "blob:",
+                "https://api.web3modal.org",
+                "https://walletconnect.org",
+                "https://*.walletconnect.com",
+                "https://*.googleusercontent.com",
+                "https://*.google.com",
+                "https://fonts.reown.com"
+            ],
+            "script-src": [
+                "'self'",
+                "'unsafe-inline'",
+                "https://*.google.com",
+                "https://*.googleapis.com",
+                "https://*.gstatic.com"
+            ],
+            "style-src": [
+                "'self'",
+                "'unsafe-inline'",
+                "https://fonts.googleapis.com",
+                "https://fonts.reown.com"
+            ],
+            "font-src": [
+                "'self'",
+                "https://fonts.gstatic.com",
+                "https://fonts.reown.com"
+            ]
         },
     },
 }));
