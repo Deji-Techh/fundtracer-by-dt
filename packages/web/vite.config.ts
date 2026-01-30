@@ -26,14 +26,16 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks: {
-                    'rainbowkit': ['@rainbow-me/rainbowkit', 'wagmi', 'viem'],
+                    'appkit': ['@reown/appkit', '@reown/appkit-adapter-wagmi'],
                 },
             },
         },
     },
     optimizeDeps: {
         include: [
-            '@rainbow-me/rainbowkit',
+            '@reown/appkit',
+            '@reown/appkit-adapter-wagmi',
+            '@reown/appkit-wallet-button',
             'wagmi',
             'viem',
             'ethers',
