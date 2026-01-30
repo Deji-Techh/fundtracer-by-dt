@@ -26,17 +26,16 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks: {
-                    'appkit': ['@reown/appkit', '@reown/appkit-adapter-ethers'],
+                    'rainbowkit': ['@rainbow-me/rainbowkit', 'wagmi', 'viem'],
                 },
             },
         },
     },
     optimizeDeps: {
         include: [
-            '@reown/appkit',
-            '@reown/appkit-adapter-ethers',
-            '@reown/appkit/networks',
-            '@walletconnect/universal-provider',
+            '@rainbow-me/rainbowkit',
+            'wagmi',
+            'viem',
             'ethers',
         ],
         esbuildOptions: {
