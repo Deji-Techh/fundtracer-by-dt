@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { saveAlchemyKey, removeAlchemyKey } from '../api';
 import TerminalAnimation from './TerminalAnimation';
+import { ConnectButton } from './ConnectButton';
 
 interface AuthPanelProps {
     showApiKeyForm: boolean;
@@ -14,14 +15,6 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
     const [alchemyKeyInput, setAlchemyKeyInput] = useState('');
     const [alchemyKeyError, setAlchemyKeyError] = useState('');
     const [alchemyKeySaving, setAlchemyKeySaving] = useState(false);
-
-    const handleSignIn = async () => {
-        try {
-            await signIn();
-        } catch (error: any) {
-            console.error('Sign-in error:', error);
-        }
-    };
 
     const handleSaveAlchemyKey = async () => {
         if (!alchemyKeyInput.trim()) {
@@ -93,10 +86,8 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                         Please connect your wallet to access FundTracer.
                         We require PoH verification via Linea Exponent.
                     </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                        <button className="btn btn-primary btn-lg" onClick={handleSignIn} style={{ width: '100%', justifyContent: 'center' }}>
-                            Connect Wallet
-                        </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', alignItems: 'center' }}>
+                        <ConnectButton />
                     </div>
                 </div>
             </div>
