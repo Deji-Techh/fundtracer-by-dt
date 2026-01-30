@@ -3,7 +3,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit'
+import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
 import { config } from './config/rainbow'
 import { ToastProvider } from './contexts/ToastContext'
 import { AuthProvider } from './contexts/AuthContext'
@@ -23,13 +23,13 @@ root.render(
                     appName: 'FundTracer',
                     learnMoreUrl: 'https://fundtracer.xyz',
                 }}
-                theme={{
+                theme={darkTheme({
                     accentColor: '#22c55e',
                     accentColorForeground: '#ffffff',
                     borderRadius: 'large',
                     fontStack: 'system',
                     overlayBlur: 'small',
-                }}
+                })}
             >
                 <ToastProvider>
                     <AuthProvider>
