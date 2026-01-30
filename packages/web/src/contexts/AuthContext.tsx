@@ -19,7 +19,7 @@ import {
     UserProfile
 } from '../api';
 import { useNotify } from './ToastContext';
-import { signInWithGoogle, signOutFromGoogle } from '../firebase';
+import { signInWithGoogle as firebaseSignInWithGoogle, signOutFromGoogle } from '../firebase';
 
 const AUTH_PENDING_KEY = 'fundtracer_auth_pending';
 
@@ -141,7 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         try {
             // Sign in with Firebase Google Auth
-            const googleUser = await signInWithGoogle();
+            console.log('[AuthContext] Calling firebaseSignInWithGoogle...');
+            const googleUser = await firebaseSignInWithGoogle();
             
             if (!googleUser) {
                 throw new Error('Google sign-in failed');
@@ -184,7 +185,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             notify.success('Successfully signed in with Google!');
             sessionStorage.removeItem(AUTH_PENDING_KEY);
         } catch (error: any) {
-            console.error('Google sign-in error:', error);
+            console.error('[AuthContext] Google sign-in error details:', {
+                error: error,
+                code: error.code,
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             
             const isUserRejection =
                 error.code === 'auth/popup-closed-by-user' ||
@@ -193,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 error.message?.includes('closed');
 
             if (!isUserRejection) {
-                notify.error(`Sign-in failed: ${error.message || 'Unknown error'}`);
+                notify.error(`Sign-in failed: ${error.message || error.code || 'Unknown error'}`);
             }
 
             sessionStorage.removeItem(AUTH_PENDING_KEY);
