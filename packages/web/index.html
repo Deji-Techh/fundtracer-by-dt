@@ -8,39 +8,6 @@
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0a0a0f" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Content Security Policy - Updated for RainbowKit wallet connections -->
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.googleapis.com;
-    font-src 'self' https://fonts.gstatic.com https://*.googleapis.com https://fonts.reown.com;
-    img-src 'self' data: blob: https: http:;
-    connect-src 'self' 
-      https://*.walletconnect.org 
-      https://*.walletconnect.com 
-      wss://*.walletconnect.org 
-      wss://*.walletconnect.com 
-      https://api.web3modal.org
-      https://eth.merkle.io 
-      https://*.infura.io 
-      https://*.alchemy.com 
-      https://cloudflare-eth.com 
-      https://rpc.ankr.com 
-      https://*.coinbase.com 
-      https://api.etherscan.io 
-      https://api.lineascan.build
-      https://*.googleapis.com
-      https://*.firebaseio.com
-      https://*.firebaseapp.com
-      https://fundtracer-api.onrender.com
-      https://localhost:3001
-      http://localhost:3001;
-    frame-src 'self' https://*.walletconnect.com https://*.coinbase.com;
-    manifest-src 'self';
-    media-src 'self';
-    object-src 'none';
-    worker-src 'self' blob:;
-  ">
   <meta name="description"
     content="FundTracer by DT - Blockchain wallet analysis tool for tracing funds, detecting suspicious activity, and visualizing wallet relationships across EVM chains." />
   <meta name="keywords" content="blockchain, wallet, analysis, ethereum, funding, sybil, detection" />
