@@ -7,12 +7,7 @@ import React, {
     useCallback,
     useRef
 } from 'react';
-import {
-    useAppKit,
-    useAppKitAccount,
-    useAppKitProvider,
-    useDisconnect
-} from '@reown/appkit/react';
+import { useAccount, useConnect, useDisconnect, useConnectorClient } from 'wagmi';
 import { ethers } from 'ethers';
 import {
     getProfile,
@@ -21,8 +16,7 @@ import {
     getAuthToken,
     UserProfile
 } from '../api';
-import { useIsMobile } from '../hooks/useIsMobile';
-import MobileWalletModal from '../components/MobileWalletModal';
+import { useNotify } from './ToastContext';
 
 const AUTH_PENDING_KEY = 'fundtracer_auth_pending';
 
@@ -34,6 +28,7 @@ interface AuthContextType {
     signOut: () => Promise<void>;
     refreshProfile: () => Promise<void>;
     getSigner: () => Promise<ethers.Signer>;
+    isWalletConnected: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,17 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<{ address: string } | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
-    const [showMobileModal, setShowMobileModal] = useState(false);
     const signInInProgress = useRef(false);
+    const notify = useNotify();
 
-    // Mobile detection hook
-    const isMobile = useIsMobile();
-
-    // Reown AppKit hooks
-    const { open } = useAppKit();
-    const { address, isConnected } = useAppKitAccount();
-    const { walletProvider } = useAppKitProvider('eip155');
+    // RainbowKit/Wagmi hooks
+    const { address, isConnected } = useAccount();
+    const { connect } = useConnect();
     const { disconnect } = useDisconnect();
+    const { data: connectorClient } = useConnectorClient();
 
     // Check existing auth on mount
     useEffect(() => {
@@ -78,11 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
 
         try {
-            if (!walletProvider || !address) {
+            if (!connectorClient || !address) {
                 throw new Error('Wallet not connected');
             }
 
-            const provider = new ethers.BrowserProvider(walletProvider as any);
+            // Get provider from connector client
+            const provider = new ethers.BrowserProvider(connectorClient as any);
             const signer = await provider.getSigner();
             const walletAddress = await signer.getAddress();
 
@@ -100,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 tier: loginResponse.user.tier
             });
 
+            notify.success('Successfully signed in!');
             sessionStorage.removeItem(AUTH_PENDING_KEY);
         } catch (error: any) {
             const isUserRejection =
@@ -110,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 error.message?.includes('user denied');
 
             if (!isUserRejection) {
-                alert(`Login failed: ${error.message || 'Unknown error'}`);
+                notify.error(`Login failed: ${error.message || 'Unknown error'}`);
             }
 
             sessionStorage.removeItem(AUTH_PENDING_KEY);
@@ -118,16 +112,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
             signInInProgress.current = false;
         }
-    }, [walletProvider, address]);
+    }, [connectorClient, address, notify]);
 
     // Check for pending auth on mount (for mobile redirect recovery)
     useEffect(() => {
         const pendingAuth = sessionStorage.getItem(AUTH_PENDING_KEY);
-        if (pendingAuth && isConnected && walletProvider && address && !signInInProgress.current && !user) {
+        if (pendingAuth && isConnected && connectorClient && address && !signInInProgress.current && !user) {
             sessionStorage.removeItem(AUTH_PENDING_KEY);
             completeSignIn();
         }
-    }, [isConnected, walletProvider, address, completeSignIn, user]);
+    }, [isConnected, connectorClient, address, completeSignIn, user]);
 
     // Auto sign-in when wallet is connected but user is not authenticated
     useEffect(() => {
@@ -141,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (user) return;
 
         // Already connected - complete sign in immediately
-        if (isConnected && walletProvider && address) {
+        if (isConnected && connectorClient && address) {
             await completeSignIn();
             return;
         }
@@ -151,34 +145,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
 
         try {
-            if (isMobile) {
-                // Show mobile wallet modal with deep links
-                console.log('[AuthContext] Mobile detected, showing wallet selection modal');
-                setShowMobileModal(true);
-                setLoading(false);
-            } else {
-                // Desktop: Open Reown AppKit modal
-                console.log('[AuthContext] Desktop detected, opening AppKit modal');
-                await open();
-            }
+            // RainbowKit handles both desktop and mobile automatically
+            console.log('[AuthContext] Opening RainbowKit connect modal');
+            // The modal will be triggered by RainbowKit's ConnectButton
+            // or by calling connect() from useConnect
         } catch (error) {
             sessionStorage.removeItem(AUTH_PENDING_KEY);
             setLoading(false);
         }
-    };
-
-    const handleMobileWalletClose = () => {
-        setShowMobileModal(false);
-        if (!isConnected) {
-            sessionStorage.removeItem(AUTH_PENDING_KEY);
-            setLoading(false);
-        }
-    };
-
-    const handleMobileWalletConnect = () => {
-        // User chose to use WalletConnect QR instead of direct app link
-        setShowMobileModal(false);
-        open();
     };
 
     const signOut = async () => {
@@ -195,9 +169,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 Object.keys(localStorage).forEach(key => {
                     if (
                         key.startsWith('wc@2:') ||
-                        key.startsWith('W3M_') ||
-                        key.startsWith('@w3m/') ||
-                        key.startsWith('@appkit/') ||
                         key.startsWith('wagmi') ||
                         key.includes('walletconnect')
                     ) {
@@ -206,6 +177,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 });
             }
         } catch { }
+
+        notify.success('Signed out successfully');
     };
 
     const refreshProfile = async () => {
@@ -217,13 +190,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const getSigner = useCallback(async (): Promise<ethers.Signer> => {
-        if (!walletProvider || !address) {
+        if (!connectorClient || !address) {
             throw new Error('Wallet not connected');
         }
 
-        const provider = new ethers.BrowserProvider(walletProvider as any);
+        const provider = new ethers.BrowserProvider(connectorClient as any);
         return provider.getSigner();
-    }, [walletProvider, address]);
+    }, [connectorClient, address]);
 
     return (
         <AuthContext.Provider value={{
@@ -233,14 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             signIn,
             signOut,
             refreshProfile,
-            getSigner
+            getSigner,
+            isWalletConnected: isConnected
         }}>
             {children}
-            <MobileWalletModal
-                isOpen={showMobileModal}
-                onClose={handleMobileWalletClose}
-                onWalletConnect={handleMobileWalletConnect}
-            />
         </AuthContext.Provider>
     );
 }
