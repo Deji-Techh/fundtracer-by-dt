@@ -1,0 +1,166 @@
+.mobile-wallet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.mobile-wallet-modal {
+    background: #1a1a24;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-wallet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.mobile-wallet-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #ffffff;
+}
+
+.mobile-wallet-close {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.mobile-wallet-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-wallet-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 0.875rem;
+}
+
+.mobile-wallet-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.mobile-wallet-option {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #ffffff;
+}
+
+.mobile-wallet-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.mobile-wallet-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.mobile-wallet-icon {
+    font-size: 2rem;
+}
+
+.mobile-wallet-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.mobile-wallet-divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.875rem;
+}
+
+.mobile-wallet-divider::before,
+.mobile-wallet-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-wallet-divider span {
+    padding: 0 16px;
+}
+
+.mobile-wallet-qr-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    border: none;
+    border-radius: 12px;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+}
+
+.mobile-wallet-qr-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.mobile-wallet-qr-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.mobile-wallet-hint {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+    margin: 0;
+}
+
+.mobile-wallet-hint a {
+    color: #22c55e;
+    text-decoration: none;
+}
+
+.mobile-wallet-hint a:hover {
+    text-decoration: underline;
+}
