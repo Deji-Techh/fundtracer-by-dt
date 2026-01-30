@@ -1,50 +1,59 @@
-import { useAppKit, useAppKitState } from '@reown/appkit/react';
+import { useAppKit } from '@reown/appkit/react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function ConnectButton() {
     const { open } = useAppKit();
-    const { initialized, loading: appKitLoading } = useAppKitState();
-    const { user, signOut, loading: authLoading } = useAuth();
-
-    const isLoading = authLoading || appKitLoading;
+    const { user, signOut } = useAuth();
 
     if (user) {
         return (
             <button
                 onClick={() => signOut()}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white font-medium transition-colors"
+                style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    borderRadius: '6px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 500
+                }}
             >
                 Disconnect {user.address.slice(0, 6)}...
             </button>
         );
     }
 
-    const handleClick = () => {
-        console.log('[ConnectButton] Clicked!');
-        console.log('[ConnectButton] AppKit initialized:', initialized);
+    const handleClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('[ConnectButton] CLICKED!');
         
-        if (!initialized) {
-            console.warn('[ConnectButton] AppKit not initialized yet!');
-            return;
-        }
-
         try {
-            console.log('[ConnectButton] Opening AppKit modal...');
             open();
-            console.log('[ConnectButton] open() called successfully');
+            console.log('[ConnectButton] open() called');
         } catch (error) {
-            console.error('[ConnectButton] Error opening modal:', error);
-            alert('Error opening wallet modal. Please try again.');
+            console.error('[ConnectButton] Error:', error);
         }
     };
 
     return (
         <button
             onClick={handleClick}
-            disabled={isLoading || !initialized}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+                padding: '8px 16px',
+                backgroundColor: '#16a34a',
+                color: 'white',
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 500,
+                pointerEvents: 'auto',
+                position: 'relative',
+                zIndex: 100
+            }}
         >
-            {isLoading ? 'Loading...' : !initialized ? 'Initializing...' : 'Connect Wallet'}
+            Connect Wallet
         </button>
     );
 }
