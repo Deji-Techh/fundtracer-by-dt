@@ -11,6 +11,7 @@ export interface AuthenticatedRequest extends express.Request {
         uid: string;
         email?: string;
         name?: string;
+        photoURL?: string;
         walletAddress?: string;
     };
     body: any;
@@ -73,6 +74,7 @@ export async function authMiddleware(
             uid: uid,
             email: userData?.email || decoded.email || uid,
             name: userData?.displayName || decoded.name || uid.slice(0, 6) + '...' + uid.slice(-4),
+            photoURL: userData?.photoURL || decoded.photoURL || null,
             walletAddress: userData?.walletAddress || decoded.walletAddress || null
         };
 
