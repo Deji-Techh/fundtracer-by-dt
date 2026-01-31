@@ -114,6 +114,7 @@ def get_user_input():
     # Firebase Web Config (from .env)
     env_vars['VITE_FIREBASE_API_KEY'] = "AIzaSyDIHXSDeSzIlnCEzAYOB9TjO5whGn__i8o"
     env_vars['VITE_FIREBASE_AUTH_DOMAIN'] = "fundtracer-by-dt.firebaseapp.com"
+    env_vars['VITE_FIREBASE_PROJECT_ID'] = env_vars['FIREBASE_PROJECT_ID']
     env_vars['VITE_FIREBASE_STORAGE_BUCKET'] = "fundtracer-by-dt.firebasestorage.app"
     env_vars['VITE_FIREBASE_MESSAGING_SENDER_ID'] = "486546370849"
     env_vars['VITE_FIREBASE_APP_ID'] = "1:486546370849:web:b040790b3fdc0a47bbce60"
