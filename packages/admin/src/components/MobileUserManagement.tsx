@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../firebase';
-import { doc, updateDoc, setDoc, collection } from 'firebase/firestore';
 import { Search, Edit2, Ban, CheckCircle, XCircle } from 'lucide-react';
 
 interface User {
@@ -22,7 +20,7 @@ interface Props {
 }
 
 export default function MobileUserManagement({ onUserUpdated }: Props) {
-    const { user } = useAuth();
+    const { token } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +33,6 @@ export default function MobileUserManagement({ onUserUpdated }: Props) {
     const loadUsers = async () => {
         try {
             setLoading(true);
-            const token = await user?.getIdToken();
             if (!token) return;
 
             const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/users`, {
@@ -72,15 +69,18 @@ export default function MobileUserManagement({ onUserUpdated }: Props) {
 
     const handleChangeTier = async (userId: string, newTier: 'free' | 'pro' | 'max') => {
         try {
-            await updateDoc(doc(db, 'users', userId), { tier: newTier });
-
-            // Log admin action
-            await setDoc(doc(collection(db, 'admin_actions')), {
-                action: 'tier_change',
-                userId,
-                newTier,
-                timestamp: Date.now(),
+            if (!token) return;
+            
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/users/${userId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ tier: newTier })
             });
+
+            if (!response.ok) throw new Error('Failed to update tier');
 
             await loadUsers();
             onUserUpdated();
@@ -102,14 +102,17 @@ export default function MobileUserManagement({ onUserUpdated }: Props) {
         if (!confirmed) return;
 
         try {
-            await updateDoc(doc(db, 'users', userId), { blacklisted: !currentStatus });
-
-            // Log admin action
-            await setDoc(doc(collection(db, 'admin_actions')), {
-                action: currentStatus ? 'unblacklist' : 'blacklist',
-                userId,
-                timestamp: Date.now(),
+            if (!token) return;
+            
+            const endpoint = currentStatus ? 'unban' : 'ban';
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/users/${userId}/${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
+
+            if (!response.ok) throw new Error('Failed to update blacklist status');
 
             await loadUsers();
             onUserUpdated();
@@ -122,14 +125,18 @@ export default function MobileUserManagement({ onUserUpdated }: Props) {
 
     const handleTogglePoH = async (userId: string, currentStatus: boolean) => {
         try {
-            await updateDoc(doc(db, 'users', userId), { pohVerified: !currentStatus });
-
-            // Log admin action
-            await setDoc(doc(collection(db, 'admin_actions')), {
-                action: currentStatus ? 'poh_unverify' : 'poh_verify',
-                userId,
-                timestamp: Date.now(),
+            if (!token) return;
+            
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/users/${userId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ pohVerified: !currentStatus })
             });
+
+            if (!response.ok) throw new Error('Failed to update PoH status');
 
             await loadUsers();
             onUserUpdated();

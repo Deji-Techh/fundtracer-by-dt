@@ -34,7 +34,7 @@ export interface FeatureUsage {
 }
 
 export default function MobileDashboard() {
-    const { user, logout } = useAuth();
+    const { logout, token } = useAuth();
     const [stats, setStats] = useState<DashboardStats>({
         totalVisitors: 0,
         activeUsers: 0,
@@ -63,15 +63,13 @@ export default function MobileDashboard() {
 
     useEffect(() => {
         loadDashboardData();
-    }, []);
+    }, [token]);
 
     const loadDashboardData = async () => {
         try {
             console.log('[MobileDashboard] Starting data load via API...');
             setLoading(true);
 
-            // Get current user token
-            const token = await user?.getIdToken();
             if (!token) {
                 console.error('No auth token available');
                 return;

@@ -34,7 +34,7 @@ export interface FeatureUsage {
 }
 
 export default function Dashboard() {
-    const { user, logout } = useAuth();
+    const { user, logout, token } = useAuth();
     const [stats, setStats] = useState<DashboardStats>({
         totalVisitors: 0,
         activeUsers: 0,
@@ -63,15 +63,13 @@ export default function Dashboard() {
 
     useEffect(() => {
         loadDashboardData();
-    }, []);
+    }, [token]);
 
     const loadDashboardData = async () => {
         try {
             console.log('[Dashboard] Starting data load via API...');
             setLoading(true);
 
-            // Get current user token
-            const token = await user?.getIdToken();
             if (!token) {
                 console.error('No auth token available');
                 return;
@@ -125,7 +123,7 @@ export default function Dashboard() {
                     <div>
                         <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700 }}>FundTracer Admin</h1>
                         <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)' }}>
-                            Welcome back, {user?.displayName || user?.email}
+                            Welcome back, {user?.username || user?.email}
                         </p>
                     </div>
 
