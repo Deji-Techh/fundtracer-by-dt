@@ -25,6 +25,7 @@ export interface UserProfile {
     email: string;
     name?: string;
     displayName?: string;
+    username?: string;
     hasCustomApiKey: boolean;
     hasAlchemyApiKey?: boolean;
     tier?: 'free' | 'pro' | 'max';
@@ -37,7 +38,7 @@ export interface UserProfile {
     walletAddress?: string | null;
     profilePicture?: string | null;
     photoURL?: string | null;
-    authProvider?: 'google' | 'wallet';
+    authProvider?: 'email' | 'google' | 'wallet';
 }
 
 // Token management
@@ -70,27 +71,15 @@ async function apiRequest<T>(
         body: body ? JSON.stringify(body) : undefined,
     });
 
-    const text = await response.text();
-    let data;
-    try {
-        data = JSON.parse(text);
-    } catch (e) {
-        console.error('API Parse Error:', text);
-        throw new Error(`Server returned invalid response (Status ${response.status}): ${text.slice(0, 50)}...`);
-    }
-
     if (!response.ok) {
-        if (response.status === 401) {
-            removeAuthToken();
-            window.location.reload(); // Force re-login
-        }
-        const errorMessage = data.details || data.message || data.error || 'Request failed';
-        throw new Error(errorMessage);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error: ${response.status}`);
     }
 
-    return data;
+    return response.json();
 }
 
+// Authentication endpoints
 export async function loginWithWallet(address: string, signature: string, message: string): Promise<{ token: string, user: any }> {
     const data = await apiRequest<{ token: string, user: any }>('/api/auth/login', 'POST', {
         address,
@@ -127,16 +116,66 @@ export async function unlinkWalletFromGoogle(idToken: string): Promise<{ success
     return apiRequest('/api/auth/unlink-wallet', 'POST', { idToken });
 }
 
+// NEW: Email/Password Authentication
+export async function completeRegistration(
+    uid: string,
+    username: string,
+    password: string,
+    keepSignedIn: boolean
+): Promise<{ token: string; user: any }> {
+    const data = await apiRequest<{ token: string; user: any }>('/api/auth/register/complete', 'POST', {
+        uid,
+        username,
+        password,
+        keepSignedIn
+    });
+    setAuthToken(data.token);
+    return data;
+}
+
+export async function checkUsername(username: string): Promise<{ available: boolean; reason?: string }> {
+    return apiRequest(`/api/auth/check-username/${username}`, 'GET');
+}
+
+export async function loginWithUsername(
+    username: string,
+    password: string,
+    keepSignedIn: boolean
+): Promise<{ token: string; user: any }> {
+    const data = await apiRequest<{ token: string; user: any }>('/api/auth/login/email', 'POST', {
+        username,
+        password,
+        keepSignedIn
+    });
+    setAuthToken(data.token);
+    return data;
+}
+
+export async function linkWalletToAccount(
+    uid: string,
+    address: string,
+    signature: string,
+    message: string
+): Promise<{ success: boolean; token: string; walletAddress: string; isVerified: boolean }> {
+    const data = await apiRequest<{ success: boolean; token: string; walletAddress: string; isVerified: boolean }>(
+        '/api/auth/link-wallet',
+        'POST',
+        { uid, address, signature, message }
+    );
+    setAuthToken(data.token);
+    return data;
+}
+
+export async function unlinkWalletFromAccount(uid: string): Promise<{ success: boolean }> {
+    return apiRequest('/api/auth/unlink-wallet', 'POST', { uid });
+}
+
 // User endpoints
 export async function getProfile(): Promise<UserProfile> {
     return apiRequest('/api/user/profile');
 }
 
-export async function updateProfile(data: { displayName?: string; email?: string }): Promise<{ success: boolean; user: UserProfile }> {
-    return apiRequest('/api/user/profile', 'POST', data);
-}
-
-// Alchemy API key management
+// Alchemy API Key management
 export async function saveAlchemyKey(apiKey: string): Promise<{ success: boolean; message: string }> {
     return apiRequest('/api/user/alchemy-api-key', 'POST', { apiKey });
 }
@@ -183,73 +222,33 @@ export async function loadMoreTransactions(
 
 export async function compareWallets(
     addresses: string[],
-    chain: ChainId,
-    options?: any
+    chain: ChainId
 ): Promise<ApiResponse<MultiWalletResult>> {
-    return apiRequest('/api/analyze/compare', 'POST', { addresses, chain, options });
+    return apiRequest('/api/analyze/compare', 'POST', { addresses, chain });
 }
 
 export async function analyzeContract(
-    contractAddress: string,
-    chain: ChainId,
-    options?: any
+    address: string,
+    chain: ChainId
 ): Promise<ApiResponse<any>> {
-    return apiRequest('/api/analyze/contract', 'POST', { contractAddress, chain, options });
+    return apiRequest('/api/analyze/contract', 'POST', { address, chain });
 }
 
-export async function analyzeSybil(
-    contractAddress: string,
-    chain: ChainId,
-    options?: { maxInteractors?: number; minClusterSize?: number }
-): Promise<ApiResponse<any>> {
-    return apiRequest('/api/analyze/sybil', 'POST', { contractAddress, chain, options });
+// Contract endpoints
+export async function searchContract(query: string): Promise<{ address: string | null; name: string | null }> {
+    return apiRequest('/api/contracts/search', 'POST', { query });
 }
 
-/** Analyze a list of addresses directly (paste from Dune) */
-export async function analyzeSybilAddresses(
-    addresses: string[],
-    chain: ChainId,
-    options?: { minClusterSize?: number }
-): Promise<ApiResponse<any>> {
-    return apiRequest('/api/analyze/sybil-addresses', 'POST', { addresses, chain, options });
+export async function getContractInfo(address: string, chain: ChainId): Promise<any> {
+    return apiRequest('/api/contracts/info', 'POST', { address, chain });
 }
 
-/** Fetch contract interactors from Dune Analytics */
-export async function fetchDuneInteractors(
-    contractAddress: string,
-    chain: ChainId,
-    options?: { limit?: number; customApiKey?: string }
-): Promise<{ success: boolean; wallets?: string[]; count?: number; error?: string }> {
-    return apiRequest('/api/dune/fetch', 'POST', {
-        contractAddress,
-        chain,
-        limit: options?.limit || 1000,
-        customApiKey: options?.customApiKey,
-    });
+// Sybil detection
+export async function checkSybil(address: string): Promise<{ isSybil: boolean; confidence: number; reasons: string[] }> {
+    return apiRequest('/api/analyze/sybil', 'POST', { address });
 }
 
-/** Look up contract info by address */
-export async function lookupContract(
-    address: string
-): Promise<{ success: boolean; address: string; name?: string; type?: string; symbol?: string; isKnown: boolean }> {
-    return apiRequest(`/api/contracts/lookup/${address}`);
-}
-
-/** Batch lookup multiple contract addresses */
-export async function batchLookupContracts(
-    addresses: string[]
-): Promise<{ success: boolean; contracts: Record<string, any>; total: number }> {
-    return apiRequest('/api/contracts/batch', 'POST', { addresses });
-}
-
-/** Search contracts by name */
-export async function searchContracts(
-    query: string
-): Promise<{ success: boolean; results: Array<{ address: string; name: string; type: string }>; total: number }> {
-    return apiRequest(`/api/contracts/search?q=${encodeURIComponent(query)}`);
-}
-
-/** Trigger contract database refresh (admin) */
-export async function refreshContracts(): Promise<{ success: boolean; added: number; total: number }> {
-    return apiRequest('/api/contracts/refresh', 'POST');
+// Dune Analytics
+export async function getDuneMetrics(metric: string, params?: any): Promise<any> {
+    return apiRequest('/api/dune/metrics', 'POST', { metric, params });
 }
