@@ -55,8 +55,9 @@ export async function createDefaultAdmin(): Promise<void> {
 // Admin Login
 router.post('/auth/login', async (req: Request, res: Response) => {
   const { username, password } = req.body;
-  console.log(`[ADMIN] Login attempt: ${username}`);
+  console.log(`[ADMIN] Login attempt v2: ${username}`);
   console.log(`[ADMIN] Request body:`, req.body);
+  console.log(`[ADMIN] Headers:`, req.headers['content-type']);
 
   if (!username || !password) {
     console.log(`[ADMIN] Missing credentials: username=${!!username}, password=${!!password}`);
