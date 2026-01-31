@@ -1,18 +1,21 @@
 /**
  * Firebase Client Authentication Module
- * Handles Google Sign-in and user session management.
+ * Handles Email/Password authentication with email verification.
  */
 
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import {
     getAuth,
-    signInWithPopup,
-    GoogleAuthProvider,
-    GithubAuthProvider,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    sendEmailVerification,
+    applyActionCode,
+    checkActionCode,
     signOut,
     onAuthStateChanged,
     User,
-    Auth
+    Auth,
+    ActionCodeSettings
 } from 'firebase/auth';
 
 // Build Firebase config from environment variables
@@ -40,20 +43,13 @@ const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId;
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
-let googleProvider: GoogleAuthProvider | null = null;
 
 if (isConfigValid) {
     try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
-        googleProvider = new GoogleAuthProvider();
-        googleProvider.setCustomParameters({ 
-            prompt: 'select_account',
-            access_type: 'online'
-        });
         console.log('[Firebase] Initialized successfully');
         console.log('[Firebase] Auth instance:', !!auth);
-        console.log('[Firebase] Provider instance:', !!googleProvider);
     } catch (err) {
         console.error('[Firebase] Initialization failed:', err);
     }
@@ -64,80 +60,148 @@ if (isConfigValid) {
     });
 }
 
-// Sign in with Google
-export async function signInWithGoogle(): Promise<User | null> {
-    console.log('[Firebase] Attempting Google sign-in...');
+// Create user with email and password
+export async function registerWithEmail(email: string, password: string): Promise<User | null> {
+    console.log('[Firebase] Registering with email...');
     
-    if (!auth || !googleProvider) {
-        console.error('[Firebase] Auth or provider not initialized:', {
-            hasAuth: !!auth,
-            hasProvider: !!googleProvider,
-            isConfigValid
-        });
-        throw new Error('Firebase not initialized - check console for details');
+    if (!auth) {
+        console.error('[Firebase] Auth not initialized');
+        throw new Error('Firebase not initialized');
     }
-    
-    // Check for popup blockers
-    const testPopup = window.open('', '_blank', 'width=1,height=1');
-    if (!testPopup || testPopup.closed || typeof testPopup.closed === 'undefined') {
-        console.error('[Firebase] Popup appears to be blocked by browser');
-        throw new Error('Popup blocked by browser. Please allow popups for this site.');
-    }
-    testPopup.close();
-    console.log('[Firebase] Popups appear to be allowed');
     
     try {
-        console.log('[Firebase] Opening popup...');
-        console.log('[Firebase] Current domain:', window.location.origin);
-        console.log('[Firebase] Current URL:', window.location.href);
-        
-        const result = await signInWithPopup(auth, googleProvider);
-        console.log('[Firebase] Sign-in successful:', result.user?.email);
-        return result.user;
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        console.log('[Firebase] User created:', userCredential.user?.uid);
+        return userCredential.user;
     } catch (error: any) {
-        // Log detailed error info
-        console.error('[Firebase] Sign-in failed:', {
+        console.error('[Firebase] Registration error:', {
             code: error.code,
-            message: error.message,
-            customData: error.customData,
-            fullError: error
+            message: error.message
         });
         
-        // Specific error handling with user-friendly messages
-        if (error.code === 'auth/popup-blocked') {
-            throw new Error('Popup blocked by browser. Please allow popups for this site.');
-        } else if (error.code === 'auth/popup-closed-by-user') {
-            throw new Error('Sign-in cancelled. You closed the popup.');
-        } else if (error.code === 'auth/cancelled-popup-request') {
-            throw new Error('Multiple popups opened. Please try again.');
-        } else if (error.code === 'auth/invalid-client-id') {
-            throw new Error('Invalid OAuth client ID. Check Google Cloud Console settings.');
-        } else if (error.code === 'auth/unauthorized-domain') {
-            throw new Error('Domain not authorized. Add ' + window.location.host + ' to Firebase authorized domains.');
-        } else if (error.message?.includes('COOP')) {
-            throw new Error('Cross-Origin-Opener-Policy error. Check server headers.');
-        } else if (error.code === 'auth/network-request-failed') {
-            throw new Error('Network error. Check your internet connection.');
+        if (error.code === 'auth/email-already-in-use') {
+            throw new Error('Email already registered');
+        } else if (error.code === 'auth/invalid-email') {
+            throw new Error('Invalid email address');
+        } else if (error.code === 'auth/weak-password') {
+            throw new Error('Password is too weak');
         }
         
-        // Re-throw with full details for debugging
         throw error;
     }
 }
 
-// Sign in with GitHub
-export async function signInWithGithub(): Promise<User | null> {
+// Sign in with email and password
+export async function signInWithEmail(email: string, password: string): Promise<User | null> {
+    console.log('[Firebase] Signing in with email...');
+    
     if (!auth) {
-        console.error('Firebase not initialized');
-        return null;
+        console.error('[Firebase] Auth not initialized');
+        throw new Error('Firebase not initialized');
     }
+    
     try {
-        const githubProvider = new GithubAuthProvider();
-        const result = await signInWithPopup(auth, githubProvider);
-        return result.user;
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        console.log('[Firebase] Sign-in successful:', userCredential.user?.email);
+        return userCredential.user;
     } catch (error: any) {
-        console.error('GitHub Sign-in error:', error);
+        console.error('[Firebase] Sign-in error:', {
+            code: error.code,
+            message: error.message
+        });
+        
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            throw new Error('Invalid email or password');
+        } else if (error.code === 'auth/invalid-email') {
+            throw new Error('Invalid email address');
+        } else if (error.code === 'auth/user-disabled') {
+            throw new Error('Account disabled');
+        }
+        
         throw error;
+    }
+}
+
+// Send email verification
+export async function sendVerificationEmail(user: User): Promise<void> {
+    console.log('[Firebase] Sending verification email...');
+    
+    if (!auth) {
+        throw new Error('Firebase not initialized');
+    }
+    
+    try {
+        const actionCodeSettings: ActionCodeSettings = {
+            url: `${window.location.origin}/verify-email?mode=verifyEmail`,
+            handleCodeInApp: true
+        };
+        
+        await sendEmailVerification(user, actionCodeSettings);
+        console.log('[Firebase] Verification email sent');
+    } catch (error: any) {
+        console.error('[Firebase] Failed to send verification email:', error);
+        throw new Error('Failed to send verification email');
+    }
+}
+
+// Verify email with action code
+export async function verifyEmail(actionCode: string): Promise<string | null> {
+    console.log('[Firebase] Verifying email...');
+    
+    if (!auth) {
+        throw new Error('Firebase not initialized');
+    }
+    
+    try {
+        // Check the action code first
+        const info = await checkActionCode(auth, actionCode);
+        console.log('[Firebase] Action code info:', info);
+        
+        // Apply the verification
+        await applyActionCode(auth, actionCode);
+        console.log('[Firebase] Email verified successfully');
+        
+        // Reload user to get updated emailVerified status
+        if (auth.currentUser) {
+            await auth.currentUser.reload();
+            return auth.currentUser.email;
+        }
+        
+        return null;
+    } catch (error: any) {
+        console.error('[Firebase] Email verification error:', {
+            code: error.code,
+            message: error.message
+        });
+        
+        if (error.code === 'auth/invalid-action-code') {
+            throw new Error('Invalid or expired verification link');
+        }
+        
+        throw error;
+    }
+}
+
+// Send password reset email
+export async function sendPasswordReset(email: string): Promise<void> {
+    console.log('[Firebase] Sending password reset email...');
+    
+    if (!auth) {
+        throw new Error('Firebase not initialized');
+    }
+    
+    try {
+        const { sendPasswordResetEmail } = await import('firebase/auth');
+        const actionCodeSettings: ActionCodeSettings = {
+            url: `${window.location.origin}/login`,
+            handleCodeInApp: false
+        };
+        
+        await sendPasswordResetEmail(auth, email, actionCodeSettings);
+        console.log('[Firebase] Password reset email sent');
+    } catch (error: any) {
+        console.error('[Firebase] Password reset error:', error);
+        // Don't reveal if email exists
     }
 }
 
@@ -146,15 +210,11 @@ export async function logOut(): Promise<void> {
     if (!auth) return;
     try {
         await signOut(auth);
+        console.log('[Firebase] Signed out');
     } catch (error) {
         console.error('Sign-out error:', error);
         throw error;
     }
-}
-
-// Alias for consistency
-export async function signOutFromGoogle(): Promise<void> {
-    return logOut();
 }
 
 // Get current user
@@ -173,6 +233,11 @@ export async function getIdToken(): Promise<string | null> {
         console.error('Token error:', error);
         return null;
     }
+}
+
+// Check if email is verified
+export function isEmailVerified(): boolean {
+    return auth?.currentUser?.emailVerified || false;
 }
 
 // Subscribe to auth state changes

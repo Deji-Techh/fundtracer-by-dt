@@ -2,25 +2,88 @@ import { useAuth } from '../contexts/AuthContext';
 import { saveAlchemyKey, removeAlchemyKey } from '../api';
 import TerminalAnimation from './TerminalAnimation';
 import { useState } from 'react';
-import { Chrome, Mail, Wallet, ArrowRight } from 'lucide-react';
+import { Mail, User, Lock, Wallet, LogIn, UserPlus } from 'lucide-react';
 
 interface AuthPanelProps {
     showApiKeyForm: boolean;
     setShowApiKeyForm: (show: boolean) => void;
 }
 
+type ViewState = 'landing' | 'signup-email' | 'signup-verified' | 'signin';
+
 function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
-    const { user, profile, loading, signInWithGoogle, signOut, refreshProfile, isAuthenticated } = useAuth();
+    const {
+        user,
+        profile,
+        isAuthenticated,
+        loading,
+        registerWithEmail,
+        sendEmailVerification,
+        completeRegistration,
+        loginWithUsername,
+        signOut,
+        connectWallet
+    } = useAuth();
+
+    const [view, setView] = useState<ViewState>('landing');
+    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [keepSignedIn, setKeepSignedIn] = useState(false);
+    const [authError, setAuthError] = useState('');
+    const [authLoading, setAuthLoading] = useState(false);
+    const [verificationSent, setVerificationSent] = useState(false);
 
     const [alchemyKeyInput, setAlchemyKeyInput] = useState('');
     const [alchemyKeyError, setAlchemyKeyError] = useState('');
     const [alchemyKeySaving, setAlchemyKeySaving] = useState(false);
 
-    const handleGoogleSignIn = async () => {
+    const handleRegisterInit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email.trim() || !password.trim()) return;
+
+        setAuthLoading(true);
+        setAuthError('');
+
         try {
-            await signInWithGoogle();
+            await registerWithEmail(email.trim(), password);
+            setVerificationSent(true);
         } catch (error: any) {
-            console.error('Google sign-in error:', error);
+            setAuthError(error.message || 'Failed to initiate registration');
+        } finally {
+            setAuthLoading(false);
+        }
+    };
+
+    const handleCompleteRegistration = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!username.trim() || !password.trim() || !user?.uid) return;
+
+        setAuthLoading(true);
+        setAuthError('');
+
+        try {
+            await completeRegistration(user.uid, username.trim(), password, keepSignedIn);
+        } catch (error: any) {
+            setAuthError(error.message || 'Failed to complete registration');
+        } finally {
+            setAuthLoading(false);
+        }
+    };
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!username.trim() || !password.trim()) return;
+
+        setAuthLoading(true);
+        setAuthError('');
+
+        try {
+            await loginWithUsername(username.trim(), password, keepSignedIn);
+        } catch (error: any) {
+            setAuthError(error.message || 'Invalid username or password');
+        } finally {
+            setAuthLoading(false);
         }
     };
 
@@ -38,10 +101,8 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
             if (result.success) {
                 setShowApiKeyForm(false);
                 setAlchemyKeyInput('');
-                await refreshProfile();
             }
         } catch (error: any) {
-            console.error('Save Alchemy key error:', error);
             setAlchemyKeyError(error.message || 'Failed to save Alchemy API key');
         } finally {
             setAlchemyKeySaving(false);
@@ -51,7 +112,6 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
     const handleRemoveAlchemyKey = async () => {
         try {
             await removeAlchemyKey();
-            await refreshProfile();
         } catch (error: any) {
             console.error('Failed to remove Alchemy key:', error);
         }
@@ -59,124 +119,255 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
 
     if (loading) {
         return (
-            <div style={{ padding: 'var(--space-4)', textAlign: 'center' }}>
+            <div className="card" style={{ padding: 'var(--space-4)', textAlign: 'center' }}>
                 <div className="loading-spinner" style={{ margin: '0 auto' }} />
             </div>
         );
     }
 
-    // Not authenticated - Show Google Sign In
+    // Not authenticated views
     if (!isAuthenticated) {
-        return (
-            <div className="card animate-fade-in animate-slide-up">
-                <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
-                    <div style={{ marginBottom: 'var(--space-5)' }}>
-                        <TerminalAnimation />
+        // Landing Page
+        if (view === 'landing') {
+            return (
+                <div className="card animate-fade-in animate-slide-up">
+                    <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+                        <div style={{ marginBottom: 'var(--space-5)' }}>
+                            <TerminalAnimation />
+                        </div>
+                        <h2 style={{
+                            fontSize: 'var(--text-xl)',
+                            background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            marginBottom: 'var(--space-2)'
+                        }}>
+                            FundTracer <span style={{ fontSize: '0.6em', background: 'var(--color-primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', verticalAlign: 'middle' }}>BETA</span> by DT
+                        </h2>
+                        <p style={{
+                            color: 'var(--color-text-secondary)',
+                            marginBottom: 'var(--space-4)',
+                            fontSize: 'var(--text-md)',
+                            fontStyle: 'italic',
+                            fontWeight: 500
+                        }}>
+                            "Trace with Precision. Scale with Confidence."
+                        </p>
+                        <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)' }}>
+                            Create an account or sign in to access FundTracer.
+                        </p>
+
+                        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
+                            <button className="btn btn-primary" onClick={() => setView('signup-email')}>
+                                <UserPlus size={18} /> Sign Up
+                            </button>
+                            <button className="btn btn-secondary" onClick={() => setView('signin')}>
+                                <LogIn size={18} /> Sign In
+                            </button>
+                        </div>
                     </div>
-                    <h2 style={{
-                        fontSize: 'var(--text-xl)',
-                        background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        marginBottom: 'var(--space-2)'
-                    }}>
-                        FundTracer <span style={{ fontSize: '0.6em', background: 'var(--color-primary)', color: 'white', padding: '2px 6px', borderRadius: '4px', verticalAlign: 'middle' }}>BETA</span> by DT
-                    </h2>
-                    <p style={{
-                        color: 'var(--color-text-secondary)',
-                        marginBottom: 'var(--space-4)',
-                        fontSize: 'var(--text-md)',
-                        fontStyle: 'italic',
-                        fontWeight: 500
-                    }}>
-                        "Trace with Precision. Scale with Confidence."
-                    </p>
-                    <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)' }}>
-                        Please sign in to access FundTracer.
-                        We require PoH verification via Linea Exponent.
-                    </p>
-                    
-                    {/* Google Sign In Button */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', alignItems: 'center' }}>
-                        <button
-                            onClick={handleGoogleSignIn}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '12px',
-                                padding: '12px 24px',
-                                backgroundColor: 'white',
-                                color: '#333',
-                                border: '1px solid #ddd',
-                                borderRadius: '8px',
-                                fontSize: '16px',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                width: '280px',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                            }}
-                        >
-                            <Chrome size={20} color="#4285F4" />
-                            Sign in with Google
+                </div>
+            );
+        }
+
+        // Sign Up - Email Input
+        if (view === 'signup-email') {
+            if (verificationSent) {
+                return (
+                    <div className="card animate-fade-in">
+                        <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+                            <Mail size={48} color="var(--color-primary)" style={{ marginBottom: 'var(--space-4)' }} />
+                            <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-2)' }}>
+                                Verification Email Sent
+                            </h3>
+                            <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
+                                Check your inbox at <strong>{email}</strong> and click the verification link to continue.
+                            </p>
+                            <button className="btn btn-ghost" onClick={() => { setView('landing'); setVerificationSent(false); setEmail(''); }}>
+                                Back to Home
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="card animate-fade-in">
+                    <div style={{ padding: 'var(--space-6)' }}>
+                        <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
+                            Create Your Account
+                        </h3>
+                        <form onSubmit={handleRegisterInit}>
+                            <div style={{ marginBottom: 'var(--space-3)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
+                                    <Mail size={16} /> Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    className="input"
+                                    placeholder="Enter your email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div style={{ marginBottom: 'var(--space-3)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
+                                    <Lock size={16} /> Password
+                                </label>
+                                <input
+                                    type="password"
+                                    className="input"
+                                    placeholder="Create a password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            {authError && (
+                                <div className="alert danger" style={{ marginBottom: 'var(--space-3)' }}>
+                                    {authError}
+                                </div>
+                            )}
+                            <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={authLoading}>
+                                {authLoading ? 'Sending...' : 'Continue'}
+                            </button>
+                        </form>
+                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-3)' }} onClick={() => setView('landing')}>
+                            Back
                         </button>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        }
+
+        // Sign Up - Complete Registration (after email verification)
+        if (view === 'signup-verified') {
+            return (
+                <div className="card animate-fade-in">
+                    <div style={{ padding: 'var(--space-6)' }}>
+                        <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
+                            Complete Registration
+                        </h3>
+                        <form onSubmit={handleCompleteRegistration}>
+                            <div style={{ marginBottom: 'var(--space-3)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
+                                    <User size={16} /> Username
+                                </label>
+                                <input
+                                    type="text"
+                                    className="input"
+                                    placeholder="Choose a username"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={keepSignedIn}
+                                    onChange={(e) => setKeepSignedIn(e.target.checked)}
+                                />
+                                Keep me signed in
+                            </label>
+                            {authError && (
+                                <div className="alert danger" style={{ marginBottom: 'var(--space-3)' }}>
+                                    {authError}
+                                </div>
+                            )}
+                            <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={authLoading}>
+                                {authLoading ? 'Creating Account...' : 'Create Account'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // Sign In
+        if (view === 'signin') {
+            return (
+                <div className="card animate-fade-in">
+                    <div style={{ padding: 'var(--space-6)' }}>
+                        <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
+                            Sign In
+                        </h3>
+                        <form onSubmit={handleLogin}>
+                            <div style={{ marginBottom: 'var(--space-3)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
+                                    <User size={16} /> Username
+                                </label>
+                                <input
+                                    type="text"
+                                    className="input"
+                                    placeholder="Enter your username"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div style={{ marginBottom: 'var(--space-3)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
+                                    <Lock size={16} /> Password
+                                </label>
+                                <input
+                                    type="password"
+                                    className="input"
+                                    placeholder="Enter your password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={keepSignedIn}
+                                    onChange={(e) => setKeepSignedIn(e.target.checked)}
+                                />
+                                Keep me signed in
+                            </label>
+                            {authError && (
+                                <div className="alert danger" style={{ marginBottom: 'var(--space-3)' }}>
+                                    {authError}
+                                </div>
+                            )}
+                            <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={authLoading}>
+                                {authLoading ? 'Signing In...' : 'Sign In'}
+                            </button>
+                        </form>
+                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-3)' }} onClick={() => setView('landing')}>
+                            Back
+                        </button>
+                    </div>
+                </div>
+            );
+        }
     }
 
-    // Authenticated - Show User Info and Wallet Section
+    // Authenticated - Show User Info
     return (
-        <div className="card animate-fade-in animate-slide-up" style={{ marginBottom: 'var(--space-4)' }}>
+        <div className="card animate-fade-in" style={{ marginBottom: 'var(--space-4)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-                {/* User Info */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                     <div style={{
                         width: 32,
                         height: 32,
                         borderRadius: '50%',
-                        background: profile?.profilePicture ? 'transparent' : 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+                        background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: 'white',
                         fontWeight: 'bold',
-                        fontSize: '10px',
-                        overflow: 'hidden',
-                        border: '1px solid var(--color-border)'
+                        fontSize: '14px'
                     }}>
-                        {profile?.profilePicture || user?.photoURL ? (
-                            <img
-                                src={profile?.profilePicture || user?.photoURL || ''}
-                                alt="Profile"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                        ) : (
-                            (user?.displayName?.[0] || user?.email?.[0] || 'U').toUpperCase()
-                        )}
+                        {user?.username?.[0]?.toUpperCase() || 'U'}
                     </div>
                     <div>
                         <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {user?.displayName || user?.email?.split('@')[0] || 'User'}
-                            {profile?.isVerified ? (
-                                <span className="risk-badge low" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', marginLeft: 0 }}>
-                                    Verified Human
-                                </span>
-                            ) : (
-                                <span className="risk-badge critical" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#EF4444', marginLeft: 0 }}>
-                                    Unverified
-                                </span>
-                            )}
+                            {user?.username || 'User'}
                             <span className="risk-badge medium" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3B82F6', marginLeft: 0 }}>
                                 {profile?.tier?.toUpperCase() || 'FREE'} TIER
                             </span>
@@ -189,54 +380,28 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                    {profile?.hasCustomApiKey ? (
-                        <span className="risk-badge low" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success-text)' }}>
-                            Custom API Key Active
-                        </span>
-                    ) : (
-                        <button
-                            className="btn btn-secondary"
-                            onClick={() => setShowApiKeyForm(!showApiKeyForm)}
-                        >
-                            Add API Key
-                        </button>
-                    )}
-                    <button className="btn btn-ghost" onClick={signOut}>
-                        Sign Out
-                    </button>
-                </div>
+                <button className="btn btn-ghost" onClick={signOut}>
+                    Sign Out
+                </button>
             </div>
 
-            {/* Email Section - Read Only */}
+            {/* User Details */}
             <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-surface-border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)' }}>
-                    <Mail size={14} color="var(--color-text-muted)" />
-                    <span style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>
-                        Email
-                    </span>
+                <div style={{ marginBottom: 'var(--space-3)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                        <Mail size={12} /> Email
+                    </div>
+                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                        {user?.email}
+                    </div>
                 </div>
-                <div style={{
-                    padding: '8px 12px',
-                    backgroundColor: 'var(--color-surface-hover)',
-                    borderRadius: '6px',
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--color-text-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                }}>
-                    <span>{user?.email}</span>
-                    <span style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        backgroundColor: 'var(--color-success-bg)',
-                        color: 'var(--color-success-text)',
-                        borderRadius: '4px',
-                    }}>
-                        Google
-                    </span>
+                <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-1)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                        <User size={12} /> Username
+                    </div>
+                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+                        {user?.username}
+                    </div>
                 </div>
             </div>
 
@@ -245,15 +410,10 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)' }}>
                     <Wallet size={14} color="var(--color-text-muted)" />
                     <span style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>
-                        Connected Wallet
+                        Wallet
                     </span>
-                    {profile?.isVerified && (
-                        <span className="risk-badge low" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', marginLeft: 0 }}>
-                            PoH Verified
-                        </span>
-                    )}
                 </div>
-                
+
                 {profile?.walletAddress ? (
                     <div style={{
                         padding: '8px 12px',
@@ -267,29 +427,14 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                         justifyContent: 'space-between'
                     }}>
                         <span>{profile.walletAddress.slice(0, 8)}...{profile.walletAddress.slice(-6)}</span>
-                        <button
-                            className="btn btn-ghost"
-                            onClick={signOut}
-                            style={{ padding: '4px 8px', fontSize: '12px' }}
-                        >
-                            Disconnect
-                        </button>
+                        <span className="risk-badge low" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10B981' }}>
+                            Connected
+                        </span>
                     </div>
                 ) : (
-                    <div style={{
-                        padding: '16px',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        border: '1px solid rgba(245, 158, 11, 0.3)',
-                        borderRadius: '8px',
-                        textAlign: 'center'
-                    }}>
-                        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: '12px' }}>
-                            No wallet connected. Link a wallet to analyze contracts.
-                        </p>
-                        <button className="btn btn-primary">
-                            <Wallet size={16} /> Link Wallet
-                        </button>
-                    </div>
+                    <button className="btn btn-primary" onClick={connectWallet}>
+                        <Wallet size={16} /> Connect Wallet
+                    </button>
                 )}
             </div>
 
@@ -330,7 +475,7 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                                 placeholder="Enter your Alchemy API key"
                                 value={alchemyKeyInput}
                                 onChange={(e) => setAlchemyKeyInput(e.target.value)}
-                                style={{ flex: 1, paddingLeft: 'var(--space-3)' }}
+                                style={{ flex: 1 }}
                             />
                             <button
                                 className="btn btn-primary"
@@ -369,7 +514,6 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                     </button>
                 )}
             </div>
-
         </div>
     );
 }

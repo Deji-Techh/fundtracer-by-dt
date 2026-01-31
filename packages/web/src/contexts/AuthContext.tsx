@@ -11,23 +11,34 @@ import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appki
 import { ethers } from 'ethers';
 import {
     getProfile,
-    loginWithGoogle,
-    linkWalletToGoogle,
-    unlinkWalletFromGoogle,
     removeAuthToken,
     getAuthToken,
+    setAuthToken,
     UserProfile
 } from '../api';
 import { useNotify } from './ToastContext';
-import { signInWithGoogle as firebaseSignInWithGoogle, signOutFromGoogle } from '../firebase';
+import {
+    registerWithEmail as firebaseRegister,
+    signInWithEmail as firebaseSignIn,
+    sendVerificationEmail as firebaseSendVerification,
+    logOut as firebaseLogout,
+    getCurrentUser,
+    getIdToken,
+    onAuthChange,
+    isEmailVerified
+} from '../firebase';
 
 const AUTH_PENDING_KEY = 'fundtracer_auth_pending';
+const TOKEN_EXPIRY_KEY = 'fundtracer_token_expiry';
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-// Google User type
-interface GoogleUser {
+// Auth User type
+interface AuthUser {
     uid: string;
     email: string;
+    emailVerified: boolean;
     displayName: string | null;
+    username?: string;
     photoURL: string | null;
 }
 
@@ -38,9 +49,10 @@ interface WalletInfo {
 }
 
 interface AuthContextType {
-    // Google Auth
-    user: GoogleUser | null;
+    // Auth
+    user: AuthUser | null;
     isAuthenticated: boolean;
+    isEmailVerified: boolean;
     
     // Wallet
     wallet: WalletInfo | null;
@@ -53,10 +65,12 @@ interface AuthContextType {
     loading: boolean;
     
     // Actions
-    signInWithGoogle: () => Promise<void>;
+    registerWithEmail: (email: string, password: string) => Promise<void>;
+    sendEmailVerification: () => Promise<void>;
+    completeRegistration: (uid: string, username: string, password: string, keepSignedIn: boolean) => Promise<void>;
+    loginWithUsername: (username: string, password: string, keepSignedIn: boolean) => Promise<void>;
+    connectWallet: () => Promise<void>;
     signOut: () => Promise<void>;
-    linkWallet: () => Promise<void>;
-    unlinkWallet: () => Promise<void>;
     refreshProfile: () => Promise<void>;
     getSigner: () => Promise<ethers.Signer>;
 }
@@ -64,9 +78,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    // Google Auth State
-    const [user, setUser] = useState<GoogleUser | null>(null);
+    // Auth State
+    const [user, setUser] = useState<AuthUser | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isEmailVerifiedState, setIsEmailVerifiedState] = useState(false);
     
     // Wallet State
     const [wallet, setWallet] = useState<WalletInfo | null>(null);
@@ -75,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     
-    const signInInProgress = useRef(false);
+    const operationInProgress = useRef(false);
     const notify = useNotify();
 
     // AppKit hooks
@@ -83,10 +98,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { walletProvider } = useAppKitProvider('eip155');
     const { disconnect } = useDisconnect();
 
-    // Check existing auth on mount
+    // Check token expiry
+    const isTokenValid = useCallback(() => {
+        const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+        if (!expiry) return true; // No expiry set means session-only (already expired on page close)
+        return Date.now() < parseInt(expiry, 10);
+    }, []);
+
+    // Set token with expiry
+    const setTokenWithExpiry = useCallback((token: string, keepSignedIn: boolean) => {
+        setAuthToken(token);
+        if (keepSignedIn) {
+            localStorage.setItem(TOKEN_EXPIRY_KEY, (Date.now() + THIRTY_DAYS_MS).toString());
+        } else {
+            localStorage.removeItem(TOKEN_EXPIRY_KEY);
+        }
+    }, []);
+
+    // Clear all auth data
+    const clearAuthData = useCallback(() => {
+        removeAuthToken();
+        localStorage.removeItem(TOKEN_EXPIRY_KEY);
+        sessionStorage.removeItem(AUTH_PENDING_KEY);
+    }, []);
+
+    // Initialize auth on mount
     useEffect(() => {
         const initAuth = async () => {
             const token = getAuthToken();
+            
+            // Check if token is expired
+            if (token && !isTokenValid()) {
+                clearAuthData();
+                setLoading(false);
+                return;
+            }
+            
             if (token) {
                 try {
                     const userProfile = await getProfile();
@@ -97,13 +144,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         setUser({
                             uid: userProfile.uid,
                             email: userProfile.email || '',
-                            displayName: userProfile.name || null,
-                            photoURL: userProfile.profilePicture || null
+                            emailVerified: userProfile.isVerified || false,
+                            displayName: userProfile.displayName || userProfile.name || null,
+                            username: userProfile.username,
+                            photoURL: userProfile.profilePicture || userProfile.photoURL || null
                         });
                         setIsAuthenticated(true);
+                        setIsEmailVerifiedState(userProfile.isVerified || false);
                     }
                     
-                    // Restore wallet state
+                    // Restore wallet state from profile
                     if (userProfile.walletAddress) {
                         setWallet({
                             address: userProfile.walletAddress,
@@ -112,12 +162,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     }
                 } catch (error) {
                     console.error('Auth init error:', error);
-                    removeAuthToken();
+                    clearAuthData();
                 }
             }
             setLoading(false);
         };
         initAuth();
+    }, [clearAuthData, isTokenValid]);
+
+    // Listen to Firebase auth state changes
+    useEffect(() => {
+        const unsubscribe = onAuthChange((firebaseUser) => {
+            if (firebaseUser) {
+                // Update email verification status
+                setIsEmailVerifiedState(firebaseUser.emailVerified);
+                
+                // Update user state if we have a profile
+                setUser(prev => prev ? {
+                    ...prev,
+                    emailVerified: firebaseUser.emailVerified
+                } : null);
+            }
+        });
+        
+        return () => unsubscribe();
     }, []);
 
     // Update wallet state when AppKit connection changes
@@ -133,87 +201,236 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [isConnected, address, wallet?.address]);
 
-    // Google Sign-In
-    const signInWithGoogle = useCallback(async () => {
-        if (signInInProgress.current) return;
-        signInInProgress.current = true;
+    // Register with email
+    const registerWithEmail = useCallback(async (email: string, password: string) => {
+        if (operationInProgress.current) return;
+        operationInProgress.current = true;
         setLoading(true);
 
         try {
-            // Sign in with Firebase Google Auth
-            console.log('[AuthContext] Calling firebaseSignInWithGoogle...');
-            const googleUser = await firebaseSignInWithGoogle();
+            // Create user in Firebase
+            const firebaseUser = await firebaseRegister(email, password);
             
-            if (!googleUser) {
-                throw new Error('Google sign-in failed');
+            if (!firebaseUser) {
+                throw new Error('Registration failed');
             }
 
-            // Get Firebase ID token
-            const idToken = await googleUser.getIdToken();
+            // Send verification email
+            await firebaseSendVerification(firebaseUser);
 
-            // Login to backend
-            const loginResponse = await loginWithGoogle(idToken);
+            // Set temporary user state (not fully registered yet)
+            setUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                emailVerified: false,
+                displayName: null,
+                username: undefined,
+                photoURL: null
+            });
+            
+            setIsEmailVerifiedState(false);
+
+            notify.success('Registration initiated! Please check your email to verify.');
+            sessionStorage.setItem(AUTH_PENDING_KEY, 'verification_pending');
+        } catch (error: any) {
+            console.error('[AuthContext] Registration error:', error);
+            notify.error(`Registration failed: ${error.message || 'Unknown error'}`);
+            sessionStorage.removeItem(AUTH_PENDING_KEY);
+        } finally {
+            setLoading(false);
+            operationInProgress.current = false;
+        }
+    }, [notify]);
+
+    // Send email verification
+    const sendEmailVerification = useCallback(async () => {
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+            notify.error('No user to verify');
+            return;
+        }
+
+        try {
+            await firebaseSendVerification(currentUser);
+            notify.success('Verification email sent! Please check your inbox.');
+        } catch (error: any) {
+            console.error('[AuthContext] Send verification error:', error);
+            notify.error(`Failed to send verification: ${error.message || 'Unknown error'}`);
+        }
+    }, [notify]);
+
+    // Complete registration (after email verification)
+    const completeRegistration = useCallback(async (
+        uid: string,
+        username: string,
+        password: string,
+        keepSignedIn: boolean
+    ) => {
+        if (operationInProgress.current) return;
+        operationInProgress.current = true;
+        setLoading(true);
+
+        try {
+            // Get Firebase ID token
+            const idToken = await getIdToken();
+            if (!idToken) {
+                throw new Error('Not authenticated');
+            }
+
+            // Call backend to complete registration
+            const response = await fetch('/api/auth/complete-registration', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify({
+                    uid,
+                    username,
+                    password,
+                    keepSignedIn
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to complete registration');
+            }
+
+            const data = await response.json();
+
+            // Store token with expiry
+            setTokenWithExpiry(data.token, keepSignedIn);
 
             // Set user state
             setUser({
-                uid: loginResponse.user.uid,
-                email: loginResponse.user.email,
-                displayName: loginResponse.user.displayName,
-                photoURL: loginResponse.user.photoURL
+                uid: data.user.uid,
+                email: data.user.email,
+                emailVerified: true,
+                displayName: data.user.displayName,
+                username: data.user.username,
+                photoURL: data.user.photoURL
             });
             setIsAuthenticated(true);
+            setIsEmailVerifiedState(true);
 
             // Set profile
-            setProfile({
-                ...loginResponse.user,
-                uid: loginResponse.user.uid,
-                email: loginResponse.user.email,
-                name: loginResponse.user.displayName,
-                isVerified: loginResponse.user.isVerified,
-                tier: loginResponse.user.tier,
-                walletAddress: loginResponse.user.walletAddress
+            setProfile(data.user);
+
+            notify.success('Registration completed! Welcome!');
+            sessionStorage.removeItem(AUTH_PENDING_KEY);
+        } catch (error: any) {
+            console.error('[AuthContext] Complete registration error:', error);
+            notify.error(`Failed to complete registration: ${error.message || 'Unknown error'}`);
+        } finally {
+            setLoading(false);
+            operationInProgress.current = false;
+        }
+    }, [notify, setTokenWithExpiry]);
+
+    // Login with username and password
+    const loginWithUsername = useCallback(async (
+        username: string,
+        password: string,
+        keepSignedIn: boolean
+    ) => {
+        if (operationInProgress.current) return;
+        operationInProgress.current = true;
+        setLoading(true);
+
+        try {
+            // First, get email from username via backend
+            const lookupResponse = await fetch('/api/auth/lookup-username', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
             });
 
-            // If user already has a linked wallet, set it
-            if (loginResponse.user.walletAddress) {
+            if (!lookupResponse.ok) {
+                throw new Error('Username not found');
+            }
+
+            const { email } = await lookupResponse.json();
+
+            // Sign in with Firebase
+            const firebaseUser = await firebaseSignIn(email, password);
+            
+            if (!firebaseUser) {
+                throw new Error('Login failed');
+            }
+
+            // Check if email is verified
+            if (!firebaseUser.emailVerified) {
+                throw new Error('Please verify your email before logging in');
+            }
+
+            // Get Firebase ID token
+            const idToken = await firebaseUser.getIdToken();
+
+            // Login to backend
+            const loginResponse = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    idToken,
+                    username,
+                    keepSignedIn
+                })
+            });
+
+            if (!loginResponse.ok) {
+                const error = await loginResponse.json();
+                throw new Error(error.message || 'Login failed');
+            }
+
+            const data = await loginResponse.json();
+
+            // Store token with expiry
+            setTokenWithExpiry(data.token, keepSignedIn);
+
+            // Set user state
+            setUser({
+                uid: data.user.uid,
+                email: data.user.email,
+                emailVerified: true,
+                displayName: data.user.displayName,
+                username: data.user.username,
+                photoURL: data.user.photoURL
+            });
+            setIsAuthenticated(true);
+            setIsEmailVerifiedState(true);
+
+            // Set profile
+            setProfile(data.user);
+
+            // Restore wallet if exists
+            if (data.user.walletAddress) {
                 setWallet({
-                    address: loginResponse.user.walletAddress,
+                    address: data.user.walletAddress,
                     isConnected: true
                 });
             }
 
-            notify.success('Successfully signed in with Google!');
+            notify.success('Successfully logged in!');
             sessionStorage.removeItem(AUTH_PENDING_KEY);
         } catch (error: any) {
-            console.error('[AuthContext] Google sign-in error details:', {
-                error: error,
-                code: error.code,
-                message: error.message,
-                stack: error.stack,
-                name: error.name
-            });
-            
-            const isUserRejection =
-                error.code === 'auth/popup-closed-by-user' ||
-                error.code === 'auth/cancelled-popup-request' ||
-                error.message?.includes('cancelled') ||
-                error.message?.includes('closed');
-
-            if (!isUserRejection) {
-                notify.error(`Sign-in failed: ${error.message || error.code || 'Unknown error'}`);
-            }
-
-            sessionStorage.removeItem(AUTH_PENDING_KEY);
+            console.error('[AuthContext] Login error:', error);
+            notify.error(`Login failed: ${error.message || 'Unknown error'}`);
         } finally {
             setLoading(false);
-            signInInProgress.current = false;
+            operationInProgress.current = false;
         }
-    }, [notify]);
+    }, [notify, setTokenWithExpiry]);
 
-    // Link Wallet to Google Account
-    const linkWallet = useCallback(async () => {
-        if (!user || !walletProvider || !address) {
-            notify.error('Please connect a wallet first');
+    // Connect wallet (separate from auth)
+    const connectWallet = useCallback(async () => {
+        if (!isAuthenticated) {
+            notify.error('Please log in first');
+            return;
+        }
+
+        if (!walletProvider || !address) {
+            notify.error('Please connect a wallet using the wallet modal');
             return;
         }
 
@@ -225,23 +442,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const walletAddress = await signer.getAddress();
 
             const timestamp = Date.now();
-            const message = `Link wallet to FundTracer account\nTimestamp: ${timestamp}`;
+            const message = `Link wallet to FundTracer account\nTimestamp: ${timestamp}\nUser: ${user?.uid || ''}`;
             const signature = await signer.signMessage(message);
 
-            // Get fresh Google ID token
-            const googleUser = await signInWithGoogle();
-            if (!googleUser) {
-                throw new Error('Google authentication required');
+            // Get Firebase ID token
+            const idToken = await getIdToken();
+            if (!idToken) {
+                throw new Error('Authentication required');
             }
-            const idToken = await googleUser.getIdToken();
 
-            // Link wallet to Google account on backend
-            const linkResponse = await linkWalletToGoogle(
-                idToken,
-                walletAddress,
-                signature,
-                message
-            );
+            // Link wallet to account on backend
+            const response = await fetch('/api/auth/link-wallet', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify({
+                    address: walletAddress,
+                    signature,
+                    message
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to connect wallet');
+            }
+
+            const data = await response.json();
 
             // Update wallet state
             setWallet({
@@ -253,12 +482,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile(prev => prev ? {
                 ...prev,
                 walletAddress: walletAddress,
-                isVerified: linkResponse.isVerified
+                isVerified: data.isVerified
             } : null);
 
-            notify.success('Wallet linked successfully!');
+            notify.success('Wallet connected successfully!');
         } catch (error: any) {
-            console.error('Link wallet error:', error);
+            console.error('[AuthContext] Connect wallet error:', error);
             
             const isUserRejection =
                 error.code === 4001 ||
@@ -267,72 +496,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 error.message?.includes('cancelled');
 
             if (!isUserRejection) {
-                notify.error(`Failed to link wallet: ${error.message || 'Unknown error'}`);
+                notify.error(`Failed to connect wallet: ${error.message || 'Unknown error'}`);
             }
         } finally {
             setLoading(false);
         }
-    }, [user, walletProvider, address, notify]);
-
-    // Unlink Wallet
-    const unlinkWallet = useCallback(async () => {
-        if (!user) {
-            notify.error('Not authenticated');
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            // Disconnect from AppKit
-            disconnect();
-
-            // Get fresh Google ID token
-            const googleUser = await signInWithGoogle();
-            if (!googleUser) {
-                throw new Error('Google authentication required');
-            }
-            const idToken = await googleUser.getIdToken();
-
-            // Unlink wallet on backend
-            await unlinkWalletFromGoogle(idToken);
-
-            // Clear wallet state
-            setWallet(null);
-
-            // Update profile
-            setProfile(prev => prev ? {
-                ...prev,
-                walletAddress: null,
-                isVerified: false
-            } : null);
-
-            notify.success('Wallet unlinked successfully');
-        } catch (error: any) {
-            console.error('Unlink wallet error:', error);
-            notify.error(`Failed to unlink wallet: ${error.message || 'Unknown error'}`);
-        } finally {
-            setLoading(false);
-        }
-    }, [user, disconnect, notify]);
+    }, [isAuthenticated, walletProvider, address, user?.uid, notify]);
 
     // Sign Out
     const signOut = useCallback(async () => {
         // Clear all auth state
-        removeAuthToken();
+        clearAuthData();
         setUser(null);
         setIsAuthenticated(false);
+        setIsEmailVerifiedState(false);
         setProfile(null);
-        setWallet(null);
-        signInInProgress.current = false;
-        sessionStorage.removeItem(AUTH_PENDING_KEY);
-
-        // Sign out from Firebase
-        await signOutFromGoogle();
+        operationInProgress.current = false;
 
         // Disconnect wallet
         try {
             disconnect();
+            setWallet(null);
 
             if (typeof window !== 'undefined') {
                 Object.keys(localStorage).forEach(key => {
@@ -347,8 +531,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         } catch { }
 
+        // Sign out from Firebase
+        try {
+            await firebaseLogout();
+        } catch (error) {
+            console.error('Firebase logout error:', error);
+        }
+
         notify.success('Signed out successfully');
-    }, [disconnect, notify]);
+    }, [disconnect, clearAuthData, notify]);
 
     // Refresh Profile
     const refreshProfile = useCallback(async () => {
@@ -357,6 +548,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const userProfile = await getProfile();
             setProfile(userProfile);
+            
+            // Update user state with latest profile data
+            if (userProfile) {
+                setUser(prev => prev ? {
+                    ...prev,
+                    displayName: userProfile.displayName || userProfile.name || prev.displayName,
+                    username: userProfile.username || prev.username,
+                    photoURL: userProfile.profilePicture || userProfile.photoURL || prev.photoURL,
+                    emailVerified: userProfile.isVerified || prev.emailVerified
+                } : null);
+                setIsEmailVerifiedState(userProfile.isVerified || false);
+            }
             
             // Update wallet state if changed
             if (userProfile.walletAddress !== wallet?.address) {
@@ -388,14 +591,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         <AuthContext.Provider value={{
             user,
             isAuthenticated,
+            isEmailVerified: isEmailVerifiedState,
             wallet,
             isWalletConnected: wallet?.isConnected || false,
             profile,
             loading,
-            signInWithGoogle,
+            registerWithEmail,
+            sendEmailVerification,
+            completeRegistration,
+            loginWithUsername,
+            connectWallet,
             signOut,
-            linkWallet,
-            unlinkWallet,
             refreshProfile,
             getSigner
         }}>
