@@ -367,20 +367,41 @@ router.get('/users/:uid', authMiddleware, async (req: AuthenticatedRequest, res:
   }
 });
 
-// Update User
-router.patch('/users/:uid', async (req: AuthenticatedRequest, res: Response) => {
+// Update User (protected)
+router.patch('/users/:uid', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
-    const { tier, adminNotes } = req.body;
+    const { tier, pohVerified } = req.body;
+    const userId = req.params.uid;
     
     const updates: any = {};
-    if (tier) updates.tier = tier;
-    if (adminNotes !== undefined) updates.adminNotes = adminNotes;
+    if (tier) {
+      updates.tier = tier;
+      // Log tier change activity
+      await db.collection('admin_actions').add({
+        action: 'tier_change',
+        userId: userId,
+        newTier: tier,
+        adminId: req.user?.uid,
+        timestamp: Date.now()
+      });
+    }
+    if (pohVerified !== undefined) {
+      updates.pohVerified = pohVerified;
+      // Log PoH verification activity
+      await db.collection('admin_actions').add({
+        action: pohVerified ? 'poh_verify' : 'poh_unverify',
+        userId: userId,
+        adminId: req.user?.uid,
+        timestamp: Date.now()
+      });
+    }
     
-    await db.collection('users').doc(req.params.uid).update(updates);
+    await db.collection('users').doc(userId).update(updates);
     
     res.json({ success: true });
   } catch (error) {
+    console.error('[ADMIN] Update user error:', error);
     res.status(500).json({ error: 'Failed to update user' });
   }
 });
@@ -390,15 +411,31 @@ router.post('/users/:uid/ban', authMiddleware, async (req: AuthenticatedRequest,
   try {
     const db = getFirestore();
     const { reason } = req.body;
+    const userId = req.params.uid;
     
-    await db.collection('users').doc(req.params.uid).update({
+    // Get user email for activity log
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userEmail = userDoc.exists ? userDoc.data()?.email : '';
+    
+    await db.collection('users').doc(userId).update({
       bannedAt: Date.now(),
       bannedBy: req.user?.uid,
       banReason: reason || 'Violation of terms'
     });
     
+    // Log ban activity
+    await db.collection('admin_actions').add({
+      action: 'blacklist',
+      userId: userId,
+      userEmail: userEmail,
+      reason: reason || 'Violation of terms',
+      adminId: req.user?.uid,
+      timestamp: Date.now()
+    });
+    
     res.json({ success: true });
   } catch (error) {
+    console.error('[ADMIN] Ban user error:', error);
     res.status(500).json({ error: 'Failed to ban user' });
   }
 });
@@ -408,15 +445,30 @@ router.post('/users/:uid/unban', authMiddleware, async (req: AuthenticatedReques
   try {
     const db = getFirestore();
     const { FieldValue } = await import('firebase-admin/firestore');
+    const userId = req.params.uid;
     
-    await db.collection('users').doc(req.params.uid).update({
+    // Get user email for activity log
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userEmail = userDoc.exists ? userDoc.data()?.email : '';
+    
+    await db.collection('users').doc(userId).update({
       bannedAt: FieldValue.delete(),
       bannedBy: FieldValue.delete(),
       banReason: FieldValue.delete()
     });
     
+    // Log unban activity
+    await db.collection('admin_actions').add({
+      action: 'unblacklist',
+      userId: userId,
+      userEmail: userEmail,
+      adminId: req.user?.uid,
+      timestamp: Date.now()
+    });
+    
     res.json({ success: true });
   } catch (error) {
+    console.error('[ADMIN] Unban user error:', error);
     res.status(500).json({ error: 'Failed to unban user' });
   }
 });
