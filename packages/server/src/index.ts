@@ -148,6 +148,7 @@ app.use(cors({
         /^https:\/\/.*\.netlify\.app$/,
         /^https:\/\/.*\.firebaseapp\.com$/,
         /^https:\/\/.*\.pxxl\.click$/,
+        /^https:\/\/.*\.onrender\.com$/,
         'https://fundtracer.xyz',
         'https://www.fundtracer.xyz',
         /^https:\/\/.*\.fundtracer\.xyz$/
