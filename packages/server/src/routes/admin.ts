@@ -239,6 +239,37 @@ router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Resp
   }
 });
 
+// Get Recent Activity (protected)
+router.get('/activity', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    
+    // Get recent admin actions from admin_actions collection
+    const actionsSnapshot = await db.collection('admin_actions')
+      .orderBy('timestamp', 'desc')
+      .limit(50)
+      .get();
+    
+    const activities = actionsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        type: data.action || 'unknown',
+        userId: data.userId || '',
+        userEmail: data.userEmail || '',
+        details: data.details || {},
+        timestamp: data.timestamp || Date.now()
+      };
+    });
+    
+    res.json({ activities });
+  } catch (error) {
+    console.error('[ADMIN] Activity error:', error);
+    // Return empty array if collection doesn't exist or error
+    res.json({ activities: [] });
+  }
+});
+
 // Get Users List
 router.get('/users', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
