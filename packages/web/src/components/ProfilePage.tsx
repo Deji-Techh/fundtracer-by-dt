@@ -206,7 +206,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-1)' }}>
                                 <span style={{ fontSize: 'var(--text-sm)' }}>Analyses</span>
                                 <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-mono)' }}>
-                                    {profile.usage.today} / {profile.usage.limit}
+                                    {profile?.usage?.today || 0} / {profile?.usage?.limit || 'unlimited'}
                                 </span>
                             </div>
                             <div style={{
@@ -217,14 +217,14 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                                 overflow: 'hidden'
                             }}>
                                 <div style={{
-                                    width: profile.usage.limit === 'unlimited' ? '0%' : `${Math.min(100, (profile.usage.today / (profile.usage.limit as number)) * 100)}%`,
+                                    width: (profile?.usage?.limit === 'unlimited' || !profile?.usage?.limit) ? '0%' : `${Math.min(100, ((profile?.usage?.today || 0) / (profile?.usage?.limit as number)) * 100)}%`,
                                     height: '100%',
                                     background: 'var(--color-primary)',
                                     borderRadius: '3px'
                                 }} />
                             </div>
                         </div>
-                        {profile.usage.limit !== 'unlimited' && (
+                        {profile?.usage?.limit !== 'unlimited' && (
                             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                                 Resets daily at midnight UTC
                             </p>
