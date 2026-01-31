@@ -204,7 +204,8 @@ import { trackingRoutes } from './routes/tracking.js';
 apiRouter.use('/analytics', trackingRoutes); // Public analytics route
 
 import { adminRoutes } from './routes/admin.js';
-apiRouter.use('/admin', authMiddleware, adminRoutes);
+// Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
+apiRouter.use('/admin', adminRoutes);
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
