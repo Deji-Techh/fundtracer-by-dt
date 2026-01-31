@@ -1,4 +1,4 @@
-import{d as y,i as $,b as l,a as x,O as m,R as p,C as f,S as h,U as _,l as E,m as C}from"./appkit-DG6uhL3d.js";import{n as S,r as u}from"./index-BKSs53JR.js";import{W as R}from"./index-CtFjU7h0.js";import{ReownAuthentication as v}from"./features-BAnqRBk1.js";import"./wagmi-DcZqQoR7.js";import"./vendor-DlsDZ-Ab.js";import"./firebase-DWgZVhX3.js";const D=y`
+import{d as y,i as $,b as l,a as x,O as m,R as p,C as f,S as h,U as _,l as E,m as C}from"./appkit-Bny5_ix6.js";import{n as S,r as u}from"./index-DhPS8TbR.js";import{W as R}from"./index-B3KbGix_.js";import{ReownAuthentication as v}from"./features-Dk_xu0WB.js";import"./wagmi-DcZqQoR7.js";import"./vendor-DlsDZ-Ab.js";const D=y`
   .email-sufixes {
     display: flex;
     flex-direction: row;
