@@ -83,7 +83,8 @@ router.post('/register', async (req: Request, res: Response) => {
       walletAddress: null,
       authProvider: 'email',
       createdAt: Date.now(),
-      lastLogin: Date.now()
+      lastLogin: Date.now(),
+      dailyUsage: {}
     });
 
     // Generate JWT
@@ -108,7 +109,12 @@ router.post('/register', async (req: Request, res: Response) => {
         username: username.toLowerCase(),
         tier: 'free',
         isVerified: false,
-        walletAddress: null
+        walletAddress: null,
+        usage: {
+          today: 0,
+          limit: parseInt(process.env.FREE_DAILY_LIMIT || '7', 10),
+          remaining: parseInt(process.env.FREE_DAILY_LIMIT || '7', 10)
+        }
       }
     });
 
@@ -166,6 +172,27 @@ router.post('/login', async (req: Request, res: Response) => {
 
     console.log(`[AUTH] Login successful: ${username}`);
 
+    // Calculate usage
+    const today = new Date().toISOString().split('T')[0];
+    const usageToday = userData?.dailyUsage?.[today] || 0;
+    const freeLimit = parseInt(process.env.FREE_DAILY_LIMIT || '7', 10);
+    const proLimit = 25;
+    const hasAlchemyKey = !!userData?.alchemyApiKey;
+    const tier = userData?.tier || 'free';
+    const isUnlimited = tier === 'max' || hasAlchemyKey;
+    
+    let limit: number | 'unlimited' = freeLimit;
+    if (isUnlimited) {
+      limit = 'unlimited';
+    } else if (tier === 'pro') {
+      limit = proLimit;
+    }
+    
+    let remaining: number | 'unlimited' = 'unlimited';
+    if (limit !== 'unlimited') {
+      remaining = Math.max(0, limit - usageToday);
+    }
+
     res.json({
       token,
       user: {
@@ -174,7 +201,12 @@ router.post('/login', async (req: Request, res: Response) => {
         username: userData.username,
         tier: userData.tier || 'free',
         isVerified: userData.isVerified || false,
-        walletAddress: userData.walletAddress || null
+        walletAddress: userData.walletAddress || null,
+        usage: {
+          today: usageToday,
+          limit,
+          remaining
+        }
       }
     });
 
