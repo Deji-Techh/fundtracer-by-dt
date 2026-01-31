@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { getFirestore } from '../firebase.js';
-import { AuthenticatedRequest } from '../middleware/auth.js';
+import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 
 console.log('[ADMIN] Loading admin routes module - TIMESTAMP: 2026-01-31-v3');
 
@@ -133,8 +133,8 @@ router.post('/auth/login', async (req: Request, res: Response) => {
   }
 });
 
-// Get current admin
-router.get('/auth/me', async (req: AuthenticatedRequest, res: Response) => {
+// Get current admin (protected)
+router.get('/auth/me', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user || req.user.type !== 'admin') {
     return res.status(401).json({ error: 'Not authenticated as admin' });
   }
@@ -161,8 +161,8 @@ router.get('/auth/me', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Get Dashboard Stats
-router.get('/stats', async (req: AuthenticatedRequest, res: Response) => {
+// Get Dashboard Stats (protected)
+router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     
@@ -225,7 +225,7 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Get Users List
-router.get('/users', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/users', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const { page = 1, limit = 50, search = '', tier = '', sort = 'createdAt', order = 'desc' } = req.query;
@@ -291,7 +291,7 @@ router.get('/users', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Get Single User
-router.get('/users/:uid', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/users/:uid', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const userDoc = await db.collection('users').doc(req.params.uid).get();
@@ -340,7 +340,7 @@ router.patch('/users/:uid', async (req: AuthenticatedRequest, res: Response) => 
 });
 
 // Ban User
-router.post('/users/:uid/ban', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/users/:uid/ban', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const { reason } = req.body;
@@ -358,7 +358,7 @@ router.post('/users/:uid/ban', async (req: AuthenticatedRequest, res: Response) 
 });
 
 // Unban User
-router.post('/users/:uid/unban', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/users/:uid/unban', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const { FieldValue } = await import('firebase-admin/firestore');
@@ -376,7 +376,7 @@ router.post('/users/:uid/unban', async (req: AuthenticatedRequest, res: Response
 });
 
 // Create New Admin (Superadmin only)
-router.post('/admins', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/admins', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   // Check if superadmin
   if (req.user?.role !== 'superadmin') {
     return res.status(403).json({ error: 'Only superadmins can create admins' });
