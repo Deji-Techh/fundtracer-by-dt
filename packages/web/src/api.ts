@@ -116,15 +116,29 @@ export async function unlinkWalletFromGoogle(idToken: string): Promise<{ success
     return apiRequest('/api/auth/unlink-wallet', 'POST', { idToken });
 }
 
-// NEW: Email/Password Authentication
-export async function completeRegistration(
-    uid: string,
+// NEW: Simple Backend Authentication
+export async function register(
+    username: string,
+    email: string,
+    password: string,
+    keepSignedIn: boolean
+): Promise<{ token: string; user: any }> {
+    const data = await apiRequest<{ token: string; user: any }>('/api/auth/register', 'POST', {
+        username,
+        email,
+        password,
+        keepSignedIn
+    });
+    setAuthToken(data.token);
+    return data;
+}
+
+export async function login(
     username: string,
     password: string,
     keepSignedIn: boolean
 ): Promise<{ token: string; user: any }> {
-    const data = await apiRequest<{ token: string; user: any }>('/api/auth/register/complete', 'POST', {
-        uid,
+    const data = await apiRequest<{ token: string; user: any }>('/api/auth/login', 'POST', {
         username,
         password,
         keepSignedIn
@@ -135,20 +149,6 @@ export async function completeRegistration(
 
 export async function checkUsername(username: string): Promise<{ available: boolean; reason?: string }> {
     return apiRequest(`/api/auth/check-username/${username}`, 'GET');
-}
-
-export async function loginWithUsername(
-    username: string,
-    password: string,
-    keepSignedIn: boolean
-): Promise<{ token: string; user: any }> {
-    const data = await apiRequest<{ token: string; user: any }>('/api/auth/login/email', 'POST', {
-        username,
-        password,
-        keepSignedIn
-    });
-    setAuthToken(data.token);
-    return data;
 }
 
 export async function linkWalletToAccount(
