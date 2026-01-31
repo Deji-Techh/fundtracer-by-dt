@@ -112,7 +112,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
             const data = await response.json();
 
             if (data.success) {
-                alert('✅ Payment verified! Your account has been upgraded to ' + selectedTier.toUpperCase() + ' tier.');
+                alert('✅ ' + (data.message || 'Payment verified! Your account has been upgraded to ' + selectedTier.toUpperCase() + ' tier.') + 
+                      '\n\n📧 Your tier is tied to your account email, not your wallet. You can connect different wallets freely!');
                 onClose();
                 window.location.reload(); // Refresh to update tier
             } else {
@@ -150,6 +151,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                         <div className="payment-modal-header">
                             <h2>Upgrade to Premium</h2>
                             <p className="payment-subtitle">Choose your tier to unlock advanced features</p>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '8px', padding: '8px', background: 'var(--color-bg-tertiary)', borderRadius: '6px' }}>
+                                📧 <strong>Tiers are tied to your account</strong> - You can change wallets anytime, your premium access stays with your email.
+                            </p>
                         </div>
 
                         <div className="payment-tiers">
@@ -260,7 +264,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                             </div>
                             <p className="payment-instructions">
                                 Send <strong>{tiers[selectedTier].price}</strong> on <strong>Linea Mainnet</strong> to this address.
-                                Your tier upgrades automatically after verification.
+                                Your tier upgrades automatically after verification and is tied to your account email (not this wallet).
                             </p>
                         </div>
 

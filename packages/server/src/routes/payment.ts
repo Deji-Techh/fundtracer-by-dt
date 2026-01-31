@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ethers } from 'ethers';
-import { authMiddleware } from '../middleware/auth.js';
-import { getUserByAddress, updateUserTier } from '../firebase.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { getFirestore } from '../firebase.js';
 
 const router = Router();
 
@@ -23,10 +23,22 @@ const USDT_ABI = [
 /**
  * Verify payment endpoint
  * Checks if user sent the correct amount of USDT to payment wallet
+ * Tiers are now tied to user account (email), not wallet address
  */
-router.post('/verify-payment', authMiddleware, async (req, res) => {
+router.post('/verify-payment', authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
         const { userAddress, tier, paymentAddress } = req.body;
+        
+        // Get authenticated user ID (tier will be attached to this account)
+        const userId = req.user?.uid;
+        const userEmail = req.user?.email;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                error: 'User not authenticated'
+            });
+        }
 
         if (!userAddress || !tier || !paymentAddress) {
             return res.status(400).json({
@@ -80,18 +92,30 @@ router.post('/verify-payment', authMiddleware, async (req, res) => {
         });
 
         if (validPayment) {
-            // Payment found! Update user tier
+            // Payment found! Update user tier on their ACCOUNT (not wallet)
             const expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + 30); // 30 days from now
+            
+            const db = getFirestore();
+            const userRef = db.collection('users').doc(userId);
+            
+            await userRef.set({
+                tier,
+                tierExpiresAt: expiresAt,
+                tierUpdatedAt: new Date().toISOString(),
+                paymentWallet: userAddress.toLowerCase(), // Store which wallet paid
+                paymentTxHash: validPayment.transactionHash
+            }, { merge: true });
 
-            await updateUserTier(userAddress, tier, expiresAt);
+            console.log(`[Payment] Updated user ${userEmail} (${userId}) to ${tier} tier, wallet used: ${userAddress}`);
 
             return res.json({
                 success: true,
-                message: `Successfully upgraded to ${tier.toUpperCase()} tier`,
+                message: `Successfully upgraded to ${tier.toUpperCase()} tier. Your tier is tied to your account (${userEmail}).`,
                 tier,
                 expiresAt: expiresAt.toISOString(),
-                transactionHash: validPayment.transactionHash
+                transactionHash: validPayment.transactionHash,
+                note: 'Your premium tier is attached to your account email, not your wallet. You can change wallets freely.'
             });
         } else {
             return res.json({
