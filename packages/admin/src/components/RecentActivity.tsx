@@ -13,21 +13,19 @@ interface ActivityItem {
 }
 
 export default function RecentActivity() {
-    const { user } = useAuth();
+    const { token } = useAuth();
     const [activities, setActivities] = useState<ActivityItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         loadRecentActivity();
-    }, [user]);
+    }, [token]);
 
     const loadRecentActivity = async () => {
         try {
             setError(null);
 
-            // Get current user token
-            const token = await user?.getIdToken();
             if (!token) {
                 console.error('No auth token available');
                 setError('Authentication required');
