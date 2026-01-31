@@ -53,7 +53,11 @@ async function apiRequest<T>(
 ): Promise<T> {
     const token = getAuthToken();
 
-    if (!token && endpoint !== '/api/auth/login' && endpoint !== '/api/analytics/visit') { // Allow login & tracking without token
+    if (!token && 
+        endpoint !== '/api/auth/login' && 
+        endpoint !== '/api/auth/register' && 
+        endpoint !== '/api/auth/check-username' &&
+        endpoint !== '/api/analytics/visit') { // Allow auth endpoints & tracking without token
         throw new Error('Not authenticated');
     }
 
