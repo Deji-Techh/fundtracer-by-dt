@@ -175,6 +175,10 @@ export async function getProfile(): Promise<UserProfile> {
     return apiRequest('/api/user/profile');
 }
 
+export async function updateProfile(data: { displayName?: string; email?: string; profilePicture?: string }): Promise<{ success: boolean; user: UserProfile }> {
+    return apiRequest('/api/user/profile', 'POST', data);
+}
+
 // Alchemy API Key management
 export async function saveAlchemyKey(apiKey: string): Promise<{ success: boolean; message: string }> {
     return apiRequest('/api/user/alchemy-api-key', 'POST', { apiKey });
@@ -243,6 +247,15 @@ export async function getContractInfo(address: string, chain: ChainId): Promise<
     return apiRequest('/api/contracts/info', 'POST', { address, chain });
 }
 
+// Contract search for ContractSearch component
+export async function searchContracts(query: string): Promise<{ success: boolean; results: any[] }> {
+    return apiRequest('/api/contracts/search-list', 'POST', { query });
+}
+
+export async function lookupContract(address: string): Promise<{ success: boolean; address: string; name: string | null; type?: string; symbol?: string }> {
+    return apiRequest('/api/contracts/lookup', 'POST', { address });
+}
+
 // Sybil detection
 export async function checkSybil(address: string): Promise<{ isSybil: boolean; confidence: number; reasons: string[] }> {
     return apiRequest('/api/analyze/sybil', 'POST', { address });
@@ -251,4 +264,25 @@ export async function checkSybil(address: string): Promise<{ isSybil: boolean; c
 // Dune Analytics
 export async function getDuneMetrics(metric: string, params?: any): Promise<any> {
     return apiRequest('/api/dune/metrics', 'POST', { metric, params });
+}
+
+// Fetch Dune contract interactors
+export async function fetchDuneInteractors(
+    contractAddress: string,
+    chain: ChainId,
+    options?: { limit?: number; customApiKey?: string }
+): Promise<{ success: boolean; wallets?: string[]; error?: string }> {
+    return apiRequest('/api/dune/interactors', 'POST', {
+        contractAddress,
+        chain,
+        ...options
+    });
+}
+
+// Analyze addresses for Sybil patterns
+export async function analyzeSybilAddresses(
+    addresses: string[],
+    chain: ChainId
+): Promise<{ success: boolean; result?: any; error?: string }> {
+    return apiRequest('/api/analyze/sybil-batch', 'POST', { addresses, chain });
 }
