@@ -63,7 +63,9 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
         res.json({
             uid: req.user.uid,
             email: req.user.email,
-            name: req.user.name,
+            username: userData?.displayName || req.user.name || req.user.email?.split('@')[0],
+            displayName: userData?.displayName || req.user.name,
+            name: userData?.displayName || req.user.name,
             isVerified: !!userData?.isVerified,
             tier,
             hasAlchemyApiKey: hasAlchemyKey,
@@ -74,7 +76,8 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
                 remaining,
             },
             createdAt: userData?.createdAt,
-            profilePicture: userData?.profilePicture || req.user.photoURL,
+            profilePicture: userData?.profilePicture || req.user.photoURL || null,
+            photoURL: userData?.profilePicture || req.user.photoURL || null,
             walletAddress: userData?.walletAddress || req.user.walletAddress || null,
             authProvider: userData?.authProvider || 'wallet'
         });
