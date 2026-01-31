@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import { getFirestore } from '../firebase.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 
+console.log('[ADMIN] Loading admin routes module - TIMESTAMP: 2026-01-31-v3');
+
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-prod';
 const SALT_ROUNDS = 12;
