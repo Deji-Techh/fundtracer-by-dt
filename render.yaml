@@ -5,25 +5,30 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm install && npm run build --workspace=@fundtracer/core && npm run build --workspace=@fundtracer/server && npm run build --workspace=@fundtracer/web
+    buildCommand: |
+      npm install
+      npm run build --workspace=@fundtracer/core
+      npm run build --workspace=@fundtracer/server
     startCommand: npm start --workspace=@fundtracer/server
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 3001
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_CLIENT_EMAIL
         sync: false
       - key: FIREBASE_PRIVATE_KEY
         sync: false
-      - key: FIREBASE_SERVICE_ACCOUNT_BASE64
-        sync: false
       - key: DEFAULT_ALCHEMY_API_KEY
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: PORT
-        value: 3001
+      - key: FREE_DAILY_LIMIT
+        value: 7
+      - key: CORS_ORIGIN
+        value: https://fundtracer.onrender.com
     healthCheckPath: /health
 
   # Frontend (Web App)
@@ -32,8 +37,28 @@ services:
     runtime: static
     region: oregon
     plan: free
-    buildCommand: cd packages/web && npm install && npm run build
-    staticPublishPath: packages/web/dist
+    buildCommand: |
+      npm install
+      npm run build --workspace=@fundtracer/core
+      npm run build --workspace=@fundtracer/web
+    staticPublishPath: ./packages/web/dist
+    envVars:
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: VITE_FIREBASE_APP_ID
+        sync: false
+      - key: VITE_FIREBASE_MEASUREMENT_ID
+        sync: false
+      - key: VITE_API_URL
+        value: https://fundtracer-api.onrender.com
     routes:
       - type: rewrite
         source: /*
