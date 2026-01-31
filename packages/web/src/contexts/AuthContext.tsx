@@ -108,10 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                 isConnected: true
                             });
                         }
+                    } else {
+                        // No user data returned, clear auth
+                        clearAuthData();
                     }
-                } catch (error) {
+                } catch (error: any) {
                     console.error('Auth init error:', error);
-                    clearAuthData();
+                    // Only clear auth if token is invalid/expired (401)
+                    // Keep auth for network errors (user might be offline)
+                    if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+                        clearAuthData();
+                    }
                 }
             }
             setLoading(false);

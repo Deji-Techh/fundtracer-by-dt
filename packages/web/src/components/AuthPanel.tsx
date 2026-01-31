@@ -413,47 +413,6 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                     </div>
                 </div>
 
-                {/* Wallet Section */}
-                <div style={{ marginBottom: 'var(--space-3)' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
-                        <Wallet size={14} /> Wallet
-                    </label>
-                    {profile?.walletAddress ? (
-                        <div style={{
-                            padding: '8px 12px',
-                            backgroundColor: 'var(--color-surface-hover)',
-                            borderRadius: '6px',
-                            fontSize: 'var(--text-sm)',
-                            color: 'var(--color-text-secondary)',
-                            fontFamily: 'monospace',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                        }}>
-                            <span>{profile.walletAddress.slice(0, 8)}...{profile.walletAddress.slice(-6)}</span>
-                            {profile?.isVerified && (
-                                <span className="risk-badge low" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', marginLeft: 0 }}>
-                                    PoH Verified
-                                </span>
-                            )}
-                        </div>
-                    ) : (
-                        <div style={{
-                            padding: '12px',
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            border: '1px solid rgba(245, 158, 11, 0.3)',
-                            borderRadius: '6px',
-                            textAlign: 'center'
-                        }}>
-                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
-                                No wallet connected
-                            </p>
-                            <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }}>
-                                <Wallet size={14} /> Connect Wallet
-                            </button>
-                        </div>
-                    )}
-                </div>
             </div>
 
             {/* Alchemy API Key Section */}
