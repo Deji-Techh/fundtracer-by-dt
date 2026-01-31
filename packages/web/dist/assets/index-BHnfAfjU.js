@@ -1,4 +1,4 @@
-import{c as u,r as g,e as m,a as p,i as x,b as n}from"./appkit-B9KlCyy7.js";import{n as r}from"./index-C2sb6ah4.js";const b=u`
+import{c as u,r as g,e as m,a as p,i as x,b as n}from"./appkit-C6wa89_Y.js";import{n as r}from"./index-C8JlSrFI.js";const b=u`
   button {
     display: block;
     display: flex;
