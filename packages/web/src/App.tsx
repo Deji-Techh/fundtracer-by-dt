@@ -39,7 +39,7 @@ function App() {
         return <PrivacyPolicyPage />;
     }
 
-    const { user, profile, loading: authLoading, getSigner } = useAuth();
+    const { user, profile, isAuthenticated, loading: authLoading, getSigner } = useAuth();
     // parseEther is imported at top level now
 
     const [viewMode, setViewMode] = useState<ViewMode>('wallet');
@@ -290,7 +290,7 @@ function App() {
                 txHash = await checkFreeTierTx();
             }
 
-            const response = await compareWallets(addresses, selectedChain, { txHash });
+            const response = await compareWallets(addresses, selectedChain);
             if (response.result) {
                 setMultiWalletResult(response.result);
             }
@@ -319,7 +319,7 @@ function App() {
                 txHash = await checkFreeTierTx();
             }
 
-            const response = await analyzeContract(contractAddress.trim(), selectedChain, { txHash });
+            const response = await analyzeContract(contractAddress.trim(), selectedChain);
             if (response.result) {
                 setContractResult(response.result);
             }
