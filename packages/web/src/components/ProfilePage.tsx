@@ -9,7 +9,7 @@ interface ProfilePageProps {
 
 export default function ProfilePage({ onBack }: ProfilePageProps) {
     const { user, profile, refreshProfile } = useAuth();
-    const [name, setName] = useState(profile?.name || '');
+    const [name, setName] = useState(profile?.username || '');
     const [email, setEmail] = useState(profile?.email || '');
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
@@ -18,8 +18,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
 
     React.useEffect(() => {
         if (profile) {
-            setName(profile.name || '');
-            setEmail(profile.email || ''); // Don't fallback to address for email
+            setName(profile.username || '');
+            setEmail(profile.email || '');
             setProfilePicture(profile.profilePicture || null);
         }
     }, [profile]);
@@ -150,12 +150,12 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                             <Camera size={16} />
                         </button>
                     </div>
-                    <div style={{ textAlign: 'center' }}>
-                        <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 600 }}>{name || 'Anonymous User'}</h2>
-                        <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-                            {user.address}
+                        <div style={{ textAlign: 'center' }}>
+                            <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 600 }}>{name || 'Anonymous User'}</h2>
+                            <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                                @{user.username}
+                            </div>
                         </div>
-                    </div>
                 </div>
 
                 <div className="grid grid-2" style={{ gap: 'var(--space-8)', marginBottom: 'var(--space-8)' }}>
