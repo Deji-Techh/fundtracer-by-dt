@@ -46,9 +46,7 @@ const PORT = process.env.PORT || 3001;
 
 // Security middleware
 app.use(helmet({
-    crossOriginOpenerPolicy: {
-        policy: "unsafe-none" // Required for Google Sign-In popup to work
-    },
+    crossOriginOpenerPolicy: false, // Completely disable COOP for Google Sign-In
     contentSecurityPolicy: {
         directives: {
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
@@ -74,7 +72,9 @@ app.use(helmet({
                 "https://secure.walletconnect.org",
                 "https://verify.walletconnect.com",
                 "https://accounts.google.com",
-                "https://*.google.com"
+                "https://*.google.com",
+                "https://apis.google.com",
+                "https://fundtracer-by-dt.firebaseapp.com"
             ],
             "img-src": [
                 "'self'",
