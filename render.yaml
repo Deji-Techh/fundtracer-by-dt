@@ -35,8 +35,6 @@ services:
   - type: web
     name: fundtracer-web
     runtime: static
-    plan: free
-    buildCommand: |
       npm install
       npm run build --workspace=@fundtracer/core
       npm run build --workspace=@fundtracer/web
