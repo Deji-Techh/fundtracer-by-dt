@@ -1,5 +1,5 @@
 // ============================================================
-// Authentication Middleware - Verify JWT (Wallet or Google)
+// Authentication Middleware - Verify JWT (Email, Google, or Wallet)
 // ============================================================
 
 import express, { Response, NextFunction } from 'express';
@@ -37,9 +37,18 @@ export async function authMiddleware(
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         
-        // Check if this is a wallet-based or Google-based auth
-        const isGoogleAuth = decoded.authProvider === 'google';
-        const uid = isGoogleAuth ? decoded.uid : decoded.address?.toLowerCase();
+        // Get UID based on auth provider
+        let uid: string;
+        if (decoded.authProvider === 'wallet') {
+            // Wallet auth uses address as UID
+            uid = decoded.address?.toLowerCase();
+        } else if (decoded.authProvider === 'email' || decoded.authProvider === 'google') {
+            // Email and Google auth use decoded.uid
+            uid = decoded.uid;
+        } else {
+            // Fallback for legacy tokens or unknown providers
+            uid = decoded.uid || decoded.address?.toLowerCase();
+        }
         
         if (!uid) {
             return res.status(401).json({ error: 'Invalid token structure' });
@@ -50,9 +59,8 @@ export async function authMiddleware(
         let userDoc;
         
         try {
-            // For Google auth, use uid directly; for wallet auth, use address
-            const docId = isGoogleAuth ? uid : uid;
-            userDoc = await db.collection('users').doc(docId).get();
+            // Use uid to fetch user data
+            userDoc = await db.collection('users').doc(uid).get();
         } catch (dbError) {
             console.error('Firestore fetch failed in authMiddleware:', dbError);
             userDoc = null;
