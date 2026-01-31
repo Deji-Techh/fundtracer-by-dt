@@ -164,6 +164,12 @@ try {
     console.error('[WARN] Firebase initialization failed. Auth features may be limited.', error);
 }
 
+// Create default admin on startup
+import { createDefaultAdmin } from './routes/admin.js';
+createDefaultAdmin().catch(err => {
+    console.error('[ERROR] Failed to create default admin:', err);
+});
+
 // Start Payment Listener
 // Start Payment Listener - robustly
 try {
