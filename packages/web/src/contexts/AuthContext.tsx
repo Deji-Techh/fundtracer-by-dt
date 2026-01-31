@@ -18,94 +18,56 @@ import {
 } from '../api';
 import { useNotify } from './ToastContext';
 import {
-    registerWithEmail as firebaseRegister,
-    signInWithEmail as firebaseSignIn,
-    sendVerificationEmail as firebaseSendVerification,
-    logOut as firebaseLogout,
-    getCurrentUser,
-    getIdToken,
-    onAuthChange,
-    isEmailVerified
-} from '../firebase';
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut as firebaseSignOut,
+    getAuth
+} from 'firebase/auth';
 
-const AUTH_PENDING_KEY = 'fundtracer_auth_pending';
 const TOKEN_EXPIRY_KEY = 'fundtracer_token_expiry';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-// Auth User type
 interface AuthUser {
     uid: string;
     email: string;
-    emailVerified: boolean;
-    displayName: string | null;
-    username?: string;
-    photoURL: string | null;
+    username: string;
 }
 
-// Wallet type
 interface WalletInfo {
     address: string;
     isConnected: boolean;
 }
 
 interface AuthContextType {
-    // Auth
     user: AuthUser | null;
-    isAuthenticated: boolean;
-    isEmailVerified: boolean;
-    
-    // Wallet
-    wallet: WalletInfo | null;
-    isWalletConnected: boolean;
-    
-    // Profile
     profile: UserProfile | null;
-    
-    // State
+    wallet: WalletInfo | null;
+    isAuthenticated: boolean;
+    isWalletConnected: boolean;
     loading: boolean;
-    
-    // Actions
-    registerWithEmail: (email: string, password: string) => Promise<void>;
-    sendEmailVerification: () => Promise<void>;
-    completeRegistration: (uid: string, username: string, password: string, keepSignedIn: boolean) => Promise<void>;
-    loginWithUsername: (username: string, password: string, keepSignedIn: boolean) => Promise<void>;
-    connectWallet: () => Promise<void>;
+    register: (username: string, email: string, password: string, keepSignedIn: boolean) => Promise<void>;
+    login: (username: string, password: string, keepSignedIn: boolean) => Promise<void>;
     signOut: () => Promise<void>;
+    connectWallet: () => Promise<void>;
     refreshProfile: () => Promise<void>;
-    getSigner: () => Promise<ethers.Signer>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    // Auth State
     const [user, setUser] = useState<AuthUser | null>(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isEmailVerifiedState, setIsEmailVerifiedState] = useState(false);
-    
-    // Wallet State
-    const [wallet, setWallet] = useState<WalletInfo | null>(null);
-    
-    // Profile
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [wallet, setWallet] = useState<WalletInfo | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
-    
+
     const operationInProgress = useRef(false);
     const notify = useNotify();
 
-    // AppKit hooks
     const { address, isConnected } = useAppKitAccount();
     const { walletProvider } = useAppKitProvider('eip155');
     const { disconnect } = useDisconnect();
 
-    // Check token expiry
-    const isTokenValid = useCallback(() => {
-        const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
-        if (!expiry) return true; // No expiry set means session-only (already expired on page close)
-        return Date.now() < parseInt(expiry, 10);
-    }, []);
-
-    // Set token with expiry
     const setTokenWithExpiry = useCallback((token: string, keepSignedIn: boolean) => {
         setAuthToken(token);
         if (keepSignedIn) {
@@ -115,154 +77,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Clear all auth data
     const clearAuthData = useCallback(() => {
         removeAuthToken();
         localStorage.removeItem(TOKEN_EXPIRY_KEY);
-        sessionStorage.removeItem(AUTH_PENDING_KEY);
     }, []);
 
-    // Initialize auth on mount
+    const setUserFromProfile = useCallback((userProfile: UserProfile, token?: string) => {
+        if (token) {
+            setAuthToken(token);
+        }
+
+        setUser({
+            uid: userProfile.uid,
+            email: userProfile.email,
+            username: userProfile.username || ''
+        });
+        setIsAuthenticated(true);
+        setProfile(userProfile);
+
+        if (userProfile.walletAddress) {
+            setWallet({
+                address: userProfile.walletAddress,
+                isConnected: true
+            });
+        }
+    }, []);
+
     useEffect(() => {
         const initAuth = async () => {
             const token = getAuthToken();
-            
-            // Check if token is expired
-            if (token && !isTokenValid()) {
+            const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+
+            if (!token || (expiry && Date.now() > parseInt(expiry, 10))) {
                 clearAuthData();
                 setLoading(false);
                 return;
             }
-            
-            if (token) {
-                try {
-                    const userProfile = await getProfile();
-                    setProfile(userProfile);
-                    
-                    // Restore user state from profile
-                    if (userProfile.uid) {
-                        setUser({
-                            uid: userProfile.uid,
-                            email: userProfile.email || '',
-                            emailVerified: userProfile.isVerified || false,
-                            displayName: userProfile.displayName || userProfile.name || null,
-                            username: userProfile.username,
-                            photoURL: userProfile.profilePicture || userProfile.photoURL || null
-                        });
-                        setIsAuthenticated(true);
-                        setIsEmailVerifiedState(userProfile.isVerified || false);
-                    }
-                    
-                    // Restore wallet state from profile
-                    if (userProfile.walletAddress) {
-                        setWallet({
-                            address: userProfile.walletAddress,
-                            isConnected: true
-                        });
-                    }
-                } catch (error) {
-                    console.error('Auth init error:', error);
-                    clearAuthData();
-                }
+
+            try {
+                const userProfile = await getProfile();
+                setUserFromProfile(userProfile);
+            } catch (error) {
+                console.error('Auth init error:', error);
+                clearAuthData();
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
+
         initAuth();
-    }, [clearAuthData, isTokenValid]);
+    }, [clearAuthData, setUserFromProfile]);
 
-    // Listen to Firebase auth state changes
-    useEffect(() => {
-        const unsubscribe = onAuthChange((firebaseUser) => {
-            if (firebaseUser) {
-                // Update email verification status
-                setIsEmailVerifiedState(firebaseUser.emailVerified);
-                
-                // Update user state if we have a profile
-                setUser(prev => prev ? {
-                    ...prev,
-                    emailVerified: firebaseUser.emailVerified
-                } : null);
-            }
-        });
-        
-        return () => unsubscribe();
-    }, []);
-
-    // Update wallet state when AppKit connection changes
     useEffect(() => {
         if (isConnected && address) {
-            setWallet({
-                address: address,
-                isConnected: true
-            });
-        } else if (!isConnected && wallet?.address) {
-            // Wallet disconnected from AppKit
+            setWallet({ address, isConnected: true });
+        } else if (!isConnected) {
             setWallet(null);
         }
-    }, [isConnected, address, wallet?.address]);
+    }, [isConnected, address]);
 
-    // Register with email
-    const registerWithEmail = useCallback(async (email: string, password: string) => {
-        if (operationInProgress.current) return;
-        operationInProgress.current = true;
-        setLoading(true);
-
-        try {
-            // Create user in Firebase
-            const firebaseUser = await firebaseRegister(email, password);
-            
-            if (!firebaseUser) {
-                throw new Error('Registration failed');
-            }
-
-            // Send verification email
-            await firebaseSendVerification(firebaseUser);
-
-            // Set temporary user state (not fully registered yet)
-            setUser({
-                uid: firebaseUser.uid,
-                email: firebaseUser.email || '',
-                emailVerified: false,
-                displayName: null,
-                username: undefined,
-                photoURL: null
-            });
-            
-            setIsEmailVerifiedState(false);
-
-            notify.success('Registration initiated! Please check your email to verify.');
-            sessionStorage.setItem(AUTH_PENDING_KEY, 'verification_pending');
-        } catch (error: any) {
-            console.error('[AuthContext] Registration error:', error);
-            notify.error(`Registration failed: ${error.message || 'Unknown error'}`);
-            sessionStorage.removeItem(AUTH_PENDING_KEY);
-        } finally {
-            setLoading(false);
-            operationInProgress.current = false;
-        }
-    }, [notify]);
-
-    // Send email verification
-    const sendEmailVerification = useCallback(async () => {
-        const currentUser = getCurrentUser();
-        if (!currentUser) {
-            notify.error('No user to verify');
-            return;
-        }
-
-        try {
-            await firebaseSendVerification(currentUser);
-            notify.success('Verification email sent! Please check your inbox.');
-        } catch (error: any) {
-            console.error('[AuthContext] Send verification error:', error);
-            notify.error(`Failed to send verification: ${error.message || 'Unknown error'}`);
-        }
-    }, [notify]);
-
-    // Complete registration (after email verification)
-    const completeRegistration = useCallback(async (
-        uid: string,
+    const register = useCallback(async (
         username: string,
+        email: string,
         password: string,
         keepSignedIn: boolean
     ) => {
@@ -271,65 +147,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
 
         try {
-            // Get Firebase ID token
-            const idToken = await getIdToken();
-            if (!idToken) {
-                throw new Error('Not authenticated');
-            }
+            const auth = getAuth();
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const firebaseUser = userCredential.user;
 
-            // Call backend to complete registration
-            const response = await fetch('/api/auth/complete-registration', {
+            const idToken = await firebaseUser.getIdToken();
+
+            const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${idToken}`
                 },
                 body: JSON.stringify({
-                    uid,
+                    uid: firebaseUser.uid,
+                    email,
                     username,
-                    password,
                     keepSignedIn
                 })
             });
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.message || 'Failed to complete registration');
+                throw new Error(error.message || 'Registration failed');
             }
 
             const data = await response.json();
-
-            // Store token with expiry
             setTokenWithExpiry(data.token, keepSignedIn);
+            setUserFromProfile(data.user, data.token);
 
-            // Set user state
-            setUser({
-                uid: data.user.uid,
-                email: data.user.email,
-                emailVerified: true,
-                displayName: data.user.displayName,
-                username: data.user.username,
-                photoURL: data.user.photoURL
-            });
-            setIsAuthenticated(true);
-            setIsEmailVerifiedState(true);
-
-            // Set profile
-            setProfile(data.user);
-
-            notify.success('Registration completed! Welcome!');
-            sessionStorage.removeItem(AUTH_PENDING_KEY);
+            notify.success('Registration successful! Welcome!');
         } catch (error: any) {
-            console.error('[AuthContext] Complete registration error:', error);
-            notify.error(`Failed to complete registration: ${error.message || 'Unknown error'}`);
+            console.error('[AuthContext] Registration error:', error);
+            notify.error(`Registration failed: ${error.message || 'Unknown error'}`);
+
+            try {
+                const auth = getAuth();
+                if (auth.currentUser) {
+                    await firebaseSignOut(auth);
+                }
+            } catch {}
         } finally {
             setLoading(false);
             operationInProgress.current = false;
         }
-    }, [notify, setTokenWithExpiry]);
+    }, [notify, setTokenWithExpiry, setUserFromProfile]);
 
-    // Login with username and password
-    const loginWithUsername = useCallback(async (
+    const login = useCallback(async (
         username: string,
         password: string,
         keepSignedIn: boolean
@@ -339,7 +203,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
 
         try {
-            // First, get email from username via backend
             const lookupResponse = await fetch('/api/auth/lookup-username', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -352,22 +215,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             const { email } = await lookupResponse.json();
 
-            // Sign in with Firebase
-            const firebaseUser = await firebaseSignIn(email, password);
-            
-            if (!firebaseUser) {
-                throw new Error('Login failed');
-            }
+            const auth = getAuth();
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const firebaseUser = userCredential.user;
 
-            // Check if email is verified
-            if (!firebaseUser.emailVerified) {
-                throw new Error('Please verify your email before logging in');
-            }
-
-            // Get Firebase ID token
             const idToken = await firebaseUser.getIdToken();
 
-            // Login to backend
             const loginResponse = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -384,35 +237,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             const data = await loginResponse.json();
-
-            // Store token with expiry
             setTokenWithExpiry(data.token, keepSignedIn);
-
-            // Set user state
-            setUser({
-                uid: data.user.uid,
-                email: data.user.email,
-                emailVerified: true,
-                displayName: data.user.displayName,
-                username: data.user.username,
-                photoURL: data.user.photoURL
-            });
-            setIsAuthenticated(true);
-            setIsEmailVerifiedState(true);
-
-            // Set profile
-            setProfile(data.user);
-
-            // Restore wallet if exists
-            if (data.user.walletAddress) {
-                setWallet({
-                    address: data.user.walletAddress,
-                    isConnected: true
-                });
-            }
+            setUserFromProfile(data.user, data.token);
 
             notify.success('Successfully logged in!');
-            sessionStorage.removeItem(AUTH_PENDING_KEY);
         } catch (error: any) {
             console.error('[AuthContext] Login error:', error);
             notify.error(`Login failed: ${error.message || 'Unknown error'}`);
@@ -420,9 +248,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
             operationInProgress.current = false;
         }
-    }, [notify, setTokenWithExpiry]);
+    }, [notify, setTokenWithExpiry, setUserFromProfile]);
 
-    // Connect wallet (separate from auth)
+    const signOut = useCallback(async () => {
+        clearAuthData();
+        setUser(null);
+        setIsAuthenticated(false);
+        setProfile(null);
+        operationInProgress.current = false;
+
+        try {
+            disconnect();
+            setWallet(null);
+
+            if (typeof window !== 'undefined') {
+                Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('wc@2:') || key.startsWith('wagmi') || key.includes('walletconnect')) {
+                        localStorage.removeItem(key);
+                    }
+                });
+            }
+        } catch {}
+
+        try {
+            const auth = getAuth();
+            await firebaseSignOut(auth);
+        } catch (error) {
+            console.error('Firebase logout error:', error);
+        }
+
+        notify.success('Signed out successfully');
+    }, [disconnect, clearAuthData, notify]);
+
     const connectWallet = useCallback(async () => {
         if (!isAuthenticated) {
             notify.error('Please log in first');
@@ -445,13 +302,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const message = `Link wallet to FundTracer account\nTimestamp: ${timestamp}\nUser: ${user?.uid || ''}`;
             const signature = await signer.signMessage(message);
 
-            // Get Firebase ID token
-            const idToken = await getIdToken();
+            const auth = getAuth();
+            const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+
             if (!idToken) {
                 throw new Error('Authentication required');
             }
 
-            // Link wallet to account on backend
             const response = await fetch('/api/auth/link-wallet', {
                 method: 'POST',
                 headers: {
@@ -472,13 +329,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             const data = await response.json();
 
-            // Update wallet state
             setWallet({
                 address: walletAddress,
                 isConnected: true
             });
 
-            // Update profile with new wallet info
             setProfile(prev => prev ? {
                 ...prev,
                 walletAddress: walletAddress,
@@ -488,7 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             notify.success('Wallet connected successfully!');
         } catch (error: any) {
             console.error('[AuthContext] Connect wallet error:', error);
-            
+
             const isUserRejection =
                 error.code === 4001 ||
                 error.code === 'ACTION_REJECTED' ||
@@ -503,65 +358,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [isAuthenticated, walletProvider, address, user?.uid, notify]);
 
-    // Sign Out
-    const signOut = useCallback(async () => {
-        // Clear all auth state
-        clearAuthData();
-        setUser(null);
-        setIsAuthenticated(false);
-        setIsEmailVerifiedState(false);
-        setProfile(null);
-        operationInProgress.current = false;
-
-        // Disconnect wallet
-        try {
-            disconnect();
-            setWallet(null);
-
-            if (typeof window !== 'undefined') {
-                Object.keys(localStorage).forEach(key => {
-                    if (
-                        key.startsWith('wc@2:') ||
-                        key.startsWith('wagmi') ||
-                        key.includes('walletconnect')
-                    ) {
-                        localStorage.removeItem(key);
-                    }
-                });
-            }
-        } catch { }
-
-        // Sign out from Firebase
-        try {
-            await firebaseLogout();
-        } catch (error) {
-            console.error('Firebase logout error:', error);
-        }
-
-        notify.success('Signed out successfully');
-    }, [disconnect, clearAuthData, notify]);
-
-    // Refresh Profile
     const refreshProfile = useCallback(async () => {
         if (!isAuthenticated) return;
-        
+
         try {
             const userProfile = await getProfile();
             setProfile(userProfile);
-            
-            // Update user state with latest profile data
+
             if (userProfile) {
                 setUser(prev => prev ? {
                     ...prev,
-                    displayName: userProfile.displayName || userProfile.name || prev.displayName,
-                    username: userProfile.username || prev.username,
-                    photoURL: userProfile.profilePicture || userProfile.photoURL || prev.photoURL,
-                    emailVerified: userProfile.isVerified || prev.emailVerified
+                    email: userProfile.email || prev.email,
+                    username: userProfile.username || prev.username
                 } : null);
-                setIsEmailVerifiedState(userProfile.isVerified || false);
             }
-            
-            // Update wallet state if changed
+
             if (userProfile.walletAddress !== wallet?.address) {
                 if (userProfile.walletAddress) {
                     setWallet({
@@ -577,33 +388,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [isAuthenticated, wallet?.address]);
 
-    // Get Signer
-    const getSigner = useCallback(async (): Promise<ethers.Signer> => {
-        if (!walletProvider || !address) {
-            throw new Error('Wallet not connected');
-        }
-
-        const provider = new ethers.BrowserProvider(walletProvider as any);
-        return provider.getSigner();
-    }, [walletProvider, address]);
-
     return (
         <AuthContext.Provider value={{
             user,
-            isAuthenticated,
-            isEmailVerified: isEmailVerifiedState,
-            wallet,
-            isWalletConnected: wallet?.isConnected || false,
             profile,
+            wallet,
+            isAuthenticated,
+            isWalletConnected: wallet?.isConnected || false,
             loading,
-            registerWithEmail,
-            sendEmailVerification,
-            completeRegistration,
-            loginWithUsername,
-            connectWallet,
+            register,
+            login,
             signOut,
-            refreshProfile,
-            getSigner
+            connectWallet,
+            refreshProfile
         }}>
             {children}
         </AuthContext.Provider>

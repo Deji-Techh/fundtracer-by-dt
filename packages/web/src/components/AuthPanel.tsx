@@ -2,14 +2,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { saveAlchemyKey, removeAlchemyKey, checkUsername } from '../api';
 import TerminalAnimation from './TerminalAnimation';
 import { useState, useEffect } from 'react';
-import { Mail, User, Lock, Wallet, LogIn, UserPlus, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Mail, User, Lock, Wallet, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 
 interface AuthPanelProps {
     showApiKeyForm: boolean;
     setShowApiKeyForm: (show: boolean) => void;
 }
 
-type ViewState = 'landing' | 'signup-email' | 'signup-pending' | 'signup-complete' | 'signin';
+type ViewState = 'landing' | 'signup' | 'signin';
 
 function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
     const {
@@ -17,11 +17,9 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
         profile,
         isAuthenticated,
         loading,
-        registerWithEmail,
-        completeRegistration,
-        loginWithUsername,
-        signOut,
-        connectWallet
+        register,
+        login,
+        signOut
     } = useAuth();
 
     const [view, setView] = useState<ViewState>('landing');
@@ -29,33 +27,15 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [tempPassword, setTempPassword] = useState('');
     const [keepSignedIn, setKeepSignedIn] = useState(false);
     const [authError, setAuthError] = useState('');
     const [authLoading, setAuthLoading] = useState(false);
-    const [verificationSent, setVerificationSent] = useState(false);
-    const [emailVerified, setEmailVerified] = useState(false);
     const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
     const [usernameChecking, setUsernameChecking] = useState(false);
 
     const [alchemyKeyInput, setAlchemyKeyInput] = useState('');
     const [alchemyKeyError, setAlchemyKeyError] = useState('');
     const [alchemyKeySaving, setAlchemyKeySaving] = useState(false);
-
-    // Check for email verification on mount (when returning from email link)
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const mode = urlParams.get('mode');
-        const oobCode = urlParams.get('oobCode');
-        
-        if (mode === 'verifyEmail' && oobCode) {
-            // User clicked email verification link
-            setEmailVerified(true);
-            setView('signup-complete');
-            // Clean up URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    }, []);
 
     // Check username availability
     useEffect(() => {
@@ -77,33 +57,9 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
         }
     }, [username]);
 
-    const handleSendVerification = async (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!email.trim()) return;
-
-        setAuthLoading(true);
-        setAuthError('');
-
-        try {
-            // Generate a temporary password for Firebase user creation
-            const tempPass = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
-            setTempPassword(tempPass);
-            
-            // Create Firebase user with email + temp password (verification email sent automatically)
-            await registerWithEmail(email.trim(), tempPass);
-            
-            setVerificationSent(true);
-            setView('signup-pending');
-        } catch (error: any) {
-            setAuthError(error.message || 'Failed to send verification');
-        } finally {
-            setAuthLoading(false);
-        }
-    };
-
-    const handleCompleteRegistration = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!username.trim() || !password.trim() || !user?.uid) return;
+        if (!username.trim() || !email.trim() || !password.trim()) return;
         
         if (password !== confirmPassword) {
             setAuthError('Passwords do not match');
@@ -115,15 +71,19 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
             return;
         }
 
+        if (usernameAvailable === false) {
+            setAuthError('Username is already taken');
+            return;
+        }
+
         setAuthLoading(true);
         setAuthError('');
 
         try {
-            await completeRegistration(user.uid, username.trim(), password, keepSignedIn);
-            // Clear sensitive data
-            setTempPassword('');
+            await register(username.trim(), email.trim(), password, keepSignedIn);
+            // Registration successful, user is now logged in automatically
         } catch (error: any) {
-            setAuthError(error.message || 'Failed to complete registration');
+            setAuthError(error.message || 'Registration failed');
         } finally {
             setAuthLoading(false);
         }
@@ -137,7 +97,7 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
         setAuthError('');
 
         try {
-            await loginWithUsername(username.trim(), password, keepSignedIn);
+            await login(username.trim(), password, keepSignedIn);
         } catch (error: any) {
             setAuthError(error.message || 'Login failed');
         } finally {
@@ -217,7 +177,7 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                         </p>
 
                         <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
-                            <button className="btn btn-primary" onClick={() => setView('signup-email')}>
+                            <button className="btn btn-primary" onClick={() => setView('signup')}>
                                 <UserPlus size={18} /> Sign Up
                             </button>
                             <button className="btn btn-secondary" onClick={() => setView('signin')}>
@@ -229,98 +189,15 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
             );
         }
 
-        // Sign Up Step 1: Email Only
-        if (view === 'signup-email') {
+        // Sign Up Page
+        if (view === 'signup') {
             return (
                 <div className="card animate-fade-in">
                     <div style={{ padding: 'var(--space-6)' }}>
                         <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
                             Create Your Account
                         </h3>
-                        <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-sm)' }}>
-                            Enter your email to get started. We'll send you a verification link.
-                        </p>
-                        <form onSubmit={handleSendVerification}>
-                            <div style={{ marginBottom: 'var(--space-4)' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
-                                    <Mail size={16} /> Email Address
-                                </label>
-                                <input
-                                    type="email"
-                                    className="input"
-                                    placeholder="Enter your email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            {authError && (
-                                <div className="alert danger" style={{ marginBottom: 'var(--space-3)' }}>
-                                    {authError}
-                                </div>
-                            )}
-                            <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={authLoading}>
-                                {authLoading ? 'Sending...' : 'Verify Email'}
-                            </button>
-                        </form>
-                        <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-3)' }} onClick={() => setView('landing')}>
-                            <ArrowLeft size={16} /> Go Back
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
-        // Sign Up Step 2: Verification Pending
-        if (view === 'signup-pending') {
-            return (
-                <div className="card animate-fade-in">
-                    <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
-                        <Mail size={48} color="var(--color-primary)" style={{ marginBottom: 'var(--space-4)' }} />
-                        <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-2)' }}>
-                            Verification Email Sent
-                        </h3>
-                        <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
-                            We've sent a verification link to <strong>{email}</strong>. 
-                            Please check your inbox and click the link to continue.
-                        </p>
-                        <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)' }}>
-                            After verifying, return here to complete your registration.
-                        </p>
-                        <div style={{ display: 'flex', gap: 'var(--space-2)', flexDirection: 'column' }}>
-                            <button className="btn btn-secondary" onClick={handleSendVerification} disabled={authLoading}>
-                                Resend Verification Email
-                            </button>
-                            <button className="btn btn-ghost" onClick={() => setView('landing')}>
-                                Back to Home
-                            </button>
-                            {/* Dev mode: Skip to complete */}
-                            {process.env.NODE_ENV === 'development' && (
-                                <button className="btn btn-ghost" onClick={() => setView('signup-complete')} style={{ fontSize: '12px' }}>
-                                    [Dev] Skip to Complete
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
-        // Sign Up Step 3: Complete Registration (Username + Password)
-        if (view === 'signup-complete') {
-            return (
-                <div className="card animate-fade-in">
-                    <div style={{ padding: 'var(--space-6)' }}>
-                        <div style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
-                            <CheckCircle size={48} color="#10B981" />
-                            <h3 style={{ fontSize: 'var(--text-lg)', marginTop: 'var(--space-2)' }}>
-                                Email Verified!
-                            </h3>
-                            <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-                                Now create your username and password
-                            </p>
-                        </div>
-                        <form onSubmit={handleCompleteRegistration}>
+                        <form onSubmit={handleRegister}>
                             <div style={{ marginBottom: 'var(--space-3)' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
                                     <User size={16} /> Username
@@ -328,7 +205,7 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                                 <input
                                     type="text"
                                     className="input"
-                                    placeholder="Choose a username (3-20 chars)"
+                                    placeholder="Choose a username (3-20 chars, alphanumeric)"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     minLength={3}
@@ -345,6 +222,19 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                                 {usernameAvailable === false && (
                                     <span style={{ fontSize: '12px', color: '#EF4444' }}>✗ Username taken</span>
                                 )}
+                            </div>
+                            <div style={{ marginBottom: 'var(--space-3)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
+                                    <Mail size={16} /> Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    className="input"
+                                    placeholder="Enter your email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
                             </div>
                             <div style={{ marginBottom: 'var(--space-3)' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
@@ -395,18 +285,18 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
                                 style={{ width: '100%' }} 
                                 disabled={authLoading || usernameAvailable === false || password !== confirmPassword}
                             >
-                                {authLoading ? 'Creating Account...' : 'Complete Registration'}
+                                {authLoading ? 'Creating Account...' : 'Create Account'}
                             </button>
                         </form>
                         <button className="btn btn-ghost" style={{ width: '100%', marginTop: 'var(--space-3)' }} onClick={() => setView('landing')}>
-                            Cancel
+                            <ArrowLeft size={16} /> Go Back
                         </button>
                     </div>
                 </div>
             );
         }
 
-        // Sign In
+        // Sign In Page
         if (view === 'signin') {
             return (
                 <div className="card animate-fade-in">
