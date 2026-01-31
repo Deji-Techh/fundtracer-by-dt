@@ -56,22 +56,34 @@ export async function createDefaultAdmin(): Promise<void> {
 router.post('/auth/login', async (req: Request, res: Response) => {
   const { username, password } = req.body;
   console.log(`[ADMIN] Login attempt: ${username}`);
+  console.log(`[ADMIN] Request body:`, req.body);
 
   if (!username || !password) {
+    console.log(`[ADMIN] Missing credentials: username=${!!username}, password=${!!password}`);
     return res.status(400).json({ error: 'Username and password required' });
   }
 
   try {
     const db = getFirestore();
+    const searchUsername = username.toLowerCase();
+    console.log(`[ADMIN] Searching for username (lowercase): ${searchUsername}`);
     
     // Find admin by username
     const adminQuery = await db.collection('adminUsers')
-      .where('username', '==', username.toLowerCase())
+      .where('username', '==', searchUsername)
       .where('isActive', '==', true)
       .limit(1)
       .get();
     
+    console.log(`[ADMIN] Query result: ${adminQuery.empty ? 'EMPTY' : `Found ${adminQuery.docs.length} docs`}`);
+    
     if (adminQuery.empty) {
+      // Debug: list all admin users to see what's in the database
+      const allAdmins = await db.collection('adminUsers').limit(5).get();
+      console.log(`[ADMIN] Total admin users in DB: ${allAdmins.size}`);
+      allAdmins.forEach(doc => {
+        console.log(`[ADMIN] Existing admin: ${doc.data().username} (isActive: ${doc.data().isActive})`);
+      });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
