@@ -1,10 +1,21 @@
 // ============================================================
-// Authentication Middleware - Verify JWT (Email, Google, or Wallet)
+// Authentication Middleware - Verify JWT (Email, Google, Wallet, or Admin)
 // ============================================================
 
 import express, { Response, NextFunction } from 'express';
 import { getFirestore } from '../firebase.js';
 import jwt from 'jsonwebtoken';
+
+export type AdminRole = 'superadmin' | 'admin' | 'moderator';
+
+export interface AdminUser {
+    uid: string;
+    username: string;
+    email: string;
+    role: AdminRole;
+    permissions: string[];
+    type: 'admin';
+}
 
 export interface AuthenticatedRequest extends express.Request {
     user?: {
@@ -13,6 +24,10 @@ export interface AuthenticatedRequest extends express.Request {
         name?: string;
         photoURL?: string;
         walletAddress?: string;
+        username?: string;
+        role?: AdminRole;
+        permissions?: string[];
+        type?: 'user' | 'admin';
     };
     body: any;
     params: any;
@@ -37,6 +52,41 @@ export async function authMiddleware(
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         
+        // Check if this is an admin token
+        if (decoded.type === 'admin') {
+            // Admin authentication - verify admin exists and is active
+            const db = getFirestore();
+            const adminDoc = await db.collection('adminUsers').doc(decoded.uid).get();
+            
+            if (!adminDoc.exists) {
+                return res.status(401).json({ error: 'Admin account not found' });
+            }
+            
+            const adminData = adminDoc.data();
+            if (!adminData?.isActive) {
+                return res.status(403).json({ error: 'Admin account is disabled' });
+            }
+            
+            // Populate request with admin user data
+            req.user = {
+                uid: decoded.uid,
+                email: decoded.email || adminData?.email,
+                username: decoded.username || adminData?.username,
+                role: decoded.role || adminData?.role,
+                permissions: decoded.permissions || adminData?.permissions,
+                type: 'admin'
+            };
+            
+            // Set locals for admin
+            res.locals.isAdmin = true;
+            res.locals.adminRole = decoded.role;
+            res.locals.adminPermissions = decoded.permissions;
+            
+            next();
+            return;
+        }
+        
+        // Regular user authentication
         // Get UID based on auth provider
         let uid: string;
         if (decoded.authProvider === 'wallet') {
@@ -83,7 +133,8 @@ export async function authMiddleware(
             email: userData?.email || decoded.email || uid,
             name: userData?.displayName || decoded.name || uid.slice(0, 6) + '...' + uid.slice(-4),
             photoURL: userData?.photoURL || decoded.photoURL || null,
-            walletAddress: userData?.walletAddress || decoded.walletAddress || null
+            walletAddress: userData?.walletAddress || decoded.walletAddress || null,
+            type: 'user'
         };
 
         // Set Locals for downstream routes (using DB values over JWT)
@@ -125,4 +176,36 @@ export function requirePoH(req: AuthenticatedRequest, res: Response, next: NextF
     }
     
     next();
+}
+
+// Middleware to require admin access
+export function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    if (!req.user || req.user.type !== 'admin') {
+        return res.status(403).json({
+            error: 'Admin access required',
+            message: 'This endpoint requires admin privileges'
+        });
+    }
+    next();
+}
+
+// Middleware to require specific admin role
+export function requireAdminRole(...allowedRoles: AdminRole[]) {
+    return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        if (!req.user || req.user.type !== 'admin') {
+            return res.status(403).json({
+                error: 'Admin access required',
+                message: 'This endpoint requires admin privileges'
+            });
+        }
+        
+        if (!allowedRoles.includes(req.user.role as AdminRole)) {
+            return res.status(403).json({
+                error: 'Insufficient permissions',
+                message: `This endpoint requires one of these roles: ${allowedRoles.join(', ')}`
+            });
+        }
+        
+        next();
+    };
 }
