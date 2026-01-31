@@ -208,14 +208,29 @@ router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Resp
     }, 0);
 
     res.json({
-      totalUsers,
-      freeUsers,
-      proUsers,
-      maxUsers,
-      verifiedUsers,
-      bannedUsers,
-      totalAnalyses,
-      todayAnalyses,
+      stats: {
+        totalVisitors: totalUsers,
+        activeUsers: totalUsers - bannedUsers,
+        pohVerifiedUsers: verifiedUsers,
+        totalRevenue: 0, // Placeholder - not tracked yet
+        totalAnalyses,
+        freeUsers,
+        proUsers,
+        maxUsers,
+        blacklistedUsers: bannedUsers
+      },
+      chainUsage: {
+        ethereum: 0,
+        arbitrum: 0,
+        base: 0,
+        linea: 0
+      },
+      featureUsage: {
+        wallet: 0,
+        compare: 0,
+        sybil: 0,
+        contract: 0
+      },
       timestamp: Date.now()
     });
   } catch (error) {
