@@ -5,7 +5,6 @@ import path from 'path';
 export default defineConfig({
   define: {
     global: 'globalThis',
-    'process.env': {},
   },
   plugins: [react()],
   resolve: {
