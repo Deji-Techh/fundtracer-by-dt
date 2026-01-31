@@ -1,17 +1,16 @@
-import { Settings, Github, Mail, Zap, MessageSquare, User } from 'lucide-react';
+import { Github, Mail, Zap, MessageSquare, User } from 'lucide-react';
 import logo from '../assets/logo.png';
 import { WalletButton } from './WalletButton';
 import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
-    onSettingsClick?: () => void;
     onUpgradeClick?: () => void;
     onFeedbackClick?: () => void;
     onProfileClick?: () => void;
     isUpgradeActive?: boolean;
 }
 
-function Header({ onSettingsClick, onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActive }: HeaderProps) {
+function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActive }: HeaderProps) {
     const { isAuthenticated } = useAuth();
 
     return (
@@ -80,14 +79,6 @@ function Header({ onSettingsClick, onUpgradeClick, onFeedbackClick, onProfileCli
                             <User size={18} />
                         </button>
                     )}
-                    <button
-                        className="btn btn-ghost btn-icon"
-                        onClick={onSettingsClick}
-                        aria-label="Settings"
-                        title="Settings"
-                    >
-                        <Settings size={18} />
-                    </button>
                 </div>
             </div>
         </header>

@@ -1,60 +1,103 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://fundtracer.xyz';
+
+interface AdminUser {
+    uid: string;
+    username: string;
+    email: string;
+    role: 'superadmin' | 'admin' | 'moderator';
+}
 
 interface AuthContextType {
-    user: User | null;
+    user: AdminUser | null;
     loading: boolean;
     isAdmin: boolean;
-    signInWithGoogle: () => Promise<void>;
-    logout: () => Promise<void>;
+    login: (username: string, password: string) => Promise<void>;
+    logout: () => void;
+    token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Admin email whitelist
-const ADMIN_EMAILS = [
-    'dejitech2@gmail.com',
-    'ige6956@gmail.com',
-    'ayomidevoltron@gmail.com',
-    'olzakariyhau@gmail.com',
-    'haiconempire@gmail.com',
-    // Add more admin emails here
-];
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<AdminUser | null>(null);
+    const [token, setToken] = useState<string | null>(localStorage.getItem('adminToken'));
     const [loading, setLoading] = useState(true);
 
-    const isAdmin = user ? ADMIN_EMAILS.includes(user.email || '') : false;
-
+    // Verify token on mount
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
+        const verifyToken = async () => {
+            if (!token) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/admin/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const adminData = await response.json();
+                    setUser(adminData);
+                } else {
+                    // Token invalid, clear it
+                    localStorage.removeItem('adminToken');
+                    setToken(null);
+                }
+            } catch (error) {
+                console.error('Token verification error:', error);
+                localStorage.removeItem('adminToken');
+                setToken(null);
+            }
+            
             setLoading(false);
-        });
+        };
 
-        return unsubscribe;
-    }, []);
+        verifyToken();
+    }, [token]);
 
-    const signInWithGoogle = async () => {
+    const login = async (username: string, password: string) => {
         try {
-            const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            const response = await fetch(`${API_URL}/api/admin/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Login failed');
+            }
+
+            const data = await response.json();
+            
+            // Store token
+            localStorage.setItem('adminToken', data.token);
+            setToken(data.token);
+            setUser(data.admin);
+            
         } catch (error: any) {
-            console.error("Google Sign-In Error:", error);
-            console.error("Error Code:", error.code);
-            console.error("Error Message:", error.message);
-            alert(`Login Failed: ${error.message} (Code: ${error.code})`);
+            console.error('Login error:', error);
+            throw error;
         }
     };
 
-    const logout = async () => {
-        await signOut(auth);
+    const logout = () => {
+        localStorage.removeItem('adminToken');
+        setToken(null);
+        setUser(null);
     };
 
+    const isAdmin = !!user;
+
     return (
-        <AuthContext.Provider value={{ user, loading, isAdmin, signInWithGoogle, logout }}>
+        <AuthContext.Provider value={{ user, loading, isAdmin, login, logout, token }}>
             {children}
         </AuthContext.Provider>
     );

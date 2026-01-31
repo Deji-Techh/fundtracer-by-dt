@@ -1,17 +1,12 @@
 import { useAuth } from '../contexts/AuthContext';
-import { saveAlchemyKey, removeAlchemyKey, checkUsername } from '../api';
+import { checkUsername } from '../api';
 import TerminalAnimation from './TerminalAnimation';
 import { useState, useEffect } from 'react';
-import { Mail, User, Lock, Wallet, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
-
-interface AuthPanelProps {
-    showApiKeyForm: boolean;
-    setShowApiKeyForm: (show: boolean) => void;
-}
+import { Mail, User, Lock, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 
 type ViewState = 'landing' | 'signup' | 'signin';
 
-function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
+function AuthPanel() {
     const {
         user,
         profile,
@@ -32,10 +27,6 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
     const [authLoading, setAuthLoading] = useState(false);
     const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
     const [usernameChecking, setUsernameChecking] = useState(false);
-
-    const [alchemyKeyInput, setAlchemyKeyInput] = useState('');
-    const [alchemyKeyError, setAlchemyKeyError] = useState('');
-    const [alchemyKeySaving, setAlchemyKeySaving] = useState(false);
 
     // Check username availability
     useEffect(() => {
@@ -102,37 +93,6 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
             setAuthError(error.message || 'Login failed');
         } finally {
             setAuthLoading(false);
-        }
-    };
-
-    const handleSaveAlchemyKey = async () => {
-        if (!alchemyKeyInput.trim()) {
-            setAlchemyKeyError('Please enter an Alchemy API key');
-            return;
-        }
-
-        setAlchemyKeySaving(true);
-        setAlchemyKeyError('');
-
-        try {
-            const result = await saveAlchemyKey(alchemyKeyInput.trim());
-            if (result.success) {
-                setShowApiKeyForm(false);
-                setAlchemyKeyInput('');
-            }
-        } catch (error: any) {
-            console.error('Save Alchemy key error:', error);
-            setAlchemyKeyError(error.message || 'Failed to save Alchemy API key');
-        } finally {
-            setAlchemyKeySaving(false);
-        }
-    };
-
-    const handleRemoveAlchemyKey = async () => {
-        try {
-            await removeAlchemyKey();
-        } catch (error: any) {
-            console.error('Failed to remove Alchemy key:', error);
         }
     };
 
@@ -415,67 +375,6 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
 
             </div>
 
-            {/* Alchemy API Key Section */}
-            <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-surface-border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>
-                        Alchemy API Key
-                    </div>
-                    {profile?.hasCustomApiKey ? (
-                        <span className="risk-badge low" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success-text)' }}>
-                            Active
-                        </span>
-                    ) : null}
-                </div>
-
-                {!profile?.hasCustomApiKey && !showApiKeyForm && (
-                    <button
-                        className="btn btn-secondary"
-                        onClick={() => setShowApiKeyForm(true)}
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
-                    >
-                        Add API Key
-                    </button>
-                )}
-
-                {showApiKeyForm && !profile?.hasCustomApiKey && (
-                    <div style={{ marginTop: 'var(--space-2)' }}>
-                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                            <input
-                                type="password"
-                                className="input"
-                                placeholder="Enter Alchemy API key"
-                                value={alchemyKeyInput}
-                                onChange={(e) => setAlchemyKeyInput(e.target.value)}
-                                style={{ flex: 1 }}
-                            />
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleSaveAlchemyKey}
-                                disabled={alchemyKeySaving}
-                                style={{ padding: '6px 12px', fontSize: '12px' }}
-                            >
-                                {alchemyKeySaving ? '...' : 'Save'}
-                            </button>
-                        </div>
-                        {alchemyKeyError && (
-                            <div className="alert danger" style={{ marginTop: 'var(--space-2)', fontSize: '12px', padding: '6px' }}>
-                                {alchemyKeyError}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {profile?.hasCustomApiKey && (
-                    <button
-                        className="btn btn-ghost"
-                        onClick={handleRemoveAlchemyKey}
-                        style={{ color: 'var(--color-danger-text)', padding: '6px 12px', fontSize: '12px' }}
-                    >
-                        Remove Key
-                    </button>
-                )}
-            </div>
         </div>
     );
 }

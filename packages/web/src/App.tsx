@@ -52,7 +52,6 @@ function App() {
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [showPayment, setShowPayment] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
-    const [showApiKeyForm, setShowApiKeyForm] = useState(false);
     const [showFirstTime, setShowFirstTime] = useState(false);
 
     // Tier-based delay state
@@ -353,7 +352,7 @@ function App() {
     if (authLoading) {
         return (
             <div className="app-container">
-                <Header onSettingsClick={() => setShowApiKeyForm(true)} />
+                <Header />
                 <main className="main-content animate-fade-in">
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
                         <div className="loading-spinner" />
@@ -366,10 +365,6 @@ function App() {
     return (
         <div className="app-container">
             <Header
-                onSettingsClick={() => {
-                    setShowApiKeyForm(true);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
                 onProfileClick={() => {
                     setViewMode('profile');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -381,12 +376,7 @@ function App() {
 
             <main className="main-content">
                 {/* Auth Panel - Shows sign in or user info if NOT in profile mode */}
-                {viewMode !== 'profile' && (
-                    <AuthPanel
-                        showApiKeyForm={showApiKeyForm}
-                        setShowApiKeyForm={setShowApiKeyForm}
-                    />
-                )}
+                {viewMode !== 'profile' && <AuthPanel />}
 
                 {/* How To Use Section */}
                 {viewMode !== 'profile' && (
