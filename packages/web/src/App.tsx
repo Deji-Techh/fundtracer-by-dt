@@ -20,7 +20,6 @@ import OnboardingModal from './components/OnboardingModal';
 import FeedbackModal from './components/FeedbackModal';
 import PaymentModal from './components/PaymentModal';
 import FirstTimeModal from './components/FirstTimeModal';
-import ActionDelayOverlay from './components/ActionDelayOverlay';
 import ContractSearch from './components/ContractSearch';
 import { KeyboardShortcuts } from './components/KeyboardShortcuts';
 import { WalletGuard } from './components/WalletGuard';
@@ -54,9 +53,7 @@ function App() {
     const [showFeedback, setShowFeedback] = useState(false);
     const [showFirstTime, setShowFirstTime] = useState(false);
 
-    // Tier-based delay state
-    const [showDelayOverlay, setShowDelayOverlay] = useState(false);
-    const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
+
 
     // Analysis state
     // Analysis state
@@ -88,38 +85,6 @@ function App() {
             return;
         }
         setSelectedChain(chainId);
-    };
-
-    // Tier-based delay configuration (in seconds)
-    const getTierDelay = (): number => {
-        const tier = profile?.tier || 'free';
-        switch (tier) {
-            case 'free': return 6;
-            case 'pro': return 2;
-            case 'max': return 0;
-            default: return 6;
-        }
-    };
-
-    // Wrapper to execute action with tier delay
-    const executeWithDelay = async (action: () => Promise<void>) => {
-        const delay = getTierDelay();
-        if (delay === 0) {
-            // Max tier - no delay, execute immediately
-            await action();
-        } else {
-            // Show delay overlay first, then execute
-            setPendingAction(() => action);
-            setShowDelayOverlay(true);
-        }
-    };
-
-    const handleDelayComplete = async () => {
-        setShowDelayOverlay(false);
-        if (pendingAction) {
-            await pendingAction();
-            setPendingAction(null);
-        }
     };
 
     // Free Tier Logic
@@ -242,9 +207,9 @@ function App() {
             localStorage.setItem('fundtracer_welcome_seen', 'true');
             setShowFirstTime(true);
             // Store the analysis action to execute after modal close
-            setTimeout(() => executeWithDelay(_executeAnalyzeWallet), 300);
+            setTimeout(() => _executeAnalyzeWallet(), 300);
         } else {
-            executeWithDelay(_executeAnalyzeWallet);
+            _executeAnalyzeWallet();
         }
     };
 
@@ -303,7 +268,7 @@ function App() {
     const handleCompareWallets = () => {
         const addresses = walletAddresses.filter(a => a.trim());
         if (addresses.length < 2) return;
-        executeWithDelay(_executeCompareWallets);
+        _executeCompareWallets();
     };
 
     const _executeAnalyzeContract = async () => {
@@ -331,7 +296,7 @@ function App() {
 
     const handleAnalyzeContract = () => {
         if (!contractAddress.trim()) return;
-        executeWithDelay(_executeAnalyzeContract);
+        _executeAnalyzeContract();
     };
 
     const handleAddWallet = () => {
@@ -622,12 +587,6 @@ function App() {
             <PaymentModal isOpen={showPayment} onClose={() => setShowPayment(false)} />
             <FeedbackModal isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
             {showFirstTime && <FirstTimeModal onClose={() => setShowFirstTime(false)} />}
-            <ActionDelayOverlay
-                isVisible={showDelayOverlay}
-                delaySeconds={getTierDelay()}
-                onComplete={handleDelayComplete}
-                tier={(profile?.tier as 'free' | 'pro' | 'max') || 'free'}
-            />
         </div>
     );
 }
