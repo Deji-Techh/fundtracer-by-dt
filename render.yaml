@@ -35,7 +35,6 @@ services:
   - type: web
     name: fundtracer-web
     runtime: static
-    region: oregon
     plan: free
     buildCommand: |
       npm install
