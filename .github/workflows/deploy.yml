@@ -1,0 +1,111 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_API_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+
+      - name: Set Backend Environment Variables
+        run: |
+          curl -s -X PUT \
+            https://api.render.com/v1/services/${{ secrets.RENDER_API_SERVICE_ID }}/env-vars \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "envVars": [
+                {"key": "NODE_ENV", "value": "production"},
+                {"key": "PORT", "value": "3001"},
+                {"key": "FIREBASE_PROJECT_ID", "value": "${{ secrets.FIREBASE_PROJECT_ID }}"},
+                {"key": "FIREBASE_CLIENT_EMAIL", "value": "${{ secrets.FIREBASE_CLIENT_EMAIL }}"},
+                {"key": "FIREBASE_PRIVATE_KEY", "value": "${{ secrets.FIREBASE_PRIVATE_KEY }}"},
+                {"key": "DEFAULT_ALCHEMY_API_KEY", "value": "${{ secrets.ALCHEMY_API_KEY }}"},
+                {"key": "JWT_SECRET", "value": "${{ secrets.JWT_SECRET }}"},
+                {"key": "FREE_DAILY_LIMIT", "value": "7"},
+                {"key": "CORS_ORIGIN", "value": "${{ secrets.FRONTEND_URL }}"}
+              ]
+            }'
+
+      - name: Wait for deployment
+        run: sleep 30
+
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: |
+          npm run build --workspace=@fundtracer/core
+          npm run build --workspace=@fundtracer/web
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
+          VITE_API_URL: ${{ secrets.BACKEND_URL }}
+
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_WEB_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+
+      - name: Set Frontend Environment Variables
+        run: |
+          curl -s -X PUT \
+            https://api.render.com/v1/services/${{ secrets.RENDER_WEB_SERVICE_ID }}/env-vars \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "envVars": [
+                {"key": "VITE_FIREBASE_API_KEY", "value": "${{ secrets.VITE_FIREBASE_API_KEY }}"},
+                {"key": "VITE_FIREBASE_AUTH_DOMAIN", "value": "${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}"},
+                {"key": "VITE_FIREBASE_PROJECT_ID", "value": "${{ secrets.VITE_FIREBASE_PROJECT_ID }}"},
+                {"key": "VITE_FIREBASE_STORAGE_BUCKET", "value": "${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}"},
+                {"key": "VITE_FIREBASE_MESSAGING_SENDER_ID", "value": "${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}"},
+                {"key": "VITE_FIREBASE_APP_ID", "value": "${{ secrets.VITE_FIREBASE_APP_ID }}"},
+                {"key": "VITE_FIREBASE_MEASUREMENT_ID", "value": "${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}"},
+                {"key": "VITE_API_URL", "value": "${{ secrets.BACKEND_URL }}"}
+              ]
+            }'
+
+      - name: Deployment Notification
+        run: |
+          echo "✅ Deployment complete!"
+          echo "Backend: ${{ secrets.BACKEND_URL }}"
+          echo "Frontend: ${{ secrets.FRONTEND_URL }}"
