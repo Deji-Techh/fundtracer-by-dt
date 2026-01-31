@@ -18,7 +18,6 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
         isAuthenticated,
         loading,
         registerWithEmail,
-        sendEmailVerification,
         completeRegistration,
         loginWithUsername,
         signOut,
@@ -90,11 +89,8 @@ function AuthPanel({ showApiKeyForm, setShowApiKeyForm }: AuthPanelProps) {
             const tempPass = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
             setTempPassword(tempPass);
             
-            // Create Firebase user with email + temp password
+            // Create Firebase user with email + temp password (verification email sent automatically)
             await registerWithEmail(email.trim(), tempPass);
-            
-            // Send verification email
-            await sendEmailVerification();
             
             setVerificationSent(true);
             setView('signup-pending');

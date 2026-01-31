@@ -60,7 +60,7 @@ if (isConfigValid) {
     });
 }
 
-// Create user with email and password
+// Create user with email and password, then send verification
 export async function registerWithEmail(email: string, password: string): Promise<User | null> {
     console.log('[Firebase] Registering with email...');
     
@@ -72,6 +72,17 @@ export async function registerWithEmail(email: string, password: string): Promis
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         console.log('[Firebase] User created:', userCredential.user?.uid);
+        
+        // Immediately send verification email
+        if (userCredential.user) {
+            const actionCodeSettings = {
+                url: `${window.location.origin}/verify-email?mode=verifyEmail`,
+                handleCodeInApp: true
+            };
+            await sendEmailVerification(userCredential.user, actionCodeSettings);
+            console.log('[Firebase] Verification email sent');
+        }
+        
         return userCredential.user;
     } catch (error: any) {
         console.error('[Firebase] Registration error:', {
