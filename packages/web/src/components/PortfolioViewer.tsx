@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wallet, Coins, Image, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface TokenBalance {
@@ -28,7 +28,7 @@ interface PortfolioData {
   totalUsdValue: number;
 }
 
-export function PortfolioViewer({ walletAddress }: { walletAddress: string }) {
+export const PortfolioViewer = React.memo(function PortfolioViewer({ walletAddress }: { walletAddress: string }) {
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -344,3 +344,4 @@ export function PortfolioViewer({ walletAddress }: { walletAddress: string }) {
     </div>
   );
 }
+);

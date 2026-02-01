@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { ethers } from 'ethers';
 // const { parseEther } = ethers; // Removed to prevent runtime crash in v6 if default export structure differs
 import { ChainId, AnalysisResult, MultiWalletResult, getEnabledChains, CHAINS } from '@fundtracer/core';
@@ -30,11 +30,11 @@ import ProfilePage from './components/ProfilePage';
 import SearchHistory from './components/SearchHistory';
 import { addToHistory } from './utils/history';
 
-// API Features
-import { GasTracker } from './components/GasTracker';
-import { ContractVerifier } from './components/ContractVerifier';
-import { PortfolioViewer } from './components/PortfolioViewer';
-import { WalletAnalytics } from './components/WalletAnalytics';
+// API Features - Lazy loaded for performance
+const GasTracker = lazy(() => import('./components/GasTracker').then(m => ({ default: m.GasTracker })));
+const ContractVerifier = lazy(() => import('./components/ContractVerifier').then(m => ({ default: m.ContractVerifier })));
+const PortfolioViewer = lazy(() => import('./components/PortfolioViewer').then(m => ({ default: m.PortfolioViewer })));
+const WalletAnalytics = lazy(() => import('./components/WalletAnalytics').then(m => ({ default: m.WalletAnalytics })));
 
 type ViewMode = 'wallet' | 'contract' | 'compare' | 'sybil' | 'profile' | 'dashboard';
 
@@ -575,24 +575,32 @@ function App() {
                                             
                                             {/* Gas Tracker */}
                                             <div style={{ marginBottom: 'var(--space-4)' }}>
-                                                <GasTracker />
+                                                <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }}></div>}>
+                                                    <GasTracker />
+                                                </Suspense>
                                             </div>
                                             
                                             {/* Two Column Layout */}
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
                                                 {/* Contract Verifier */}
-                                                <ContractVerifier />
+                                                <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }}></div>}>
+                                                    <ContractVerifier />
+                                                </Suspense>
                                                 
                                                 {/* Portfolio Viewer - only if wallet connected */}
                                                 {walletAddresses[0] && (
-                                                    <PortfolioViewer walletAddress={walletAddresses[0]} />
+                                                    <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }}></div>}>
+                                                        <PortfolioViewer walletAddress={walletAddresses[0]} />
+                                                    </Suspense>
                                                 )}
                                             </div>
                                             
                                             {/* Wallet Analytics - only if wallet connected */}
                                             {walletAddresses[0] && (
                                                 <div style={{ marginBottom: 'var(--space-4)' }}>
-                                                    <WalletAnalytics walletAddress={walletAddresses[0]} />
+                                                    <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }}></div>}>
+                                                        <WalletAnalytics walletAddress={walletAddresses[0]} />
+                                                    </Suspense>
                                                 </div>
                                             )}
                                         </div>
