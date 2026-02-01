@@ -30,7 +30,13 @@ import ProfilePage from './components/ProfilePage';
 import SearchHistory from './components/SearchHistory';
 import { addToHistory } from './utils/history';
 
-type ViewMode = 'wallet' | 'contract' | 'compare' | 'sybil' | 'profile';
+// API Features
+import { GasTracker } from './components/GasTracker';
+import { ContractVerifier } from './components/ContractVerifier';
+import { PortfolioViewer } from './components/PortfolioViewer';
+import { WalletAnalytics } from './components/WalletAnalytics';
+
+type ViewMode = 'wallet' | 'contract' | 'compare' | 'sybil' | 'profile' | 'dashboard';
 
 function App() {
     // Simple routing for Privacy Policy standalone page
@@ -420,6 +426,16 @@ function App() {
                                                 >
                                                     Sybil
                                                 </button>
+                                                <button
+                                                    className={`mode-btn ${viewMode === 'dashboard' ? 'active' : ''}`}
+                                                    onClick={() => setViewMode('dashboard')}
+                                                    style={{ 
+                                                        background: viewMode === 'dashboard' ? 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)' : undefined,
+                                                        color: viewMode === 'dashboard' ? '#000' : undefined
+                                                    }}
+                                                >
+                                                    Dashboard
+                                                </button>
                                             </div>
                                         </div>
 
@@ -545,8 +561,45 @@ function App() {
                                         <MultiWalletView result={multiWalletResult} />
                                     )}
 
+                                    {/* Dashboard View */}
+                                    {viewMode === 'dashboard' && (
+                                        <div style={{ animation: 'fadeIn 0.5s ease' }}>
+                                            <div style={{ marginBottom: 'var(--space-4)' }}>
+                                                <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-4)' }}>
+                                                    Web3 Intelligence Dashboard
+                                                </h2>
+                                                <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
+                                                    Real-time insights powered by LineaScan, Alchemy, and Dune Analytics
+                                                </p>
+                                            </div>
+                                            
+                                            {/* Gas Tracker */}
+                                            <div style={{ marginBottom: 'var(--space-4)' }}>
+                                                <GasTracker />
+                                            </div>
+                                            
+                                            {/* Two Column Layout */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+                                                {/* Contract Verifier */}
+                                                <ContractVerifier />
+                                                
+                                                {/* Portfolio Viewer - only if wallet connected */}
+                                                {walletAddresses[0] && (
+                                                    <PortfolioViewer walletAddress={walletAddresses[0]} />
+                                                )}
+                                            </div>
+                                            
+                                            {/* Wallet Analytics - only if wallet connected */}
+                                            {walletAddresses[0] && (
+                                                <div style={{ marginBottom: 'var(--space-4)' }}>
+                                                    <WalletAnalytics walletAddress={walletAddresses[0]} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {/* Empty State */}
-                                    {!walletResult && !multiWalletResult && !contractResult && !loading && (
+                                    {!walletResult && !multiWalletResult && !contractResult && !loading && viewMode !== 'dashboard' && (
                                         <EmptyState />
                                     )}
                                 </>
