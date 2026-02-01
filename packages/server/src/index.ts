@@ -137,9 +137,11 @@ console.log('[DEBUG] CWD:', process.cwd());
 console.log('[DEBUG] Serving static files from:', webDistPath);
 console.log('[DEBUG] index.html exists:', fs.existsSync(path.join(webDistPath, 'index.html')));
 
-app.use(express.static(webDistPath));
-
-
+// Only serve static files if we're in a combined deployment (not API-only)
+// Check if the web dist path exists and has index.html
+if (fs.existsSync(path.join(webDistPath, 'index.html'))) {
+    app.use(express.static(webDistPath));
+}
 
 app.use(cors({
     origin: [
