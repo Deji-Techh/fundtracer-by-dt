@@ -213,12 +213,14 @@ import { historyRoutes } from './routes/history.js';
 import { tokenRoutes } from './routes/tokens.js';
 import { marketRoutes } from './routes/market.js';
 import { safetyRoutes } from './routes/safety.js';
+import { debugRoutes } from './routes/debug.js';
 
 apiRouter.use('/portfolio', authMiddleware, portfolioRoutes);
 apiRouter.use('/history', authMiddleware, historyRoutes);
 apiRouter.use('/tokens', tokenRoutes); // Public token search
 apiRouter.use('/market', marketRoutes); // Public market stats
 apiRouter.use('/safety', authMiddleware, safetyRoutes); // Token safety checks
+apiRouter.use('/debug', debugRoutes); // Debug routes (public)
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
