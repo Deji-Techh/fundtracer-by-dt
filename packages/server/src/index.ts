@@ -137,11 +137,9 @@ console.log('[DEBUG] CWD:', process.cwd());
 console.log('[DEBUG] Serving static files from:', webDistPath);
 console.log('[DEBUG] index.html exists:', fs.existsSync(path.join(webDistPath, 'index.html')));
 
-// Only serve static files if we're in a combined deployment (not API-only)
-// Check if the web dist path exists and has index.html
-if (fs.existsSync(path.join(webDistPath, 'index.html'))) {
-    app.use(express.static(webDistPath));
-}
+app.use(express.static(webDistPath));
+
+
 
 app.use(cors({
     origin: [
@@ -188,60 +186,26 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Debug: List all registered routes
-app.get('/debug/routes', (req, res) => {
-    const routes: string[] = [];
-    app._router.stack.forEach((middleware: any) => {
-        if (middleware.route) {
-            // Routes registered directly on the app
-            routes.push(`${Object.keys(middleware.route.methods).join(',')} ${middleware.route.path}`);
-        } else if (middleware.name === 'router') {
-            // Router middleware
-            middleware.handle.stack.forEach((handler: any) => {
-                if (handler.route) {
-                    const path = handler.route.path;
-                    const methods = Object.keys(handler.route.methods).join(',');
-                    routes.push(`${methods} ${path}`);
-                }
-            });
-        }
-    });
-    res.json({ 
-        routes: routes,
-        total: routes.length,
-        timestamp: new Date().toISOString()
-    });
-});
-
 // Protected routes
 // Create a main router
 const apiRouter = express.Router();
-
-// Import routes at top level (synchronous)
 import { authRoutes } from './routes/auth.js';
-import { trackingRoutes } from './routes/tracking.js';
-import { adminRoutes } from './routes/admin.js';
 
-console.log('[DEBUG] authRoutes imported:', !!authRoutes);
-console.log('[DEBUG] trackingRoutes imported:', !!trackingRoutes);
-console.log('[DEBUG] adminRoutes imported:', !!adminRoutes);
-console.log('[DEBUG] userRoutes imported:', !!userRoutes);
-console.log('[DEBUG] contractRoutes imported:', !!contractRoutes);
-console.log('[DEBUG] paymentRoutes imported:', !!paymentRoutes);
-console.log('[DEBUG] analyzeRoutes imported:', !!analyzeRoutes);
-console.log('[DEBUG] duneRoutes imported:', !!duneRoutes);
+// ... (existing imports)
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
-if (userRoutes) apiRouter.use('/user', authMiddleware, userRoutes);
-if (authRoutes) apiRouter.use('/auth', authRoutes);
-if (contractRoutes) apiRouter.use('/contracts', contractRoutes);
-if (paymentRoutes) apiRouter.use('/payment', paymentRoutes);
-if (analyzeRoutes) apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
-if (duneRoutes) apiRouter.use('/dune', authMiddleware, duneRoutes);
-if (trackingRoutes) apiRouter.use('/analytics', trackingRoutes);
-if (adminRoutes) apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/user', authMiddleware, userRoutes);
+apiRouter.use('/auth', authRoutes); // Public auth route
+apiRouter.use('/contracts', contractRoutes); // Public contract lookup
+apiRouter.use('/payment', paymentRoutes); // Payment verification
+apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
+apiRouter.use('/dune', authMiddleware, duneRoutes);
+import { trackingRoutes } from './routes/tracking.js';
+apiRouter.use('/analytics', trackingRoutes); // Public analytics route
 
-console.log('[DEBUG] Routes mounted to apiRouter');
+import { adminRoutes } from './routes/admin.js';
+// Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
+apiRouter.use('/admin', adminRoutes);
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
