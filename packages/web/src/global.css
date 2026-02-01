@@ -520,10 +520,20 @@ body {
   
   .main-content {
     margin-left: 72px;
+    width: calc(100% - 72px);
+    max-width: calc(100% - 72px);
     padding: 16px;
   }
   
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .app-header {
+    padding: 0 16px;
+  }
+  
+  .app-header-center {
+    display: none;
   }
 }
