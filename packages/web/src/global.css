@@ -712,6 +712,8 @@ body {
 }
 
 /* Responsive */
+
+/* Tablet breakpoint (769px - 1024px) */
 @media (max-width: 1024px) {
   .trending-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -728,7 +730,48 @@ body {
   }
 }
 
+/* Mobile breakpoint (320px - 768px) */
 @media (max-width: 768px) {
+  /* Typography - slightly smaller but readable */
+  body {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .hero-title {
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
+
+  .token-name {
+    font-size: 0.9375rem;
+  }
+
+  .token-symbol {
+    font-size: 0.8125rem;
+  }
+
+  .token-price {
+    font-size: 1rem;
+  }
+
+  .trending-card-name {
+    font-size: 1rem;
+  }
+
+  .trending-card-price {
+    font-size: 1.25rem;
+  }
+
+  /* Navigation - Hide desktop elements */
   .top-nav-center {
     display: none;
   }
@@ -739,37 +782,93 @@ body {
 
   .mobile-menu-btn {
     display: flex;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
   }
 
   .mobile-sidebar {
     display: block;
   }
 
+  /* Hero Section */
+  .hero-section {
+    padding: 80px 16px 20px;
+  }
+
+  .hero-title {
+    margin-bottom: 8px;
+  }
+
+  .hero-subtitle {
+    margin-bottom: 16px;
+  }
+
+  /* Trending Cards - Better mobile layout */
   .trending-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  .hero-section {
+  .trending-card {
     padding: 16px;
+    border-radius: 10px;
   }
 
+  .trending-card-header {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .trending-card-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* Chain Filter - Improved touch targets */
   .chain-filter {
     padding: 12px 16px;
+    gap: 10px;
   }
 
+  .chain-pill {
+    padding: 10px 16px;
+    min-height: 44px;
+    font-size: 0.875rem;
+  }
+
+  /* Token Table - Improved scrolling */
   .token-table-container {
-    padding: 0 16px;
+    padding: 0 12px;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .token-table-container::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .token-table-container::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+
+  .token-table-container::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 2px;
   }
 
   .token-table {
-    min-width: 600px;
+    min-width: 550px;
   }
 
   .token-table-header,
   .token-table-row {
-    grid-template-columns: 30px 2fr 1fr 1fr;
+    grid-template-columns: 36px 2fr 1fr 1fr;
+    gap: 12px;
+    padding: 14px 12px;
   }
 
   .token-table-header-cell:nth-child(5),
@@ -778,18 +877,249 @@ body {
   .token-table-cell:nth-child(6) {
     display: none;
   }
+
+  .token-icon {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+
+  /* Sparkline Chart - Mobile optimized */
+  .sparkline {
+    width: 80px;
+    height: 24px;
+  }
+
+  /* Cards - Better mobile layout */
+  .card {
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+
+  .card-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  /* Buttons - Minimum 44px touch targets */
+  .btn {
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: 0.9375rem;
+  }
+
+  .connect-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+
+  /* Tabs - Better touch targets */
+  .tab {
+    padding: 14px 16px;
+    min-height: 44px;
+    font-size: 0.9375rem;
+  }
+
+  /* Mobile Sidebar - Improved */
+  .mobile-sidebar {
+    width: 280px;
+    max-width: 85vw;
+  }
+
+  .mobile-sidebar-header {
+    padding: 12px 16px;
+    min-height: 64px;
+  }
+
+  .mobile-sidebar-close {
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .mobile-sidebar-nav {
+    padding: 12px;
+  }
+
+  .mobile-sidebar-link {
+    padding: 14px 16px;
+    min-height: 48px;
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+
+  /* Modals - Mobile optimized */
+  .modal-overlay {
+    padding: 16px;
+    align-items: flex-end;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 16px 16px 0 0;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+    min-height: 56px;
+  }
+
+  .modal-body {
+    padding: 16px 20px;
+    max-height: calc(90vh - 120px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-close {
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Top Navigation */
+  .top-nav {
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  .top-nav-left {
+    gap: 12px;
+  }
+
+  .top-nav-logo {
+    font-size: 1.1rem;
+  }
+
+  .top-nav-logo img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .top-nav-right {
+    gap: 8px;
+  }
+
+  /* Main Content */
+  .main-content {
+    padding-top: 72px;
+  }
+
+  /* Search - Mobile improvements */
+  .search-container {
+    position: relative;
+  }
+
+  .search-input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    padding: 12px 16px 12px 44px;
+    min-height: 44px;
+  }
+
+  .search-icon {
+    left: 14px;
+    font-size: 1.1rem;
+  }
+
+  /* Loading States */
+  .loading-spinner {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Utility classes */
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .show-mobile {
+    display: flex !important;
+  }
 }
 
+/* Small mobile breakpoint (320px - 480px) */
 @media (max-width: 480px) {
-  .top-nav {
-    padding: 0 16px;
+  /* Further typography adjustments */
+  body {
+    font-size: 14px;
+  }
+
+  .hero-title {
+    font-size: 1.35rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.9375rem;
+  }
+
+  /* Compact trending cards */
+  .trending-card {
+    padding: 14px;
+  }
+
+  .trending-card-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  /* Table adjustments */
+  .token-table-header,
+  .token-table-row {
+    grid-template-columns: 32px 2fr 1fr 1fr;
+    gap: 8px;
+    padding: 12px 10px;
+  }
+
+  .token-table {
+    min-width: 480px;
+  }
+
+  /* Compact cards */
+  .card {
+    padding: 14px;
+  }
+
+  /* Navigation */
+  .connect-btn {
+    padding: 10px 12px;
   }
 
   .connect-btn span {
     display: none;
   }
 
-  .connect-btn {
-    padding: 10px;
+  /* Chain pills */
+  .chain-pill {
+    padding: 8px 12px;
+    font-size: 0.8125rem;
+  }
+
+  /* Mobile sidebar */
+  .mobile-sidebar {
+    width: 260px;
+  }
+
+  /* Sparkline */
+  .sparkline {
+    width: 60px;
+    height: 20px;
+  }
+
+  /* Tables */
+  .token-icon {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
   }
 }
