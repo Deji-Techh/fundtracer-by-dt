@@ -188,6 +188,31 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Debug: List all registered routes
+app.get('/debug/routes', (req, res) => {
+    const routes: string[] = [];
+    app._router.stack.forEach((middleware: any) => {
+        if (middleware.route) {
+            // Routes registered directly on the app
+            routes.push(`${Object.keys(middleware.route.methods).join(',')} ${middleware.route.path}`);
+        } else if (middleware.name === 'router') {
+            // Router middleware
+            middleware.handle.stack.forEach((handler: any) => {
+                if (handler.route) {
+                    const path = handler.route.path;
+                    const methods = Object.keys(handler.route.methods).join(',');
+                    routes.push(`${methods} ${path}`);
+                }
+            });
+        }
+    });
+    res.json({ 
+        routes: routes,
+        total: routes.length,
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Protected routes
 // Create a main router
 const apiRouter = express.Router();
