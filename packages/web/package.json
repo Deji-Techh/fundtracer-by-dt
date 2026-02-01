@@ -10,6 +10,7 @@
     },
     "dependencies": {
         "@fundtracer/core": "*",
+        "@hugeicons/core-free-icons": "^3.1.1",
         "@hugeicons/react": "^1.1.4",
         "@reown/appkit": "^1.8.0",
         "@reown/appkit-adapter-wagmi": "^1.8.0",
@@ -23,6 +24,7 @@
         "firebase": "^10.7.1",
         "jspdf": "^4.0.0",
         "jspdf-autotable": "^5.0.7",
+        "lightweight-charts": "^5.1.0",
         "lucide-react": "^0.294.0",
         "process": "^0.11.10",
         "react": "^18.2.0",

@@ -28,6 +28,18 @@ export class Cache {
   clear(): void {
     this.store.clear();
   }
+
+  has(key: string): boolean {
+    const item = this.store.get(key);
+    if (!item) return false;
+    
+    if (Date.now() > item.expires) {
+      this.store.delete(key);
+      return false;
+    }
+    
+    return true;
+  }
 }
 
 export const cache = new Cache();

@@ -16368,5 +16368,255 @@
     "name": "FundTracer",
     "type": "contract",
     "source": "lineascan-verified"
+  },
+  "0xddccb62fe628b03d0b528556c64d638dc08510bd": {
+    "name": "CollateralAdapter",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x21f4f0fb4904bda3bcf8c24612745eced091cbf2": {
+    "name": "HypERC20WithMinters",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x75959485ab5404b5a5cbb3b5d11557406dfeef9a": {
+    "name": "ProxyAdmin",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x60858bc719c7136996505f35759bb7118321ff6a": {
+    "name": "TransparentUpgradeableProxy",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x203210df961f29117bd037901bcdfb0c5364f1bc": {
+    "name": "CryptoLegacyIntentPlugin",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x6bca642f04f46a1af62f49d7a35930844ac6b3c8": {
+    "name": "CryptoLegacyIntentRouter",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x2820609661c1e023d25c520bd44e37e8023490e1": {
+    "name": "HypERC20Collateral",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x2dc2259d459236ec4c10cc94777474d2a9fcf04e": {
+    "name": "HypERC20Collateral",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x89fcf907fba13aeede22041098a6ffc454936030": {
+    "name": "CallProxy",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x7e1f23bdfc7287af276f77b5a867e85cf0377a31": {
+    "name": "AaveV3ConfigEngine",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x33282305aef501d3449142363c39403508d13e47": {
+    "name": "PriceFeedEngine",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x3ff282e42ef780e334f8a0b1bcaee20d799bda13": {
+    "name": "CollateralEngine",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x7339003c79495f346e9b897de13d6c4db955cc14": {
+    "name": "Nexis",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x4a374a06434adb6a97277b8e6dd6f5e716dcf5a4": {
+    "name": "HelloERC20",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xd46f208bdb8622f45be4b3758958aa647c8801c3": {
+    "name": "HypERC20Collateral",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x8354618cc7da37494b688f9e25affe82b104e8c6": {
+    "name": "HypERC20Collateral",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xf8867113af2676b5d157e2c10c2924fb40f14cfd": {
+    "name": "HypERC20Collateral",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x4301a3a56136ac5222e1ec52bf88a27a7cfad2c4": {
+    "name": "StandardMiddleman",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xf07ccdef108d94f95d13493f642fb21451635125": {
+    "name": "LineaSettlerIntent",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x394208404cd6a84f81516c9810e0e3191074bc56": {
+    "name": "LineaSettlerMetaTxn",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xc026251dc69f6e3556331b2e14e72eb4a34dd55a": {
+    "name": "LineaSettler",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x83d41737d086033a9c3ace2f1ad9350d7d91cf02": {
+    "name": "LineaTaskModule",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x05f078ccab891fc6ab1587462a5d1f2d9c0cc6b7": {
+    "name": "ChainlinkCrossAggregator",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x47b7a70525799d285e6e13eea58c317716933490": {
+    "name": "UpgradeableBeaconForFactory",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x92109119b3d9d5233047c8e7a040bd7cfff9cb9f": {
+    "name": "UpgradeableBeaconForFactory",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x91a9cd6b97e31ccec42c9a86d476a05cb3d9692d": {
+    "name": "GaugeFactoryV2_CL",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xc46d0e86cb9e9e948f43bb5c20d5817a87307a45": {
+    "name": "GaugeFactoryV2",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x184aa8e6b4ae6bcf64d7172e211c9e8fc282117e": {
+    "name": "CLFeesVault",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xff9fb22dc0d568236d8f4f234f0b90a13be1a723": {
+    "name": "GaugeV2_CL",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x30831f83d737ee2fab4251b5a8fe1309d07dd69f": {
+    "name": "GaugeV2",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x9e6fe6416a4d33c6e6e8b78922aa6c66c32162a2": {
+    "name": "BeaconFactoryAdmin",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x1e7fc0171c49987cd1fe6af52ebec5eb0a0c390a": {
+    "name": "TimelockControllerEnumerable",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x2c5b9fc3dbefae792229bcc38921fb0f3c5eb3a8": {
+    "name": "DepositAddressBridger",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x1343c967351e8ccd16fd0228d9dbe5e12ae1e5ac": {
+    "name": "DaimoPayBridger",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x2ba1369f45007756cc534bd3e0bbbddf28328469": {
+    "name": "DaimoPayHopBridger",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x767e6d6e6aa9cba5a1b0bbe8f77fdf1d926b1ade": {
+    "name": "PolymerCCTPFacet",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x9187be534efeb258933ef7eff4b67fe80209afcd": {
+    "name": "Linea_SpokePool",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x5e0f8e7337c8955d2124b8e85ca74af884b3e124": {
+    "name": "BungeeInbox",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x052a246d4e032ebe72c153a9cf54a4d188e7ca85": {
+    "name": "PolymerCCTPFacet",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x796e7b16b8a8e7ea24ca4e000e245bb4550627cb": {
+    "name": "LiFiDiamond",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xab3a9b4c377eb69eb378cdf81a0526197aed092c": {
+    "name": "DiamondCutFacet",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xbaef1916444145c7101b63a6ca5acc9aba39a99c": {
+    "name": "PortalFactory",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xae41544bcce893f61e820fcb20db92e9846c7770": {
+    "name": "PortalFactory",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x1483ffd517de82c204dff64d0131ed6af7150a46": {
+    "name": "VeStrategyFactory",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x14d6794cb90a4c083ae6a60a6f49c0fe47604e7a": {
+    "name": "VotingEscrowManager",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xf10c6831ad1623302ee42f611945e2bd26d541bc": {
+    "name": "VotingEscrowVault",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x3220bc58d5e70b07a5df5616f91b9e6a8e33c041": {
+    "name": "Distributor",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xf7f57b43b100b0f6d90c47282b1f6bcacf4808c0": {
+    "name": "DistributionCreator",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xa4d44bcc739d0743cf34912a27c24312815b20bb": {
+    "name": "DistributionCreator",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x365076a9d180beb4a43b3b5ba901a84001a22dde": {
+    "name": "MixedPriceOracleV4",
+    "type": "contract",
+    "source": "lineascan-verified"
   }
 }
