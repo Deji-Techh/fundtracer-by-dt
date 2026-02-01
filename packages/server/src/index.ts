@@ -222,21 +222,26 @@ import { authRoutes } from './routes/auth.js';
 import { trackingRoutes } from './routes/tracking.js';
 import { adminRoutes } from './routes/admin.js';
 
-console.log('[DEBUG] Route modules imported');
+console.log('[DEBUG] authRoutes imported:', !!authRoutes);
+console.log('[DEBUG] trackingRoutes imported:', !!trackingRoutes);
+console.log('[DEBUG] adminRoutes imported:', !!adminRoutes);
+console.log('[DEBUG] userRoutes imported:', !!userRoutes);
+console.log('[DEBUG] contractRoutes imported:', !!contractRoutes);
+console.log('[DEBUG] paymentRoutes imported:', !!paymentRoutes);
+console.log('[DEBUG] analyzeRoutes imported:', !!analyzeRoutes);
+console.log('[DEBUG] duneRoutes imported:', !!duneRoutes);
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
-apiRouter.use('/user', authMiddleware, userRoutes);
-apiRouter.use('/auth', authRoutes); // Public auth route
-apiRouter.use('/contracts', contractRoutes); // Public contract lookup
-apiRouter.use('/payment', paymentRoutes); // Payment verification
-apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
-apiRouter.use('/dune', authMiddleware, duneRoutes);
-apiRouter.use('/analytics', trackingRoutes); // Public analytics route
+if (userRoutes) apiRouter.use('/user', authMiddleware, userRoutes);
+if (authRoutes) apiRouter.use('/auth', authRoutes);
+if (contractRoutes) apiRouter.use('/contracts', contractRoutes);
+if (paymentRoutes) apiRouter.use('/payment', paymentRoutes);
+if (analyzeRoutes) apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
+if (duneRoutes) apiRouter.use('/dune', authMiddleware, duneRoutes);
+if (trackingRoutes) apiRouter.use('/analytics', trackingRoutes);
+if (adminRoutes) apiRouter.use('/admin', adminRoutes);
 
-// Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
-apiRouter.use('/admin', adminRoutes);
-
-console.log('[DEBUG] All routes mounted');
+console.log('[DEBUG] Routes mounted to apiRouter');
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
