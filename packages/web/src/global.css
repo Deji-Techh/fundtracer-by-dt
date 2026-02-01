@@ -8,6 +8,7 @@
 
 html, body, #root {
   width: 100%;
+  min-width: 100vw;
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -24,6 +25,7 @@ body {
 /* Full-width app container with sticky header */
 .app-container {
   width: 100%;
+  min-width: 100vw;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -173,6 +175,7 @@ body {
   display: flex;
   margin-top: 64px;
   min-height: calc(100vh - 64px);
+  width: 100%;
 }
 
 /* Sidebar - Cool Gray Theme */
@@ -279,18 +282,23 @@ body {
   display: none;
 }
 
-/* Main Content Area */
+/* Main Content Area - FULL WIDTH */
 .main-content {
   flex: 1;
   margin-left: 260px;
   padding: 24px;
   background: #f1f5f9;
   min-height: calc(100vh - 64px);
-  transition: margin-left 0.3s ease;
+  width: calc(100% - 260px);
+  max-width: calc(100% - 260px);
+  transition: margin-left 0.3s ease, width 0.3s ease;
+  box-sizing: border-box;
 }
 
 .main-content.sidebar-collapsed {
   margin-left: 72px;
+  width: calc(100% - 72px);
+  max-width: calc(100% - 72px);
 }
 
 /* Card Styles */
