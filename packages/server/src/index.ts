@@ -216,23 +216,33 @@ app.get('/debug/routes', (req, res) => {
 // Protected routes
 // Create a main router
 const apiRouter = express.Router();
-import { authRoutes } from './routes/auth.js';
 
-// ... (existing imports)
-
-// Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
-apiRouter.use('/user', authMiddleware, userRoutes);
-apiRouter.use('/auth', authRoutes); // Public auth route
-apiRouter.use('/contracts', contractRoutes); // Public contract lookup
-apiRouter.use('/payment', paymentRoutes); // Payment verification
-apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
-apiRouter.use('/dune', authMiddleware, duneRoutes);
-import { trackingRoutes } from './routes/tracking.js';
-apiRouter.use('/analytics', trackingRoutes); // Public analytics route
-
-import { adminRoutes } from './routes/admin.js';
-// Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
-apiRouter.use('/admin', adminRoutes);
+try {
+    console.log('[DEBUG] Loading route modules...');
+    
+    // Import all routes
+    const { authRoutes } = await import('./routes/auth.js');
+    const { trackingRoutes } = await import('./routes/tracking.js');
+    const { adminRoutes } = await import('./routes/admin.js');
+    
+    console.log('[DEBUG] Route modules loaded successfully');
+    
+    // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
+    apiRouter.use('/user', authMiddleware, userRoutes);
+    apiRouter.use('/auth', authRoutes); // Public auth route
+    apiRouter.use('/contracts', contractRoutes); // Public contract lookup
+    apiRouter.use('/payment', paymentRoutes); // Payment verification
+    apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
+    apiRouter.use('/dune', authMiddleware, duneRoutes);
+    apiRouter.use('/analytics', trackingRoutes); // Public analytics route
+    
+    // Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
+    apiRouter.use('/admin', adminRoutes);
+    
+    console.log('[DEBUG] All routes mounted successfully');
+} catch (error) {
+    console.error('[ERROR] Failed to load routes:', error);
+}
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
