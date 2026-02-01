@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Github, Mail, Zap, MessageSquare, User, Menu, X } from 'lucide-react';
+import { Github, Mail, Zap, MessageSquare, User } from 'lucide-react';
 import logo from '../assets/logo.png';
 import { WalletButton } from './WalletButton';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,192 +12,142 @@ interface HeaderProps {
 
 function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActive }: HeaderProps) {
     const { isAuthenticated } = useAuth();
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     return (
-        <header className="header">
-            <div className="header-inner">
-                <div className="logo">
-                    <img
-                        src={logo}
-                        alt="FundTracer"
-                        className="logo-img-blend"
-                        style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px' }}
-                    />
-                    <span className="logo-text">FundTracer <span className="beta-tag">BETA</span></span>
-                    <span className="logo-subtext">by DT</span>
-                </div>
-
-                {/* Desktop Navigation */}
-                <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    {onUpgradeClick && (
-                        <button
-                            className={`upgrade-btn ${isUpgradeActive ? 'upgrade-btn-active animate-pulse-glow' : ''}`}
-                            onClick={onUpgradeClick}
-                            title="Upgrade to Premium"
-                        >
-                            <Zap size={14} /> Upgrade
-                        </button>
-                    )}
-                    
-                    {/* Wallet Button - Only show when authenticated */}
-                    {isAuthenticated && <WalletButton />}
-                    
-                    {onFeedbackClick && (
-                        <button
-                            className="btn btn-ghost btn-icon"
-                            onClick={onFeedbackClick}
-                            aria-label="Feedback"
-                            title="Send Feedback"
-                        >
-                            <MessageSquare size={18} />
-                        </button>
-                    )}
-                    <a
-                        href="https://github.com/Deji-Tech"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-ghost btn-icon"
-                        aria-label="GitHub"
-                        title="GitHub"
-                    >
-                        <Github size={18} />
-                    </a>
-                    <a
-                        href="mailto:fundtracerbydt@gmail.com"
-                        className="btn btn-ghost btn-icon"
-                        aria-label="Email"
-                        title="Contact us"
-                    >
-                        <Mail size={18} />
-                    </a>
-                    {onProfileClick && (
-                        <button
-                            className="btn btn-ghost btn-icon"
-                            onClick={onProfileClick}
-                            aria-label="Profile"
-                            title="Your Profile"
-                        >
-                            <User size={18} />
-                        </button>
-                    )}
-                </div>
-
-                {/* Mobile Hamburger Button */}
-                <button
-                    className="mobile-menu-btn"
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    aria-label="Toggle menu"
-                    style={{
-                        display: 'none', // Hidden on desktop, shown on mobile via CSS
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '8px',
-                        zIndex: 1001,
-                    }}
-                >
-                    <div className={`hamburger-icon ${mobileMenuOpen ? 'open' : ''}`}>
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                </button>
+        <header style={{
+            height: '60px',
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid #e5e5e5',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 24px',
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <img
+                    src={logo}
+                    alt="FundTracer"
+                    style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px' }}
+                />
+                <span style={{ fontWeight: 600, fontSize: '1.125rem', color: '#1a1a1a' }}>
+                    FundTracer
+                </span>
+                <span style={{ 
+                    fontSize: '0.75rem', 
+                    backgroundColor: '#f3f4f6', 
+                    padding: '2px 8px', 
+                    borderRadius: '4px',
+                    color: '#666666'
+                }}>
+                    BETA
+                </span>
             </div>
 
-            {/* Mobile Menu Overlay */}
-            {mobileMenuOpen && (
-                <div 
-                    className="mobile-menu-overlay"
-                    onClick={() => setMobileMenuOpen(false)}
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.8)',
-                        backdropFilter: 'blur(8px)',
-                        zIndex: 999,
-                        animation: 'fadeIn 0.3s ease',
-                    }}
-                >
-                    <div 
-                        className="mobile-menu"
-                        onClick={(e) => e.stopPropagation()}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {onUpgradeClick && (
+                    <button
+                        onClick={onUpgradeClick}
                         style={{
-                            position: 'absolute',
-                            top: '60px',
-                            right: '16px',
-                            background: 'var(--color-bg-secondary)',
-                            borderRadius: '16px',
-                            padding: '24px',
-                            minWidth: '280px',
-                            border: '1px solid var(--color-border)',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                            animation: 'slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: isUpgradeActive ? '#fee2e2' : '#f3f4f6',
+                            color: isUpgradeActive ? '#dc2626' : '#666666',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            transition: 'all 0.2s ease',
                         }}
                     >
-                        <div className="mobile-menu-items" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {onUpgradeClick && (
-                                <button
-                                    className={`mobile-menu-item upgrade ${isUpgradeActive ? 'active' : ''}`}
-                                    onClick={() => { onUpgradeClick(); setMobileMenuOpen(false); }}
-                                    style={{ animationDelay: '0.1s' }}
-                                >
-                                    <Zap size={20} /> Upgrade to Premium
-                                </button>
-                            )}
-                            
-                            {isAuthenticated && (
-                                <div className="mobile-menu-item" style={{ animationDelay: '0.15s' }}>
-                                    <WalletButton />
-                                </div>
-                            )}
-                            
-                            {onProfileClick && (
-                                <button
-                                    className="mobile-menu-item"
-                                    onClick={() => { onProfileClick(); setMobileMenuOpen(false); }}
-                                    style={{ animationDelay: '0.2s' }}
-                                >
-                                    <User size={20} /> Your Profile
-                                </button>
-                            )}
-                            
-                            {onFeedbackClick && (
-                                <button
-                                    className="mobile-menu-item"
-                                    onClick={() => { onFeedbackClick(); setMobileMenuOpen(false); }}
-                                    style={{ animationDelay: '0.25s' }}
-                                >
-                                    <MessageSquare size={20} /> Send Feedback
-                                </button>
-                            )}
-                            
-                            <a
-                                href="https://github.com/Deji-Tech"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mobile-menu-item"
-                                onClick={() => setMobileMenuOpen(false)}
-                                style={{ animationDelay: '0.3s' }}
-                            >
-                                <Github size={20} /> GitHub
-                            </a>
-                            
-                            <a
-                                href="mailto:fundtracerbydt@gmail.com"
-                                className="mobile-menu-item"
-                                onClick={() => setMobileMenuOpen(false)}
-                                style={{ animationDelay: '0.35s' }}
-                            >
-                                <Mail size={20} /> Contact Us
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            )}
+                        <Zap size={14} /> Upgrade
+                    </button>
+                )}
+                
+                {isAuthenticated && <WalletButton />}
+                
+                {onFeedbackClick && (
+                    <button
+                        onClick={onFeedbackClick}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: '#666666',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                        }}
+                        title="Send Feedback"
+                    >
+                        <MessageSquare size={18} />
+                    </button>
+                )}
+                
+                <a
+                    href="https://github.com/Deji-Tech"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '8px',
+                        color: '#666666',
+                        transition: 'all 0.2s ease',
+                    }}
+                    title="GitHub"
+                >
+                    <Github size={18} />
+                </a>
+                
+                <a
+                    href="mailto:fundtracerbydt@gmail.com"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '8px',
+                        color: '#666666',
+                        transition: 'all 0.2s ease',
+                    }}
+                    title="Contact us"
+                >
+                    <Mail size={18} />
+                </a>
+                
+                {onProfileClick && (
+                    <button
+                        onClick={onProfileClick}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: '#666666',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                        }}
+                        title="Your Profile"
+                    >
+                        <User size={18} />
+                    </button>
+                )}
+            </div>
         </header>
     );
 }

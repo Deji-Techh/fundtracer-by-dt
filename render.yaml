@@ -1,11 +1,15 @@
 services:
-  # Backend API Server
+  # FundTracer - Unified Service (Backend + Frontend)
   - type: web
-    name: fundtracer-api
+    name: fundtracer
     runtime: node
     region: oregon
     plan: starter
-    buildCommand: npm install && npm run build --workspace=@fundtracer/core && npm run build --workspace=@fundtracer/server
+    buildCommand: |
+      npm install && \
+      npm run build --workspace=@fundtracer/core && \
+      npm run build --workspace=@fundtracer/web && \
+      npm run build --workspace=@fundtracer/server
     startCommand: npm start --workspace=@fundtracer/server
     envVars:
       - key: NODE_ENV
@@ -24,17 +28,19 @@ services:
         sync: false
       - key: FREE_DAILY_LIMIT
         value: 7
-      - key: CORS_ORIGIN
-        value: https://fundtracer.onrender.com
+      # New API Keys (to be added via Render dashboard)
+      - key: MORALIS_API_KEY
+        sync: false
+      - key: COINGECKO_API_KEY
+        sync: false
+      - key: ANKR_API_KEY
+        sync: false
+      - key: DEBANK_API_KEY
+        sync: false
+      - key: QUICKNODE_API_KEY
+        sync: false
+      - key: QUICKNODE_RPC_URL
+        sync: false
+      - key: DUNE_API_KEY
+        sync: false
     healthCheckPath: /health
-
-  # Frontend (Web App)
-  - type: web
-    name: fundtracer-web
-    runtime: static
-    buildCommand: npm install && npm run build --workspace=@fundtracer/core && npm run build --workspace=@fundtracer/web
-    staticPublishPath: ./packages/web/dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html

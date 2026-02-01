@@ -207,6 +207,19 @@ import { adminRoutes } from './routes/admin.js';
 // Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
 apiRouter.use('/admin', adminRoutes);
 
+// NEW API Routes (Moralis, CoinGecko, Ankr, QuickNode, Dune)
+import { portfolioRoutes } from './routes/portfolio.js';
+import { historyRoutes } from './routes/history.js';
+import { tokenRoutes } from './routes/tokens.js';
+import { marketRoutes } from './routes/market.js';
+import { safetyRoutes } from './routes/safety.js';
+
+apiRouter.use('/portfolio', authMiddleware, portfolioRoutes);
+apiRouter.use('/history', authMiddleware, historyRoutes);
+apiRouter.use('/tokens', tokenRoutes); // Public token search
+apiRouter.use('/market', marketRoutes); // Public market stats
+apiRouter.use('/safety', authMiddleware, safetyRoutes); // Token safety checks
+
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
