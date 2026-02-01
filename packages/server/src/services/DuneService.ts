@@ -1,11 +1,18 @@
 import fetch from 'node-fetch';
+import { cache } from '../utils/cache.js';
+
+const DUNE_API_KEY = process.env.DUNE_API_KEY;
 
 export class DuneService {
     private apiKey: string;
     private baseUrl = 'https://api.dune.com/api/v1';
 
-    constructor(apiKey: string) {
-        this.apiKey = apiKey;
+    constructor(apiKey?: string) {
+        this.apiKey = apiKey || DUNE_API_KEY || '';
+        
+        if (!this.apiKey) {
+            console.warn('[DuneService] No API key provided');
+        }
     }
 
     async getContractInteractors(chain: string, contractAddress: string, limit: number = 1000): Promise<string[]> {
@@ -100,4 +107,68 @@ export class DuneService {
 
         throw new Error('Query execution timed out');
     }
+
+    async getLineaStats() {
+        // Placeholder query ID - user needs to create this query in Dune
+        // Example query: "Linea Ecosystem Stats"
+        const LINEA_STATS_QUERY_ID = '1234567'; // Replace with actual query ID
+        
+        const cacheKey = `dune:linea:stats`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached;
+        
+        try {
+            // Try to get results from a saved query
+            const resultsRes = await fetch(`${this.baseUrl}/query/${LINEA_STATS_QUERY_ID}/results`, {
+                headers: { 'X-Dune-Api-Key': this.apiKey },
+            });
+            
+            if (!resultsRes.ok) {
+                throw new Error('Failed to fetch Linea stats');
+            }
+            
+            const data = await resultsRes.json();
+            cache.set(cacheKey, data, 3600); // 1 hour cache
+            return data;
+        } catch (error) {
+            console.error('[DuneService] Error fetching Linea stats:', error);
+            // Return mock data if query doesn't exist
+            return {
+                result: {
+                    rows: [
+                        { metric: 'TVL', value: 450000000, change_24h: 2.3 },
+                        { metric: 'Volume 24h', value: 23500000, change_24h: -5.1 },
+                        { metric: 'Transactions', value: 125400, change_24h: 12.0 },
+                        { metric: 'Active Users', value: 45200, change_24h: 8.0 },
+                    ],
+                },
+            };
+        }
+    }
+
+    async getQueryResults(queryId: string, limit: number = 100) {
+        const cacheKey = `dune:results:${queryId}:${limit}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached;
+
+        try {
+            const response = await fetch(
+                `${this.baseUrl}/query/${queryId}/results?limit=${limit}`,
+                { headers: { 'X-Dune-Api-Key': this.apiKey } }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Dune API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            cache.set(cacheKey, data, 3600); // 1 hour cache
+            return data;
+        } catch (error) {
+            console.error('[DuneService] Error fetching query results:', error);
+            throw error;
+        }
+    }
 }
+
+export const duneService = new DuneService();

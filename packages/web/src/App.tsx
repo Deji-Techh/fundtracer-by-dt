@@ -1,9 +1,9 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { ethers } from 'ethers';
-// const { parseEther } = ethers; // Removed to prevent runtime crash in v6 if default export structure differs
 import { ChainId, AnalysisResult, MultiWalletResult, getEnabledChains, CHAINS } from '@fundtracer/core';
 import { useAuth } from './contexts/AuthContext';
 import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions, trackVisit } from './api';
+import { FullScreenLayout } from './components/Layout/FullScreenLayout';
 import Header from './components/Header';
 import AuthPanel from './components/AuthPanel';
 import HowToUse from './components/HowToUse';
@@ -30,626 +30,622 @@ import ProfilePage from './components/ProfilePage';
 import SearchHistory from './components/SearchHistory';
 import { addToHistory } from './utils/history';
 
+// Import global styles
+import './global.css';
+
 // API Features - Lazy loaded for performance
 const GasTracker = lazy(() => import('./components/GasTracker').then(m => ({ default: m.GasTracker })));
 const ContractVerifier = lazy(() => import('./components/ContractVerifier').then(m => ({ default: m.ContractVerifier })));
 const PortfolioViewer = lazy(() => import('./components/PortfolioViewer').then(m => ({ default: m.PortfolioViewer })));
 const WalletAnalytics = lazy(() => import('./components/WalletAnalytics').then(m => ({ default: m.WalletAnalytics })));
 
+// New Dashboard Components (to be created)
+const PortfolioDashboard = lazy(() => import('./components/Dashboard/PortfolioDashboard'));
+const TransactionHistory = lazy(() => import('./components/Dashboard/TransactionHistory'));
+const DeFiPositions = lazy(() => import('./components/Dashboard/DeFiPositions'));
+const TokenExplorer = lazy(() => import('./components/TokenExplorer/TokenPage'));
+
+type TabType = 'home' | 'portfolio' | 'history' | 'defi' | 'safety' | 'explorer' | 'market' | 'settings';
 type ViewMode = 'wallet' | 'contract' | 'compare' | 'sybil' | 'profile' | 'dashboard';
 
 function App() {
-    // Simple routing for Privacy Policy standalone page
-    if (window.location.pathname === '/privacypolicy' || window.location.pathname === '/privacy') {
-        return <PrivacyPolicyPage />;
+  // Simple routing for Privacy Policy standalone page
+  if (window.location.pathname === '/privacypolicy' || window.location.pathname === '/privacy') {
+    return <PrivacyPolicyPage />;
+  }
+
+  const { user, profile, isAuthenticated, loading: authLoading, getSigner } = useAuth();
+
+  // Navigation state
+  const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [viewMode, setViewMode] = useState<ViewMode>('wallet');
+  
+  // Analysis state
+  const [selectedChain, setSelectedChain] = useState<ChainId>('ethereum');
+  const [walletAddresses, setWalletAddresses] = useState<string[]>(['']);
+  const [contractAddress, setContractAddress] = useState<string>('');
+  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [showHowToUse, setShowHowToUse] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showFirstTime, setShowFirstTime] = useState(false);
+
+  // Analysis results
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [walletResult, setWalletResult] = useState<AnalysisResult | null>(null);
+  const [multiWalletResult, setMultiWalletResult] = useState<MultiWalletResult | null>(null);
+  const [contractResult, setContractResult] = useState<ContractAnalysisResult | null>(null);
+  const [pagination, setPagination] = useState<{ total: number; offset: number; limit: number; hasMore: boolean } | null>(null);
+  const [currentAnalysisAddress, setCurrentAnalysisAddress] = useState<string>('');
+
+  // Track visit on mount
+  React.useEffect(() => {
+    trackVisit();
+  }, []);
+
+  // Show onboarding for first-time users after login
+  React.useEffect(() => {
+    if (user && !localStorage.getItem('fundtracer_onboarding_complete')) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
+
+  const handleChainSelect = (chainId: ChainId) => {
+    const chain = CHAINS[chainId];
+    if (!chain.enabled) {
+      setShowComingSoon(true);
+      return;
+    }
+    setSelectedChain(chainId);
+  };
+
+  // Free Tier Logic
+  const TARGET_WALLET = '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd';
+  const LINEA_CHAIN_ID = '0xe708'; // 59144 in hex
+
+  const checkFreeTierTx = async (): Promise<string | undefined> => {
+    if (!profile || profile.tier !== 'free') return undefined;
+
+    try {
+      const signer = await getSigner();
+      const provider = signer.provider;
+      if (!provider) {
+        throw new Error("Provider not found");
+      }
+
+      const network = await provider.getNetwork();
+      if (network.chainId !== 59144n) {
+        try {
+          await (provider as any).send('wallet_switchEthereumChain', [{ chainId: LINEA_CHAIN_ID }]);
+        } catch (switchError: any) {
+          if (switchError.code === 4902) {
+            await (provider as any).send('wallet_addEthereumChain', [{
+              chainId: LINEA_CHAIN_ID,
+              chainName: 'Linea Mainnet',
+              nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+              rpcUrls: ['https://rpc.linea.build'],
+              blockExplorerUrls: ['https://lineascan.build']
+            }]);
+          } else {
+            throw new Error(`Please switch your wallet to Linea Mainnet manually. (Error: ${switchError.message})`);
+          }
+        }
+      }
+
+      const abi = ["function addTraceLog(string _msg) public"];
+      const contract = new ethers.Contract(TARGET_WALLET, abi, signer);
+      const tx = await contract.addTraceLog("Verify FundTracer Access");
+
+      return tx.hash;
+    } catch (error: any) {
+      console.error('Free Tier Transaction Failed:', error);
+      if (error.code === 4001 || error.message?.includes('user rejected')) {
+        throw new Error('Transaction rejected. You must complete the Free Tier verification to proceed.');
+      }
+      throw new Error(`Payment verification failed: ${error.message || 'Unknown error'}. Please ensure you are on Linea.`);
+    }
+  };
+
+  // Session Cache
+  const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
+
+  const _executeAnalyzeWallet = async () => {
+    const address = walletAddresses[0]?.trim();
+    if (!address) return;
+
+    setLoading(true);
+    setError(null);
+    setPagination(null);
+    setCurrentAnalysisAddress(address);
+
+    const cacheKey = `${address.toLowerCase()}-${selectedChain}`;
+    if (resultsCache[cacheKey]) {
+      console.log('Using session cache for:', cacheKey);
+      setWalletResult(resultsCache[cacheKey]);
+      if (resultsCache[cacheKey].pagination) {
+        setPagination(resultsCache[cacheKey].pagination!);
+      }
+      addToHistory(address, selectedChain);
+      setLoading(false);
+      return;
     }
 
-    const { user, profile, isAuthenticated, loading: authLoading, getSigner } = useAuth();
-    // parseEther is imported at top level now
+    try {
+      let txHash;
+      if (profile?.tier === 'free') {
+        txHash = await checkFreeTierTx();
+      }
 
-    const [viewMode, setViewMode] = useState<ViewMode>('wallet');
-    const [selectedChain, setSelectedChain] = useState<ChainId>('ethereum');
-    const [walletAddresses, setWalletAddresses] = useState<string[]>(['']);
-    const [contractAddress, setContractAddress] = useState<string>('');
-    const [showComingSoon, setShowComingSoon] = useState(false);
-    const [showHowToUse, setShowHowToUse] = useState(false);
-    // const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false); // REMOVED: Now using strict routing
-    const [showOnboarding, setShowOnboarding] = useState(false);
-    const [showPayment, setShowPayment] = useState(false);
-    const [showFeedback, setShowFeedback] = useState(false);
-    const [showFirstTime, setShowFirstTime] = useState(false);
+      addToHistory(address, selectedChain);
 
+      const response = await analyzeWallet(address, selectedChain, { txHash, limit: 100, offset: 0 });
+      if (response.result) {
+        setWalletResult(response.result);
+        setResultsCache(prev => ({ ...prev, [cacheKey]: response.result }));
 
-
-    // Analysis state
-    // Analysis state
-    const [loading, setLoading] = useState(false);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [walletResult, setWalletResult] = useState<AnalysisResult | null>(null);
-    const [multiWalletResult, setMultiWalletResult] = useState<MultiWalletResult | null>(null);
-    const [contractResult, setContractResult] = useState<ContractAnalysisResult | null>(null);
-    const [pagination, setPagination] = useState<{ total: number; offset: number; limit: number; hasMore: boolean } | null>(null);
-    const [currentAnalysisAddress, setCurrentAnalysisAddress] = useState<string>('');
-
-    // Track visit on mount
-    React.useEffect(() => {
-        trackVisit();
-    }, []);
-
-    // Show onboarding for first-time users after login
-    React.useEffect(() => {
-        if (user && !localStorage.getItem('fundtracer_onboarding_complete')) {
-            setShowOnboarding(true);
+        if (response.result.pagination) {
+          setPagination(response.result.pagination);
         }
-    }, [user]);
+      }
+    } catch (err: any) {
+      if (err.message && (err.message.includes('Daily limit exceeded') || err.message.includes('Upgrade to increase') || err.message.includes('Chain restricted'))) {
+        setShowPayment(true);
+      }
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleChainSelect = (chainId: ChainId) => {
-        const chain = CHAINS[chainId];
-        if (!chain.enabled) {
-            setShowComingSoon(true);
-            return;
-        }
-        setSelectedChain(chainId);
-    };
+  const handleAnalyzeWallet = () => {
+    const address = walletAddresses[0]?.trim();
+    if (!address) return;
 
-    // Free Tier Logic
-    const TARGET_WALLET = '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd';
-    const LINEA_CHAIN_ID = '0xe708'; // 59144 in hex
+    const hasSeenWelcome = localStorage.getItem('fundtracer_welcome_seen');
+    if (!hasSeenWelcome) {
+      localStorage.setItem('fundtracer_welcome_seen', 'true');
+      setShowFirstTime(true);
+      setTimeout(() => _executeAnalyzeWallet(), 300);
+    } else {
+      _executeAnalyzeWallet();
+    }
+  };
 
-    const checkFreeTierTx = async (): Promise<string | undefined> => {
-        if (!profile || profile.tier !== 'free') return undefined;
+  const handleLoadMoreTransactions = async () => {
+    if (!walletResult || !pagination?.hasMore || loadingMore) return;
 
-        try {
-            const signer = await getSigner();
-            const provider = signer.provider; // This should be a Web3Provider
-            if (!provider) {
-                throw new Error("Provider not found");
-            }
+    setLoadingMore(true);
+    try {
+      const newOffset = pagination.offset + pagination.limit;
+      const { transactions: newTxs, pagination: newPagination } = await loadMoreTransactions(
+        currentAnalysisAddress,
+        selectedChain,
+        newOffset,
+        100
+      );
 
-            // Check Chain ID (Ethers v6 uses BigInt)
-            const network = await provider.getNetwork();
-            if (network.chainId !== 59144n) {
-                // Try to switch network using underlying provider if possible
-                try {
-                    // EIP-3326
-                    await (provider as any).send('wallet_switchEthereumChain', [{ chainId: LINEA_CHAIN_ID }]);
-                } catch (switchError: any) {
-                    // Add chain if needed
-                    if (switchError.code === 4902) {
-                        await (provider as any).send('wallet_addEthereumChain', [{
-                            chainId: LINEA_CHAIN_ID,
-                            chainName: 'Linea Mainnet',
-                            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-                            rpcUrls: ['https://rpc.linea.build'],
-                            blockExplorerUrls: ['https://lineascan.build']
-                        }]);
-                    } else {
-                        throw new Error(`Please switch your wallet to Linea Mainnet manually. (Error: ${switchError.message})`);
-                    }
-                }
-            }
+      setWalletResult(prev => prev ? {
+        ...prev,
+        transactions: [...prev.transactions, ...newTxs]
+      } : prev);
+      setPagination(newPagination);
+    } catch (err: any) {
+      console.error('Failed to load more transactions:', err.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
-            // Send Transaction
-            // Send Transaction (Contract Call)
-            const abi = ["function addTraceLog(string _msg) public"];
-            const contract = new ethers.Contract(TARGET_WALLET, abi, signer);
-            const tx = await contract.addTraceLog("Verify FundTracer Access");
+  const _executeCompareWallets = async () => {
+    const addresses = walletAddresses.filter(a => a.trim());
+    if (addresses.length < 2) return;
 
-            return tx.hash;
-        } catch (error: any) {
-            console.error('Free Tier Transaction Failed:', error);
-            // If user rejected, friendly error. Otherwise generic.
-            if (error.code === 4001 || error.message?.includes('user rejected')) {
-                throw new Error('Transaction rejected. You must complete the Free Tier verification to proceed.');
-            }
-            throw new Error(`Payment verification failed: ${error.message || 'Unknown error'}. Please ensure you are on Linea.`);
-        }
-    };
+    setLoading(true);
+    setError(null);
 
-    // Session Cache
-    const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
+    try {
+      let txHash;
+      if (profile?.tier === 'free') {
+        txHash = await checkFreeTierTx();
+      }
 
-    const _executeAnalyzeWallet = async () => {
-        const address = walletAddresses[0]?.trim();
-        if (!address) return;
+      const response = await compareWallets(addresses, selectedChain);
+      if (response.result) {
+        setMultiWalletResult(response.result);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setLoading(true);
-        setError(null);
-        setPagination(null);
-        setCurrentAnalysisAddress(address);
+  const handleCompareWallets = () => {
+    const addresses = walletAddresses.filter(a => a.trim());
+    if (addresses.length < 2) return;
+    _executeCompareWallets();
+  };
 
-        // Check cache first
-        const cacheKey = `${address.toLowerCase()}-${selectedChain}`;
-        if (resultsCache[cacheKey]) {
-            console.log('Using session cache for:', cacheKey);
-            setWalletResult(resultsCache[cacheKey]);
-            if (resultsCache[cacheKey].pagination) {
-                setPagination(resultsCache[cacheKey].pagination!);
-            }
-            addToHistory(address, selectedChain);
-            setLoading(false);
-            return;
-        }
+  const _executeAnalyzeContract = async () => {
+    if (!contractAddress.trim()) return;
 
-        try {
-            // Free Tier Check
-            let txHash;
-            if (profile?.tier === 'free') {
-                // Update loading text ideally, but sticking to simple state
-                txHash = await checkFreeTierTx();
-            }
+    setLoading(true);
+    setError(null);
 
-            // Save to history
-            addToHistory(address, selectedChain);
+    try {
+      let txHash;
+      if (profile?.tier === 'free') {
+        txHash = await checkFreeTierTx();
+      }
 
-            const response = await analyzeWallet(address, selectedChain, { txHash, limit: 100, offset: 0 });
-            if (response.result) {
-                setWalletResult(response.result);
-                // Update cache
-                setResultsCache(prev => ({ ...prev, [cacheKey]: response.result }));
+      const response = await analyzeContract(contractAddress.trim(), selectedChain);
+      if (response.result) {
+        setContractResult(response.result);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-                if (response.result.pagination) {
-                    setPagination(response.result.pagination);
-                }
-            }
-        } catch (err: any) {
-            if (err.message && (err.message.includes('Daily limit exceeded') || err.message.includes('Upgrade to increase') || err.message.includes('Chain restricted'))) {
-                setShowPayment(true);
-            }
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleAnalyzeContract = () => {
+    if (!contractAddress.trim()) return;
+    _executeAnalyzeContract();
+  };
 
-    const handleAnalyzeWallet = () => {
-        const address = walletAddresses[0]?.trim();
-        if (!address) return;
+  const handleAddWallet = () => {
+    setWalletAddresses([...walletAddresses, '']);
+  };
 
-        // Check if this is first-time user
-        const hasSeenWelcome = localStorage.getItem('fundtracer_welcome_seen');
-        if (!hasSeenWelcome) {
-            localStorage.setItem('fundtracer_welcome_seen', 'true');
-            setShowFirstTime(true);
-            // Store the analysis action to execute after modal close
-            setTimeout(() => _executeAnalyzeWallet(), 300);
-        } else {
-            _executeAnalyzeWallet();
-        }
-    };
+  const handleRemoveWallet = (index: number) => {
+    setWalletAddresses(walletAddresses.filter((_, i) => i !== index));
+  };
 
-    // Load more transactions (called by AnalysisView)
-    const handleLoadMoreTransactions = async () => {
-        if (!walletResult || !pagination?.hasMore || loadingMore) return;
+  const handleWalletChange = (index: number, value: string) => {
+    const updated = [...walletAddresses];
+    updated[index] = value;
+    setWalletAddresses(updated);
+  };
 
-        setLoadingMore(true);
-        try {
-            const newOffset = pagination.offset + pagination.limit;
-            const { transactions: newTxs, pagination: newPagination } = await loadMoreTransactions(
-                currentAnalysisAddress,
-                selectedChain,
-                newOffset,
-                100
-            );
+  // Handle tab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab as TabType);
+    
+    // Map tabs to view modes for backward compatibility
+    if (tab === 'home') {
+      setViewMode('wallet');
+    } else if (tab === 'portfolio' || tab === 'history' || tab === 'defi' || tab === 'explorer' || tab === 'market') {
+      setViewMode('dashboard');
+    } else if (tab === 'settings') {
+      setViewMode('profile');
+    }
+  };
 
-            // Append new transactions
-            setWalletResult(prev => prev ? {
-                ...prev,
-                transactions: [...prev.transactions, ...newTxs]
-            } : prev);
-            setPagination(newPagination);
-        } catch (err: any) {
-            console.error('Failed to load more transactions:', err.message);
-        } finally {
-            setLoadingMore(false);
-        }
-    };
-
-    const _executeCompareWallets = async () => {
-        const addresses = walletAddresses.filter(a => a.trim());
-        if (addresses.length < 2) return;
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            // Free Tier Check (One tx covers the batch? Or per wallet? One per batch for UX)
-            let txHash;
-            if (profile?.tier === 'free') {
-                txHash = await checkFreeTierTx();
-            }
-
-            const response = await compareWallets(addresses, selectedChain);
-            if (response.result) {
-                setMultiWalletResult(response.result);
-            }
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCompareWallets = () => {
-        const addresses = walletAddresses.filter(a => a.trim());
-        if (addresses.length < 2) return;
-        _executeCompareWallets();
-    };
-
-    const _executeAnalyzeContract = async () => {
-        if (!contractAddress.trim()) return;
-
-        setLoading(true);
-        setError(null);
-
-        try {
-            let txHash;
-            if (profile?.tier === 'free') {
-                txHash = await checkFreeTierTx();
-            }
-
-            const response = await analyzeContract(contractAddress.trim(), selectedChain);
-            if (response.result) {
-                setContractResult(response.result);
-            }
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleAnalyzeContract = () => {
-        if (!contractAddress.trim()) return;
-        _executeAnalyzeContract();
-    };
-
-    const handleAddWallet = () => {
-        setWalletAddresses([...walletAddresses, '']);
-    };
-
-    const handleRemoveWallet = (index: number) => {
-        setWalletAddresses(walletAddresses.filter((_, i) => i !== index));
-    };
-
-    const handleWalletChange = (index: number, value: string) => {
-        const updated = [...walletAddresses];
-        updated[index] = value;
-        setWalletAddresses(updated);
-    };
+  // Render main content based on active tab
+  const renderMainContent = () => {
+    if (authLoading) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+          <div className="loading-spinner" />
+        </div>
+      );
+    }
 
     // Show auth loading state
-    if (authLoading) {
+    if (!user) {
+      return (
+        <>
+          <AuthPanel />
+          <HowToUse isOpen={showHowToUse} onToggle={() => setShowHowToUse(!showHowToUse)} />
+          <EmptyState />
+        </>
+      );
+    }
+
+    // Switch between tabs
+    switch (activeTab) {
+      case 'portfolio':
         return (
-            <div className="app-container">
-                <Header />
-                <main className="main-content animate-fade-in">
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-                        <div className="loading-spinner" />
-                    </div>
-                </main>
-            </div>
+          <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }} />}>
+            <PortfolioDashboard walletAddress={walletAddresses[0]} />
+          </Suspense>
         );
+      
+      case 'history':
+        return (
+          <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }} />}>
+            <TransactionHistory walletAddress={walletAddresses[0]} />
+          </Suspense>
+        );
+      
+      case 'defi':
+        return (
+          <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }} />}>
+            <DeFiPositions walletAddress={walletAddresses[0]} />
+          </Suspense>
+        );
+      
+      case 'explorer':
+        return (
+          <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }} />}>
+            <TokenExplorer />
+          </Suspense>
+        );
+      
+      case 'settings':
+        return <ProfilePage onBack={() => setActiveTab('home')} />;
+      
+      case 'home':
+      default:
+        return renderHomeContent();
+    }
+  };
+
+  // Original home content with analysis
+  const renderHomeContent = () => {
+    if (viewMode === 'profile') {
+      return <ProfilePage onBack={() => setViewMode('wallet')} />;
     }
 
     return (
-        <div className="app-container">
-            <Header
-                onProfileClick={() => {
-                    setViewMode('profile');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                onUpgradeClick={() => setShowPayment(true)}
-                onFeedbackClick={() => setShowFeedback(true)}
-                isUpgradeActive={showPayment}
-            />
+      <>
+        <AuthPanel />
+        <HowToUse isOpen={showHowToUse} onToggle={() => setShowHowToUse(!showHowToUse)} />
+        
+        {/* Sybil Mode - Full Screen Component */}
+        {viewMode === 'sybil' ? (
+          <div style={{ marginBottom: 'var(--space-4)' }}>
+            <div className="mode-selector" style={{ marginBottom: 'var(--space-4)' }}>
+              <button
+                className={`mode-btn ${(viewMode as ViewMode) === 'wallet' ? 'active' : ''}`}
+                onClick={() => setViewMode('wallet')}
+              >
+                Wallet
+              </button>
+              <button
+                className={`mode-btn ${(viewMode as ViewMode) === 'contract' ? 'active' : ''}`}
+                onClick={() => setViewMode('contract')}
+              >
+                Contract
+              </button>
+              <button
+                className={`mode-btn ${(viewMode as ViewMode) === 'compare' ? 'active' : ''}`}
+                onClick={() => setViewMode('compare')}
+              >
+                Compare
+              </button>
+              <button
+                className={`mode-btn ${viewMode === 'sybil' ? 'active' : ''}`}
+                onClick={() => setViewMode('sybil')}
+                style={{ background: 'linear-gradient(135deg, #3a3a3f 0%, #1a1a1f 100%)' }}
+              >
+                Sybil
+              </button>
+            </div>
+            <SybilDetector />
+          </div>
+        ) : (
+          <>
+            {/* Analysis Panel */}
+            <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+              {/* Mode Selector */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+                <div className="mode-selector">
+                  <button
+                    className={`mode-btn ${viewMode === 'wallet' ? 'active' : ''}`}
+                    onClick={() => setViewMode('wallet')}
+                  >
+                    Wallet
+                  </button>
+                  <button
+                    className={`mode-btn ${viewMode === 'contract' ? 'active' : ''}`}
+                    onClick={() => setViewMode('contract')}
+                  >
+                    Contract
+                  </button>
+                  <button
+                    className={`mode-btn ${viewMode === 'compare' ? 'active' : ''}`}
+                    onClick={() => setViewMode('compare')}
+                  >
+                    Compare
+                  </button>
+                  <button
+                    className={`mode-btn ${(viewMode as ViewMode) === 'sybil' ? 'active' : ''}`}
+                    onClick={() => setViewMode('sybil')}
+                    style={{ background: (viewMode as ViewMode) === 'sybil' ? 'linear-gradient(135deg, #3a3a3f 0%, #1a1a1f 100%)' : undefined }}
+                  >
+                    Sybil
+                  </button>
+                </div>
+              </div>
 
-            <main className="main-content">
-                {/* Auth Panel - Shows sign in or user info if NOT in profile mode */}
-                {viewMode !== 'profile' && <AuthPanel />}
+              {/* Chain Selector */}
+              <div style={{ marginBottom: 'var(--space-4)' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
+                  Chain
+                </div>
+                <ChainSelector
+                  selectedChain={selectedChain}
+                  onSelect={handleChainSelect}
+                  onUpgrade={() => setShowPayment(true)}
+                />
+              </div>
 
-                {/* How To Use Section */}
-                {viewMode !== 'profile' && (
-                    <HowToUse isOpen={showHowToUse} onToggle={() => setShowHowToUse(!showHowToUse)} />
-                )}
+              {/* Input Fields */}
+              {viewMode === 'wallet' && (
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
+                    Wallet Address
+                  </div>
+                  <WalletInput
+                    value={walletAddresses[0] || ''}
+                    onChange={(value) => handleWalletChange(0, value)}
+                    placeholder="Enter wallet address (0x...)"
+                  />
+                </div>
+              )}
 
-                {/* Main Content */}
-                {viewMode === 'profile' ? (
-                    <ProfilePage onBack={() => setViewMode('wallet')} />
+              {viewMode === 'contract' && (
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
+                    Contract Address or Name
+                  </div>
+                  <ContractSearch
+                    onSelect={(address) => setContractAddress(address)}
+                    placeholder="Search by name (e.g. Uniswap) or paste address"
+                  />
+                </div>
+              )}
+
+              {viewMode === 'compare' && (
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
+                    Wallet Addresses
+                  </div>
+                  {walletAddresses.map((address, index) => (
+                    <div key={index} style={{ marginBottom: 'var(--space-2)' }}>
+                      <WalletInput
+                        value={address}
+                        onChange={(value) => handleWalletChange(index, value)}
+                        placeholder={`Wallet #${index + 1} (0x...)`}
+                        onRemove={walletAddresses.length > 1 ? () => handleRemoveWallet(index) : undefined}
+                      />
+                    </div>
+                  ))}
+                  <button className="btn btn-secondary" onClick={handleAddWallet}>
+                    + Add Wallet
+                  </button>
+                </div>
+              )}
+
+              {/* Analyze Button */}
+              <button
+                className="btn btn-primary btn-lg"
+                style={{ width: '100%' }}
+                onClick={
+                  viewMode === 'wallet' ? handleAnalyzeWallet :
+                    viewMode === 'contract' ? handleAnalyzeContract :
+                      handleCompareWallets
+                }
+                disabled={loading}
+              >
+                {loading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <div className="loading-spinner" style={{ width: 16, height: 16 }} />
+                    Analyzing...
+                  </span>
                 ) : (
-                    // Only show analysis UI if authenticated
-                    user ? (
-                        <>
-                            {/* Sybil Mode - Full Screen Component */}
-                            {viewMode === 'sybil' ? (
-                                <div style={{ marginBottom: 'var(--space-4)' }}>
-                                    {/* Mode Selector - Compact */}
-                                    <div className="mode-selector" style={{ marginBottom: 'var(--space-4)' }}>
-                                        <button
-                                            className={`mode-btn ${(viewMode as ViewMode) === 'wallet' ? 'active' : ''}`}
-                                            onClick={() => setViewMode('wallet')}
-                                        >
-                                            Wallet
-                                        </button>
-                                        <button
-                                            className={`mode-btn ${(viewMode as ViewMode) === 'contract' ? 'active' : ''}`}
-                                            onClick={() => setViewMode('contract')}
-                                        >
-                                            Contract
-                                        </button>
-                                        <button
-                                            className={`mode-btn ${(viewMode as ViewMode) === 'compare' ? 'active' : ''}`}
-                                            onClick={() => setViewMode('compare')}
-                                        >
-                                            Compare
-                                        </button>
-                                        <button
-                                            className={`mode-btn ${viewMode === 'sybil' ? 'active' : ''}`}
-                                            onClick={() => setViewMode('sybil')}
-                                            style={{ background: 'linear-gradient(135deg, #3a3a3f 0%, #1a1a1f 100%)' }}
-                                        >
-                                            Sybil
-                                        </button>
-                                    </div>
-                                    <SybilDetector />
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Analysis Panel */}
-                                    <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
-                                        {/* Mode Selector */}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-                                            <div className="mode-selector">
-                                                <button
-                                                    className={`mode-btn ${viewMode === 'wallet' ? 'active' : ''}`}
-                                                    onClick={() => setViewMode('wallet')}
-                                                >
-                                                    Wallet
-                                                </button>
-                                                <button
-                                                    className={`mode-btn ${viewMode === 'contract' ? 'active' : ''}`}
-                                                    onClick={() => setViewMode('contract')}
-                                                >
-                                                    Contract
-                                                </button>
-                                                <button
-                                                    className={`mode-btn ${viewMode === 'compare' ? 'active' : ''}`}
-                                                    onClick={() => setViewMode('compare')}
-                                                >
-                                                    Compare
-                                                </button>
-                                                <button
-                                                    className={`mode-btn ${(viewMode as ViewMode) === 'sybil' ? 'active' : ''}`}
-                                                    onClick={() => setViewMode('sybil')}
-                                                    style={{ background: (viewMode as ViewMode) === 'sybil' ? 'linear-gradient(135deg, #3a3a3f 0%, #1a1a1f 100%)' : undefined }}
-                                                >
-                                                    Sybil
-                                                </button>
-                                                <button
-                                                    className={`mode-btn ${viewMode === 'dashboard' ? 'active' : ''}`}
-                                                    onClick={() => setViewMode('dashboard')}
-                                                    style={{ 
-                                                        background: viewMode === 'dashboard' ? 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)' : undefined,
-                                                        color: viewMode === 'dashboard' ? '#000' : undefined
-                                                    }}
-                                                >
-                                                    Dashboard
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Chain Selector */}
-                                        <div style={{ marginBottom: 'var(--space-4)' }}>
-                                            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
-                                                Chain
-                                            </div>
-                                            <ChainSelector
-                                                selectedChain={selectedChain}
-                                                onSelect={handleChainSelect}
-                                                onUpgrade={() => setShowPayment(true)}
-                                            />
-                                        </div>
-
-                                        {/* Input Fields */}
-                                        {viewMode === 'wallet' && (
-                                            <div style={{ marginBottom: 'var(--space-4)' }}>
-                                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
-                                                    Wallet Address
-                                                </div>
-                                                <WalletInput
-                                                    value={walletAddresses[0] || ''}
-                                                    onChange={(value) => handleWalletChange(0, value)}
-                                                    placeholder="Enter wallet address (0x...)"
-                                                />
-                                            </div>
-                                        )}
-
-                                        {viewMode === 'contract' && (
-                                            <div style={{ marginBottom: 'var(--space-4)' }}>
-                                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
-                                                    Contract Address or Name
-                                                </div>
-                                                <ContractSearch
-                                                    onSelect={(address) => setContractAddress(address)}
-                                                    placeholder="Search by name (e.g. Uniswap) or paste address"
-                                                />
-                                            </div>
-                                        )}
-
-                                        {viewMode === 'compare' && (
-                                            <div style={{ marginBottom: 'var(--space-4)' }}>
-                                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--space-2)' }}>
-                                                    Wallet Addresses
-                                                </div>
-                                                {walletAddresses.map((address, index) => (
-                                                    <div key={index} style={{ marginBottom: 'var(--space-2)' }}>
-                                                        <WalletInput
-                                                            value={address}
-                                                            onChange={(value) => handleWalletChange(index, value)}
-                                                            placeholder={`Wallet #${index + 1} (0x...)`}
-                                                            onRemove={walletAddresses.length > 1 ? () => handleRemoveWallet(index) : undefined}
-                                                        />
-                                                    </div>
-                                                ))}
-                                                <button className="btn btn-secondary" onClick={handleAddWallet}>
-                                                    + Add Wallet
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {/* Analyze Button */}
-                                        <button
-                                            className="btn btn-primary btn-lg"
-                                            style={{ width: '100%' }}
-                                            onClick={
-                                                viewMode === 'wallet' ? handleAnalyzeWallet :
-                                                    viewMode === 'contract' ? handleAnalyzeContract :
-                                                        handleCompareWallets
-                                            }
-                                            disabled={loading}
-                                        >
-                                            {loading ? (
-                                                <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                                    <div className="loading-spinner" style={{ width: 16, height: 16 }} />
-                                                    Analyzing...
-                                                </span>
-                                            ) : (
-                                                viewMode === 'wallet' ? 'Analyze Wallet' :
-                                                    viewMode === 'contract' ? 'Analyze Contract' :
-                                                        'Compare Wallets'
-                                            )}
-                                        </button>
-
-                                        {/* Error Display */}
-                                        {error && (
-                                            <div className="alert danger" style={{ marginTop: 'var(--space-4)' }}>
-                                                {error}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Recent History (Only when no result) */}
-                                    {viewMode === 'wallet' && !walletResult && !loading && (
-                                        <div className="animate-fade-in">
-                                            <SearchHistory
-                                                onSelect={(addr, chain) => {
-                                                    setWalletAddresses([addr]);
-                                                    if (chain) setSelectedChain(chain as ChainId);
-                                                    // Optional: auto-analyze. Let's just fill for now.
-                                                    // To auto-analyze, we'd need to trigger it in useEffect due to state batching
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Results */}
-                                    {viewMode === 'wallet' && walletResult && (
-                                        <AnalysisView
-                                            result={walletResult}
-                                            pagination={pagination}
-                                            loadingMore={loadingMore}
-                                            onLoadMore={handleLoadMoreTransactions}
-                                        />
-                                    )}
-
-                                    {viewMode === 'contract' && contractResult && (
-                                        <ContractAnalysisView result={contractResult} />
-                                    )}
-
-                                    {viewMode === 'compare' && multiWalletResult && (
-                                        <MultiWalletView result={multiWalletResult} />
-                                    )}
-
-                                    {/* Dashboard View */}
-                                    {viewMode === 'dashboard' && (
-                                        <div style={{ animation: 'fadeIn 0.5s ease' }}>
-                                            <div style={{ marginBottom: 'var(--space-4)' }}>
-                                                <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-4)' }}>
-                                                    Web3 Intelligence Dashboard
-                                                </h2>
-                                                <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
-                                                    Real-time insights powered by LineaScan, Alchemy, and Dune Analytics
-                                                </p>
-                                            </div>
-                                            
-                                            {/* Gas Tracker */}
-                                            <div style={{ marginBottom: 'var(--space-4)' }}>
-                                                <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }}></div>}>
-                                                    <GasTracker />
-                                                </Suspense>
-                                            </div>
-                                            
-                                            {/* Two Column Layout */}
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-                                                {/* Contract Verifier */}
-                                                <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }}></div>}>
-                                                    <ContractVerifier />
-                                                </Suspense>
-                                                
-                                                {/* Portfolio Viewer - only if wallet connected */}
-                                                {walletAddresses[0] && (
-                                                    <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }}></div>}>
-                                                        <PortfolioViewer walletAddress={walletAddresses[0]} />
-                                                    </Suspense>
-                                                )}
-                                            </div>
-                                            
-                                            {/* Wallet Analytics - only if wallet connected */}
-                                            {walletAddresses[0] && (
-                                                <div style={{ marginBottom: 'var(--space-4)' }}>
-                                                    <Suspense fallback={<div className="loading-spinner" style={{ width: '24px', height: '24px' }}></div>}>
-                                                        <WalletAnalytics walletAddress={walletAddresses[0]} />
-                                                    </Suspense>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Empty State */}
-                                    {!walletResult && !multiWalletResult && !contractResult && !loading && viewMode !== 'dashboard' && (
-                                        <EmptyState />
-                                    )}
-                                </>
-                            )}
-                        </>
-                    ) : null
+                  viewMode === 'wallet' ? 'Analyze Wallet' :
+                    viewMode === 'contract' ? 'Analyze Contract' :
+                      'Compare Wallets'
                 )}
-            </main>
+              </button>
 
-            {/* Footer */}
-            <footer style={{
-                padding: 'var(--space-4)',
-                textAlign: 'center',
-                color: 'var(--color-text-muted)',
-                borderTop: '1px solid var(--color-border)',
-                marginTop: 'auto',
-                fontSize: 'var(--text-sm)',
-                display: 'flex',
-                justifyContent: 'center',
-                gap: 'var(--space-4)'
-            }}>
-                <span>&copy; {new Date().getFullYear()} FundTracer by DT</span>
-                <span style={{ color: 'var(--color-border)' }}>|</span>
-                <a
-                    href="/privacypolicy"
-                    style={{ color: 'var(--color-text-muted)', textDecoration: 'underline' }}
-                >
-                    Privacy Policy
-                </a>
-            </footer>
+              {/* Error Display */}
+              {error && (
+                <div className="alert danger" style={{ marginTop: 'var(--space-4)' }}>
+                  {error}
+                </div>
+              )}
+            </div>
 
-            {/* Modals */}
-            {showComingSoon && (
-                <ComingSoonModal onClose={() => setShowComingSoon(false)} />
+            {/* Recent History (Only when no result) */}
+            {viewMode === 'wallet' && !walletResult && !loading && (
+              <div className="animate-fade-in">
+                <SearchHistory
+                  onSelect={(addr, chain) => {
+                    setWalletAddresses([addr]);
+                    if (chain) setSelectedChain(chain as ChainId);
+                  }}
+                />
+              </div>
             )}
-            {/* <PrivacyPolicyModal isOpen={showPrivacyPolicy} onClose={() => setShowPrivacyPolicy(false)} /> */}
-            <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
-            <PaymentModal isOpen={showPayment} onClose={() => setShowPayment(false)} />
-            <FeedbackModal isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
-            {showFirstTime && <FirstTimeModal onClose={() => setShowFirstTime(false)} />}
-        </div>
+
+            {/* Results */}
+            {viewMode === 'wallet' && walletResult && (
+              <AnalysisView
+                result={walletResult}
+                pagination={pagination}
+                loadingMore={loadingMore}
+                onLoadMore={handleLoadMoreTransactions}
+              />
+            )}
+
+            {viewMode === 'contract' && contractResult && (
+              <ContractAnalysisView result={contractResult} />
+            )}
+
+            {viewMode === 'compare' && multiWalletResult && (
+              <MultiWalletView result={multiWalletResult} />
+            )}
+
+            {/* Empty State */}
+            {!walletResult && !multiWalletResult && !contractResult && !loading && (
+              <EmptyState />
+            )}
+          </>
+        )}
+      </>
     );
+  };
+
+  // Header content for the top bar
+  const headerContent = (
+    <Header
+      onProfileClick={() => {
+        setActiveTab('settings');
+        setViewMode('profile');
+      }}
+      onUpgradeClick={() => setShowPayment(true)}
+      onFeedbackClick={() => setShowFeedback(true)}
+      isUpgradeActive={showPayment}
+    />
+  );
+
+  return (
+    <FullScreenLayout
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+      header={headerContent}
+    >
+      {renderMainContent()}
+
+      {/* Footer */}
+      <footer style={{
+        padding: 'var(--space-4)',
+        textAlign: 'center',
+        color: 'var(--color-text-muted)',
+        borderTop: '1px solid var(--color-border)',
+        marginTop: 'auto',
+        fontSize: 'var(--text-sm)',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 'var(--space-4)'
+      }}>
+        <span>&copy; {new Date().getFullYear()} FundTracer by DT</span>
+        <span style={{ color: 'var(--color-border)' }}>|</span>
+        <a
+          href="/privacypolicy"
+          style={{ color: 'var(--color-text-muted)', textDecoration: 'underline' }}
+        >
+          Privacy Policy
+        </a>
+      </footer>
+
+      {/* Modals */}
+      {showComingSoon && (
+        <ComingSoonModal onClose={() => setShowComingSoon(false)} />
+      )}
+      <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
+      <PaymentModal isOpen={showPayment} onClose={() => setShowPayment(false)} />
+      <FeedbackModal isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
+      {showFirstTime && <FirstTimeModal onClose={() => setShowFirstTime(false)} />}
+    </FullScreenLayout>
+  );
 }
 
 export default App;
