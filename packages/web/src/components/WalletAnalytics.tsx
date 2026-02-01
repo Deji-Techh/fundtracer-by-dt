@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, Users, TrendingUp, DollarSign, PieChart, ArrowUpRight } from 'lucide-react';
 
 interface WalletAnalytics {
@@ -18,7 +18,7 @@ interface SimilarWallet {
   persona: string;
 }
 
-export function WalletAnalytics({ walletAddress }: { walletAddress: string }) {
+export const WalletAnalytics = React.memo(function WalletAnalytics({ walletAddress }: { walletAddress: string }) {
   const [analytics, setAnalytics] = useState<WalletAnalytics | null>(null);
   const [similarWallets, setSimilarWallets] = useState<SimilarWallet[]>([]);
   const [loading, setLoading] = useState(true);
@@ -279,3 +279,4 @@ export function WalletAnalytics({ walletAddress }: { walletAddress: string }) {
     </div>
   );
 }
+);
