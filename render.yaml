@@ -7,9 +7,13 @@ services:
     plan: starter
     buildCommand: |
       npm install && \
+      rm -rf packages/server/dist packages/web/dist && \
       npm run build --workspace=@fundtracer/core && \
       npm run build --workspace=@fundtracer/web && \
-      npm run build --workspace=@fundtracer/server
+      npm run build --workspace=@fundtracer/server && \
+      echo "Build complete. Checking dist folders:" && \
+      ls -la packages/server/dist/routes/ && \
+      ls -la packages/web/dist/ | head -10
     startCommand: npm start --workspace=@fundtracer/server
     envVars:
       - key: NODE_ENV
