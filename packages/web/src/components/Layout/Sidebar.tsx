@@ -43,55 +43,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggle,
 }) => {
   return (
-    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        {!isCollapsed && (
-          <span style={{ fontWeight: 600, fontSize: '1.125rem', color: '#1a1a1a' }}>
-            FundTracer
-          </span>
-        )}
+        {!isCollapsed && <span className="sidebar-title">Menu</span>}
         <button
           onClick={onToggle}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#666666',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#f5f5f5';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
+          className="sidebar-toggle"
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
 
-      <div className="sidebar-content">
+      <nav className="sidebar-content">
         {navItems.map((item) => (
           <div
             key={item.id}
             className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
             onClick={() => onTabChange(item.id)}
+            title={isCollapsed ? item.label : undefined}
           >
             <span className="nav-item-icon">{item.icon}</span>
             <span className="nav-item-text">{item.label}</span>
           </div>
         ))}
-      </div>
+      </nav>
 
       <div className="sidebar-footer">
         <div
           className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => onTabChange('settings')}
+          title={isCollapsed ? 'Settings' : undefined}
         >
           <span className="nav-item-icon">
             <Settings size={20} />
@@ -99,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="nav-item-text">Settings</span>
         </div>
       </div>
-    </div>
+    </aside>
   );
 };
 

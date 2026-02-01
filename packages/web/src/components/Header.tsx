@@ -14,55 +14,30 @@ function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActi
     const { isAuthenticated } = useAuth();
 
     return (
-        <header style={{
-            height: '60px',
-            backgroundColor: '#ffffff',
-            borderBottom: '1px solid #e5e5e5',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 24px',
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <img
-                    src={logo}
-                    alt="FundTracer"
-                    style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '4px' }}
-                />
-                <span style={{ fontWeight: 600, fontSize: '1.125rem', color: '#1a1a1a' }}>
-                    FundTracer
-                </span>
-                <span style={{ 
-                    fontSize: '0.75rem', 
-                    backgroundColor: '#f3f4f6', 
-                    padding: '2px 8px', 
-                    borderRadius: '4px',
-                    color: '#666666'
-                }}>
-                    BETA
-                </span>
+        <>
+            {/* Left Section - Logo */}
+            <div className="app-header-left">
+                <div className="header-logo">
+                    <img src={logo} alt="FundTracer" />
+                    <span>FundTracer</span>
+                    <span className="header-beta-badge">Beta</span>
+                </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Center Section - Navigation could go here if needed */}
+            <div className="app-header-center">
+                {/* Navigation tabs can be added here later */}
+            </div>
+
+            {/* Right Section - Actions */}
+            <div className="app-header-right">
                 {onUpgradeClick && (
                     <button
                         onClick={onUpgradeClick}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: isUpgradeActive ? '#fee2e2' : '#f3f4f6',
-                            color: isUpgradeActive ? '#dc2626' : '#666666',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem',
-                            fontWeight: 500,
-                            transition: 'all 0.2s ease',
-                        }}
+                        className="header-upgrade-btn"
                     >
-                        <Zap size={14} /> Upgrade
+                        <Zap size={16} />
+                        <span>Upgrade</span>
                     </button>
                 )}
                 
@@ -71,22 +46,10 @@ function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActi
                 {onFeedbackClick && (
                     <button
                         onClick={onFeedbackClick}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: 'transparent',
-                            color: '#666666',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                        }}
+                        className="header-action-btn"
                         title="Send Feedback"
                     >
-                        <MessageSquare size={18} />
+                        <MessageSquare size={20} />
                     </button>
                 )}
                 
@@ -94,61 +57,31 @@ function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActi
                     href="https://github.com/Deji-Tech"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '8px',
-                        color: '#666666',
-                        transition: 'all 0.2s ease',
-                    }}
+                    className="header-action-btn"
                     title="GitHub"
                 >
-                    <Github size={18} />
+                    <Github size={20} />
                 </a>
                 
                 <a
                     href="mailto:fundtracerbydt@gmail.com"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '8px',
-                        color: '#666666',
-                        transition: 'all 0.2s ease',
-                    }}
+                    className="header-action-btn"
                     title="Contact us"
                 >
-                    <Mail size={18} />
+                    <Mail size={20} />
                 </a>
                 
                 {onProfileClick && (
                     <button
                         onClick={onProfileClick}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: 'transparent',
-                            color: '#666666',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                        }}
+                        className="header-action-btn"
                         title="Your Profile"
                     >
-                        <User size={18} />
+                        <User size={20} />
                     </button>
                 )}
             </div>
-        </header>
+        </>
     );
 }
 
