@@ -1,0 +1,375 @@
+[DuneService] No API key provided
+[ContractService] Loaded 3282 contracts from /home/DejiTech/fundtracer-by-dt/packages/server/src/data/known_contracts.json
+[ADMIN] Loading admin routes module - TIMESTAMP: 2026-01-31-v3
+[MoralisService] No API key provided
+[QuickNodeService] No RPC URL provided
+[DEBUG] CWD: /home/DejiTech/fundtracer-by-dt/packages/server
+[DEBUG] Serving static files from: /home/DejiTech/fundtracer-by-dt/packages/web/dist
+[DEBUG] index.html exists: true
+[Firebase] Starting initialization...
+[Firebase] Checking credentials file path: (not set)
+[Firebase] Checking env vars...
+[Firebase] Project ID: ✓ set
+[Firebase] Client Email: ✓ set
+[Firebase] Private Key: ✓ set (1703 chars)
+[Firebase] Private key starts with BEGIN: true
+Firebase Admin SDK initialized
+[PaymentListener] Starting USDT payment listener on Linea...
+[DEBUG] Default Alchemy API Key Present: true
+[DEBUG] Default Alchemy API Key Length: 21
+(node:37986) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+FundTracer API Server running on port 3001
+Environment: development
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[ContractService] Refreshing latest 50 contracts...
+[ContractService] Saved 3282 contracts to disk
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[ContractService] Refreshing latest 50 contracts...
+[ContractService] Saved 3282 contracts to disk
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[ContractService] Refreshing latest 50 contracts...
+[ContractService] Saved 3282 contracts to disk
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[ContractService] Refreshing latest 50 contracts...
+[ContractService] Saved 3282 contracts to disk
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[ContractService] Refreshing latest 50 contracts...
+[ContractService] Saved 3282 contracts to disk
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/search?q=linea
+[DEBUG] Path: /api/dexscreener/search
+[DEBUG] Request: GET /api/dexscreener/search?q=linea
+[DEBUG] Path: /api/dexscreener/search
+[DEBUG] Request: OPTIONS /api/dexscreener/search?q=Linea
+[DEBUG] Path: /api/dexscreener/search
+[DEBUG] Request: GET /api/dexscreener/search?q=Linea
+[DEBUG] Path: /api/dexscreener/search
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/search?q=fo
+[DEBUG] Path: /api/dexscreener/search
+[DEBUG] Request: GET /api/dexscreener/search?q=fo
+[DEBUG] Path: /api/dexscreener/search
+[DEBUG] Request: OPTIONS /api/dexscreener/search?q=foxy
+[DEBUG] Path: /api/dexscreener/search
+[DEBUG] Request: GET /api/dexscreener/search?q=foxy
+[DEBUG] Path: /api/dexscreener/search
+[DEBUG] Request: OPTIONS /api/dexscreener/search?q=Foxy
+[DEBUG] Path: /api/dexscreener/search
+[DEBUG] Request: GET /api/dexscreener/search?q=Foxy
+[DEBUG] Path: /api/dexscreener/search

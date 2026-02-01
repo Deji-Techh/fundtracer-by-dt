@@ -121,6 +121,60 @@ export class CoinGeckoService {
     }
   }
 
+  // Get coins with market data (coins/markets endpoint)
+  async getCoinsMarkets(perPage: number = 100, page: number = 1) {
+    const cacheKey = `coingecko:markets:${perPage}:${page}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await fetch(
+        `${COINGECKO_BASE_URL}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${perPage}&page=${page}&sparkline=false&price_change_percentage=24h`,
+        {
+          headers: {
+            'accept': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('CoinGecko rate limit exceeded. Please try again later.');
+        }
+        throw new Error(`CoinGecko API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Fetch platform data for each coin (for chain filtering)
+      const coinsWithPlatforms = await Promise.all(
+        data.map(async (coin: any) => {
+          try {
+            const detailResponse = await fetch(
+              `${COINGECKO_BASE_URL}/coins/${coin.id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`,
+              {
+                headers: { 'accept': 'application/json' },
+              }
+            );
+            if (detailResponse.ok) {
+              const detail = await detailResponse.json();
+              return { ...coin, platforms: detail.platforms || {} };
+            }
+          } catch (e) {
+            // If detail fetch fails, return coin without platforms
+          }
+          return { ...coin, platforms: {} };
+        })
+      );
+      
+      cache.set(cacheKey, coinsWithPlatforms, 300); // 5 minute cache
+      return coinsWithPlatforms;
+    } catch (error) {
+      console.error('[CoinGeckoService] Error fetching coins markets:', error);
+      throw error;
+    }
+  }
+
   // Attribution notice
   getAttribution() {
     return {

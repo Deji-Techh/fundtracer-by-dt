@@ -1,0 +1,18 @@
+
+> fundtracer@1.0.0 dev
+> npm run dev --workspace=@fundtracer/web
+
+
+> @fundtracer/web@1.0.2 dev
+> vite
+
+
+  VITE v5.4.21  ready in 298 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+8:01:44 PM [vite] hmr update /src/contexts/AuthContext.tsx, /src/App.tsx, /src/components/ProfilePage.tsx, /src/components/CoinGecko/TopNav.tsx, /src/components/CoinGecko/SybilPage.tsx, /src/components/CoinGecko/HeroSection.tsx, /src/components/CoinGecko/TokenTable.tsx, /src/components/ContractSearch.tsx, /src/components/SybilDetector.tsx
+8:01:44 PM [vite] hmr invalidate /src/contexts/AuthContext.tsx Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+8:01:44 PM [vite] page reload src/contexts/AuthContext.tsx
+8:06:52 PM [vite] hmr update /src/components/CoinGecko/HeroSection.tsx
+8:07:19 PM [vite] hmr update /src/components/CoinGecko/TokenTable.tsx

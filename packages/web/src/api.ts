@@ -9,7 +9,7 @@ import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
 // In production, endpoints already include '/api' prefix, so base should be empty
 const API_BASE = import.meta.env.VITE_API_URL ||
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:3000'
+        ? 'http://localhost:3001'
         : '');
 
 interface ApiResponse<T> {
@@ -53,11 +53,15 @@ async function apiRequest<T>(
 ): Promise<T> {
     const token = getAuthToken();
 
-    if (!token && 
-        endpoint !== '/api/auth/login' && 
-        endpoint !== '/api/auth/register' && 
-        endpoint !== '/api/auth/check-username' &&
-        endpoint !== '/api/analytics/visit') { // Allow auth endpoints & tracking without token
+    // Check if endpoint requires authentication
+    const isPublicEndpoint = 
+        endpoint.startsWith('/api/auth/') ||
+        endpoint.startsWith('/api/analytics/') ||
+        endpoint.startsWith('/api/dexscreener/') ||
+        endpoint.startsWith('/api/market/') ||
+        endpoint.startsWith('/api/tokens/');
+    
+    if (!token && !isPublicEndpoint) {
         throw new Error('Not authenticated');
     }
 
@@ -291,4 +295,40 @@ export async function analyzeSybilAddresses(
     chain: ChainId
 ): Promise<{ success: boolean; result?: any; error?: string }> {
     return apiRequest('/api/analyze/sybil-batch', 'POST', { addresses, chain });
+}
+
+// Search tokens via CoinGecko
+export async function searchTokens(query: string): Promise<{ query: string; results: any[] }> {
+    return apiRequest(`/api/tokens/search?q=${encodeURIComponent(query)}`);
+}
+
+// Get market coins (top coins with market data)
+export async function getMarketCoins(
+    chain?: string, 
+    page: number = 1, 
+    perPage: number = 100
+): Promise<{ coins: any[]; chain?: string }> {
+    const params = new URLSearchParams();
+    if (chain && chain !== 'all') params.append('chain', chain);
+    params.append('page', page.toString());
+    params.append('per_page', perPage.toString());
+    
+    return apiRequest(`/api/market/coins?${params.toString()}`);
+}
+
+// DEX Screener API endpoints
+export async function getDEXScreenerTrending(): Promise<{ tokens: any[]; lastUpdated: string; cached?: boolean }> {
+    return apiRequest('/api/dexscreener/trending');
+}
+
+export async function searchDEXScreenerPairs(query: string): Promise<{ query: string; pairs: any[] }> {
+    return apiRequest(`/api/dexscreener/search?q=${encodeURIComponent(query)}`);
+}
+
+export async function getDEXScreenerTokenDetails(chainId: string, tokenAddress: string): Promise<any> {
+    return apiRequest(`/api/dexscreener/token/${chainId}/${tokenAddress}`);
+}
+
+export async function getDEXScreenerTokenPairs(chainId: string, tokenAddress: string): Promise<any> {
+    return apiRequest(`/api/dexscreener/pairs/${chainId}/${tokenAddress}`);
 }

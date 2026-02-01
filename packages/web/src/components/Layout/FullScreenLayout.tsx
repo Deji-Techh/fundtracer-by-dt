@@ -17,7 +17,7 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Sticky Header - Full Width at Top Level */}
       {header && (
         <header className="app-header">
@@ -25,19 +25,18 @@ export const FullScreenLayout: React.FC<FullScreenLayoutProps> = ({
         </header>
       )}
 
-      {/* Main Layout with Sidebar and Content */}
-      <div className="main-layout">
-        <Sidebar
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-          isCollapsed={isSidebarCollapsed}
-          onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        />
+      {/* Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        isCollapsed={isSidebarCollapsed}
+        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
 
-        <main className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-          {children}
-        </main>
-      </div>
+      {/* Main Content */}
+      <main className="main-content">
+        {children}
+      </main>
     </div>
   );
 };
