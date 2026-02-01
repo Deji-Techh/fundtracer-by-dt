@@ -217,32 +217,26 @@ app.get('/debug/routes', (req, res) => {
 // Create a main router
 const apiRouter = express.Router();
 
-try {
-    console.log('[DEBUG] Loading route modules...');
-    
-    // Import all routes
-    const { authRoutes } = await import('./routes/auth.js');
-    const { trackingRoutes } = await import('./routes/tracking.js');
-    const { adminRoutes } = await import('./routes/admin.js');
-    
-    console.log('[DEBUG] Route modules loaded successfully');
-    
-    // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
-    apiRouter.use('/user', authMiddleware, userRoutes);
-    apiRouter.use('/auth', authRoutes); // Public auth route
-    apiRouter.use('/contracts', contractRoutes); // Public contract lookup
-    apiRouter.use('/payment', paymentRoutes); // Payment verification
-    apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
-    apiRouter.use('/dune', authMiddleware, duneRoutes);
-    apiRouter.use('/analytics', trackingRoutes); // Public analytics route
-    
-    // Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
-    apiRouter.use('/admin', adminRoutes);
-    
-    console.log('[DEBUG] All routes mounted successfully');
-} catch (error) {
-    console.error('[ERROR] Failed to load routes:', error);
-}
+// Import routes at top level (synchronous)
+import { authRoutes } from './routes/auth.js';
+import { trackingRoutes } from './routes/tracking.js';
+import { adminRoutes } from './routes/admin.js';
+
+console.log('[DEBUG] Route modules imported');
+
+// Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
+apiRouter.use('/user', authMiddleware, userRoutes);
+apiRouter.use('/auth', authRoutes); // Public auth route
+apiRouter.use('/contracts', contractRoutes); // Public contract lookup
+apiRouter.use('/payment', paymentRoutes); // Payment verification
+apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
+apiRouter.use('/dune', authMiddleware, duneRoutes);
+apiRouter.use('/analytics', trackingRoutes); // Public analytics route
+
+// Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
+apiRouter.use('/admin', adminRoutes);
+
+console.log('[DEBUG] All routes mounted');
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
