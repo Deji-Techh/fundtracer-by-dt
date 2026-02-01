@@ -81,7 +81,6 @@ async function apiRequest<T>(
         console.error(`[API Error] ${endpoint}: ${errorMessage}`);
         throw new Error(errorMessage);
     }
-    }
 
     return response.json();
 }
