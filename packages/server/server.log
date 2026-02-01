@@ -373,3 +373,15 @@ Environment: development
 [DEBUG] Path: /api/dexscreener/search
 [DEBUG] Request: GET /api/dexscreener/search?q=Foxy
 [DEBUG] Path: /api/dexscreener/search
+[ContractService] Refreshing latest 50 contracts...
+[ContractService] Saved 3282 contracts to disk
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
