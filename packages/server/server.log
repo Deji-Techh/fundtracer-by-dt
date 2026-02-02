@@ -385,3 +385,70 @@ Environment: development
 [DEBUG] Path: /api/dexscreener/trending
 [DEBUG] Request: GET /api/dexscreener/trending
 [DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[ContractService] Refreshing latest 50 contracts...
+[ContractService] Saved 3282 contracts to disk
+[DEBUG] Request: OPTIONS /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: POST /api/analytics/visit
+[DEBUG] Path: /api/analytics/visit
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[ContractService] Refreshing latest 50 contracts...
+[ContractService] Error fetching page 1
+[ContractService] Saved 3282 contracts to disk
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: OPTIONS /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[DEBUG] Request: GET /api/dexscreener/trending
+[DEBUG] Path: /api/dexscreener/trending
+[ContractService] Refreshing latest 50 contracts...
+[ContractService] Error fetching page 1
+[ContractService] Error fetching page 2
+[ContractService] Saved 3282 contracts to disk
