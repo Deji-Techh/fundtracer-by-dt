@@ -84,14 +84,28 @@ export const getEnabledChains = () =>
     .sort((a, b) => a[1].priority - b[1].priority)
     .map(([key]) => key as ChainKey);
 
-// GeckoTerminal API helpers
+// Cloudflare Worker Proxy Configuration
+export const PROXY_URL = 'https://calm-rain-20f2.aladeabdulmaleeq1.workers.dev';
+
+// GeckoTerminal API helpers with proxy support
 export const GECKOTERMINAL_BASE_URL = 'https://api.geckoterminal.com/api/v2';
 
-export const getTrendingPoolsUrl = (network: string) => 
-  `${GECKOTERMINAL_BASE_URL}/networks/${network}/trending_pools`;
+// Helper function to create proxied URLs
+export const createProxiedUrl = (targetUrl: string): string => {
+  return `${PROXY_URL}/?url=${encodeURIComponent(targetUrl)}`;
+};
 
-export const getPoolOHLCVUrl = (network: string, poolAddress: string, timeframe: string = 'hour') =>
-  `${GECKOTERMINAL_BASE_URL}/networks/${network}/pools/${poolAddress}/ohlcv/${timeframe}`;
+export const getTrendingPoolsUrl = (network: string) => {
+  const targetUrl = `${GECKOTERMINAL_BASE_URL}/networks/${network}/trending_pools`;
+  return createProxiedUrl(targetUrl);
+};
 
-export const getPoolTradesUrl = (network: string, poolAddress: string) =>
-  `${GECKOTERMINAL_BASE_URL}/networks/${network}/pools/${poolAddress}/trades`;
+export const getPoolOHLCVUrl = (network: string, poolAddress: string, timeframe: string = 'hour') => {
+  const targetUrl = `${GECKOTERMINAL_BASE_URL}/networks/${network}/pools/${poolAddress}/ohlcv/${timeframe}`;
+  return createProxiedUrl(targetUrl);
+};
+
+export const getPoolTradesUrl = (network: string, poolAddress: string) => {
+  const targetUrl = `${GECKOTERMINAL_BASE_URL}/networks/${network}/pools/${poolAddress}/trades`;
+  return createProxiedUrl(targetUrl);
+};

@@ -6,6 +6,7 @@ import LiveTradeFeed from './LiveTradeFeed';
 import PoolCard from './PoolCard';
 import TerminalSidebar from './TerminalSidebar';
 import LiveIndicator from './LiveIndicator';
+import ChartErrorBoundary from './ChartErrorBoundary';
 import { getTrendingPoolsUrl, getChainConfig, ChainKey, DEFAULT_CHAIN } from '../../config/chains';
 import { usePrefetchTrendingPools } from '../../hooks/useLiveCrypto';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -73,15 +74,20 @@ const TerminalLayout: React.FC = () => {
 
     const data = await response.json();
 
+    if (!data?.data || !Array.isArray(data.data)) {
+      console.warn('[TerminalLayout] Invalid pools data structure:', data);
+      return [];
+    }
+
     return data.data.map((item: any) => ({
-      address: item.attributes.address,
-      name: item.attributes.name,
-      symbol: `${item.attributes.base_token_symbol}/${item.attributes.quote_token_symbol}`,
-      price: parseFloat(item.attributes.base_token_price_usd),
-      volume24h: parseFloat(item.attributes.volume_usd.h24),
-      liquidity: parseFloat(item.attributes.reserve_in_usd),
-      priceChange24h: parseFloat(item.attributes.price_change_percentage.h24),
-      logoUrl: item.attributes.base_token_logo_url,
+      address: item.attributes?.address || '',
+      name: item.attributes?.name || 'Unknown',
+      symbol: `${item.attributes?.base_token_symbol || '???'}/${item.attributes?.quote_token_symbol || '???'}`,
+      price: parseFloat(item.attributes?.base_token_price_usd) || 0,
+      volume24h: parseFloat(item.attributes?.volume_usd?.h24) || 0,
+      liquidity: parseFloat(item.attributes?.reserve_in_usd) || 0,
+      priceChange24h: parseFloat(item.attributes?.price_change_percentage?.h24) || 0,
+      logoUrl: item.attributes?.base_token_logo_url || '',
     }));
   };
 
@@ -254,11 +260,13 @@ const TerminalLayout: React.FC = () => {
             overflow: 'hidden',
           }}>
             {selectedPool ? (
-              <TradingChart 
-                chainKey={activeChain}
-                poolAddress={selectedPool}
-                height={500}
-              />
+              <ChartErrorBoundary>
+                <TradingChart
+                  chainKey={activeChain}
+                  poolAddress={selectedPool}
+                  height={500}
+                />
+              </ChartErrorBoundary>
             ) : (
               <div style={{
                 flex: 1,

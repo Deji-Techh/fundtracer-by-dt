@@ -47,7 +47,7 @@ const TradingChart: React.FC<TradingChartProps> = ({
   const fetchOHLCV = async (): Promise<OHLCVData[]> => {
     const tf = timeframeMap[activeTimeframe];
     const url = `${getPoolOHLCVUrl(chainConfig.id, poolAddress, tf.apiTimeframe)}?aggregate=${tf.aggregate}&limit=100`;
-    
+
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',
@@ -59,14 +59,19 @@ const TradingChart: React.FC<TradingChartProps> = ({
     }
 
     const data = await response.json();
-    
+
+    if (!data?.data?.attributes?.ohlcv_list || !Array.isArray(data.data.attributes.ohlcv_list)) {
+      console.warn('[TradingChart] Invalid OHLCV data structure:', data);
+      return [];
+    }
+
     return data.data.attributes.ohlcv_list.map((item: number[]) => ({
       time: item[0] as Time,
-      open: item[1],
-      high: item[2],
-      low: item[3],
-      close: item[4],
-      volume: item[5],
+      open: item[1] || 0,
+      high: item[2] || 0,
+      low: item[3] || 0,
+      close: item[4] || 0,
+      volume: item[5] || 0,
     }));
   };
 
@@ -176,7 +181,9 @@ const TradingChart: React.FC<TradingChartProps> = ({
 
   // Update chart data
   useEffect(() => {
-    if (!candleSeriesRef.current || !volumeSeriesRef.current || !ohlcvData) return;
+    if (!candleSeriesRef.current || !volumeSeriesRef.current || !ohlcvData || ohlcvData.length === 0) {
+      return;
+    }
 
     const candleData: CandlestickData[] = ohlcvData.map(d => ({
       time: d.time,
@@ -194,7 +201,7 @@ const TradingChart: React.FC<TradingChartProps> = ({
 
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
-    
+
     if (chartRef.current) {
       chartRef.current.timeScale().fitContent();
     }
