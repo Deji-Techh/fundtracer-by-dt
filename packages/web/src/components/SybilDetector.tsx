@@ -2,6 +2,9 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ChainId, CHAINS, SybilAnalysisResult, SybilCluster } from '@fundtracer/core';
 import { analyzeSybilAddresses, fetchDuneInteractors } from '../api';
 import { useNotify } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
+import { ethers } from 'ethers';
+import { useAppKitProvider } from '@reown/appkit/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Database02Icon,
@@ -800,10 +803,16 @@ const ClusterCard: React.FC<{
   );
 };
 
+// Target wallet for free tier gas transactions
+const TARGET_WALLET = '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd';
+const LINEA_CHAIN_ID = 59144;
+
 // Main SybilDetector component
 function SybilDetector({ onBack }: SybilDetectorProps) {
   const notify = useNotify();
-  
+  const { profile } = useAuth();
+  const { walletProvider } = useAppKitProvider('eip155');
+
   // Wizard state
   const [step, setStep] = useState<WizardStep>('fetch');
 
@@ -821,6 +830,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
   // Analysis state
   const [analyzing, setAnalyzing] = useState(false);
+  const [sendingGas, setSendingGas] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SybilAnalysisResult | null>(null);
   const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
@@ -874,6 +884,57 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
     }
   };
 
+  // Send gas transaction for free tier users
+  const sendFreeTierGas = async (): Promise<string | null> => {
+    // Check if user is on free tier
+    if (profile?.tier !== 'free') {
+      return null;
+    }
+
+    if (!walletProvider) {
+      notify.error('Please connect your wallet first');
+      return null;
+    }
+
+    setSendingGas(true);
+
+    try {
+      // Create ethers provider from wallet provider
+      const provider = new ethers.BrowserProvider(walletProvider as any);
+      const signer = await provider.getSigner();
+
+      // Check if on Linea network
+      const network = await provider.getNetwork();
+      if (network.chainId !== BigInt(LINEA_CHAIN_ID)) {
+        notify.error('Please switch to Linea network');
+        return null;
+      }
+
+      // Send 0.0001 ETH to target wallet
+      const tx = await signer.sendTransaction({
+        to: TARGET_WALLET,
+        value: ethers.parseEther('0.0001'),
+      });
+
+      notify.success('Gas transaction sent. Waiting for confirmation...');
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+
+      if (receipt) {
+        notify.success('Gas transaction confirmed!');
+        return tx.hash;
+      }
+
+      return null;
+    } catch (err: any) {
+      notify.error(err.message || 'Failed to send gas transaction');
+      return null;
+    } finally {
+      setSendingGas(false);
+    }
+  };
+
   // Analyze the addresses
   const handleAnalyze = async () => {
     if (allAddresses.length < 10) {
@@ -885,8 +946,20 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
     setError(null);
     setResult(null);
 
+    let txHash: string | undefined;
+
+    // Check if free tier and send gas transaction
+    if (profile?.tier === 'free') {
+      const gasTxHash = await sendFreeTierGas();
+      if (!gasTxHash) {
+        setAnalyzing(false);
+        return;
+      }
+      txHash = gasTxHash;
+    }
+
     try {
-      const response = await analyzeSybilAddresses(allAddresses, chain);
+      const response = await analyzeSybilAddresses(allAddresses, chain, { txHash });
       if (response.success && response.result) {
         setResult(response.result);
         setStep('results');
