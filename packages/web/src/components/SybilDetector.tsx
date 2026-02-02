@@ -1,595 +1,1868 @@
-import React, { useState } from 'react';
-import { ChainId, CHAINS, SybilAnalysisResult } from '@fundtracer/core';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { ChainId, CHAINS, SybilAnalysisResult, SybilCluster } from '@fundtracer/core';
 import { analyzeSybilAddresses, fetchDuneInteractors } from '../api';
+import { useNotify } from '../contexts/ToastContext';
+import { HugeiconsIcon } from '@hugeicons/react';
 import {
-    Search,
-    AlertTriangle,
-    CheckCircle,
-    Users,
-    Download,
-    ChevronDown,
-    ChevronRight,
-    ExternalLink,
-    Copy,
-    Filter,
-    Loader2,
-    Database,
-    Key,
-    ArrowRight,
-    ArrowLeft
-} from 'lucide-react';
+  Database02Icon,
+  Search01Icon,
+  Search02Icon,
+  Alert01Icon,
+  Alert02Icon,
+  CheckmarkCircle02Icon,
+  User02Icon,
+  GroupIcon,
+  Download01Icon,
+  ArrowDown01Icon,
+  ArrowRight01Icon,
+  ArrowLeft01Icon,
+  Copy01Icon,
+  FilterHorizontalIcon,
+  Loading01Icon,
+  Key01Icon,
+  File01Icon,
+  File02Icon,
+  LayoutGridIcon,
+  ListViewIcon,
+  MaximizeIcon,
+  MoreVerticalIcon,
+  ChevronDown,
+  ChevronRight,
+  ArrowUpRight01Icon,
+  Shield01Icon,
+  ShieldCheck,
+  Cancel01Icon,
+  Settings01Icon,
+  Share01Icon,
+  Analytics01Icon,
+  AiNetworkIcon
+} from '@hugeicons/core-free-icons';
+import cytoscape from 'cytoscape';
 
 interface SybilDetectorProps {
-    onBack?: () => void;
+  onBack?: () => void;
 }
 
 type WizardStep = 'fetch' | 'analyze' | 'results';
+type ViewMode = 'list' | 'graph';
+type ExportFormat = 'csv' | 'json' | 'pdf';
 
+// Risk level configuration
+const RISK_LEVELS = {
+  critical: { threshold: 80, label: 'Critical', color: '#dc2626', bgColor: 'rgba(220, 38, 38, 0.15)', icon: Alert02Icon },
+  high: { threshold: 60, label: 'High Risk', color: '#ea580c', bgColor: 'rgba(234, 88, 12, 0.15)', icon: Alert01Icon },
+  medium: { threshold: 40, label: 'Medium Risk', color: '#d97706', bgColor: 'rgba(217, 119, 6, 0.15)', icon: Alert01Icon },
+  low: { threshold: 0, label: 'Low Risk', color: '#16a34a', bgColor: 'rgba(22, 163, 74, 0.15)', icon: ShieldCheck },
+};
+
+// Skeleton loading component
+const Skeleton: React.FC<{ width?: string; height?: string; className?: string }> = ({ 
+  width = '100%', 
+  height = '20px', 
+  className = '' 
+}) => (
+  <div
+    className={`skeleton ${className}`}
+    style={{
+      width,
+      height,
+      borderRadius: '4px',
+      background: 'linear-gradient(90deg, rgba(40, 40, 40, 0.8) 0%, rgba(60, 60, 60, 0.8) 50%, rgba(40, 40, 40, 0.8) 100%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.5s ease-in-out infinite',
+    }}
+  />
+);
+
+const SkeletonCard: React.FC = () => (
+  <div style={{
+    padding: '16px',
+    backgroundColor: '#1a1a1a',
+    borderRadius: '8px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    marginBottom: '12px',
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+      <Skeleton width="40px" height="40px" />
+      <div style={{ flex: 1 }}>
+        <Skeleton width="60%" height="16px" />
+        <div style={{ marginTop: '8px' }}>
+          <Skeleton width="40%" height="12px" />
+        </div>
+      </div>
+      <Skeleton width="80px" height="24px" />
+    </div>
+    <Skeleton width="100%" height="60px" />
+  </div>
+);
+
+// Address display with copy functionality
+const AddressDisplay: React.FC<{
+  address: string;
+  truncate?: boolean;
+  showCopy?: boolean;
+  className?: string;
+}> = ({ address, truncate = true, showCopy = true, className = '' }) => {
+  const notify = useNotify();
+  const [copied, setCopied] = useState(false);
+
+  const displayText = truncate
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : address;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      notify.success('Address copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      notify.error('Failed to copy address');
+    }
+  };
+
+  return (
+    <span className={`address-display ${className}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+      <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.875rem', color: '#9ca3af' }}>
+        {displayText}
+      </code>
+      {showCopy && (
+        <button
+          onClick={handleCopy}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            color: copied ? '#22c55e' : '#6b7280',
+            transition: 'color 0.2s',
+          }}
+          title="Copy to clipboard"
+        >
+          <HugeiconsIcon 
+            icon={copied ? CheckmarkCircle02Icon : Copy01Icon} 
+            size={16} 
+            strokeWidth={1.5} 
+          />
+        </button>
+      )}
+    </span>
+  );
+};
+
+// Risk badge component
+const RiskBadge: React.FC<{ score: number; showIcon?: boolean }> = ({ score, showIcon = true }) => {
+  const getRiskLevel = (s: number) => {
+    if (s >= 80) return RISK_LEVELS.critical;
+    if (s >= 60) return RISK_LEVELS.high;
+    if (s >= 40) return RISK_LEVELS.medium;
+    return RISK_LEVELS.low;
+  };
+
+  const risk = getRiskLevel(score);
+
+  return (
+    <div style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '6px 12px',
+      borderRadius: '6px',
+      backgroundColor: risk.bgColor,
+      color: risk.color,
+      fontSize: '0.875rem',
+      fontWeight: 600,
+    }}>
+      {showIcon && <HugeiconsIcon icon={risk.icon} size={16} strokeWidth={1.5} />}
+      <span>{risk.label}</span>
+      <span style={{ opacity: 0.8 }}>({score}%)</span>
+    </div>
+  );
+};
+
+// Graph view component using Cytoscape
+const NetworkGraph: React.FC<{
+  clusters: SybilCluster[];
+  onNodeClick?: (address: string) => void;
+}> = ({ clusters, onNodeClick }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cyRef = useRef<cytoscape.Core | null>(null);
+  const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    if (!containerRef.current || clusters.length === 0) return;
+
+    // Prepare nodes and edges
+    const nodes: any[] = [];
+    const edges: any[] = [];
+    const addedNodes = new Set<string>();
+
+    clusters.forEach((cluster, clusterIndex) => {
+      // Add funding source node
+      if (!addedNodes.has(cluster.fundingSource)) {
+        const riskLevel = cluster.sybilScore >= 80 ? 'critical' : 
+                         cluster.sybilScore >= 60 ? 'high' : 
+                         cluster.sybilScore >= 40 ? 'medium' : 'low';
+        
+        nodes.push({
+          data: {
+            id: cluster.fundingSource,
+            label: cluster.fundingSourceLabel || `${cluster.fundingSource.slice(0, 6)}...`,
+            type: 'funding',
+            score: cluster.sybilScore,
+            color: RISK_LEVELS[riskLevel as keyof typeof RISK_LEVELS].color,
+          },
+        });
+        addedNodes.add(cluster.fundingSource);
+      }
+
+      // Add wallet nodes and edges
+      cluster.wallets.forEach((wallet, walletIndex) => {
+        if (!addedNodes.has(wallet.address)) {
+          nodes.push({
+            data: {
+              id: wallet.address,
+              label: `${wallet.address.slice(0, 6)}...`,
+              type: 'wallet',
+              parent: cluster.fundingSource,
+              color: '#6b7280',
+            },
+          });
+          addedNodes.add(wallet.address);
+        }
+
+        edges.push({
+          data: {
+            id: `edge-${clusterIndex}-${walletIndex}`,
+            source: cluster.fundingSource,
+            target: wallet.address,
+          },
+        });
+      });
+    });
+
+    // Initialize Cytoscape
+    cyRef.current = cytoscape({
+      container: containerRef.current,
+      elements: [...nodes, ...edges],
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'background-color': 'data(color)',
+            'label': 'data(label)',
+            'width': 40,
+            'height': 40,
+            'font-size': '10px',
+            'color': '#9ca3af',
+            'text-valign': 'bottom',
+            'text-halign': 'center',
+            'text-margin-y': 4,
+            'border-width': 2,
+            'border-color': '#1a1a1a',
+          },
+        },
+        {
+          selector: 'node[type="funding"]',
+          style: {
+            'width': 60,
+            'height': 60,
+            'font-size': '12px',
+            'font-weight': 'bold',
+            'color': '#e5e5e5',
+          },
+        },
+        {
+          selector: 'edge',
+          style: {
+            'width': 1,
+            'line-color': 'rgba(107, 114, 128, 0.3)',
+            'target-arrow-color': 'rgba(107, 114, 128, 0.3)',
+            'target-arrow-shape': 'none',
+            'curve-style': 'bezier',
+          },
+        },
+        {
+          selector: ':selected',
+          style: {
+            'border-width': 3,
+            'border-color': '#3b82f6',
+          },
+        },
+      ],
+      layout: {
+        name: 'cose',
+        padding: 20,
+        nodeRepulsion: 400000,
+        edgeElasticity: 100,
+        gravity: 80,
+        numIter: 1000,
+        initialTemp: 200,
+        coolingFactor: 0.95,
+        minTemp: 1.0,
+      },
+    });
+
+    // Add click handler
+    cyRef.current.on('tap', 'node', (evt) => {
+      const node = evt.target;
+      onNodeClick?.(node.id());
+    });
+
+    // Add pan/zoom handlers
+    cyRef.current.on('zoom', () => {
+      setZoom(cyRef.current?.zoom() || 1);
+    });
+
+    return () => {
+      cyRef.current?.destroy();
+    };
+  }, [clusters, onNodeClick]);
+
+  const handleZoomIn = () => {
+    cyRef.current?.zoom(cyRef.current.zoom() * 1.2);
+  };
+
+  const handleZoomOut = () => {
+    cyRef.current?.zoom(cyRef.current.zoom() * 0.8);
+  };
+
+  const handleFit = () => {
+    cyRef.current?.fit();
+  };
+
+  return (
+    <div style={{ position: 'relative', height: '500px', backgroundColor: '#0f0f0f', borderRadius: '8px' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      
+      {/* Graph controls */}
+      <div style={{
+        position: 'absolute',
+        top: '12px',
+        right: '12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        backgroundColor: 'rgba(26, 26, 26, 0.9)',
+        padding: '8px',
+        borderRadius: '8px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+      }}>
+        <button onClick={handleZoomIn} style={graphControlBtnStyle} title="Zoom in">
+          <HugeiconsIcon icon={Search01Icon} size={18} strokeWidth={1.5} />
+        </button>
+        <button onClick={handleZoomOut} style={graphControlBtnStyle} title="Zoom out">
+          <HugeiconsIcon icon={Search02Icon} size={18} strokeWidth={1.5} />
+        </button>
+        <button onClick={handleFit} style={graphControlBtnStyle} title="Fit to screen">
+          <HugeiconsIcon icon={MaximizeIcon} size={18} strokeWidth={1.5} />
+        </button>
+      </div>
+
+      {/* Legend */}
+      <div style={{
+        position: 'absolute',
+        bottom: '12px',
+        left: '12px',
+        backgroundColor: 'rgba(26, 26, 26, 0.9)',
+        padding: '12px',
+        borderRadius: '8px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+      }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px', color: '#9ca3af' }}>
+          Risk Levels
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {Object.entries(RISK_LEVELS).map(([key, value]) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: value.color }} />
+              <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{value.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const graphControlBtnStyle: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: '8px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: '#9ca3af',
+  transition: 'all 0.2s',
+  borderRadius: '4px',
+  minWidth: '36px',
+  minHeight: '36px',
+};
+
+// Export dropdown component
+const ExportDropdown: React.FC<{
+  result: SybilAnalysisResult;
+  contractAddress: string;
+  chain: ChainId;
+}> = ({ result, contractAddress, chain }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const notify = useNotify();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const exportToCSV = () => {
+    const headers = ['Funding Source', 'Label', 'Wallet Count', 'Sybil Score', 'Risk Level', 'Wallets'];
+    const rows = result.flaggedClusters.map(cluster => {
+      const riskLevel = cluster.sybilScore >= 80 ? 'Critical' :
+                       cluster.sybilScore >= 60 ? 'High' :
+                       cluster.sybilScore >= 40 ? 'Medium' : 'Low';
+      return [
+        cluster.fundingSource,
+        cluster.fundingSourceLabel || 'Unknown',
+        cluster.totalWallets.toString(),
+        cluster.sybilScore.toString(),
+        riskLevel,
+        cluster.wallets.map(w => w.address).join('; '),
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `sybil-analysis-${contractAddress.slice(0, 10)}.csv`;
+    link.click();
+    
+    notify.success('CSV exported successfully!');
+    setIsOpen(false);
+  };
+
+  const exportToJSON = () => {
+    const explorerUrl = CHAINS[chain].explorer;
+    const data = {
+      exportedAt: new Date().toISOString(),
+      contractAddress,
+      chain: CHAINS[chain].name,
+      summary: result.summary,
+      clusters: result.flaggedClusters.map(c => ({
+        fundingSource: c.fundingSource,
+        fundingSourceExplorer: `${explorerUrl}/address/${c.fundingSource}`,
+        label: c.fundingSourceLabel || 'Unknown',
+        walletCount: c.totalWallets,
+        sybilScore: c.sybilScore,
+        wallets: c.wallets.map(w => ({
+          address: w.address,
+          addressExplorer: `${explorerUrl}/address/${w.address}`,
+          fundingTxHash: w.fundingTxHash,
+          fundingTxExplorer: w.fundingTxHash ? `${explorerUrl}/tx/${w.fundingTxHash}` : null,
+          fundingAmount: w.fundingAmount,
+        })),
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `sybil-clusters-${contractAddress.slice(0, 10)}.json`;
+    link.click();
+    
+    notify.success('JSON exported successfully!');
+    setIsOpen(false);
+  };
+
+  const exportToPDF = async () => {
+    try {
+      // Dynamic import for jsPDF
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Title
+      doc.setFontSize(20);
+      doc.text('Sybil Detection Report', pageWidth / 2, 20, { align: 'center' });
+      
+      // Metadata
+      doc.setFontSize(10);
+      doc.text(`Contract: ${contractAddress}`, 14, 35);
+      doc.text(`Chain: ${CHAINS[chain].name}`, 14, 42);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 49);
+      
+      // Summary stats
+      doc.setFontSize(12);
+      doc.text('Summary', 14, 65);
+      doc.setFontSize(10);
+      doc.text(`Total Wallets Analyzed: ${result.totalInteractors}`, 14, 73);
+      doc.text(`Clusters Found: ${result.clusters.length}`, 14, 80);
+      doc.text(`Flagged Clusters: ${result.flaggedClusters.length}`, 14, 87);
+      doc.text(`Total Flagged Wallets: ${result.flaggedClusters.reduce((acc, c) => acc + c.totalWallets, 0)}`, 14, 94);
+      
+      // Clusters table
+      const tableData = result.flaggedClusters.map(c => [
+        c.fundingSourceLabel || c.fundingSource.slice(0, 10) + '...',
+        c.totalWallets.toString(),
+        c.sybilScore + '%',
+        c.sybilScore >= 80 ? 'Critical' : c.sybilScore >= 60 ? 'High' : c.sybilScore >= 40 ? 'Medium' : 'Low',
+      ]);
+
+      autoTable(doc, {
+        startY: 105,
+        head: [['Funding Source', 'Wallets', 'Score', 'Risk']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246] },
+      });
+
+      doc.save(`sybil-report-${contractAddress.slice(0, 10)}.pdf`);
+      notify.success('PDF report generated!');
+    } catch (error) {
+      notify.error('Failed to generate PDF. Please try again.');
+      console.error('PDF export error:', error);
+    }
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 16px',
+          backgroundColor: '#1a1a1a',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '8px',
+          color: '#e5e5e5',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          minHeight: '44px',
+        }}
+      >
+        <HugeiconsIcon icon={Download01Icon} size={18} strokeWidth={1.5} />
+        <span>Export</span>
+        <HugeiconsIcon 
+          icon={ChevronDown} 
+          size={16} 
+          strokeWidth={1.5}
+          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}
+        />
+      </button>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 8px)',
+          right: 0,
+          backgroundColor: '#1a1a1a',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '8px',
+          padding: '8px',
+          minWidth: '180px',
+          zIndex: 100,
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
+        }}>
+          <button onClick={exportToCSV} style={exportOptionStyle}>
+            <HugeiconsIcon icon={File02Icon} size={18} strokeWidth={1.5} />
+            <span>Export as CSV</span>
+          </button>
+          <button onClick={exportToJSON} style={exportOptionStyle}>
+            <HugeiconsIcon icon={File01Icon} size={18} strokeWidth={1.5} />
+            <span>Export as JSON</span>
+          </button>
+          <button onClick={exportToPDF} style={exportOptionStyle}>
+            <HugeiconsIcon icon={File02Icon} size={18} strokeWidth={1.5} />
+            <span>Export as PDF</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const exportOptionStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  width: '100%',
+  padding: '10px 12px',
+  background: 'none',
+  border: 'none',
+  color: '#e5e5e5',
+  fontSize: '0.875rem',
+  cursor: 'pointer',
+  borderRadius: '6px',
+  transition: 'all 0.2s',
+  textAlign: 'left',
+  minHeight: '44px',
+};
+
+// Cluster card component
+const ClusterCard: React.FC<{
+  cluster: SybilCluster;
+  isExpanded: boolean;
+  onToggle: () => void;
+  chainConfig: any;
+}> = ({ cluster, isExpanded, onToggle, chainConfig }) => {
+  return (
+    <div style={{
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '12px',
+      marginBottom: '12px',
+      overflow: 'hidden',
+      backgroundColor: '#1a1a1a',
+    }}>
+      <div
+        onClick={onToggle}
+        style={{
+          padding: '16px',
+          backgroundColor: '#141414',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          transition: 'background-color 0.2s',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            backgroundColor: RISK_LEVELS[
+              cluster.sybilScore >= 80 ? 'critical' : 
+              cluster.sybilScore >= 60 ? 'high' : 
+              cluster.sybilScore >= 40 ? 'medium' : 'low'
+            ].bgColor,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <HugeiconsIcon 
+              icon={GroupIcon} 
+              size={20} 
+              strokeWidth={1.5}
+              color={RISK_LEVELS[
+                cluster.sybilScore >= 80 ? 'critical' : 
+                cluster.sybilScore >= 60 ? 'high' : 
+                cluster.sybilScore >= 40 ? 'medium' : 'low'
+              ].color}
+            />
+          </div>
+          
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontWeight: 600, color: '#e5e5e5' }}>
+                {cluster.totalWallets} wallets
+              </span>
+              <RiskBadge score={cluster.sybilScore} showIcon={false} />
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              Funded by {cluster.fundingSourceLabel || (
+                <AddressDisplay address={cluster.fundingSource} truncate={true} showCopy={false} />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <a
+            href={`${chainConfig.explorer}/address/${cluster.fundingSource}`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '6px 10px',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderRadius: '6px',
+              color: '#3b82f6',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              textDecoration: 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} strokeWidth={1.5} />
+            View
+          </a>
+          <div style={{
+            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
+            transition: 'transform 0.2s',
+          }}>
+            <HugeiconsIcon icon={ChevronDown} size={20} strokeWidth={1.5} color="#6b7280" />
+          </div>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div style={{ padding: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase' }}>
+              Cluster Details
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Total Wallets</div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.totalWallets}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Total Interactions</div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.totalInteractions.toLocaleString()}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Avg Funding</div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.averageFundingAmount.toFixed(4)} ETH</div>
+              </div>
+              {cluster.timeSpan.durationHours > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Time Span</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.timeSpan.durationHours.toFixed(1)}h</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {cluster.flags.length > 0 && (
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase' }}>
+                Flags
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {cluster.flags.map((flag, idx) => (
+                  <span key={idx} style={{
+                    padding: '4px 8px',
+                    backgroundColor: 'rgba(234, 88, 12, 0.15)',
+                    color: '#ea580c',
+                    fontSize: '0.75rem',
+                    borderRadius: '4px',
+                  }}>
+                    {flag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase' }}>
+              Wallets ({cluster.wallets.length})
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {cluster.wallets.map((wallet) => (
+                <div key={wallet.address} style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 10px',
+                  backgroundColor: 'rgba(40, 40, 40, 0.8)',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                }}>
+                  <AddressDisplay address={wallet.address} truncate={true} />
+                  {wallet.fundingTxHash && (
+                    <a
+                      href={`${chainConfig.explorer}/tx/${wallet.fundingTxHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: '#3b82f6' }}
+                    >
+                      <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} strokeWidth={1.5} />
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Main SybilDetector component
 function SybilDetector({ onBack }: SybilDetectorProps) {
-    // Wizard state
-    const [step, setStep] = useState<WizardStep>('fetch');
+  const notify = useNotify();
+  
+  // Wizard state
+  const [step, setStep] = useState<WizardStep>('fetch');
 
-    // Fetch step state
-    const [contractAddress, setContractAddress] = useState('');
-    const [chain, setChain] = useState<ChainId>('linea');
-    const [fetchLimit, setFetchLimit] = useState(1000);
-    const [useCustomDuneKey, setUseCustomDuneKey] = useState(false);
-    const [customDuneKey, setCustomDuneKey] = useState('');
-    const [fetching, setFetching] = useState(false);
+  // Fetch step state
+  const [contractAddress, setContractAddress] = useState('');
+  const [chain, setChain] = useState<ChainId>('linea');
+  const [fetchLimit, setFetchLimit] = useState(1000);
+  const [useCustomDuneKey, setUseCustomDuneKey] = useState(false);
+  const [customDuneKey, setCustomDuneKey] = useState('');
+  const [fetching, setFetching] = useState(false);
 
-    // Fetched addresses
-    const [fetchedAddresses, setFetchedAddresses] = useState<string[]>([]);
-    const [manualAddresses, setManualAddresses] = useState('');
+  // Fetched addresses
+  const [fetchedAddresses, setFetchedAddresses] = useState<string[]>([]);
+  const [manualAddresses, setManualAddresses] = useState('');
 
-    // Analysis state
-    const [analyzing, setAnalyzing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [result, setResult] = useState<SybilAnalysisResult | null>(null);
-    const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
-    const [filterMinScore, setFilterMinScore] = useState(0);
+  // Analysis state
+  const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<SybilAnalysisResult | null>(null);
+  const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
+  const [filterMinScore, setFilterMinScore] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
-    // Parse addresses from manual input
-    const parseAddresses = (text: string): string[] => {
-        const cleaned = text
-            .replace(/[,;\t\n\r]+/g, ' ')
-            .split(' ')
-            .map(s => s.trim().toLowerCase())
-            .filter(s => /^0x[a-f0-9]{40}$/i.test(s));
-        return [...new Set(cleaned)];
-    };
+  // Parse addresses from manual input
+  const parseAddresses = useCallback((text: string): string[] => {
+    const cleaned = text
+      .replace(/[,;\t\n\r]+/g, ' ')
+      .split(' ')
+      .map(s => s.trim().toLowerCase())
+      .filter(s => /^0x[a-f0-9]{40}$/i.test(s));
+    return [...new Set(cleaned)];
+  }, []);
 
-    const parsedManual = parseAddresses(manualAddresses);
-    const allAddresses = [...new Set([...fetchedAddresses, ...parsedManual])];
+  const parsedManual = parseAddresses(manualAddresses);
+  const allAddresses = [...new Set([...fetchedAddresses, ...parsedManual])];
 
-    // Fetch addresses from Dune
-    const handleFetch = async () => {
-        if (!contractAddress.trim()) {
-            setError('Please enter a contract address');
-            return;
-        }
-        if (!/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
-            setError('Invalid contract address format');
-            return;
-        }
+  // Fetch addresses from Dune
+  const handleFetch = async () => {
+    if (!contractAddress.trim()) {
+      setError('Please enter a contract address');
+      return;
+    }
+    if (!/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
+      setError('Invalid contract address format');
+      return;
+    }
 
-        setFetching(true);
-        setError(null);
+    setFetching(true);
+    setError(null);
 
-        try {
-            const response = await fetchDuneInteractors(contractAddress, chain, {
-                limit: fetchLimit,
-                customApiKey: useCustomDuneKey ? customDuneKey : undefined,
-            });
+    try {
+      const response = await fetchDuneInteractors(contractAddress, chain, {
+        limit: fetchLimit,
+        customApiKey: useCustomDuneKey ? customDuneKey : undefined,
+      });
 
-            if (response.success && response.wallets) {
-                setFetchedAddresses(response.wallets);
-                setStep('analyze');
-            } else {
-                setError(response.error || 'Failed to fetch from Dune');
-            }
-        } catch (err: any) {
-            setError(err.message || 'Failed to fetch from Dune');
-        } finally {
-            setFetching(false);
-        }
-    };
+      if (response.success && response.wallets) {
+        setFetchedAddresses(response.wallets);
+        setStep('analyze');
+        notify.success(`Fetched ${response.wallets.length} addresses from Dune`);
+      } else {
+        setError(response.error || 'Failed to fetch from Dune');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch from Dune');
+    } finally {
+      setFetching(false);
+    }
+  };
 
-    // Analyze the addresses
-    const handleAnalyze = async () => {
-        if (allAddresses.length < 10) {
-            setError('Need at least 10 addresses for meaningful analysis');
-            return;
-        }
+  // Analyze the addresses
+  const handleAnalyze = async () => {
+    if (allAddresses.length < 10) {
+      setError('Need at least 10 addresses for meaningful analysis');
+      return;
+    }
 
-        setAnalyzing(true);
-        setError(null);
-        setResult(null);
+    setAnalyzing(true);
+    setError(null);
+    setResult(null);
 
-        try {
-            const response = await analyzeSybilAddresses(allAddresses, chain);
-            if (response.success && response.result) {
-                setResult(response.result);
-                setStep('results');
-            } else {
-                setError('Analysis failed');
-            }
-        } catch (err: any) {
-            setError(err.message || 'Analysis failed');
-        } finally {
-            setAnalyzing(false);
-        }
-    };
+    try {
+      const response = await analyzeSybilAddresses(allAddresses, chain);
+      if (response.success && response.result) {
+        setResult(response.result);
+        setStep('results');
+        notify.success('Analysis complete!');
+      } else {
+        setError('Analysis failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Analysis failed');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
-    const toggleCluster = (source: string) => {
-        const newExpanded = new Set(expandedClusters);
-        if (newExpanded.has(source)) {
-            newExpanded.delete(source);
-        } else {
-            newExpanded.add(source);
-        }
-        setExpandedClusters(newExpanded);
-    };
+  const toggleCluster = (source: string) => {
+    const newExpanded = new Set(expandedClusters);
+    if (newExpanded.has(source)) {
+      newExpanded.delete(source);
+    } else {
+      newExpanded.add(source);
+    }
+    setExpandedClusters(newExpanded);
+  };
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-    };
+  const handleReset = () => {
+    setStep('fetch');
+    setResult(null);
+    setError(null);
+    setFetchedAddresses([]);
+    setManualAddresses('');
+    setContractAddress('');
+    setExpandedClusters(new Set());
+    setFilterMinScore(0);
+  };
 
-    const exportClusters = () => {
-        if (!result) return;
-        const explorerUrl = CHAINS[chain].explorer;
-        const data = result.flaggedClusters.map(c => ({
-            fundingSource: c.fundingSource,
-            fundingSourceExplorer: `${explorerUrl}/address/${c.fundingSource}`,
-            label: c.fundingSourceLabel || 'Unknown',
-            walletCount: c.totalWallets,
-            sybilScore: c.sybilScore,
-            wallets: c.wallets.map(w => ({
-                address: w.address,
-                addressExplorer: `${explorerUrl}/address/${w.address}`,
-                fundingTxHash: w.fundingTxHash,
-                fundingTxExplorer: w.fundingTxHash ? `${explorerUrl}/tx/${w.fundingTxHash}` : null,
-                fundingAmount: w.fundingAmount,
-            })),
-        }));
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `sybil-clusters-${contractAddress.slice(0, 10)}.json`;
-        a.click();
-    };
+  const filteredClusters = result?.clusters.filter(c => c.sybilScore >= filterMinScore) || [];
+  const chainConfig = CHAINS[chain];
 
-    const getRiskColor = (score: number) => {
-        if (score >= 80) return '#ef4444';
-        if (score >= 50) return '#f59e0b';
-        return '#22c55e';
-    };
+  // Wizard steps configuration
+  const wizardSteps = [
+    { id: 'fetch', label: 'Fetch', icon: Database02Icon, description: 'Get wallet addresses' },
+    { id: 'analyze', label: 'Analyze', icon: Search01Icon, description: 'Detect patterns' },
+    { id: 'results', label: 'Results', icon: Analytics01Icon, description: 'View clusters' },
+  ];
 
-    const getRiskLabel = (score: number) => {
-        if (score >= 80) return 'High Risk';
-        if (score >= 50) return 'Medium Risk';
-        return 'Low Risk';
-    };
+  return (
+    <div style={{
+      backgroundColor: '#0a0a0a',
+      borderRadius: '16px',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '24px',
+        background: 'linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(15, 15, 15, 0.95) 100%)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(234, 88, 12, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <HugeiconsIcon icon={Shield01Icon} size={24} strokeWidth={1.5} color="#ea580c" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+                  Sybil Detection
+                </h2>
+                <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
+                  Find wallets sharing common funding sources
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {step !== 'fetch' && (
+              <button
+                onClick={handleReset}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 16px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: '#9ca3af',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  minHeight: '44px',
+                }}
+              >
+                <HugeiconsIcon icon={ArrowLeft01Icon} size={18} strokeWidth={1.5} />
+                Start Over
+              </button>
+            )}
+            {onBack && (
+              <button 
+                onClick={onBack}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 16px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: '#9ca3af',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  minHeight: '44px',
+                }}
+              >
+                <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={1.5} />
+                Close
+              </button>
+            )}
+          </div>
+        </div>
 
-    const filteredClusters = result?.clusters.filter(c => c.sybilScore >= filterMinScore) || [];
-    const chainConfig = CHAINS[chain];
+        {/* Progress Steps */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '16px', 
+          marginTop: '24px',
+          flexWrap: 'wrap',
+        }}>
+          {wizardSteps.map((s, i) => {
+            const isActive = step === s.id;
+            const isCompleted = wizardSteps.findIndex(step => step.id === step.id) < wizardSteps.findIndex(step => step.id === s.id);
+            
+            return (
+              <div key={s.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                opacity: isActive ? 1 : 0.5,
+                flex: '1 1 auto',
+                minWidth: '200px',
+              }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  background: isActive ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 
+                             isCompleted ? 'rgba(34, 197, 94, 0.2)' : '#1a1a1a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: isActive ? '#fff' : isCompleted ? '#22c55e' : '#6b7280',
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  border: isActive ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                }}>
+                  {isCompleted ? (
+                    <HugeiconsIcon icon={CheckmarkCircle02Icon} size={20} strokeWidth={1.5} />
+                  ) : (
+                    <HugeiconsIcon icon={s.icon} size={20} strokeWidth={1.5} />
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#e5e5e5' }}>
+                    {i + 1}. {s.label}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                    {s.description}
+                  </div>
+                </div>
+                {i < 2 && (
+                  <HugeiconsIcon 
+                    icon={ArrowRight01Icon} 
+                    size={20} 
+                    strokeWidth={1.5} 
+                    color="#4b5560"
+                    style={{ marginLeft: 'auto' }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-    return (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            {/* Header */}
-            <div style={{
-                padding: 'var(--space-4)',
-                background: 'linear-gradient(135deg, rgba(40, 40, 45, 0.95) 0%, rgba(25, 25, 30, 0.95) 100%)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      {/* Step 1: Fetch from Dune */}
+      {step === 'fetch' && (
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ 
+              fontSize: '1.125rem', 
+              fontWeight: 600, 
+              color: '#e5e5e5', 
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                        <h2 style={{ fontSize: 'var(--text-xl)', marginBottom: 'var(--space-1)', color: '#fff' }}>
-                            Sybil Detection
-                        </h2>
-                        <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-                            Find wallets sharing common funding sources
-                        </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                        {step !== 'fetch' && (
-                            <button
-                                className="btn btn-ghost"
-                                onClick={() => {
-                                    setStep('fetch');
-                                    setResult(null);
-                                    setError(null);
-                                }}
-                            >
-                                <ArrowLeft size={16} /> Start Over
-                            </button>
-                        )}
-                        {onBack && (
-                            <button className="btn btn-ghost" onClick={onBack}>
-                                ← Back
-                            </button>
-                        )}
-                    </div>
-                </div>
+              <HugeiconsIcon icon={Database02Icon} size={20} strokeWidth={1.5} />
+              Fetch Contract Interactors
+            </h3>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
+              Retrieve wallet addresses that have interacted with a specific contract
+            </p>
+          </div>
 
-                {/* Progress Steps */}
-                <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
-                    {['fetch', 'analyze', 'results'].map((s, i) => (
-                        <div key={s} style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 'var(--space-2)',
-                            opacity: step === s ? 1 : 0.5
-                        }}>
-                            <div style={{
-                                width: 24, height: 24, borderRadius: '50%',
-                                background: step === s ? 'var(--color-primary)' : 'var(--color-surface-border)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 'var(--text-xs)', fontWeight: 600, color: 'white'
-                            }}>
-                                {i + 1}
-                            </div>
-                            <span style={{ fontSize: 'var(--text-sm)', textTransform: 'capitalize' }}>{s}</span>
-                            {i < 2 && <ArrowRight size={14} style={{ marginLeft: 'var(--space-2)' }} />}
-                        </div>
-                    ))}
-                </div>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+            gap: '16px',
+            marginBottom: '24px',
+          }}>
+            <div>
+              <label style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 600, 
+                color: '#9ca3af', 
+                marginBottom: '8px', 
+                display: 'block',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                Contract Address
+              </label>
+              <input
+                type="text"
+                placeholder="0x..."
+                value={contractAddress}
+                onChange={(e) => setContractAddress(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: '#141414',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: '#e5e5e5',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  minHeight: '48px',
+                }}
+              />
             </div>
 
-            {/* Step 1: Fetch from Dune */}
-            {step === 'fetch' && (
-                <div style={{ padding: 'var(--space-4)' }}>
-                    <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-4)' }}>
-                        <Database size={18} style={{ marginRight: 8 }} />
-                        Step 1: Fetch Contract Interactors from Dune
-                    </h3>
+            <div>
+              <label style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 600, 
+                color: '#9ca3af', 
+                marginBottom: '8px', 
+                display: 'block',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                Chain
+              </label>
+              <select
+                value={chain}
+                onChange={(e) => setChain(e.target.value as ChainId)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: '#141414',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: '#e5e5e5',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  minHeight: '48px',
+                }}
+              >
+                {Object.entries(CHAINS).map(([id, config]) => (
+                  <option key={id} value={id}>{config.name}</option>
+                ))}
+              </select>
+            </div>
 
-                    <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
-                        <div style={{ flex: 2, minWidth: 250 }}>
-                            <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 4, display: 'block' }}>
-                                Contract Address
-                            </label>
-                            <input
-                                type="text"
-                                className="input"
-                                placeholder="0x..."
-                                value={contractAddress}
-                                onChange={(e) => setContractAddress(e.target.value)}
-                                style={{ width: '100%', fontFamily: 'var(--font-mono)' }}
-                            />
-                        </div>
+            <div>
+              <label style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 600, 
+                color: '#9ca3af', 
+                marginBottom: '8px', 
+                display: 'block',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                Limit
+              </label>
+              <input
+                type="number"
+                value={fetchLimit}
+                onChange={(e) => setFetchLimit(parseInt(e.target.value) || 1000)}
+                min={100}
+                max={10000}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: '#141414',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: '#e5e5e5',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  minHeight: '48px',
+                }}
+              />
+            </div>
+          </div>
 
-                        <div style={{ minWidth: 140 }}>
-                            <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 4, display: 'block' }}>
-                                Chain
-                            </label>
-                            <select
-                                className="input"
-                                value={chain}
-                                onChange={(e) => setChain(e.target.value as ChainId)}
-                                style={{ width: '100%', height: 42 }}
-                            >
-                                {Object.entries(CHAINS).map(([id, config]) => (
-                                    <option key={id} value={id}>{config.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div style={{ minWidth: 100 }}>
-                            <label style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 4, display: 'block' }}>
-                                Limit
-                            </label>
-                            <input
-                                type="number"
-                                className="input"
-                                value={fetchLimit}
-                                onChange={(e) => setFetchLimit(parseInt(e.target.value) || 1000)}
-                                min={100}
-                                max={10000}
-                                style={{ width: '100%' }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Custom Dune API Key Option */}
-                    <div style={{
-                        background: 'var(--color-surface)',
-                        padding: 'var(--space-3)',
-                        borderRadius: 'var(--radius-md)',
-                        marginBottom: 'var(--space-4)'
-                    }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}>
-                            <input
-                                type="checkbox"
-                                checked={useCustomDuneKey}
-                                onChange={(e) => setUseCustomDuneKey(e.target.checked)}
-                            />
-                            <Key size={14} />
-                            <span style={{ fontSize: 'var(--text-sm)' }}>Use my own Dune API key</span>
-                        </label>
-                        {useCustomDuneKey && (
-                            <input
-                                type="password"
-                                className="input"
-                                placeholder="Enter your Dune API key..."
-                                value={customDuneKey}
-                                onChange={(e) => setCustomDuneKey(e.target.value)}
-                                style={{ width: '100%', marginTop: 'var(--space-2)' }}
-                            />
-                        )}
-                    </div>
-
-                    {error && (
-                        <div className="alert danger" style={{ marginBottom: 'var(--space-4)' }}>
-                            <AlertTriangle size={16} />
-                            {error}
-                        </div>
-                    )}
-
-                    <button
-                        className="btn btn-primary"
-                        onClick={handleFetch}
-                        disabled={fetching || !contractAddress.trim()}
-                        style={{ width: '100%', height: 48 }}
-                    >
-                        {fetching ? (
-                            <>
-                                <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                                Fetching from Dune... (may take 20-30s)
-                            </>
-                        ) : (
-                            <>
-                                <Database size={18} />
-                                Fetch Interactors from Dune
-                            </>
-                        )}
-                    </button>
-
-                    {/* Or paste manually */}
-                    <div style={{ textAlign: 'center', margin: 'var(--space-4) 0', color: 'var(--color-text-muted)' }}>
-                        — or paste addresses manually —
-                    </div>
-
-                    <textarea
-                        className="input"
-                        placeholder="Paste wallet addresses here (one per line, or comma-separated)..."
-                        value={manualAddresses}
-                        onChange={(e) => setManualAddresses(e.target.value)}
-                        style={{ width: '100%', height: 100, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}
-                    />
-                    {parsedManual.length > 0 && (
-                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-success)', marginTop: 'var(--space-2)' }}>
-                            {parsedManual.length} valid addresses detected
-                        </p>
-                    )}
-
-                    {parsedManual.length >= 10 && (
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => setStep('analyze')}
-                            style={{ width: '100%', height: 48, marginTop: 'var(--space-3)' }}
-                        >
-                            <ArrowRight size={18} />
-                            Continue with {parsedManual.length} Addresses
-                        </button>
-                    )}
-                </div>
+          {/* Custom Dune API Key Option */}
+          <div style={{
+            backgroundColor: '#141414',
+            padding: '16px',
+            borderRadius: '12px',
+            marginBottom: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+          }}>
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              cursor: 'pointer',
+            }}>
+              <input
+                type="checkbox"
+                checked={useCustomDuneKey}
+                onChange={(e) => setUseCustomDuneKey(e.target.checked)}
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  cursor: 'pointer',
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <HugeiconsIcon icon={Key01Icon} size={18} strokeWidth={1.5} color="#9ca3af" />
+                <span style={{ fontSize: '0.875rem', color: '#e5e5e5' }}>Use my own Dune API key</span>
+              </div>
+            </label>
+            {useCustomDuneKey && (
+              <input
+                type="password"
+                placeholder="Enter your Dune API key..."
+                value={customDuneKey}
+                onChange={(e) => setCustomDuneKey(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: '#0a0a0a',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  color: '#e5e5e5',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  marginTop: '12px',
+                  minHeight: '48px',
+                }}
+              />
             )}
+          </div>
 
-            {/* Step 2: Review & Analyze */}
-            {step === 'analyze' && (
-                <div style={{ padding: 'var(--space-4)' }}>
-                    <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-4)' }}>
-                        <Users size={18} style={{ marginRight: 8 }} />
-                        Step 2: Review & Analyze
-                    </h3>
+          {error && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '16px',
+              backgroundColor: 'rgba(220, 38, 38, 0.1)',
+              border: '1px solid rgba(220, 38, 38, 0.2)',
+              borderRadius: '8px',
+              marginBottom: '24px',
+              color: '#ef4444',
+            }}>
+              <HugeiconsIcon icon={Alert01Icon} size={20} strokeWidth={1.5} />
+              <span>{error}</span>
+            </div>
+          )}
 
-                    <div style={{
-                        background: 'var(--color-surface)',
-                        padding: 'var(--space-4)',
-                        borderRadius: 'var(--radius-md)',
-                        marginBottom: 'var(--space-4)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
-                            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>Addresses to analyze:</span>
-                            <span style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-primary)' }}>
-                                {allAddresses.length}
-                            </span>
-                        </div>
-                        {fetchedAddresses.length > 0 && (
-                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                                • {fetchedAddresses.length} from Dune
-                            </p>
-                        )}
-                        {parsedManual.length > 0 && (
-                            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                                • {parsedManual.length} manually added
-                            </p>
-                        )}
-                    </div>
-
-                    {/* Add more addresses */}
-                    <div style={{ marginBottom: 'var(--space-4)' }}>
-                        <label style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 8, display: 'block' }}>
-                            Add more addresses (optional):
-                        </label>
-                        <textarea
-                            className="input"
-                            placeholder="Paste additional addresses..."
-                            value={manualAddresses}
-                            onChange={(e) => setManualAddresses(e.target.value)}
-                            style={{ width: '100%', height: 80, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}
-                        />
-                    </div>
-
-                    {error && (
-                        <div className="alert danger" style={{ marginBottom: 'var(--space-4)' }}>
-                            <AlertTriangle size={16} />
-                            {error}
-                        </div>
-                    )}
-
-                    <button
-                        className="btn btn-primary"
-                        onClick={handleAnalyze}
-                        disabled={analyzing || allAddresses.length < 10}
-                        style={{ width: '100%', height: 48 }}
-                    >
-                        {analyzing ? (
-                            <>
-                                <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                                Analyzing {allAddresses.length} wallets...
-                            </>
-                        ) : (
-                            <>
-                                <Search size={18} />
-                                Analyze {allAddresses.length} Wallets for Sybil Patterns
-                            </>
-                        )}
-                    </button>
-                </div>
+          <button
+            onClick={handleFetch}
+            disabled={fetching || !contractAddress.trim()}
+            style={{
+              width: '100%',
+              padding: '16px',
+              background: fetching ? '#1a1a1a' : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: fetching || !contractAddress.trim() ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              minHeight: '56px',
+              opacity: fetching || !contractAddress.trim() ? 0.7 : 1,
+            }}
+          >
+            {fetching ? (
+              <>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  borderTopColor: '#fff',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }} />
+                Fetching from Dune... (may take 20-30s)
+              </>
+            ) : (
+              <>
+                <HugeiconsIcon icon={Database02Icon} size={20} strokeWidth={1.5} />
+                Fetch Interactors from Dune
+              </>
             )}
+          </button>
 
-            {/* Step 3: Results */}
-            {step === 'results' && result && (
-                <div style={{ padding: 'var(--space-4)' }}>
-                    {/* Summary */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                        gap: 'var(--space-3)',
-                        marginBottom: 'var(--space-4)'
-                    }}>
-                        <div style={{ background: 'var(--color-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-                            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700 }}>{result.totalInteractors}</div>
-                            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Wallets Analyzed</div>
-                        </div>
-                        <div style={{ background: 'var(--color-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-                            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700 }}>{result.clusters.length}</div>
-                            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Clusters Found</div>
-                        </div>
-                        <div style={{ background: 'var(--color-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-                            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: '#ef4444' }}>{result.flaggedClusters.length}</div>
-                            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Suspicious</div>
-                        </div>
-                        <div style={{ background: 'var(--color-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-                            <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: '#ef4444' }}>
-                                {result.flaggedClusters.reduce((acc, c) => acc + c.totalWallets, 0)}
-                            </div>
-                            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>Flagged Wallets</div>
-                        </div>
-                    </div>
+          {/* Or paste manually */}
+          <div style={{ 
+            textAlign: 'center', 
+            margin: '32px 0', 
+            color: '#6b7280',
+            position: 'relative',
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: 0,
+              right: 0,
+              height: '1px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            }} />
+            <span style={{
+              position: 'relative',
+              backgroundColor: '#0a0a0a',
+              padding: '0 16px',
+              fontSize: '0.875rem',
+            }}>
+              or paste addresses manually
+            </span>
+          </div>
 
-                    {/* Filter & Export */}
-                    <div style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                            <Filter size={14} />
-                            <span style={{ fontSize: 'var(--text-sm)' }}>Min Score:</span>
-                            <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                value={filterMinScore}
-                                onChange={(e) => setFilterMinScore(parseInt(e.target.value))}
-                                style={{ width: 100 }}
-                            />
-                            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 500 }}>{filterMinScore}</span>
-                        </div>
-                        <button className="btn btn-ghost" onClick={exportClusters}>
-                            <Download size={14} /> Export
-                        </button>
-                    </div>
+          <textarea
+            placeholder="Paste wallet addresses here (one per line, or comma-separated)..."
+            value={manualAddresses}
+            onChange={(e) => setManualAddresses(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '16px',
+              backgroundColor: '#141414',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              color: '#e5e5e5',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.75rem',
+              outline: 'none',
+              resize: 'vertical',
+              minHeight: '120px',
+              marginBottom: '12px',
+            }}
+          />
+          {parsedManual.length > 0 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.875rem',
+              color: '#22c55e',
+              marginBottom: '16px',
+            }}>
+              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} strokeWidth={1.5} />
+              {parsedManual.length} valid addresses detected
+            </div>
+          )}
 
-                    {/* Clusters List */}
-                    <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-                        {filteredClusters.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--color-text-muted)' }}>
-                                <CheckCircle size={48} style={{ marginBottom: 'var(--space-2)', color: 'var(--color-success)' }} />
-                                <p>No suspicious clusters found at this threshold!</p>
-                            </div>
-                        ) : (
-                            filteredClusters.map((cluster) => (
-                                <div
-                                    key={cluster.fundingSource}
-                                    style={{
-                                        border: '1px solid var(--color-surface-border)',
-                                        borderRadius: 'var(--radius-md)',
-                                        marginBottom: 'var(--space-2)',
-                                        overflow: 'hidden'
-                                    }}
-                                >
-                                    <div
-                                        onClick={() => toggleCluster(cluster.fundingSource)}
-                                        style={{
-                                            padding: 'var(--space-3)',
-                                            background: 'var(--color-surface)',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                                            {expandedClusters.has(cluster.fundingSource) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                            <Users size={16} />
-                                            <span style={{ fontWeight: 500 }}>{cluster.totalWallets} wallets</span>
-                                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                                                funded by {cluster.fundingSourceLabel || cluster.fundingSource?.slice(0, 10) + '...'}
-                                            </span>
-                                        </div>
-                                        <div style={{
-                                            padding: '4px 8px',
-                                            borderRadius: 'var(--radius-sm)',
-                                            background: getRiskColor(cluster.sybilScore) + '20',
-                                            color: getRiskColor(cluster.sybilScore),
-                                            fontSize: 'var(--text-xs)',
-                                            fontWeight: 600
-                                        }}>
-                                            {cluster.sybilScore}% - {getRiskLabel(cluster.sybilScore)}
-                                        </div>
-                                    </div>
-
-                                    {expandedClusters.has(cluster.fundingSource) && (
-                                        <div style={{ padding: 'var(--space-3)', borderTop: '1px solid var(--color-surface-border)' }}>
-                                            <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-                                                <a
-                                                    href={`${chainConfig.explorer}/address/${cluster.fundingSource}`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    style={{ fontSize: 'var(--text-xs)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: 4 }}
-                                                >
-                                                    View Funder <ExternalLink size={12} />
-                                                </a>
-                                            </div>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
-                                                {cluster.wallets.map(w => (
-                                                    <div
-                                                        key={w.address}
-                                                        onClick={() => copyToClipboard(w.address)}
-                                                        style={{
-                                                            fontSize: 'var(--text-xs)',
-                                                            fontFamily: 'var(--font-mono)',
-                                                            padding: '2px 6px',
-                                                            background: 'var(--color-surface)',
-                                                            borderRadius: 'var(--radius-sm)',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                        title="Click to copy"
-                                                    >
-                                                        {w.address.slice(0, 6)}...{w.address.slice(-4)}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            )}
+          {parsedManual.length >= 10 && (
+            <button
+              onClick={() => setStep('analyze')}
+              style={{
+                width: '100%',
+                padding: '16px',
+                backgroundColor: '#1a1a1a',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '12px',
+                color: '#e5e5e5',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                minHeight: '56px',
+              }}
+            >
+              <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={1.5} />
+              Continue with {parsedManual.length} Addresses
+            </button>
+          )}
         </div>
-    );
+      )}
+
+      {/* Step 2: Review & Analyze */}
+      {step === 'analyze' && (
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ 
+              fontSize: '1.125rem', 
+              fontWeight: 600, 
+              color: '#e5e5e5', 
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <HugeiconsIcon icon={GroupIcon} size={20} strokeWidth={1.5} />
+              Review & Analyze
+            </h3>
+            <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
+              Review the addresses and start the Sybil detection analysis
+            </p>
+          </div>
+
+          {/* Address Summary Card */}
+          <div style={{
+            backgroundColor: '#141414',
+            padding: '24px',
+            borderRadius: '12px',
+            marginBottom: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px',
+            }}>
+              <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>Total Addresses</span>
+              <span style={{ fontSize: '2rem', fontWeight: 700, color: '#3b82f6' }}>
+                {allAddresses.length.toLocaleString()}
+              </span>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {fetchedAddresses.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem' }}>
+                  <HugeiconsIcon icon={Database02Icon} size={16} strokeWidth={1.5} color="#22c55e" />
+                  <span style={{ color: '#6b7280' }}>{fetchedAddresses.length.toLocaleString()} from Dune</span>
+                </div>
+              )}
+              {parsedManual.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem' }}>
+                  <HugeiconsIcon icon={GroupIcon} size={16} strokeWidth={1.5} color="#3b82f6" />
+                  <span style={{ color: '#6b7280' }}>{parsedManual.length.toLocaleString()} manually added</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Add more addresses */}
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ 
+              fontSize: '0.75rem', 
+              fontWeight: 600, 
+              color: '#9ca3af', 
+              marginBottom: '8px', 
+              display: 'block',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}>
+              Add More Addresses (Optional)
+            </label>
+            <textarea
+              placeholder="Paste additional addresses..."
+              value={manualAddresses}
+              onChange={(e) => setManualAddresses(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '16px',
+                backgroundColor: '#141414',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: '#e5e5e5',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.75rem',
+                outline: 'none',
+                resize: 'vertical',
+                minHeight: '100px',
+              }}
+            />
+          </div>
+
+          {error && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '16px',
+              backgroundColor: 'rgba(220, 38, 38, 0.1)',
+              border: '1px solid rgba(220, 38, 38, 0.2)',
+              borderRadius: '8px',
+              marginBottom: '24px',
+              color: '#ef4444',
+            }}>
+              <HugeiconsIcon icon={Alert01Icon} size={20} strokeWidth={1.5} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            onClick={handleAnalyze}
+            disabled={analyzing || allAddresses.length < 10}
+            style={{
+              width: '100%',
+              padding: '16px',
+              background: analyzing ? '#1a1a1a' : 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: analyzing || allAddresses.length < 10 ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              minHeight: '56px',
+              opacity: analyzing || allAddresses.length < 10 ? 0.7 : 1,
+            }}
+          >
+            {analyzing ? (
+              <>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  borderTopColor: '#fff',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }} />
+                Analyzing {allAddresses.length.toLocaleString()} wallets...
+              </>
+            ) : (
+              <>
+                <HugeiconsIcon icon={Search01Icon} size={20} strokeWidth={1.5} />
+                Analyze for Sybil Patterns
+              </>
+            )}
+          </button>
+
+          {allAddresses.length < 10 && (
+            <p style={{ 
+              textAlign: 'center', 
+              color: '#6b7280', 
+              fontSize: '0.875rem',
+              marginTop: '16px',
+            }}>
+              Need at least 10 addresses for meaningful analysis
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Step 3: Results */}
+      {step === 'results' && result && (
+        <div style={{ padding: '24px' }}>
+          {/* Summary Statistics */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: '16px',
+            marginBottom: '24px',
+          }}>
+            <div style={{
+              backgroundColor: '#141414',
+              padding: '20px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              textAlign: 'center',
+            }}>
+              <div style={{ 
+                fontSize: '2rem', 
+                fontWeight: 700, 
+                color: '#3b82f6',
+                marginBottom: '4px',
+              }}>
+                {result.totalInteractors.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Wallets Analyzed</div>
+            </div>
+
+            <div style={{
+              backgroundColor: '#141414',
+              padding: '20px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              textAlign: 'center',
+            }}>
+              <div style={{ 
+                fontSize: '2rem', 
+                fontWeight: 700, 
+                color: '#e5e5e5',
+                marginBottom: '4px',
+              }}>
+                {result.clusters.length.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Clusters Found</div>
+            </div>
+
+            <div style={{
+              backgroundColor: '#141414',
+              padding: '20px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              textAlign: 'center',
+            }}>
+              <div style={{ 
+                fontSize: '2rem', 
+                fontWeight: 700, 
+                color: '#dc2626',
+                marginBottom: '4px',
+              }}>
+                {result.flaggedClusters.length.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Suspicious</div>
+            </div>
+
+            <div style={{
+              backgroundColor: '#141414',
+              padding: '20px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              textAlign: 'center',
+            }}>
+              <div style={{ 
+                fontSize: '2rem', 
+                fontWeight: 700, 
+                color: '#dc2626',
+                marginBottom: '4px',
+              }}>
+                {result.flaggedClusters.reduce((acc, c) => acc + c.totalWallets, 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Flagged Wallets</div>
+            </div>
+          </div>
+
+          {/* Risk Distribution */}
+          {result.summary && (
+            <div style={{
+              backgroundColor: '#141414',
+              padding: '20px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              marginBottom: '24px',
+            }}>
+              <h4 style={{ 
+                fontSize: '0.875rem', 
+                fontWeight: 600, 
+                color: '#9ca3af', 
+                marginBottom: '16px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+              }}>
+                Risk Distribution
+              </h4>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#dc2626' }} />
+                  <span style={{ fontSize: '0.875rem', color: '#e5e5e5' }}>
+                    High Risk: {result.summary.highRiskWallets || 0}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#d97706' }} />
+                  <span style={{ fontSize: '0.875rem', color: '#e5e5e5' }}>
+                    Medium Risk: {result.summary.mediumRiskWallets || 0}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#16a34a' }} />
+                  <span style={{ fontSize: '0.875rem', color: '#e5e5e5' }}>
+                    Low Risk: {result.summary.lowRiskWallets || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Controls */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px',
+            marginBottom: '24px',
+            padding: '16px',
+            backgroundColor: '#141414',
+            borderRadius: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              {/* View Mode Toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => setViewMode('list')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 16px',
+                    backgroundColor: viewMode === 'list' ? '#3b82f6' : '#1a1a1a',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    color: viewMode === 'list' ? '#fff' : '#9ca3af',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    minHeight: '44px',
+                  }}
+                >
+                  <HugeiconsIcon icon={ListViewIcon} size={18} strokeWidth={1.5} />
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode('graph')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 16px',
+                    backgroundColor: viewMode === 'graph' ? '#3b82f6' : '#1a1a1a',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    color: viewMode === 'graph' ? '#fff' : '#9ca3af',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    minHeight: '44px',
+                  }}
+                >
+                  <HugeiconsIcon icon={AiNetworkIcon} size={18} strokeWidth={1.5} />
+                  Graph
+                </button>
+              </div>
+
+              {/* Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <HugeiconsIcon icon={FilterHorizontalIcon} size={18} strokeWidth={1.5} color="#6b7280" />
+                <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>Min Score:</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={filterMinScore}
+                  onChange={(e) => setFilterMinScore(parseInt(e.target.value))}
+                  style={{ width: 120 }}
+                />
+                <span style={{ 
+                  fontSize: '0.875rem', 
+                  fontWeight: 600, 
+                  color: '#e5e5e5',
+                  minWidth: '32px',
+                }}>
+                  {filterMinScore}
+                </span>
+              </div>
+            </div>
+
+            {/* Export */}
+            <ExportDropdown result={result} contractAddress={contractAddress || 'manual'} chain={chain} />
+          </div>
+
+          {/* Content based on view mode */}
+          {viewMode === 'graph' ? (
+            <NetworkGraph 
+              clusters={filteredClusters} 
+              onNodeClick={(address) => {
+                const cluster = filteredClusters.find(c => 
+                  c.fundingSource === address || c.wallets.some(w => w.address === address)
+                );
+                if (cluster) {
+                  toggleCluster(cluster.fundingSource);
+                }
+              }}
+            />
+          ) : filteredClusters.length === 0 ? (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '48px',
+              backgroundColor: '#141414',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+            }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px',
+              }}>
+                <HugeiconsIcon icon={ShieldCheck} size={40} strokeWidth={1.5} color="#22c55e" />
+              </div>
+              <h4 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#e5e5e5', marginBottom: '8px' }}>
+                No Suspicious Clusters Found
+              </h4>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                No clusters match the current filter threshold ({filterMinScore}%)
+              </p>
+            </div>
+          ) : (
+            <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+              {filteredClusters.map((cluster) => (
+                <ClusterCard
+                  key={cluster.fundingSource}
+                  cluster={cluster}
+                  isExpanded={expandedClusters.has(cluster.fundingSource)}
+                  onToggle={() => toggleCluster(cluster.fundingSource)}
+                  chainConfig={chainConfig}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Loading Skeletons */}
+      {fetching && (
+        <div style={{ padding: '24px' }}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      )}
+
+      {/* Add keyframe animation for spin */}
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 export default SybilDetector;

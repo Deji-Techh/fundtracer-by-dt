@@ -91,7 +91,7 @@ async function apiRequest<T>(
 
 // Authentication endpoints
 export async function loginWithWallet(address: string, signature: string, message: string): Promise<{ token: string, user: any }> {
-    const data = await apiRequest<{ token: string, user: any }>('/api/auth/login', 'POST', {
+    const data = await apiRequest<{ token: string, user: any }>('/api/auth/login-wallet', 'POST', {
         address,
         signature,
         message

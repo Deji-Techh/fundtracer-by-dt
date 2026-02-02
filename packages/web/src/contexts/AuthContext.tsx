@@ -16,6 +16,7 @@ import {
     setAuthToken,
     register as apiRegister,
     login as apiLogin,
+    loginWithWallet as apiLoginWithWallet,
     linkWalletToAccount,
     unlinkWalletFromAccount,
     UserProfile
@@ -50,6 +51,7 @@ interface AuthContextType {
     unlinkWallet: () => Promise<void>;
     refreshProfile: () => Promise<void>;
     getSigner: () => Promise<ethers.Signer>;
+    loginWithWallet: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     const operationInProgress = useRef(false);
+    const walletAuthAttempted = useRef(false);
     const notify = useNotify();
 
     const { address, isConnected } = useAppKitAccount();
@@ -135,8 +138,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
         } else if (!isConnected && wallet?.address) {
             setWallet(null);
+            // Reset auth attempt flag when wallet disconnects
+            walletAuthAttempted.current = false;
         }
     }, [isConnected, address, wallet?.address]);
+
+    // Auto-authenticate wallet when connected but not authenticated
+    useEffect(() => {
+        const authenticateWallet = async () => {
+            // Only proceed if:
+            // 1. Wallet is connected and has an address
+            // 2. No JWT token exists (not already authenticated)
+            // 3. Provider is available
+            // 4. We haven't already attempted authentication
+            if (!isConnected || !address || !walletProvider || walletAuthAttempted.current) return;
+
+            const existingToken = getAuthToken();
+            if (existingToken) return; // Already authenticated
+
+            // Mark as attempted to prevent loops
+            walletAuthAttempted.current = true;
+
+            try {
+                setLoading(true);
+
+                const provider = new ethers.BrowserProvider(walletProvider as any);
+                const signer = await provider.getSigner();
+                const walletAddress = await signer.getAddress();
+
+                // Create message for signing
+                const timestamp = Date.now();
+                const message = `FundTracer Wallet Login\nAddress: ${walletAddress}\nTimestamp: ${timestamp}`;
+
+                // Sign the message
+                const signature = await signer.signMessage(message);
+
+                // Call wallet login endpoint
+                const response = await apiLoginWithWallet(walletAddress, signature, message);
+
+                // Set auth token and user state
+                setTokenWithExpiry(response.token, true);
+                setUser({
+                    uid: response.user.address,
+                    email: response.user.address,
+                    username: response.user.address
+                });
+                setProfile({
+                    uid: response.user.address,
+                    email: response.user.address,
+                    hasCustomApiKey: false,
+                    usage: { today: 0, limit: 100, remaining: 100 },
+                    walletAddress: walletAddress,
+                    isVerified: response.user.isVerified,
+                    tier: response.user.tier || 'free',
+                    authProvider: 'wallet'
+                });
+                setIsAuthenticated(true);
+
+                notify.success('Wallet authenticated successfully!');
+            } catch (error: any) {
+                console.error('[AuthContext] Wallet auto-auth error:', error);
+                // Don't show error notification on auto-auth failure
+                // This prevents annoying popups on every connection
+                // User can manually authenticate if needed
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        authenticateWallet();
+    }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
 
     // Register new user
     const register = useCallback(async (
@@ -331,6 +402,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return provider.getSigner();
     }, [walletProvider, address]);
 
+    // Manual wallet login (for retry or explicit auth)
+    const loginWithWallet = useCallback(async () => {
+        if (!isConnected || !address || !walletProvider) {
+            notify.error('Please connect a wallet first');
+            throw new Error('Wallet not connected');
+        }
+
+        if (operationInProgress.current) return;
+        operationInProgress.current = true;
+        setLoading(true);
+
+        try {
+            const provider = new ethers.BrowserProvider(walletProvider as any);
+            const signer = await provider.getSigner();
+            const walletAddress = await signer.getAddress();
+
+            const timestamp = Date.now();
+            const message = `FundTracer Wallet Login\nAddress: ${walletAddress}\nTimestamp: ${timestamp}`;
+            const signature = await signer.signMessage(message);
+
+            const response = await apiLoginWithWallet(walletAddress, signature, message);
+
+            setTokenWithExpiry(response.token, true);
+            setUser({
+                uid: response.user.address,
+                email: response.user.address,
+                username: response.user.address
+            });
+            setProfile({
+                uid: response.user.address,
+                email: response.user.address,
+                hasCustomApiKey: false,
+                usage: { today: 0, limit: 100, remaining: 100 },
+                walletAddress: walletAddress,
+                isVerified: response.user.isVerified,
+                tier: response.user.tier || 'free',
+                authProvider: 'wallet'
+            });
+            setIsAuthenticated(true);
+
+            notify.success('Wallet authenticated successfully!');
+        } catch (error: any) {
+            console.error('[AuthContext] Manual wallet login error:', error);
+            notify.error(error.message || 'Wallet authentication failed');
+            throw error;
+        } finally {
+            setLoading(false);
+            operationInProgress.current = false;
+        }
+    }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -345,7 +467,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             connectWallet,
             unlinkWallet,
             refreshProfile,
-            getSigner
+            getSigner,
+            loginWithWallet
         }}>
             {children}
         </AuthContext.Provider>
