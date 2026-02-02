@@ -139,31 +139,37 @@ export const usePoolTrades = (chainKey: ChainKey, poolAddress: string) => {
   });
 };
 
-// Search pools (DEX Screener)
+// Search pools (DEX Screener) - uses backend proxy to avoid CORS
 export const usePoolSearch = (query: string) => {
   return useQuery({
     queryKey: QUERY_KEYS.search(query),
     queryFn: async () => {
       if (!query || query.length < 2) return [];
-      
+
       const response = await fetch(
-        `https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(query)}`,
+        `/api/dexscreener/search?q=${encodeURIComponent(query)}`,
         {
           headers: {
             'Accept': 'application/json',
           },
         }
       );
-      
+
       if (!response.ok) {
         throw new Error(`Search failed: ${response.status}`);
       }
-      
+
       const data = await response.json();
+
+      if (!data?.pairs || !Array.isArray(data.pairs)) {
+        console.warn('[usePoolSearch] Invalid search response:', data);
+        return [];
+      }
+
       return data.pairs || [];
     },
     enabled: query.length >= 2,
-    staleTime: 30000, // 30 seconds for search
+    staleTime: 30000,
     gcTime: 60000,
   });
 };

@@ -31,7 +31,7 @@ const LiveTradeFeed: React.FC<LiveTradeFeedProps> = ({
 
   const fetchTrades = async (): Promise<Trade[]> => {
     const url = `${getPoolTradesUrl(chainConfig.id, poolAddress)}?limit=${maxTrades}`;
-    
+
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',
@@ -43,16 +43,21 @@ const LiveTradeFeed: React.FC<LiveTradeFeedProps> = ({
     }
 
     const data = await response.json();
-    
+
+    if (!data?.data || !Array.isArray(data.data)) {
+      console.warn('[LiveTradeFeed] Invalid trades data structure:', data);
+      return [];
+    }
+
     return data.data.map((item: any) => ({
-      id: item.id,
-      timestamp: item.attributes.block_timestamp,
-      type: item.attributes.kind === 'buy' ? 'buy' : 'sell',
-      price: parseFloat(item.attributes.price_to_usd),
-      amount: parseFloat(item.attributes.from_token_amount),
-      usdValue: parseFloat(item.attributes.volume_in_usd),
-      fromAddress: item.attributes.tx_from_address,
-      txHash: item.attributes.tx_hash,
+      id: item.id || `${Date.now()}-${Math.random()}`,
+      timestamp: item.attributes?.block_timestamp || new Date().toISOString(),
+      type: item.attributes?.kind === 'buy' ? 'buy' : 'sell',
+      price: parseFloat(item.attributes?.price_to_usd) || 0,
+      amount: parseFloat(item.attributes?.from_token_amount) || 0,
+      usdValue: parseFloat(item.attributes?.volume_in_usd) || 0,
+      fromAddress: item.attributes?.tx_from_address || '0x0000000000000000000000000000000000000000',
+      txHash: item.attributes?.tx_hash || '',
     }));
   };
 

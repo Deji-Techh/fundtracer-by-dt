@@ -4,3 +4,4 @@ export { default as PoolCard } from './PoolCard';
 export { default as TerminalSidebar } from './TerminalSidebar';
 export { default as LiveIndicator } from './LiveIndicator';
 export { default as TerminalLayout } from './TerminalLayout';
+export { default as ChartErrorBoundary } from './ChartErrorBoundary';
