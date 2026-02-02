@@ -292,9 +292,10 @@ export async function fetchDuneInteractors(
 // Analyze addresses for Sybil patterns
 export async function analyzeSybilAddresses(
     addresses: string[],
-    chain: ChainId
+    chain: ChainId,
+    options?: { txHash?: string }
 ): Promise<{ success: boolean; result?: any; error?: string }> {
-    return apiRequest('/api/analyze/sybil-batch', 'POST', { addresses, chain });
+    return apiRequest('/api/analyze/sybil-batch', 'POST', { addresses, chain, txHash: options?.txHash });
 }
 
 // Search tokens via CoinGecko
