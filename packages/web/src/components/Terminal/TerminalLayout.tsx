@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import TradingChart from './TradingChart';
@@ -7,6 +7,7 @@ import PoolCard from './PoolCard';
 import TerminalSidebar from './TerminalSidebar';
 import LiveIndicator from './LiveIndicator';
 import { getTrendingPoolsUrl, getChainConfig, ChainKey, DEFAULT_CHAIN } from '../../config/chains';
+import { usePrefetchTrendingPools } from '../../hooks/useLiveCrypto';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ChartLineData01Icon, DollarCircleIcon } from '@hugeicons/core-free-icons';
 import { ArrowLeftRight } from 'lucide-react';
@@ -28,6 +29,24 @@ interface TickerData {
   change24h: number;
 }
 
+// Skeleton loader component for pools
+const PoolSkeleton: React.FC = () => (
+  <div style={{
+    background: '#0f0f0f',
+    borderRadius: 8,
+    border: '1px solid #1a1a1a',
+    padding: 16,
+    height: 120,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  }}>
+    <div style={{ height: 20, background: '#1a1a1a', borderRadius: 4, width: '60%' }} />
+    <div style={{ height: 16, background: '#1a1a1a', borderRadius: 4, width: '40%', marginTop: 'auto' }} />
+    <div style={{ height: 16, background: '#1a1a1a', borderRadius: 4, width: '80%' }} />
+  </div>
+);
+
 const TerminalLayout: React.FC = () => {
   const [activeChain, setActiveChain] = useState<ChainKey>(DEFAULT_CHAIN);
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
@@ -35,10 +54,13 @@ const TerminalLayout: React.FC = () => {
 
   const chainConfig = getChainConfig(activeChain);
 
-  // Fetch trending pools
+  // Prefetch trending pools on mount and chain change
+  usePrefetchTrendingPools(activeChain);
+
+  // Fetch trending pools with aggressive caching
   const fetchPools = async (): Promise<Pool[]> => {
     const url = getTrendingPoolsUrl(chainConfig.id);
-    
+
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',
@@ -50,7 +72,7 @@ const TerminalLayout: React.FC = () => {
     }
 
     const data = await response.json();
-    
+
     return data.data.map((item: any) => ({
       address: item.attributes.address,
       name: item.attributes.name,
@@ -63,11 +85,15 @@ const TerminalLayout: React.FC = () => {
     }));
   };
 
-  const { data: pools, isLoading: poolsLoading, error: poolsError, refetch: refetchPools } = useQuery({
+  const { data: pools, isLoading: poolsLoading, isFetching: poolsFetching, error: poolsError, refetch: refetchPools } = useQuery({
     queryKey: ['pools', activeChain],
     queryFn: fetchPools,
-    refetchInterval: 30000, // Refresh every 30 seconds
-    staleTime: 20000,
+    refetchInterval: 15000, // Refresh every 15 seconds
+    staleTime: 300000,      // 5 minutes - show cached data immediately
+    gcTime: 600000,         // 10 minutes - keep in cache
+    placeholderData: (previousData: any) => previousData, // Show cached data while loading
+    retry: 3,
+    retryDelay: 1000,
   });
 
   // Update last update time when data refreshes
@@ -204,10 +230,11 @@ const TerminalLayout: React.FC = () => {
           padding: '8px 20px',
           borderBottom: '1px solid #1a1a1a',
         }}>
-          <LiveIndicator 
+          <LiveIndicator
             refreshInterval={15}
             isConnected={!poolsError}
             lastUpdateTime={lastUpdate}
+            isRefreshing={poolsFetching}
           />
         </div>
 
@@ -291,14 +318,16 @@ const TerminalLayout: React.FC = () => {
             Trending Pools on {chainConfig.displayName}
           </div>
 
-          {poolsLoading ? (
+          {poolsLoading && !pools ? (
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              gap: 12,
               height: 140,
             }}>
-              <div className="loading-spinner" />
+              {Array.from({ length: 6 }).map((_, i) => (
+                <PoolSkeleton key={i} />
+              ))}
             </div>
           ) : poolsError ? (
             <div style={{

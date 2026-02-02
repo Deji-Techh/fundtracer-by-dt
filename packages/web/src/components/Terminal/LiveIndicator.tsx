@@ -7,12 +7,14 @@ interface LiveIndicatorProps {
   refreshInterval?: number; // in seconds
   isConnected?: boolean;
   lastUpdateTime?: Date;
+  isRefreshing?: boolean;
 }
 
-const LiveIndicator: React.FC<LiveIndicatorProps> = ({ 
+const LiveIndicator: React.FC<LiveIndicatorProps> = ({
   refreshInterval = 15,
   isConnected = true,
   lastUpdateTime = new Date(),
+  isRefreshing = false,
 }) => {
   const [countdown, setCountdown] = useState(refreshInterval);
   const [showPulse, setShowPulse] = useState(true);
@@ -39,20 +41,22 @@ const LiveIndicator: React.FC<LiveIndicatorProps> = ({
     if (!isConnected) {
       return <HugeiconsIcon icon={WifiOffIcon} size={14} color="#ef4444" />;
     }
-    if (countdown <= 3) {
-      return <HugeiconsIcon icon={AlertCircleIcon} size={14} color="#f59e0b" />;
+    if (isRefreshing || countdown <= 3) {
+      return <HugeiconsIcon icon={AlertCircleIcon} size={14} color="#3b82f6" />;
     }
     return <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} color="#10b981" />;
   };
 
   const getStatusColor = () => {
     if (!isConnected) return '#ef4444';
+    if (isRefreshing) return '#3b82f6';
     if (countdown <= 3) return '#f59e0b';
     return '#10b981';
   };
 
   const getStatusText = () => {
     if (!isConnected) return 'Disconnected';
+    if (isRefreshing) return 'Updating...';
     if (countdown <= 3) return 'Refreshing...';
     return 'Live';
   };

@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import {
   CHAIN_CONFIG,
   ChainKey,
@@ -10,19 +11,47 @@ import {
 // Query keys
 export const QUERY_KEYS = {
   trendingPools: (chain: ChainKey) => ['trendingPools', chain],
-  poolOHLCV: (chain: ChainKey, pool: string, timeframe: string) => 
+  poolOHLCV: (chain: ChainKey, pool: string, timeframe: string) =>
     ['poolOHLCV', chain, pool, timeframe],
   poolTrades: (chain: ChainKey, pool: string) => ['poolTrades', chain, pool],
   search: (query: string) => ['search', query],
 };
 
-// Smart polling config (stay within 30 calls/min limit)
+// Optimized config for aggressive caching and prefetching
 const POLLING_CONFIG = {
   refetchInterval: 15000, // 15 seconds = 4 calls/min per query
-  staleTime: 10000,       // 10 seconds
-  gcTime: 60000,          // 1 minute (garbage collection time, was cacheTime in v4)
+  staleTime: 300000,      // 5 minutes - data stays fresh longer
+  gcTime: 600000,         // 10 minutes - keep in cache longer
   retry: 3,
   retryDelay: 1000,
+  suspense: true,         // Enable suspense mode for better loading states
+  placeholderData: (previousData: any) => previousData, // Show cached data while loading
+};
+
+// Prefetch trending pools for a chain
+export const usePrefetchTrendingPools = (chainKey: ChainKey) => {
+  const queryClient = useQueryClient();
+  const network = CHAIN_CONFIG[chainKey].id;
+
+  useEffect(() => {
+    // Prefetch on mount if not already in cache
+    queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.trendingPools(chainKey),
+      queryFn: async () => {
+        const response = await fetch(getTrendingPoolsUrl(network), {
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch trending pools: ${response.status}`);
+        }
+        const data = await response.json();
+        return data.data || [];
+      },
+      staleTime: 300000, // 5 minutes
+    });
+  }, [chainKey, network, queryClient]);
 };
 
 // Fetch trending pools for a chain
@@ -140,7 +169,7 @@ export const usePoolSearch = (query: string) => {
 };
 
 // Countdown hook for refresh timer
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export const useRefreshCountdown = (refetchInterval: number = 15000) => {
   const [countdown, setCountdown] = useState(refetchInterval / 1000);
