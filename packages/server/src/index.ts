@@ -67,8 +67,7 @@ app.use(helmet({
                 "https://*.firebaseio.com",
                 "https://*.firebasedatabase.app",
                 "https://api.geckoterminal.com",
-                "https://api.dexscreener.com",
-                "https://calm-rain-20f2.aladeabdulmaleeq1.workers.dev"
+                "https://api.dexscreener.com"
             ],
             "frame-src": [
                 "'self'",
@@ -218,6 +217,7 @@ import { marketRoutes } from './routes/market.js';
 import { safetyRoutes } from './routes/safety.js';
 import { debugRoutes } from './routes/debug.js';
 import { dexScreenerRoutes } from './routes/dexscreener.js';
+import { geckoTerminalRoutes } from './routes/geckoterminal.js';
 
 apiRouter.use('/portfolio', authMiddleware, portfolioRoutes);
 apiRouter.use('/history', authMiddleware, historyRoutes);
@@ -226,6 +226,7 @@ apiRouter.use('/market', marketRoutes); // Public market stats
 apiRouter.use('/safety', authMiddleware, safetyRoutes); // Token safety checks
 apiRouter.use('/debug', debugRoutes); // Debug routes (public)
 apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
+apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
