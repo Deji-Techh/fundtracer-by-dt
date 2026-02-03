@@ -79,7 +79,7 @@ const TerminalLayout: React.FC = () => {
       return [];
     }
 
-    return data.data.map((item: any) => ({
+    return data.data.filter((item: any) => item?.attributes != null).map((item: any) => ({
       address: item.attributes?.address || '',
       name: item.attributes?.name || 'Unknown',
       symbol: `${item.attributes?.base_token_symbol || '???'}/${item.attributes?.quote_token_symbol || '???'}`,

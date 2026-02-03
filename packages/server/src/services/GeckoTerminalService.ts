@@ -30,11 +30,39 @@ const CHAIN_MAP: Record<string, string> = {
 };
 
 export class GeckoTerminalService {
+  private rateLimited = false;
+  private rateLimitExpires = 0;
+
+  // Rate limit check
+  private async checkRateLimit(): Promise<boolean> {
+    if (this.rateLimited) {
+      const now = Date.now();
+      if (now >= this.rateLimitExpires) {
+        this.rateLimited = false;
+        return false;
+      }
+      const waitTime = Math.ceil((this.rateLimitExpires - now) / 1000);
+      console.warn(`[GeckoTerminalService] Rate limited. Waiting ${waitTime}s...`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return true;
+    }
+    return false;
+  }
+
+  // Set rate limit flag
+  private setRateLimit(delayMs: number = 60000) {
+    this.rateLimited = true;
+    this.rateLimitExpires = Date.now() + delayMs;
+    console.warn(`[GeckoTerminalService] Rate limited for ${delayMs/1000}s`);
+  }
+
   // Get trending pools for a network
   async getTrendingPools(network: string, limit: number = 20) {
     const cacheKey = `geckoterminal:trending-pools:${network}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
+
+    await this.checkRateLimit();
 
     try {
       const response = await fetch(
@@ -47,6 +75,9 @@ export class GeckoTerminalService {
       );
 
       if (!response.ok) {
+        if (response.status === 429) {
+          this.setRateLimit(60000);
+        }
         throw new Error(`GeckoTerminal API error: ${response.status}`);
       }
 
@@ -71,6 +102,8 @@ export class GeckoTerminalService {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
+    await this.checkRateLimit();
+
     try {
       const response = await fetch(
         `${GECKOTERMINAL_BASE_URL}/networks/${network}/pools/${poolAddress}/ohlcv/${timeframe}?aggregate=${aggregate}&limit=${limit}`,
@@ -82,6 +115,9 @@ export class GeckoTerminalService {
       );
 
       if (!response.ok) {
+        if (response.status === 429) {
+          this.setRateLimit(30000);
+        }
         throw new Error(`GeckoTerminal API error: ${response.status}`);
       }
 
@@ -100,6 +136,8 @@ export class GeckoTerminalService {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
+    await this.checkRateLimit();
+
     try {
       const response = await fetch(
         `${GECKOTERMINAL_BASE_URL}/networks/${network}/pools/${poolAddress}/trades?limit=${limit}`,
@@ -111,6 +149,9 @@ export class GeckoTerminalService {
       );
 
       if (!response.ok) {
+        if (response.status === 429) {
+          this.setRateLimit(15000);
+        }
         throw new Error(`GeckoTerminal API error: ${response.status}`);
       }
 
@@ -129,6 +170,8 @@ export class GeckoTerminalService {
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
+    await this.checkRateLimit();
+
     try {
       const response = await fetch(
         `${GECKOTERMINAL_BASE_URL}/networks/${network}/pools/${poolAddress}`,
@@ -140,6 +183,9 @@ export class GeckoTerminalService {
       );
 
       if (!response.ok) {
+        if (response.status === 429) {
+          this.setRateLimit(60000);
+        }
         throw new Error(`GeckoTerminal API error: ${response.status}`);
       }
 

@@ -65,13 +65,13 @@ const TradingChart: React.FC<TradingChartProps> = ({
       return [];
     }
 
-    return data.data.attributes.ohlcv_list.map((item: number[]) => ({
+    return data.data.attributes.ohlcv_list.filter((item: any) => item != null && Array.isArray(item) && item.length >= 6).map((item: number[]) => ({
       time: item[0] as Time,
-      open: item[1] || 0,
-      high: item[2] || 0,
-      low: item[3] || 0,
-      close: item[4] || 0,
-      volume: item[5] || 0,
+      open: item[1] ?? 0,
+      high: item[2] ?? 0,
+      low: item[3] ?? 0,
+      close: item[4] ?? 0,
+      volume: item[5] ?? 0,
     }));
   };
 
