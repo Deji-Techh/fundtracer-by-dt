@@ -49,7 +49,7 @@ const LiveTradeFeed: React.FC<LiveTradeFeedProps> = ({
       return [];
     }
 
-    return data.data.map((item: any) => ({
+    return data.data.filter((item: any) => item?.attributes != null).map((item: any) => ({
       id: item.id || `${Date.now()}-${Math.random()}`,
       timestamp: item.attributes?.block_timestamp || new Date().toISOString(),
       type: item.attributes?.kind === 'buy' ? 'buy' : 'sell',

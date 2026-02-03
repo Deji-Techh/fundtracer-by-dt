@@ -104,9 +104,10 @@ export const usePoolOHLCV = (
       }
       
       const data = await response.json();
+      const ohlcvList = data.data?.attributes?.ohlcv_list;
       return {
         attributes: data.data?.attributes,
-        ohlcv: data.data?.attributes?.ohlcv_list || [],
+        ohlcv: (Array.isArray(ohlcvList) ? ohlcvList.filter((item: any) => item != null && Array.isArray(item) && item.length >= 6) : []),
       };
     },
     ...POLLING_CONFIG,
