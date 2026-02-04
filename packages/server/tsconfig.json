@@ -2,6 +2,7 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./dist",
+        "baseUrl": ".",
         "lib": [
             "ES2022",
             "DOM",
@@ -12,7 +13,6 @@
         "noImplicitAny": false,
         "declaration": false,
         "declarationMap": false,
-        "sourceMap": false,
         "sourceMap": false,
         "paths": {
             "@fundtracer/core": [

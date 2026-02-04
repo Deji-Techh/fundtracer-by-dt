@@ -82,7 +82,10 @@ export function useTokenBalances(walletAddress) {
         args: [walletAddress],
       }));
 
-      const results = await fetch(`/api/proxy/moralis/balance/${chainId}/${walletAddress}`, {
+      const chainKey = chainId === 'polygon_pos' ? 'polygon' : 
+                      chainId === 'bsc' ? 'bsc' : chainId;
+      
+      const results = await fetch(`/api/portfolio/${walletAddress}?chain=${chainKey}`, {
         headers: { 'Cache-Control': 'no-cache' },
       });
 
