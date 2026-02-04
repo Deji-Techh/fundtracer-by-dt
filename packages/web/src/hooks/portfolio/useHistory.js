@@ -14,10 +14,17 @@ export function useHistory(walletAddress) {
     try {
       setLoadingChains(prev => new Set([...prev, chainId]));
 
-      const response = await fetch(
-        `/api/proxy/ankr/txs/${chainId}/${walletAddress}`,
-        { headers: { 'Cache-Control': 'no-cache' } }
-      );
+      const response = await fetch('/api/history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          blockchain: chainId,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch ${chainId} transactions`);
