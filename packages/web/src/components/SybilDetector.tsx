@@ -38,9 +38,24 @@ import {
   Settings01Icon,
   Share01Icon,
   Analytics01Icon,
-  AiNetworkIcon
+  AiNetworkIcon,
+  StarIcon,
+  GasPipeIcon
 } from '@hugeicons/core-free-icons';
 import cytoscape from 'cytoscape';
+import { UpgradeModal } from './sybil/UpgradeModal.jsx';
+import { GasPaymentModal } from './sybil/GasPaymentModal.jsx';
+import {
+  SYBIL_TIERS,
+  getSybilUsage,
+  canPerformSybilOperation,
+  getRemainingOperations,
+  incrementSybilUsage,
+  storePaymentVerification,
+  getStoredPaymentVerification,
+  clearPaymentVerification,
+} from '../lib/sybilTier.js';
+import { verifySubscriptionPayment, sendGasPayment, verifyGasPayment } from '../services/paymentVerification.js';
 
 interface SybilDetectorProps {
   onBack?: () => void;
@@ -837,6 +852,18 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
   const [filterMinScore, setFilterMinScore] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
+  // Tier system state
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showGasPaymentModal, setShowGasPaymentModal] = useState(false);
+  const [currentTier, setCurrentTier] = useState<'free' | 'pro' | 'max'>(() => profile?.tier || 'free');
+
+  // Update tier when profile changes
+  useEffect(() => {
+    if (profile?.tier) {
+      setCurrentTier(profile.tier);
+    }
+  }, [profile?.tier]);
+
   // Parse addresses from manual input
   const parseAddresses = useCallback((text: string): string[] => {
     const cleaned = text
@@ -852,6 +879,21 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
   // Fetch addresses from Dune
   const handleFetch = async () => {
+    // Check if user can perform operation based on tier
+    if (!canPerformSybilOperation(currentTier)) {
+      const remaining = getRemainingOperations(currentTier);
+      if (currentTier === 'free' && (remaining === 0 || remaining === 0)) {
+        // Show gas payment modal for free tier
+        setShowGasPaymentModal(true);
+        return;
+      }
+      setError(`Daily limit reached. ${remaining === 'unlimited' ? 'Upgrade for unlimited access' : `${remaining} operations remaining`}`);
+      if (currentTier === 'free') {
+        setShowUpgradeModal(true);
+      }
+      return;
+    }
+
     if (!contractAddress.trim()) {
       setError('Please enter a contract address');
       return;
@@ -874,6 +916,9 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         setFetchedAddresses(response.wallets);
         setStep('analyze');
         notify.success(`Fetched ${response.wallets.length} addresses from Dune`);
+
+        // Increment usage count
+        incrementSybilUsage();
       } else {
         setError(response.error || 'Failed to fetch from Dune');
       }
@@ -937,6 +982,21 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
   // Analyze the addresses
   const handleAnalyze = async () => {
+    // Check if user can perform operation based on tier
+    if (!canPerformSybilOperation(currentTier)) {
+      const remaining = getRemainingOperations(currentTier);
+      if (currentTier === 'free' && (remaining === 0 || remaining === 0)) {
+        // Show gas payment modal for free tier
+        setShowGasPaymentModal(true);
+        return;
+      }
+      setError(`Daily limit reached. ${remaining === 'unlimited' ? 'Upgrade for unlimited access' : `${remaining} operations remaining`}`);
+      if (currentTier === 'free') {
+        setShowUpgradeModal(true);
+      }
+      return;
+    }
+
     if (allAddresses.length < 10) {
       setError('Need at least 10 addresses for meaningful analysis');
       return;
@@ -964,6 +1024,9 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         setResult(response.result);
         setStep('results');
         notify.success('Analysis complete!');
+
+        // Increment usage count
+        incrementSybilUsage();
       } else {
         setError('Analysis failed');
       }
@@ -1042,12 +1105,70 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', margin: 0 }}>
                   Sybil Detection
                 </h2>
-                <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
-                  Find wallets sharing common funding sources
-                </p>
-              </div>
-            </div>
-          </div>
+                 <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
+                   Find wallets sharing common funding sources
+                 </p>
+               </div>
+             </div>
+
+             {/* Tier Display & Upgrade Button */}
+             <div style={{
+               display: 'flex',
+               alignItems: 'center',
+               gap: '16px',
+               backgroundColor: 'rgba(255,255,255,0.05)',
+               padding: '12px 16px',
+               borderRadius: '12px',
+               border: `1px solid ${SYBIL_TIERS[currentTier]?.color || 'rgba(255,255,255,0.1)'}`,
+             }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                 <div style={{
+                   padding: '6px 12px',
+                   borderRadius: '8px',
+                   backgroundColor: SYBIL_TIERS[currentTier]?.bgColor,
+                   color: SYBIL_TIERS[currentTier]?.color,
+                   fontSize: '0.875rem',
+                   fontWeight: 600,
+                 }}>
+                   {SYBIL_TIERS[currentTier]?.name || 'Free'}
+                 </div>
+                 <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                   {getRemainingOperations(currentTier) === 'unlimited' ? 'Unlimited' : `${getRemainingOperations(currentTier)}/7 ops`}
+                 </div>
+               </div>
+
+                 {currentTier === 'free' && (
+                 <button
+                   onClick={() => setShowUpgradeModal(true)}
+                   style={{
+                     display: 'flex',
+                     alignItems: 'center',
+                     gap: '8px',
+                     padding: '10px 16px',
+                     backgroundColor: '#3b82f6',
+                     color: '#ffffff',
+                     border: 'none',
+                     borderRadius: '8px',
+                     fontSize: '0.875rem',
+                     fontWeight: 600,
+                     cursor: 'pointer',
+                     transition: 'all 0.2s',
+                   }}
+                   onMouseEnter={(e: React.MouseEvent) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#2563eb';
+                    (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
+                   }}
+                   onMouseLeave={(e: React.MouseEvent) => {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#3b82f6';
+                    (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+                   }}
+                 >
+                   <HugeiconsIcon icon={StarIcon} size={18} strokeWidth={2} />
+                   Upgrade
+                 </button>
+                 )}
+             </div>
+           </div>
           
           <div style={{ display: 'flex', gap: '8px' }}>
             {step !== 'fetch' && (
@@ -1933,7 +2054,32 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
           0% { background-position: -200% 0; }
           100% { background-position: 200% 0; }
         }
-      `}</style>
+       `}</style>
+
+      {/* Modals */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        currentTier={currentTier}
+        walletAddress={profile?.walletAddress || null}
+        onUpgradeComplete={(newTier) => {
+          setCurrentTier(newTier);
+          setShowUpgradeModal(false);
+          notify.success(`Successfully upgraded to ${SYBIL_TIERS[newTier]?.name}!`);
+        }}
+      />
+
+      <GasPaymentModal
+        isOpen={showGasPaymentModal}
+        onClose={() => setShowGasPaymentModal(false)}
+        onPaymentSuccess={(txHash) => {
+          setShowGasPaymentModal(false);
+          notify.success('Gas payment verified! You can now proceed.');
+        }}
+        onCancel={() => {
+          setShowGasPaymentModal(false);
+        }}
+      />
     </div>
   );
 }
