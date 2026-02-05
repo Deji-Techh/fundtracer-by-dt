@@ -9,6 +9,9 @@ import TopNav from './components/CoinGecko/TopNav';
 import HomePage from './components/CoinGecko/HomePage';
 import SybilPage from './components/CoinGecko/SybilPage';
 
+// Import Landing Page
+import LandingPage from './pages/LandingPage';
+
 // Existing components
 import ProfilePage from './components/ProfilePage';
 import ComingSoonModal from './components/ComingSoonModal';
@@ -110,13 +113,8 @@ function App() {
     // Switch between tabs
     switch (activeTab) {
       case 'home':
-        // Home page is for browsing market data - no login required
-        return (
-          <HomePage 
-            walletAddress={walletAddress} 
-            onWalletClick={handleConnectWallet}
-          />
-        );
+        // Landing page for new visitors - marketing focused
+        return <LandingPage onLaunchApp={() => setActiveTab('explorer')} />;
       
       case 'portfolio':
         return (
@@ -196,37 +194,42 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a' }}>
-      <TopNav
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as TabType)}
-        onConnectWallet={handleConnectWallet}
-        isWalletConnected={isWalletConnected}
-        walletAddress={walletAddress}
-      />
+      {/* Show TopNav except on landing page (home tab) */}
+      {activeTab !== 'home' && (
+        <TopNav
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as TabType)}
+          onConnectWallet={handleConnectWallet}
+          isWalletConnected={isWalletConnected}
+          walletAddress={walletAddress}
+        />
+      )}
 
       {renderMainContent()}
 
-      {/* Footer */}
-      <footer style={{
-        padding: 24,
-        textAlign: 'center',
-        color: '#6b7280',
-        borderTop: '1px solid #2a2a2a',
-        fontSize: '0.875rem',
-        display: 'flex',
-        justifyContent: 'center',
-        gap: 16,
-        flexWrap: 'wrap'
-      }}>
-        <span>&copy; {new Date().getFullYear()} FundTracer by DT</span>
-        <span style={{ color: '#2a2a2a' }}>|</span>
-        <a
-          href="/privacypolicy"
-          style={{ color: '#6b7280', textDecoration: 'underline' }}
-        >
-          Privacy Policy
-        </a>
-      </footer>
+      {/* Footer - Hidden on landing page */}
+      {activeTab !== 'home' && (
+        <footer style={{
+          padding: 24,
+          textAlign: 'center',
+          color: '#6b7280',
+          borderTop: '1px solid #2a2a2a',
+          fontSize: '0.875rem',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: 16,
+          flexWrap: 'wrap'
+        }}>
+          <span>&copy; {new Date().getFullYear()} FundTracer by DT</span>
+          <span style={{ color: '#2a2a2a' }}>|</span>
+          <a
+            href="/privacypolicy"
+            style={{ color: '#6b7280', textDecoration: 'underline' }}
+          >
+            Privacy Policy
+          </a>
+        </footer>
+      )}
 
       {/* Modals */}
       {showComingSoon && (
