@@ -1172,24 +1172,29 @@ body {
   }
 }
 
-/* Mobile Footer - Hide on desktop */
-@media (min-width: 1025px) {
-  .mobile-footer {
-    display: none !important;
-  }
+/* Mobile Footer - Hidden by default, only show on mobile */
+.mobile-footer {
+  display: none;
 }
 
 /* Mobile Footer Styles */
-.mobile-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: #0a0a0a;
-  border-top: 1px solid #2a2a2a;
-  z-index: 1001;
-  display: flex;
-  justify-content: center;
+@media (max-width: 1024px) {
+  .mobile-footer {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #0a0a0a;
+    border-top: 1px solid #2a2a2a;
+    z-index: 1001;
+    justify-content: center;
+  }
+  
+  /* Add bottom padding to prevent content overlap */
+  .main-content {
+    padding-bottom: 64px;
+  }
 }
 
 .mobile-footer-container {
