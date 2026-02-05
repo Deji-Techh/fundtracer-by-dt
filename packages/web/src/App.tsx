@@ -10,7 +10,7 @@ import HomePage from './components/CoinGecko/HomePage';
 import SybilPage from './components/CoinGecko/SybilPage';
 
 // Import Landing Page
-import LandingPage from './pages/LandingPageSimple';
+import LandingPage from './pages/LandingPage';
 
 // Existing components
 import ProfilePage from './components/ProfilePage';
