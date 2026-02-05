@@ -333,7 +333,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             notify.success('Wallet connected successfully!');
         } catch (error: any) {
             console.error('[AuthContext] Connect wallet error:', error);
-            notify.error(error.message || 'Failed to connect wallet');
+            
+            // Detect wallet provider conflicts
+            const errorMessage = error.message || '';
+            if (errorMessage.includes('ethereum') && errorMessage.includes('read-only')) {
+                notify.error('Wallet conflict: Please disable other wallet extensions (Coinbase, Phantom) and use only MetaMask');
+            } else if (errorMessage.includes('user rejected') || errorMessage.includes('User rejected')) {
+                notify.error('Connection cancelled');
+            } else if (errorMessage.includes('already pending')) {
+                notify.error('Check your wallet - connection request pending');
+            } else {
+                notify.error(errorMessage || 'Failed to connect wallet');
+            }
         } finally {
             setLoading(false);
         }

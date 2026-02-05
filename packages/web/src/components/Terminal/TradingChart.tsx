@@ -302,27 +302,66 @@ const TradingChart: React.FC<TradingChartProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(10, 10, 10, 0.9)',
+            background: 'rgba(10, 10, 10, 0.95)',
             borderRadius: 8,
-            gap: 12,
+            gap: 16,
+            padding: 24,
+            textAlign: 'center',
           }}>
-            <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>
-              Failed to load chart data
+            <div style={{ fontSize: '2rem', marginBottom: 8 }}>📊</div>
+            <span style={{ color: '#ef4444', fontSize: '1rem', fontWeight: 600 }}>
+              Chart Data Unavailable
+            </span>
+            <span style={{ color: '#9ca3af', fontSize: '0.875rem', maxWidth: 300 }}>
+              Data temporarily unavailable due to API rate limits. Please try again in a few moments.
             </span>
             <button 
               onClick={() => refetch()}
               style={{
-                padding: '8px 16px',
+                padding: '10px 20px',
                 borderRadius: 6,
-                border: '1px solid #2a2a2a',
-                background: '#1a1a1a',
+                border: '1px solid #3b82f6',
+                background: '#3b82f6',
                 color: '#fff',
                 fontSize: '0.875rem',
+                fontWeight: 600,
                 cursor: 'pointer',
+                marginTop: 8,
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#2563eb';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#3b82f6';
               }}
             >
-              Retry
+              Try Again
             </button>
+          </div>
+        )}
+
+        {!isLoading && !error && (!ohlcvData || ohlcvData.length === 0) && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(10, 10, 10, 0.95)',
+            borderRadius: 8,
+            gap: 12,
+            padding: 24,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: 8 }}>📈</div>
+            <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>
+              No chart data available for this pool
+            </span>
           </div>
         )}
       </div>

@@ -109,8 +109,25 @@ const HeroSection: React.FC<HeroSectionProps> = ({
       </p>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-          <div className="loading-spinner" />
+        <div className="trending-grid">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="trending-card" style={{ opacity: 0.7 }}>
+              <div className="trending-card-header">
+                <div className="trending-card-icon skeleton" style={{ background: '#2a2a2a', animation: 'pulse 1.5s infinite' }} />
+                <div className="trending-card-info">
+                  <div className="trending-card-name skeleton" style={{ background: '#2a2a2a', height: '1rem', width: '80px', borderRadius: '4px', marginBottom: '4px', animation: 'pulse 1.5s infinite' }} />
+                  <div className="trending-card-symbol skeleton" style={{ background: '#2a2a2a', height: '0.75rem', width: '40px', borderRadius: '4px', animation: 'pulse 1.5s infinite' }} />
+                </div>
+              </div>
+              <div className="trending-card-price skeleton" style={{ background: '#2a2a2a', height: '1.5rem', width: '100px', borderRadius: '4px', marginTop: '12px', animation: 'pulse 1.5s infinite' }} />
+              <div className="trending-card-change skeleton" style={{ background: '#2a2a2a', height: '1rem', width: '60px', borderRadius: '4px', marginTop: '6px', animation: 'pulse 1.5s infinite' }} />
+            </div>
+          ))}
+        </div>
+      ) : trending.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '48px 24px', color: '#6b7280' }}>
+          <div style={{ fontSize: '1.125rem', marginBottom: '8px' }}>No trending data available</div>
+          <div style={{ fontSize: '0.875rem' }}>Please check your connection and try again</div>
         </div>
       ) : (
         <>
@@ -138,19 +155,19 @@ const HeroSection: React.FC<HeroSectionProps> = ({
                     />
                   ) : (
                     <div className="trending-card-icon">
-                      {token.symbol.slice(0, 2)}
+                      {(token.symbol !== '???' ? token.symbol : token.name || '?').slice(0, 2)}
                     </div>
                   )}
                   <div className="trending-card-info">
-                    <div className="trending-card-name">{token.name}</div>
-                    <div className="trending-card-symbol">{token.symbol}</div>
+                    <div className="trending-card-name">{token.name !== 'Unknown' ? token.name : 'Loading...'}</div>
+                    <div className="trending-card-symbol">{token.symbol !== '???' ? token.symbol : <span style={{ color: '#6b7280' }}>Loading...</span>}</div>
                   </div>
                 </div>
                 <div className="trending-card-price">
-                  {formatPrice(token.price)}
+                  {token.price > 0 ? formatPrice(token.price) : <span style={{ color: '#6b7280' }}>--</span>}
                 </div>
                 <div className={`trending-card-change ${token.change24h >= 0 ? 'positive' : 'negative'}`}>
-                  {formatChange(token.change24h)}
+                  {token.change24h !== 0 ? formatChange(token.change24h) : <span style={{ color: '#6b7280' }}>--</span>}
                 </div>
               </div>
             ))}

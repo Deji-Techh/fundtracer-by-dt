@@ -306,6 +306,8 @@ body {
   border-bottom: 1px solid #2a2a2a;
   overflow-x: auto;
   scrollbar-width: none;
+  flex-wrap: wrap;
+  row-gap: 8px;
 }
 
 .chain-filter::-webkit-scrollbar {
@@ -677,6 +679,15 @@ body {
   }
   100% {
     background-position: -200% 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
 }
 
