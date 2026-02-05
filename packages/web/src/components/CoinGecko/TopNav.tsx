@@ -49,7 +49,7 @@ const TopNav: React.FC<TopNavProps> = ({
 
   const navLinks = [
     { id: 'home', label: 'Home', icon: Home01Icon },
-    { id: 'portfolio', label: 'Portfolio', icon: Briefcase01Icon },
+    { id: 'portfolio', label: 'Portfolio', icon: Wallet01Icon },
     { id: 'history', label: 'History', icon: Clock01Icon },
     { id: 'explorer', label: 'Explorer', icon: Search01Icon },
     { id: 'market', label: 'Market', icon: ChartLineData01Icon },
@@ -250,49 +250,9 @@ const TopNav: React.FC<TopNavProps> = ({
           >
             <HugeiconsIcon icon={Menu01Icon} size={24} strokeWidth={1.5} />
           </button>
-        </div>
-      </nav>
-
-      {/* Mobile Sidebar */}
-      <div
-        className={`mobile-sidebar-overlay ${mobileMenuOpen ? 'open' : ''}`}
-        onClick={() => setMobileMenuOpen(false)}
-      />
-      <div className={`mobile-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
-        <div className="mobile-sidebar-header">
-          <div className="top-nav-logo">
-            <img 
-              src="/logo.png" 
-              alt="FundTracer" 
-              style={{ width: 32, height: 32, borderRadius: 8 }}
-            />
-            <span>FundTracer</span>
           </div>
-          <button
-            className="mobile-sidebar-close"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <HugeiconsIcon icon={Cancel01Icon} size={24} strokeWidth={1.5} />
-          </button>
-        </div>
-        <div className="mobile-sidebar-nav">
-          {navLinks.map((link) => (
-            <button
-              key={link.id}
-              className={`mobile-sidebar-link ${activeTab === link.id ? 'active' : ''}`}
-              onClick={() => {
-                onTabChange(link.id);
-                setMobileMenuOpen(false);
-              }}
-            >
-              <HugeiconsIcon icon={link.icon} size={20} strokeWidth={1.5} />
-              <span>{link.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-};
 
-export default TopNav;
+        {/* Mobile Footer - Only on mobile screens */}
+        <MobileFooter activeTab={activeTab} onTabChange={onTabChange} />
+     </>
+   );
