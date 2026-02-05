@@ -9,15 +9,17 @@ interface HeroProps {
 }
 
 export function Hero({ onLaunchApp }: HeroProps) {
+  console.log('[Hero] Rendering hero section');
+  
   return (
-    <section className="hero">
+    <section className="hero" style={{ backgroundColor: '#0a0a0a', position: 'relative', zIndex: 1 }}>
       {/* Background Effect */}
-      <div className="hero-bg">
+      <div className="hero-bg" style={{ zIndex: 0 }}>
         <div className="hero-gradient"></div>
         <div className="hero-grid"></div>
       </div>
 
-      <div className="hero-content">
+      <div className="hero-content" style={{ position: 'relative', zIndex: 2 }}>
         {/* Badge */}
         <div className="hero-badge">
           <span className="hero-badge-dot"></span>
