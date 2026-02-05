@@ -8,8 +8,8 @@ import {
   Alert01Icon,
 } from '@hugeicons/core-free-icons';
 import { sendGasPayment, verifyGasPayment } from '../../services/paymentVerification.js';
-import { useAuth } from '../../contexts/AuthContext.js';
-import { useNotify } from '../../contexts/ToastContext.js';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNotify } from '../../contexts/ToastContext';
 
 const GAS_PAYMENT_ADDRESS = '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd';
 const LINEA_CHAIN_ID = 59144;

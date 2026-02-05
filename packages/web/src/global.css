@@ -1039,6 +1039,43 @@ body {
   .hide-mobile {
     display: none !important;
   }
+  
+  .show-mobile {
+    display: flex !important;
+  }
+  
+  @media (max-width: 1024px) {
+    .hide-mobile {
+      display: none !important;
+    }
+    
+    .show-mobile {
+      display: flex !important;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .hide-mobile {
+      display: none !important;
+    }
+    
+    .show-mobile {
+      display: flex !important;
+    }
+  }
+  
+  @media (min-width: 1025px) {
+    .hide-mobile {
+      display: none !important;
+    }
+    
+    .show-mobile {
+      display: flex !important;
+    }
+  }
+  .hide-mobile {
+    display: none !important;
+  }
 
   .show-mobile {
     display: flex !important;
