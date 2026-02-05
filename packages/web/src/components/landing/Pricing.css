@@ -1,0 +1,11 @@
+/* Pricing section styles */
+.pricing-section {
+  padding: 100px 24px;
+  background-color: #0a0a0a;
+}
+
+@media (max-width: 768px) {
+  .pricing-section {
+    padding: 80px 16px;
+  }
+}
