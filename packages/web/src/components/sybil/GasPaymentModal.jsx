@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-  GasPumpIcon,
-  ChevronLeftIcon,
-  Loader02Icon,
+  GasPipeIcon,
+  Cancel01Icon,
+  Loading01Icon,
   CheckmarkCircle02Icon,
   Alert01Icon,
 } from '@hugeicons/core-free-icons';
@@ -125,13 +125,13 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                 borderRadius: '8px',
               }}
             >
-              <HugeiconsIcon icon={ChevronLeftIcon} size={20} strokeWidth={2} />
+              <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
             </button>
           </div>
 
           <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <HugeiconsIcon icon={GasPumpIcon} size={32} color="#ea580c" strokeWidth={2} />
+              <HugeiconsIcon icon={GasPipeIcon} size={32} color="#ea580c" strokeWidth={2} />
               <div>
                 <h3 style={{ color: '#ffffff', fontSize: '16px', fontWeight: '600', margin: '0 0 4px' }}>
                   Free Tier Limit Reached
@@ -232,7 +232,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <HugeiconsIcon icon={Loader02Icon} size={16} strokeWidth={2} className="animate-spin" />
+                  <HugeiconsIcon icon={Loading01Icon} size={16} strokeWidth={2} className="animate-spin" />
                   <span>Verifying payment on blockchain...</span>
                 </div>
                 {verifying && (
@@ -288,12 +288,12 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
             >
               {paying ? (
                 <>
-                  <HugeiconsIcon icon={Loader02Icon} size={18} className="animate-spin" />
+                  <HugeiconsIcon icon={Loading01Icon} size={18} className="animate-spin" />
                   Sending...
                 </>
               ) : (
                 <>
-                  <HugeiconsIcon icon={GasPumpIcon} size={18} />
+                  <HugeiconsIcon icon={GasPipeIcon} size={18} />
                   Pay Gas (0.0001 ETH)
                 </>
               )}
