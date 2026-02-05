@@ -57,7 +57,7 @@ export class GeckoTerminalService {
   }
 
   // Get trending pools for a network
-  async getTrendingPools(network: string, limit: number = 20) {
+  async getTrendingPools(network: string, limit: number = 10) {
     const cacheKey = `geckoterminal:trending-pools:${network}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
@@ -65,8 +65,9 @@ export class GeckoTerminalService {
     await this.checkRateLimit();
 
     try {
+      // Use /pools endpoint instead of /trending_pools (which returns 404)
       const response = await fetch(
-        `${GECKOTERMINAL_BASE_URL}/networks/${network}/trending_pools`,
+        `${GECKOTERMINAL_BASE_URL}/networks/${network}/pools?page=1&limit=${limit}`,
         {
           headers: {
             'Accept': 'application/json',
@@ -82,7 +83,7 @@ export class GeckoTerminalService {
       }
 
       const data = await response.json();
-      cache.set(cacheKey, data, 300);
+      cache.set(cacheKey, data, 300); // Cache for 5 minutes
       return data;
     } catch (error) {
       console.error('[GeckoTerminalService] Error fetching trending pools:', error);
