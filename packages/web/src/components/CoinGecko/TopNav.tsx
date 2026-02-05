@@ -13,6 +13,7 @@ import {
   ArrowRight01Icon
 } from '@hugeicons/core-free-icons';
 import { searchDEXScreenerPairs } from '../../api';
+import { MobileFooter } from '../common/mobileFooter';
 
 interface TopNavProps {
   activeTab: string;
@@ -249,10 +250,14 @@ const TopNav: React.FC<TopNavProps> = ({
             onClick={() => setMobileMenuOpen(true)}
           >
             <HugeiconsIcon icon={Menu01Icon} size={24} strokeWidth={1.5} />
-          </button>
+            </button>
           </div>
+      </nav>
 
-        {/* Mobile Footer - Only on mobile screens */}
-        <MobileFooter activeTab={activeTab} onTabChange={onTabChange} />
-     </>
-   );
+      {/* Mobile Footer - Only on mobile screens */}
+      <MobileFooter activeTab={activeTab} onTabChange={onTabChange} />
+    </>
+  );
+}
+
+export default TopNav;
