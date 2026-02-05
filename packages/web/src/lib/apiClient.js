@@ -91,10 +91,30 @@ export const geckoTerminal = {
   },
   
   async getTopPools(network) {
-    const url = `https://api.geckoterminal.com/api/v2/networks/${network}/top_pools`;
-    const cacheKey = `gt:pools:${network}`;
-    
-    return fetchWithCache(url, {}, cacheKey, cache.TTL?.POOLS || 60);
+    // Try trending pools endpoint first, fallback to pools list if needed
+    try {
+      const url = `https://api.geckoterminal.com/api/v2/networks/${network}/pools?page=1&limit=10`;
+      const cacheKey = `gt:pools:${network}`;
+      
+      const response = await fetchWithCache(url, {}, cacheKey, cache.TTL?.POOLS || 60);
+      
+      if (response && response.data) {
+        return {
+          data: response.data,
+          success: true
+        };
+      }
+      
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.warn(`[GeckoTerminal] Failed to fetch top pools for ${network}:`, error);
+      // Return empty data to prevent crashes
+      return {
+        data: [],
+        success: false,
+        error: error.message
+      };
+    }
   }
 };
 
