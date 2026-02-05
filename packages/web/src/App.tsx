@@ -10,7 +10,7 @@ import HomePage from './components/CoinGecko/HomePage';
 import SybilPage from './components/CoinGecko/SybilPage';
 
 // Import Landing Page
-import LandingPage from './pages/LandingPage';
+import LandingPage from './pages/LandingPageSimple';
 
 // Existing components
 import ProfilePage from './components/ProfilePage';
@@ -114,7 +114,12 @@ function App() {
     switch (activeTab) {
       case 'home':
         // Landing page for new visitors - marketing focused
-        return <LandingPage onLaunchApp={() => setActiveTab('explorer')} />;
+        console.log('[App] Rendering landing page');
+        return (
+          <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh' }}>
+            <LandingPage onLaunchApp={() => setActiveTab('explorer')} />
+          </div>
+        );
       
       case 'portfolio':
         return (

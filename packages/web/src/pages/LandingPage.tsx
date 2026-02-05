@@ -12,8 +12,10 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onLaunchApp }: LandingPageProps) {
+  console.log('[LandingPage] Rendering landing page');
+  
   return (
-    <div className="landing-page">
+    <div className="landing-page" style={{ backgroundColor: '#0a0a0a', minHeight: '100vh' }}>
       <LandingNav onLaunchApp={onLaunchApp} />
       <main className="landing-main">
         <Hero onLaunchApp={onLaunchApp} />
