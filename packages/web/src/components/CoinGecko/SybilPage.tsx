@@ -239,30 +239,20 @@ const SybilPage: React.FC<SybilPageProps> = ({
           </div>
         )}
 
-        {/* Mode Selector */}
-        <div style={{ 
-          display: 'flex', 
-          gap: 8, 
-          marginBottom: 24,
-          overflowX: 'auto',
-          paddingBottom: 8
-        }}>
-          {modeButtons.map((mode) => (
-            <button
-              key={mode.id}
-              className={`btn ${viewMode === mode.id ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setViewMode(mode.id as ViewMode)}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 8,
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <HugeiconsIcon icon={mode.icon} size={18} strokeWidth={1.5} />
-              {mode.label}
-            </button>
-          ))}
+        {/* Mode Selector - Mobile Optimized */}
+        <div className="mode-selector-container">
+          <div className="mode-selector-tabs">
+            {modeButtons.map((mode) => (
+              <button
+                key={mode.id}
+                className={`mode-tab ${viewMode === mode.id ? 'active' : ''}`}
+                onClick={() => setViewMode(mode.id as ViewMode)}
+              >
+                <HugeiconsIcon icon={mode.icon} size={16} strokeWidth={2} />
+                <span>{mode.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* How To Use Toggle */}
@@ -293,13 +283,11 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
         {showHowToUse && <HowToUse isOpen={true} onToggle={() => setShowHowToUse(false)} />}
 
-        {/* Analysis Panel */}
-        <div className="card" style={{ marginBottom: 24 }}>
+        {/* Analysis Panel - Mobile Optimized */}
+        <div className="card analysis-card">
           {/* Chain Selector */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: '0.75rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-              Chain
-            </div>
+          <div className="analysis-section">
+            <div className="analysis-label">Chain</div>
             <ChainSelector
               selectedChain={selectedChain}
               onSelect={handleChainSelect}
@@ -309,10 +297,8 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
           {/* Input Fields based on mode */}
           {viewMode === 'wallet' && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                Wallet Address
-              </div>
+            <div className="analysis-section">
+              <div className="analysis-label">Wallet Address</div>
               <WalletInput
                 value={walletAddresses[0] || ''}
                 onChange={(value) => handleWalletChange(0, value)}
@@ -322,10 +308,8 @@ const SybilPage: React.FC<SybilPageProps> = ({
           )}
 
           {viewMode === 'contract' && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                Contract Address
-              </div>
+            <div className="analysis-section">
+              <div className="analysis-label">Contract Address</div>
               <ContractSearch
                 onSelect={(address) => setContractAddress(address)}
                 placeholder="Search by name or paste address"
@@ -334,12 +318,10 @@ const SybilPage: React.FC<SybilPageProps> = ({
           )}
 
           {viewMode === 'compare' && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                Wallet Addresses
-              </div>
+            <div className="analysis-section">
+              <div className="analysis-label">Wallet Addresses</div>
               {walletAddresses.map((address, index) => (
-                <div key={index} style={{ marginBottom: 8 }}>
+                <div key={index} className="wallet-input-wrapper">
                   <WalletInput
                     value={address}
                     onChange={(value) => handleWalletChange(index, value)}
@@ -348,7 +330,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
                   />
                 </div>
               ))}
-              <button className="btn btn-secondary" onClick={handleAddWallet}>
+              <button className="btn btn-secondary btn-add-wallet" onClick={handleAddWallet}>
                 + Add Wallet
               </button>
             </div>
@@ -358,11 +340,10 @@ const SybilPage: React.FC<SybilPageProps> = ({
             <SybilDetector />
           )}
 
-          {/* Analyze Button */}
+          {/* Analyze Button - Full Width for Mobile */}
           {viewMode !== 'sybil' && (
             <button
-              className="btn btn-primary"
-              style={{ width: '100%' }}
+              className="btn btn-primary btn-analyze"
               onClick={
                 viewMode === 'wallet' ? handleAnalyzeWallet :
                   viewMode === 'contract' ? handleAnalyzeContract :
@@ -371,17 +352,17 @@ const SybilPage: React.FC<SybilPageProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span className="btn-content">
                   <div className="loading-spinner" style={{ width: 16, height: 16 }} />
                   Analyzing...
                 </span>
               ) : (
-                <>
+                <span className="btn-content">
                   <HugeiconsIcon icon={viewMode === 'wallet' ? Wallet01Icon : viewMode === 'contract' ? File02Icon : GitCompareIcon} size={18} strokeWidth={1.5} />
                   {viewMode === 'wallet' ? 'Analyze Wallet' :
                     viewMode === 'contract' ? 'Analyze Contract' :
                       'Compare Wallets'}
-                </>
+                </span>
               )}
             </button>
           )}
