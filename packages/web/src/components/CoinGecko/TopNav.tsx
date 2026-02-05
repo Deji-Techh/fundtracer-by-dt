@@ -7,13 +7,10 @@ import {
   Search01Icon, 
   ChartLineData01Icon,
   Shield01Icon,
-  Wallet01Icon,
-  Menu01Icon,
-  Cancel01Icon,
-  ArrowRight01Icon
+  Wallet01Icon
 } from '@hugeicons/core-free-icons';
 import { searchDEXScreenerPairs } from '../../api';
-import { MobileFooter } from '../common/mobileFooter';
+import { MobileFooter } from '../common/MobileFooter';
 
 interface TopNavProps {
   activeTab: string;
@@ -41,7 +38,6 @@ const TopNav: React.FC<TopNavProps> = ({
   isWalletConnected,
   walletAddress
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -244,14 +240,7 @@ const TopNav: React.FC<TopNavProps> = ({
                 : 'Connect Wallet'}
             </span>
           </button>
-
-          <button
-            className="mobile-menu-btn"
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <HugeiconsIcon icon={Menu01Icon} size={24} strokeWidth={1.5} />
-            </button>
-          </div>
+        </div>
       </nav>
 
       {/* Mobile Footer - Only on mobile screens */}

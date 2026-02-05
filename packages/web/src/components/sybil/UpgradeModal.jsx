@@ -4,8 +4,8 @@ import {
   CheckmarkCircle02Icon,
   ArrowUpRight01Icon,
   Copy01Icon,
-  ChevronLeftIcon,
-  Loader02Icon,
+  Cancel01Icon,
+  Loading01Icon,
 } from '@hugeicons/core-free-icons';
 import { SYBIL_TIERS } from '../../lib/sybilTier.js';
 import { verifySubscriptionPayment } from '../../services/paymentVerification.js';
@@ -120,7 +120,7 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
               onMouseEnter={(e) => e.target.style.color = '#ffffff'}
               onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
             >
-              <HugeiconsIcon icon={ChevronLeftIcon} size={20} strokeWidth={2} />
+              <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
             </button>
           </div>
 
@@ -351,7 +351,7 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                 >
                   {verifying ? (
                     <>
-                      <HugeiconsIcon icon={Loader02Icon} size={18} className="animate-spin" />
+                      <HugeiconsIcon icon={Loading01Icon} size={18} className="animate-spin" />
                       Verifying...
                     </>
                   ) : paymentVerified ? (
