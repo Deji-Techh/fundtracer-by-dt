@@ -6,7 +6,7 @@ import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions, t
 
 // Import new CoinGecko-style components
 import TopNav from './components/CoinGecko/TopNav';
-import { HomePage } from './pages/HomePage.jsx';
+import HomePage from './components/CoinGecko/HomePage';
 import SybilPage from './components/CoinGecko/SybilPage';
 
 // Existing components
