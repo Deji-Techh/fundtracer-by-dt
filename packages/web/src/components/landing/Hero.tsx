@@ -9,79 +9,168 @@ interface HeroProps {
 }
 
 export function Hero({ onLaunchApp }: HeroProps) {
-  console.log('[Hero] Rendering hero section');
-  
   return (
-    <section className="hero" style={{ backgroundColor: '#0a0a0a', position: 'relative', zIndex: 1 }}>
-      {/* Background Effect */}
-      <div className="hero-bg" style={{ zIndex: 0 }}>
-        <div className="hero-gradient"></div>
-        <div className="hero-grid"></div>
-      </div>
+    <section style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '120px 24px 80px',
+      backgroundColor: '#0a0a0a',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Background */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)',
+        opacity: 0.5
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: 'linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px)',
+        backgroundSize: '60px 60px',
+        opacity: 0.5
+      }} />
 
-      <div className="hero-content" style={{ position: 'relative', zIndex: 2 }}>
-        {/* Badge */}
-        <div className="hero-badge">
-          <span className="hero-badge-dot"></span>
+      {/* Content */}
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+        maxWidth: '900px',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 16px',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+          borderRadius: '20px',
+          color: '#3b82f6',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          marginBottom: '32px'
+        }}>
+          <span style={{
+            width: '8px',
+            height: '8px',
+            backgroundColor: '#10b981',
+            borderRadius: '50%'
+          }} />
           Now supporting 7+ blockchains
         </div>
 
-        {/* Headline */}
-        <h1 className="hero-title">
+        <h1 style={{
+          fontSize: '3.5rem',
+          fontWeight: 800,
+          lineHeight: 1.1,
+          color: '#ffffff',
+          marginBottom: '24px',
+          letterSpacing: '-0.02em'
+        }}>
           Advanced Blockchain
           <br />
-          <span className="hero-title-highlight">Forensics & Intelligence</span>
+          <span style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
+            Forensics & Intelligence
+          </span>
         </h1>
 
-        {/* Subheadline */}
-        <p className="hero-subtitle">
+        <p style={{
+          fontSize: '1.25rem',
+          color: '#9ca3af',
+          lineHeight: 1.6,
+          maxWidth: '600px',
+          margin: '0 auto 40px'
+        }}>
           Analyze wallets, detect Sybil patterns, and trace funding sources across Ethereum, 
           Linea, Arbitrum, and more. Professional-grade tools for researchers, investors, 
           and compliance teams.
         </p>
 
-        {/* CTA Buttons */}
-        <div className="hero-cta">
-          <button onClick={onLaunchApp} className="btn btn-primary btn-lg">
+        <div style={{
+          display: 'flex',
+          gap: '16px',
+          justifyContent: 'center',
+          marginBottom: '64px'
+        }}>
+          <button 
+            onClick={onLaunchApp}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '16px 32px',
+              backgroundColor: '#3b82f6',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '1rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
             Launch App
             <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} />
           </button>
-          <Link to="/how-it-works" className="btn btn-secondary btn-lg">
+          <Link 
+            to="/how-it-works"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '16px 32px',
+              backgroundColor: 'transparent',
+              color: '#ffffff',
+              border: '1px solid #2a2a2a',
+              borderRadius: '8px',
+              fontSize: '1rem',
+              fontWeight: 600,
+              textDecoration: 'none'
+            }}
+          >
             <HugeiconsIcon icon={PlayIcon} size={20} strokeWidth={2} />
             View Demo
           </Link>
         </div>
 
-        {/* Trust Indicators */}
-        <div className="hero-trust">
-          <div className="trust-item">
-            <span className="trust-number">7+</span>
-            <span className="trust-label">Blockchains</span>
-          </div>
-          <div className="trust-divider"></div>
-          <div className="trust-item">
-            <span className="trust-number">10K+</span>
-            <span className="trust-label">Wallets Analyzed</span>
-          </div>
-          <div className="trust-divider"></div>
-          <div className="trust-item">
-            <span className="trust-number">Real-time</span>
-            <span className="trust-label">Data</span>
-          </div>
-          <div className="trust-divider"></div>
-          <div className="trust-item">
-            <span className="trust-number">Enterprise</span>
-            <span className="trust-label">Security</span>
-          </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '32px',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { number: '7+', label: 'Blockchains' },
+            { number: '10K+', label: 'Wallets Analyzed' },
+            { number: 'Real-time', label: 'Data' },
+            { number: 'Enterprise', label: 'Security' },
+          ].map((stat, index) => (
+            <div key={index} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff' }}>
+                {stat.number}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                {stat.label}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
-
-      {/* Scroll Indicator */}
-      <div className="hero-scroll">
-        <div className="scroll-mouse">
-          <div className="scroll-wheel"></div>
-        </div>
-        <span>Scroll to explore</span>
       </div>
     </section>
   );

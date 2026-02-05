@@ -1,132 +1,29 @@
+/* LandingNav styles */
 .landing-nav {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
-  background: rgba(10, 10, 10, 0.95);
+  z-index: 100;
+  background-color: rgba(10, 10, 10, 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #2a2a2a;
 }
 
-.landing-nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 16px 24px;
+.desktop-nav {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
-.landing-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-}
-
-.landing-logo-img {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-}
-
-.landing-logo-text {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.landing-nav-links {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-}
-
-.landing-nav-link {
-  color: #9ca3af;
-  text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: color 0.2s ease;
-  position: relative;
-}
-
-.landing-nav-link:hover {
-  color: #ffffff;
-}
-
-.landing-nav-link::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: #3b82f6;
-  transition: width 0.2s ease;
-}
-
-.landing-nav-link:hover::after {
-  width: 100%;
-}
-
-.landing-nav-cta .btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  font-size: 0.875rem;
-}
-
-.mobile-menu-toggle {
+.mobile-menu-btn {
   display: none;
-  background: none;
-  border: none;
-  color: #ffffff;
-  cursor: pointer;
-  padding: 8px;
-}
-
-.mobile-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: #0a0a0a;
-  border-bottom: 1px solid #2a2a2a;
-  padding: 16px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.mobile-menu-link {
-  color: #9ca3af;
-  text-decoration: none;
-  font-size: 1rem;
-  font-weight: 500;
-  padding: 12px 0;
-  border-bottom: 1px solid #1a1a1a;
-  transition: color 0.2s ease;
-}
-
-.mobile-menu-link:hover {
-  color: #ffffff;
-}
-
-.mobile-menu-cta {
-  margin-top: 8px;
-  text-align: center;
 }
 
 @media (max-width: 768px) {
-  .landing-nav-links,
-  .landing-nav-cta {
+  .desktop-nav {
     display: none;
   }
-
-  .mobile-menu-toggle {
+  
+  .mobile-menu-btn {
     display: block;
   }
 }
