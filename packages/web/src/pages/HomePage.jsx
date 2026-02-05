@@ -15,14 +15,23 @@ function SearchBar({ onSearch, isSearching }) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (query.length >= 2) {
-        const results = await dexScreener.search(query);
-        if (results?.pairs) {
-          setSuggestions(results.pairs.slice(0, 5));
-          setShowSuggestions(true);
+        setIsLoadingSuggestions(true);
+        try {
+          const results = await dexScreener.search(query);
+          if (results?.pairs) {
+            setSuggestions(results.pairs.slice(0, 5));
+            setShowSuggestions(true);
+          }
+        } catch (error) {
+          console.error('Search error:', error);
+          setSuggestions([]);
+        } finally {
+          setIsLoadingSuggestions(false);
         }
       } else {
         setSuggestions([]);
@@ -70,25 +79,38 @@ function SearchBar({ onSearch, isSearching }) {
         </button>
       </form>
 
-      {showSuggestions && suggestions.length > 0 && (
+      {showSuggestions && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl z-50">
-          {suggestions.map((pair) => (
-            <button
-              key={pair.pairAddress}
-              onClick={() => handleSuggestionClick(pair)}
-              className="w-full px-4 py-3 text-left hover:bg-[#2a2a2a] transition-colors border-b border-[#2a2a2a] last:border-0"
-            >
-              <div className="flex justify-between items-center">
-                <span className="text-white font-medium">
-                  {pair.baseToken?.symbol || '???'} / {pair.quoteToken?.symbol || '???'}
-                </span>
-                <span className="text-gray-500 text-sm">{pair.chainId}</span>
+          {isLoadingSuggestions ? (
+            <div className="px-4 py-3 text-gray-500 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                Searching...
               </div>
-              <div className="text-gray-500 text-sm mt-1">
-                ${parseFloat(pair.priceUsd || 0).toFixed(6)} • Vol: ${(pair.volume?.h24 || 0).toLocaleString()}
-              </div>
-            </button>
-          ))}
+            </div>
+          ) : suggestions.length > 0 ? (
+            suggestions.map((pair) => (
+              <button
+                key={pair.pairAddress}
+                onClick={() => handleSuggestionClick(pair)}
+                className="w-full px-4 py-3 text-left hover:bg-[#2a2a2a] transition-colors border-b border-[#2a2a2a] last:border-0"
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-medium">
+                    {pair.baseToken?.symbol || pair.baseToken?.name || 'Unknown'} / {pair.quoteToken?.symbol || pair.quoteToken?.name || 'Unknown'}
+                  </span>
+                  <span className="text-gray-500 text-sm">{pair.chainId}</span>
+                </div>
+                <div className="text-gray-500 text-sm mt-1">
+                  ${parseFloat(pair.priceUsd || 0).toFixed(6)} • Vol: ${(pair.volume?.h24 || 0).toLocaleString()}
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-gray-500 text-sm">
+              No results found
+            </div>
+          )}
         </div>
       )}
     </div>
