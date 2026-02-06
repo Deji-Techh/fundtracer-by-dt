@@ -84,12 +84,20 @@ app.use(helmet({
                 "'self'",
                 "data:",
                 "blob:",
+                "*",
+                "https://*.ipfs.io",
+                "https://ipfs.io",
+                "https://cloudflare-ipfs.com",
+                "https://*.dweb.link",
+                "https://*.pinata.cloud",
                 "https://api.web3modal.org",
                 "https://walletconnect.org",
                 "https://*.walletconnect.com",
                 "https://*.googleusercontent.com",
                 "https://*.google.com",
-                "https://fonts.reown.com"
+                "https://fonts.reown.com",
+                "https://nft-cdn.alchemy.com",
+                "https://*.alchemy.com"
             ],
             "script-src": [
                 "'self'",
