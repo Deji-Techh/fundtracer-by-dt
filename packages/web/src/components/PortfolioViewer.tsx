@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, Coins, Image, RefreshCw, TrendingUp, AlertCircle, Clock } from 'lucide-react';
-import { collection, doc, setDoc, query, orderBy, limit, getDocs, getFirestore } from 'firebase/firestore';
+import { collection, doc, setDoc, getFirestore } from 'firebase/firestore';
+import { getApp } from 'firebase/app';
 import './PortfolioViewer.css';
-
-// Get Firestore instance
-const db = getFirestore();
 
 // API Keys from environment variables
 const ASSETS_API_KEY = import.meta.env.VITE_ALCHEMY_ASSETS_API || '';
@@ -366,9 +364,18 @@ export const PortfolioViewer = React.memo(function PortfolioViewer({
     }
   };
 
-  // Save portfolio snapshot to Firebase
+  // Save portfolio snapshot to Firebase (with fallback if Firebase not initialized)
   const savePortfolioSnapshot = async (data: PortfolioData) => {
     try {
+      // Check if Firebase is initialized
+      const app = getApp();
+      if (!app) {
+        console.warn('[Portfolio] Firebase not initialized, skipping snapshot');
+        return;
+      }
+      
+      // Get Firestore instance
+      const db = getFirestore(app);
       const snapshotRef = doc(collection(db, 'portfolio_snapshots'), `${walletAddress}_${Date.now()}`);
       await setDoc(snapshotRef, {
         address: walletAddress,
@@ -378,8 +385,10 @@ export const PortfolioViewer = React.memo(function PortfolioViewer({
         tokenCount: data.tokens?.length || 0,
         nftCount: data.nfts?.length || 0
       });
+      console.log('[Portfolio] Snapshot saved successfully');
     } catch (err) {
-      console.error('Failed to save snapshot:', err);
+      console.warn('[Portfolio] Failed to save snapshot:', err);
+      // Don't throw - allow portfolio to work without Firebase
     }
   };
 
