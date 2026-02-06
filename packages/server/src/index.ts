@@ -67,7 +67,9 @@ app.use(helmet({
                 "https://*.firebaseio.com",
                 "https://*.firebasedatabase.app",
                 "https://api.geckoterminal.com",
-                "https://api.dexscreener.com"
+                "https://api.dexscreener.com",
+                "https://*.g.alchemy.com",
+                "https://*.alchemy.com"
             ],
             "frame-src": [
                 "'self'",
