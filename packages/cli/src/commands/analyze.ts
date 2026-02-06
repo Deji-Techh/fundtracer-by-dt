@@ -12,7 +12,7 @@ import {
     FundingNode,
     getChainConfig,
 } from '@fundtracer/core';
-import { getApiKeys, formatAddress, formatEth, formatDate, exportToCSV } from '../utils.js';
+import { getApiKeys, formatAddress, formatEth, exportToCSV } from '../utils.js';
 import fs from 'fs';
 
 interface AnalyzeOptions {
@@ -23,6 +23,18 @@ interface AnalyzeOptions {
     export?: string;
 }
 
+// Professional color scheme
+const colors = {
+    primary: chalk.hex('#888888'),
+    secondary: chalk.hex('#666666'),
+    accent: chalk.hex('#60a5fa'),
+    success: chalk.hex('#4ade80'),
+    warning: chalk.hex('#fbbf24'),
+    error: chalk.hex('#ef4444'),
+    muted: chalk.hex('#555555'),
+    border: chalk.hex('#333333'),
+};
+
 export async function analyzeCommand(address: string, options: AnalyzeOptions) {
     const chainId = options.chain as ChainId;
     const depth = parseInt(options.depth, 10);
@@ -30,7 +42,7 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
 
     // Validate address
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-        console.error(chalk.red('✗ Invalid wallet address format'));
+        console.error(colors.error('Error: Invalid wallet address format'));
         process.exit(1);
     }
 
@@ -38,20 +50,20 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
     try {
         getChainConfig(chainId);
     } catch {
-        console.error(chalk.red(`✗ Unsupported chain: ${chainId}`));
-        console.log(chalk.dim('Supported chains: ethereum, linea, arbitrum, base'));
+        console.error(colors.error(`Error: Unsupported chain: ${chainId}`));
+        console.log(colors.muted('Supported chains: ethereum, linea, arbitrum, base'));
         process.exit(1);
     }
 
     const spinner = ora({
-        text: 'Initializing analyzer...',
-        color: 'cyan',
+        text: colors.secondary('Initializing analyzer...'),
+        color: 'gray',
     }).start();
 
     try {
         const apiKeys = getApiKeys();
         const analyzer = new WalletAnalyzer(apiKeys, (progress) => {
-            spinner.text = `${progress.stage}: ${progress.message}`;
+            spinner.text = colors.secondary(`${progress.stage}: ${progress.message}`);
         });
 
         const result = await analyzer.analyze(address, chainId, {
@@ -61,7 +73,7 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
             },
         });
 
-        spinner.succeed('Analysis complete!');
+        spinner.succeed(colors.success('Analysis complete'));
         console.log();
 
         // Output based on format
@@ -82,56 +94,70 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
         // Export if requested and not already handled
         if (options.export && options.output !== 'json' && options.output !== 'csv') {
             fs.writeFileSync(options.export, JSON.stringify(result, null, 2));
-            console.log(chalk.green(`\n✓ Results exported to ${options.export}`));
+            console.log(colors.success(`\nResults exported to ${options.export}`));
         }
 
     } catch (error) {
-        spinner.fail('Analysis failed');
-        console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+        spinner.fail(colors.error('Analysis failed'));
+        console.error(colors.error(error instanceof Error ? error.message : 'Unknown error'));
         process.exit(1);
     }
 }
 
 function outputTable(result: AnalysisResult) {
     // Wallet Info
-    console.log(chalk.bold.cyan('═══ Wallet Information ═══'));
+    console.log(colors.primary.bold('Wallet Information'));
+    console.log(colors.border('─'.repeat(60)));
     const infoTable = new Table({
-        style: { head: ['cyan'] },
+        style: { head: ['gray'] },
+        chars: {
+            'top': '', 'top-mid': '', 'top-left': '', 'top-right': '',
+            'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '',
+            'left': '', 'left-mid': '', 'mid': '', 'mid-mid': '',
+            'right': '', 'right-mid': '', 'middle': ' ',
+        },
     });
 
     infoTable.push(
-        { 'Address': result.wallet.address },
-        { 'Chain': result.wallet.chain.toUpperCase() },
-        { 'Balance': `${formatEth(result.wallet.balanceInEth)} ETH` },
-        { 'Total Transactions': result.summary.totalTransactions.toString() },
-        { 'Is Contract': result.wallet.isContract ? 'Yes' : 'No' },
+        { [colors.secondary('Address')]: result.wallet.address },
+        { [colors.secondary('Chain')]: result.wallet.chain.toUpperCase() },
+        { [colors.secondary('Balance')]: `${formatEth(result.wallet.balanceInEth)} ETH` },
+        { [colors.secondary('Total Transactions')]: result.summary.totalTransactions.toString() },
+        { [colors.secondary('Is Contract')]: result.wallet.isContract ? 'Yes' : 'No' },
     );
     console.log(infoTable.toString());
     console.log();
 
     // Risk Score
     const riskColor =
-        result.riskLevel === 'critical' ? chalk.bgRed.white :
-            result.riskLevel === 'high' ? chalk.red :
-                result.riskLevel === 'medium' ? chalk.yellow :
-                    chalk.green;
+        result.riskLevel === 'critical' ? colors.error.bold :
+            result.riskLevel === 'high' ? colors.error :
+                result.riskLevel === 'medium' ? colors.warning :
+                    colors.success;
 
-    console.log(chalk.bold.cyan('═══ Risk Assessment ═══'));
-    console.log(`Risk Score: ${riskColor.bold(` ${result.overallRiskScore}/100 `)} (${riskColor(result.riskLevel.toUpperCase())})`);
+    console.log(colors.primary.bold('Risk Assessment'));
+    console.log(colors.border('─'.repeat(60)));
+    console.log(`Risk Score: ${riskColor(`${result.overallRiskScore}/100`)} (${riskColor(result.riskLevel.toUpperCase())})`);
     console.log();
 
     // Suspicious indicators
     if (result.suspiciousIndicators.length > 0) {
-        console.log(chalk.bold.yellow('⚠ Suspicious Activity Detected:'));
+        console.log(colors.warning.bold('Suspicious Activity Detected:'));
         const suspTable = new Table({
-            head: ['Type', 'Severity', 'Description'],
+            head: [colors.secondary('Type'), colors.secondary('Severity'), colors.secondary('Description')],
             style: { head: ['yellow'] },
+            chars: {
+                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+                'right': '│', 'right-mid': '┤', 'middle': '│',
+            },
         });
 
         result.suspiciousIndicators.forEach(ind => {
             const sevColor =
-                ind.severity === 'critical' || ind.severity === 'high' ? chalk.red :
-                    ind.severity === 'medium' ? chalk.yellow : chalk.dim;
+                ind.severity === 'critical' || ind.severity === 'high' ? colors.error :
+                    ind.severity === 'medium' ? colors.warning : colors.muted;
 
             suspTable.push([
                 ind.type.replace(/_/g, ' '),
@@ -144,34 +170,48 @@ function outputTable(result: AnalysisResult) {
     }
 
     // Summary stats
-    console.log(chalk.bold.cyan('═══ Transaction Summary ═══'));
+    console.log(colors.primary.bold('Transaction Summary'));
+    console.log(colors.border('─'.repeat(60)));
     const statsTable = new Table({
-        style: { head: ['cyan'] },
+        style: { head: ['gray'] },
+        chars: {
+            'top': '', 'top-mid': '', 'top-left': '', 'top-right': '',
+            'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '',
+            'left': '', 'left-mid': '', 'mid': '', 'mid-mid': '',
+            'right': '', 'right-mid': '', 'middle': ' ',
+        },
     });
 
     statsTable.push(
-        { 'Successful': chalk.green(result.summary.successfulTxs.toString()) },
-        { 'Failed': chalk.red(result.summary.failedTxs.toString()) },
-        { 'Total Received': chalk.green(`+${formatEth(result.summary.totalValueReceivedEth)} ETH`) },
-        { 'Total Sent': chalk.red(`-${formatEth(result.summary.totalValueSentEth)} ETH`) },
-        { 'Unique Addresses': result.summary.uniqueInteractedAddresses.toString() },
-        { 'Activity Period': `${result.summary.activityPeriodDays} days` },
+        { [colors.secondary('Successful')]: colors.success(result.summary.successfulTxs.toString()) },
+        { [colors.secondary('Failed')]: colors.error(result.summary.failedTxs.toString()) },
+        { [colors.secondary('Total Received')]: colors.success(`+${formatEth(result.summary.totalValueReceivedEth)} ETH`) },
+        { [colors.secondary('Total Sent')]: colors.error(`-${formatEth(result.summary.totalValueSentEth)} ETH`) },
+        { [colors.secondary('Unique Addresses')]: result.summary.uniqueInteractedAddresses.toString() },
+        { [colors.secondary('Activity Period')]: `${result.summary.activityPeriodDays} days` },
     );
     console.log(statsTable.toString());
     console.log();
 
     // Top funding sources
     if (result.summary.topFundingSources.length > 0) {
-        console.log(chalk.bold.cyan('═══ Top Funding Sources ═══'));
+        console.log(colors.primary.bold('Top Funding Sources'));
+        console.log(colors.border('─'.repeat(60)));
         const sourcesTable = new Table({
-            head: ['Address', 'Value'],
-            style: { head: ['cyan'] },
+            head: [colors.secondary('Address'), colors.secondary('Value')],
+            style: { head: ['gray'] },
+            chars: {
+                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+                'right': '│', 'right-mid': '┤', 'middle': '│',
+            },
         });
 
         result.summary.topFundingSources.forEach(source => {
             sourcesTable.push([
                 formatAddress(source.address),
-                chalk.green(`+${formatEth(source.valueEth)} ETH`),
+                colors.success(`+${formatEth(source.valueEth)} ETH`),
             ]);
         });
         console.log(sourcesTable.toString());
@@ -180,16 +220,23 @@ function outputTable(result: AnalysisResult) {
 
     // Top destinations
     if (result.summary.topFundingDestinations.length > 0) {
-        console.log(chalk.bold.cyan('═══ Top Destinations ═══'));
+        console.log(colors.primary.bold('Top Destinations'));
+        console.log(colors.border('─'.repeat(60)));
         const destsTable = new Table({
-            head: ['Address', 'Value'],
-            style: { head: ['cyan'] },
+            head: [colors.secondary('Address'), colors.secondary('Value')],
+            style: { head: ['gray'] },
+            chars: {
+                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+                'right': '│', 'right-mid': '┤', 'middle': '│',
+            },
         });
 
         result.summary.topFundingDestinations.forEach(dest => {
             destsTable.push([
                 formatAddress(dest.address),
-                chalk.red(`-${formatEth(dest.valueEth)} ETH`),
+                colors.error(`-${formatEth(dest.valueEth)} ETH`),
             ]);
         });
         console.log(destsTable.toString());
@@ -198,10 +245,17 @@ function outputTable(result: AnalysisResult) {
 
     // Projects
     if (result.projectsInteracted.length > 0) {
-        console.log(chalk.bold.cyan('═══ Projects Interacted ═══'));
+        console.log(colors.primary.bold('Projects Interacted'));
+        console.log(colors.border('─'.repeat(60)));
         const projectsTable = new Table({
-            head: ['Project', 'Category', 'Interactions'],
-            style: { head: ['cyan'] },
+            head: [colors.secondary('Project'), colors.secondary('Category'), colors.secondary('Interactions')],
+            style: { head: ['gray'] },
+            chars: {
+                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+                'right': '│', 'right-mid': '┤', 'middle': '│',
+            },
         });
 
         result.projectsInteracted.slice(0, 5).forEach(proj => {
@@ -216,10 +270,12 @@ function outputTable(result: AnalysisResult) {
 }
 
 function outputTree(result: AnalysisResult) {
-    console.log(chalk.bold.cyan('\n═══ Funding Sources Tree ═══\n'));
+    console.log(colors.primary.bold('\nFunding Sources Tree'));
+    console.log(colors.border('─'.repeat(60)));
     printTreeNode(result.fundingSources, '', true);
 
-    console.log(chalk.bold.cyan('\n═══ Funding Destinations Tree ═══\n'));
+    console.log(colors.primary.bold('\nFunding Destinations Tree'));
+    console.log(colors.border('─'.repeat(60)));
     printTreeNode(result.fundingDestinations, '', true);
 }
 
@@ -228,12 +284,12 @@ function printTreeNode(node: FundingNode, prefix: string, isLast: boolean) {
     const extension = isLast ? '    ' : '│   ';
 
     const riskColor =
-        node.suspiciousScore > 50 ? chalk.red :
-            node.suspiciousScore > 25 ? chalk.yellow :
-                chalk.green;
+        node.suspiciousScore > 50 ? colors.error :
+            node.suspiciousScore > 25 ? colors.warning :
+                colors.success;
 
     const valueStr = node.totalValueInEth > 0
-        ? chalk.dim(` (${formatEth(node.totalValueInEth)} ETH)`)
+        ? colors.muted(` (${formatEth(node.totalValueInEth)} ETH)`)
         : '';
 
     console.log(
@@ -254,7 +310,7 @@ function outputJson(result: AnalysisResult, exportPath?: string) {
 
     if (exportPath) {
         fs.writeFileSync(exportPath, jsonStr);
-        console.log(chalk.green(`✓ Results exported to ${exportPath}`));
+        console.log(colors.success(`Results exported to ${exportPath}`));
     } else {
         console.log(jsonStr);
     }
@@ -278,11 +334,11 @@ function outputCSV(result: AnalysisResult, exportPath?: string) {
     }));
 
     if (rows.length === 0) {
-        console.log(chalk.yellow('⚠ No transactions to export'));
+        console.log(colors.warning('No transactions to export'));
         return;
     }
 
     exportToCSV(rows, filename);
-    console.log(chalk.green(`✓ Results exported to ${filename}`));
-    console.log(chalk.dim(`  ${rows.length} transactions exported`));
+    console.log(colors.success(`Results exported to ${filename}`));
+    console.log(colors.muted(`  ${rows.length} transactions exported`));
 }

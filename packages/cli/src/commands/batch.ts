@@ -21,7 +21,6 @@ import {
     formatDuration 
 } from '../utils.js';
 import fs from 'fs';
-import path from 'path';
 
 interface BatchOptions {
     chain: string;
@@ -40,10 +39,26 @@ interface BatchResult {
     duration: number;
 }
 
+// Professional color scheme
+const colors = {
+    primary: chalk.hex('#888888'),
+    secondary: chalk.hex('#666666'),
+    accent: chalk.hex('#60a5fa'),
+    success: chalk.hex('#4ade80'),
+    warning: chalk.hex('#fbbf24'),
+    error: chalk.hex('#ef4444'),
+    muted: chalk.hex('#555555'),
+    border: chalk.hex('#333333'),
+    critical: chalk.hex('#dc2626'),
+    high: chalk.hex('#ea580c'),
+    medium: chalk.hex('#ca8a04'),
+    low: chalk.hex('#16a34a'),
+};
+
 export async function batchCommand(file: string, options: BatchOptions) {
     // Validate file exists
     if (!fs.existsSync(file)) {
-        console.error(chalk.red(`✗ File not found: ${file}`));
+        console.error(colors.error(`Error: File not found: ${file}`));
         process.exit(1);
     }
 
@@ -53,31 +68,31 @@ export async function batchCommand(file: string, options: BatchOptions) {
     const minValue = options.minValue ? parseFloat(options.minValue) : undefined;
 
     // Read and validate addresses
-    console.log(chalk.dim(`📄 Reading addresses from ${file}...`));
+    console.log(colors.muted(`Reading addresses from ${file}...`));
     const fileAddresses = readAddressesFromFile(file);
     const { valid: validAddresses, invalid: invalidAddresses } = validateAddresses(fileAddresses);
 
     if (invalidAddresses.length > 0) {
-        console.log(chalk.yellow(`⚠ Ignored ${invalidAddresses.length} invalid addresses`));
+        console.log(colors.warning(`Ignored ${invalidAddresses.length} invalid addresses`));
     }
 
     if (validAddresses.length === 0) {
-        console.error(chalk.red('✗ No valid addresses found in file'));
+        console.error(colors.error('Error: No valid addresses found in file'));
         process.exit(1);
     }
 
-    console.log(chalk.cyan(`\n🔍 Batch Wallet Analysis`));
-    console.log(chalk.dim(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`));
-    console.log(`Wallets: ${chalk.bold(validAddresses.length)}`);
-    console.log(`Chain: ${chalk.bold(chainId.toUpperCase())}`);
-    console.log(`Parallel: ${chalk.bold(parallel)}x`);
-    console.log(`Depth: ${chalk.bold(depth)}`);
+    console.log(colors.primary.bold('\nBatch Wallet Analysis'));
+    console.log(colors.border('═'.repeat(60)));
+    console.log(`Wallets: ${colors.secondary(validAddresses.length.toString())}`);
+    console.log(`Chain: ${colors.secondary(chainId.toUpperCase())}`);
+    console.log(`Parallel: ${colors.secondary(parallel.toString())}x`);
+    console.log(`Depth: ${colors.secondary(depth.toString())}`);
     console.log();
 
     const apiKeys = getApiKeys();
     if (!apiKeys.alchemy) {
-        console.error(chalk.red('✗ Alchemy API key required'));
-        console.log(chalk.dim('Run: fundtracer config --set-key alchemy:YOUR_KEY'));
+        console.error(colors.error('Error: Alchemy API key required'));
+        console.log(colors.muted('Run: fundtracer config --set-key alchemy:YOUR_KEY'));
         process.exit(1);
     }
 
@@ -86,8 +101,8 @@ export async function batchCommand(file: string, options: BatchOptions) {
 
     // Process in parallel batches
     const spinner = ora({
-        text: `Analyzing 0/${validAddresses.length} wallets...`,
-        color: 'cyan',
+        text: colors.secondary(`Analyzing 0/${validAddresses.length} wallets...`),
+        color: 'gray',
     }).start();
 
     try {
@@ -95,7 +110,7 @@ export async function batchCommand(file: string, options: BatchOptions) {
         for (let i = 0; i < validAddresses.length; i += parallel) {
             const batch = validAddresses.slice(i, i + parallel);
             
-            spinner.text = `Analyzing ${Math.min(i + batch.length, validAddresses.length)}/${validAddresses.length} wallets...`;
+            spinner.text = colors.secondary(`Analyzing ${Math.min(i + batch.length, validAddresses.length)}/${validAddresses.length} wallets...`);
 
             const batchPromises = batch.map(async (address) => {
                 const walletStart = Date.now();
@@ -132,7 +147,7 @@ export async function batchCommand(file: string, options: BatchOptions) {
         const successCount = results.filter(r => r.success).length;
         const failCount = results.length - successCount;
 
-        spinner.succeed(`Batch analysis complete! (${formatDuration(totalDuration)})`);
+        spinner.succeed(colors.success(`Batch analysis complete (${formatDuration(totalDuration)})`));
         console.log();
 
         // Output based on format
@@ -148,24 +163,27 @@ export async function batchCommand(file: string, options: BatchOptions) {
         }
 
         // Summary
-        console.log(chalk.bold.cyan('\n═══ Summary ═══\n'));
-        console.log(`Total: ${chalk.bold(results.length)} wallets`);
-        console.log(`Success: ${chalk.green.bold(successCount)}`);
+        console.log(colors.primary.bold('\nSummary'));
+        console.log(colors.border('─'.repeat(60)));
+        console.log(`Total: ${colors.primary(results.length.toString())} wallets`);
+        console.log(`Success: ${colors.success(successCount.toString())}`);
         if (failCount > 0) {
-            console.log(`Failed: ${chalk.red.bold(failCount)}`);
+            console.log(`Failed: ${colors.error(failCount.toString())}`);
         }
-        console.log(`Duration: ${chalk.bold(formatDuration(totalDuration))}`);
-        console.log(`Avg per wallet: ${chalk.bold(formatDuration(totalDuration / results.length))}`);
+        console.log(`Duration: ${colors.primary(formatDuration(totalDuration))}`);
+        console.log(`Avg per wallet: ${colors.primary(formatDuration(totalDuration / results.length))}`);
 
     } catch (error) {
-        spinner.fail('Batch analysis failed');
-        console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+        spinner.fail(colors.error('Batch analysis failed'));
+        console.error(colors.error(error instanceof Error ? error.message : 'Unknown error'));
         process.exit(1);
     }
 }
 
 function outputTable(results: BatchResult[], totalDuration: number) {
-    console.log(chalk.bold.cyan('═══ Analysis Results ═══\n'));
+    console.log(colors.primary.bold('Analysis Results'));
+    console.log(colors.border('═'.repeat(60)));
+    console.log();
 
     // Risk distribution
     const riskCounts = {
@@ -181,37 +199,51 @@ function outputTable(results: BatchResult[], totalDuration: number) {
         }
     });
 
-    console.log(chalk.bold('Risk Distribution:'));
+    console.log(colors.secondary.bold('Risk Distribution:'));
     const riskTable = new Table({
-        head: ['Risk Level', 'Count', 'Percentage'],
-        style: { head: ['cyan'] },
+        head: [colors.secondary('Risk Level'), colors.secondary('Count'), colors.secondary('Percentage')],
+        style: { head: ['gray'] },
+        chars: {
+            'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+            'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+            'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+            'right': '│', 'right-mid': '┤', 'middle': '│',
+        },
     });
 
     const total = results.filter(r => r.success).length;
     riskTable.push(
-        [chalk.red('🔴 Critical'), riskCounts.critical, `${((riskCounts.critical/total)*100).toFixed(1)}%`],
-        [chalk.red('🟠 High'), riskCounts.high, `${((riskCounts.high/total)*100).toFixed(1)}%`],
-        [chalk.yellow('🟡 Medium'), riskCounts.medium, `${((riskCounts.medium/total)*100).toFixed(1)}%`],
-        [chalk.green('🟢 Low'), riskCounts.low, `${((riskCounts.low/total)*100).toFixed(1)}%`],
+        [colors.error('Critical'), riskCounts.critical.toString(), `${((riskCounts.critical/total)*100).toFixed(1)}%`],
+        [colors.high('High'), riskCounts.high.toString(), `${((riskCounts.high/total)*100).toFixed(1)}%`],
+        [colors.medium('Medium'), riskCounts.medium.toString(), `${((riskCounts.medium/total)*100).toFixed(1)}%`],
+        [colors.low('Low'), riskCounts.low.toString(), `${((riskCounts.low/total)*100).toFixed(1)}%`],
     );
     console.log(riskTable.toString());
     console.log();
 
     // Individual results table
-    console.log(chalk.bold.cyan(`═══ Individual Results (${results.length}) ═══\n`));
+    console.log(colors.secondary.bold(`Individual Results (${results.length})`));
+    console.log(colors.border('─'.repeat(60)));
+    console.log();
     
     const resultsTable = new Table({
-        head: ['Address', 'Risk', 'Score', 'Txs', 'Duration', 'Status'],
-        style: { head: ['cyan'] },
+        head: [colors.secondary('Address'), colors.secondary('Risk'), colors.secondary('Score'), colors.secondary('Txs'), colors.secondary('Duration'), colors.secondary('Status')],
+        style: { head: ['gray'] },
         colWidths: [16, 10, 8, 8, 10, 10],
+        chars: {
+            'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+            'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+            'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+            'right': '│', 'right-mid': '┤', 'middle': '│',
+        },
     });
 
     results.forEach(r => {
         if (r.success && r.result) {
-            const riskColor = r.result.riskLevel === 'critical' ? chalk.bgRed.white :
-                             r.result.riskLevel === 'high' ? chalk.red :
-                             r.result.riskLevel === 'medium' ? chalk.yellow :
-                             chalk.green;
+            const riskColor = r.result.riskLevel === 'critical' ? colors.critical :
+                             r.result.riskLevel === 'high' ? colors.high :
+                             r.result.riskLevel === 'medium' ? colors.medium :
+                             colors.low;
             
             resultsTable.push([
                 formatAddress(r.address),
@@ -219,16 +251,16 @@ function outputTable(results: BatchResult[], totalDuration: number) {
                 r.result.overallRiskScore.toString(),
                 r.result.transactions.length.toString(),
                 formatDuration(r.duration),
-                chalk.green('✓'),
+                colors.success('OK'),
             ]);
         } else {
             resultsTable.push([
                 formatAddress(r.address),
-                chalk.gray('N/A'),
+                colors.muted('N/A'),
                 '-',
                 '-',
                 formatDuration(r.duration),
-                chalk.red('✗'),
+                colors.error('FAIL'),
             ]);
         }
     });
@@ -238,9 +270,11 @@ function outputTable(results: BatchResult[], totalDuration: number) {
     // Show failures if any
     const failures = results.filter(r => !r.success);
     if (failures.length > 0) {
-        console.log(chalk.bold.red(`\n═══ Failures (${failures.length}) ═══\n`));
+        console.log(colors.error.bold(`\nFailures (${failures.length})`));
+        console.log(colors.border('─'.repeat(60)));
+        console.log();
         failures.forEach(f => {
-            console.log(`${chalk.red('✗')} ${formatAddress(f.address)}: ${f.error}`);
+            console.log(`${colors.error('[FAIL]')} ${formatAddress(f.address)}: ${f.error}`);
         });
     }
 }
@@ -270,7 +304,7 @@ function outputJson(results: BatchResult[], exportPath?: string) {
 
     if (exportPath) {
         fs.writeFileSync(exportPath, jsonStr);
-        console.log(chalk.green(`✓ Results exported to ${exportPath}`));
+        console.log(colors.success(`Results exported to ${exportPath}`));
     } else {
         console.log(jsonStr);
     }
@@ -291,11 +325,11 @@ function outputCSV(results: BatchResult[], exportPath?: string) {
     }));
 
     if (rows.length === 0) {
-        console.log(chalk.yellow('⚠ No results to export'));
+        console.log(colors.warning('No results to export'));
         return;
     }
 
     exportToCSV(rows, filename);
-    console.log(chalk.green(`✓ Results exported to ${filename}`));
-    console.log(chalk.dim(`  ${rows.length} rows exported`));
+    console.log(colors.success(`Results exported to ${filename}`));
+    console.log(colors.muted(`  ${rows.length} rows exported`));
 }

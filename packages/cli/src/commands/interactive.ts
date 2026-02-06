@@ -11,28 +11,40 @@ import { compareCommand } from './compare.js';
 import { portfolioCommand } from './portfolio.js';
 import { batchCommand } from './batch.js';
 
+// Professional color scheme
+const colors = {
+    primary: chalk.hex('#888888'),
+    secondary: chalk.hex('#666666'),
+    accent: chalk.hex('#60a5fa'),
+    success: chalk.hex('#4ade80'),
+    warning: chalk.hex('#fbbf24'),
+    error: chalk.hex('#ef4444'),
+    muted: chalk.hex('#555555'),
+    border: chalk.hex('#333333'),
+};
+
 export async function interactiveCommand() {
     while (true) {
         const { action } = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'action',
-                message: chalk.cyan('>'),
+                message: colors.primary('>'),
                 prefix: '',
                 choices: [
-                    { name: '🔍 Analyze a wallet', value: 'analyze' },
-                    { name: '🎯 Compare wallets (Sybil detection)', value: 'compare' },
-                    { name: '🖼️  View NFT Portfolio', value: 'portfolio' },
-                    { name: '📊 Batch analyze from file', value: 'batch' },
-                    { name: '⚙️  Configure API keys', value: 'config' },
-                    { name: '❓ Help', value: 'help' },
-                    { name: '👋 Exit', value: 'exit' },
+                    { name: 'Analyze a wallet', value: 'analyze' },
+                    { name: 'Compare wallets (Sybil detection)', value: 'compare' },
+                    { name: 'View NFT Portfolio', value: 'portfolio' },
+                    { name: 'Batch analyze from file', value: 'batch' },
+                    { name: 'Configure API keys', value: 'config' },
+                    { name: 'Help', value: 'help' },
+                    { name: 'Exit', value: 'exit' },
                 ],
             },
         ]);
 
         if (action === 'exit') {
-            console.log(chalk.dim('\n👋 Session ended.\n'));
+            console.log(colors.muted('\nSession ended.\n'));
             process.exit(0);
         }
 
@@ -60,7 +72,7 @@ export async function interactiveCommand() {
                     break;
             }
         } catch (error) {
-            console.log(chalk.red(`\nError: ${error instanceof Error ? error.message : 'Unknown error'}\n`));
+            console.log(colors.error(`\nError: ${error instanceof Error ? error.message : 'Unknown error'}\n`));
         }
 
         console.log('');
@@ -69,26 +81,26 @@ export async function interactiveCommand() {
 
 function showHelp() {
     console.log(`
-${chalk.white.bold('FundTracer CLI - Available Commands:')}
+${colors.primary.bold('FundTracer CLI - Available Commands:')}
 
-  ${chalk.cyan('analyze <address>')}     Analyze a single wallet's funding sources
-  ${chalk.cyan('compare <addresses...>')} Compare wallets for Sybil patterns
-  ${chalk.cyan('portfolio <address>')}   View NFT collections and token balances
-  ${chalk.cyan('batch <file>')}          Analyze multiple wallets from a file
-  ${chalk.cyan('config')}                Configure API keys and settings
-  ${chalk.cyan('interactive')}           Start this interactive mode
+  ${colors.accent('analyze <address>')}     Analyze a single wallet's funding sources
+  ${colors.accent('compare <addresses...>')} Compare wallets for Sybil patterns
+  ${colors.accent('portfolio <address>')}   View NFT collections and token balances
+  ${colors.accent('batch <file>')}          Analyze multiple wallets from a file
+  ${colors.accent('config')}                Configure API keys and settings
+  ${colors.accent('interactive')}           Start this interactive mode
 
-${chalk.white.bold('Supported Chains:')}
-  • ethereum, linea, arbitrum, base, optimism, polygon
+${colors.primary.bold('Supported Chains:')}
+  ethereum, linea, arbitrum, base, optimism, polygon
 
-${chalk.white.bold('Detection Capabilities:')}
-  • Rapid fund movement (flash loans, MEV)
-  • Same-block transactions (bot activity)
-  • Circular fund flows (wash trading)
-  • Sybil farming patterns
-  • Fresh wallet detection
+${colors.primary.bold('Detection Capabilities:')}
+  - Rapid fund movement (flash loans, MEV)
+  - Same-block transactions (bot activity)
+  - Circular fund flows (wash trading)
+  - Sybil farming patterns
+  - Fresh wallet detection
 
-${chalk.dim('Documentation: https://github.com/Deji-Tech/fundtracer-by-dt')}
+${colors.muted('Documentation: https://github.com/Deji-Tech/fundtracer-by-dt')}
 `);
 }
 
@@ -130,10 +142,10 @@ async function interactiveAnalyze() {
             name: 'output',
             message: 'Output format:',
             choices: [
-                { name: '📋 Table - Easy to read', value: 'table' },
-                { name: '🌳 Tree - Visualize funding flow', value: 'tree' },
-                { name: '📄 JSON - Machine readable', value: 'json' },
-                { name: '📊 CSV - Spreadsheet format', value: 'csv' },
+                { name: 'Table - Easy to read', value: 'table' },
+                { name: 'Tree - Visualize funding flow', value: 'tree' },
+                { name: 'JSON - Machine readable', value: 'json' },
+                { name: 'CSV - Spreadsheet format', value: 'csv' },
             ],
         },
     ]);
@@ -150,7 +162,7 @@ async function interactiveCompare() {
     const chains = getEnabledChains();
     const addresses: string[] = [];
 
-    console.log(chalk.dim('Enter wallet addresses for Sybil detection (empty to finish):\n'));
+    console.log(colors.muted('Enter wallet addresses for Sybil detection (empty to finish):\n'));
 
     let i = 1;
     while (true) {
@@ -224,8 +236,8 @@ async function interactivePortfolio() {
             name: 'views',
             message: 'What to display:',
             choices: [
-                { name: '💰 Token balances', value: 'tokens', checked: true },
-                { name: '🖼️  NFTs', value: 'nfts' },
+                { name: 'Token balances', value: 'tokens', checked: true },
+                { name: 'NFTs', value: 'nfts' },
             ],
         },
         {
@@ -233,9 +245,9 @@ async function interactivePortfolio() {
             name: 'output',
             message: 'Output format:',
             choices: [
-                { name: '📋 Table - Easy to read', value: 'table' },
-                { name: '📄 JSON - Machine readable', value: 'json' },
-                { name: '📊 CSV - Spreadsheet format', value: 'csv' },
+                { name: 'Table - Easy to read', value: 'table' },
+                { name: 'JSON - Machine readable', value: 'json' },
+                { name: 'CSV - Spreadsheet format', value: 'csv' },
             ],
         },
     ]);
@@ -304,10 +316,10 @@ async function interactiveBatch() {
 
 async function interactiveConfig() {
     const providers = [
-        { name: '🔑 Alchemy (Primary RPC - Required)', value: 'alchemy' },
-        { name: '⚡ Moralis (10x faster funding trace)', value: 'moralis' },
-        { name: '📊 Dune (Fast contract analysis)', value: 'dune' },
-        { name: '🔍 Etherscan (Ethereum fallback)', value: 'etherscan' },
+        { name: 'Alchemy (Primary RPC - Required)', value: 'alchemy' },
+        { name: 'Moralis (10x faster funding trace)', value: 'moralis' },
+        { name: 'Dune (Fast contract analysis)', value: 'dune' },
+        { name: 'Etherscan (Ethereum fallback)', value: 'etherscan' },
     ];
 
     const { provider } = await inquirer.prompt([
