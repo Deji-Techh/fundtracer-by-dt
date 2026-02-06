@@ -1,29 +1,247 @@
-/* LandingNav styles */
+/* Landing Nav - Black, Ash, White, Grey Theme */
+
 .landing-nav {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  background-color: rgba(10, 10, 10, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #2a2a2a;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.desktop-nav {
+.landing-nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Logo */
+.landing-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.landing-logo:hover {
+  opacity: 0.8;
+}
+
+.landing-logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.landing-logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Desktop Navigation */
+.landing-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.landing-nav-link {
+  color: #888888;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.landing-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #ffffff;
+  transition: width 0.2s ease;
+}
+
+.landing-nav-link:hover {
+  color: #ffffff;
+}
+
+.landing-nav-link:hover::after {
+  width: 100%;
+}
+
+/* CTA Button */
+.landing-nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.landing-nav-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.mobile-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Mobile Menu */
+.mobile-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+  opacity: 0;
+}
+
+.mobile-menu-open {
+  max-height: 400px;
+  opacity: 1;
+}
+
+.mobile-menu-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mobile-menu-link {
+  color: #aaaaaa;
+  text-decoration: none;
+  font-size: 1.125rem;
+  font-weight: 500;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: translateX(-20px);
+  animation: slideIn 0.3s ease forwards;
+}
+
+.mobile-menu-open .mobile-menu-link {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.mobile-menu-link:hover {
+  color: #ffffff;
+  padding-left: 8px;
+}
+
+.mobile-menu-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeUp 0.3s ease 0.5s forwards;
+}
+
+.mobile-menu-open .mobile-menu-cta {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Animations */
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Display Utilities */
+.desktop-only {
   display: flex;
 }
 
-.mobile-menu-btn {
+.mobile-only {
   display: none;
 }
 
+/* Mobile Responsive */
 @media (max-width: 768px) {
-  .desktop-nav {
-    display: none;
+  .landing-nav-container {
+    padding: 12px 16px;
   }
-  
-  .mobile-menu-btn {
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: flex !important;
+  }
+
+  .mobile-menu {
     display: block;
+  }
+
+  .landing-logo-text {
+    font-size: 1.125rem;
+  }
+
+  .landing-logo-img {
+    width: 28px;
+    height: 28px;
   }
 }

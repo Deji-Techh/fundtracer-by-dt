@@ -1,0 +1,135 @@
+/* Terms & Privacy Pages - Black, Ash, White, Grey Theme */
+
+.terms-page,
+.privacy-page {
+  background: #000000;
+  min-height: 100vh;
+}
+
+.terms-hero,
+.privacy-hero {
+  padding: 120px 24px 60px;
+  text-align: center;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+}
+
+.terms-label,
+.privacy-label {
+  display: inline-block;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #888888;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+}
+
+.terms-title,
+.privacy-title {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.terms-subtitle,
+.privacy-subtitle {
+  font-size: 1rem;
+  color: #888888;
+}
+
+/* Content */
+.terms-content,
+.privacy-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 60px 24px 100px;
+  background: #0a0a0a;
+}
+
+.terms-section,
+.privacy-section {
+  margin-bottom: 48px;
+}
+
+.terms-section:last-child,
+.privacy-section:last-child {
+  margin-bottom: 0;
+}
+
+.terms-section h2,
+.privacy-section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 16px;
+}
+
+.terms-section p,
+.privacy-section p {
+  font-size: 1rem;
+  color: #888888;
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+
+.terms-section ul,
+.privacy-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.terms-section li,
+.privacy-section li {
+  font-size: 1rem;
+  color: #888888;
+  line-height: 1.8;
+  margin-bottom: 12px;
+  padding-left: 24px;
+  position: relative;
+}
+
+.terms-section li::before,
+.privacy-section li::before {
+  content: '◆';
+  position: absolute;
+  left: 0;
+  color: #666666;
+  font-size: 0.5rem;
+  top: 8px;
+}
+
+.terms-section strong,
+.privacy-section strong {
+  color: #aaaaaa;
+  font-weight: 600;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .terms-hero,
+  .privacy-hero {
+    padding: 100px 16px 48px;
+  }
+
+  .terms-title,
+  .privacy-title {
+    font-size: 2rem;
+  }
+
+  .terms-content,
+  .privacy-content {
+    padding: 48px 16px 80px;
+  }
+
+  .terms-section h2,
+  .privacy-section h2 {
+    font-size: 1.25rem;
+  }
+}

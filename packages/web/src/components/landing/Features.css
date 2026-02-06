@@ -1,6 +1,19 @@
+/* Features Section - Black, Ash, White, Grey Theme */
+
 .features-section {
   padding: 120px 24px;
-  background: #0a0a0a;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  position: relative;
+}
+
+.features-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
 }
 
 .features-container {
@@ -8,22 +21,24 @@
   margin: 0 auto;
 }
 
+/* Header */
 .features-header {
   text-align: center;
   margin-bottom: 64px;
+  animation: fadeInUp 0.8s ease-out;
 }
 
 .features-label {
   display: inline-block;
   padding: 6px 12px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #3b82f6;
+  color: #888888;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   margin-bottom: 16px;
 }
 
@@ -33,28 +48,31 @@
   color: #ffffff;
   margin-bottom: 16px;
   line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .features-subtitle {
   font-size: 1.125rem;
-  color: #9ca3af;
+  color: #666666;
   max-width: 600px;
   margin: 0 auto;
 }
 
+/* Features Grid */
 .features-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   margin-bottom: 48px;
+  animation: fadeInUp 0.8s ease-out 0.2s backwards;
 }
 
 .feature-card {
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 32px;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
@@ -65,16 +83,16 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: var(--feature-color);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
   transform: scaleX(0);
-  transition: transform 0.3s ease;
+  transition: transform 0.4s ease;
 }
 
 .feature-card:hover {
   transform: translateY(-4px);
-  border-color: var(--feature-color);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .feature-card:hover::before {
@@ -89,6 +107,15 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover .feature-icon-wrapper {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .feature-title {
@@ -100,7 +127,7 @@
 
 .feature-description {
   font-size: 1rem;
-  color: #9ca3af;
+  color: #888888;
   line-height: 1.6;
   margin-bottom: 24px;
 }
@@ -116,7 +143,7 @@
   align-items: center;
   gap: 10px;
   font-size: 0.875rem;
-  color: #d1d5db;
+  color: #aaaaaa;
   margin-bottom: 10px;
 }
 
@@ -124,19 +151,50 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: #666666;
   flex-shrink: 0;
 }
 
+/* CTA */
 .features-cta {
   text-align: center;
+  animation: fadeInUp 0.8s ease-out 0.4s backwards;
 }
 
-.features-cta .btn {
+.features-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding: 14px 28px;
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
+.features-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Responsive */
 @media (max-width: 768px) {
   .features-section {
     padding: 80px 16px;
@@ -146,11 +204,42 @@
     font-size: 2rem;
   }
 
+  .features-subtitle {
+    font-size: 1rem;
+  }
+
   .features-grid {
     grid-template-columns: 1fr;
   }
 
   .feature-card {
     padding: 24px;
+  }
+
+  .feature-icon-wrapper {
+    width: 48px;
+    height: 48px;
+  }
+
+  .feature-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .features-section {
+    padding: 60px 12px;
+  }
+
+  .features-title {
+    font-size: 1.75rem;
+  }
+
+  .features-grid {
+    gap: 16px;
+  }
+
+  .feature-card {
+    padding: 20px;
   }
 }

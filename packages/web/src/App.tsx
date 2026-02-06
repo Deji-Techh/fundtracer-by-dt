@@ -117,7 +117,7 @@ function App() {
         console.log('[App] Rendering landing page');
         return (
           <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh' }}>
-            <LandingPage onLaunchApp={() => setActiveTab('explorer')} />
+            <LandingPage onLaunchApp={() => setActiveTab('sybil')} />
           </div>
         );
       
@@ -212,8 +212,8 @@ function App() {
 
       {renderMainContent()}
 
-      {/* Footer - Hidden on landing page */}
-      {activeTab !== 'home' && (
+      {/* Footer - Hidden on landing page and sybil page */}
+      {activeTab !== 'home' && activeTab !== 'sybil' && (
         <footer style={{
           padding: 24,
           textAlign: 'center',

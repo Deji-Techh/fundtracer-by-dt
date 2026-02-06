@@ -1,0 +1,264 @@
+/* How It Works Page - Black, Ash, White, Grey Theme */
+
+.how-it-works-page {
+  background: #000000;
+  min-height: 100vh;
+}
+
+.how-hero {
+  padding: 120px 24px 80px;
+  text-align: center;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+}
+
+.how-label {
+  display: inline-block;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #888888;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+}
+
+.how-title {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.how-subtitle {
+  font-size: 1.125rem;
+  color: #888888;
+}
+
+/* Steps */
+.how-steps {
+  padding: 80px 24px;
+  background: #0a0a0a;
+}
+
+.how-steps-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.how-step {
+  position: relative;
+  padding-left: 80px;
+  margin-bottom: 48px;
+}
+
+.how-step:last-child {
+  margin-bottom: 0;
+}
+
+.how-step-number {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 3rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.1);
+  line-height: 1;
+}
+
+.how-step-content {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 32px;
+  transition: all 0.3s ease;
+}
+
+.how-step-content:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateX(8px);
+}
+
+.how-step-icon {
+  color: #888888;
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+}
+
+.how-step-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.how-step-description {
+  font-size: 1rem;
+  color: #888888;
+  line-height: 1.7;
+}
+
+.how-step-connector {
+  position: absolute;
+  left: 40px;
+  top: 80px;
+  bottom: -24px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.1), transparent);
+}
+
+/* Video Section */
+.how-video {
+  padding: 80px 24px;
+  background: #000000;
+  text-align: center;
+}
+
+.how-section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 48px;
+}
+
+.how-video-placeholder {
+  max-width: 800px;
+  margin: 0 auto;
+  aspect-ratio: 16/9;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.how-video-content {
+  text-align: center;
+}
+
+.how-video-icon {
+  font-size: 4rem;
+  color: #666666;
+  margin-bottom: 16px;
+}
+
+.how-video-content p {
+  color: #888888;
+}
+
+/* Use Cases */
+.how-use-cases {
+  padding: 80px 24px;
+  background: #0a0a0a;
+}
+
+.how-use-cases-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.how-use-case-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 32px;
+  transition: all 0.3s ease;
+}
+
+.how-use-case-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.how-use-case-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+
+.how-use-case-description {
+  font-size: 0.875rem;
+  color: #888888;
+  line-height: 1.6;
+}
+
+/* CTA */
+.how-cta {
+  text-align: center;
+  padding: 80px 24px;
+  background: #000000;
+}
+
+.how-cta h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 24px;
+}
+
+.how-cta-button {
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+  color: #000000;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.how-cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .how-hero {
+    padding: 100px 16px 60px;
+  }
+
+  .how-title {
+    font-size: 2rem;
+  }
+
+  .how-step {
+    padding-left: 60px;
+  }
+
+  .how-step-number {
+    font-size: 2rem;
+  }
+
+  .how-step-content {
+    padding: 24px;
+  }
+
+  .how-step-title {
+    font-size: 1.25rem;
+  }
+
+  .how-step-connector {
+    left: 30px;
+  }
+
+  .how-use-cases-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .how-steps,
+  .how-video,
+  .how-use-cases,
+  .how-cta {
+    padding: 60px 16px;
+  }
+}
