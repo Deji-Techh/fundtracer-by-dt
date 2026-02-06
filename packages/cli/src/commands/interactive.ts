@@ -11,8 +11,29 @@ import { compareCommand } from './compare.js';
 import { portfolioCommand } from './portfolio.js';
 import { batchCommand } from './batch.js';
 import { db } from '../database.js';
-import { colors, animatedBanner, glassBox, dashboardWidget, pulse, rainbow, clearScreen } from '../animations.js';
 import { setTimeout } from 'timers/promises';
+
+// Professional color scheme - old style
+const colors = {
+    primary: chalk.hex('#888888'),
+    secondary: chalk.hex('#666666'),
+    accent: chalk.hex('#60a5fa'),
+    success: chalk.hex('#4ade80'),
+    warning: chalk.hex('#fbbf24'),
+    error: chalk.hex('#ef4444'),
+    muted: chalk.hex('#555555'),
+    border: chalk.hex('#333333'),
+    gray: {
+        100: chalk.hex('#f5f5f5'),
+        300: chalk.hex('#d4d4d4'),
+        400: chalk.hex('#a3a3a3'),
+        500: chalk.hex('#737373'),
+        600: chalk.hex('#525252'),
+        700: chalk.hex('#404040'),
+        800: chalk.hex('#262626'),
+        900: chalk.hex('#171717'),
+    }
+};
 
 // Constants
 const BACK_VALUE = '__BACK__';
@@ -23,17 +44,77 @@ const FAVORITES_VALUE = '__FAVORITES__';
 const WATCH_VALUE = '__WATCH__';
 
 // Helper functions for menu options
-const createBackOption = () => ({ name: colors.gray500('[Back]'), value: BACK_VALUE });
-const createCancelOption = () => ({ name: colors.gray500('[Cancel]'), value: CANCEL_VALUE });
-const createMainMenuOption = () => ({ name: colors.gray500('[Main Menu]'), value: MAIN_MENU_VALUE });
-const createHistoryOption = () => ({ name: colors.cyan('📜 History'), value: HISTORY_VALUE });
-const createFavoritesOption = () => ({ name: colors.yellow('⭐ Favorites'), value: FAVORITES_VALUE });
-const createWatchOption = () => ({ name: colors.purple('👁 Watch Mode'), value: WATCH_VALUE });
+const createBackOption = () => ({ name: colors.muted('[Back]'), value: BACK_VALUE });
+const createCancelOption = () => ({ name: colors.muted('[Cancel]'), value: CANCEL_VALUE });
+const createMainMenuOption = () => ({ name: colors.muted('[Main Menu]'), value: MAIN_MENU_VALUE });
+const createHistoryOption = () => ({ name: colors.primary('History'), value: HISTORY_VALUE });
+const createFavoritesOption = () => ({ name: colors.primary('Favorites'), value: FAVORITES_VALUE });
+const createWatchOption = () => ({ name: colors.primary('Watch Mode'), value: WATCH_VALUE });
+
+// Simple banner without emojis
+function simpleBanner(): string {
+    return `
+${colors.gray[700]('  ███████╗██╗   ██╗███╗   ██╗██████╗ ████████╗██████╗  █████╗  ██████╗███████╗██████╗ ')}
+${colors.gray[700]('  ██╔════╝██║   ██║████╗  ██║██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██╔════╝██╔══██╗')}
+${colors.gray[700]('  █████╗  ██║   ██║██╔██╗ ██║██║  ██║   ██║   ██████╔╝███████║██║     █████╗  ██████╔╝')}
+${colors.gray[700]('  ██╔══╝  ██║   ██║██║╚██╗██║██║  ██║   ██║   ██╔══██╗██╔══██║██║     ██╔══╝  ██╔══██╗')}
+${colors.gray[700]('  ██║     ╚██████╔╝██║ ╚████║██████╔╝   ██║   ██║  ██║██║  ██║╚██████╗███████╗██║  ██║')}
+${colors.gray[700]('  ╚═╝      ╚═════╝ ╚═╝  ╚═══╝╚═════╝    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚═╝  ╚═╝')}
+`;
+}
+
+// Glass box for content
+function glassBox(content: string[], title?: string): string {
+    const width = Math.max(...content.map(line => line.length), 60);
+    const horizontal = '─'.repeat(width + 4);
+    
+    let box = '';
+    
+    if (title) {
+        const titleStr = ` ${title} `;
+        const left = Math.floor((width + 4 - titleStr.length) / 2);
+        const right = width + 4 - left - titleStr.length;
+        box += colors.gray[500]('┌' + '─'.repeat(left) + titleStr + '─'.repeat(right) + '┐') + '\n';
+    } else {
+        box += colors.border('┌' + horizontal + '┐') + '\n';
+    }
+    
+    content.forEach(line => {
+        const padding = ' '.repeat(width - line.length);
+        box += colors.border('│ ') + line + padding + colors.border(' │') + '\n';
+    });
+    
+    box += colors.border('└' + horizontal + '┘');
+    
+    return box;
+}
+
+// Dashboard widget
+function dashboardWidget(title: string, items: Array<{label: string, value: string}>): string {
+    const maxLabel = Math.max(...items.map(i => i.label.length));
+    const maxValue = Math.max(...items.map(i => i.value.length));
+    const width = maxLabel + maxValue + 6;
+    
+    let widget = colors.gray[500]('┌' + '─'.repeat(width - 2) + '┐') + '\n';
+    widget += colors.gray[500]('│ ') + colors.gray[300](title.padEnd(width - 4)) + colors.gray[500](' │') + '\n';
+    widget += colors.gray[500]('├' + '─'.repeat(width - 2) + '┤') + '\n';
+    
+    items.forEach(item => {
+        const line = `${item.label.padEnd(maxLabel)} : ${colors.primary(item.value.padEnd(maxValue))}`;
+        widget += colors.gray[500]('│ ') + line.padEnd(width - 4) + colors.gray[500](' │') + '\n';
+    });
+    
+    widget += colors.gray[500]('└' + '─'.repeat(width - 2) + '┘');
+    return widget;
+}
+
+// Clear screen
+function clearScreen(): void {
+    console.clear();
+    console.log('\n');
+}
 
 export async function interactiveCommand() {
-    // Show animated intro on first run
-    await showAnimatedIntro();
-    
     while (true) {
         try {
             // Clear screen and show dashboard
@@ -44,29 +125,29 @@ export async function interactiveCommand() {
                 {
                     type: 'list',
                     name: 'action',
-                    message: colors.cyan('>'),
+                    message: colors.primary('>'),
                     prefix: '',
                     pageSize: 15,
                     choices: [
-                        new inquirer.Separator(colors.gray500('── Quick Access ──')),
+                        new inquirer.Separator(colors.muted('── Quick Access ──')),
                         createHistoryOption(),
                         createFavoritesOption(),
-                        new inquirer.Separator(colors.gray500('── Analysis ──')),
-                        { name: colors.green('🔍 Analyze a wallet'), value: 'analyze' },
-                        { name: colors.blue('📊 Compare wallets'), value: 'compare' },
-                        { name: colors.purple('🖼 View Portfolio'), value: 'portfolio' },
-                        { name: colors.yellow('📁 Batch analysis'), value: 'batch' },
-                        new inquirer.Separator(colors.gray500('── Tools ──')),
+                        new inquirer.Separator(colors.muted('── Analysis ──')),
+                        { name: colors.primary('Analyze a wallet'), value: 'analyze' },
+                        { name: colors.primary('Compare wallets'), value: 'compare' },
+                        { name: colors.primary('View Portfolio'), value: 'portfolio' },
+                        { name: colors.primary('Batch analysis'), value: 'batch' },
+                        new inquirer.Separator(colors.muted('── Tools ──')),
                         createWatchOption(),
-                        { name: colors.gray400('⚙  Configure API keys'), value: 'config' },
-                        { name: colors.gray400('❓ Help'), value: 'help' },
-                        { name: colors.red('🚪 Exit'), value: 'exit' },
+                        { name: colors.muted('Configure API keys'), value: 'config' },
+                        { name: colors.muted('Help'), value: 'help' },
+                        { name: colors.error('Exit'), value: 'exit' },
                     ],
                 },
             ]);
 
             if (action === 'exit') {
-                await showAnimatedOutro();
+                console.log(colors.muted('\nSession ended.\n'));
                 process.exit(0);
             }
 
@@ -112,11 +193,11 @@ export async function interactiveCommand() {
         } catch (error: any) {
             // Handle cancellation gracefully
             if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
-                console.log(colors.gray500('\n[Cancelled]'));
+                console.log(colors.muted('\n[Cancelled]'));
                 await setTimeout(500);
                 continue;
             }
-            console.log(colors.red(`\n[Error: ${error?.message || 'Unknown error'}]\n`));
+            console.log(colors.error(`\n[Error: ${error?.message || 'Unknown error'}]\n`));
             await setTimeout(1000);
         }
 
@@ -124,53 +205,21 @@ export async function interactiveCommand() {
     }
 }
 
-async function showAnimatedIntro() {
-    console.clear();
-    console.log('\n');
-    console.log(animatedBanner());
-    console.log('\n');
-    
-    // Typewriter effect for subtitle
-    const subtitle = '     Blockchain Wallet Forensics & Analysis Tool';
-    for (const char of subtitle) {
-        process.stdout.write(colors.gray400(char));
-        await setTimeout(20);
-    }
-    console.log('\n');
-    await setTimeout(500);
-    
-    // Loading animation
-    const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧'];
-    for (let i = 0; i < 16; i++) {
-        process.stdout.write(`\r${colors.cyan(frames[i % frames.length])} ${colors.gray500('Initializing...')}`);
-        await setTimeout(100);
-    }
-    console.log('\n');
-}
-
-async function showAnimatedOutro() {
-    console.clear();
-    console.log('\n');
-    console.log(colors.gray500('Thank you for using'));
-    console.log(animatedBanner());
-    console.log(colors.gray500('\n     Session ended. Goodbye!\n'));
-    await setTimeout(500);
-}
-
 async function showDashboard() {
     // Get stats from database
     const history = db.getHistory(5);
     const favorites = db.getFavorites();
     
-    console.log(animatedBanner());
+    console.log(simpleBanner());
+    console.log(colors.gray[400]('                              Blockchain Wallet Forensics & Analysis Tool'));
     console.log('\n');
     
     // Provider Status Widget
     const apiKeys = getApiKeys();
     console.log(dashboardWidget('Provider Status', [
-        { label: 'Alchemy', value: apiKeys.alchemy ? '✓ Connected' : '✗ Not Configured', status: apiKeys.alchemy ? 'good' : 'bad' },
-        { label: 'Moralis', value: apiKeys.moralis ? '✓ Connected' : '— Optional', status: apiKeys.moralis ? 'good' : undefined },
-        { label: 'Dune', value: apiKeys.dune ? '✓ Connected' : '— Optional', status: apiKeys.dune ? 'good' : undefined },
+        { label: 'Alchemy', value: apiKeys.alchemy ? '[OK] Connected' : '[--] Not Configured' },
+        { label: 'Moralis', value: apiKeys.moralis ? '[OK] Connected' : '[--] Optional' },
+        { label: 'Dune', value: apiKeys.dune ? '[OK] Connected' : '[--] Optional' },
     ]));
     
     console.log('');
@@ -180,7 +229,6 @@ async function showDashboard() {
         const recentItems = history.slice(0, 3).map(h => ({
             label: h.address.slice(0, 12) + '...',
             value: new Date(h.timestamp * 1000).toLocaleDateString(),
-            status: h.risk_score && h.risk_score > 50 ? 'warn' : 'good'
         }));
         
         console.log(dashboardWidget('Recent Activity', recentItems));
@@ -201,17 +249,17 @@ async function showHelp() {
     console.clear();
     console.log('\n');
     console.log(glassBox([
-        colors.gray300.bold('FundTracer CLI Commands:'),
+        colors.gray[300].bold('FundTracer CLI Commands:'),
         '',
-        `${colors.cyan('analyze')}     Analyze a single wallet's funding sources`,
-        `${colors.cyan('compare')}     Compare wallets for Sybil patterns`,
-        `${colors.cyan('portfolio')}   View NFT collections and token balances`,
-        `${colors.cyan('batch')}       Analyze multiple wallets from a file`,
-        `${colors.cyan('watch')}       Monitor a wallet with auto-refresh`,
-        `${colors.cyan('history')}     View recently analyzed wallets`,
-        `${colors.cyan('favorites')}   Manage bookmarked wallets`,
+        `${colors.primary('analyze')}     Analyze a single wallet's funding sources`,
+        `${colors.primary('compare')}     Compare wallets for Sybil patterns`,
+        `${colors.primary('portfolio')}   View NFT collections and token balances`,
+        `${colors.primary('batch')}       Analyze multiple wallets from a file`,
+        `${colors.primary('watch')}       Monitor a wallet with auto-refresh`,
+        `${colors.primary('history')}     View recently analyzed wallets`,
+        `${colors.primary('favorites')}   Manage bookmarked wallets`,
         '',
-        colors.gray300.bold('Navigation:'),
+        colors.gray[300].bold('Navigation:'),
         '• Use [Back] to return to previous step',
         '• Use [Cancel] to return to main menu',
         '• Use [Main Menu] from any sub-menu',
@@ -221,7 +269,7 @@ async function showHelp() {
     await inquirer.prompt([{
         type: 'input',
         name: 'continue',
-        message: colors.gray500('Press Enter to continue...'),
+        message: colors.muted('Press Enter to continue...'),
     }]);
 }
 
@@ -229,7 +277,7 @@ async function showHistory() {
     const history = db.getHistory(20);
     
     if (history.length === 0) {
-        console.log(colors.gray500('\nNo history yet. Analyze some wallets first!\n'));
+        console.log(colors.muted('\nNo history yet. Analyze some wallets first!\n'));
         await setTimeout(1500);
         return;
     }
@@ -239,14 +287,14 @@ async function showHistory() {
     console.log('');
     
     const choices: any[] = history.map((h, idx) => ({
-        name: `${idx + 1}. ${colors.gray400(h.address.slice(0, 16))}... [${h.chain}] - ${new Date(h.timestamp * 1000).toLocaleDateString()}`,
+        name: `${idx + 1}. ${colors.muted(h.address.slice(0, 16))}... [${h.chain}] - ${new Date(h.timestamp * 1000).toLocaleDateString()}`,
         value: h.address,
         short: h.address,
     }));
     
     choices.push(new inquirer.Separator());
     choices.push(createBackOption());
-    choices.push({ name: colors.red('Clear History'), value: '__CLEAR_HISTORY__', short: 'Clear History' });
+    choices.push({ name: colors.error('Clear History'), value: '__CLEAR_HISTORY__', short: 'Clear History' });
     
     const { selected } = await inquirer.prompt([{
         type: 'list',
@@ -262,13 +310,13 @@ async function showHistory() {
         const { confirm } = await inquirer.prompt([{
             type: 'confirm',
             name: 'confirm',
-            message: colors.red('Clear all history?'),
+            message: colors.error('Clear all history?'),
             default: false,
         }]);
         
         if (confirm) {
             db.clearHistory();
-            console.log(colors.green('\n✓ History cleared\n'));
+            console.log(colors.success('\nHistory cleared\n'));
             await setTimeout(1000);
         }
         return;
@@ -286,10 +334,10 @@ async function showFavorites() {
     console.log('');
     
     if (favorites.length === 0) {
-        console.log(colors.gray500('No favorites yet. Add some from the analysis results!\n'));
+        console.log(colors.muted('No favorites yet. Add some from the analysis results!\n'));
     } else {
         const choices: any[] = favorites.map((f, idx) => ({
-            name: `${idx + 1}. ${colors.yellow(f.name || 'Unnamed')} ${colors.gray400(f.address.slice(0, 16))}... [${f.chain}]`,
+            name: `${idx + 1}. ${colors.primary(f.name || 'Unnamed')} ${colors.muted(f.address.slice(0, 16))}... [${f.chain}]`,
             value: f.address,
             short: f.address,
         }));
@@ -320,7 +368,7 @@ async function showFavorites() {
 async function interactiveWatch() {
     console.clear();
     console.log(glassBox([
-        colors.purple('👁 Watch Mode'),
+        colors.primary('Watch Mode'),
         '',
         'Monitor a wallet with automatic refresh every 2 minutes',
         'Press Ctrl+C to stop watching',
@@ -366,27 +414,27 @@ async function interactiveWatch() {
     }
     
     console.clear();
-    console.log(colors.purple(`\n👁 Watching ${address.slice(0, 12)}... on ${chain}`));
-    console.log(colors.gray500('Refreshing every 2 minutes. Press Ctrl+C to stop.\n'));
+    console.log(colors.primary(`\nWatching ${address.slice(0, 12)}... on ${chain}`));
+    console.log(colors.muted('Refreshing every 2 minutes. Press Ctrl+C to stop.\n'));
     
     let iteration = 0;
     while (true) {
         iteration++;
-        console.log(colors.gray500(`\n[${new Date().toLocaleTimeString()}] Update #${iteration}`));
-        console.log(colors.gray500('─'.repeat(60)));
+        console.log(colors.muted(`\n[${new Date().toLocaleTimeString()}] Update #${iteration}`));
+        console.log(colors.muted('─'.repeat(60)));
         
         try {
             await analyzeCommand(address, { chain, depth: '2', output: 'table' });
             db.addToHistory(address, chain, 'watch');
         } catch (e) {
-            console.log(colors.red('Failed to fetch update'));
+            console.log(colors.error('Failed to fetch update'));
         }
         
-        console.log(colors.gray500(`\nNext update in 2 minutes...`));
+        console.log(colors.muted(`\nNext update in 2 minutes...`));
         
         // Countdown
         for (let i = 120; i > 0; i--) {
-            process.stdout.write(`\r${colors.gray500(`⏱ ${Math.floor(i / 60)}:${(i % 60).toString().padStart(2, '0')} remaining... Press Ctrl+C to stop`)}`);
+            process.stdout.write(`\r${colors.muted(`[${Math.floor(i / 60)}:${(i % 60).toString().padStart(2, '0')} remaining... Press Ctrl+C to stop]`)}`);
             await setTimeout(1000);
         }
         console.log('\n');
@@ -402,10 +450,10 @@ async function interactiveAnalyze() {
     
     // Show suggestions first
     if (history.length > 0 || favorites.length > 0) {
-        const suggestions = [
-            ...(favorites.length > 0 ? [{ name: colors.yellow('⭐ From Favorites...'), value: '__FROM_FAVORITES__' }] : []),
-            ...(history.length > 0 ? [{ name: colors.cyan('📜 From History...'), value: '__FROM_HISTORY__' }] : []),
-            { name: colors.green('✏ Enter New Address'), value: '__NEW_ADDRESS__' },
+        const suggestions: any[] = [
+            ...(favorites.length > 0 ? [{ name: colors.primary('From Favorites...'), value: '__FROM_FAVORITES__' }] : []),
+            ...(history.length > 0 ? [{ name: colors.primary('From History...'), value: '__FROM_HISTORY__' }] : []),
+            { name: colors.success('Enter New Address'), value: '__NEW_ADDRESS__' },
             createBackOption(),
         ];
         
@@ -517,10 +565,10 @@ async function interactiveAnalyzeWithAddress(address: string, defaultChain?: str
             name: 'value',
             message: 'Analysis depth:',
             choices: [
-                { name: colors.gray400('1 - Quick scan'), value: '1' },
-                { name: colors.gray400('2 - Standard'), value: '2' },
-                { name: colors.green('3 - Deep (recommended)'), value: '3' },
-                { name: colors.yellow('5 - Very deep'), value: '5' },
+                { name: colors.muted('1 - Quick scan'), value: '1' },
+                { name: colors.muted('2 - Standard'), value: '2' },
+                { name: colors.primary('3 - Deep (recommended)'), value: '3' },
+                { name: colors.warning('5 - Very deep'), value: '5' },
                 createBackOption(),
                 createCancelOption(),
             ],
@@ -542,10 +590,10 @@ async function interactiveAnalyzeWithAddress(address: string, defaultChain?: str
             name: 'value',
             message: 'Output format:',
             choices: [
-                { name: colors.cyan('Table'), value: 'table' },
-                { name: colors.green('Tree'), value: 'tree' },
-                { name: colors.yellow('JSON'), value: 'json' },
-                { name: colors.purple('CSV'), value: 'csv' },
+                { name: colors.primary('Table'), value: 'table' },
+                { name: colors.success('Tree'), value: 'tree' },
+                { name: colors.warning('JSON'), value: 'json' },
+                { name: colors.accent('CSV'), value: 'csv' },
                 createBackOption(),
                 createCancelOption(),
             ],
@@ -576,7 +624,7 @@ async function interactiveAnalyzeWithAddress(address: string, defaultChain?: str
                     message: 'Name for this wallet:',
                 }]);
                 db.addFavorite(address, name || undefined, chain);
-                console.log(colors.green('✓ Added to favorites\n'));
+                console.log(colors.success('Added to favorites\n'));
             }
         } catch (e) {
             // Ignore
@@ -644,8 +692,8 @@ async function interactivePortfolio() {
             name: 'value',
             message: 'What to display:',
             choices: [
-                { name: colors.cyan('Token balances'), value: 'tokens', checked: true },
-                { name: colors.purple('NFTs'), value: 'nfts' },
+                { name: colors.primary('Token balances'), value: 'tokens', checked: true },
+                { name: colors.accent('NFTs'), value: 'nfts' },
             ],
         }]);
         views = result.value;
@@ -661,9 +709,9 @@ async function interactivePortfolio() {
             name: 'value',
             message: 'Output format:',
             choices: [
-                { name: colors.cyan('Table'), value: 'table' },
-                { name: colors.yellow('JSON'), value: 'json' },
-                { name: colors.purple('CSV'), value: 'csv' },
+                { name: colors.primary('Table'), value: 'table' },
+                { name: colors.warning('JSON'), value: 'json' },
+                { name: colors.accent('CSV'), value: 'csv' },
                 createBackOption(),
                 createCancelOption(),
             ],
@@ -690,7 +738,7 @@ async function interactiveCompare() {
     const chains = getEnabledChains();
     const addresses: string[] = [];
 
-    console.log(colors.gray500('\nEnter wallet addresses for Sybil detection\n'));
+    console.log(colors.muted('\nEnter wallet addresses for Sybil detection\n'));
 
     // Collect addresses
     while (true) {
@@ -703,8 +751,8 @@ async function interactiveCompare() {
                 name: 'value',
                 message: `Wallet #${promptNum}:`,
                 choices: [
-                    { name: colors.cyan('Enter address'), value: 'enter' },
-                    ...(addresses.length >= 2 ? [{ name: colors.green('Continue'), value: 'continue' }] : []),
+                    { name: colors.primary('Enter address'), value: 'enter' },
+                    ...(addresses.length >= 2 ? [{ name: colors.success('Continue'), value: 'continue' }] : []),
                     ...(addresses.length > 0 ? [createBackOption()] : []),
                     createCancelOption(),
                 ],
@@ -740,7 +788,7 @@ async function interactiveCompare() {
                 },
             }]);
             addresses.push(result.value);
-            console.log(colors.green(`  ✓ Added`));
+            console.log(colors.success('  Added'));
         } catch (e) {
             return;
         }
@@ -826,9 +874,9 @@ async function interactiveBatch() {
             name: 'value',
             message: 'Analysis depth:',
             choices: [
-                { name: colors.gray400('1 - Quick scan'), value: '1' },
-                { name: colors.gray400('2 - Standard'), value: '2' },
-                { name: colors.green('3 - Deep'), value: '3' },
+                { name: colors.muted('1 - Quick scan'), value: '1' },
+                { name: colors.muted('2 - Standard'), value: '2' },
+                { name: colors.primary('3 - Deep'), value: '3' },
                 createBackOption(),
                 createCancelOption(),
             ],
@@ -877,10 +925,10 @@ async function interactiveBatch() {
 
 async function interactiveConfig() {
     const providers = [
-        { name: colors.cyan('Alchemy'), value: 'alchemy', desc: 'Primary RPC' },
-        { name: colors.purple('Moralis'), value: 'moralis', desc: 'Fast Funding' },
-        { name: colors.yellow('Dune'), value: 'dune', desc: 'Contract Analysis' },
-        { name: colors.gray400('Etherscan'), value: 'etherscan', desc: 'Ethereum' },
+        { name: colors.primary('Alchemy'), value: 'alchemy', desc: 'Primary RPC' },
+        { name: colors.accent('Moralis'), value: 'moralis', desc: 'Fast Funding' },
+        { name: colors.warning('Dune'), value: 'dune', desc: 'Contract Analysis' },
+        { name: colors.muted('Etherscan'), value: 'etherscan', desc: 'Ethereum' },
         createCancelOption(),
     ];
 
