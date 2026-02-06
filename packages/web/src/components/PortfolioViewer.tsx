@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, Coins, Image, RefreshCw, TrendingUp, AlertCircle, Clock } from 'lucide-react';
-import { collection, doc, setDoc, getFirestore } from 'firebase/firestore';
-import { getApp } from 'firebase/app';
 import './PortfolioViewer.css';
 
 // API Keys from environment variables
@@ -364,33 +362,29 @@ export const PortfolioViewer = React.memo(function PortfolioViewer({
     }
   };
 
-  // Save portfolio snapshot to Firebase (with fallback if Firebase not initialized)
-  const savePortfolioSnapshot = async (data: PortfolioData) => {
-    try {
-      // Check if Firebase is initialized
-      const app = getApp();
-      if (!app) {
-        console.warn('[Portfolio] Firebase not initialized, skipping snapshot');
-        return;
-      }
-      
-      // Get Firestore instance
-      const db = getFirestore(app);
-      const snapshotRef = doc(collection(db, 'portfolio_snapshots'), `${walletAddress}_${Date.now()}`);
-      await setDoc(snapshotRef, {
-        address: walletAddress,
-        timestamp: Date.now(),
-        totalValue: data.totalUsdValue,
-        ethValue: data.ethUsdValue,
-        tokenCount: data.tokens?.length || 0,
-        nftCount: data.nfts?.length || 0
-      });
-      console.log('[Portfolio] Snapshot saved successfully');
-    } catch (err) {
-      console.warn('[Portfolio] Failed to save snapshot:', err);
-      // Don't throw - allow portfolio to work without Firebase
-    }
-  };
+  // Save portfolio snapshot to Firebase - DISABLED for now
+  // TODO: Re-enable when Firebase is properly initialized
+  // const savePortfolioSnapshot = async (data: PortfolioData) => {
+  //   try {
+  //     const app = getApp();
+  //     if (!app) {
+  //       console.warn('[Portfolio] Firebase not initialized, skipping snapshot');
+  //       return;
+  //     }
+  //     const db = getFirestore(app);
+  //     const snapshotRef = doc(collection(db, 'portfolio_snapshots'), `${walletAddress}_${Date.now()}`);
+  //     await setDoc(snapshotRef, {
+  //       address: walletAddress,
+  //       timestamp: Date.now(),
+  //       totalValue: data.totalUsdValue,
+  //       ethValue: data.ethUsdValue,
+  //       tokenCount: data.tokens?.length || 0,
+  //       nftCount: data.nfts?.length || 0
+  //     });
+  //   } catch (err) {
+  //     console.warn('[Portfolio] Failed to save snapshot:', err);
+  //   }
+  // };
 
   // Main fetch function
   const fetchAllData = async () => {
@@ -415,8 +409,9 @@ export const PortfolioViewer = React.memo(function PortfolioViewer({
 
     setPortfolio(completePortfolio);
     
-    // Save snapshot
-    await savePortfolioSnapshot(completePortfolio);
+    // Save snapshot - DISABLED (Firebase not initialized)
+    // await savePortfolioSnapshot(completePortfolio);
+    
     setLastRefresh(Date.now());
   };
 
