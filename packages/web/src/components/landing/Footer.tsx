@@ -11,12 +11,12 @@ export function Footer({ onLaunchApp }: FooterProps) {
 
   const footerLinks = {
     product: [
-      { label: 'Features', href: '#features', onClick: onLaunchApp },
-      { label: 'Pricing', href: '#pricing', onClick: onLaunchApp },
-      { label: 'How It Works', href: '#how-it-works', onClick: onLaunchApp },
+      { label: 'Features', href: '/features' },
+      { label: 'Pricing', href: '/pricing' },
+      { label: 'How It Works', href: '/how-it-works' },
     ],
     company: [
-      { label: 'About', href: '#about', onClick: onLaunchApp },
+      { label: 'About', href: '/about' },
       { label: 'Contact', onClick: () => setIsContactModalOpen(true) },
     ],
     legal: [
