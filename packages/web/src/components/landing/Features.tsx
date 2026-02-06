@@ -13,28 +13,24 @@ const features = [
     title: 'Wallet Analysis',
     description: 'Deep dive into any wallet address across multiple chains. View transaction history, funding sources, portfolio composition, and behavioral patterns.',
     features: ['Transaction timeline', 'Funding tree visualization', 'Token holdings', 'Risk scoring'],
-    color: '#3b82f6',
   },
   {
     icon: File02Icon,
     title: 'Contract Analytics',
     description: 'Analyze smart contracts to understand their behavior, security, and interactions. Perfect for due diligence and research.',
     features: ['Contract creation analysis', 'Interaction patterns', 'Security checks', 'Holder distribution'],
-    color: '#10b981',
   },
   {
     icon: GitCompareIcon,
     title: 'Wallet Comparison',
     description: 'Compare multiple wallets side-by-side to identify connections, similarities, and coordinated behaviors.',
     features: ['Side-by-side comparison', 'Shared interactions', 'Similarity scoring', 'Visual mapping'],
-    color: '#f59e0b',
   },
   {
     icon: Shield01Icon,
     title: 'Sybil Detection',
     description: 'Identify coordinated bot networks and fake accounts using advanced algorithms and network analysis.',
     features: ['Same-block detection', 'Funding clustering', 'Pattern analysis', 'Network graphs'],
-    color: '#8b5cf6',
   },
 ];
 
@@ -57,14 +53,12 @@ export function Features({ onLaunchApp }: FeaturesProps) {
             <div 
               key={index} 
               className="feature-card"
-              style={{ '--feature-color': feature.color } as React.CSSProperties}
             >
-              <div className="feature-icon-wrapper" style={{ background: `${feature.color}15` }}>
+              <div className="feature-icon-wrapper">
                 <HugeiconsIcon 
                   icon={feature.icon} 
                   size={28} 
                   strokeWidth={1.5}
-                  style={{ color: feature.color }}
                 />
               </div>
               
@@ -74,7 +68,7 @@ export function Features({ onLaunchApp }: FeaturesProps) {
               <ul className="feature-list">
                 {feature.features.map((item, i) => (
                   <li key={i} className="feature-list-item">
-                    <span className="feature-bullet" style={{ background: feature.color }}></span>
+                    <span className="feature-bullet"></span>
                     {item}
                   </li>
                 ))}
@@ -87,21 +81,7 @@ export function Features({ onLaunchApp }: FeaturesProps) {
         <div className="features-cta">
           <button 
             onClick={onLaunchApp}
-            className="btn btn-secondary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 24px',
-              backgroundColor: 'transparent',
-              color: '#ffffff',
-              border: '1px solid #3a3a3a',
-              borderRadius: '8px',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              textDecoration: 'none'
-            }}
+            className="features-btn"
           >
             Explore All Features
             <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />

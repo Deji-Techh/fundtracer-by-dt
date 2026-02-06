@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChainId, CHAINS } from '@fundtracer/core';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock } from 'lucide-react';
+import { Lock, ChevronDown } from 'lucide-react';
+import './ChainSelector.css';
 
 interface ChainSelectorProps {
     selectedChain: ChainId;
@@ -13,6 +14,7 @@ function ChainSelector({ selectedChain, onSelect, onUpgrade }: ChainSelectorProp
     const { profile } = useAuth();
     const chains = Object.values(CHAINS);
     const tier = (profile?.tier || 'free').toLowerCase();
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const isChainAllowed = (chainId: ChainId) => {
         if (tier === 'max') return true;
@@ -20,33 +22,35 @@ function ChainSelector({ selectedChain, onSelect, onUpgrade }: ChainSelectorProp
         return chainId === 'linea';
     };
 
+    const selectedChainData = chains.find(c => c.id === selectedChain);
+
+    const handleChainSelect = (chainId: ChainId) => {
+        const allowed = isChainAllowed(chainId);
+        if (allowed) {
+            onSelect(chainId);
+            setIsDropdownOpen(false);
+        } else {
+            onUpgrade();
+            setIsDropdownOpen(false);
+        }
+    };
+
     return (
         <>
-            {/* Desktop View - Original flex layout */}
-            <div className="chain-selector desktop-only">
+            {/* Desktop View - Horizontal buttons */}
+            <div className="chain-selector-desktop">
                 {chains.map((chain) => {
                     const allowed = isChainAllowed(chain.id);
                     return (
                         <button
                             key={chain.id}
-                            className={`chain-btn ${selectedChain === chain.id ? 'active' : ''} ${!chain.enabled ? 'disabled' : ''}`}
-                            onClick={() => allowed ? onSelect(chain.id) : onUpgrade()}
-                            style={!allowed ? { opacity: 0.7 } : {}}
+                            className={`chain-btn ${selectedChain === chain.id ? 'chain-btn-active' : ''}`}
+                            onClick={() => handleChainSelect(chain.id)}
                         >
-                            <span className="chain-dot" style={{ background: allowed ? undefined : 'var(--color-text-muted)' }} />
+                            <span className={`chain-dot ${selectedChain === chain.id ? 'chain-dot-active' : ''}`} />
                             {chain.name}
                             {!allowed && (
-                                <span style={{
-                                    marginLeft: '8px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    fontSize: '10px',
-                                    color: 'var(--color-primary)',
-                                    background: 'rgba(59, 130, 246, 0.1)',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px'
-                                }}>
+                                <span className="chain-lock">
                                     <Lock size={10} />
                                     {tier === 'free' ? 'PRO' : 'MAX'}
                                 </span>
@@ -56,26 +60,39 @@ function ChainSelector({ selectedChain, onSelect, onUpgrade }: ChainSelectorProp
                 })}
             </div>
 
-            {/* Mobile View - Grid layout with corner badges */}
-            <div className="chain-selector-mobile mobile-only">
-                {chains.map((chain) => {
-                    const allowed = isChainAllowed(chain.id);
-                    return (
-                        <button
-                            key={chain.id}
-                            className={`chain-btn-mobile ${selectedChain === chain.id ? 'active' : ''} ${!allowed ? 'locked' : ''}`}
-                            onClick={() => allowed ? onSelect(chain.id) : onUpgrade()}
-                        >
-                            <span className="chain-dot-mobile" />
-                            <span className="chain-name-mobile">{chain.name}</span>
-                            {!allowed && (
-                                <span className="chain-lock-badge">
-                                    <Lock size={10} />
-                                </span>
-                            )}
-                        </button>
-                    );
-                })}
+            {/* Mobile View - Dropdown */}
+            <div className="chain-selector-mobile">
+                <button 
+                    className="chain-dropdown-trigger"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                    <span className="chain-dot chain-dot-active" />
+                    <span className="chain-selected-name">{selectedChainData?.name}</span>
+                    <ChevronDown size={16} className={`chain-chevron ${isDropdownOpen ? 'chain-chevron-open' : ''}`} />
+                </button>
+
+                {isDropdownOpen && (
+                    <div className="chain-dropdown-menu">
+                        {chains.map((chain) => {
+                            const allowed = isChainAllowed(chain.id);
+                            return (
+                                <button
+                                    key={chain.id}
+                                    className={`chain-dropdown-item ${selectedChain === chain.id ? 'chain-dropdown-item-active' : ''}`}
+                                    onClick={() => handleChainSelect(chain.id)}
+                                >
+                                    <span className={`chain-dot ${selectedChain === chain.id ? 'chain-dot-active' : ''}`} />
+                                    <span className="chain-item-name">{chain.name}</span>
+                                    {!allowed && (
+                                        <span className="chain-lock-mobile">
+                                            <Lock size={10} />
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </>
     );

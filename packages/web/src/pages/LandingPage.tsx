@@ -1,6 +1,7 @@
 import React from 'react';
 import { LandingNav } from '../components/landing/LandingNav';
 import { Hero } from '../components/landing/Hero';
+import { ApiProvidersShowcase } from '../components/landing/ApiProvidersShowcase';
 import { Features } from '../components/landing/Features';
 import { ScreenshotShowcase } from '../components/landing/ScreenshotShowcase';
 import { Pricing } from '../components/landing/Pricing';
@@ -14,15 +15,16 @@ export function LandingPage({ onLaunchApp }: LandingPageProps) {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      backgroundColor: '#0a0a0a',
+      backgroundColor: '#000000',
       color: '#ffffff'
     }}>
       <LandingNav onLaunchApp={onLaunchApp} />
       <Hero onLaunchApp={onLaunchApp} />
+      <ApiProvidersShowcase />
       <Features onLaunchApp={onLaunchApp} />
       <ScreenshotShowcase />
       <Pricing onLaunchApp={onLaunchApp} />
-      <Footer />
+      <Footer onLaunchApp={onLaunchApp} />
     </div>
   );
 }

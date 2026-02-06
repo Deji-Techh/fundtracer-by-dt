@@ -1,11 +1,240 @@
-/* Pricing section styles */
+/* Pricing Section - Black, Ash, White, Grey Theme */
+
 .pricing-section {
   padding: 100px 24px;
-  background-color: #0a0a0a;
+  background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+  position: relative;
 }
 
+.pricing-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+}
+
+.pricing-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.pricing-header {
+  text-align: center;
+  margin-bottom: 64px;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.pricing-label {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #888888;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.pricing-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.pricing-subtitle {
+  font-size: 1.125rem;
+  color: #666666;
+}
+
+/* Grid */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  animation: fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+/* Card */
+.pricing-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 32px;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.pricing-card-popular {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pricing-card-popular:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.pricing-popular-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #ffffff 0%, #aaaaaa 100%);
+  color: #000000;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pricing-tier-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.pricing-tier-price {
+  margin-bottom: 8px;
+}
+
+.pricing-price {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.pricing-period {
+  font-size: 1rem;
+  color: #666666;
+}
+
+.pricing-tier-description {
+  font-size: 0.875rem;
+  color: #888888;
+  margin-bottom: 24px;
+}
+
+/* Features */
+.pricing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+
+.pricing-feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.875rem;
+  color: #aaaaaa;
+  margin-bottom: 12px;
+}
+
+.pricing-check-icon {
+  color: #888888;
+  flex-shrink: 0;
+}
+
+/* CTA Button */
+.pricing-cta {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pricing-cta:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.pricing-cta-primary {
+  background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+  color: #000000;
+  border: none;
+}
+
+.pricing-cta-primary:hover {
+  background: linear-gradient(135deg, #ffffff 0%, #dddddd 100%);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Responsive */
 @media (max-width: 768px) {
   .pricing-section {
-    padding: 80px 16px;
+    padding: 60px 16px;
+  }
+
+  .pricing-title {
+    font-size: 2rem;
+  }
+
+  .pricing-subtitle {
+    font-size: 1rem;
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-card {
+    padding: 24px;
+  }
+
+  .pricing-price {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pricing-section {
+    padding: 40px 12px;
+  }
+
+  .pricing-title {
+    font-size: 1.75rem;
+  }
+
+  .pricing-card {
+    padding: 20px;
+  }
+
+  .pricing-price {
+    font-size: 2rem;
   }
 }

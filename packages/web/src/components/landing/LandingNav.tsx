@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowRight01Icon, Menu01Icon, Cancel01Icon } from '@hugeicons/core-free-icons';
 import './LandingNav.css';
@@ -8,7 +8,7 @@ interface LandingNavProps {
 }
 
 export function LandingNav({ onLaunchApp }: LandingNavProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
     { href: '#about', label: 'About' },
@@ -18,53 +18,30 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
     { href: '#faq', label: 'FAQ' },
   ];
 
+  const handleLinkClick = (href: string) => {
+    setMobileMenuOpen(false);
+    if (onLaunchApp && href.startsWith('#')) {
+      onLaunchApp();
+    }
+  };
+
   return (
-    <nav style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 100,
-      backgroundColor: 'rgba(10, 10, 10, 0.95)',
-      backdropFilter: 'blur(10px)',
-      borderBottom: '1px solid #2a2a2a'
-    }}>
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '16px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
+    <nav className="landing-nav">
+      <div className="landing-nav-container">
         {/* Logo */}
-        <a href="/" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          textDecoration: 'none'
-        }}>
-          <img src="/logo.png" alt="FundTracer" style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
-          <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ffffff' }}>FundTracer</span>
+        <a href="/" className="landing-logo">
+          <img src="/logo.png" alt="FundTracer" className="landing-logo-img" />
+          <span className="landing-logo-text">FundTracer</span>
         </a>
 
         {/* Desktop Navigation */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '32px'
-        }} className="desktop-nav">
+        <div className="landing-nav-links desktop-only">
           {navLinks.map((link) => (
             <a 
               key={link.href} 
-              href={link.href} 
-              style={{
-                color: '#9ca3af',
-                textDecoration: 'none',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                transition: 'color 0.2s'
-              }}
+              href={link.href}
+              className="landing-nav-link"
+              onClick={() => handleLinkClick(link.href)}
             >
               {link.label}
             </a>
@@ -74,19 +51,7 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
         {/* CTA Button */}
         <button 
           onClick={onLaunchApp}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 20px',
-            backgroundColor: '#3b82f6',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
+          className="landing-nav-cta desktop-only"
         >
           Launch App
           <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />
@@ -95,17 +60,42 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
         {/* Mobile Menu Button */}
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          style={{
-            display: 'none',
-            background: 'none',
-            border: 'none',
-            color: '#ffffff',
-            cursor: 'pointer'
-          }}
-          className="mobile-menu-btn"
+          className="mobile-menu-btn mobile-only"
+          aria-label="Toggle menu"
         >
-          <HugeiconsIcon icon={mobileMenuOpen ? Cancel01Icon : Menu01Icon} size={24} strokeWidth={2} />
+          <HugeiconsIcon 
+            icon={mobileMenuOpen ? Cancel01Icon : Menu01Icon} 
+            size={24} 
+            strokeWidth={2} 
+          />
         </button>
+      </div>
+
+      {/* Mobile Menu */}
+      <div className={`mobile-menu ${mobileMenuOpen ? 'mobile-menu-open' : ''}`}>
+        <div className="mobile-menu-content">
+          {navLinks.map((link, index) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="mobile-menu-link"
+              onClick={() => handleLinkClick(link.href)}
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              {link.label}
+            </a>
+          ))}
+          <button 
+            onClick={() => {
+              setMobileMenuOpen(false);
+              onLaunchApp?.();
+            }}
+            className="mobile-menu-cta"
+          >
+            Launch App
+            <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />
+          </button>
+        </div>
       </div>
     </nav>
   );
