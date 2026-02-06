@@ -17,6 +17,7 @@ import {
     Auth,
     ActionCodeSettings
 } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Build Firebase config from environment variables
 const firebaseConfig = {
@@ -43,13 +44,16 @@ const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId;
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
+let db: Firestore | null = null;
 
 if (isConfigValid) {
     try {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
+        db = getFirestore(app);
         console.log('[Firebase] Initialized successfully');
         console.log('[Firebase] Auth instance:', !!auth);
+        console.log('[Firebase] Firestore instance:', !!db);
     } catch (err) {
         console.error('[Firebase] Initialization failed:', err);
     }
@@ -260,4 +264,4 @@ export function onAuthChange(callback: (user: User | null) => void): () => void 
     return onAuthStateChanged(auth, callback);
 }
 
-export { auth };
+export { auth, db };
