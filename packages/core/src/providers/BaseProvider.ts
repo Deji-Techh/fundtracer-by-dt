@@ -16,6 +16,9 @@ import {
 } from '../types.js';
 import { getChainConfig } from '../chains.js';
 
+/** Debug flag - set FUNDTRACER_DEBUG=true to see verbose logs */
+const DEBUG = process.env.FUNDTRACER_DEBUG === 'true';
+
 /** Rate limiter to respect API limits */
 class RateLimiter {
     private queue: Array<() => void> = [];
@@ -145,7 +148,7 @@ export abstract class BaseProvider {
                 // Check for rate limit error
                 if (typeof response.data.result === 'string' && response.data.result.includes('Max calls per sec')) {
                     if (retries > 0) {
-                        console.warn(`[WARN] Rate limit hit. Retrying in 1s... (${retries} left)`);
+                        if (DEBUG) console.warn(`[WARN] Rate limit hit. Retrying in 1s... (${retries} left)`);
                         await new Promise(r => setTimeout(r, 1000));
                         return this.request<T>(params, retries - 1);
                     }
@@ -160,7 +163,7 @@ export abstract class BaseProvider {
         } catch (error) {
             // Retry on network errors
             if (retries > 0) {
-                console.warn(`[WARN] Request failed. Retrying... (${retries} left)`);
+                if (DEBUG) console.warn(`[WARN] Request failed. Retrying... (${retries} left)`);
                 await new Promise(r => setTimeout(r, 1000));
                 return this.request<T>(params, retries - 1);
             }

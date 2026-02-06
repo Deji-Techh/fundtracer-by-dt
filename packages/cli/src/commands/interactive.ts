@@ -23,11 +23,8 @@ const colors = {
     border: chalk.hex('#333333'),
 };
 
-// Custom inquirer configuration for ESC key
-const inquirerConfig = {
-    output: process.stdout,
-    input: process.stdin,
-};
+// Symbol for back option
+const BACK_OPTION = { name: colors.muted('← Back'), value: '__BACK__' };
 
 export async function interactiveCommand() {
     while (true) {
@@ -77,13 +74,13 @@ export async function interactiveCommand() {
                     await interactiveConfig();
                     break;
             }
-        } catch (error) {
-            // Handle ESC key or Ctrl+C
-            if (error instanceof Error && error.message.includes('User force closed')) {
-                console.log(colors.muted('\n\nOperation cancelled.\n'));
+        } catch (error: any) {
+            // Handle ESC key or Ctrl+C - return to main menu silently
+            if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
+                console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
                 continue;
             }
-            console.log(colors.error(`\nError: ${error instanceof Error ? error.message : 'Unknown error'}\n`));
+            console.log(colors.error(`\nError: ${error?.message || 'Unknown error'}\n`));
         }
 
         console.log('');
@@ -104,7 +101,8 @@ ${colors.primary.bold('FundTracer CLI - Available Commands:')}
 ${colors.primary.bold('Navigation:')}
   - Use arrow keys to navigate menus
   - Press Enter to select
-  - Press Ctrl+C or ESC to cancel/exit
+  - Press ESC or select "← Back" to return to previous menu
+  - Press Ctrl+C to exit immediately
 
 ${colors.primary.bold('Supported Chains:')}
   ethereum, linea, arbitrum, base, optimism, polygon
@@ -124,107 +122,21 @@ async function interactiveAnalyze() {
     const chains = getEnabledChains();
 
     try {
-        const answers = await inquirer.prompt([
+        // Step 1: Get address
+        const { address } = await inquirer.prompt([
             {
                 type: 'input',
                 name: 'address',
-                message: 'Enter wallet address (or press ESC to cancel):',
+                message: 'Enter wallet address (ESC to go back):',
                 validate: (input) => {
-                    if (input === '' || input === null) {
-                        return 'Please enter a valid Ethereum address (0x...) or press ESC to cancel';
-                    }
-                    if (/^0x[a-fA-F0-9]{40}$/.test(input)) {
-                        return true;
-                    }
+                    if (!input) return 'Please enter a valid Ethereum address (0x...) or press ESC';
+                    if (/^0x[a-fA-F0-9]{40}$/.test(input)) return true;
                     return 'Please enter a valid Ethereum address (0x...)';
                 },
             },
-            {
-                type: 'list',
-                name: 'chain',
-                message: 'Select blockchain:',
-                choices: [
-                    ...chains.map(c => ({ name: c.name, value: c.id })),
-                    { name: colors.muted('--- Cancel ---'), value: 'cancel' as any }
-                ],
-            },
-            {
-                type: 'list',
-                name: 'depth',
-                message: 'Funding tree depth:',
-                when: (answers) => answers.chain !== 'cancel',
-                choices: [
-                    { name: '1 - Quick scan', value: '1' },
-                    { name: '2 - Standard', value: '2' },
-                    { name: '3 - Deep (recommended)', value: '3' },
-                    { name: '5 - Very deep (slower)', value: '5' },
-                ],
-                default: '3',
-            },
-            {
-                type: 'list',
-                name: 'output',
-                message: 'Output format:',
-                when: (answers) => answers.chain !== 'cancel',
-                choices: [
-                    { name: 'Table - Easy to read', value: 'table' },
-                    { name: 'Tree - Visualize funding flow', value: 'tree' },
-                    { name: 'JSON - Machine readable', value: 'json' },
-                    { name: 'CSV - Spreadsheet format', value: 'csv' },
-                ],
-            },
         ]);
 
-        if (answers.chain === 'cancel') {
-            console.log(colors.muted('\nCancelled.\n'));
-            return;
-        }
-
-        console.log();
-        await analyzeCommand(answers.address, {
-            chain: answers.chain,
-            depth: answers.depth,
-            output: answers.output,
-        });
-    } catch (error) {
-        console.log(colors.muted('\nCancelled.\n'));
-    }
-}
-
-async function interactiveCompare() {
-    const chains = getEnabledChains();
-    const addresses: string[] = [];
-
-    console.log(colors.muted('Enter wallet addresses for Sybil detection (empty to finish, ESC to cancel):\n'));
-
-    try {
-        let i = 1;
-        while (true) {
-            const { address } = await inquirer.prompt([
-                {
-                    type: 'input',
-                    name: 'address',
-                    message: `Wallet #${i}:`,
-                    validate: (input) => {
-                        if (input === '') {
-                            if (addresses.length < 2) {
-                                return 'Please enter at least 2 addresses';
-                            }
-                            return true;
-                        }
-                        if (/^0x[a-fA-F0-9]{40}$/.test(input)) {
-                            return true;
-                        }
-                        return 'Please enter a valid address or leave empty to finish';
-                    },
-                },
-            ]);
-
-            if (address === '') break;
-            addresses.push(address);
-            i++;
-        }
-
+        // Step 2: Select chain
         const { chain } = await inquirer.prompt([
             {
                 type: 'list',
@@ -232,13 +144,141 @@ async function interactiveCompare() {
                 message: 'Select blockchain:',
                 choices: [
                     ...chains.map(c => ({ name: c.name, value: c.id })),
-                    { name: colors.muted('--- Cancel ---'), value: 'cancel' as any }
+                    BACK_OPTION
                 ],
             },
         ]);
 
-        if (chain === 'cancel') {
-            console.log(colors.muted('\nCancelled.\n'));
+        if (chain === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
+            return;
+        }
+
+        // Step 3: Select depth
+        const { depth } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'depth',
+                message: 'Funding tree depth:',
+                choices: [
+                    { name: '1 - Quick scan', value: '1' },
+                    { name: '2 - Standard', value: '2' },
+                    { name: '3 - Deep (recommended)', value: '3' },
+                    { name: '5 - Very deep (slower)', value: '5' },
+                    BACK_OPTION
+                ],
+                default: '3',
+            },
+        ]);
+
+        if (depth === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
+            return;
+        }
+
+        // Step 4: Select output format
+        const { output } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'output',
+                message: 'Output format:',
+                choices: [
+                    { name: 'Table - Easy to read', value: 'table' },
+                    { name: 'Tree - Visualize funding flow', value: 'tree' },
+                    { name: 'JSON - Machine readable', value: 'json' },
+                    { name: 'CSV - Spreadsheet format', value: 'csv' },
+                    BACK_OPTION
+                ],
+            },
+        ]);
+
+        if (output === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
+            return;
+        }
+
+        console.log();
+        await analyzeCommand(address, { chain, depth, output });
+    } catch (error: any) {
+        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
+            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
+            return;
+        }
+        throw error;
+    }
+}
+
+async function interactiveCompare() {
+    const chains = getEnabledChains();
+    const addresses: string[] = [];
+
+    console.log(colors.muted('Enter wallet addresses for Sybil detection\n'));
+
+    try {
+        // Collect addresses with ability to go back
+        while (true) {
+            const promptNum = addresses.length + 1;
+            const { action } = await inquirer.prompt([
+                {
+                    type: 'list',
+                    name: 'action',
+                    message: `Wallet #${promptNum}:`,
+                    choices: [
+                        { name: 'Enter address', value: 'enter' },
+                        ...(addresses.length >= 2 ? [{ name: 'Continue to analysis', value: 'continue' }] : []),
+                        ...(addresses.length > 0 ? [BACK_OPTION] : []),
+                        { name: colors.muted('Cancel'), value: 'cancel' },
+                    ],
+                },
+            ]);
+
+            if (action === 'cancel') {
+                console.log(colors.muted('\nCancelled.\n'));
+                return;
+            }
+
+            if (action === '__BACK__') {
+                addresses.pop(); // Remove last address
+                continue;
+            }
+
+            if (action === 'continue') {
+                break;
+            }
+
+            // Enter address
+            const { address } = await inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'address',
+                    message: `Address #${promptNum}:`,
+                    validate: (input) => {
+                        if (!input) return 'Please enter an address';
+                        if (/^0x[a-fA-F0-9]{40}$/.test(input)) return true;
+                        return 'Invalid address format';
+                    },
+                },
+            ]);
+
+            addresses.push(address);
+            console.log(colors.success(`  Added: ${address.slice(0, 10)}...`));
+        }
+
+        // Select chain
+        const { chain } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'chain',
+                message: 'Select blockchain:',
+                choices: [
+                    ...chains.map(c => ({ name: c.name, value: c.id })),
+                    BACK_OPTION
+                ],
+            },
+        ]);
+
+        if (chain === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
             return;
         }
 
@@ -250,8 +290,12 @@ async function interactiveCompare() {
             minCluster: '3',
             concurrency: '10',
         });
-    } catch (error) {
-        console.log(colors.muted('\nCancelled.\n'));
+    } catch (error: any) {
+        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
+            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
+            return;
+        }
+        throw error;
     }
 }
 
@@ -259,65 +303,85 @@ async function interactivePortfolio() {
     const chains = getEnabledChains();
 
     try {
-        const answers = await inquirer.prompt([
+        // Step 1: Get address
+        const { address } = await inquirer.prompt([
             {
                 type: 'input',
                 name: 'address',
-                message: 'Enter wallet address:',
+                message: 'Enter wallet address (ESC to go back):',
                 validate: (input) => {
-                    if (/^0x[a-fA-F0-9]{40}$/.test(input)) {
-                        return true;
-                    }
-                    return 'Please enter a valid Ethereum address (0x...)';
+                    if (!input) return 'Please enter a valid Ethereum address (0x...)';
+                    if (/^0x[a-fA-F0-9]{40}$/.test(input)) return true;
+                    return 'Invalid address format';
                 },
             },
+        ]);
+
+        // Step 2: Select chain
+        const { chain } = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'chain',
                 message: 'Select blockchain:',
                 choices: [
                     ...chains.map(c => ({ name: c.name, value: c.id })),
-                    { name: colors.muted('--- Cancel ---'), value: 'cancel' as any }
+                    BACK_OPTION
                 ],
             },
+        ]);
+
+        if (chain === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
+            return;
+        }
+
+        // Step 3: Select what to display
+        const { views } = await inquirer.prompt([
             {
                 type: 'checkbox',
                 name: 'views',
                 message: 'What to display:',
-                when: (answers) => answers.chain !== 'cancel',
                 choices: [
                     { name: 'Token balances', value: 'tokens', checked: true },
                     { name: 'NFTs', value: 'nfts' },
                 ],
             },
+        ]);
+
+        // Step 4: Select output format
+        const { output } = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'output',
                 message: 'Output format:',
-                when: (answers) => answers.chain !== 'cancel',
                 choices: [
                     { name: 'Table - Easy to read', value: 'table' },
                     { name: 'JSON - Machine readable', value: 'json' },
                     { name: 'CSV - Spreadsheet format', value: 'csv' },
+                    BACK_OPTION
                 ],
             },
         ]);
 
-        if (answers.chain === 'cancel') {
-            console.log(colors.muted('\nCancelled.\n'));
+        if (output === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
             return;
         }
 
         console.log();
-        await portfolioCommand(answers.address, {
-            chain: answers.chain,
-            output: answers.output,
-            nfts: answers.views.includes('nfts'),
-            tokens: answers.views.includes('tokens'),
+        await portfolioCommand(address, {
+            chain,
+            output,
+            nfts: views.includes('nfts'),
+            tokens: views.includes('tokens'),
             transactions: false,
         });
-    } catch (error) {
-        console.log(colors.muted('\nCancelled.\n'));
+    } catch (error: any) {
+        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
+            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
+            return;
+        }
+        throw error;
     }
 }
 
@@ -325,65 +389,92 @@ async function interactiveBatch() {
     const chains = getEnabledChains();
 
     try {
-        const answers = await inquirer.prompt([
+        // Step 1: Get file path
+        const { filepath } = await inquirer.prompt([
             {
                 type: 'input',
                 name: 'filepath',
-                message: 'Enter path to file with addresses (one per line):',
+                message: 'Enter path to file with addresses (ESC to go back):',
                 validate: (input) => {
                     if (!input) return 'Please enter a file path';
                     return true;
                 },
             },
+        ]);
+
+        // Step 2: Select chain
+        const { chain } = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'chain',
                 message: 'Select blockchain:',
                 choices: [
                     ...chains.map(c => ({ name: c.name, value: c.id })),
-                    { name: colors.muted('--- Cancel ---'), value: 'cancel' as any }
+                    BACK_OPTION
                 ],
             },
+        ]);
+
+        if (chain === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
+            return;
+        }
+
+        // Step 3: Select depth
+        const { depth } = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'depth',
                 message: 'Analysis depth:',
-                when: (answers) => answers.chain !== 'cancel',
                 choices: [
                     { name: '1 - Quick scan', value: '1' },
                     { name: '2 - Standard', value: '2' },
                     { name: '3 - Deep', value: '3' },
+                    BACK_OPTION
                 ],
                 default: '2',
             },
+        ]);
+
+        if (depth === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
+            return;
+        }
+
+        // Step 4: Select parallel processing
+        const { parallel } = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'parallel',
                 message: 'Parallel processing:',
-                when: (answers) => answers.chain !== 'cancel',
                 choices: [
                     { name: '3 wallets at a time', value: '3' },
                     { name: '5 wallets at a time', value: '5' },
                     { name: '10 wallets at a time (fast)', value: '10' },
+                    BACK_OPTION
                 ],
                 default: '5',
             },
         ]);
 
-        if (answers.chain === 'cancel') {
-            console.log(colors.muted('\nCancelled.\n'));
+        if (parallel === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
             return;
         }
 
         console.log();
-        await batchCommand(answers.filepath, {
-            chain: answers.chain,
-            depth: answers.depth,
+        await batchCommand(filepath, {
+            chain,
+            depth,
             output: 'table',
-            parallel: answers.parallel,
+            parallel,
         });
-    } catch (error) {
-        console.log(colors.muted('\nCancelled.\n'));
+    } catch (error: any) {
+        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
+            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
+            return;
+        }
+        throw error;
     }
 }
 
@@ -393,7 +484,7 @@ async function interactiveConfig() {
         { name: 'Moralis (10x faster funding trace)', value: 'moralis' },
         { name: 'Dune (Fast contract analysis)', value: 'dune' },
         { name: 'Etherscan (Ethereum fallback)', value: 'etherscan' },
-        { name: colors.muted('--- Cancel ---'), value: 'cancel' },
+        BACK_OPTION,
     ];
 
     try {
@@ -406,8 +497,8 @@ async function interactiveConfig() {
             },
         ]);
 
-        if (provider === 'cancel') {
-            console.log(colors.muted('\nCancelled.\n'));
+        if (provider === '__BACK__') {
+            console.log(colors.muted('\nReturning...\n'));
             return;
         }
 
@@ -415,7 +506,7 @@ async function interactiveConfig() {
             {
                 type: 'password',
                 name: 'apiKey',
-                message: `Enter API key for ${provider}:`,
+                message: `Enter API key for ${provider} (ESC to cancel):`,
                 mask: '*',
             },
         ]);
@@ -424,7 +515,11 @@ async function interactiveConfig() {
             const { configCommand } = await import('./config.js');
             await configCommand({ setKey: `${provider}:${apiKey}` });
         }
-    } catch (error) {
-        console.log(colors.muted('\nCancelled.\n'));
+    } catch (error: any) {
+        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
+            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
+            return;
+        }
+        throw error;
     }
 }
