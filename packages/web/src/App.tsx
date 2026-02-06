@@ -12,6 +12,15 @@ import SybilPage from './components/CoinGecko/SybilPage';
 // Import Landing Page
 import LandingPage from './pages/LandingPage';
 
+// Static Pages
+import { AboutPage } from './pages/AboutPage';
+import { FeaturesPage } from './pages/FeaturesPage';
+import { PricingPage } from './pages/PricingPage';
+import { HowItWorksPage } from './pages/HowItWorksPage';
+import { FaqPage } from './pages/FaqPage';
+import { TermsPage } from './pages/TermsPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+
 // Existing components
 import ProfilePage from './components/ProfilePage';
 import ComingSoonModal from './components/ComingSoonModal';
@@ -33,9 +42,63 @@ const TokenExplorer = lazy(() => import('./components/TokenExplorer/TokenPage').
 type TabType = 'home' | 'portfolio' | 'history' | 'explorer' | 'market' | 'sybil' | 'settings';
 
 function App() {
-  // Simple routing for Privacy Policy standalone page
-  if (window.location.pathname === '/privacypolicy' || window.location.pathname === '/privacy') {
-    return <PrivacyPolicyPage />;
+  // Simple routing for standalone pages
+  const pathname = window.location.pathname;
+  
+  if (pathname === '/about') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000' }}>
+        <AboutPage />
+      </div>
+    );
+  }
+  
+  if (pathname === '/features') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000' }}>
+        <FeaturesPage />
+      </div>
+    );
+  }
+  
+  if (pathname === '/pricing') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000' }}>
+        <PricingPage />
+      </div>
+    );
+  }
+  
+  if (pathname === '/how-it-works') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000' }}>
+        <HowItWorksPage />
+      </div>
+    );
+  }
+  
+  if (pathname === '/faq') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000' }}>
+        <FaqPage />
+      </div>
+    );
+  }
+  
+  if (pathname === '/terms') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000' }}>
+        <TermsPage />
+      </div>
+    );
+  }
+  
+  if (pathname === '/privacy' || pathname === '/privacypolicy') {
+    return (
+      <div style={{ minHeight: '100vh', background: '#000000' }}>
+        {pathname === '/privacypolicy' ? <PrivacyPolicyPage /> : <PrivacyPage />}
+      </div>
+    );
   }
 
   const { user, profile, isAuthenticated, loading: authLoading, getSigner } = useAuth();

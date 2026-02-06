@@ -11,18 +11,15 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '#about', label: 'About' },
-    { href: '#features', label: 'Features' },
-    { href: '#pricing', label: 'Pricing' },
-    { href: '#how-it-works', label: 'How It Works' },
-    { href: '#faq', label: 'FAQ' },
+    { href: '/about', label: 'About' },
+    { href: '/features', label: 'Features' },
+    { href: '/pricing', label: 'Pricing' },
+    { href: '/how-it-works', label: 'How It Works' },
+    { href: '/faq', label: 'FAQ' },
   ];
 
-  const handleLinkClick = (href: string) => {
+  const handleLinkClick = () => {
     setMobileMenuOpen(false);
-    if (onLaunchApp && href.startsWith('#')) {
-      onLaunchApp();
-    }
   };
 
   return (
@@ -41,7 +38,7 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
               key={link.href} 
               href={link.href}
               className="landing-nav-link"
-              onClick={() => handleLinkClick(link.href)}
+              onClick={handleLinkClick}
             >
               {link.label}
             </a>
@@ -79,7 +76,7 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
               key={link.href}
               href={link.href}
               className="mobile-menu-link"
-              onClick={() => handleLinkClick(link.href)}
+              onClick={handleLinkClick}
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {link.label}
