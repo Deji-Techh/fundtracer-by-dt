@@ -9,6 +9,7 @@ import { getFirestore } from '../firebase.js';
 import {
     WalletAnalyzer,
     SybilAnalyzer,
+    OptimizedSybilAnalyzer,
     ChainId,
     FilterOptions
 } from '@fundtracer/core';
@@ -575,30 +576,73 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
     }
 
     try {
-        console.log('[DEBUG] Fetching Alchemy API key for user...');
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        console.log('[DEBUG] Setting up optimized sybil analyzer with 20 API keys...');
+        
+        // Collect all 20 API keys (10 wallet + 10 contract)
+        const apiKeys: string[] = [];
+        for (let i = 1; i <= 10; i++) {
+            const walletKey = process.env[`SYBIL_WALLET_KEY_${i}`];
+            const contractKey = process.env[`SYBIL_CONTRACT_KEY_${i}`];
+            if (walletKey) apiKeys.push(walletKey);
+            if (contractKey) apiKeys.push(contractKey);
+        }
+        
+        // Fallback to default keys if specific ones not set
+        if (apiKeys.length === 0) {
+            const defaultKey = process.env.DEFAULT_ALCHEMY_API_KEY;
+            if (defaultKey) {
+                // Use default key replicated 20 times (not optimal but works)
+                for (let i = 0; i < 20; i++) apiKeys.push(defaultKey);
+            }
+        }
+        
+        console.log(`[DEBUG] Using ${apiKeys.length} API keys for parallel processing`);
+        
         const moralisKey = process.env.MORALIS_API_KEY || '';
         const covalentKey = process.env.COVALENT_API_KEY || '';
 
-        if (!alchemyKey) {
-            return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
+        if (apiKeys.length === 0) {
+            return res.status(400).json({ error: 'API keys required for sybil detection. Please configure SYBIL_WALLET_KEY_1-10 and SYBIL_CONTRACT_KEY_1-10' });
         }
 
-        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyKey, moralisKey, covalentKey);
-
-        console.log('[DEBUG] Starting sybil analysis on provided addresses...');
-        const result = await withTimeout(
-            analyzer.analyzeAddresses(validAddresses, {
-                minClusterSize: options?.minClusterSize || 3,
-            }),
-            600000, // 10 minute timeout for sybil analysis
-            'Sybil analysis'
+        // Use optimized analyzer with 20 keys
+        const analyzer = new OptimizedSybilAnalyzer(
+            chain as ChainId,
+            apiKeys,
+            {
+                moralisKey,
+                covalentKey,
+                concurrency: 10, // Process 10 batches in parallel
+            }
         );
 
-        console.log('[DEBUG] Sybil analysis complete');
+        console.log(`[DEBUG] Starting optimized sybil analysis on ${validAddresses.length} addresses with ${apiKeys.length} API keys...`);
+        const startTime = Date.now();
+        
+        const result = await withTimeout(
+            analyzer.analyzeContract(
+                'direct-analysis',
+                validAddresses,
+                {
+                    minClusterSize: options?.minClusterSize || 3,
+                    concurrency: 10,
+                }
+            ),
+            120000, // 2 minute timeout (much faster with optimization)
+            'Sybil analysis'
+        );
+        
+        const duration = (Date.now() - startTime) / 1000;
+        console.log(`[DEBUG] Sybil analysis complete in ${duration}s`);
+        
         res.json({
             success: true,
             result,
+            meta: {
+                duration: `${duration}s`,
+                apiKeysUsed: apiKeys.length,
+                walletsAnalyzed: validAddresses.length,
+            },
             usageRemaining: res.locals.usageRemaining,
         });
     } catch (error: any) {
