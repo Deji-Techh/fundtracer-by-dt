@@ -18,6 +18,9 @@ import {
 } from '../types.js';
 import { getChainConfig } from '../chains.js';
 
+/** Debug flag - set FUNDTRACER_DEBUG=true to see verbose logs */
+const DEBUG = process.env.FUNDTRACER_DEBUG === 'true';
+
 /** Alchemy RPC URLs per chain */
 const ALCHEMY_URLS: Partial<Record<ChainId, string>> = {
     ethereum: 'https://eth-mainnet.g.alchemy.com/v2/',
@@ -163,7 +166,7 @@ export class AlchemyProvider {
                 // Check specifically for rate limit or unknown error which might be rate limit
                 const errMsg = response.data.error.message || '';
                 if ((response.data.error.code === 429 || errMsg.includes('rate limit') || errMsg.includes('Too Many Requests')) && retries > 0) {
-                    console.warn(`[Alchemy] Rate limited on ${method}. Retrying in ${1000 * (4 - retries)}ms...`);
+                    if (DEBUG) console.warn(`[Alchemy] Rate limited on ${method}. Retrying in ${1000 * (4 - retries)}ms...`);
                     await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
                     return this.rpcRequest<T>(method, params, retries - 1);
                 }
@@ -174,7 +177,7 @@ export class AlchemyProvider {
         } catch (error: any) {
             // Catch axios 429s
             if (error.response?.status === 429 && retries > 0) {
-                console.warn(`[Alchemy] 429 on ${method}. Retrying in ${1000 * (4 - retries)}ms...`);
+                if (DEBUG) console.warn(`[Alchemy] 429 on ${method}. Retrying in ${1000 * (4 - retries)}ms...`);
                 await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
                 return this.rpcRequest<T>(method, params, retries - 1);
             }
@@ -215,17 +218,17 @@ export class AlchemyProvider {
                 const explorerTs = await this.getFirstTxTimestampExplorer(address);
                 if (explorerTs) {
                     firstTxTimestamp = explorerTs;
-                    console.log(`[Explorer] Found first tx timestamp: ${firstTxTimestamp}`);
+                    if (DEBUG) console.log(`[Explorer] Found first tx timestamp: ${firstTxTimestamp}`);
                 }
             } catch (e) {
-                console.warn(`[Explorer] Failed to fetch first tx for ${address}`, e);
+                if (DEBUG) console.warn(`[Explorer] Failed to fetch first tx for ${address}`, e);
             }
         }
 
         // Fallback to Alchemy if not found yet
         if (!firstTxTimestamp) {
             try {
-                console.log(`[Alchemy] Fetching first tx for ${address}...`);
+                if (DEBUG) console.log(`[Alchemy] Fetching first tx for ${address}...`);
                 // Check for incoming transfers (funding)
                 const params: any = {
                     toAddress: address,
@@ -239,12 +242,12 @@ export class AlchemyProvider {
 
                 if (result.transfers && result.transfers.length > 0 && result.transfers[0].metadata?.blockTimestamp) {
                     firstTxTimestamp = new Date(result.transfers[0].metadata.blockTimestamp).getTime() / 1000;
-                    console.log(`[Alchemy] Found first tx timestamp: ${firstTxTimestamp} (${result.transfers[0].metadata.blockTimestamp})`);
+                    if (DEBUG) console.log(`[Alchemy] Found first tx timestamp: ${firstTxTimestamp} (${result.transfers[0].metadata.blockTimestamp})`);
                 } else {
-                    console.log(`[Alchemy] No transfers found or missing timestamp for ${address}`);
+                    if (DEBUG) console.log(`[Alchemy] No transfers found or missing timestamp for ${address}`);
                 }
             } catch (e) {
-                console.warn(`[Alchemy] Failed to fetch first tx timestamp for ${address}`, e);
+                if (DEBUG) console.warn(`[Alchemy] Failed to fetch first tx timestamp for ${address}`, e);
             }
         }
 

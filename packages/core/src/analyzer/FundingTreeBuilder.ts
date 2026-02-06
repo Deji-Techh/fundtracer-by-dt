@@ -11,6 +11,9 @@ import {
     ProgressCallback,
 } from '../types.js';
 
+/** Debug flag - set FUNDTRACER_DEBUG=true to see verbose logs */
+const DEBUG = process.env.FUNDTRACER_DEBUG === 'true';
+
 const DEFAULT_CONFIG: FundingTreeConfig = {
     maxDepth: 2, // Reduced depth to minimize API calls
     direction: 'both',
@@ -178,7 +181,7 @@ export class FundingTreeBuilder {
             const msg = error?.response?.status === 429
                 ? 'Rate limited by API'
                 : (error?.message || 'Unknown error');
-            console.error(`[${normalizedAddr.slice(0, 10)}...] Skipped: ${msg}`);
+            if (DEBUG) console.error(`[${normalizedAddr.slice(0, 10)}...] Skipped: ${msg}`);
         }
 
         return node;
