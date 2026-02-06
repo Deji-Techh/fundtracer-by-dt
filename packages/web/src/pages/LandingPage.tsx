@@ -19,9 +19,9 @@ export function LandingPage({ onLaunchApp }: LandingPageProps) {
     }}>
       <LandingNav onLaunchApp={onLaunchApp} />
       <Hero onLaunchApp={onLaunchApp} />
-      <Features />
+      <Features onLaunchApp={onLaunchApp} />
       <ScreenshotShowcase />
-      <Pricing />
+      <Pricing onLaunchApp={onLaunchApp} />
       <Footer />
     </div>
   );

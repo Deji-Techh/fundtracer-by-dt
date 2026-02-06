@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowRight01Icon, PlayIcon } from '@hugeicons/core-free-icons';
 import './Hero.css';
@@ -127,8 +126,8 @@ export function Hero({ onLaunchApp }: HeroProps) {
             Launch App
             <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} />
           </button>
-          <Link 
-            to="/how-it-works"
+          <button 
+            onClick={onLaunchApp}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -140,12 +139,12 @@ export function Hero({ onLaunchApp }: HeroProps) {
               borderRadius: '8px',
               fontSize: '1rem',
               fontWeight: 600,
-              textDecoration: 'none'
+              cursor: 'pointer'
             }}
           >
             <HugeiconsIcon icon={PlayIcon} size={20} strokeWidth={2} />
             View Demo
-          </Link>
+          </button>
         </div>
 
         <div style={{
