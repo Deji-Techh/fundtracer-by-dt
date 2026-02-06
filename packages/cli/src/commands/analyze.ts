@@ -12,13 +12,13 @@ import {
     FundingNode,
     getChainConfig,
 } from '@fundtracer/core';
-import { getApiKeys, formatAddress, formatEth, formatDate } from '../utils.js';
+import { getApiKeys, formatAddress, formatEth, formatDate, exportToCSV } from '../utils.js';
 import fs from 'fs';
 
 interface AnalyzeOptions {
     chain: string;
     depth: string;
-    output: 'table' | 'json' | 'tree';
+    output: 'table' | 'json' | 'tree' | 'csv';
     minValue?: string;
     export?: string;
 }
@@ -72,12 +72,15 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
             case 'tree':
                 outputTree(result);
                 break;
+            case 'csv':
+                outputCSV(result, options.export);
+                break;
             default:
                 outputTable(result);
         }
 
-        // Export if requested
-        if (options.export && options.output !== 'json') {
+        // Export if requested and not already handled
+        if (options.export && options.output !== 'json' && options.output !== 'csv') {
             fs.writeFileSync(options.export, JSON.stringify(result, null, 2));
             console.log(chalk.green(`\n✓ Results exported to ${options.export}`));
         }
@@ -255,4 +258,31 @@ function outputJson(result: AnalysisResult, exportPath?: string) {
     } else {
         console.log(jsonStr);
     }
+}
+
+function outputCSV(result: AnalysisResult, exportPath?: string) {
+    const filename = exportPath || `analysis-${result.wallet.address.slice(0, 8)}-${Date.now()}.csv`;
+    
+    // Create rows for transactions
+    const rows = result.transactions.map(tx => ({
+        hash: tx.hash,
+        timestamp: new Date(tx.timestamp * 1000).toISOString(),
+        from: tx.from,
+        to: tx.to || '',
+        value_eth: tx.valueInEth,
+        gas_cost_eth: tx.gasCostInEth,
+        status: tx.status,
+        category: tx.category,
+        method: tx.methodName || tx.methodId || '',
+        direction: tx.isIncoming ? 'incoming' : 'outgoing',
+    }));
+
+    if (rows.length === 0) {
+        console.log(chalk.yellow('⚠ No transactions to export'));
+        return;
+    }
+
+    exportToCSV(rows, filename);
+    console.log(chalk.green(`✓ Results exported to ${filename}`));
+    console.log(chalk.dim(`  ${rows.length} transactions exported`));
 }

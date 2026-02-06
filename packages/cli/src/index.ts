@@ -8,9 +8,11 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { analyzeCommand } from './commands/analyze.js';
 import { compareCommand } from './commands/compare.js';
+import { portfolioCommand } from './commands/portfolio.js';
+import { batchCommand } from './commands/batch.js';
 import { configCommand } from './commands/config.js';
 import { interactiveCommand } from './commands/interactive.js';
-import { getApiKeys } from './utils.js';
+import { getApiKeys, getSybilApiKeys } from './utils.js';
 
 // Gradient ASCII Art Banner
 const banner = `
@@ -27,6 +29,7 @@ const subtitle = chalk.dim('                              by DT • Blockchain W
 /** Show provider status */
 function showProviderStatus(): void {
     const keys = getApiKeys();
+    const sybilKeys = getSybilApiKeys();
 
     console.log(chalk.bold('  Provider Status:'));
 
@@ -44,12 +47,18 @@ function showProviderStatus(): void {
             console.log(`  ${chalk.red('✗')} ${p.name.padEnd(10)} ${chalk.dim('Not configured')}`);
         }
     }
+
+    // Sybil analysis status
+    if (sybilKeys.length > 0) {
+        console.log(`  ${chalk.green('✓')} ${'Sybil Keys'.padEnd(10)} ${chalk.dim(`${sybilKeys.length} keys for parallel analysis`)}`);
+    }
     console.log();
 }
 
 /** Show tips based on configuration */
 function showTips(): void {
     const keys = getApiKeys();
+    const sybilKeys = getSybilApiKeys();
     const hasAlchemy = !!keys.alchemy;
     const hasMoralis = !!keys.moralis;
     const hasDune = !!keys.dune;
@@ -64,19 +73,24 @@ function showTips(): void {
         return;
     }
 
-    console.log(`  ${chalk.gray('1.')} Analyze a wallet: ${chalk.cyan('fundtracer analyze 0x...')}`);
-    console.log(`  ${chalk.gray('2.')} Compare wallets:  ${chalk.cyan('fundtracer compare 0x... 0x...')}`);
-    console.log(`  ${chalk.gray('3.')} View config:      ${chalk.cyan('fundtracer config --show')}`);
+    console.log(`  ${chalk.gray('1.')} Analyze a wallet:  ${chalk.cyan('fundtracer analyze 0x...')}`);
+    console.log(`  ${chalk.gray('2.')} Compare wallets:   ${chalk.cyan('fundtracer compare 0x... 0x...')}`);
+    console.log(`  ${chalk.gray('3.')} View portfolio:    ${chalk.cyan('fundtracer portfolio 0x...')}`);
+    console.log(`  ${chalk.gray('4.')} Batch analysis:    ${chalk.cyan('fundtracer batch addresses.txt')}`);
+    console.log(`  ${chalk.gray('5.')} View config:       ${chalk.cyan('fundtracer config --show')}`);
 
-    // Speed tips
-    if (!hasMoralis || !hasDune) {
+    // Performance tips
+    if (!hasMoralis || !hasDune || sybilKeys.length < 20) {
         console.log();
-        console.log(chalk.dim('  Speed Tips:'));
+        console.log(chalk.dim('  Performance Tips:'));
         if (!hasMoralis) {
             console.log(chalk.dim('  • Add Moralis for 10x faster funding tracing'));
         }
         if (!hasDune) {
             console.log(chalk.dim('  • Add Dune for faster contract analysis'));
+        }
+        if (sybilKeys.length < 20) {
+            console.log(chalk.dim(`  • Configure 20 API keys for ultra-fast Sybil detection (currently ${sybilKeys.length})`));
         }
     }
 }
@@ -114,20 +128,47 @@ if (isInteractive && args.length === 0) {
         .description('Analyze a single wallet address')
         .option('-c, --chain <chain>', 'Blockchain network (ethereum, linea, arbitrum, base)', 'ethereum')
         .option('-d, --depth <number>', 'Maximum depth for funding tree', '3')
-        .option('-o, --output <format>', 'Output format (table, json, tree)', 'table')
+        .option('-o, --output <format>', 'Output format (table, json, tree, csv)', 'table')
         .option('--min-value <eth>', 'Minimum transaction value in ETH', '0')
         .option('--export <file>', 'Export results to file')
         .action(analyzeCommand);
 
-    // Compare command
+    // Compare command (Sybil detection)
     program
         .command('compare <addresses...>')
         .alias('sybil')
-        .description('Compare multiple wallet addresses for Sybil detection')
+        .description('Compare multiple wallet addresses for Sybil detection (uses 20 API keys)')
+        .option('-c, --chain <chain>', 'Blockchain network', 'ethereum')
+        .option('-o, --output <format>', 'Output format (table, json, csv)', 'table')
+        .option('--min-cluster <number>', 'Minimum cluster size to flag', '3')
+        .option('--concurrency <number>', 'Number of parallel batches (1-20)', '10')
+        .option('-f, --file <file>', 'Read addresses from file')
+        .option('--export <file>', 'Export results to file')
+        .action(compareCommand);
+
+    // Portfolio command
+    program
+        .command('portfolio <address>')
+        .alias('nft')
+        .description('View NFT collections and token balances for a wallet')
+        .option('-c, --chain <chain>', 'Blockchain network', 'ethereum')
+        .option('-o, --output <format>', 'Output format (table, json, csv)', 'table')
+        .option('--export <file>', 'Export results to file')
+        .option('--nfts', 'Show NFTs only', false)
+        .option('--tokens', 'Show tokens only', false)
+        .action(portfolioCommand);
+
+    // Batch command
+    program
+        .command('batch <file>')
+        .description('Analyze multiple wallets from a file (one address per line)')
         .option('-c, --chain <chain>', 'Blockchain network', 'ethereum')
         .option('-d, --depth <number>', 'Maximum depth for funding tree', '2')
-        .option('-o, --output <format>', 'Output format (table, json)', 'table')
-        .action(compareCommand);
+        .option('-o, --output <format>', 'Output format (table, json, csv)', 'table')
+        .option('--parallel <number>', 'Number of parallel analyses', '5')
+        .option('--min-value <eth>', 'Minimum transaction value in ETH', '0')
+        .option('--export <file>', 'Export results to file')
+        .action(batchCommand);
 
     // Config command
     program
@@ -155,4 +196,3 @@ if (isInteractive && args.length === 0) {
 
     program.parse();
 }
-
