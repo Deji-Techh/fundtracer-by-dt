@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * FundTracer by DT - Interactive CLI
+ * FundTracer by DT - Professional CLI
  * Blockchain wallet forensics from your terminal.
  */
 
@@ -14,43 +14,44 @@ import { configCommand } from './commands/config.js';
 import { interactiveCommand } from './commands/interactive.js';
 import { getApiKeys, getSybilApiKeys } from './utils.js';
 
-// Gradient ASCII Art Banner
+// Professional ASCII Art Banner - Dark/Glassy theme
 const banner = `
-${chalk.hex('#00BFFF')('  ███████╗')}${chalk.hex('#1E90FF')('██╗   ██╗')}${chalk.hex('#4169E1')('███╗   ██╗')}${chalk.hex('#6A5ACD')('██████╗ ')}${chalk.hex('#9370DB')('████████╗')}${chalk.hex('#BA55D3')('██████╗ ')}${chalk.hex('#DA70D6')(' █████╗ ')}${chalk.hex('#FF69B4')(' ██████╗')}${chalk.hex('#FF1493')('███████╗')}${chalk.hex('#FF6B6B')('██████╗ ')}
-${chalk.hex('#00BFFF')('  ██╔════╝')}${chalk.hex('#1E90FF')('██║   ██║')}${chalk.hex('#4169E1')('████╗  ██║')}${chalk.hex('#6A5ACD')('██╔══██╗')}${chalk.hex('#9370DB')('╚══██╔══╝')}${chalk.hex('#BA55D3')('██╔══██╗')}${chalk.hex('#DA70D6')('██╔══██╗')}${chalk.hex('#FF69B4')('██╔════╝')}${chalk.hex('#FF1493')('██╔════╝')}${chalk.hex('#FF6B6B')('██╔══██╗')}
-${chalk.hex('#00BFFF')('  █████╗  ')}${chalk.hex('#1E90FF')('██║   ██║')}${chalk.hex('#4169E1')('██╔██╗ ██║')}${chalk.hex('#6A5ACD')('██║  ██║')}${chalk.hex('#9370DB')('   ██║   ')}${chalk.hex('#BA55D3')('██████╔╝')}${chalk.hex('#DA70D6')('███████║')}${chalk.hex('#FF69B4')('██║     ')}${chalk.hex('#FF1493')('█████╗  ')}${chalk.hex('#FF6B6B')('██████╔╝')}
-${chalk.hex('#00BFFF')('  ██╔══╝  ')}${chalk.hex('#1E90FF')('██║   ██║')}${chalk.hex('#4169E1')('██║╚██╗██║')}${chalk.hex('#6A5ACD')('██║  ██║')}${chalk.hex('#9370DB')('   ██║   ')}${chalk.hex('#BA55D3')('██╔══██╗')}${chalk.hex('#DA70D6')('██╔══██║')}${chalk.hex('#FF69B4')('██║     ')}${chalk.hex('#FF1493')('██╔══╝  ')}${chalk.hex('#FF6B6B')('██╔══██╗')}
-${chalk.hex('#00BFFF')('  ██║     ')}${chalk.hex('#1E90FF')('╚██████╔╝')}${chalk.hex('#4169E1')('██║ ╚████║')}${chalk.hex('#6A5ACD')('██████╔╝')}${chalk.hex('#9370DB')('   ██║   ')}${chalk.hex('#BA55D3')('██║  ██║')}${chalk.hex('#DA70D6')('██║  ██║')}${chalk.hex('#FF69B4')('╚██████╗')}${chalk.hex('#FF1493')('███████╗')}${chalk.hex('#FF6B6B')('██║  ██║')}
-${chalk.hex('#00BFFF')('  ╚═╝     ')}${chalk.hex('#1E90FF')(' ╚═════╝ ')}${chalk.hex('#4169E1')('╚═╝  ╚═══╝')}${chalk.hex('#6A5ACD')('╚═════╝ ')}${chalk.hex('#9370DB')('   ╚═╝   ')}${chalk.hex('#BA55D3')('╚═╝  ╚═╝')}${chalk.hex('#DA70D6')('╚═╝  ╚═╝')}${chalk.hex('#FF69B4')(' ╚═════╝')}${chalk.hex('#FF1493')('╚══════╝')}${chalk.hex('#FF6B6B')('╚═╝  ╚═╝')}
+${chalk.hex('#2a2a2a')('  ███████╗')}${chalk.hex('#3a3a3a')('██╗   ██╗')}${chalk.hex('#4a4a4a')('███╗   ██╗')}${chalk.hex('#5a5a5a')('██████╗ ')}${chalk.hex('#6a6a6a')('████████╗')}${chalk.hex('#7a7a7a')('██████╗ ')}${chalk.hex('#8a8a8a')(' █████╗ ')}${chalk.hex('#9a9a9a')(' ██████╗')}${chalk.hex('#aaaaaa')('███████╗')}${chalk.hex('#bbbbbb')('██████╗ ')}
+${chalk.hex('#2a2a2a')('  ██╔════╝')}${chalk.hex('#3a3a3a')('██║   ██║')}${chalk.hex('#4a4a4a')('████╗  ██║')}${chalk.hex('#5a5a5a')('██╔══██╗')}${chalk.hex('#6a6a6a')('╚══██╔══╝')}${chalk.hex('#7a7a7a')('██╔══██╗')}${chalk.hex('#8a8a8a')('██╔══██╗')}${chalk.hex('#9a9a9a')('██╔════╝')}${chalk.hex('#aaaaaa')('██╔════╝')}${chalk.hex('#bbbbbb')('██╔══██╗')}
+${chalk.hex('#2a2a2a')('  █████╗  ')}${chalk.hex('#3a3a3a')('██║   ██║')}${chalk.hex('#4a4a4a')('██╔██╗ ██║')}${chalk.hex('#5a5a5a')('██║  ██║')}${chalk.hex('#6a6a6a')('   ██║   ')}${chalk.hex('#7a7a7a')('██████╔╝')}${chalk.hex('#8a8a8a')('███████║')}${chalk.hex('#9a9a9a')('██║     ')}${chalk.hex('#aaaaaa')('█████╗  ')}${chalk.hex('#bbbbbb')('██████╔╝')}
+${chalk.hex('#2a2a2a')('  ██╔══╝  ')}${chalk.hex('#3a3a3a')('██║   ██║')}${chalk.hex('#4a4a4a')('██║╚██╗██║')}${chalk.hex('#5a5a5a')('██║  ██║')}${chalk.hex('#6a6a6a')('   ██║   ')}${chalk.hex('#7a7a7a')('██╔══██╗')}${chalk.hex('#8a8a8a')('██╔══██║')}${chalk.hex('#9a9a9a')('██║     ')}${chalk.hex('#aaaaaa')('██╔══╝  ')}${chalk.hex('#bbbbbb')('██╔══██╗')}
+${chalk.hex('#2a2a2a')('  ██║     ')}${chalk.hex('#3a3a3a')('╚██████╔╝')}${chalk.hex('#4a4a4a')('██║ ╚████║')}${chalk.hex('#5a5a5a')('██████╔╝')}${chalk.hex('#6a6a6a')('   ██║   ')}${chalk.hex('#7a7a7a')('██║  ██║')}${chalk.hex('#8a8a8a')('██║  ██║')}${chalk.hex('#9a9a9a')('╚██████╗')}${chalk.hex('#aaaaaa')('███████╗')}${chalk.hex('#bbbbbb')('██║  ██║')}
+${chalk.hex('#2a2a2a')('  ╚═╝     ')}${chalk.hex('#3a3a3a')(' ╚═════╝ ')}${chalk.hex('#4a4a4a')('╚═╝  ╚═══╝')}${chalk.hex('#5a5a5a')('╚═════╝ ')}${chalk.hex('#6a6a6a')('   ╚═╝   ')}${chalk.hex('#7a7a7a')('╚═╝  ╚═╝')}${chalk.hex('#8a8a8a')('╚═╝  ╚═╝')}${chalk.hex('#9a9a9a')(' ╚═════╝')}${chalk.hex('#aaaaaa')('╚══════╝')}${chalk.hex('#bbbbbb')('╚═╝  ╚═╝')}
 `;
 
-const subtitle = chalk.dim('                              by DT • Blockchain Wallet Forensics Tool');
+const subtitle = chalk.hex('#888888')('                              Blockchain Wallet Forensics & Analysis Tool');
 
 /** Show provider status */
 function showProviderStatus(): void {
     const keys = getApiKeys();
     const sybilKeys = getSybilApiKeys();
 
-    console.log(chalk.bold('  Provider Status:'));
+    console.log(chalk.hex('#cccccc').bold('  Provider Status:'));
+    console.log();
 
     // Core providers
     const providers = [
-        { name: 'Alchemy', key: keys.alchemy, desc: 'Primary RPC' },
-        { name: 'Moralis', key: keys.moralis, desc: 'Fast Funding (10x)' },
+        { name: 'Alchemy', key: keys.alchemy, desc: 'Primary RPC Provider' },
+        { name: 'Moralis', key: keys.moralis, desc: 'Fast Funding Trace' },
         { name: 'Dune', key: keys.dune, desc: 'Contract Analysis' },
     ];
 
     for (const p of providers) {
         if (p.key) {
-            console.log(`  ${chalk.green('✓')} ${p.name.padEnd(10)} ${chalk.dim(p.desc)}`);
+            console.log(`  ${chalk.hex('#4ade80')('[OK]')} ${chalk.hex('#cccccc')(p.name.padEnd(12))} ${chalk.hex('#666666')(p.desc)}`);
         } else {
-            console.log(`  ${chalk.red('✗')} ${p.name.padEnd(10)} ${chalk.dim('Not configured')}`);
+            console.log(`  ${chalk.hex('#ef4444')('[--]')} ${chalk.hex('#888888')(p.name.padEnd(12))} ${chalk.hex('#555555')('Not Configured')}`);
         }
     }
 
     // Sybil analysis status
     if (sybilKeys.length > 0) {
-        console.log(`  ${chalk.green('✓')} ${'Sybil Keys'.padEnd(10)} ${chalk.dim(`${sybilKeys.length} keys for parallel analysis`)}`);
+        console.log(`  ${chalk.hex('#4ade80')('[OK]')} ${chalk.hex('#cccccc')('Sybil Keys'.padEnd(12))} ${chalk.hex('#666666')(`${sybilKeys.length} keys configured`)}`);
     }
     console.log();
 }
@@ -63,34 +64,35 @@ function showTips(): void {
     const hasMoralis = !!keys.moralis;
     const hasDune = !!keys.dune;
 
-    console.log(chalk.bold('  Quick Start:'));
+    console.log(chalk.hex('#cccccc').bold('  Quick Start:'));
+    console.log();
 
     if (!hasAlchemy) {
-        console.log(chalk.yellow('  ⚠ No API keys configured! Run setup first:'));
-        console.log(chalk.cyan('    fundtracer config --set-key alchemy:YOUR_KEY'));
+        console.log(chalk.hex('#fbbf24')('  Warning: No API keys configured. Run setup first:'));
+        console.log(chalk.hex('#60a5fa')('    fundtracer config --set-key alchemy:YOUR_KEY'));
         console.log();
-        console.log(chalk.dim('  Get a free Alchemy key: https://dashboard.alchemy.com/'));
+        console.log(chalk.hex('#666666')('  Get a free Alchemy key: https://dashboard.alchemy.com/'));
         return;
     }
 
-    console.log(`  ${chalk.gray('1.')} Analyze a wallet:  ${chalk.cyan('fundtracer analyze 0x...')}`);
-    console.log(`  ${chalk.gray('2.')} Compare wallets:   ${chalk.cyan('fundtracer compare 0x... 0x...')}`);
-    console.log(`  ${chalk.gray('3.')} View portfolio:    ${chalk.cyan('fundtracer portfolio 0x...')}`);
-    console.log(`  ${chalk.gray('4.')} Batch analysis:    ${chalk.cyan('fundtracer batch addresses.txt')}`);
-    console.log(`  ${chalk.gray('5.')} View config:       ${chalk.cyan('fundtracer config --show')}`);
+    console.log(`  ${chalk.hex('#888888')('1.')} Analyze a wallet:  ${chalk.hex('#60a5fa')('fundtracer analyze 0x...')}`);
+    console.log(`  ${chalk.hex('#888888')('2.')} Compare wallets:   ${chalk.hex('#60a5fa')('fundtracer compare 0x... 0x...')}`);
+    console.log(`  ${chalk.hex('#888888')('3.')} View portfolio:    ${chalk.hex('#60a5fa')('fundtracer portfolio 0x...')}`);
+    console.log(`  ${chalk.hex('#888888')('4.')} Batch analysis:    ${chalk.hex('#60a5fa')('fundtracer batch addresses.txt')}`);
+    console.log(`  ${chalk.hex('#888888')('5.')} View config:       ${chalk.hex('#60a5fa')('fundtracer config --show')}`);
 
     // Performance tips
     if (!hasMoralis || !hasDune || sybilKeys.length < 20) {
         console.log();
-        console.log(chalk.dim('  Performance Tips:'));
+        console.log(chalk.hex('#666666')('  Performance Tips:'));
         if (!hasMoralis) {
-            console.log(chalk.dim('  • Add Moralis for 10x faster funding tracing'));
+            console.log(chalk.hex('#555555')('  * Add Moralis for faster funding tracing'));
         }
         if (!hasDune) {
-            console.log(chalk.dim('  • Add Dune for faster contract analysis'));
+            console.log(chalk.hex('#555555')('  * Add Dune for faster contract analysis'));
         }
         if (sybilKeys.length < 20) {
-            console.log(chalk.dim(`  • Configure 20 API keys for ultra-fast Sybil detection (currently ${sybilKeys.length})`));
+            console.log(chalk.hex('#555555')(`  * Configure 20 API keys for ultra-fast Sybil detection (currently ${sybilKeys.length})`));
         }
     }
 }
@@ -112,7 +114,7 @@ if (isInteractive && args.length === 0) {
 } else {
     // Show smaller banner for commands
     if (args[0] !== '--help' && args[0] !== '-h' && args[0] !== '--version' && args[0] !== '-V') {
-        console.log(chalk.cyan.bold('\n  FundTracer') + chalk.dim(' by DT\n'));
+        console.log(chalk.hex('#888888').bold('\n  FundTracer') + chalk.hex('#555555')(' by DT\n'));
     }
 
     const program = new Command();

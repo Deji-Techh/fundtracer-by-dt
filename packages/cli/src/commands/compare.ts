@@ -34,6 +34,22 @@ interface CompareOptions {
     concurrency?: string;
 }
 
+// Professional color scheme
+const colors = {
+    primary: chalk.hex('#888888'),
+    secondary: chalk.hex('#666666'),
+    accent: chalk.hex('#60a5fa'),
+    success: chalk.hex('#4ade80'),
+    warning: chalk.hex('#fbbf24'),
+    error: chalk.hex('#ef4444'),
+    muted: chalk.hex('#555555'),
+    border: chalk.hex('#333333'),
+    critical: chalk.hex('#dc2626'),
+    high: chalk.hex('#ea580c'),
+    medium: chalk.hex('#ca8a04'),
+    low: chalk.hex('#16a34a'),
+};
+
 export async function compareCommand(addresses: string[], options: CompareOptions) {
     const chainId = options.chain as ChainId;
     const minClusterSize = parseInt(options.minCluster || '3', 10);
@@ -46,9 +62,9 @@ export async function compareCommand(addresses: string[], options: CompareOption
         try {
             const fileAddresses = readAddressesFromFile(options.file);
             allAddresses.push(...fileAddresses);
-            console.log(chalk.dim(`📄 Loaded ${fileAddresses.length} addresses from ${options.file}`));
+            console.log(colors.muted(`Loaded ${fileAddresses.length} addresses from ${options.file}`));
         } catch (error) {
-            console.error(chalk.red(`✗ Failed to read file: ${options.file}`));
+            console.error(colors.error(`Failed to read file: ${options.file}`));
             process.exit(1);
         }
     }
@@ -57,13 +73,13 @@ export async function compareCommand(addresses: string[], options: CompareOption
     const { valid: validAddresses, invalid: invalidAddresses } = validateAddresses(allAddresses);
 
     if (invalidAddresses.length > 0) {
-        console.log(chalk.yellow(`⚠ Ignored ${invalidAddresses.length} invalid addresses`));
+        console.log(colors.warning(`Ignored ${invalidAddresses.length} invalid addresses`));
     }
 
     if (validAddresses.length < 2) {
-        console.error(chalk.red('✗ Please provide at least 2 valid addresses to compare'));
-        console.log(chalk.dim('Usage: fundtracer compare 0xAddr1 0xAddr2 0xAddr3'));
-        console.log(chalk.dim('   or: fundtracer compare --file addresses.txt'));
+        console.error(colors.error('Please provide at least 2 valid addresses to compare'));
+        console.log(colors.muted('Usage: fundtracer compare 0xAddr1 0xAddr2 0xAddr3'));
+        console.log(colors.muted('   or: fundtracer compare --file addresses.txt'));
         process.exit(1);
     }
 
@@ -72,22 +88,22 @@ export async function compareCommand(addresses: string[], options: CompareOption
     const standardKeys = getApiKeys();
 
     if (apiKeys.length === 0) {
-        console.error(chalk.red('✗ No API keys configured for Sybil analysis'));
-        console.log(chalk.dim('Run: fundtracer config --set-key alchemy:YOUR_KEY'));
+        console.error(colors.error('No API keys configured for Sybil analysis'));
+        console.log(colors.muted('Run: fundtracer config --set-key alchemy:YOUR_KEY'));
         process.exit(1);
     }
 
-    console.log(chalk.cyan(`\n🔍 Sybil Detection Analysis`));
-    console.log(chalk.dim(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`));
-    console.log(`Wallets: ${chalk.bold(validAddresses.length)}`);
-    console.log(`API Keys: ${chalk.bold(apiKeys.length)} (for parallel processing)`);
-    console.log(`Concurrency: ${chalk.bold(concurrency)}x`);
-    console.log(`Min Cluster Size: ${chalk.bold(minClusterSize)}`);
+    console.log(colors.primary.bold('\nSybil Detection Analysis'));
+    console.log(colors.border('═'.repeat(60)));
+    console.log(`Wallets: ${colors.secondary(validAddresses.length.toString())}`);
+    console.log(`API Keys: ${colors.secondary(apiKeys.length.toString())} (parallel processing)`);
+    console.log(`Concurrency: ${colors.secondary(concurrency.toString())}x`);
+    console.log(`Min Cluster Size: ${colors.secondary(minClusterSize.toString())}`);
     console.log();
 
     const spinner = ora({
-        text: 'Initializing optimized analyzer...',
-        color: 'cyan',
+        text: colors.secondary('Initializing optimized analyzer...'),
+        color: 'gray',
     }).start();
 
     let lastProgress = 0;
@@ -98,11 +114,11 @@ export async function compareCommand(addresses: string[], options: CompareOption
             apiKeys,
             {
                 moralisKey: standardKeys.moralis || '',
-                covalentKey: standardKeys.dune || '', // Using dune key as covalent fallback
+                covalentKey: standardKeys.dune || '',
                 concurrency: concurrency,
                 progressCallback: (progress: AnalysisProgress) => {
                     lastProgress = progress.percentage;
-                    spinner.text = `${getProgressEmoji(progress.stage)} ${progress.stage}: ${progress.percentage}% (${progress.processed}/${progress.total})`;
+                    spinner.text = colors.secondary(`${progress.stage}: ${progress.percentage}% (${progress.processed}/${progress.total})`);
                 }
             }
         );
@@ -120,7 +136,7 @@ export async function compareCommand(addresses: string[], options: CompareOption
 
         const duration = (Date.now() - startTime) / 1000;
 
-        spinner.succeed(`Analysis complete in ${formatDuration(duration)}!`);
+        spinner.succeed(colors.success(`Analysis complete in ${formatDuration(duration)}`));
         console.log();
 
         // Output based on format
@@ -136,24 +152,17 @@ export async function compareCommand(addresses: string[], options: CompareOption
         }
 
     } catch (error) {
-        spinner.fail('Analysis failed');
-        console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+        spinner.fail(colors.error('Analysis failed'));
+        console.error(colors.error(error instanceof Error ? error.message : 'Unknown error'));
         process.exit(1);
-    }
-}
-
-function getProgressEmoji(stage: string): string {
-    switch (stage) {
-        case 'funding': return '💰';
-        case 'clustering': return '🔍';
-        case 'complete': return '✅';
-        default: return '⏳';
     }
 }
 
 function outputTable(result: SybilAnalysisResult, duration: number) {
     // Summary Header
-    console.log(chalk.bold.cyan('═══ Sybil Analysis Results ═══\n'));
+    console.log(colors.primary.bold('Sybil Analysis Results'));
+    console.log(colors.border('═'.repeat(60)));
+    console.log();
     
     // Risk Assessment
     const highRiskClusters = result.clusters.filter(c => c.sybilScore >= 80);
@@ -161,36 +170,50 @@ function outputTable(result: SybilAnalysisResult, duration: number) {
     const totalWalletsInClusters = result.clusters.reduce((sum, c) => sum + c.wallets.length, 0);
     
     if (highRiskClusters.length > 0) {
-        console.log(chalk.bgRed.white.bold(' ⚠ HIGH RISK: Sybil Activity Detected '));
+        console.log(colors.critical.bold('HIGH RISK: Sybil Activity Detected'));
     } else if (mediumRiskClusters.length > 0) {
-        console.log(chalk.bgYellow.black.bold(' ⚠ MEDIUM RISK: Suspicious Patterns Found '));
+        console.log(colors.medium.bold('MEDIUM RISK: Suspicious Patterns Found'));
     } else {
-        console.log(chalk.bgGreen.black.bold(' ✅ LOW RISK: No Sybil Patterns Detected '));
+        console.log(colors.low.bold('LOW RISK: No Sybil Patterns Detected'));
     }
     console.log();
 
     // Stats Table
     const statsTable = new Table({
-        style: { head: ['cyan'] },
+        style: { head: ['gray'] },
+        chars: {
+            'top': '', 'top-mid': '', 'top-left': '', 'top-right': '',
+            'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '',
+            'left': '', 'left-mid': '', 'mid': '', 'mid-mid': '',
+            'right': '', 'right-mid': '', 'middle': ' ',
+        },
     });
 
     statsTable.push(
-        { 'Wallets Analyzed': result.totalInteractors.toString() },
-        { 'Clusters Found': result.clusters.length.toString() },
-        { 'Wallets in Clusters': `${totalWalletsInClusters} (${((totalWalletsInClusters/result.totalInteractors)*100).toFixed(1)}%)` },
-        { 'High Risk Clusters': chalk.red(highRiskClusters.length.toString()) },
-        { 'Medium Risk Clusters': chalk.yellow(mediumRiskClusters.length.toString()) },
-        { 'Analysis Time': formatDuration(duration) },
+        { [colors.secondary('Wallets Analyzed')]: result.totalInteractors.toString() },
+        { [colors.secondary('Clusters Found')]: result.clusters.length.toString() },
+        { [colors.secondary('Wallets in Clusters')]: `${totalWalletsInClusters} (${((totalWalletsInClusters/result.totalInteractors)*100).toFixed(1)}%)` },
+        { [colors.secondary('High Risk Clusters')]: colors.error(highRiskClusters.length.toString()) },
+        { [colors.secondary('Medium Risk Clusters')]: colors.warning(mediumRiskClusters.length.toString()) },
+        { [colors.secondary('Analysis Time')]: formatDuration(duration) },
     );
     console.log(statsTable.toString());
     console.log();
 
     // Risk Distribution
     if (result.summary) {
-        console.log(chalk.bold.cyan('═══ Risk Distribution ═══\n'));
+        console.log(colors.primary.bold('Risk Distribution'));
+        console.log(colors.border('─'.repeat(60)));
+        console.log();
         const riskTable = new Table({
-            head: ['Risk Level', 'Wallets', 'Percentage'],
-            style: { head: ['cyan'] },
+            head: [colors.secondary('Risk Level'), colors.secondary('Wallets'), colors.secondary('Percentage')],
+            style: { head: ['gray'] },
+            chars: {
+                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+                'right': '│', 'right-mid': '┤', 'middle': '│',
+            },
         });
 
         const highRisk = result.summary.highRiskWallets || 0;
@@ -199,9 +222,9 @@ function outputTable(result: SybilAnalysisResult, duration: number) {
         const total = result.totalInteractors;
 
         riskTable.push(
-            [chalk.red('🔴 High Risk'), highRisk.toString(), `${((highRisk/total)*100).toFixed(1)}%`],
-            [chalk.yellow('🟡 Medium Risk'), mediumRisk.toString(), `${((mediumRisk/total)*100).toFixed(1)}%`],
-            [chalk.green('🟢 Low Risk'), lowRisk.toString(), `${((lowRisk/total)*100).toFixed(1)}%`],
+            [colors.error('High Risk'), highRisk.toString(), `${((highRisk/total)*100).toFixed(1)}%`],
+            [colors.warning('Medium Risk'), mediumRisk.toString(), `${((mediumRisk/total)*100).toFixed(1)}%`],
+            [colors.success('Low Risk'), lowRisk.toString(), `${((lowRisk/total)*100).toFixed(1)}%`],
         );
         console.log(riskTable.toString());
         console.log();
@@ -209,19 +232,21 @@ function outputTable(result: SybilAnalysisResult, duration: number) {
 
     // Clusters Details
     if (result.clusters.length > 0) {
-        console.log(chalk.bold.cyan(`═══ Detected Clusters (${result.clusters.length}) ═══\n`));
+        console.log(colors.primary.bold(`Detected Clusters (${result.clusters.length})`));
+        console.log(colors.border('─'.repeat(60)));
+        console.log();
         
         // Sort by sybil score (highest first)
         const sortedClusters = [...result.clusters].sort((a, b) => b.sybilScore - a.sybilScore);
 
         sortedClusters.forEach((cluster, index) => {
-            const riskColor = cluster.sybilScore >= 80 ? chalk.red :
-                             cluster.sybilScore >= 50 ? chalk.yellow : chalk.green;
+            const riskColor = cluster.sybilScore >= 80 ? colors.error :
+                             cluster.sybilScore >= 50 ? colors.warning : colors.success;
             
-            console.log(chalk.bold(`Cluster #${index + 1}`));
+            console.log(colors.secondary.bold(`Cluster #${index + 1}`));
             console.log(`  Sybil Score: ${riskColor.bold(`${cluster.sybilScore}/100`)}`);
             console.log(`  Wallets: ${cluster.wallets.length}`);
-            console.log(`  Funding Source: ${chalk.dim(formatAddress(cluster.fundingSource))}`);
+            console.log(`  Funding Source: ${colors.muted(formatAddress(cluster.fundingSource))}`);
             
             if (cluster.flags && cluster.flags.length > 0) {
                 console.log(`  Flags: ${cluster.flags.join(', ')}`);
@@ -231,11 +256,11 @@ function outputTable(result: SybilAnalysisResult, duration: number) {
             const displayWallets = cluster.wallets.slice(0, 5);
             console.log(`  Addresses:`);
             displayWallets.forEach(wallet => {
-                console.log(`    ${chalk.dim('•')} ${formatAddress(wallet.address)}`);
+                console.log(`    ${colors.muted('-')} ${formatAddress(wallet.address)}`);
             });
             
             if (cluster.wallets.length > 5) {
-                console.log(`    ${chalk.dim(`... and ${cluster.wallets.length - 5} more`)}`);
+                console.log(`    ${colors.muted(`... and ${cluster.wallets.length - 5} more`)}`);
             }
             
             console.log();
@@ -244,16 +269,24 @@ function outputTable(result: SybilAnalysisResult, duration: number) {
 
     // Flagged Clusters Summary
     if (result.flaggedClusters && result.flaggedClusters.length > 0) {
-        console.log(chalk.bold.yellow(`═══ Flagged for Review (${result.flaggedClusters.length}) ═══\n`));
+        console.log(colors.warning.bold(`Flagged for Review (${result.flaggedClusters.length})`));
+        console.log(colors.border('─'.repeat(60)));
+        console.log();
         
         const flaggedTable = new Table({
-            head: ['Cluster', 'Score', 'Wallets', 'Source'],
+            head: [colors.secondary('Cluster'), colors.secondary('Score'), colors.secondary('Wallets'), colors.secondary('Source')],
             style: { head: ['yellow'] },
+            chars: {
+                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+                'right': '│', 'right-mid': '┤', 'middle': '│',
+            },
         });
 
         result.flaggedClusters.forEach((cluster, idx) => {
-            const scoreColor = cluster.sybilScore >= 80 ? chalk.red :
-                              cluster.sybilScore >= 50 ? chalk.yellow : chalk.green;
+            const scoreColor = cluster.sybilScore >= 80 ? colors.error :
+                              cluster.sybilScore >= 50 ? colors.warning : colors.success;
             
             flaggedTable.push([
                 `#${idx + 1}`,
@@ -273,7 +306,7 @@ function outputJson(result: SybilAnalysisResult, exportPath?: string) {
 
     if (exportPath) {
         fs.writeFileSync(exportPath, jsonStr);
-        console.log(chalk.green(`✓ Results exported to ${exportPath}`));
+        console.log(colors.success(`Results exported to ${exportPath}`));
     } else {
         console.log(jsonStr);
     }
@@ -302,11 +335,11 @@ function outputCSV(result: SybilAnalysisResult, exportPath?: string) {
     });
 
     if (rows.length === 0) {
-        console.log(chalk.yellow('⚠ No clusters to export'));
+        console.log(colors.warning('No clusters to export'));
         return;
     }
 
     exportToCSV(rows, filename);
-    console.log(chalk.green(`✓ Results exported to ${filename}`));
-    console.log(chalk.dim(`  ${rows.length} rows exported`));
+    console.log(colors.success(`Results exported to ${filename}`));
+    console.log(colors.muted(`  ${rows.length} rows exported`));
 }

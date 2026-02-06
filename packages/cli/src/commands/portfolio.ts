@@ -60,10 +60,22 @@ const ALCHEMY_URLS: Partial<Record<ChainId, string>> = {
     polygon: 'https://polygon-mainnet.g.alchemy.com/v2/',
 };
 
+// Professional color scheme
+const colors = {
+    primary: chalk.hex('#888888'),
+    secondary: chalk.hex('#666666'),
+    accent: chalk.hex('#60a5fa'),
+    success: chalk.hex('#4ade80'),
+    warning: chalk.hex('#fbbf24'),
+    error: chalk.hex('#ef4444'),
+    muted: chalk.hex('#555555'),
+    border: chalk.hex('#333333'),
+};
+
 export async function portfolioCommand(address: string, options: PortfolioOptions) {
     // Validate address
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-        console.error(chalk.red('✗ Invalid wallet address format'));
+        console.error(colors.error('Error: Invalid wallet address format'));
         process.exit(1);
     }
 
@@ -73,21 +85,21 @@ export async function portfolioCommand(address: string, options: PortfolioOption
     try {
         getChainConfig(chainId);
     } catch {
-        console.error(chalk.red(`✗ Unsupported chain: ${chainId}`));
-        console.log(chalk.dim('Supported chains: ethereum, linea, arbitrum, base, optimism, polygon'));
+        console.error(colors.error(`Error: Unsupported chain: ${chainId}`));
+        console.log(colors.muted('Supported chains: ethereum, linea, arbitrum, base, optimism, polygon'));
         process.exit(1);
     }
 
     const apiKeys = getApiKeys();
     if (!apiKeys.alchemy) {
-        console.error(chalk.red('✗ Alchemy API key required for portfolio viewing'));
-        console.log(chalk.dim('Run: fundtracer config --set-key alchemy:YOUR_KEY'));
+        console.error(colors.error('Error: Alchemy API key required for portfolio viewing'));
+        console.log(colors.muted('Run: fundtracer config --set-key alchemy:YOUR_KEY'));
         process.exit(1);
     }
 
     const spinner = ora({
-        text: 'Fetching portfolio data...',
-        color: 'cyan',
+        text: colors.secondary('Fetching portfolio data...'),
+        color: 'gray',
     }).start();
 
     try {
@@ -102,25 +114,25 @@ export async function portfolioCommand(address: string, options: PortfolioOption
         };
 
         // Fetch native balance
-        spinner.text = 'Fetching native balance...';
+        spinner.text = colors.secondary('Fetching native balance...');
         portfolio.nativeBalance = await fetchNativeBalance(address, chainId, apiKeys.alchemy);
 
         // Fetch tokens if requested or by default
         if (options.tokens || (!options.nfts && !options.transactions)) {
-            spinner.text = 'Fetching token balances...';
+            spinner.text = colors.secondary('Fetching token balances...');
             portfolio.tokens = await fetchTokenBalances(address, chainId, apiKeys.alchemy);
         }
 
         // Fetch NFTs if requested
         if (options.nfts) {
-            spinner.text = 'Fetching NFT collection...';
+            spinner.text = colors.secondary('Fetching NFT collection...');
             const nftData = await fetchNFTs(address, chainId, apiKeys.alchemy);
             portfolio.nfts = nftData.nfts;
             portfolio.totalNftCollections = nftData.totalCollections;
             portfolio.totalNftValue = nftData.totalValue;
         }
 
-        spinner.succeed('Portfolio loaded!');
+        spinner.succeed(colors.success('Portfolio loaded'));
         console.log();
 
         // Output based on format
@@ -136,8 +148,8 @@ export async function portfolioCommand(address: string, options: PortfolioOption
         }
 
     } catch (error) {
-        spinner.fail('Failed to fetch portfolio');
-        console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+        spinner.fail(colors.error('Failed to fetch portfolio'));
+        console.error(colors.error(error instanceof Error ? error.message : 'Unknown error'));
         process.exit(1);
     }
 }
@@ -213,7 +225,7 @@ async function fetchTokenBalances(address: string, chain: ChainId, apiKey: strin
         // Sort by balance (descending)
         return tokens.sort((a, b) => b.balanceFormatted - a.balanceFormatted);
     } catch (error) {
-        console.warn(chalk.yellow('⚠ Could not fetch token balances'));
+        console.warn(colors.warning('Could not fetch token balances'));
         return [];
     }
 }
@@ -248,51 +260,61 @@ async function fetchNFTs(address: string, chain: ChainId, apiKey: string): Promi
                 name: nft.title || `${nft.contract?.name || 'Unknown'} #${nft.id?.tokenId}`,
                 collectionName: nft.contract?.name || 'Unknown Collection',
                 imageUrl: nft.media?.[0]?.gateway || null,
-                floorPrice: null, // Would need additional API call
+                floorPrice: null,
                 lastSalePrice: null,
                 network: chain,
             });
         }
 
         return {
-            nfts: nfts.slice(0, 50), // Limit to 50 for display
+            nfts: nfts.slice(0, 50),
             totalCollections: collections.size,
-            totalValue: 0, // Would need pricing data
+            totalValue: 0,
         };
     } catch (error) {
-        console.warn(chalk.yellow('⚠ Could not fetch NFTs'));
+        console.warn(colors.warning('Could not fetch NFTs'));
         return { nfts: [], totalCollections: 0, totalValue: 0 };
     }
 }
 
 function outputTable(portfolio: PortfolioData, options: PortfolioOptions) {
-    console.log(chalk.bold.cyan('═══ Wallet Portfolio ═══\n'));
+    console.log(colors.primary.bold('Wallet Portfolio'));
+    console.log(colors.border('═'.repeat(60)));
+    console.log();
 
     // Header info
-    console.log(`Address: ${chalk.bold(formatAddress(portfolio.address))}`);
-    console.log(`Chain: ${chalk.bold(portfolio.chain.toUpperCase())}`);
-    console.log(`Native Balance: ${chalk.bold(formatEth(portfolio.nativeBalance) + ' ETH')}`);
+    console.log(`${colors.secondary('Address:')} ${colors.primary(portfolio.address)}`);
+    console.log(`${colors.secondary('Chain:')} ${colors.primary(portfolio.chain.toUpperCase())}`);
+    console.log(`${colors.secondary('Native Balance:')} ${colors.primary(formatEth(portfolio.nativeBalance) + ' ETH')}`);
     console.log();
 
     // Token Balances
     if (portfolio.tokens.length > 0 && (options.tokens || (!options.nfts))) {
-        console.log(chalk.bold.cyan(`═══ Token Balances (${portfolio.tokens.length}) ═══\n`));
+        console.log(colors.primary.bold(`Token Balances (${portfolio.tokens.length})`));
+        console.log(colors.border('─'.repeat(60)));
+        console.log();
         
         const tokenTable = new Table({
-            head: ['Token', 'Symbol', 'Balance'],
-            style: { head: ['cyan'] },
+            head: [colors.secondary('Token'), colors.secondary('Symbol'), colors.secondary('Balance')],
+            style: { head: ['gray'] },
+            chars: {
+                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
+                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
+                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
+                'right': '│', 'right-mid': '┤', 'middle': '│',
+            },
         });
 
         portfolio.tokens.slice(0, 10).forEach(token => {
             tokenTable.push([
                 token.name.slice(0, 25),
-                chalk.dim(token.symbol),
+                colors.muted(token.symbol),
                 formatEth(token.balanceFormatted),
             ]);
         });
 
         if (portfolio.tokens.length > 10) {
-            tokenTable.push([chalk.dim(`... and ${portfolio.tokens.length - 10} more`), '', '']);
+            tokenTable.push([colors.muted(`... and ${portfolio.tokens.length - 10} more`), '', '']);
         }
 
         console.log(tokenTable.toString());
@@ -301,7 +323,9 @@ function outputTable(portfolio: PortfolioData, options: PortfolioOptions) {
 
     // NFTs
     if (portfolio.nfts.length > 0 && options.nfts) {
-        console.log(chalk.bold.cyan(`═══ NFT Collection (${portfolio.nfts.length} items, ${portfolio.totalNftCollections} collections) ═══\n`));
+        console.log(colors.primary.bold(`NFT Collection (${portfolio.nfts.length} items, ${portfolio.totalNftCollections} collections)`));
+        console.log(colors.border('─'.repeat(60)));
+        console.log();
         
         // Group by collection
         const byCollection = portfolio.nfts.reduce((acc, nft) => {
@@ -313,33 +337,41 @@ function outputTable(portfolio: PortfolioData, options: PortfolioOptions) {
         }, {} as Record<string, NFT[]>);
 
         Object.entries(byCollection).forEach(([collection, nfts]) => {
-            console.log(chalk.bold(collection));
+            console.log(colors.secondary.bold(collection));
             console.log(`  Items: ${nfts.length}`);
             
             // Show first 3 NFTs from each collection
             nfts.slice(0, 3).forEach(nft => {
                 const name = nft.name.length > 40 ? nft.name.slice(0, 40) + '...' : nft.name;
-                console.log(`    ${chalk.dim('•')} ${name}`);
+                console.log(`    ${colors.muted('-')} ${name}`);
             });
 
             if (nfts.length > 3) {
-                console.log(`    ${chalk.dim(`... and ${nfts.length - 3} more`)}`);
+                console.log(`    ${colors.muted(`... and ${nfts.length - 3} more`)}`);
             }
             console.log();
         });
     }
 
     // Summary
-    console.log(chalk.bold.cyan('═══ Summary ═══\n'));
+    console.log(colors.primary.bold('Summary'));
+    console.log(colors.border('─'.repeat(60)));
+    console.log();
     const summaryTable = new Table({
-        style: { head: ['cyan'] },
+        style: { head: ['gray'] },
+        chars: {
+            'top': '', 'top-mid': '', 'top-left': '', 'top-right': '',
+            'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '',
+            'left': '', 'left-mid': '', 'mid': '', 'mid-mid': '',
+            'right': '', 'right-mid': '', 'middle': ' ',
+        },
     });
 
     summaryTable.push(
-        { 'Native Balance': formatEth(portfolio.nativeBalance) + ' ETH' },
-        { 'Token Count': portfolio.tokens.length.toString() },
-        { 'NFT Items': portfolio.nfts.length.toString() },
-        { 'NFT Collections': portfolio.totalNftCollections.toString() },
+        { [colors.secondary('Native Balance')]: formatEth(portfolio.nativeBalance) + ' ETH' },
+        { [colors.secondary('Token Count')]: portfolio.tokens.length.toString() },
+        { [colors.secondary('NFT Items')]: portfolio.nfts.length.toString() },
+        { [colors.secondary('NFT Collections')]: portfolio.totalNftCollections.toString() },
     );
 
     console.log(summaryTable.toString());
@@ -350,7 +382,7 @@ function outputJson(portfolio: PortfolioData, exportPath?: string) {
 
     if (exportPath) {
         fs.writeFileSync(exportPath, jsonStr);
-        console.log(chalk.green(`✓ Portfolio exported to ${exportPath}`));
+        console.log(colors.success(`Portfolio exported to ${exportPath}`));
     } else {
         console.log(jsonStr);
     }
@@ -360,14 +392,18 @@ function outputCSV(portfolio: PortfolioData, exportPath?: string) {
     const filename = exportPath || `portfolio-${portfolio.address.slice(0, 8)}-${Date.now()}.csv`;
     
     // Create rows for tokens
-    const rows = portfolio.tokens.map(token => ({
-        type: 'token',
-        name: token.name,
-        symbol: token.symbol,
-        balance: token.balanceFormatted,
-        contract: token.contractAddress,
-        chain: portfolio.chain,
-    }));
+    const rows: any[] = [];
+    
+    portfolio.tokens.forEach(token => {
+        rows.push({
+            type: 'token',
+            name: token.name,
+            symbol: token.symbol,
+            balance: token.balanceFormatted,
+            contract: token.contractAddress,
+            chain: portfolio.chain,
+        });
+    });
 
     // Add NFTs
     portfolio.nfts.forEach(nft => {
@@ -382,7 +418,7 @@ function outputCSV(portfolio: PortfolioData, exportPath?: string) {
     });
 
     if (rows.length === 0) {
-        console.log(chalk.yellow('⚠ No assets to export'));
+        console.log(colors.warning('No assets to export'));
         return;
     }
 
@@ -401,6 +437,6 @@ function outputCSV(portfolio: PortfolioData, exportPath?: string) {
     }
 
     fs.writeFileSync(filename, csvRows.join('\n'));
-    console.log(chalk.green(`✓ Portfolio exported to ${filename}`));
-    console.log(chalk.dim(`  ${rows.length} assets exported`));
+    console.log(colors.success(`Portfolio exported to ${filename}`));
+    console.log(colors.muted(`  ${rows.length} assets exported`));
 }
