@@ -1,8 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Wallet01Icon, File02Icon, GitCompareIcon, Shield01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
 import './Features.css';
+
+interface FeaturesProps {
+  onLaunchApp?: () => void;
+}
 
 const features = [
   {
@@ -35,7 +38,7 @@ const features = [
   },
 ];
 
-export function Features() {
+export function Features({ onLaunchApp }: FeaturesProps) {
   return (
     <section className="features-section">
       <div className="features-container">
@@ -82,10 +85,27 @@ export function Features() {
 
         {/* CTA */}
         <div className="features-cta">
-          <Link to="/features" className="btn btn-secondary">
+          <button 
+            onClick={onLaunchApp}
+            className="btn btn-secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 24px',
+              backgroundColor: 'transparent',
+              color: '#ffffff',
+              border: '1px solid #3a3a3a',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textDecoration: 'none'
+            }}
+          >
             Explore All Features
             <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />
-          </Link>
+          </button>
         </div>
       </div>
     </section>

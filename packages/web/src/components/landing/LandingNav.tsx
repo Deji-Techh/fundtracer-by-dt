@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowRight01Icon, Menu01Icon, Cancel01Icon } from '@hugeicons/core-free-icons';
 import './LandingNav.css';
@@ -12,11 +11,11 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const navLinks = [
-    { path: '/about', label: 'About' },
-    { path: '/features', label: 'Features' },
-    { path: '/pricing', label: 'Pricing' },
-    { path: '/how-it-works', label: 'How It Works' },
-    { path: '/faq', label: 'FAQ' },
+    { href: '#about', label: 'About' },
+    { href: '#features', label: 'Features' },
+    { href: '#pricing', label: 'Pricing' },
+    { href: '#how-it-works', label: 'How It Works' },
+    { href: '#faq', label: 'FAQ' },
   ];
 
   return (
@@ -39,7 +38,7 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
         justifyContent: 'space-between'
       }}>
         {/* Logo */}
-        <Link to="/" style={{
+        <a href="/" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
@@ -47,7 +46,7 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
         }}>
           <img src="/logo.png" alt="FundTracer" style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
           <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ffffff' }}>FundTracer</span>
-        </Link>
+        </a>
 
         {/* Desktop Navigation */}
         <div style={{
@@ -56,9 +55,9 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
           gap: '32px'
         }} className="desktop-nav">
           {navLinks.map((link) => (
-            <Link 
-              key={link.path} 
-              to={link.path} 
+            <a 
+              key={link.href} 
+              href={link.href} 
               style={{
                 color: '#9ca3af',
                 textDecoration: 'none',
@@ -68,7 +67,7 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
               }}
             >
               {link.label}
-            </Link>
+            </a>
           ))}
         </div>
 

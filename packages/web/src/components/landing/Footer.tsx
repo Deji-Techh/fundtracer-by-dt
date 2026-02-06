@@ -1,24 +1,23 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import './Footer.css';
 
 const footerLinks = {
   product: [
-    { label: 'Features', path: '/features' },
-    { label: 'Pricing', path: '/pricing' },
-    { label: 'How It Works', path: '/how-it-works' },
-    { label: 'API', path: '/api' },
+    { label: 'Features', href: '#features' },
+    { label: 'Pricing', href: '#pricing' },
+    { label: 'How It Works', href: '#how-it-works' },
+    { label: 'API', href: '#api' },
   ],
   company: [
-    { label: 'About', path: '/about' },
-    { label: 'Blog', path: '/blog' },
-    { label: 'Careers', path: '/careers' },
-    { label: 'Contact', path: '/contact' },
+    { label: 'About', href: '#about' },
+    { label: 'Blog', href: '#blog' },
+    { label: 'Careers', href: '#careers' },
+    { label: 'Contact', href: '#contact' },
   ],
   legal: [
-    { label: 'Privacy Policy', path: '/privacy' },
-    { label: 'Terms of Service', path: '/terms' },
-    { label: 'Cookie Policy', path: '/cookies' },
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms of Service', href: '#terms' },
+    { label: 'Cookie Policy', href: '#cookies' },
   ],
   social: [
     { label: 'Twitter', url: 'https://twitter.com/fundtracer' },
@@ -34,10 +33,10 @@ export function Footer() {
         <div className="footer-grid">
           {/* Brand Column */}
           <div className="footer-brand">
-            <Link to="/" className="footer-logo">
+            <a href="/" className="footer-logo">
               <img src="/logo.png" alt="FundTracer" className="footer-logo-img" />
               <span className="footer-logo-text">FundTracer</span>
-            </Link>
+            </a>
             <p className="footer-tagline">
               Advanced blockchain forensics and wallet intelligence platform
             </p>
@@ -48,10 +47,10 @@ export function Footer() {
             <h4 className="footer-column-title">Product</h4>
             <ul className="footer-links">
               {footerLinks.product.map((link) => (
-                <li key={link.path}>
-                  <Link to={link.path} className="footer-link">
+                <li key={link.href}>
+                  <a href={link.href} className="footer-link">
                     {link.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -62,10 +61,10 @@ export function Footer() {
             <h4 className="footer-column-title">Company</h4>
             <ul className="footer-links">
               {footerLinks.company.map((link) => (
-                <li key={link.path}>
-                  <Link to={link.path} className="footer-link">
+                <li key={link.href}>
+                  <a href={link.href} className="footer-link">
                     {link.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -76,10 +75,10 @@ export function Footer() {
             <h4 className="footer-column-title">Legal</h4>
             <ul className="footer-links">
               {footerLinks.legal.map((link) => (
-                <li key={link.path}>
-                  <Link to={link.path} className="footer-link">
+                <li key={link.href}>
+                  <a href={link.href} className="footer-link">
                     {link.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>

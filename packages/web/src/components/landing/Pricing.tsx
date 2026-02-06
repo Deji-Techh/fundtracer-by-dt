@@ -1,8 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
 import './Pricing.css';
+
+interface PricingProps {
+  onLaunchApp?: () => void;
+}
 
 const tiers = [
   {
@@ -53,7 +56,7 @@ const tiers = [
   },
 ];
 
-export function Pricing() {
+export function Pricing({ onLaunchApp }: PricingProps) {
   return (
     <section style={{
       padding: '100px 24px',
@@ -149,8 +152,8 @@ export function Pricing() {
                 ))}
               </ul>
 
-              <Link 
-                to="/pricing"
+              <button 
+                onClick={onLaunchApp}
                 style={{
                   display: 'block',
                   width: '100%',
@@ -161,11 +164,12 @@ export function Pricing() {
                   borderRadius: '8px',
                   textAlign: 'center',
                   textDecoration: 'none',
-                  fontWeight: 600
+                  fontWeight: 600,
+                  cursor: 'pointer'
                 }}
               >
                 {tier.popular ? 'Upgrade to Pro' : tier.name === 'Max' ? 'Go Unlimited' : 'Get Started'}
-              </Link>
+              </button>
             </div>
           ))}
         </div>
