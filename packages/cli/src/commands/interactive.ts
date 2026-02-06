@@ -10,6 +10,7 @@ import { analyzeCommand } from './analyze.js';
 import { compareCommand } from './compare.js';
 import { portfolioCommand } from './portfolio.js';
 import { batchCommand } from './batch.js';
+import readline from 'readline';
 
 // Professional color scheme
 const colors = {
@@ -23,8 +24,48 @@ const colors = {
     border: chalk.hex('#333333'),
 };
 
-// Symbol for back option
-const BACK_OPTION = { name: colors.muted('← Back'), value: '__BACK__' };
+// Back option constant
+const BACK_VALUE = '__BACK__';
+const CANCEL_VALUE = '__CANCEL__';
+
+// Helper to create back option
+const createBackOption = () => ({ name: colors.muted('[Back]'), value: BACK_VALUE });
+const createCancelOption = () => ({ name: colors.muted('[Cancel]'), value: CANCEL_VALUE });
+
+// Setup keypress detection for ESC
+function setupKeypress(): Promise<void> {
+    return new Promise((resolve) => {
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+        
+        readline.emitKeypressEvents(process.stdin);
+        
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+        }
+        
+        process.stdin.on('keypress', (str, key) => {
+            if (key.name === 'escape') {
+                if (process.stdin.isTTY) {
+                    process.stdin.setRawMode(false);
+                }
+                rl.close();
+                resolve();
+            }
+        });
+        
+        // Auto-resolve after a short time to not block
+        setTimeout(() => {
+            if (process.stdin.isTTY) {
+                process.stdin.setRawMode(false);
+            }
+            rl.close();
+            resolve();
+        }, 100);
+    });
+}
 
 export async function interactiveCommand() {
     while (true) {
@@ -75,12 +116,9 @@ export async function interactiveCommand() {
                     break;
             }
         } catch (error: any) {
-            // Handle ESC key or Ctrl+C - return to main menu silently
-            if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
-                console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
-                continue;
-            }
-            console.log(colors.error(`\nError: ${error?.message || 'Unknown error'}\n`));
+            // Handle any cancellation - return to main menu
+            console.log(colors.muted('\nReturning to main menu...\n'));
+            continue;
         }
 
         console.log('');
@@ -101,18 +139,11 @@ ${colors.primary.bold('FundTracer CLI - Available Commands:')}
 ${colors.primary.bold('Navigation:')}
   - Use arrow keys to navigate menus
   - Press Enter to select
-  - Press ESC or select "← Back" to return to previous menu
-  - Press Ctrl+C to exit immediately
+  - Select "[Back]" to return to previous menu
+  - Select "[Cancel]" to return to main menu
 
 ${colors.primary.bold('Supported Chains:')}
   ethereum, linea, arbitrum, base, optimism, polygon
-
-${colors.primary.bold('Detection Capabilities:')}
-  - Rapid fund movement (flash loans, MEV)
-  - Same-block transactions (bot activity)
-  - Circular fund flows (wash trading)
-  - Sybil farming patterns
-  - Fresh wallet detection
 
 ${colors.muted('Documentation: https://github.com/Deji-Tech/fundtracer-by-dt')}
 `);
@@ -120,137 +151,256 @@ ${colors.muted('Documentation: https://github.com/Deji-Tech/fundtracer-by-dt')}
 
 async function interactiveAnalyze() {
     const chains = getEnabledChains();
-
+    
+    // Step 1: Get address
+    let address: string;
     try {
-        // Step 1: Get address
-        const { address } = await inquirer.prompt([
+        const result = await inquirer.prompt([
             {
                 type: 'input',
-                name: 'address',
-                message: 'Enter wallet address (ESC to go back):',
+                name: 'value',
+                message: 'Enter wallet address:',
                 validate: (input) => {
-                    if (!input) return 'Please enter a valid Ethereum address (0x...) or press ESC';
+                    if (!input) return 'Please enter an address';
                     if (/^0x[a-fA-F0-9]{40}$/.test(input)) return true;
-                    return 'Please enter a valid Ethereum address (0x...)';
+                    return 'Invalid address format (0x...)';
                 },
             },
         ]);
+        address = result.value;
+    } catch (e) {
+        return; // User cancelled - return to main menu
+    }
 
-        // Step 2: Select chain
-        const { chain } = await inquirer.prompt([
+    // Step 2: Select chain
+    let chain: string;
+    try {
+        const result = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'chain',
+                name: 'value',
                 message: 'Select blockchain:',
                 choices: [
                     ...chains.map(c => ({ name: c.name, value: c.id })),
-                    BACK_OPTION
+                    createBackOption(),
+                    createCancelOption()
                 ],
             },
         ]);
+        
+        if (result.value === BACK_VALUE) return interactiveAnalyze(); // Start over
+        if (result.value === CANCEL_VALUE) return; // Back to main menu
+        chain = result.value;
+    } catch (e) {
+        return;
+    }
 
-        if (chain === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
-            return;
-        }
-
-        // Step 3: Select depth
-        const { depth } = await inquirer.prompt([
+    // Step 3: Select depth
+    let depth: string;
+    try {
+        const result = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'depth',
+                name: 'value',
                 message: 'Funding tree depth:',
                 choices: [
                     { name: '1 - Quick scan', value: '1' },
                     { name: '2 - Standard', value: '2' },
                     { name: '3 - Deep (recommended)', value: '3' },
                     { name: '5 - Very deep (slower)', value: '5' },
-                    BACK_OPTION
+                    createBackOption(),
+                    createCancelOption()
                 ],
                 default: '3',
             },
         ]);
+        
+        if (result.value === BACK_VALUE) return interactiveAnalyze();
+        if (result.value === CANCEL_VALUE) return;
+        depth = result.value;
+    } catch (e) {
+        return;
+    }
 
-        if (depth === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
-            return;
-        }
-
-        // Step 4: Select output format
-        const { output } = await inquirer.prompt([
+    // Step 4: Select output format
+    let output: string;
+    try {
+        const result = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'output',
+                name: 'value',
                 message: 'Output format:',
                 choices: [
-                    { name: 'Table - Easy to read', value: 'table' },
-                    { name: 'Tree - Visualize funding flow', value: 'tree' },
-                    { name: 'JSON - Machine readable', value: 'json' },
-                    { name: 'CSV - Spreadsheet format', value: 'csv' },
-                    BACK_OPTION
+                    { name: 'Table', value: 'table' },
+                    { name: 'Tree', value: 'tree' },
+                    { name: 'JSON', value: 'json' },
+                    { name: 'CSV', value: 'csv' },
+                    createBackOption(),
+                    createCancelOption()
                 ],
             },
         ]);
-
-        if (output === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
-            return;
-        }
-
-        console.log();
-        await analyzeCommand(address, { chain, depth, output });
-    } catch (error: any) {
-        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
-            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
-            return;
-        }
-        throw error;
+        
+        if (result.value === BACK_VALUE) return interactiveAnalyze();
+        if (result.value === CANCEL_VALUE) return;
+        output = result.value;
+    } catch (e) {
+        return;
     }
+
+    console.log();
+    await analyzeCommand(address, { chain, depth, output: output as 'table' | 'tree' | 'json' | 'csv' });
+}
+
+async function interactivePortfolio() {
+    const chains = getEnabledChains();
+
+    // Step 1: Get address
+    let address: string;
+    try {
+        const result = await inquirer.prompt([
+            {
+                type: 'input',
+                name: 'value',
+                message: 'Enter wallet address:',
+                validate: (input) => {
+                    if (!input) return 'Please enter an address';
+                    if (/^0x[a-fA-F0-9]{40}$/.test(input)) return true;
+                    return 'Invalid address format';
+                },
+            },
+        ]);
+        address = result.value;
+    } catch (e) {
+        return;
+    }
+
+    // Step 2: Select chain
+    let chain: string;
+    try {
+        const result = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'value',
+                message: 'Select blockchain:',
+                choices: [
+                    ...chains.map(c => ({ name: c.name, value: c.id })),
+                    createBackOption(),
+                    createCancelOption()
+                ],
+            },
+        ]);
+        
+        if (result.value === BACK_VALUE) return interactivePortfolio();
+        if (result.value === CANCEL_VALUE) return;
+        chain = result.value;
+    } catch (e) {
+        return;
+    }
+
+    // Step 3: Select what to display
+    let views: string[];
+    try {
+        const result = await inquirer.prompt([
+            {
+                type: 'checkbox',
+                name: 'value',
+                message: 'What to display:',
+                choices: [
+                    { name: 'Token balances', value: 'tokens', checked: true },
+                    { name: 'NFTs', value: 'nfts' },
+                ],
+            },
+        ]);
+        views = result.value;
+    } catch (e) {
+        return;
+    }
+
+    // Step 4: Select output format
+    let output: string;
+    try {
+        const result = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'value',
+                message: 'Output format:',
+                choices: [
+                    { name: 'Table', value: 'table' },
+                    { name: 'JSON', value: 'json' },
+                    { name: 'CSV', value: 'csv' },
+                    createBackOption(),
+                    createCancelOption()
+                ],
+            },
+        ]);
+        
+        if (result.value === BACK_VALUE) return interactivePortfolio();
+        if (result.value === CANCEL_VALUE) return;
+        output = result.value;
+    } catch (e) {
+        return;
+    }
+
+    console.log();
+    await portfolioCommand(address, {
+        chain,
+        output: output as 'table' | 'json' | 'csv',
+        nfts: views.includes('nfts'),
+        tokens: views.includes('tokens'),
+        transactions: false,
+    });
 }
 
 async function interactiveCompare() {
     const chains = getEnabledChains();
     const addresses: string[] = [];
 
-    console.log(colors.muted('Enter wallet addresses for Sybil detection\n'));
+    console.log(colors.secondary('Enter wallet addresses for Sybil detection\n'));
 
-    try {
-        // Collect addresses with ability to go back
-        while (true) {
-            const promptNum = addresses.length + 1;
-            const { action } = await inquirer.prompt([
+    // Collect addresses
+    while (true) {
+        const promptNum = addresses.length + 1;
+        
+        let action: string;
+        try {
+            const result = await inquirer.prompt([
                 {
                     type: 'list',
-                    name: 'action',
+                    name: 'value',
                     message: `Wallet #${promptNum}:`,
                     choices: [
                         { name: 'Enter address', value: 'enter' },
-                        ...(addresses.length >= 2 ? [{ name: 'Continue to analysis', value: 'continue' }] : []),
-                        ...(addresses.length > 0 ? [BACK_OPTION] : []),
-                        { name: colors.muted('Cancel'), value: 'cancel' },
+                        ...(addresses.length >= 2 ? [{ name: colors.success('Continue to analysis'), value: 'continue' }] : []),
+                        ...(addresses.length > 0 ? [createBackOption()] : []),
+                        createCancelOption()
                     ],
                 },
             ]);
+            action = result.value;
+        } catch (e) {
+            return;
+        }
 
-            if (action === 'cancel') {
-                console.log(colors.muted('\nCancelled.\n'));
-                return;
-            }
+        if (action === CANCEL_VALUE) {
+            return;
+        }
 
-            if (action === '__BACK__') {
-                addresses.pop(); // Remove last address
-                continue;
-            }
+        if (action === BACK_VALUE) {
+            addresses.pop();
+            continue;
+        }
 
-            if (action === 'continue') {
-                break;
-            }
+        if (action === 'continue') {
+            break;
+        }
 
-            // Enter address
-            const { address } = await inquirer.prompt([
+        // Enter address
+        try {
+            const result = await inquirer.prompt([
                 {
                     type: 'input',
-                    name: 'address',
+                    name: 'value',
                     message: `Address #${promptNum}:`,
                     validate: (input) => {
                         if (!input) return 'Please enter an address';
@@ -259,223 +409,150 @@ async function interactiveCompare() {
                     },
                 },
             ]);
-
-            addresses.push(address);
-            console.log(colors.success(`  Added: ${address.slice(0, 10)}...`));
-        }
-
-        // Select chain
-        const { chain } = await inquirer.prompt([
-            {
-                type: 'list',
-                name: 'chain',
-                message: 'Select blockchain:',
-                choices: [
-                    ...chains.map(c => ({ name: c.name, value: c.id })),
-                    BACK_OPTION
-                ],
-            },
-        ]);
-
-        if (chain === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
+            addresses.push(result.value);
+            console.log(colors.success(`  Added: ${result.value.slice(0, 10)}...`));
+        } catch (e) {
             return;
         }
-
-        console.log();
-        await compareCommand(addresses, {
-            chain,
-            depth: '2',
-            output: 'table',
-            minCluster: '3',
-            concurrency: '10',
-        });
-    } catch (error: any) {
-        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
-            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
-            return;
-        }
-        throw error;
     }
-}
 
-async function interactivePortfolio() {
-    const chains = getEnabledChains();
-
+    // Select chain
+    let chain: string;
     try {
-        // Step 1: Get address
-        const { address } = await inquirer.prompt([
-            {
-                type: 'input',
-                name: 'address',
-                message: 'Enter wallet address (ESC to go back):',
-                validate: (input) => {
-                    if (!input) return 'Please enter a valid Ethereum address (0x...)';
-                    if (/^0x[a-fA-F0-9]{40}$/.test(input)) return true;
-                    return 'Invalid address format';
-                },
-            },
-        ]);
-
-        // Step 2: Select chain
-        const { chain } = await inquirer.prompt([
+        const result = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'chain',
+                name: 'value',
                 message: 'Select blockchain:',
                 choices: [
                     ...chains.map(c => ({ name: c.name, value: c.id })),
-                    BACK_OPTION
+                    createBackOption(),
+                    createCancelOption()
                 ],
             },
         ]);
-
-        if (chain === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
-            return;
-        }
-
-        // Step 3: Select what to display
-        const { views } = await inquirer.prompt([
-            {
-                type: 'checkbox',
-                name: 'views',
-                message: 'What to display:',
-                choices: [
-                    { name: 'Token balances', value: 'tokens', checked: true },
-                    { name: 'NFTs', value: 'nfts' },
-                ],
-            },
-        ]);
-
-        // Step 4: Select output format
-        const { output } = await inquirer.prompt([
-            {
-                type: 'list',
-                name: 'output',
-                message: 'Output format:',
-                choices: [
-                    { name: 'Table - Easy to read', value: 'table' },
-                    { name: 'JSON - Machine readable', value: 'json' },
-                    { name: 'CSV - Spreadsheet format', value: 'csv' },
-                    BACK_OPTION
-                ],
-            },
-        ]);
-
-        if (output === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
-            return;
-        }
-
-        console.log();
-        await portfolioCommand(address, {
-            chain,
-            output,
-            nfts: views.includes('nfts'),
-            tokens: views.includes('tokens'),
-            transactions: false,
-        });
-    } catch (error: any) {
-        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
-            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
-            return;
-        }
-        throw error;
+        
+        if (result.value === BACK_VALUE) return interactiveCompare();
+        if (result.value === CANCEL_VALUE) return;
+        chain = result.value;
+    } catch (e) {
+        return;
     }
+
+    console.log();
+    await compareCommand(addresses, {
+        chain,
+        depth: '2',
+        output: 'table',
+        minCluster: '3',
+        concurrency: '10',
+    });
 }
 
 async function interactiveBatch() {
     const chains = getEnabledChains();
 
+    // Step 1: Get file path
+    let filepath: string;
     try {
-        // Step 1: Get file path
-        const { filepath } = await inquirer.prompt([
+        const result = await inquirer.prompt([
             {
                 type: 'input',
-                name: 'filepath',
-                message: 'Enter path to file with addresses (ESC to go back):',
+                name: 'value',
+                message: 'Enter path to file with addresses:',
                 validate: (input) => {
                     if (!input) return 'Please enter a file path';
                     return true;
                 },
             },
         ]);
+        filepath = result.value;
+    } catch (e) {
+        return;
+    }
 
-        // Step 2: Select chain
-        const { chain } = await inquirer.prompt([
+    // Step 2: Select chain
+    let chain: string;
+    try {
+        const result = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'chain',
+                name: 'value',
                 message: 'Select blockchain:',
                 choices: [
                     ...chains.map(c => ({ name: c.name, value: c.id })),
-                    BACK_OPTION
+                    createBackOption(),
+                    createCancelOption()
                 ],
             },
         ]);
+        
+        if (result.value === BACK_VALUE) return interactiveBatch();
+        if (result.value === CANCEL_VALUE) return;
+        chain = result.value;
+    } catch (e) {
+        return;
+    }
 
-        if (chain === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
-            return;
-        }
-
-        // Step 3: Select depth
-        const { depth } = await inquirer.prompt([
+    // Step 3: Select depth
+    let depth: string;
+    try {
+        const result = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'depth',
+                name: 'value',
                 message: 'Analysis depth:',
                 choices: [
                     { name: '1 - Quick scan', value: '1' },
                     { name: '2 - Standard', value: '2' },
                     { name: '3 - Deep', value: '3' },
-                    BACK_OPTION
+                    createBackOption(),
+                    createCancelOption()
                 ],
                 default: '2',
             },
         ]);
+        
+        if (result.value === BACK_VALUE) return interactiveBatch();
+        if (result.value === CANCEL_VALUE) return;
+        depth = result.value;
+    } catch (e) {
+        return;
+    }
 
-        if (depth === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
-            return;
-        }
-
-        // Step 4: Select parallel processing
-        const { parallel } = await inquirer.prompt([
+    // Step 4: Select parallel processing
+    let parallel: string;
+    try {
+        const result = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'parallel',
+                name: 'value',
                 message: 'Parallel processing:',
                 choices: [
                     { name: '3 wallets at a time', value: '3' },
                     { name: '5 wallets at a time', value: '5' },
-                    { name: '10 wallets at a time (fast)', value: '10' },
-                    BACK_OPTION
+                    { name: '10 wallets at a time', value: '10' },
+                    createBackOption(),
+                    createCancelOption()
                 ],
                 default: '5',
             },
         ]);
-
-        if (parallel === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
-            return;
-        }
-
-        console.log();
-        await batchCommand(filepath, {
-            chain,
-            depth,
-            output: 'table',
-            parallel,
-        });
-    } catch (error: any) {
-        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
-            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
-            return;
-        }
-        throw error;
+        
+        if (result.value === BACK_VALUE) return interactiveBatch();
+        if (result.value === CANCEL_VALUE) return;
+        parallel = result.value;
+    } catch (e) {
+        return;
     }
+
+    console.log();
+    await batchCommand(filepath, {
+        chain,
+        depth,
+        output: 'table',
+        parallel,
+    });
 }
 
 async function interactiveConfig() {
@@ -484,42 +561,45 @@ async function interactiveConfig() {
         { name: 'Moralis (10x faster funding trace)', value: 'moralis' },
         { name: 'Dune (Fast contract analysis)', value: 'dune' },
         { name: 'Etherscan (Ethereum fallback)', value: 'etherscan' },
-        BACK_OPTION,
+        createCancelOption(),
     ];
 
+    let provider: string;
     try {
-        const { provider } = await inquirer.prompt([
+        const result = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'provider',
+                name: 'value',
                 message: 'Select provider to configure:',
                 choices: providers,
             },
         ]);
-
-        if (provider === '__BACK__') {
-            console.log(colors.muted('\nReturning...\n'));
+        
+        if (result.value === CANCEL_VALUE) {
             return;
         }
+        provider = result.value;
+    } catch (e) {
+        return;
+    }
 
-        const { apiKey } = await inquirer.prompt([
+    let apiKey: string;
+    try {
+        const result = await inquirer.prompt([
             {
                 type: 'password',
-                name: 'apiKey',
-                message: `Enter API key for ${provider} (ESC to cancel):`,
+                name: 'value',
+                message: `Enter API key for ${provider}:`,
                 mask: '*',
             },
         ]);
+        apiKey = result.value;
+    } catch (e) {
+        return;
+    }
 
-        if (apiKey) {
-            const { configCommand } = await import('./config.js');
-            await configCommand({ setKey: `${provider}:${apiKey}` });
-        }
-    } catch (error: any) {
-        if (error?.message?.includes('User force closed') || error?.message?.includes('canceled')) {
-            console.log(colors.muted('\n[ESC] Returning to main menu...\n'));
-            return;
-        }
-        throw error;
+    if (apiKey) {
+        const { configCommand } = await import('./config.js');
+        await configCommand({ setKey: `${provider}:${apiKey}` });
     }
 }
