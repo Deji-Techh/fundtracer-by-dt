@@ -6,10 +6,45 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import Table from 'cli-table3';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { ChainId, getChainConfig } from '@fundtracer/core';
 import { getApiKeys, formatAddress, formatEth } from '../utils.js';
 import fs from 'fs';
+
+// Configure axios with retry logic
+const axiosWithRetry = axios.create({
+    timeout: 30000, // 30 second timeout
+});
+
+// Add response interceptor for retry logic
+axiosWithRetry.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+        const config = error.config;
+        if (!config) return Promise.reject(error);
+        
+        // @ts-ignore - add retry count to config
+        const retryCount = config.retryCount || 0;
+        const maxRetries = 3;
+        
+        // Retry on network errors or 5xx server errors
+        const shouldRetry = retryCount < maxRetries && (
+            !error.response || // Network error (ECONNRESET, etc.)
+            error.response.status >= 500 || // Server errors
+            error.response.status === 429 // Rate limit
+        );
+        
+        if (shouldRetry) {
+            // @ts-ignore
+            config.retryCount = retryCount + 1;
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff, max 5s
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return axiosWithRetry(config);
+        }
+        
+        return Promise.reject(error);
+    }
+);
 
 interface PortfolioOptions {
     chain: string;
@@ -147,9 +182,26 @@ export async function portfolioCommand(address: string, options: PortfolioOption
                 outputTable(portfolio, options);
         }
 
-    } catch (error) {
+    } catch (error: any) {
         spinner.fail(colors.error('Failed to fetch portfolio'));
-        console.error(colors.error(error instanceof Error ? error.message : 'Unknown error'));
+        
+        // Provide helpful error messages
+        if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+            console.error(colors.error('Network error: Unable to connect to Alchemy API'));
+            console.log(colors.muted('Please check your internet connection and try again.'));
+        } else if (error.response?.status === 429) {
+            console.error(colors.error('Rate limit exceeded'));
+            console.log(colors.muted('Too many requests. Please wait a moment and try again.'));
+        } else if (error.response?.status === 401) {
+            console.error(colors.error('Invalid API key'));
+            console.log(colors.muted('Please check your Alchemy API key configuration.'));
+        } else if (error.message?.includes('timeout')) {
+            console.error(colors.error('Request timed out'));
+            console.log(colors.muted('The API took too long to respond. Please try again.'));
+        } else {
+            console.error(colors.error(error?.message || 'Unknown error'));
+        }
+        
         process.exit(1);
     }
 }
@@ -158,7 +210,7 @@ async function fetchNativeBalance(address: string, chain: ChainId, apiKey: strin
     const baseUrl = ALCHEMY_URLS[chain];
     if (!baseUrl) throw new Error(`Unsupported chain: ${chain}`);
 
-    const response = await axios.post(`${baseUrl}${apiKey}`, {
+    const response = await axiosWithRetry.post(`${baseUrl}${apiKey}`, {
         jsonrpc: '2.0',
         id: 1,
         method: 'eth_getBalance',
@@ -176,7 +228,7 @@ async function fetchTokenBalances(address: string, chain: ChainId, apiKey: strin
 
     try {
         // Use Alchemy's token balances API
-        const response = await axios.post(`${baseUrl}${apiKey}`, {
+        const response = await axiosWithRetry.post(`${baseUrl}${apiKey}`, {
             jsonrpc: '2.0',
             id: 1,
             method: 'alchemy_getTokenBalances',
@@ -196,7 +248,7 @@ async function fetchTokenBalances(address: string, chain: ChainId, apiKey: strin
 
         for (const token of limitedTokens) {
             try {
-                const metadataResponse = await axios.post(`${baseUrl}${apiKey}`, {
+                const metadataResponse = await axiosWithRetry.post(`${baseUrl}${apiKey}`, {
                     jsonrpc: '2.0',
                     id: 1,
                     method: 'alchemy_getTokenMetadata',
@@ -236,7 +288,7 @@ async function fetchNFTs(address: string, chain: ChainId, apiKey: string): Promi
 
     try {
         // Use Alchemy's NFT API
-        const response = await axios.get(`${baseUrl}${apiKey}/getNFTs`, {
+        const response = await axiosWithRetry.get(`${baseUrl}${apiKey}/getNFTs`, {
             params: {
                 owner: address,
                 pageSize: 100,
