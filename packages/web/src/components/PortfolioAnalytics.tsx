@@ -1109,6 +1109,37 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
     a.click();
   };
 
+  // Share portfolio
+  const handleShare = async () => {
+    if (!portfolio) return;
+    
+    const shareData = {
+      title: `FundTracer Portfolio - ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`,
+      text: `Check out this portfolio on FundTracer! Total Value: $${portfolio.totalUsdValue.toLocaleString()}`,
+      url: `${window.location.origin}/portfolio/${walletAddress}`
+    };
+    
+    try {
+      if (navigator.share) {
+        // Use native share on mobile
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareData.url);
+        alert('Portfolio link copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Share failed:', err);
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        alert('Portfolio link copied to clipboard!');
+      } catch (clipboardErr) {
+        console.error('Clipboard failed:', clipboardErr);
+      }
+    }
+  };
+
   // Format helpers
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -1371,7 +1402,7 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
             <Download size={18} />
             Export CSV
           </button>
-          <button className="action-btn-secondary">
+          <button className="action-btn-secondary" onClick={handleShare}>
             <Share2 size={18} />
             Share
           </button>

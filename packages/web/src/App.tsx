@@ -174,67 +174,70 @@ function App() {
       );
     }
 
-    // Switch between tabs
-    switch (activeTab) {
-      case 'home':
-        // Landing page for new visitors - marketing focused
-        console.log('[App] Rendering landing page');
-        return (
-          <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh' }}>
-            <LandingPage onLaunchApp={() => setActiveTab('sybil')} />
+    // Render all tabs but hide inactive ones with CSS
+    // This prevents remounting and re-fetching data when switching tabs
+    return (
+      <>
+        {/* Home Tab */}
+        <div style={{ 
+          display: activeTab === 'home' ? 'block' : 'none',
+          backgroundColor: '#0a0a0a', 
+          minHeight: '100vh' 
+        }}>
+          <LandingPage onLaunchApp={() => setActiveTab('sybil')} />
+        </div>
+        
+        {/* Portfolio Tab */}
+        <div style={{ 
+          display: activeTab === 'portfolio' ? 'block' : 'none' 
+        }} className="main-content">
+          <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
+            <PortfolioAnalytics walletAddress={walletAddress} />
+          </Suspense>
+        </div>
+        
+        {/* History Tab */}
+        <div style={{ 
+          display: activeTab === 'history' ? 'block' : 'none' 
+        }} className="main-content">
+          <div style={{ padding: 24 }}>
+            <h2 style={{ color: '#fff', marginBottom: 24, marginTop: 16 }}>Transaction History</h2>
+            <div className="card" style={{ textAlign: 'center', padding: 48 }}>
+              <p style={{ color: '#9ca3af' }}>
+                Connect your wallet and analyze an address to view transaction history
+              </p>
+            </div>
           </div>
-        );
-      
-      case 'portfolio':
-        return (
-          <div className="main-content">
+        </div>
+        
+        {/* Explorer Tab */}
+        <div style={{ 
+          display: activeTab === 'explorer' ? 'block' : 'none' 
+        }} className="main-content">
+          <div style={{ padding: 24 }}>
+            <h2 style={{ color: '#fff', marginBottom: 24, marginTop: 16 }}>Token Explorer</h2>
             <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
-              <PortfolioAnalytics walletAddress={walletAddress} />
+              <TokenExplorer />
             </Suspense>
           </div>
-        );
-      
-      case 'history':
-        return (
-          <div className="main-content">
-            <div style={{ padding: 24 }}>
-              <h2 style={{ color: '#fff', marginBottom: 24, marginTop: 16 }}>Transaction History</h2>
-              <div className="card" style={{ textAlign: 'center', padding: 48 }}>
-                <p style={{ color: '#9ca3af' }}>
-                  Connect your wallet and analyze an address to view transaction history
-                </p>
-              </div>
-            </div>
+        </div>
+        
+        {/* Market Tab */}
+        <div style={{ 
+          display: activeTab === 'market' ? 'block' : 'none' 
+        }} className="main-content">
+          <div style={{ padding: 24 }}>
+            <h2 style={{ color: '#fff', marginBottom: 24, marginTop: 16 }}>Wallet Analytics</h2>
+            <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
+              <WalletAnalytics walletAddress={walletAddress} />
+            </Suspense>
           </div>
-        );
-      
-      case 'explorer':
-        return (
-          <div className="main-content">
-            <div style={{ padding: 24 }}>
-              <h2 style={{ color: '#fff', marginBottom: 24, marginTop: 16 }}>Token Explorer</h2>
-              <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
-                <TokenExplorer />
-              </Suspense>
-            </div>
-          </div>
-        );
-      
-      case 'market':
-        return (
-          <div className="main-content">
-            <div style={{ padding: 24 }}>
-              <h2 style={{ color: '#fff', marginBottom: 24, marginTop: 16 }}>Wallet Analytics</h2>
-              <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
-                <WalletAnalytics walletAddress={walletAddress} />
-              </Suspense>
-            </div>
-          </div>
-        );
-
-      case 'sybil':
-        // Sybil page requires wallet connection for wallet/contract analysis
-        return (
+        </div>
+        
+        {/* Sybil Tab */}
+        <div style={{ 
+          display: activeTab === 'sybil' ? 'block' : 'none' 
+        }}>
           <SybilPage
             user={user}
             profile={profile}
@@ -242,22 +245,16 @@ function App() {
             isWalletConnected={isWalletConnected}
             walletAddress={walletAddress}
           />
-        );
-      
-      case 'settings':
-        return <ProfilePage onBack={() => setActiveTab('home')} />;
-      
-      default:
-        return (
-          <div className="main-content">
-            <div style={{ padding: 24 }}>
-              <div className="card" style={{ textAlign: 'center', padding: 48 }}>
-                <p style={{ color: '#9ca3af' }}>Coming soon...</p>
-              </div>
-            </div>
-          </div>
-        );
-    }
+        </div>
+        
+        {/* Settings Tab */}
+        <div style={{ 
+          display: activeTab === 'settings' ? 'block' : 'none' 
+        }}>
+          <ProfilePage onBack={() => setActiveTab('home')} />
+        </div>
+      </>
+    );
   };
 
   return (
