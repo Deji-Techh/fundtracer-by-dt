@@ -1,0 +1,352 @@
+/* CLI Showcase Section */
+.cli-showcase {
+  padding: 100px 24px;
+  background: linear-gradient(180deg, #000000 0%, #0a0a0a 50%, #000000 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.cli-showcase::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at 30% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 50%, rgba(96, 165, 250, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.cli-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Left Side - Content */
+.cli-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cli-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 100px;
+  color: #60a5fa;
+  font-size: 0.875rem;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.cli-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.cli-title-highlight {
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.cli-description {
+  font-size: 1.125rem;
+  color: #9ca3af;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.cli-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.cli-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.cli-feature-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(96, 165, 250, 0.1);
+  border-radius: 8px;
+  color: #60a5fa;
+}
+
+.cli-feature-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cli-feature-text h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.cli-feature-text p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  font-family: 'ui-monospace', 'SF Mono', Monaco, monospace;
+}
+
+.cli-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.cli-install {
+  display: inline-block;
+  padding: 16px 24px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-family: 'ui-monospace', 'SF Mono', Monaco, monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: all;
+}
+
+.cli-install:hover {
+  background: #252525;
+  border-color: #3b82f6;
+}
+
+.cli-docs-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #60a5fa;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.cli-docs-link:hover {
+  color: #93c5fd;
+  gap: 12px;
+}
+
+/* Right Side - Terminal */
+.cli-terminal-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.cli-terminal {
+  width: 100%;
+  max-width: 520px;
+  background: linear-gradient(165deg, #1a1a1a 0%, #0f0f0f 50%, #050505 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.cli-terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, rgba(40, 40, 40, 0.6) 0%, rgba(30, 30, 30, 0.4) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cli-terminal-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.cli-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.cli-dot-red {
+  background: #ff5f56;
+  box-shadow: 0 0 4px rgba(255, 95, 86, 0.4);
+}
+
+.cli-dot-yellow {
+  background: #ffbd2e;
+  box-shadow: 0 0 4px rgba(255, 189, 46, 0.4);
+}
+
+.cli-dot-green {
+  background: #27c93f;
+  box-shadow: 0 0 4px rgba(39, 201, 63, 0.4);
+}
+
+.cli-terminal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(160, 160, 160, 0.7);
+  font-family: 'ui-monospace', 'SF Mono', Monaco, monospace;
+  letter-spacing: 0.5px;
+}
+
+.cli-terminal-content {
+  padding: 20px 24px;
+  font-family: 'ui-monospace', 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  min-height: 380px;
+  max-height: 380px;
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, transparent 100%);
+}
+
+.cli-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cli-prompt {
+  color: #60a5fa;
+  font-weight: 500;
+}
+
+.cli-output {
+  color: #9ca3af;
+  padding-left: 0;
+}
+
+.cli-cursor {
+  color: #60a5fa;
+  animation: cliBlink 1s infinite;
+}
+
+@keyframes cliBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Scrollbar styling */
+.cli-terminal-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cli-terminal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cli-terminal-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.cli-terminal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .cli-container {
+    grid-template-columns: 1fr;
+    gap: 60px;
+  }
+
+  .cli-title {
+    font-size: 2.5rem;
+  }
+
+  .cli-terminal-wrapper {
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .cli-showcase {
+    padding: 60px 20px;
+  }
+
+  .cli-title {
+    font-size: 2rem;
+  }
+
+  .cli-description {
+    font-size: 1rem;
+  }
+
+  .cli-terminal {
+    max-width: 100%;
+  }
+
+  .cli-terminal-content {
+    min-height: 320px;
+    max-height: 320px;
+    font-size: 12px;
+    padding: 16px;
+  }
+
+  .cli-install {
+    font-size: 0.8rem;
+    padding: 12px 16px;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .cli-title {
+    font-size: 1.75rem;
+  }
+
+  .cli-features {
+    gap: 12px;
+  }
+
+  .cli-feature {
+    gap: 12px;
+  }
+
+  .cli-feature-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .cli-feature-text h4 {
+    font-size: 0.9rem;
+  }
+
+  .cli-feature-text p {
+    font-size: 0.8rem;
+  }
+}

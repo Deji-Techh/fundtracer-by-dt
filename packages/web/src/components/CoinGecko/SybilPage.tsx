@@ -213,7 +213,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
     <div className="main-content">
       <div style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ marginBottom: 32 }}>
+        <div style={{ marginBottom: 32, marginTop: 16 }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#fff', marginBottom: 8 }}>
             Wallet & Contract Analysis
           </h1>
