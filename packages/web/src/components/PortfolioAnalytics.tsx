@@ -33,6 +33,13 @@ import { ethers } from 'ethers';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { 
+  keyManager, 
+  resolveIPFSImageUrl, 
+  getIPFSFallbacks,
+  fetchWithTimeout,
+  executeBatches 
+} from '../utils/alchemyHelpers';
 import './PortfolioAnalytics.css';
 
 // Types
@@ -589,93 +596,296 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
 
   const priceService = useMemo(() => new PriceService(''), []);
 
+  // Fetch ETH Balance
+  const fetchEthBalance = async () => {
+    const key = keyManager.getWalletKey();
+    const response = await fetchWithTimeout(
+      `https://linea-mainnet.g.alchemy.com/v2/${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'eth_getBalance',
+          params: [walletAddress, 'latest']
+        })
+      }
+    );
+    const data = await response.json();
+    return data.result || '0';
+  };
+
+  // Fetch Token Balances
+  const fetchTokenBalances = async (): Promise<TokenBalance[]> => {
+    const key = keyManager.getWalletKey();
+    
+    const response = await fetchWithTimeout(
+      `https://linea-mainnet.g.alchemy.com/v2/${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'alchemy_getTokenBalances',
+          params: [walletAddress]
+        })
+      }
+    );
+    
+    const data = await response.json();
+    const tokens = (data.result?.tokenBalances || [])
+      .filter((token: any) => parseInt(token.tokenBalance) > 0)
+      .slice(0, 50);
+
+    if (tokens.length === 0) return [];
+
+    // Fetch metadata in parallel batches
+    const metadataResults = await executeBatches(tokens, 10, async (token: any) => {
+      const metaKey = keyManager.getWalletKey();
+      try {
+        const metaResponse = await fetchWithTimeout(
+          `https://linea-mainnet.g.alchemy.com/v2/${metaKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'alchemy_getTokenMetadata',
+              params: [token.contractAddress]
+            })
+          },
+          5000
+        );
+        const metaData = await metaResponse.json();
+        
+        // Get price from price service
+        const prices = await priceService.getTokenPrices([metaData.result?.symbol || '']);
+        const price = prices[metaData.result?.symbol]?.price || 0;
+        const priceChange24h = prices[metaData.result?.symbol]?.change24h || 0;
+        
+        const decimals = metaData.result?.decimals || 18;
+        const rawBalance = parseInt(token.tokenBalance);
+        const formattedBalance = rawBalance / Math.pow(10, decimals);
+        const usdValue = formattedBalance * price;
+        
+        return {
+          contractAddress: token.contractAddress,
+          tokenBalance: token.tokenBalance,
+          name: metaData.result?.name || 'Unknown Token',
+          symbol: metaData.result?.symbol || '?',
+          decimals: decimals,
+          logo: metaData.result?.logo,
+          usdValue: usdValue,
+          price: price,
+          priceChange24h: priceChange24h,
+          percentage: 0 // Will calculate after total
+        };
+      } catch (err) {
+        return {
+          contractAddress: token.contractAddress,
+          tokenBalance: token.tokenBalance,
+          name: 'Unknown Token',
+          symbol: '?',
+          decimals: 18,
+          usdValue: 0,
+          price: 0,
+          priceChange24h: 0,
+          percentage: 0
+        };
+      }
+    });
+
+    return metadataResults
+      .filter((result: any) => result.status === 'fulfilled')
+      .map((result: any) => result.value)
+      .filter((token: TokenBalance) => token.contractAddress);
+  };
+
+  // Fetch NFTs
+  const fetchNFTs = async (): Promise<NFTItem[]> => {
+    const key = keyManager.getWalletKey();
+    
+    const response = await fetchWithTimeout(
+      `https://linea-mainnet.g.alchemy.com/v2/${key}/getNFTs?owner=${walletAddress}&pageSize=100&withMetadata=true`,
+      {},
+      15000
+    );
+    
+    const data = await response.json();
+    
+    return (data.ownedNfts || []).map((nft: any): NFTItem => {
+      let imageUrl = nft.media?.[0]?.gateway || 
+                    nft.media?.[0]?.thumbnail || 
+                    nft.media?.[0]?.raw ||
+                    nft.metadata?.image;
+      
+      imageUrl = resolveIPFSImageUrl(imageUrl);
+
+      return {
+        contractAddress: nft.contract?.address,
+        tokenId: nft.id?.tokenId,
+        name: nft.title || nft.metadata?.name || `NFT #${nft.id?.tokenId}`,
+        description: nft.description || nft.metadata?.description,
+        imageUrl,
+        collectionName: nft.contract?.name || nft.contract?.openSea?.collectionName || 'Unknown Collection',
+      };
+    });
+  };
+
+  // Fetch Transactions
+  const fetchTransactions = async (): Promise<Transaction[]> => {
+    const keys = keyManager.getContractKeys(2);
+    
+    const [fromResponse, toResponse] = await Promise.all([
+      fetchWithTimeout(
+        `https://linea-mainnet.g.alchemy.com/v2/${keys[0]}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'alchemy_getAssetTransfers',
+            params: [{
+              fromBlock: '0x0',
+              toBlock: 'latest',
+              fromAddress: walletAddress,
+              category: ['external', 'erc20', 'erc721', 'erc1155'],
+              withMetadata: true,
+              maxCount: '0x32'
+            }]
+          })
+        },
+        10000
+      ),
+      fetchWithTimeout(
+        `https://linea-mainnet.g.alchemy.com/v2/${keys[1] || keys[0]}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'alchemy_getAssetTransfers',
+            params: [{
+              fromBlock: '0x0',
+              toBlock: 'latest',
+              toAddress: walletAddress,
+              category: ['external', 'erc20', 'erc721', 'erc1155'],
+              withMetadata: true,
+              maxCount: '0x32'
+            }]
+          })
+        },
+        10000
+      )
+    ]);
+
+    const [fromData, toData] = await Promise.all([
+      fromResponse.json(),
+      toResponse.json()
+    ]);
+
+    const processTransfer = (tx: any, direction: 'in' | 'out'): Transaction => ({
+      hash: tx.hash,
+      from: tx.from,
+      to: tx.to,
+      value: tx.value,
+      asset: tx.asset || 'ETH',
+      category: tx.category,
+      timestamp: new Date(tx.metadata?.blockTimestamp).getTime(),
+      direction
+    });
+
+    const fromTxs = (fromData.result?.transfers || []).map((tx: any) => processTransfer(tx, 'out'));
+    const toTxs = (toData.result?.transfers || []).map((tx: any) => processTransfer(tx, 'in'));
+
+    const allTxs = [...fromTxs, ...toTxs];
+    const uniqueTxs = allTxs.filter((tx, index, self) => 
+      index === self.findIndex((t) => t.hash === tx.hash && t.direction === t.direction)
+    );
+    
+    uniqueTxs.sort((a, b) => b.timestamp - a.timestamp);
+
+    return uniqueTxs;
+  };
+
   // Fetch portfolio data
   const fetchPortfolio = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
       
-      // Simulate fetching data - replace with actual API calls
-      // This would call Alchemy APIs similar to PortfolioViewer
+      // Fetch all data in parallel
+      const [ethBalance, tokens, nfts, transactions] = await Promise.all([
+        fetchEthBalance().catch(err => {
+          console.error('ETH fetch error:', err);
+          return '0';
+        }),
+        fetchTokenBalances().catch(err => {
+          console.error('Token fetch error:', err);
+          return [];
+        }),
+        fetchNFTs().catch(err => {
+          console.error('NFT fetch error:', err);
+          return [];
+        }),
+        fetchTransactions().catch(err => {
+          console.error('Transaction fetch error:', err);
+          return [];
+        })
+      ]);
+
+      // Calculate ETH value
+      const ethBalanceNum = parseInt(ethBalance, 16) / 1e18;
+      const ethPrice = (await priceService.getTokenPrices(['ethereum']))['ethereum']?.price || 0;
+      const ethUsdValue = ethBalanceNum * ethPrice;
+
+      // Calculate total value and percentages
+      const totalTokenValue = tokens.reduce((sum, t) => sum + t.usdValue, 0);
+      const totalUsdValue = ethUsdValue + totalTokenValue;
       
-      // For now, simulate data
-      const mockPortfolio: PortfolioData = {
+      // Update percentages
+      const tokensWithPercentage = tokens.map(t => ({
+        ...t,
+        percentage: totalUsdValue > 0 ? (t.usdValue / totalUsdValue) * 100 : 0
+      }));
+
+      // Generate sparklines (would need historical data in production)
+      const sparklineData: { [symbol: string]: number[] } = {};
+      ['ETH', ...tokensWithPercentage.map(t => t.symbol)].forEach(symbol => {
+        sparklineData[symbol] = Array.from({ length: 7 }, () => Math.random() * 1000 + 4000);
+      });
+
+      // Calculate 24h and 7d changes (mock for now, would use historical data)
+      const totalChange24h = totalUsdValue * 0.031; // 3.1% change
+      const totalChange7d = totalUsdValue * 0.12;   // 12% change
+
+      setPortfolio({
         address: walletAddress,
-        ethBalance: '0x' + (2.5 * 1e18).toString(16),
-        ethUsdValue: 1904.50,
-        tokens: [
-          {
-            contractAddress: '0x...usdc',
-            tokenBalance: (1269 * 1e6).toString(),
-            name: 'USD Coin',
-            symbol: 'USDC',
-            decimals: 6,
-            usdValue: 1269.00,
-            price: 1.00,
-            priceChange24h: 0.01,
-            percentage: 30,
-            logo: 'https://...usdc.png'
-          },
-          {
-            contractAddress: '0x...link',
-            tokenBalance: (45.23 * 1e18).toString(),
-            name: 'Chainlink',
-            symbol: 'LINK',
-            decimals: 18,
-            usdValue: 635.00,
-            price: 14.04,
-            priceChange24h: 5.23,
-            percentage: 15,
-            logo: 'https://...link.png'
-          },
-          {
-            contractAddress: '0x...uni',
-            tokenBalance: (234.50 * 1e18).toString(),
-            name: 'Uniswap',
-            symbol: 'UNI',
-            decimals: 18,
-            usdValue: 317.00,
-            price: 1.35,
-            priceChange24h: -2.15,
-            percentage: 7,
-            logo: 'https://...uni.png'
-          },
-          {
-            contractAddress: '0x...aave',
-            tokenBalance: (2.1 * 1e18).toString(),
-            name: 'Aave',
-            symbol: 'AAVE',
-            decimals: 18,
-            usdValue: 106.00,
-            price: 50.48,
-            priceChange24h: 1.82,
-            percentage: 3,
-            logo: 'https://...aave.png'
-          }
-        ],
-        nfts: [],
-        transactions: [],
-        totalUsdValue: 4231.50,
-        totalChange24h: 125.30,
-        totalChange7d: 450.20,
+        ethBalance,
+        ethUsdValue,
+        tokens: tokensWithPercentage.sort((a, b) => b.usdValue - a.usdValue),
+        nfts,
+        transactions,
+        totalUsdValue,
+        totalChange24h,
+        totalChange7d,
         lastUpdated: Date.now()
-      };
-      
-      // Generate mock sparklines
-      const mockSparklines: { [symbol: string]: number[] } = {};
-      ['ETH', 'USDC', 'LINK', 'UNI', 'AAVE'].forEach(symbol => {
-        mockSparklines[symbol] = Array.from({ length: 7 }, () => Math.random() * 1000 + 4000);
       });
       
-      setPortfolio(mockPortfolio);
-      setSparklines(mockSparklines);
+      setSparklines(sparklineData);
       setLastRefresh(Date.now());
     } catch (err: any) {
+      console.error('Failed to fetch portfolio:', err);
       setError(err.message || 'Failed to load portfolio');
     } finally {
       setLoading(false);
     }
-  }, [walletAddress, priceService]);
+  }, [walletAddress]);
 
   useEffect(() => {
     fetchPortfolio();
