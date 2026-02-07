@@ -198,7 +198,7 @@ function App() {
         return (
           <div className="main-content">
             <div style={{ padding: 24 }}>
-              <h2 style={{ color: '#fff', marginBottom: 24 }}>Transaction History</h2>
+              <h2 style={{ color: '#fff', marginBottom: 24, marginTop: 16 }}>Transaction History</h2>
               <div className="card" style={{ textAlign: 'center', padding: 48 }}>
                 <p style={{ color: '#9ca3af' }}>
                   Connect your wallet and analyze an address to view transaction history
@@ -212,7 +212,7 @@ function App() {
         return (
           <div className="main-content">
             <div style={{ padding: 24 }}>
-              <h2 style={{ color: '#fff', marginBottom: 24 }}>Token Explorer</h2>
+              <h2 style={{ color: '#fff', marginBottom: 24, marginTop: 16 }}>Token Explorer</h2>
               <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
                 <TokenExplorer />
               </Suspense>
@@ -224,6 +224,7 @@ function App() {
         return (
           <div className="main-content">
             <div style={{ padding: 24 }}>
+              <h2 style={{ color: '#fff', marginBottom: 24, marginTop: 16 }}>Wallet Analytics</h2>
               <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
                 <WalletAnalytics walletAddress={walletAddress} />
               </Suspense>

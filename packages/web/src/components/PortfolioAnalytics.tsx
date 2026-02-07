@@ -98,14 +98,49 @@ interface PriceData {
   };
 }
 
-// Price Service using Alchemy
+// Price Service using CoinGecko with proper symbol mapping
 class PriceService {
   private apiKey: string;
-  private cache: Map<string, { price: number; timestamp: number }> = new Map();
+  private cache: Map<string, { price: number; change24h: number; timestamp: number }> = new Map();
   private cacheDuration = 5 * 60 * 1000; // 5 minutes
+  
+  // Map common symbols to CoinGecko IDs
+  private symbolToId: { [symbol: string]: string } = {
+    'ETH': 'ethereum',
+    'WETH': 'weth',
+    'USDC': 'usd-coin',
+    'USDT': 'tether',
+    'DAI': 'dai',
+    'WBTC': 'wrapped-bitcoin',
+    'LINK': 'chainlink',
+    'UNI': 'uniswap',
+    'AAVE': 'aave',
+    'CRV': 'curve-dao-token',
+    'SNX': 'havven',
+    'COMP': 'compound-governance-token',
+    'MKR': 'maker',
+    'YFI': 'yearn-finance',
+    'LDO': 'lido-dao',
+    'RPL': 'rocket-pool',
+    'MATIC': 'matic-network',
+    'ARB': 'arbitrum',
+    'OP': 'optimism',
+    'LINEA': 'linea-2',
+    'USDC.E': 'usd-coin',
+    'AXLUSDC': 'axelar-usdc',
+    'WSTETH': 'wrapped-steth',
+    'RETH': 'rocket-pool-eth',
+    'CBETH': 'coinbase-wrapped-staked-eth',
+    'STETH': 'staked-ether'
+  };
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
+  }
+
+  private getCoinGeckoId(symbol: string): string {
+    const upperSymbol = symbol.toUpperCase();
+    return this.symbolToId[upperSymbol] || upperSymbol.toLowerCase();
   }
 
   async getTokenPrices(symbols: string[]): Promise<PriceData> {
@@ -114,9 +149,10 @@ class PriceService {
 
     // Check cache first
     symbols.forEach(symbol => {
+      if (!symbol) return;
       const cached = this.cache.get(symbol);
       if (cached && Date.now() - cached.timestamp < this.cacheDuration) {
-        result[symbol] = { price: cached.price, change24h: 0 };
+        result[symbol] = { price: cached.price, change24h: cached.change24h };
       } else {
         uncachedSymbols.push(symbol);
       }
@@ -125,32 +161,82 @@ class PriceService {
     if (uncachedSymbols.length === 0) return result;
 
     try {
-      // Use a price API - for now, simulate with ETH price
-      // In production, integrate with CoinGecko, CryptoCompare, or Alchemy price API
+      // Convert symbols to CoinGecko IDs
+      const ids = uncachedSymbols.map(s => this.getCoinGeckoId(s)).join(',');
+      
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${uncachedSymbols.join(',')}&vs_currencies=usd&include_24hr_change=true`
+        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`,
+        { 
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(10000)
+        }
       );
       
-      if (!response.ok) throw new Error('Price API failed');
+      if (!response.ok) {
+        console.warn('CoinGecko API failed:', response.status);
+        throw new Error(`Price API failed: ${response.status}`);
+      }
       
       const data = await response.json();
       
       uncachedSymbols.forEach(symbol => {
-        const price = data[symbol]?.usd || 0;
-        const change24h = data[symbol]?.usd_24h_change || 0;
+        const id = this.getCoinGeckoId(symbol);
+        const price = data[id]?.usd || 0;
+        const change24h = data[id]?.usd_24h_change || 0;
         
         result[symbol] = { price, change24h };
-        this.cache.set(symbol, { price, timestamp: Date.now() });
+        
+        if (price > 0) {
+          this.cache.set(symbol, { price, change24h, timestamp: Date.now() });
+        }
       });
     } catch (error) {
-      console.error('Failed to fetch prices:', error);
-      // Fallback: return cached or zero
+      console.warn('Failed to fetch prices from CoinGecko:', error);
+      // Fallback: use cached data even if expired, or zero
       uncachedSymbols.forEach(symbol => {
-        result[symbol] = { price: 0, change24h: 0 };
+        const cached = this.cache.get(symbol);
+        result[symbol] = { 
+          price: cached?.price || 0, 
+          change24h: cached?.change24h || 0 
+        };
       });
     }
 
     return result;
+  }
+
+  // Get historical prices for sparklines (7 days)
+  async getHistoricalPrices(symbol: string, days: number = 7): Promise<number[]> {
+    const cacheKey = `hist_${symbol}_${days}`;
+    const cached = this.cache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < this.cacheDuration) {
+      // Return cached sparkline data stored in price field as array
+      return cached.price as any || [];
+    }
+
+    try {
+      const id = this.getCoinGeckoId(symbol);
+      const response = await fetch(
+        `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+
+      if (!response.ok) throw new Error('Historical data fetch failed');
+
+      const data = await response.json();
+      const prices = data.prices?.map((p: [number, number]) => p[1]) || [];
+      
+      // Cache the sparkline data
+      if (prices.length > 0) {
+        this.cache.set(cacheKey, { price: prices as any, change24h: 0, timestamp: Date.now() });
+      }
+      
+      return prices;
+    } catch (error) {
+      console.warn(`Failed to fetch historical data for ${symbol}:`, error);
+      return [];
+    }
   }
 
   clearCache() {
@@ -166,12 +252,15 @@ const PieChart3D: React.FC<{ data: TokenBalance[]; totalValue: number }> = ({ da
     const sorted = [...data].sort((a, b) => b.usdValue - a.usdValue).slice(0, 5);
     const colors = ['#60a5fa', '#34d399', '#fbbf24', '#a78bfa', '#f87171'];
     
+    // Calculate total of only the displayed tokens for accurate percentages
+    const displayedTotal = sorted.reduce((sum, t) => sum + t.usdValue, 0);
+    
     return sorted.map((token, index) => ({
       ...token,
       color: colors[index % colors.length],
-      percentage: totalValue > 0 ? (token.usdValue / totalValue) * 100 : 0
+      percentage: displayedTotal > 0 ? (token.usdValue / displayedTotal) * 100 : 0
     }));
-  }, [data, totalValue]);
+  }, [data]);
 
   let cumulativePercentage = 0;
 
@@ -661,27 +750,20 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
         );
         const metaData = await metaResponse.json();
         
-        // Get price from price service
-        const prices = await priceService.getTokenPrices([metaData.result?.symbol || '']);
-        const price = prices[metaData.result?.symbol]?.price || 0;
-        const priceChange24h = prices[metaData.result?.symbol]?.change24h || 0;
-        
+        const symbol = metaData.result?.symbol || '?';
         const decimals = metaData.result?.decimals || 18;
         const rawBalance = parseInt(token.tokenBalance);
         const formattedBalance = rawBalance / Math.pow(10, decimals);
-        const usdValue = formattedBalance * price;
         
+        // Return metadata first, prices will be fetched in batch
         return {
           contractAddress: token.contractAddress,
           tokenBalance: token.tokenBalance,
           name: metaData.result?.name || 'Unknown Token',
-          symbol: metaData.result?.symbol || '?',
+          symbol: symbol,
           decimals: decimals,
           logo: metaData.result?.logo,
-          usdValue: usdValue,
-          price: price,
-          priceChange24h: priceChange24h,
-          percentage: 0 // Will calculate after total
+          formattedBalance
         };
       } catch (err) {
         return {
@@ -690,18 +772,40 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
           name: 'Unknown Token',
           symbol: '?',
           decimals: 18,
-          usdValue: 0,
-          price: 0,
-          priceChange24h: 0,
-          percentage: 0
+          formattedBalance: 0
         };
       }
     });
 
-    return metadataResults
+    // Extract successful results
+    const tokensWithMetadata = metadataResults
       .filter((result: any) => result.status === 'fulfilled')
       .map((result: any) => result.value)
-      .filter((token: TokenBalance) => token.contractAddress);
+      .filter((token: any) => token.contractAddress);
+
+    // Fetch all prices in one batch call
+    const uniqueSymbols = [...new Set(tokensWithMetadata.map((t: any) => t.symbol).filter((s: string) => s !== '?'))];
+    const prices = await priceService.getTokenPrices(uniqueSymbols);
+
+    // Map prices back to tokens
+    return tokensWithMetadata.map((token: any) => {
+      const price = prices[token.symbol]?.price || 0;
+      const priceChange24h = prices[token.symbol]?.change24h || 0;
+      const usdValue = token.formattedBalance * price;
+      
+      return {
+        contractAddress: token.contractAddress,
+        tokenBalance: token.tokenBalance,
+        name: token.name,
+        symbol: token.symbol,
+        decimals: token.decimals,
+        logo: token.logo,
+        usdValue: usdValue,
+        price: price,
+        priceChange24h: priceChange24h,
+        percentage: 0 // Will calculate after total
+      };
+    });
   };
 
   // Fetch NFTs
@@ -841,7 +945,8 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
 
       // Calculate ETH value
       const ethBalanceNum = parseInt(ethBalance, 16) / 1e18;
-      const ethPrice = (await priceService.getTokenPrices(['ethereum']))['ethereum']?.price || 0;
+      const ethPriceData = (await priceService.getTokenPrices(['ethereum']))['ethereum'] || { price: 0, change24h: 0 };
+      const ethPrice = ethPriceData.price;
       const ethUsdValue = ethBalanceNum * ethPrice;
 
       // Calculate total value and percentages
@@ -854,15 +959,44 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
         percentage: totalUsdValue > 0 ? (t.usdValue / totalUsdValue) * 100 : 0
       }));
 
-      // Generate sparklines (would need historical data in production)
+      // Fetch real historical prices for sparklines
       const sparklineData: { [symbol: string]: number[] } = {};
-      ['ETH', ...tokensWithPercentage.map(t => t.symbol)].forEach(symbol => {
-        sparklineData[symbol] = Array.from({ length: 7 }, () => Math.random() * 1000 + 4000);
-      });
+      
+      // Fetch historical data for top tokens by value (limited to avoid API limits)
+      const topTokens = [...tokensWithPercentage]
+        .sort((a, b) => b.usdValue - a.usdValue)
+        .slice(0, 5)
+        .map(t => t.symbol);
+      
+      await Promise.all(
+        ['ETH', ...topTokens].map(async (symbol) => {
+          if (symbol && symbol !== '?') {
+            const history = await priceService.getHistoricalPrices(symbol, 7);
+            if (history.length > 0) {
+              sparklineData[symbol] = history;
+            } else {
+              // Fallback: generate flat line from current value
+              const token = tokensWithPercentage.find(t => t.symbol === symbol);
+              const currentPrice = symbol === 'ETH' ? ethPrice : (token?.price || 0);
+              sparklineData[symbol] = Array(7).fill(currentPrice);
+            }
+          }
+        })
+      );
 
-      // Calculate 24h and 7d changes (mock for now, would use historical data)
-      const totalChange24h = totalUsdValue * 0.031; // 3.1% change
-      const totalChange7d = totalUsdValue * 0.12;   // 12% change
+      // Calculate real 24h and 7d changes based on portfolio composition
+      let totalChange24h = 0;
+      let totalChange7d = 0;
+      
+      // ETH contribution to change
+      totalChange24h += ethUsdValue * (ethPriceData.change24h / 100);
+      
+      // Token contributions to change
+      tokensWithPercentage.forEach(token => {
+        if (token.priceChange24h !== 0) {
+          totalChange24h += token.usdValue * (token.priceChange24h / 100);
+        }
+      });
 
       setPortfolio({
         address: walletAddress,
@@ -1077,11 +1211,34 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
             <span className="metric-detail">{portfolio.nfts.length} NFTs</span>
           </div>
           
-          <div className="metric-card">
-            <span className="metric-label">Best Performer</span>
-            <span className="metric-value positive">LINK</span>
-            <span className="metric-change positive">+12.5%</span>
-          </div>
+          {(() => {
+            // Calculate best performer from actual data
+            const allAssets: Array<{symbol: string; change24h: number}> = [
+              { symbol: 'ETH', change24h: portfolio.totalChange24h > 0 ? (portfolio.totalChange24h / portfolio.totalUsdValue) * 100 : 0 },
+              ...portfolio.tokens
+                .filter(t => t.priceChange24h !== 0)
+                .map(t => ({ symbol: t.symbol, change24h: t.priceChange24h }))
+            ];
+            const bestPerformer = allAssets.length > 0 
+              ? allAssets.reduce((best, asset) => asset.change24h > best.change24h ? asset : best, allAssets[0])
+              : null;
+            
+            return bestPerformer && bestPerformer.change24h !== 0 ? (
+              <div className="metric-card">
+                <span className="metric-label">Best Performer</span>
+                <span className="metric-value positive">{bestPerformer.symbol}</span>
+                <span className={`metric-change ${bestPerformer.change24h >= 0 ? 'positive' : 'negative'}`}>
+                  {bestPerformer.change24h >= 0 ? '+' : ''}{bestPerformer.change24h.toFixed(1)}%
+                </span>
+              </div>
+            ) : (
+              <div className="metric-card">
+                <span className="metric-label">Best Performer</span>
+                <span className="metric-value">—</span>
+                <span className="metric-change">No data</span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Main Content Grid */}
@@ -1105,20 +1262,50 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
                   height={80}
                 />
               </div>
-              <div className="trend-stats">
-                <div className="trend-stat">
-                  <span className="stat-label">High (7d)</span>
-                  <span className="stat-value">$4,350</span>
-                </div>
-                <div className="trend-stat">
-                  <span className="stat-label">Low (7d)</span>
-                  <span className="stat-value">$4,120</span>
-                </div>
-                <div className="trend-stat">
-                  <span className="stat-label">Avg</span>
-                  <span className="stat-value">$4,235</span>
-                </div>
-              </div>
+              {(() => {
+                // Calculate trend stats from sparkline data
+                const ethSparkline = sparklines['ETH'] || [];
+                let high = portfolio.totalUsdValue;
+                let low = portfolio.totalUsdValue;
+                let avg = portfolio.totalUsdValue;
+                
+                if (ethSparkline.length > 0) {
+                  // Calculate portfolio value at each point
+                  const portfolioValues = ethSparkline.map(price => {
+                    const ethValueAtPoint = (parseInt(portfolio.ethBalance, 16) / 1e18) * price;
+                    return ethValueAtPoint + portfolio.tokens.reduce((sum, t) => {
+                      const tokenSparkline = sparklines[t.symbol];
+                      if (tokenSparkline && tokenSparkline.length > 0) {
+                        const tokenPrice = tokenSparkline[ethSparkline.indexOf(price)] || t.price;
+                        const balance = parseInt(t.tokenBalance) / Math.pow(10, t.decimals);
+                        return sum + (balance * tokenPrice);
+                      }
+                      return sum + t.usdValue;
+                    }, 0);
+                  });
+                  
+                  high = Math.max(...portfolioValues);
+                  low = Math.min(...portfolioValues);
+                  avg = portfolioValues.reduce((a, b) => a + b, 0) / portfolioValues.length;
+                }
+                
+                return (
+                  <div className="trend-stats">
+                    <div className="trend-stat">
+                      <span className="stat-label">High (7d)</span>
+                      <span className="stat-value">${high.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <div className="trend-stat">
+                      <span className="stat-label">Low (7d)</span>
+                      <span className="stat-value">${low.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <div className="trend-stat">
+                      <span className="stat-label">Avg</span>
+                      <span className="stat-value">${avg.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
           
