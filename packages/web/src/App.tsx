@@ -36,6 +36,7 @@ import './global.css';
 // Lazy loaded components
 const GasTracker = lazy(() => import('./components/GasTracker').then(m => ({ default: m.GasTracker })));
 const PortfolioViewer = lazy(() => import('./components/PortfolioViewer').then(m => ({ default: m.PortfolioViewer })));
+const PortfolioAnalytics = lazy(() => import('./components/PortfolioAnalytics').then(m => ({ default: m.PortfolioAnalytics })));
 const WalletAnalytics = lazy(() => import('./components/WalletAnalytics').then(m => ({ default: m.WalletAnalytics })));
 const TokenExplorer = lazy(() => import('./components/TokenExplorer/TokenPage').then(m => ({ default: m.TokenPage })));
 
@@ -187,11 +188,9 @@ function App() {
       case 'portfolio':
         return (
           <div className="main-content">
-            <div style={{ padding: 24 }}>
-              <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
-                <PortfolioViewer walletAddress={walletAddress} />
-              </Suspense>
-            </div>
+            <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
+              <PortfolioAnalytics walletAddress={walletAddress} />
+            </Suspense>
           </div>
         );
       
