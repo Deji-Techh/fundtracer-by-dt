@@ -49,10 +49,11 @@ if (!projectId) {
 }
 
 // 2. Create a metadata object
+// IMPORTANT: Use hardcoded URL for mobile wallet connection consistency
 const metadata = {
   name: 'FundTracer',
   description: 'Trace with Precision. Scale with Confidence.',
-  url: typeof window !== 'undefined' ? window.location.origin : 'https://fundtracer.xyz',
+  url: 'https://fundtracer.xyz',
   icons: ['https://fundtracer.xyz/logo.png']
 }
 

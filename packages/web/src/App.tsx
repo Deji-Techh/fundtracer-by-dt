@@ -151,14 +151,15 @@ function App() {
     }
   }, [user]);
 
-  const handleConnectWallet = async () => {
+  const handleConnectWallet = () => {
     if (isWalletConnected) {
       // Disconnect wallet logic
       setIsWalletConnected(false);
       setWalletAddress('');
     } else {
       // Open AppKit wallet connection modal
-      await open();
+      // IMPORTANT: Must be synchronous for mobile deep links to work
+      open();
     }
   };
 
