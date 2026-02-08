@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { AnalysisResult, SuspiciousIndicator } from '@fundtracer/core';
+import { AnalysisResult, SuspiciousIndicator, FundingNode } from '@fundtracer/core';
 import FundingTree from './FundingTree';
 import TransactionList from './TransactionList';
 import AddressLabel from './AddressLabel';
+import { fetchFundingTree } from '../api';
 
 interface AnalysisViewProps {
     result: AnalysisResult;
@@ -15,6 +16,36 @@ type TabId = 'overview' | 'funding' | 'transactions' | 'suspicious';
 
 function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisViewProps) {
     const [activeTab, setActiveTab] = useState<TabId>('overview');
+    const [fundingSources, setFundingSources] = useState<FundingNode | null>(null);
+    const [fundingDestinations, setFundingDestinations] = useState<FundingNode | null>(null);
+    const [treeLoading, setTreeLoading] = useState(false);
+    const [treeError, setTreeError] = useState<string | null>(null);
+
+    // Check if tree data was already included in the analysis result (non-empty children)
+    const hasPreloadedTree = result.fundingSources?.children?.length > 0 || result.fundingDestinations?.children?.length > 0;
+    const treeGenerated = hasPreloadedTree || fundingSources !== null;
+
+    const handleGenerateTree = async () => {
+        setTreeLoading(true);
+        setTreeError(null);
+        try {
+            const response = await fetchFundingTree(result.wallet.address, result.wallet.chain);
+            if (response.result) {
+                setFundingSources(response.result.fundingSources);
+                setFundingDestinations(response.result.fundingDestinations);
+            } else {
+                setTreeError(response.error || 'Failed to generate funding tree');
+            }
+        } catch (err: any) {
+            setTreeError(err.message || 'Failed to generate funding tree');
+        } finally {
+            setTreeLoading(false);
+        }
+    };
+
+    // Use on-demand tree data if available, otherwise fall back to result data
+    const displaySources = fundingSources || result.fundingSources;
+    const displayDestinations = fundingDestinations || result.fundingDestinations;
 
     const formatAddress = (addr: string) =>
         `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -160,11 +191,94 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
 
                     {activeTab === 'funding' && (
                         <div>
-                            <h3 style={{ marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Funding Sources</h3>
-                            <FundingTree node={result.fundingSources} direction="source" />
+                            {!treeGenerated ? (
+                                /* Show "Generate" button when tree hasn't been loaded yet */
+                                <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: 'var(--space-8)',
+                                    gap: 'var(--space-4)',
+                                }}>
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)' }}>
+                                        <path d="M12 2v6m0 0l3-3m-3 3L9 5" />
+                                        <path d="M2 12h6m0 0L5 9m3 3l-3 3" />
+                                        <path d="M12 22v-6m0 0l3 3m-3-3l-3 3" />
+                                        <path d="M22 12h-6m0 0l3-3m-3 3l3 3" />
+                                    </svg>
+                                    <h3 style={{
+                                        fontSize: 'var(--text-lg)',
+                                        fontWeight: 600,
+                                        color: 'var(--color-text-primary)',
+                                        margin: 0,
+                                    }}>
+                                        Funding Tree
+                                    </h3>
+                                    <p style={{
+                                        color: 'var(--color-text-muted)',
+                                        fontSize: 'var(--text-sm)',
+                                        textAlign: 'center',
+                                        maxWidth: 400,
+                                        margin: 0,
+                                    }}>
+                                        Trace where this wallet's funds came from and where they went.
+                                        This requires additional API calls and may take a few seconds.
+                                    </p>
 
-                            <h3 style={{ margin: 'var(--space-6) 0 var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Funding Destinations</h3>
-                            <FundingTree node={result.fundingDestinations} direction="destination" />
+                                    {treeError && (
+                                        <div style={{
+                                            padding: 'var(--space-3)',
+                                            background: 'var(--color-danger-bg)',
+                                            color: 'var(--color-danger-text)',
+                                            borderRadius: 'var(--radius-md)',
+                                            fontSize: 'var(--text-sm)',
+                                            maxWidth: 400,
+                                            width: '100%',
+                                            textAlign: 'center',
+                                        }}>
+                                            {treeError}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={handleGenerateTree}
+                                        disabled={treeLoading}
+                                        style={{
+                                            padding: 'var(--space-3) var(--space-6)',
+                                            fontSize: 'var(--text-sm)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 'var(--space-2)',
+                                        }}
+                                    >
+                                        {treeLoading ? (
+                                            <>
+                                                <div className="loading-spinner" style={{ width: 16, height: 16 }} />
+                                                Generating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M12 2v6m0 0l3-3m-3 3L9 5" />
+                                                    <circle cx="12" cy="12" r="10" />
+                                                </svg>
+                                                Generate Funding Tree
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            ) : (
+                                /* Show tree visualization once generated */
+                                <div>
+                                    <h3 style={{ marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Funding Sources</h3>
+                                    <FundingTree node={displaySources} direction="source" />
+
+                                    <h3 style={{ margin: 'var(--space-6) 0 var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Funding Destinations</h3>
+                                    <FundingTree node={displayDestinations} direction="destination" />
+                                </div>
+                            )}
                         </div>
                     )}
 

@@ -19,123 +19,69 @@ import { trackAnalysis } from '../utils/analytics.js';
 
 const router = Router();
 
-// Helper to label contracts in transactions
-function labelContracts(transactions: any[]): any[] {
-    return transactions.map(tx => {
-        const toInfo = tx.to ? contractService.getContract(tx.to) : null;
-        const fromInfo = tx.from ? contractService.getContract(tx.from) : null;
+// In-memory TTL cache for Alchemy API keys (avoids hitting Firestore on every request)
+const alchemyKeyCache = new Map<string, { key: string; expiresAt: number }>();
+const ALCHEMY_KEY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-        // Queue lookup if unknown and appears to be a contract interaction
-        if (tx.to && !toInfo && /^0x[a-fA-F0-9]{40}$/.test(tx.to)) {
-            const isContractInteraction = [
-                'contract_call', 'token_transfer', 'dex_swap',
-                'bridge', 'lending', 'staking', 'nft_transfer'
-            ].includes(tx.category);
-
-            if (isContractInteraction) {
-                contractService.queueLookup(tx.to);
-            }
-        }
-
-        return {
-            ...tx,
-            toLabel: toInfo ? (toInfo.symbol ? `${toInfo.name} (${toInfo.symbol})` : toInfo.name) : null,
-            fromLabel: fromInfo ? (fromInfo.symbol ? `${fromInfo.name} (${fromInfo.symbol})` : fromInfo.name) : null,
-            toType: toInfo?.type || null,
-            fromType: fromInfo?.type || null,
-        };
-    });
-}
-
-// Helper to label addresses in analysis results
+// Helper to enrich analysis results: label contracts + rebuild projectsInteracted in a single pass
 function enrichAnalysisResult(result: any): any {
     if (!result) return result;
 
-    // Label transactions
-    if (result.transactions) {
-        result.transactions = labelContracts(result.transactions);
-    }
-
-    // Re-generate projectsInteracted using ContractService data
     if (result.transactions) {
         const projectMap = new Map<string, any>();
 
-        // Initialize with existing findings from WalletAnalyzer
-        if (result.projectsInteracted) {
-            result.projectsInteracted.forEach((p: any) => projectMap.set(p.contractAddress.toLowerCase(), p));
-        }
+        // Single pass: label each transaction AND collect project interaction data
+        result.transactions = result.transactions.map((tx: any) => {
+            const toInfo = tx.to ? contractService.getContract(tx.to) : null;
+            const fromInfo = tx.from ? contractService.getContract(tx.from) : null;
 
-        // Scan all transactions to find more contract interactions
-        result.transactions.forEach((tx: any) => {
-            if (!tx.to) return;
-
-            const addr = tx.to.toLowerCase();
-            const contractInfo = contractService.getContract(addr);
-
-            // If it's a known contract OR explicitly a contract call
-            if (contractInfo || tx.category === 'contract_call') {
-                if (!projectMap.has(addr)) {
-                    projectMap.set(addr, {
-                        contractAddress: addr,
-                        projectName: contractInfo?.name || null,
-                        category: contractInfo?.type === 'token' ? 'token' : (contractInfo ? 'defi' : 'unknown'),
-                        interactionCount: 0,
-                        totalValueInEth: 0,
-                        firstInteraction: tx.timestamp,
-                        lastInteraction: tx.timestamp
-                    });
+            // Queue lookup if unknown and appears to be a contract interaction
+            if (tx.to && !toInfo && /^0x[a-fA-F0-9]{40}$/.test(tx.to)) {
+                const isContractInteraction = [
+                    'contract_call', 'token_transfer', 'dex_swap',
+                    'bridge', 'lending', 'staking', 'nft_transfer'
+                ].includes(tx.category);
+                if (isContractInteraction) {
+                    contractService.queueLookup(tx.to);
                 }
-
-                const p = projectMap.get(addr);
-                // Only increment count/value if this tx wasn't already counted by WalletAnalyzer
-                // WalletAnalyzer counts based on KNOWN_PROJECTS or category='contract_call'
-                // Since we are iterating all txs, and we seeded the map with WalletAnalyzer results,
-                // we need to be careful not to double count if we are just "updating" existing entries.
-                // ACTUALLY: WalletAnalyzer's list is likely empty or very incomplete. 
-                // It's cleaner to Re-calculate counts for everything found in ContractService, 
-                // but preserve the "category" if WalletAnalyzer found something specific.
-
-                // Let's just update the metadata (name/category) if it exists, 
-                // and if it DOESNT exist, we create it and count valid txs.
-                // But wait, if we create it, we need to count THIS tx.
-
-                // Simpler approach:
-                // 1. Identify all contract addresses encountered
-                // 2. Sum up stats
-                // 3. Use ContractService for names/categories
             }
+
+            // Build projectsInteracted data in the same loop
+            if (tx.to) {
+                const addr = tx.to.toLowerCase();
+                const contractInfo = toInfo || contractService.getContract(addr);
+
+                if (contractInfo || tx.category === 'contract_call' || tx.category === 'token_transfer' || tx.category === 'dex_swap') {
+                    if (!projectMap.has(addr)) {
+                        projectMap.set(addr, {
+                            contractAddress: addr,
+                            projectName: contractInfo?.name || null,
+                            category: contractInfo?.type === 'token' ? 'token' : (contractInfo ? 'defi' : 'unknown'),
+                            interactionCount: 0,
+                            totalValueInEth: 0,
+                            firstInteraction: tx.timestamp,
+                            lastInteraction: tx.timestamp
+                        });
+                    }
+
+                    const p = projectMap.get(addr);
+                    p.interactionCount++;
+                    p.totalValueInEth += parseFloat(tx.valueInEth || 0);
+                    p.lastInteraction = Math.max(p.lastInteraction, tx.timestamp);
+                    p.firstInteraction = Math.min(p.firstInteraction, tx.timestamp);
+                }
+            }
+
+            return {
+                ...tx,
+                toLabel: toInfo ? (toInfo.symbol ? `${toInfo.name} (${toInfo.symbol})` : toInfo.name) : null,
+                fromLabel: fromInfo ? (fromInfo.symbol ? `${fromInfo.name} (${fromInfo.symbol})` : fromInfo.name) : null,
+                toType: toInfo?.type || null,
+                fromType: fromInfo?.type || null,
+            };
         });
 
-        // Simpler implementation: Re-scan everything.
-        const newProjectMap = new Map<string, any>();
-
-        result.transactions.forEach((tx: any) => {
-            if (!tx.to) return;
-            const addr = tx.to.toLowerCase();
-            const contractInfo = contractService.getContract(addr);
-
-            if (contractInfo || tx.category === 'contract_call' || tx.category === 'token_transfer' || tx.category === 'dex_swap') {
-                if (!newProjectMap.has(addr)) {
-                    newProjectMap.set(addr, {
-                        contractAddress: addr,
-                        projectName: contractInfo?.name || null,
-                        category: contractInfo?.type === 'token' ? 'token' : (contractInfo ? 'defi' : 'unknown'),
-                        interactionCount: 0,
-                        totalValueInEth: 0,
-                        firstInteraction: tx.timestamp,
-                        lastInteraction: tx.timestamp
-                    });
-                }
-
-                const p = newProjectMap.get(addr);
-                p.interactionCount++;
-                p.totalValueInEth += parseFloat(tx.valueInEth || 0);
-                p.lastInteraction = Math.max(p.lastInteraction, tx.timestamp);
-                p.firstInteraction = Math.min(p.firstInteraction, tx.timestamp);
-            }
-        });
-
-        result.projectsInteracted = Array.from(newProjectMap.values())
+        result.projectsInteracted = Array.from(projectMap.values())
             .sort((a: any, b: any) => b.interactionCount - a.interactionCount);
     }
 
@@ -148,15 +94,29 @@ function enrichAnalysisResult(result: any): any {
     return result;
 }
 
-// Get Alchemy API key for a user
+// Get Alchemy API key for a user (cached with 5-minute TTL)
 async function getAlchemyKeyForUser(userId: string): Promise<string> {
+    // Check cache first
+    const cached = alchemyKeyCache.get(userId);
+    if (cached && Date.now() < cached.expiresAt) {
+        return cached.key;
+    }
+
     try {
         const db = getFirestore();
         const userDoc = await db.collection('users').doc(userId).get();
         const userData = userDoc.data();
 
         // Use user's custom Alchemy key or fallback to default
-        return userData?.alchemyApiKey || process.env.DEFAULT_ALCHEMY_API_KEY || '';
+        const key = userData?.alchemyApiKey || process.env.DEFAULT_ALCHEMY_API_KEY || '';
+
+        // Store in cache
+        alchemyKeyCache.set(userId, {
+            key,
+            expiresAt: Date.now() + ALCHEMY_KEY_CACHE_TTL_MS,
+        });
+
+        return key;
     } catch (error) {
         console.error('Error fetching Alchemy API key:', error);
     }
@@ -276,7 +236,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
         console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 90s timeout...`);
         const result = await withTimeout(
-            analyzer.analyze(address, chain as ChainId, { ...options, transactionLimit: 100 }),
+            analyzer.analyze(address, chain as ChainId, { ...options, transactionLimit: 100, skipFundingTree: true }),
             90000, // Increased to 90s, fetch limited to 100 txs initially
             'Wallet analysis'
         );
@@ -317,6 +277,61 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         res.status(500).json({
             error: 'Analysis failed',
             message: error.message
+        });
+    }
+});
+
+// Build funding tree separately (on-demand, called when user clicks "Generate Funding Tree")
+router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { address, chain, options } = req.body;
+
+    if (!address || !chain) {
+        return res.status(400).json({ error: 'Address and chain are required' });
+    }
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+        return res.status(400).json({ error: 'Invalid wallet address format' });
+    }
+
+    try {
+        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+
+        const analyzer = new WalletAnalyzer({
+            alchemy: alchemyKey,
+            moralis: process.env.MORALIS_API_KEY,
+            etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            arbiscan: process.env.ARBISCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        });
+
+        console.log(`[DEBUG] Building funding tree for ${address} on ${chain}...`);
+        const result = await withTimeout(
+            analyzer.buildFundingTree(address, chain as ChainId, {
+                treeConfig: options?.treeConfig,
+            }),
+            30000, // 30s timeout for tree building alone
+            'Funding tree'
+        );
+
+        res.json({
+            success: true,
+            result,
+        });
+    } catch (error: any) {
+        console.error('Funding tree error:', error.message);
+        res.status(500).json({
+            error: 'Funding tree generation failed',
+            message: error.message,
+            hint: error.message.includes('timed out')
+                ? 'The wallet has too many transactions. The tree may take longer for active wallets.'
+                : undefined
         });
     }
 });

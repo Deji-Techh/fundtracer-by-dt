@@ -2,7 +2,7 @@
 // API Client - Communicates with FundTracer Server
 // ============================================================
 
-import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
+import { ChainId, AnalysisResult, MultiWalletResult, FundingNode } from '@fundtracer/core';
 
 // In production, assume the API is on the same domain if not specified (e.g., via proxy)
 // Or use a hardcoded production URL if frontend/backend are separate
@@ -239,6 +239,14 @@ export async function compareWallets(
     chain: ChainId
 ): Promise<ApiResponse<MultiWalletResult>> {
     return apiRequest('/api/analyze/compare', 'POST', { addresses, chain });
+}
+
+// Fetch funding tree on-demand (separate from initial wallet analysis for speed)
+export async function fetchFundingTree(
+    address: string,
+    chain: ChainId
+): Promise<ApiResponse<{ fundingSources: FundingNode; fundingDestinations: FundingNode }>> {
+    return apiRequest('/api/analyze/funding-tree', 'POST', { address, chain });
 }
 
 export async function analyzeContract(

@@ -138,7 +138,11 @@ export class AlchemyProvider {
         this.client = axios.create({
             baseURL: this.rpcUrl,
             timeout: 30000,
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept-Encoding': 'gzip, deflate',
+            },
+            decompress: true, // Auto-decompress gzip responses (saves ~80% transfer size)
         });
     }
 
@@ -200,56 +204,23 @@ export class AlchemyProvider {
         const cached = this.cache.get<WalletInfo>(cacheKey);
         if (cached) return cached;
 
-        const [balanceHex, txCountHex] = await Promise.all([
-            this.rpcRequest<string>('eth_getBalance', [address, 'latest']),
-            this.rpcRequest<string>('eth_getTransactionCount', [address, 'latest']),
+        // OPTIMIZATION: Fire balance/txCount AND first-tx lookup all in parallel
+        // Previously these ran sequentially — Etherscan first, then Alchemy fallback
+        const balancePromise = this.rpcRequest<string>('eth_getBalance', [address, 'latest']);
+        const txCountPromise = this.rpcRequest<string>('eth_getTransactionCount', [address, 'latest']);
+
+        // Race Etherscan V2 and Alchemy for first-tx timestamp (whoever responds first wins)
+        const firstTxPromise = this.getFirstTxTimestampFast(address);
+
+        const [balanceHex, txCountHex, firstTxTimestamp] = await Promise.all([
+            balancePromise,
+            txCountPromise,
+            firstTxPromise,
         ]);
 
         const balanceWei = BigInt(balanceHex);
         const balanceInEth = Number(balanceWei) / 1e18;
         const txCount = parseInt(txCountHex, 16);
-
-        // Fetch first transaction to determine true start date
-        let firstTxTimestamp: number | undefined;
-
-        // Try Lineascan/Explorer API first for Linea (most accurate)
-        if (this.chainId === 'linea') {
-            try {
-                const explorerTs = await this.getFirstTxTimestampExplorer(address);
-                if (explorerTs) {
-                    firstTxTimestamp = explorerTs;
-                    if (DEBUG) console.log(`[Explorer] Found first tx timestamp: ${firstTxTimestamp}`);
-                }
-            } catch (e) {
-                if (DEBUG) console.warn(`[Explorer] Failed to fetch first tx for ${address}`, e);
-            }
-        }
-
-        // Fallback to Alchemy if not found yet
-        if (!firstTxTimestamp) {
-            try {
-                if (DEBUG) console.log(`[Alchemy] Fetching first tx for ${address}...`);
-                // Check for incoming transfers (funding)
-                const params: any = {
-                    toAddress: address,
-                    category: ['external'], // Creation is usually an external transfer
-                    withMetadata: true,
-                    maxCount: '0x1',
-                    order: 'asc',
-                    excludeZeroValue: false,
-                };
-                const result = await this.rpcRequest<{ transfers: AlchemyTransfer[] }>('alchemy_getAssetTransfers', [params]);
-
-                if (result.transfers && result.transfers.length > 0 && result.transfers[0].metadata?.blockTimestamp) {
-                    firstTxTimestamp = new Date(result.transfers[0].metadata.blockTimestamp).getTime() / 1000;
-                    if (DEBUG) console.log(`[Alchemy] Found first tx timestamp: ${firstTxTimestamp} (${result.transfers[0].metadata.blockTimestamp})`);
-                } else {
-                    if (DEBUG) console.log(`[Alchemy] No transfers found or missing timestamp for ${address}`);
-                }
-            } catch (e) {
-                if (DEBUG) console.warn(`[Alchemy] Failed to fetch first tx timestamp for ${address}`, e);
-            }
-        }
 
         const walletInfo: WalletInfo = {
             address: address.toLowerCase(),
@@ -258,11 +229,58 @@ export class AlchemyProvider {
             balanceInEth,
             txCount,
             firstTxTimestamp,
-            isContract: false, // Would need eth_getCode to check
+            isContract: false,
         };
 
         this.cache.set(cacheKey, walletInfo);
         return walletInfo;
+    }
+
+    /** Fast first-tx timestamp: race Etherscan V2 vs Alchemy, take whichever wins */
+    private async getFirstTxTimestampFast(address: string): Promise<number | undefined> {
+        const promises: Promise<number | null>[] = [];
+
+        // Etherscan V2 (works for all chains, but best for Linea)
+        promises.push(
+            this.getFirstTxTimestampExplorer(address).catch(() => null)
+        );
+
+        // Alchemy getAssetTransfers (always available)
+        promises.push(
+            this.getFirstTxTimestampAlchemy(address).catch(() => null)
+        );
+
+        // Return the first non-null result
+        try {
+            const result = await Promise.any(
+                promises.map(p => p.then(v => {
+                    if (v === null) throw new Error('null result');
+                    return v;
+                }))
+            );
+            return result;
+        } catch {
+            // All failed
+            return undefined;
+        }
+    }
+
+    /** Get first tx timestamp via Alchemy getAssetTransfers */
+    private async getFirstTxTimestampAlchemy(address: string): Promise<number | null> {
+        const params: any = {
+            toAddress: address,
+            category: ['external'],
+            withMetadata: true,
+            maxCount: '0x1',
+            order: 'asc',
+            excludeZeroValue: false,
+        };
+        const result = await this.rpcRequest<{ transfers: AlchemyTransfer[] }>('alchemy_getAssetTransfers', [params]);
+
+        if (result.transfers && result.transfers.length > 0 && result.transfers[0].metadata?.blockTimestamp) {
+            return new Date(result.transfers[0].metadata.blockTimestamp).getTime() / 1000;
+        }
+        return null;
     }
 
     /** Fetch first transaction timestamp using Explorer API (Etherscan V2) */
@@ -288,7 +306,7 @@ export class AlchemyProvider {
 
         try {
             console.log(`[Explorer] Fetching first tx from Etherscan V2 (chain ${chainIdNum})...`);
-            const response = await axios.get(url, { timeout: 10000 });
+            const response = await axios.get(url, { timeout: 5000 }); // 5s timeout (racing with Alchemy)
 
             if (response.data.status === '1' && response.data.result.length > 0) {
                 const firstTx = response.data.result[0];

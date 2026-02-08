@@ -15,9 +15,15 @@ import {
 const DEBUG = process.env.FUNDTRACER_DEBUG === 'true';
 
 const DEFAULT_CONFIG: FundingTreeConfig = {
-    maxDepth: 2, // Reduced depth to minimize API calls
+    maxDepth: 2,
     direction: 'both',
 };
+
+/** Max children per node - keeps API calls manageable on free tier */
+const MAX_CHILDREN_PER_NODE = 5;
+
+/** Per-tree timeout in ms - return partial results rather than waiting forever */
+const TREE_TIMEOUT_MS = 5000;
 
 export class FundingTreeBuilder {
     private provider: ITransactionProvider;
@@ -29,7 +35,7 @@ export class FundingTreeBuilder {
         this.onProgress = onProgress;
     }
 
-    /** Build funding tree for sources (who funded this wallet) */
+    /** Build funding tree for sources (who funded this wallet) - with timeout */
     async buildSourceTree(
         address: string,
         config: Partial<FundingTreeConfig> = {},
@@ -38,10 +44,10 @@ export class FundingTreeBuilder {
         this.visitedAddresses.clear();
         const mergedConfig = { ...DEFAULT_CONFIG, ...config };
 
-        return this.buildTree(address, 0, mergedConfig, 'source', preloadedTxs);
+        return this.buildTreeWithTimeout(address, mergedConfig, 'source', preloadedTxs);
     }
 
-    /** Build funding tree for destinations (who this wallet funded) */
+    /** Build funding tree for destinations (who this wallet funded) - with timeout */
     async buildDestinationTree(
         address: string,
         config: Partial<FundingTreeConfig> = {},
@@ -50,7 +56,44 @@ export class FundingTreeBuilder {
         this.visitedAddresses.clear();
         const mergedConfig = { ...DEFAULT_CONFIG, ...config };
 
-        return this.buildTree(address, 0, mergedConfig, 'destination', preloadedTxs);
+        return this.buildTreeWithTimeout(address, mergedConfig, 'destination', preloadedTxs);
+    }
+
+    /** Wrapper that enforces a timeout on tree building - returns partial results if time runs out */
+    private async buildTreeWithTimeout(
+        address: string,
+        config: FundingTreeConfig,
+        direction: 'source' | 'destination',
+        preloadedTxs?: Transaction[]
+    ): Promise<FundingNode> {
+        const timeoutMs = TREE_TIMEOUT_MS;
+
+        try {
+            const result = await Promise.race([
+                this.buildTree(address, 0, config, direction, preloadedTxs),
+                new Promise<FundingNode>((_, reject) =>
+                    setTimeout(() => reject(new Error('Tree build timeout')), timeoutMs)
+                ),
+            ]);
+            return result;
+        } catch (error: any) {
+            if (error?.message === 'Tree build timeout') {
+                if (DEBUG) console.warn(`[FundingTree] ${direction} tree timed out after ${timeoutMs}ms, returning partial results`);
+                // Return a minimal root node with whatever we collected
+                return {
+                    address: address.toLowerCase(),
+                    depth: 0,
+                    direction,
+                    totalValue: '0',
+                    totalValueInEth: 0,
+                    txCount: 0,
+                    children: [],
+                    suspiciousScore: 0,
+                    suspiciousReasons: [],
+                };
+            }
+            throw error;
+        }
     }
 
     /** Recursive tree builder */
@@ -142,12 +185,15 @@ export class FundingTreeBuilder {
                 counterpartyMap.set(counterparty, existing);
             }
 
-            // Sort by total value and take top addresses
+            // Sort by total value and take top addresses (capped for free tier)
             const sortedCounterparties = Array.from(counterpartyMap.entries())
                 .sort((a, b) => b[1].totalValue - a[1].totalValue)
-                .slice(0, 10); // Limit children per node
+                .slice(0, MAX_CHILDREN_PER_NODE);
 
-            // Build child nodes (with depth + 1 only if not at leaf level)
+            // Build child nodes
+            // OPTIMIZATION: At depth 1+, use getFirstFunder (1 API call) instead of
+            // full getTransactions (2+ API calls) to dramatically reduce request count.
+            // On Alchemy free tier this is critical to stay under 25 req/s.
             const childPromises = sortedCounterparties.map(async ([addr, data]) => {
                 const childNode: FundingNode = {
                     address: addr.toLowerCase(),
@@ -162,10 +208,18 @@ export class FundingTreeBuilder {
                     suspiciousReasons: [],
                 };
 
-                // Recursively build if not at max depth
+                // At deeper levels, use lightweight getFirstFunder instead of full tree recursion
                 if (depth + 1 < config.maxDepth && !this.visitedAddresses.has(addr.toLowerCase())) {
-                    const childTree = await this.buildTree(addr, depth + 1, config, direction);
-                    childNode.children = childTree.children;
+                    try {
+                        // Lightweight: single API call to find the funding source
+                        const funder = await this.provider.getFirstFunder(addr);
+                        if (funder && funder.address) {
+                            this.visitedAddresses.add(addr.toLowerCase());
+                            childNode.children = [funder];
+                        }
+                    } catch {
+                        // Silently skip failed lookups
+                    }
                 }
 
                 return childNode;

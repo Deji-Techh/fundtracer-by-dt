@@ -53,16 +53,26 @@ export class WalletAnalyzer {
             treeConfig?: Partial<FundingTreeConfig>;
             filters?: FilterOptions;
             transactionLimit?: number; // Limit number of transactions fetched
+            skipFundingTree?: boolean; // Skip funding tree for fast initial load
         } = {}
     ): Promise<AnalysisResult> {
         const provider = this.providerFactory.getProvider(chainId);
         const normalizedAddr = address.toLowerCase();
 
         // Progress update
-        this.reportProgress('Fetching wallet info', 1, 6, 'Getting basic wallet information...');
+        this.reportProgress('Fetching wallet info & transactions', 1, 6, 'Loading wallet data in parallel...');
 
-        // Get wallet info
-        const walletInfo = await provider.getWalletInfo(normalizedAddr);
+        // OPTIMIZATION: Fetch wallet info AND transactions in parallel
+        // These are independent API calls - no reason to wait for one before starting the other
+        const txLimit = options.transactionLimit || undefined;
+        const filterWithLimit = { ...options.filters, limit: txLimit };
+
+        const [walletInfo, normalTxs, internalTxs, tokenTransfers] = await Promise.all([
+            provider.getWalletInfo(normalizedAddr),
+            provider.getTransactions(normalizedAddr, filterWithLimit),
+            provider.getInternalTransactions(normalizedAddr, filterWithLimit),
+            provider.getTokenTransfers(normalizedAddr, filterWithLimit),
+        ]);
 
         // Detect if this wallet itself is infrastructure
         const knownInfo = getAddressInfo(normalizedAddr, chainId);
@@ -71,42 +81,49 @@ export class WalletAnalyzer {
             walletInfo.infrastructureType = knownInfo.type;
             walletInfo.label = knownInfo.name;
         } else if (walletInfo.txCount > 50000) {
-            // Heuristic: Very high transaction count = likely infrastructure/bot
             walletInfo.isInfrastructure = true;
             walletInfo.infrastructureType = 'high_volume';
             walletInfo.label = 'High Activity (Possible Infrastructure)';
         } else if (walletInfo.isContract && walletInfo.txCount > 10000) {
-            // Heuristic: Contracts with high volume are likely infrastructure/dapps
             walletInfo.isInfrastructure = true;
             walletInfo.infrastructureType = 'high_volume_contract';
             walletInfo.label = 'High Activity Contract';
         }
 
-        // Progress update
-        this.reportProgress('Fetching transactions', 2, 6, 'Retrieving transaction history...');
-
-        // Get transactions with optional limit
-        const txLimit = options.transactionLimit || undefined; // undefined = fetch all
-        const filterWithLimit = { ...options.filters, limit: txLimit };
-
-        const [normalTxs, internalTxs, tokenTransfers] = await Promise.all([
-            provider.getTransactions(normalizedAddr, filterWithLimit),
-            provider.getInternalTransactions(normalizedAddr, filterWithLimit),
-            provider.getTokenTransfers(normalizedAddr, filterWithLimit),
-        ]);
-
         // Combine and dedupe transactions
         const allTxs = this.mergeTransactions(normalTxs, internalTxs);
 
-        // Progress update
-        this.reportProgress('Building funding tree', 3, 6, 'Tracing funding sources...');
+        // OPTIMIZATION: Skip funding tree on initial load — it's the biggest bottleneck.
+        // The frontend can request it separately via buildFundingTree() when the user clicks.
+        let fundingSources: FundingNode;
+        let fundingDestinations: FundingNode;
 
-        // Build funding trees
-        const treeBuilder = new FundingTreeBuilder(provider, this.onProgress);
-        const [fundingSources, fundingDestinations] = await Promise.all([
-            treeBuilder.buildSourceTree(normalizedAddr, options.treeConfig, allTxs),
-            treeBuilder.buildDestinationTree(normalizedAddr, options.treeConfig, allTxs),
-        ]);
+        if (options.skipFundingTree) {
+            // Return empty placeholder trees
+            const emptyNode = (direction: 'source' | 'destination'): FundingNode => ({
+                address: normalizedAddr,
+                depth: 0,
+                direction,
+                totalValue: '0',
+                totalValueInEth: 0,
+                txCount: 0,
+                children: [],
+                suspiciousScore: 0,
+                suspiciousReasons: [],
+            });
+            fundingSources = emptyNode('source');
+            fundingDestinations = emptyNode('destination');
+        } else {
+            // Progress update
+            this.reportProgress('Building funding tree', 3, 6, 'Tracing funding sources...');
+
+            // Build funding trees
+            const treeBuilder = new FundingTreeBuilder(provider, this.onProgress);
+            [fundingSources, fundingDestinations] = await Promise.all([
+                treeBuilder.buildSourceTree(normalizedAddr, options.treeConfig, allTxs),
+                treeBuilder.buildDestinationTree(normalizedAddr, options.treeConfig, allTxs),
+            ]);
+        }
 
         // Progress update
         this.reportProgress('Detecting suspicious activity', 4, 6, 'Analyzing patterns...');
@@ -155,6 +172,35 @@ export class WalletAnalyzer {
             sameBlockTransactions,
             summary,
         };
+    }
+
+    /** Build funding tree separately — called on-demand by frontend */
+    async buildFundingTree(
+        address: string,
+        chainId: ChainId,
+        options: {
+            treeConfig?: Partial<FundingTreeConfig>;
+        } = {}
+    ): Promise<{ fundingSources: FundingNode; fundingDestinations: FundingNode }> {
+        const provider = this.providerFactory.getProvider(chainId);
+        const normalizedAddr = address.toLowerCase();
+
+        this.reportProgress('Fetching transactions', 1, 3, 'Loading transaction data...');
+
+        // Fetch transactions to feed the tree builder
+        const txs = await provider.getTransactions(normalizedAddr);
+
+        this.reportProgress('Building funding tree', 2, 3, 'Tracing funding sources and destinations...');
+
+        const treeBuilder = new FundingTreeBuilder(provider, this.onProgress);
+        const [fundingSources, fundingDestinations] = await Promise.all([
+            treeBuilder.buildSourceTree(normalizedAddr, options.treeConfig, txs),
+            treeBuilder.buildDestinationTree(normalizedAddr, options.treeConfig, txs),
+        ]);
+
+        this.reportProgress('Done', 3, 3, 'Funding tree complete.');
+
+        return { fundingSources, fundingDestinations };
     }
 
     /** Compare multiple wallets */
