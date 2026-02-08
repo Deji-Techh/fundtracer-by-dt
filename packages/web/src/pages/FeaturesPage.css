@@ -1,14 +1,14 @@
 /* Features Page - Black, Ash, White, Grey Theme */
 
 .features-page {
-  background: #000000;
+  background: var(--color-bg-primary);
   min-height: 100vh;
 }
 
 .features-hero {
   padding: 120px 24px 80px;
   text-align: center;
-  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
 }
 
 .features-label {
@@ -17,7 +17,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -28,14 +28,14 @@
 .features-title {
   font-size: 3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
 
 .features-subtitle {
   font-size: 1.125rem;
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 /* Main Features */
@@ -43,7 +43,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px 80px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .feature-detail-card {
@@ -72,7 +72,7 @@
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .feature-detail-content {
@@ -84,12 +84,12 @@
 .feature-detail-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .feature-detail-description {
   font-size: 1.125rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
@@ -107,23 +107,23 @@
   align-items: center;
   gap: 10px;
   font-size: 0.875rem;
-  color: #aaaaaa;
+  color: var(--color-text-secondary);
 }
 
 .feature-detail-bullet {
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 /* Additional Features */
 .features-additional {
   padding: 80px 24px;
-  background: #000000;
+  background: var(--color-bg-primary);
 }
 
 .features-section-title {
   font-size: 2rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   text-align: center;
   margin-bottom: 48px;
 }
@@ -159,33 +159,33 @@
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0 auto 16px;
 }
 
 .feature-additional-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
 .feature-additional-description {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 /* CTA */
 .features-cta {
   text-align: center;
   padding: 80px 24px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .features-cta h2 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 24px;
 }
 

@@ -10,6 +10,7 @@ import {
 import { SYBIL_TIERS } from '../../lib/sybilTier.js';
 import { verifySubscriptionPayment } from '../../services/paymentVerification.js';
 import { useNotify } from '../../contexts/ToastContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUpgradeComplete }) {
   const [selectedTier, setSelectedTier] = useState(null);
@@ -18,6 +19,7 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [copied, setCopied] = useState(false);
   const notify = useNotify();
+  const isMobile = useIsMobile();
 
   const paymentAddress = selectedTier ? SYBIL_TIERS[selectedTier].paymentAddress : '';
 
@@ -82,28 +84,29 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
         inset: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-end' : 'center',
         justifyContent: 'center',
         zIndex: 9999,
+        padding: isMobile ? 0 : undefined,
       }}
       onClick={handleClose}
     >
       <div
         style={{
-          backgroundColor: '#1a1a1a',
-          borderRadius: '16px',
+          backgroundColor: 'var(--color-bg-elevated)',
+          borderRadius: isMobile ? '16px 16px 0 0' : '16px',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          maxWidth: showPayment ? '500px' : '900px',
-          width: '90%',
-          maxHeight: '90vh',
+          maxWidth: isMobile ? '100%' : (showPayment ? '500px' : '900px'),
+          width: isMobile ? '100%' : '90%',
+          maxHeight: isMobile ? '90vh' : '90vh',
           overflowY: 'auto',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ padding: '24px' }}>
+        <div style={{ padding: isMobile ? '16px' : '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ color: '#ffffff', fontSize: '24px', fontWeight: '700', margin: 0 }}>
+            <h2 style={{ color: 'var(--color-text-primary)', fontSize: isMobile ? '20px' : '24px', fontWeight: '700', margin: 0 }}>
               {showPayment ? 'Complete Your Upgrade' : 'Choose Your Plan'}
             </h2>
             <button
@@ -112,20 +115,25 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#9ca3af',
-                padding: '8px',
+                color: 'var(--color-text-secondary)',
+                padding: '10px',
                 borderRadius: '8px',
                 transition: 'all 0.2s',
+                minWidth: 44,
+                minHeight: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
-              onMouseEnter={(e) => e.target.style.color = '#ffffff'}
-              onMouseLeave={(e) => e.target.style.color = '#9ca3af'}
+              onMouseEnter={(e) => e.target.style.color = 'var(--color-text-primary)'}
+              onMouseLeave={(e) => e.target.style.color = 'var(--color-text-secondary)'}
             >
               <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
             </button>
           </div>
 
           {!showPayment ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
               {Object.entries(SYBIL_TIERS).map(([tierId, tier]) => {
                 const isCurrent = tierId === currentTier;
                 const isUpgradeSelected = selectedTier === tierId;
@@ -158,20 +166,19 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                           padding: '4px 12px',
                           borderRadius: '20px',
                           backgroundColor: tier.color,
-                          color: '#ffffff',
+                          color: 'var(--color-text-primary)',
                           fontSize: '12px',
                           fontWeight: '600',
-                        }}
                       >
                         Current
                       </div>
                     )}
 
                     <div style={{ marginBottom: '16px' }}>
-                      <h3 style={{ color: '#ffffff', fontSize: '20px', fontWeight: '700', margin: 0 }}>
+                      <h3 style={{ color: 'var(--color-text-primary)', fontSize: '20px', fontWeight: '700', margin: 0 }}>
                         {tier.name}
                       </h3>
-                      <div style={{ color: '#6b7280', fontSize: '14px', marginTop: '4px' }}>
+                      <div style={{ color: 'var(--color-text-muted)', fontSize: '14px', marginTop: '4px' }}>
                         {tier.price > 0 && `$${tier.price}/month`}
                       </div>
                     </div>
@@ -203,13 +210,14 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                           marginTop: '20px',
                           padding: '12px',
                           backgroundColor: tier.color,
-                          color: '#ffffff',
+                          color: 'var(--color-text-primary)',
                           border: 'none',
                           borderRadius: '8px',
                           fontSize: '14px',
                           fontWeight: '600',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
+                          minHeight: 44,
                         }}
                         onMouseEnter={(e) => {
                           e.target.style.opacity = '0.9';
@@ -230,24 +238,24 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
           ) : (
             <div>
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <h3 style={{ color: '#ffffff', fontSize: '20px', fontWeight: '600', margin: '0 0 8px' }}>
+                <h3 style={{ color: 'var(--color-text-primary)', fontSize: '20px', fontWeight: '600', margin: '0 0 8px' }}>
                   Send {selectedTier && SYBIL_TIERS[selectedTier]?.price} ETH
                 </h3>
-                <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', margin: 0 }}>
                   to upgrade to <strong>{selectedTier && SYBIL_TIERS[selectedTier]?.name}</strong>
                 </p>
               </div>
 
               <div
                 style={{
-                  backgroundColor: '#0f0f0f',
+                  backgroundColor: 'var(--color-bg)',
                   borderRadius: '12px',
                   padding: '20px',
                   marginBottom: '20px',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                 }}
               >
-                <label style={{ color: '#6b7280', fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>
+                <label style={{ color: 'var(--color-text-muted)', fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>
                   PAYMENT ADDRESS
                 </label>
                 <div
@@ -255,7 +263,7 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                     display: 'flex',
                     gap: '12px',
                     alignItems: 'center',
-                    backgroundColor: '#1a1a1a',
+          backgroundColor: 'var(--color-bg-elevated)',
                     padding: '12px',
                     borderRadius: '8px',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -266,7 +274,7 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                       flex: 1,
                       fontFamily: 'var(--font-mono)',
                       fontSize: '14px',
-                      color: '#ffffff',
+                      color: 'var(--color-text-primary)',
                       wordBreak: 'break-all',
                     }}
                   >
@@ -276,11 +284,11 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                     onClick={handleCopyAddress}
                     style={{
                       padding: '8px',
-                      backgroundColor: '#2a2a2a',
+                      backgroundColor: 'var(--color-border)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                       borderRadius: '6px',
                       cursor: 'pointer',
-                      color: copied ? '#22c55e' : '#9ca3af',
+                      color: copied ? 'var(--color-positive)' : 'var(--color-text-secondary)',
                       transition: 'color 0.2s',
                     }}
                   >
@@ -299,20 +307,21 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                   style={{
                     flex: 1,
                     padding: '12px',
-                    backgroundColor: '#2a2a2a',
-                    color: '#ffffff',
+                    backgroundColor: 'var(--color-border)',
+                    color: 'var(--color-text-primary)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '8px',
                     fontSize: '14px',
                     fontWeight: '600',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
+                    minHeight: 44,
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = '#3a3a3a';
+                    e.target.style.backgroundColor = 'var(--color-border-light)';
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = '#2a2a2a';
+                    e.target.style.backgroundColor = 'var(--color-border)';
                   }}
                 >
                   Go Back
@@ -323,8 +332,8 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                   style={{
                     flex: 1,
                     padding: '12px',
-                    backgroundColor: paymentVerified ? '#22c55e' : (selectedTier && SYBIL_TIERS[selectedTier]?.color || '#3b82f6'),
-                    color: '#ffffff',
+                    backgroundColor: paymentVerified ? 'var(--color-positive)' : (selectedTier && SYBIL_TIERS[selectedTier]?.color || 'var(--color-accent)'),
+                    color: 'var(--color-text-primary)',
                     border: 'none',
                     borderRadius: '8px',
                     fontSize: '14px',
@@ -335,6 +344,7 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
+                    minHeight: 44,
                   }}
                   onMouseEnter={(e) => {
                     if (!paymentVerified) {

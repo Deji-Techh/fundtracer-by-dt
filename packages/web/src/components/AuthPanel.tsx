@@ -136,7 +136,7 @@ function AuthPanel() {
                             Create an account or sign in to access FundTracer.
                         </p>
 
-                        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', flexWrap: 'wrap' }}>
                             <button className="btn btn-primary" onClick={() => setView('signup')}>
                                 <UserPlus size={18} /> Sign Up
                             </button>
@@ -226,11 +226,12 @@ function AuthPanel() {
                                     <span style={{ fontSize: '12px', color: '#EF4444' }}>Passwords do not match</span>
                                 )}
                             </div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', cursor: 'pointer', minHeight: '44px', padding: '4px 0' }}>
                                 <input
                                     type="checkbox"
                                     checked={keepSignedIn}
                                     onChange={(e) => setKeepSignedIn(e.target.checked)}
+                                    style={{ width: '20px', height: '20px', flexShrink: 0 }}
                                 />
                                 <span>Keep me signed in for 30 days</span>
                             </label>
@@ -291,11 +292,12 @@ function AuthPanel() {
                                     required
                                 />
                             </div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', cursor: 'pointer', minHeight: '44px', padding: '4px 0' }}>
                                 <input
                                     type="checkbox"
                                     checked={keepSignedIn}
                                     onChange={(e) => setKeepSignedIn(e.target.checked)}
+                                    style={{ width: '20px', height: '20px', flexShrink: 0 }}
                                 />
                                 <span>Keep me signed in for 30 days</span>
                             </label>

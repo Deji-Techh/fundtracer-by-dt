@@ -2,14 +2,14 @@
 
 /* About Page */
 .about-page {
-  background: #000000;
+  background: var(--color-bg-primary);
   min-height: 100vh;
 }
 
 .about-hero {
   padding: 120px 24px 80px;
   text-align: center;
-  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
   position: relative;
 }
 
@@ -29,7 +29,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -40,7 +40,7 @@
 .about-title {
   font-size: 3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 24px;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -55,7 +55,7 @@
 
 .about-subtitle {
   font-size: 1.25rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   max-width: 600px;
   margin: 0 auto 48px;
   line-height: 1.7;
@@ -75,14 +75,14 @@
 .about-stat-number {
   font-size: 2.5rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
   display: block;
   margin-bottom: 8px;
 }
 
 .about-stat-label {
   font-size: 0.875rem;
-  color: #666666;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -90,7 +90,7 @@
 /* Mission Section */
 .about-mission {
   padding: 100px 24px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .about-mission-grid {
@@ -111,13 +111,13 @@
 .about-section-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
 }
 
 .about-text {
   font-size: 1.125rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.8;
 }
 
@@ -135,7 +135,7 @@
 }
 
 .about-mission-icon {
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 1.5rem;
   margin-bottom: 16px;
 }
@@ -143,19 +143,19 @@
 .about-mission-card h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
 .about-mission-card p {
   font-size: 0.875rem;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 /* Values Section */
 .about-values {
   padding: 100px 24px;
-  background: #000000;
+  background: var(--color-bg-primary);
   position: relative;
 }
 
@@ -176,7 +176,7 @@
 
 .about-section-subtitle {
   font-size: 1.125rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   margin-top: 16px;
 }
 
@@ -204,27 +204,27 @@
 .about-value-number {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #666666;
+  color: var(--color-text-muted);
   margin-bottom: 16px;
 }
 
 .about-value-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .about-value-description {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
 /* Team Section */
 .about-team {
   padding: 100px 24px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
   position: relative;
 }
 
@@ -267,33 +267,33 @@
   justify-content: center;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0 auto 24px;
 }
 
 .about-team-name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
 .about-team-role {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   margin-bottom: 16px;
 }
 
 .about-team-bio {
   font-size: 0.875rem;
-  color: #666666;
+  color: var(--color-text-muted);
   line-height: 1.6;
 }
 
 /* CTA Section */
 .about-cta {
   padding: 100px 24px;
-  background: #000000;
+  background: var(--color-bg-primary);
   text-align: center;
   position: relative;
 }
@@ -311,13 +311,13 @@
 .about-cta-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
 }
 
 .about-cta-subtitle {
   font-size: 1.125rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   margin-bottom: 32px;
 }
 

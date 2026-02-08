@@ -1,7 +1,7 @@
 /* Pricing Page - Black, Ash, White, Grey Theme */
 
 .pricing-page {
-  background: #000000;
+  background: var(--color-bg-primary);
   min-height: 100vh;
   padding-bottom: 80px;
 }
@@ -10,7 +10,7 @@
 .pricing-hero {
   padding: 120px 24px 80px;
   text-align: center;
-  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
 }
 
 .pricing-label {
@@ -19,7 +19,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -30,14 +30,14 @@
 .pricing-title {
   font-size: 3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
 
 .pricing-subtitle {
   font-size: 1.125rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   max-width: 500px;
   margin: 0 auto;
 }
@@ -45,7 +45,7 @@
 /* Tiers */
 .pricing-tiers {
   padding: 0 24px 80px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .pricing-grid {
@@ -91,7 +91,7 @@
 .pricing-tier-name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
@@ -102,17 +102,17 @@
 .pricing-price {
   font-size: 3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .pricing-period {
   font-size: 1rem;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .pricing-tier-description {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   margin-bottom: 24px;
 }
 
@@ -127,12 +127,12 @@
   align-items: center;
   gap: 12px;
   font-size: 0.875rem;
-  color: #aaaaaa;
+  color: var(--color-text-secondary);
   margin-bottom: 12px;
 }
 
 .pricing-check-icon {
-  color: #888888;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
@@ -141,7 +141,7 @@
   width: 100%;
   padding: 14px;
   background: transparent;
-  color: #ffffff;
+  color: var(--color-text-primary);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   text-align: center;
@@ -168,13 +168,13 @@
 /* Comparison */
 .pricing-comparison {
   padding: 80px 24px;
-  background: #000000;
+  background: var(--color-bg-primary);
 }
 
 .pricing-section-title {
   font-size: 2rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   text-align: center;
   margin-bottom: 48px;
 }
@@ -195,7 +195,7 @@
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.875rem;
 }
 
@@ -212,22 +212,22 @@
 }
 
 .pricing-feature-name {
-  color: #aaaaaa;
+  color: var(--color-text-secondary);
 }
 
 .pricing-comparison-row span:not(.pricing-feature-name) {
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 .pricing-check {
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-weight: 700;
 }
 
 /* FAQ */
 .pricing-faq {
   padding: 80px 24px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .pricing-faq-grid {
@@ -248,13 +248,13 @@
 .pricing-faq-question {
   font-size: 1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .pricing-faq-answer {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
@@ -262,19 +262,19 @@
 .pricing-bottom-cta {
   padding: 80px 24px;
   text-align: center;
-  background: #000000;
+  background: var(--color-bg-primary);
 }
 
 .pricing-bottom-cta h2 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .pricing-bottom-cta p {
   font-size: 1rem;
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 /* Mobile */

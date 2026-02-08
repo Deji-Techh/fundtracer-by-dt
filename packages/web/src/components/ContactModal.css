@@ -18,7 +18,7 @@
 }
 
 .contact-modal {
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 32px;
@@ -36,7 +36,7 @@
   right: 16px;
   background: none;
   border: none;
-  color: #666666;
+  color: var(--color-text-muted);
   font-size: 1.5rem;
   cursor: pointer;
   width: 32px;
@@ -50,7 +50,7 @@
 
 .contact-modal-close:hover {
   background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .contact-modal-header {
@@ -60,13 +60,13 @@
 .contact-modal-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
 .contact-modal-subtitle {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 /* Form */
@@ -85,7 +85,7 @@
 .contact-form-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #aaaaaa;
+  color: var(--color-text-secondary);
 }
 
 .contact-form-input,
@@ -94,7 +94,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.875rem;
   transition: all 0.2s ease;
 }
@@ -108,7 +108,7 @@
 
 .contact-form-input::placeholder,
 .contact-form-textarea::placeholder {
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .contact-form-textarea {

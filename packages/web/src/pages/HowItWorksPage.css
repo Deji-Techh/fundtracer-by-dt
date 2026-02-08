@@ -1,14 +1,14 @@
 /* How It Works Page - Black, Ash, White, Grey Theme */
 
 .how-it-works-page {
-  background: #000000;
+  background: var(--color-bg-primary);
   min-height: 100vh;
 }
 
 .how-hero {
   padding: 120px 24px 80px;
   text-align: center;
-  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
 }
 
 .how-label {
@@ -17,7 +17,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -28,20 +28,20 @@
 .how-title {
   font-size: 3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
 
 .how-subtitle {
   font-size: 1.125rem;
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 /* Steps */
 .how-steps {
   padding: 80px 24px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .how-steps-container {
@@ -83,7 +83,7 @@
 }
 
 .how-step-icon {
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 1.25rem;
   margin-bottom: 16px;
 }
@@ -91,13 +91,13 @@
 .how-step-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .how-step-description {
   font-size: 1rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.7;
 }
 
@@ -113,14 +113,14 @@
 /* Video Section */
 .how-video {
   padding: 80px 24px;
-  background: #000000;
+  background: var(--color-bg-primary);
   text-align: center;
 }
 
 .how-section-title {
   font-size: 2rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 48px;
 }
 
@@ -142,18 +142,18 @@
 
 .how-video-icon {
   font-size: 4rem;
-  color: #666666;
+  color: var(--color-text-muted);
   margin-bottom: 16px;
 }
 
 .how-video-content p {
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 /* Use Cases */
 .how-use-cases {
   padding: 80px 24px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .how-use-cases-grid {
@@ -180,13 +180,13 @@
 .how-use-case-title {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .how-use-case-description {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
@@ -194,13 +194,13 @@
 .how-cta {
   text-align: center;
   padding: 80px 24px;
-  background: #000000;
+  background: var(--color-bg-primary);
 }
 
 .how-cta h2 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 24px;
 }
 

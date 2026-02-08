@@ -4,9 +4,8 @@ import {
   Home01Icon,
   Wallet01Icon,
   Clock01Icon,
-  Search01Icon,
-  ChartLineData01Icon,
   Shield01Icon,
+  Settings01Icon,
 } from '@hugeicons/core-free-icons';
 
 interface MobileFooterProps {
@@ -19,9 +18,8 @@ export function MobileFooter({ activeTab, onTabChange }: MobileFooterProps) {
     { id: 'home', label: 'Home', icon: Home01Icon },
     { id: 'portfolio', label: 'Portfolio', icon: Wallet01Icon },
     { id: 'history', label: 'History', icon: Clock01Icon },
-    { id: 'explorer', label: 'Explorer', icon: Search01Icon },
-    { id: 'market', label: 'Market', icon: ChartLineData01Icon },
     { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
+    { id: 'settings', label: 'Settings', icon: Settings01Icon },
   ];
 
   return (

@@ -1,22 +1,23 @@
 /* Portfolio Viewer - Professional Dark Theme */
 
+/* PortfolioViewer local aliases — resolve to global theme variables */
 :root {
-  --bg-primary: #000000;
-  --bg-secondary: #0a0a0a;
-  --bg-tertiary: #111111;
-  --bg-elevated: #1a1a1a;
+  --bg-primary: var(--color-bg-primary, #000000);
+  --bg-secondary: var(--color-bg-secondary, #0a0a0a);
+  --bg-tertiary: var(--color-bg-tertiary, #111111);
+  --bg-elevated: var(--color-bg-elevated, #1a1a1a);
   
-  --border-primary: rgba(255, 255, 255, 0.08);
-  --border-secondary: rgba(255, 255, 255, 0.04);
+  --border-primary: var(--color-surface-border, rgba(255, 255, 255, 0.08));
+  --border-secondary: var(--color-accent-primary, rgba(255, 255, 255, 0.04));
   
-  --text-primary: #ffffff;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-  --text-subtle: #4b5563;
+  --text-primary: var(--color-text-primary, #ffffff);
+  --text-secondary: var(--color-text-secondary, #9ca3af);
+  --text-muted: var(--color-text-muted, #6b7280);
+  --text-subtle: var(--color-text-muted, #4b5563);
   
-  --accent-blue: #3b82f6;
-  --accent-green: #10b981;
-  --accent-red: #ef4444;
+  --accent-blue: var(--color-accent, #3b82f6);
+  --accent-green: var(--color-success, #10b981);
+  --accent-red: var(--color-danger, #ef4444);
   
   --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%);
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
@@ -26,6 +27,13 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
+}
+
+/* Light theme overrides for glass/shadow effects */
+[data-theme="light"] {
+  --gradient-glass: linear-gradient(135deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.01) 100%);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
 .portfolio-container {
@@ -102,7 +110,7 @@
   font-size: 1.75rem;
   font-weight: 700;
   margin: 0;
-  background: linear-gradient(135deg, #ffffff 0%, #9ca3af 100%);
+  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-text-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -720,9 +728,18 @@
     gap: 16px;
   }
 
+  .portfolio-title {
+    font-size: 1.375rem;
+  }
+
   .header-actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .refresh-btn {
+    min-height: 44px;
+    padding: 10px 16px;
   }
 
   .value-card {
@@ -744,6 +761,20 @@
 
   .tab {
     white-space: nowrap;
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  .token-card {
+    padding: 14px 16px;
+  }
+
+  .token-name {
+    font-size: 0.875rem;
+  }
+
+  .token-balance {
+    font-size: 0.875rem;
   }
 
   .nfts-grid {
@@ -753,6 +784,12 @@
 
   .tx-item {
     padding: 12px 16px;
+    gap: 12px;
+  }
+
+  .tx-direction {
+    width: 36px;
+    height: 36px;
   }
 
   .tx-main {
@@ -765,6 +802,25 @@
 
   .tx-value {
     font-size: 0.875rem;
+  }
+
+  .tx-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin: -10px -12px -10px 0;
+  }
+
+  .empty-state {
+    padding: 40px 16px;
+  }
+
+  .chain-banner {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
   }
 }
 

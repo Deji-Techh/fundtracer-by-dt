@@ -2,7 +2,7 @@
 
 .pricing-section {
   padding: 100px 24px;
-  background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%);
+  background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
   position: relative;
 }
 
@@ -34,7 +34,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -45,14 +45,14 @@
 .pricing-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
 
 .pricing-subtitle {
   font-size: 1.125rem;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 /* Grid */
@@ -104,7 +104,7 @@
 .pricing-tier-name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
@@ -115,17 +115,17 @@
 .pricing-price {
   font-size: 3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .pricing-period {
   font-size: 1rem;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .pricing-tier-description {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   margin-bottom: 24px;
 }
 
@@ -141,12 +141,12 @@
   align-items: center;
   gap: 12px;
   font-size: 0.875rem;
-  color: #aaaaaa;
+  color: var(--color-text-secondary);
   margin-bottom: 12px;
 }
 
 .pricing-check-icon {
-  color: #888888;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
@@ -156,7 +156,7 @@
   width: 100%;
   padding: 14px;
   background: transparent;
-  color: #ffffff;
+  color: var(--color-text-primary);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   text-align: center;

@@ -82,8 +82,18 @@ async function apiRequest<T>(
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || `API error: ${response.status}`;
-        console.error(`[API Error] ${endpoint}: ${errorMessage}`);
-        throw new Error(errorMessage);
+        console.error(`[API Error] ${endpoint}: ${response.status} ${errorMessage}`);
+
+        // If server returns 401, the token is invalid/expired — clear it immediately
+        if (response.status === 401) {
+            removeAuthToken();
+            localStorage.removeItem('fundtracer_token_expiry');
+        }
+
+        // Include status code in error so callers can detect auth failures
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        throw error;
     }
 
     return response.json();

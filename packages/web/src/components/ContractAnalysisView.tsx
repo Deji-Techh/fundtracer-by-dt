@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChainId, CHAINS } from '@fundtracer/core';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 // Types for contract analysis
 interface ContractInteractor {
@@ -40,6 +41,7 @@ interface ContractAnalysisViewProps {
 function ContractAnalysisView({ result }: ContractAnalysisViewProps) {
     const [sortBy, setSortBy] = useState<'interactions' | 'value' | 'recent'>('interactions');
     const [showSharedFunding, setShowSharedFunding] = useState(true);
+    const isMobile = useIsMobile();
 
     const chainConfig = CHAINS[result.chain];
 
@@ -197,9 +199,9 @@ function ContractAnalysisView({ result }: ContractAnalysisViewProps) {
 
             {/* Interactors Table */}
             <div className="card">
-                <div className="card-header">
+                <div className="card-header" style={{ flexWrap: 'wrap' }}>
                     <h3 className="card-title">All Interacting Wallets</h3>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                         <button
                             className={`btn ${sortBy === 'interactions' ? 'btn-secondary' : 'btn-ghost'}`}
                             onClick={() => setSortBy('interactions')}
@@ -221,69 +223,132 @@ function ContractAnalysisView({ result }: ContractAnalysisViewProps) {
                     </div>
                 </div>
 
-                <div style={{ overflowX: 'auto' }}>
-                    <table className="tx-table">
-                        <thead>
-                            <tr>
-                                <th>Address</th>
-                                <th>Interactions</th>
-                                <th>First / Last</th>
-                                <th>Value In</th>
-                                <th>Value Out</th>
-                                <th>Funding Source</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sortedInteractors.map((interactor) => {
-                                const hasSharedFunding = result.sharedFundingGroups.some(g => g.wallets.includes(interactor.address));
-                                return (
-                                    <tr
-                                        key={interactor.address}
-                                        style={{ background: hasSharedFunding ? 'var(--color-warning-bg)' : undefined }}
-                                    >
-                                        <td>
+                {isMobile ? (
+                    /* Mobile: Card-based layout */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {sortedInteractors.map((interactor) => {
+                            const hasSharedFunding = result.sharedFundingGroups.some(g => g.wallets.includes(interactor.address));
+                            return (
+                                <div
+                                    key={interactor.address}
+                                    style={{
+                                        padding: 12,
+                                        background: hasSharedFunding ? 'var(--color-warning-bg)' : 'var(--color-bg-tertiary)',
+                                        borderRadius: 8,
+                                        borderLeft: `3px solid ${hasSharedFunding ? 'var(--color-warning-text)' : 'var(--color-surface-border)'}`,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                        <a
+                                            href={`${chainConfig.explorer}/address/${interactor.address}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="tx-address"
+                                            style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}
+                                        >
+                                            {formatAddress(interactor.address)}
+                                        </a>
+                                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 600 }}>
+                                            {interactor.interactionCount}x
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 12 }}>
+                                        <div>
+                                            <span style={{ color: 'var(--color-text-muted)' }}>In: </span>
+                                            <span className="tx-value incoming">{formatValue(interactor.totalValueIn)} ETH</span>
+                                        </div>
+                                        <div>
+                                            <span style={{ color: 'var(--color-text-muted)' }}>Out: </span>
+                                            <span className="tx-value outgoing">{formatValue(interactor.totalValueOut)} ETH</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--color-text-muted)' }}>
+                                        {formatDate(interactor.firstInteraction)} - {formatDate(interactor.lastInteraction)}
+                                    </div>
+                                    {interactor.fundingSource && (
+                                        <div style={{ marginTop: 6, fontSize: 11 }}>
+                                            <span style={{ color: 'var(--color-text-muted)' }}>Funded by: </span>
                                             <a
-                                                href={`${chainConfig.explorer}/address/${interactor.address}`}
+                                                href={`${chainConfig.explorer}/address/${interactor.fundingSource}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="tx-address"
+                                                style={{ color: hasSharedFunding ? 'var(--color-warning-text)' : undefined, fontSize: 11 }}
                                             >
-                                                {formatAddress(interactor.address)}
+                                                {formatAddress(interactor.fundingSource)}
                                             </a>
-                                        </td>
-                                        <td style={{ fontFamily: 'var(--font-mono)' }}>
-                                            {interactor.interactionCount}
-                                        </td>
-                                        <td style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                                            {formatDate(interactor.firstInteraction)} / {formatDate(interactor.lastInteraction)}
-                                        </td>
-                                        <td className="tx-value incoming">
-                                            {formatValue(interactor.totalValueIn)} ETH
-                                        </td>
-                                        <td className="tx-value outgoing">
-                                            {formatValue(interactor.totalValueOut)} ETH
-                                        </td>
-                                        <td>
-                                            {interactor.fundingSource ? (
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    /* Desktop: Table layout */
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="tx-table">
+                            <thead>
+                                <tr>
+                                    <th>Address</th>
+                                    <th>Interactions</th>
+                                    <th>First / Last</th>
+                                    <th>Value In</th>
+                                    <th>Value Out</th>
+                                    <th>Funding Source</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sortedInteractors.map((interactor) => {
+                                    const hasSharedFunding = result.sharedFundingGroups.some(g => g.wallets.includes(interactor.address));
+                                    return (
+                                        <tr
+                                            key={interactor.address}
+                                            style={{ background: hasSharedFunding ? 'var(--color-warning-bg)' : undefined }}
+                                        >
+                                            <td>
                                                 <a
-                                                    href={`${chainConfig.explorer}/address/${interactor.fundingSource}`}
+                                                    href={`${chainConfig.explorer}/address/${interactor.address}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="tx-address"
-                                                    style={{ color: hasSharedFunding ? 'var(--color-warning-text)' : undefined }}
                                                 >
-                                                    {formatAddress(interactor.fundingSource)}
+                                                    {formatAddress(interactor.address)}
                                                 </a>
-                                            ) : (
-                                                <span style={{ color: 'var(--color-text-muted)' }}>-</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+                                            </td>
+                                            <td style={{ fontFamily: 'var(--font-mono)' }}>
+                                                {interactor.interactionCount}
+                                            </td>
+                                            <td style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                                                {formatDate(interactor.firstInteraction)} / {formatDate(interactor.lastInteraction)}
+                                            </td>
+                                            <td className="tx-value incoming">
+                                                {formatValue(interactor.totalValueIn)} ETH
+                                            </td>
+                                            <td className="tx-value outgoing">
+                                                {formatValue(interactor.totalValueOut)} ETH
+                                            </td>
+                                            <td>
+                                                {interactor.fundingSource ? (
+                                                    <a
+                                                        href={`${chainConfig.explorer}/address/${interactor.fundingSource}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="tx-address"
+                                                        style={{ color: hasSharedFunding ? 'var(--color-warning-text)' : undefined }}
+                                                    >
+                                                        {formatAddress(interactor.fundingSource)}
+                                                    </a>
+                                                ) : (
+                                                    <span style={{ color: 'var(--color-text-muted)' }}>-</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );

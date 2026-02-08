@@ -7,10 +7,17 @@ import {
   Search01Icon, 
   ChartLineData01Icon,
   Shield01Icon,
-  Wallet01Icon
+  Wallet01Icon,
+  ArrowLeft01Icon,
+  Cancel01Icon,
+  Sun02Icon,
+  Moon02Icon,
+  Settings01Icon
 } from '@hugeicons/core-free-icons';
 import { searchDEXScreenerPairs } from '../../api';
 import { MobileFooter } from '../common/MobileFooter';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface TopNavProps {
   activeTab: string;
@@ -38,19 +45,22 @@ const TopNav: React.FC<TopNavProps> = ({
   isWalletConnected,
   walletAddress
 }) => {
+  const isMobile = useIsMobile();
+  const { theme, toggleTheme, isDark } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
 
   const navLinks = [
     { id: 'home', label: 'Home', icon: Home01Icon },
     { id: 'portfolio', label: 'Portfolio', icon: Wallet01Icon },
     { id: 'history', label: 'History', icon: Clock01Icon },
-    { id: 'explorer', label: 'Explorer', icon: Search01Icon },
-    { id: 'market', label: 'Market', icon: ChartLineData01Icon },
     { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
+    { id: 'settings', label: 'Settings', icon: Settings01Icon },
   ];
 
   const formatWalletAddress = (address: string) => {
@@ -107,9 +117,28 @@ const TopNav: React.FC<TopNavProps> = ({
   const handleResultClick = (result: SearchResult) => {
     setSearchQuery(result.name);
     setShowResults(false);
+    setMobileSearchOpen(false);
     // Navigate to token detail
     onTabChange('explorer');
   };
+
+  // Auto-focus mobile search input when overlay opens
+  useEffect(() => {
+    if (mobileSearchOpen && mobileSearchInputRef.current) {
+      mobileSearchInputRef.current.focus();
+    }
+  }, [mobileSearchOpen]);
+
+  // Close mobile search on escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileSearchOpen) {
+        setMobileSearchOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [mobileSearchOpen]);
 
   return (
     <>
@@ -170,13 +199,13 @@ const TopNav: React.FC<TopNavProps> = ({
               left: 0,
               right: 0,
               marginTop: 8,
-              background: '#1a1a1a',
-              border: '1px solid #2a2a2a',
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
               borderRadius: 8,
               maxHeight: 300,
-              overflowY: 'auto',
+              overflowY: 'auto' as const,
               zIndex: 1001,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              boxShadow: '0 4px 12px var(--color-shadow-toast)'
             }}>
               {searchResults.map((result) => (
                 <div
@@ -189,9 +218,9 @@ const TopNav: React.FC<TopNavProps> = ({
                     padding: '12px 16px',
                     cursor: 'pointer',
                     transition: 'background 0.2s ease',
-                    borderBottom: '1px solid #2a2a2a'
+                    borderBottom: '1px solid var(--color-border)'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#2a2a2a')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-bg-hover)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <img 
@@ -203,17 +232,17 @@ const TopNav: React.FC<TopNavProps> = ({
                     }}
                   />
                   <div style={{ flex: 1 }}>
-                    <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.875rem' }}>{result.name}</div>
-                    <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>{result.symbol?.toUpperCase()} • {result.chainId}</div>
+                    <div style={{ color: 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.875rem' }}>{result.name}</div>
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>{result.symbol?.toUpperCase()} • {result.chainId}</div>
                   </div>
                   {result.priceUsd && (
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.875rem' }}>
+                      <div style={{ color: 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.875rem' }}>
                         ${parseFloat(result.priceUsd).toFixed(6)}
                       </div>
                       {result.priceChange !== undefined && (
                         <div style={{ 
-                          color: result.priceChange >= 0 ? '#10b981' : '#ef4444', 
+                          color: result.priceChange >= 0 ? 'var(--color-positive)' : 'var(--color-negative)', 
                           fontSize: '0.75rem' 
                         }}>
                           {result.priceChange >= 0 ? '+' : ''}{result.priceChange.toFixed(2)}%
@@ -227,8 +256,51 @@ const TopNav: React.FC<TopNavProps> = ({
           )}
         </div>
 
-        {/* Right: Wallet & Mobile Menu */}
+        {/* Right: Wallet & Mobile Search */}
         <div className="top-nav-right">
+          {/* Mobile search icon - visible only on mobile */}
+          {isMobile && (
+            <button
+              onClick={() => setMobileSearchOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 44,
+                minHeight: 44,
+                padding: 8,
+                background: 'transparent',
+                border: '1px solid var(--color-border)',
+                borderRadius: 8,
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+              }}
+              aria-label="Search"
+            >
+              <HugeiconsIcon icon={Search01Icon} size={20} strokeWidth={1.5} />
+            </button>
+          )}
+          <button
+            onClick={toggleTheme}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 44,
+              minHeight: 44,
+              padding: 8,
+              background: 'transparent',
+              border: '1px solid var(--color-border)',
+              borderRadius: 8,
+              color: 'var(--color-text-secondary)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            <HugeiconsIcon icon={isDark ? Sun02Icon : Moon02Icon} size={20} strokeWidth={1.5} />
+          </button>
           <button
             className={`connect-btn ${isWalletConnected ? 'connected' : ''}`}
             onClick={onConnectWallet}
@@ -242,6 +314,208 @@ const TopNav: React.FC<TopNavProps> = ({
           </button>
         </div>
       </nav>
+
+      {/* Mobile Fullscreen Search Overlay */}
+      {isMobile && mobileSearchOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'var(--color-bg)',
+          zIndex: 2000,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
+          {/* Search header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 16px',
+            borderBottom: '1px solid var(--color-border)',
+          }}>
+            <button
+              onClick={() => {
+                setMobileSearchOpen(false);
+                setShowResults(false);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 44,
+                minHeight: 44,
+                padding: 8,
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+              }}
+              aria-label="Close search"
+            >
+              <HugeiconsIcon icon={ArrowLeft01Icon} size={22} strokeWidth={1.5} />
+            </button>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <span style={{
+                position: 'absolute',
+                left: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--color-text-muted)',
+              }}>
+                <HugeiconsIcon icon={Search01Icon} size={18} strokeWidth={1.5} />
+              </span>
+              <input
+                ref={mobileSearchInputRef}
+                type="text"
+                placeholder="Search tokens..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px 40px 12px 40px',
+                  borderRadius: 8,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-bg-elevated)',
+                  color: 'var(--color-text-primary)',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  minHeight: 44,
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setShowResults(false);
+                    mobileSearchInputRef.current?.focus();
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--color-text-muted)',
+                    cursor: 'pointer',
+                    padding: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  aria-label="Clear search"
+                >
+                  <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.5} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Search results */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+          }}>
+            {isSearching && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 32,
+                color: 'var(--color-text-muted)',
+                fontSize: '0.875rem',
+              }}>
+                <div className="loading-spinner" style={{ width: 20, height: 20, marginRight: 8 }} />
+                Searching...
+              </div>
+            )}
+
+            {!isSearching && searchResults.length === 0 && searchQuery.length >= 2 && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '48px 24px',
+                color: 'var(--color-text-muted)',
+                textAlign: 'center',
+              }}>
+                <HugeiconsIcon icon={Search01Icon} size={32} strokeWidth={1.5} />
+                <p style={{ marginTop: 12, fontSize: '0.875rem' }}>No results found for "{searchQuery}"</p>
+              </div>
+            )}
+
+            {!isSearching && searchQuery.length < 2 && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '48px 24px',
+                color: 'var(--color-text-muted)',
+                textAlign: 'center' as const,
+              }}>
+                <HugeiconsIcon icon={Search01Icon} size={32} strokeWidth={1.5} />
+                <p style={{ marginTop: 12, fontSize: '0.875rem' }}>Search for tokens by name or symbol</p>
+              </div>
+            )}
+
+            {searchResults.map((result) => (
+              <div
+                key={result.id}
+                onClick={() => handleResultClick(result)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  borderBottom: '1px solid var(--color-bg-elevated)',
+                  minHeight: 56,
+                }}
+              >
+                <img
+                  src={result.thumb}
+                  alt={result.name}
+                  style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0 }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.9375rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {result.name}
+                  </div>
+                  <div style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem', marginTop: 2 }}>
+                    {result.symbol?.toUpperCase()} • {result.chainId}
+                  </div>
+                </div>
+                {result.priceUsd && (
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ color: 'var(--color-text-primary)', fontWeight: 600, fontSize: '0.9375rem' }}>
+                      ${parseFloat(result.priceUsd).toFixed(6)}
+                    </div>
+                    {result.priceChange !== undefined && (
+                      <div style={{
+                        color: result.priceChange >= 0 ? 'var(--color-positive)' : 'var(--color-negative)',
+                        fontSize: '0.8125rem',
+                        marginTop: 2,
+                      }}>
+                        {result.priceChange >= 0 ? '+' : ''}{result.priceChange.toFixed(2)}%
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Mobile Footer - Only on mobile screens */}
       <MobileFooter activeTab={activeTab} onTabChange={onTabChange} />

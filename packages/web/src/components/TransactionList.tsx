@@ -148,29 +148,29 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                 background: 'var(--color-bg-tertiary)',
                                 borderRadius: 8,
                                 padding: 12,
-                                borderLeft: `3px solid ${tx.isIncoming ? '#4ade80' : '#f87171'}`,
+                                borderLeft: `3px solid ${tx.isIncoming ? 'var(--color-positive)' : 'var(--color-negative)'}`,
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                 <span className={`tx-value ${tx.isIncoming ? 'incoming' : 'outgoing'}`} style={{ fontSize: 14, fontWeight: 600 }}>
                                     {tx.isIncoming ? '+' : '-'}{tx.valueInEth.toFixed(4)} ETH
                                 </span>
-                                <span className={`tx-status ${tx.status}`} style={{ fontSize: 11 }}>
+                                <span className={`tx-status ${tx.status}`} style={{ fontSize: 12 }}>
                                     {tx.status === 'success' ? '✓' : '✗'}
                                 </span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--color-text-muted)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--color-text-muted)' }}>
                                 <span>{tx.timestamp > 0 ? new Date(tx.timestamp * 1000).toLocaleDateString() : '-'}</span>
                                 <a
                                     href={`${chainConfig.explorer}/tx/${tx.hash}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    style={{ color: 'var(--color-text-secondary)' }}
+                                    style={{ color: 'var(--color-text-secondary)', padding: '4px 0', minHeight: 44, display: 'flex', alignItems: 'center' }}
                                 >
                                     {tx.hash.slice(0, 8)}...
                                 </a>
                             </div>
-                            <div style={{ marginTop: 8, fontSize: 10, color: 'var(--color-text-muted)' }}>
+                            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-text-muted)' }}>
                                 <div style={{ marginBottom: 2 }}>
                                     From: <span style={{ fontFamily: 'monospace' }}>
                                         {getLabel(tx.from) || (tx as any).fromLabel || tx.from.slice(0, 10) + '...'}

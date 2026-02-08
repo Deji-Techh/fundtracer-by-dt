@@ -3,6 +3,7 @@ import { ChainId, CHAINS, SybilAnalysisResult, SybilCluster } from '@fundtracer/
 import { analyzeSybilAddresses, fetchDuneInteractors } from '../api';
 import { useNotify } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { ethers } from 'ethers';
 import { useAppKitProvider } from '@reown/appkit/react';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -99,7 +100,7 @@ const Skeleton: React.FC<{ width?: string; height?: string; className?: string }
 const SkeletonCard: React.FC = () => (
   <div style={{
     padding: '16px',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'var(--color-bg-elevated)',
     borderRadius: '8px',
     border: '1px solid rgba(255, 255, 255, 0.1)',
     marginBottom: '12px',
@@ -145,7 +146,7 @@ const AddressDisplay: React.FC<{
 
   return (
     <span className={`address-display ${className}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-      <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.875rem', color: '#9ca3af' }}>
+      <code style={{ fontFamily: 'var(--font-mono)', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
         {displayText}
       </code>
       {showCopy && (
@@ -155,11 +156,14 @@ const AddressDisplay: React.FC<{
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            padding: '4px',
+            padding: '10px',
             display: 'flex',
             alignItems: 'center',
-            color: copied ? '#22c55e' : '#6b7280',
+            color: copied ? 'var(--color-positive)' : 'var(--color-text-muted)',
             transition: 'color 0.2s',
+            minWidth: '44px',
+            minHeight: '44px',
+            justifyContent: 'center',
           }}
           title="Copy to clipboard"
         >
@@ -208,7 +212,8 @@ const RiskBadge: React.FC<{ score: number; showIcon?: boolean }> = ({ score, sho
 const NetworkGraph: React.FC<{
   clusters: SybilCluster[];
   onNodeClick?: (address: string) => void;
-}> = ({ clusters, onNodeClick }) => {
+  isMobile?: boolean;
+}> = ({ clusters, onNodeClick, isMobile = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -356,7 +361,8 @@ const NetworkGraph: React.FC<{
   };
 
   return (
-    <div style={{ position: 'relative', height: '500px', backgroundColor: '#0f0f0f', borderRadius: '8px' }}>
+    <div style={{   position: 'relative', height: isMobile ? '350px' : '500px', backgroundColor: 'var(--color-bg)', borderRadius: '8px' }}>
+
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
       
       {/* Graph controls */}
@@ -393,14 +399,14 @@ const NetworkGraph: React.FC<{
         borderRadius: '8px',
         border: '1px solid rgba(255, 255, 255, 0.1)',
       }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px', color: '#9ca3af' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px', color: 'var(--color-text-secondary)' }}>
           Risk Levels
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {Object.entries(RISK_LEVELS).map(([key, value]) => (
             <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: value.color }} />
-              <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{value.label}</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{value.label}</span>
             </div>
           ))}
         </div>
@@ -417,11 +423,11 @@ const graphControlBtnStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#9ca3af',
+  color: 'var(--color-text-secondary)',
   transition: 'all 0.2s',
   borderRadius: '4px',
-  minWidth: '36px',
-  minHeight: '36px',
+  minWidth: '44px',
+  minHeight: '44px',
 };
 
 // Export dropdown component
@@ -567,7 +573,7 @@ const ExportDropdown: React.FC<{
           alignItems: 'center',
           gap: '8px',
           padding: '10px 16px',
-          backgroundColor: '#1a1a1a',
+          backgroundColor: 'var(--color-bg-elevated)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '8px',
           color: '#e5e5e5',
@@ -593,7 +599,7 @@ const ExportDropdown: React.FC<{
           position: 'absolute',
           top: 'calc(100% + 8px)',
           right: 0,
-          backgroundColor: '#1a1a1a',
+          backgroundColor: 'var(--color-bg-elevated)',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           borderRadius: '8px',
           padding: '8px',
@@ -649,7 +655,7 @@ const ClusterCard: React.FC<{
       borderRadius: '12px',
       marginBottom: '12px',
       overflow: 'hidden',
-      backgroundColor: '#1a1a1a',
+      backgroundColor: 'var(--color-bg-elevated)',
     }}>
       <div
         onClick={onToggle}
@@ -697,7 +703,7 @@ const ClusterCard: React.FC<{
               </span>
               <RiskBadge score={cluster.sybilScore} showIcon={false} />
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
               Funded by {cluster.fundingSourceLabel || (
                 <AddressDisplay address={cluster.fundingSource} truncate={true} showCopy={false} />
               )}
@@ -718,7 +724,7 @@ const ClusterCard: React.FC<{
               padding: '6px 10px',
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
               borderRadius: '6px',
-              color: '#3b82f6',
+              color: 'var(--color-accent)',
               fontSize: '0.75rem',
               fontWeight: 500,
               textDecoration: 'none',
@@ -732,7 +738,7 @@ const ClusterCard: React.FC<{
             transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
             transition: 'transform 0.2s',
           }}>
-            <HugeiconsIcon icon={ChevronDown} size={20} strokeWidth={1.5} color="#6b7280" />
+            <HugeiconsIcon icon={ChevronDown} size={20} strokeWidth={1.5} color="var(--color-text-muted)" />
           </div>
         </div>
       </div>
@@ -740,25 +746,25 @@ const ClusterCard: React.FC<{
       {isExpanded && (
         <div style={{ padding: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
           <div style={{ marginBottom: '12px' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
               Cluster Details
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
               <div>
-                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Total Wallets</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Total Wallets</div>
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.totalWallets}</div>
               </div>
               <div>
-                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Total Interactions</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Total Interactions</div>
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.totalInteractions.toLocaleString()}</div>
               </div>
               <div>
-                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Avg Funding</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Avg Funding</div>
                 <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.averageFundingAmount.toFixed(4)} ETH</div>
               </div>
               {cluster.timeSpan.durationHours > 0 && (
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Time Span</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Time Span</div>
                   <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.timeSpan.durationHours.toFixed(1)}h</div>
                 </div>
               )}
@@ -767,7 +773,7 @@ const ClusterCard: React.FC<{
 
           {cluster.flags.length > 0 && (
             <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Flags
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -787,7 +793,7 @@ const ClusterCard: React.FC<{
           )}
 
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
               Wallets ({cluster.wallets.length})
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -807,7 +813,7 @@ const ClusterCard: React.FC<{
                       href={`${chainConfig.explorer}/tx/${wallet.fundingTxHash}`}
                       target="_blank"
                       rel="noreferrer"
-                      style={{ color: '#3b82f6' }}
+                      style={{ color: 'var(--color-accent)' }}
                     >
                       <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} strokeWidth={1.5} />
                     </a>
@@ -830,6 +836,7 @@ const LINEA_CHAIN_ID = 59144;
 function SybilDetector({ onBack }: SybilDetectorProps) {
   const notify = useNotify();
   const { profile } = useAuth();
+  const isMobile = useIsMobile();
   const { walletProvider } = useAppKitProvider('eip155');
 
   // Wizard state
@@ -1074,29 +1081,29 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
   return (
     <div style={{
-      backgroundColor: '#0a0a0a',
+      backgroundColor: 'var(--color-bg)',
       borderRadius: '16px',
       border: '1px solid rgba(255, 255, 255, 0.1)',
       overflow: 'hidden',
     }}>
       {/* Header */}
       <div style={{
-        padding: '24px',
+        padding: isMobile ? '16px' : '24px',
         background: 'linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(15, 15, 15, 0.95) 100%)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
       }}>
         <div style={{ 
           display: 'flex', 
-          alignItems: 'center', 
+          alignItems: isMobile ? 'flex-start' : 'center', 
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '16px',
+          gap: isMobile ? '12px' : '16px',
         }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+          <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', marginBottom: '8px' }}>
               <div style={{
-                width: '48px',
-                height: '48px',
+                width: isMobile ? '40px' : '48px',
+                height: isMobile ? '40px' : '48px',
                 borderRadius: '12px',
                 backgroundColor: 'rgba(234, 88, 12, 0.15)',
                 display: 'flex',
@@ -1106,11 +1113,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 <HugeiconsIcon icon={Shield01Icon} size={24} strokeWidth={1.5} color="#ea580c" />
               </div>
               <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+                <h2 style={{ fontSize: isMobile ? '1.125rem' : '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
                   Sybil Detection
                 </h2>
-                 <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
-                   Find wallets sharing common funding sources
+                 <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: 0 }}>                   Find wallets sharing common funding sources
                  </p>
                </div>
              </div>
@@ -1119,11 +1125,12 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
              <div style={{
                display: 'flex',
                alignItems: 'center',
-               gap: '16px',
+               gap: isMobile ? '8px' : '16px',
                backgroundColor: 'rgba(255,255,255,0.05)',
-               padding: '12px 16px',
+               padding: isMobile ? '8px 12px' : '12px 16px',
                borderRadius: '12px',
                border: `1px solid ${SYBIL_TIERS[currentTier]?.color || 'rgba(255,255,255,0.1)'}`,
+               flexWrap: 'wrap',
              }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                  <div style={{
@@ -1131,13 +1138,13 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                    borderRadius: '8px',
                    backgroundColor: SYBIL_TIERS[currentTier]?.bgColor,
                    color: SYBIL_TIERS[currentTier]?.color,
-                   fontSize: '0.875rem',
+                   fontSize: isMobile ? '0.75rem' : '0.875rem',
                    fontWeight: 600,
                  }}>
                    {SYBIL_TIERS[currentTier]?.name || 'Free'}
                  </div>
-                 <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                   {getRemainingOperations(currentTier) === 'unlimited' ? 'Unlimited' : `${getRemainingOperations(currentTier)}/7 ops`}
+                  <div style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+                    {getRemainingOperations(currentTier) === 'unlimited' ? 'Unlimited' : `${getRemainingOperations(currentTier)}/7 ops`}
                  </div>
                </div>
 
@@ -1149,23 +1156,23 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                      alignItems: 'center',
                      gap: '8px',
                      padding: '10px 16px',
-                     backgroundColor: '#3b82f6',
-                     color: '#ffffff',
-                     border: 'none',
+                      backgroundColor: 'var(--color-accent)',
+                      color: 'var(--color-text-primary)',
+                      border: 'none',
                      borderRadius: '8px',
                      fontSize: '0.875rem',
                      fontWeight: 600,
                      cursor: 'pointer',
                      transition: 'all 0.2s',
                    }}
-                   onMouseEnter={(e: React.MouseEvent) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = '#2563eb';
-                    (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
-                   }}
-                   onMouseLeave={(e: React.MouseEvent) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = '#3b82f6';
-                    (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-                   }}
+                    onMouseEnter={(e: React.MouseEvent) => {
+                     (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-accent-hover)';
+                     (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e: React.MouseEvent) => {
+                     (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-accent)';
+                     (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+                    }}
                  >
                    <HugeiconsIcon icon={StarIcon} size={18} strokeWidth={2} />
                    Upgrade
@@ -1186,7 +1193,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   backgroundColor: 'transparent',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '8px',
-                  color: '#9ca3af',
+                  color: 'var(--color-text-secondary)',
                   fontSize: '0.875rem',
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -1209,7 +1216,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   backgroundColor: 'transparent',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '8px',
-                  color: '#9ca3af',
+                  color: 'var(--color-text-secondary)',
                   fontSize: '0.875rem',
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -1227,8 +1234,8 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         {/* Progress Steps */}
         <div style={{ 
           display: 'flex', 
-          gap: '16px', 
-          marginTop: '24px',
+          gap: isMobile ? '8px' : '16px', 
+          marginTop: isMobile ? '16px' : '24px',
           flexWrap: 'wrap',
         }}>
           {wizardSteps.map((s, i) => {
@@ -1239,40 +1246,43 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               <div key={s.id} style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
+                gap: isMobile ? '8px' : '12px',
                 opacity: isActive ? 1 : 0.5,
                 flex: '1 1 auto',
-                minWidth: '200px',
+                minWidth: isMobile ? '0' : '200px',
               }}>
                 <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '10px',
-                  background: isActive ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 
-                             isCompleted ? 'rgba(34, 197, 94, 0.2)' : '#1a1a1a',
+                  width: isMobile ? '32px' : '40px',
+                  height: isMobile ? '32px' : '40px',
+                  borderRadius: isMobile ? '8px' : '10px',
+                  flexShrink: 0,
+                  background: isActive ? 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%)' : 
+                             isCompleted ? 'rgba(34, 197, 94, 0.2)' : 'var(--color-bg-elevated)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: isActive ? '#fff' : isCompleted ? '#22c55e' : '#6b7280',
+                  color: isActive ? 'var(--color-text-primary)' : isCompleted ? 'var(--color-positive)' : 'var(--color-text-muted)',
                   fontSize: '1rem',
                   fontWeight: 600,
                   border: isActive ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
                 }}>
                   {isCompleted ? (
-                    <HugeiconsIcon icon={CheckmarkCircle02Icon} size={20} strokeWidth={1.5} />
+                    <HugeiconsIcon icon={CheckmarkCircle02Icon} size={isMobile ? 16 : 20} strokeWidth={1.5} />
                   ) : (
-                    <HugeiconsIcon icon={s.icon} size={20} strokeWidth={1.5} />
+                    <HugeiconsIcon icon={s.icon} size={isMobile ? 16 : 20} strokeWidth={1.5} />
                   )}
                 </div>
-                <div>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#e5e5e5' }}>
-                    {i + 1}. {s.label}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', fontWeight: 600, color: '#e5e5e5' }}>
+                    {isMobile ? s.label : `${i + 1}. ${s.label}`}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                    {s.description}
-                  </div>
+                  {!isMobile && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                      {s.description}
+                    </div>
+                  )}
                 </div>
-                {i < 2 && (
+                {i < 2 && !isMobile && (
                   <HugeiconsIcon 
                     icon={ArrowRight01Icon} 
                     size={20} 
@@ -1289,7 +1299,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
       {/* Step 1: Fetch from Dune */}
       {step === 'fetch' && (
-        <div style={{ padding: '24px' }}>
+        <div style={{ padding: isMobile ? '16px' : '24px' }}>
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{ 
               fontSize: '1.125rem', 
@@ -1303,14 +1313,14 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               <HugeiconsIcon icon={Database02Icon} size={20} strokeWidth={1.5} />
               Fetch Contract Interactors
             </h3>
-            <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: 0 }}>
               Retrieve wallet addresses that have interacted with a specific contract
             </p>
           </div>
 
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))', 
             gap: '16px',
             marginBottom: '24px',
           }}>
@@ -1318,7 +1328,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               <label style={{ 
                 fontSize: '0.75rem', 
                 fontWeight: 600, 
-                color: '#9ca3af', 
+                color: 'var(--color-text-secondary)', 
                 marginBottom: '8px', 
                 display: 'block',
                 textTransform: 'uppercase',
@@ -1351,7 +1361,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               <label style={{ 
                 fontSize: '0.75rem', 
                 fontWeight: 600, 
-                color: '#9ca3af', 
+                color: 'var(--color-text-secondary)', 
                 marginBottom: '8px', 
                 display: 'block',
                 textTransform: 'uppercase',
@@ -1385,7 +1395,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               <label style={{ 
                 fontSize: '0.75rem', 
                 fontWeight: 600, 
-                color: '#9ca3af', 
+                color: 'var(--color-text-secondary)', 
                 marginBottom: '8px', 
                 display: 'block',
                 textTransform: 'uppercase',
@@ -1439,7 +1449,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 }}
               />
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <HugeiconsIcon icon={Key01Icon} size={18} strokeWidth={1.5} color="#9ca3af" />
+                <HugeiconsIcon icon={Key01Icon} size={18} strokeWidth={1.5} color="var(--color-text-secondary)" />
                 <span style={{ fontSize: '0.875rem', color: '#e5e5e5' }}>Use my own Dune API key</span>
               </div>
             </label>
@@ -1452,7 +1462,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 style={{
                   width: '100%',
                   padding: '12px 16px',
-                  backgroundColor: '#0a0a0a',
+                  backgroundColor: 'var(--color-bg)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '8px',
                   color: '#e5e5e5',
@@ -1475,7 +1485,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               border: '1px solid rgba(220, 38, 38, 0.2)',
               borderRadius: '8px',
               marginBottom: '24px',
-              color: '#ef4444',
+              color: 'var(--color-negative)',
             }}>
               <HugeiconsIcon icon={Alert01Icon} size={20} strokeWidth={1.5} />
               <span>{error}</span>
@@ -1488,10 +1498,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             style={{
               width: '100%',
               padding: '16px',
-              background: fetching ? '#1a1a1a' : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              background: fetching ? 'var(--color-bg-elevated)' : 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%)',
               border: 'none',
               borderRadius: '12px',
-              color: '#fff',
+              color: 'var(--color-text-primary)',
               fontSize: '1rem',
               fontWeight: 600,
               cursor: fetching || !contractAddress.trim() ? 'not-allowed' : 'pointer',
@@ -1510,7 +1520,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   width: '20px',
                   height: '20px',
                   border: '2px solid rgba(255, 255, 255, 0.3)',
-                  borderTopColor: '#fff',
+                  borderTopColor: 'var(--color-text-primary)',
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite',
                 }} />
@@ -1528,7 +1538,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
           <div style={{ 
             textAlign: 'center', 
             margin: '32px 0', 
-            color: '#6b7280',
+            color: 'var(--color-text-muted)',
             position: 'relative',
           }}>
             <div style={{
@@ -1541,7 +1551,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             }} />
             <span style={{
               position: 'relative',
-              backgroundColor: '#0a0a0a',
+              backgroundColor: 'var(--color-bg)',
               padding: '0 16px',
               fontSize: '0.875rem',
             }}>
@@ -1574,7 +1584,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               alignItems: 'center',
               gap: '8px',
               fontSize: '0.875rem',
-              color: '#22c55e',
+              color: 'var(--color-positive)',
               marginBottom: '16px',
             }}>
               <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} strokeWidth={1.5} />
@@ -1588,7 +1598,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               style={{
                 width: '100%',
                 padding: '16px',
-                backgroundColor: '#1a1a1a',
+                backgroundColor: 'var(--color-bg-elevated)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '12px',
                 color: '#e5e5e5',
@@ -1612,7 +1622,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
       {/* Step 2: Review & Analyze */}
       {step === 'analyze' && (
-        <div style={{ padding: '24px' }}>
+        <div style={{ padding: isMobile ? '16px' : '24px' }}>
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{ 
               fontSize: '1.125rem', 
@@ -1626,7 +1636,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               <HugeiconsIcon icon={GroupIcon} size={20} strokeWidth={1.5} />
               Review & Analyze
             </h3>
-            <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', margin: 0 }}>
               Review the addresses and start the Sybil detection analysis
             </p>
           </div>
@@ -1645,8 +1655,8 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               alignItems: 'center',
               marginBottom: '16px',
             }}>
-              <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>Total Addresses</span>
-              <span style={{ fontSize: '2rem', fontWeight: 700, color: '#3b82f6' }}>
+              <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Total Addresses</span>
+              <span style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-accent)' }}>
                 {allAddresses.length.toLocaleString()}
               </span>
             </div>
@@ -1654,14 +1664,14 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {fetchedAddresses.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem' }}>
-                  <HugeiconsIcon icon={Database02Icon} size={16} strokeWidth={1.5} color="#22c55e" />
-                  <span style={{ color: '#6b7280' }}>{fetchedAddresses.length.toLocaleString()} from Dune</span>
+                  <HugeiconsIcon icon={Database02Icon} size={16} strokeWidth={1.5} color="var(--color-positive)" />
+                  <span style={{ color: 'var(--color-text-muted)' }}>{fetchedAddresses.length.toLocaleString()} from Dune</span>
                 </div>
               )}
               {parsedManual.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem' }}>
-                  <HugeiconsIcon icon={GroupIcon} size={16} strokeWidth={1.5} color="#3b82f6" />
-                  <span style={{ color: '#6b7280' }}>{parsedManual.length.toLocaleString()} manually added</span>
+                  <HugeiconsIcon icon={GroupIcon} size={16} strokeWidth={1.5} color="var(--color-accent)" />
+                  <span style={{ color: 'var(--color-text-muted)' }}>{parsedManual.length.toLocaleString()} manually added</span>
                 </div>
               )}
             </div>
@@ -1672,7 +1682,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             <label style={{ 
               fontSize: '0.75rem', 
               fontWeight: 600, 
-              color: '#9ca3af', 
+              color: 'var(--color-text-secondary)', 
               marginBottom: '8px', 
               display: 'block',
               textTransform: 'uppercase',
@@ -1710,7 +1720,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               border: '1px solid rgba(220, 38, 38, 0.2)',
               borderRadius: '8px',
               marginBottom: '24px',
-              color: '#ef4444',
+              color: 'var(--color-negative)',
             }}>
               <HugeiconsIcon icon={Alert01Icon} size={20} strokeWidth={1.5} />
               <span>{error}</span>
@@ -1723,10 +1733,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             style={{
               width: '100%',
               padding: '16px',
-              background: analyzing ? '#1a1a1a' : 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
+              background: analyzing ? 'var(--color-bg-elevated)' : 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
               border: 'none',
               borderRadius: '12px',
-              color: '#fff',
+              color: 'var(--color-text-primary)',
               fontSize: '1rem',
               fontWeight: 600,
               cursor: analyzing || allAddresses.length < 10 ? 'not-allowed' : 'pointer',
@@ -1745,7 +1755,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   width: '20px',
                   height: '20px',
                   border: '2px solid rgba(255, 255, 255, 0.3)',
-                  borderTopColor: '#fff',
+                  borderTopColor: 'var(--color-text-primary)',
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite',
                 }} />
@@ -1762,7 +1772,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
           {allAddresses.length < 10 && (
             <p style={{ 
               textAlign: 'center', 
-              color: '#6b7280', 
+              color: 'var(--color-text-muted)', 
               fontSize: '0.875rem',
               marginTop: '16px',
             }}>
@@ -1774,84 +1784,84 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
       {/* Step 3: Results */}
       {step === 'results' && result && (
-        <div style={{ padding: '24px' }}>
+        <div style={{ padding: isMobile ? '16px' : '24px' }}>
           {/* Summary Statistics */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: '16px',
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: isMobile ? '8px' : '16px',
             marginBottom: '24px',
           }}>
             <div style={{
               backgroundColor: '#141414',
-              padding: '20px',
+              padding: isMobile ? '12px' : '20px',
               borderRadius: '12px',
               border: '1px solid rgba(255, 255, 255, 0.05)',
               textAlign: 'center',
             }}>
               <div style={{ 
-                fontSize: '2rem', 
+                fontSize: isMobile ? '1.25rem' : '2rem', 
                 fontWeight: 700, 
-                color: '#3b82f6',
+                color: 'var(--color-accent)',
                 marginBottom: '4px',
               }}>
                 {result.totalInteractors.toLocaleString()}
               </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Wallets Analyzed</div>
+              <div style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', color: 'var(--color-text-muted)' }}>Wallets Analyzed</div>
             </div>
 
             <div style={{
               backgroundColor: '#141414',
-              padding: '20px',
+              padding: isMobile ? '12px' : '20px',
               borderRadius: '12px',
               border: '1px solid rgba(255, 255, 255, 0.05)',
               textAlign: 'center',
             }}>
               <div style={{ 
-                fontSize: '2rem', 
+                fontSize: isMobile ? '1.25rem' : '2rem', 
                 fontWeight: 700, 
                 color: '#e5e5e5',
                 marginBottom: '4px',
               }}>
                 {result.clusters.length.toLocaleString()}
               </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Clusters Found</div>
+              <div style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', color: 'var(--color-text-muted)' }}>Clusters Found</div>
             </div>
 
             <div style={{
               backgroundColor: '#141414',
-              padding: '20px',
+              padding: isMobile ? '12px' : '20px',
               borderRadius: '12px',
               border: '1px solid rgba(255, 255, 255, 0.05)',
               textAlign: 'center',
             }}>
               <div style={{ 
-                fontSize: '2rem', 
+                fontSize: isMobile ? '1.25rem' : '2rem', 
                 fontWeight: 700, 
                 color: '#dc2626',
                 marginBottom: '4px',
               }}>
                 {result.flaggedClusters.length.toLocaleString()}
               </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Suspicious</div>
+              <div style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', color: 'var(--color-text-muted)' }}>Suspicious</div>
             </div>
 
             <div style={{
               backgroundColor: '#141414',
-              padding: '20px',
+              padding: isMobile ? '12px' : '20px',
               borderRadius: '12px',
               border: '1px solid rgba(255, 255, 255, 0.05)',
               textAlign: 'center',
             }}>
               <div style={{ 
-                fontSize: '2rem', 
+                fontSize: isMobile ? '1.25rem' : '2rem', 
                 fontWeight: 700, 
                 color: '#dc2626',
                 marginBottom: '4px',
               }}>
                 {result.flaggedClusters.reduce((acc, c) => acc + c.totalWallets, 0).toLocaleString()}
               </div>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Flagged Wallets</div>
+              <div style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', color: 'var(--color-text-muted)' }}>Flagged Wallets</div>
             </div>
           </div>
 
@@ -1867,7 +1877,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               <h4 style={{ 
                 fontSize: '0.875rem', 
                 fontWeight: 600, 
-                color: '#9ca3af', 
+                color: 'var(--color-text-secondary)', 
                 marginBottom: '16px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -1901,16 +1911,17 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
-            alignItems: 'center',
+            alignItems: isMobile ? 'stretch' : 'center',
+            flexDirection: isMobile ? 'column' : 'row',
             flexWrap: 'wrap',
-            gap: '16px',
+            gap: isMobile ? '12px' : '16px',
             marginBottom: '24px',
-            padding: '16px',
+            padding: isMobile ? '12px' : '16px',
             backgroundColor: '#141414',
             borderRadius: '12px',
             border: '1px solid rgba(255, 255, 255, 0.05)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flexWrap: 'wrap' }}>
               {/* View Mode Toggle */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
@@ -1920,10 +1931,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                     alignItems: 'center',
                     gap: '8px',
                     padding: '10px 16px',
-                    backgroundColor: viewMode === 'list' ? '#3b82f6' : '#1a1a1a',
+                    backgroundColor: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-bg-elevated)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '8px',
-                    color: viewMode === 'list' ? '#fff' : '#9ca3af',
+                    color: viewMode === 'list' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                     fontSize: '0.875rem',
                     fontWeight: 500,
                     cursor: 'pointer',
@@ -1941,10 +1952,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                     alignItems: 'center',
                     gap: '8px',
                     padding: '10px 16px',
-                    backgroundColor: viewMode === 'graph' ? '#3b82f6' : '#1a1a1a',
+                    backgroundColor: viewMode === 'graph' ? 'var(--color-accent)' : 'var(--color-bg-elevated)',
                     border: '1px solid rgba(255, 255, 255, 0.1)',
                     borderRadius: '8px',
-                    color: viewMode === 'graph' ? '#fff' : '#9ca3af',
+                    color: viewMode === 'graph' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                     fontSize: '0.875rem',
                     fontWeight: 500,
                     cursor: 'pointer',
@@ -1958,16 +1969,16 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               </div>
 
               {/* Filter */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <HugeiconsIcon icon={FilterHorizontalIcon} size={18} strokeWidth={1.5} color="#6b7280" />
-                <span style={{ fontSize: '0.875rem', color: '#9ca3af' }}>Min Score:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', flex: isMobile ? '1 1 100%' : 'none' }}>
+                <HugeiconsIcon icon={FilterHorizontalIcon} size={18} strokeWidth={1.5} color="var(--color-text-muted)" />
+                <span style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>Min Score:</span>
                 <input
                   type="range"
                   min={0}
                   max={100}
                   value={filterMinScore}
                   onChange={(e) => setFilterMinScore(parseInt(e.target.value))}
-                  style={{ width: 120 }}
+                  style={{ width: isMobile ? '100%' : 120, flex: isMobile ? 1 : 'none', minHeight: '44px' }}
                 />
                 <span style={{ 
                   fontSize: '0.875rem', 
@@ -1988,6 +1999,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
           {viewMode === 'graph' ? (
             <NetworkGraph 
               clusters={filteredClusters} 
+              isMobile={isMobile}
               onNodeClick={(address) => {
                 const cluster = filteredClusters.find(c => 
                   c.fundingSource === address || c.wallets.some(w => w.address === address)
@@ -2015,17 +2027,17 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 justifyContent: 'center',
                 margin: '0 auto 16px',
               }}>
-                <HugeiconsIcon icon={ShieldCheck} size={40} strokeWidth={1.5} color="#22c55e" />
+                <HugeiconsIcon icon={ShieldCheck} size={40} strokeWidth={1.5} color="var(--color-positive)" />
               </div>
               <h4 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#e5e5e5', marginBottom: '8px' }}>
                 No Suspicious Clusters Found
               </h4>
-              <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
                 No clusters match the current filter threshold ({filterMinScore}%)
               </p>
             </div>
           ) : (
-            <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+            <div style={{ maxHeight: isMobile ? 'none' : '600px', overflowY: isMobile ? 'visible' : 'auto' }}>
               {filteredClusters.map((cluster) => (
                 <ClusterCard
                   key={cluster.fundingSource}

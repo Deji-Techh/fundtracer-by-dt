@@ -1,7 +1,7 @@
 /* CLI Showcase Section */
 .cli-showcase {
   padding: 100px 24px;
-  background: linear-gradient(180deg, #000000 0%, #0a0a0a 50%, #000000 100%);
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 50%, var(--color-bg-primary) 100%);
   position: relative;
   overflow: hidden;
 }
@@ -44,7 +44,7 @@
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 100px;
-  color: #60a5fa;
+  color: var(--color-accent);
   font-size: 0.875rem;
   font-weight: 500;
   width: fit-content;
@@ -53,13 +53,13 @@
 .cli-title {
   font-size: 3rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   line-height: 1.2;
   margin: 0;
 }
 
 .cli-title-highlight {
-  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, #a78bfa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -67,7 +67,7 @@
 
 .cli-description {
   font-size: 1.125rem;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0;
 }
@@ -94,7 +94,7 @@
   justify-content: center;
   background: rgba(96, 165, 250, 0.1);
   border-radius: 8px;
-  color: #60a5fa;
+  color: var(--color-accent);
 }
 
 .cli-feature-text {
@@ -106,13 +106,13 @@
 .cli-feature-text h4 {
   font-size: 1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .cli-feature-text p {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: 0;
   font-family: 'ui-monospace', 'SF Mono', Monaco, monospace;
 }
@@ -127,10 +127,10 @@
 .cli-install {
   display: inline-block;
   padding: 16px 24px;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  color: #e5e7eb;
+  color: var(--color-text-primary);
   font-family: 'ui-monospace', 'SF Mono', Monaco, monospace;
   font-size: 0.9rem;
   cursor: pointer;
@@ -139,15 +139,15 @@
 }
 
 .cli-install:hover {
-  background: #252525;
-  border-color: #3b82f6;
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
 }
 
 .cli-docs-link {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #60a5fa;
+  color: var(--color-accent);
   font-size: 0.95rem;
   font-weight: 500;
   text-decoration: none;
@@ -169,7 +169,7 @@
 .cli-terminal {
   width: 100%;
   max-width: 520px;
-  background: linear-gradient(165deg, #1a1a1a 0%, #0f0f0f 50%, #050505 100%);
+  background: linear-gradient(165deg, var(--color-bg-elevated) 0%, var(--color-bg-secondary) 50%, #050505 100%);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 
@@ -240,17 +240,17 @@
 }
 
 .cli-prompt {
-  color: #60a5fa;
+  color: var(--color-accent);
   font-weight: 500;
 }
 
 .cli-output {
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   padding-left: 0;
 }
 
 .cli-cursor {
-  color: #60a5fa;
+  color: var(--color-accent);
   animation: cliBlink 1s infinite;
 }
 

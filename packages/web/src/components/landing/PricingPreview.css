@@ -1,6 +1,6 @@
 .pricing-section {
   padding: 120px 24px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .pricing-container {
@@ -19,7 +19,7 @@
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: 20px;
-  color: #10b981;
+  color: var(--color-success);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -30,14 +30,14 @@
 .pricing-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   line-height: 1.2;
 }
 
 .pricing-subtitle {
   font-size: 1.125rem;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   max-width: 600px;
   margin: 0 auto;
 }
@@ -50,8 +50,8 @@
 }
 
 .pricing-card {
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 32px;
   position: relative;
@@ -77,7 +77,7 @@
   left: 50%;
   transform: translateX(-50%);
   background: var(--tier-color);
-  color: #ffffff;
+  color: var(--color-text-primary);
   padding: 6px 16px;
   border-radius: 20px;
   font-size: 0.75rem;
@@ -92,7 +92,7 @@
 .tier-name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
@@ -106,17 +106,17 @@
 .price-amount {
   font-size: 3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .price-period {
   font-size: 1rem;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .tier-description {
   font-size: 0.875rem;
-  color: #9ca3af;
+  color: var(--color-text-secondary);
 }
 
 .tier-features {
@@ -131,7 +131,7 @@
   align-items: center;
   gap: 12px;
   font-size: 0.875rem;
-  color: #d1d5db;
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
@@ -151,7 +151,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #3b82f6;
+  color: var(--color-accent);
   font-size: 0.9375rem;
   font-weight: 500;
   text-decoration: none;

@@ -8,6 +8,7 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { linea, mainnet, arbitrum } from '@reown/appkit/networks'
 import { ToastProvider } from './contexts/ToastContext'
 import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import './index.css'
@@ -67,7 +68,7 @@ const wagmiAdapter = new WagmiAdapter({
   ssr: false
 })
 
-// 5. Create modal
+// 5. Create modal with mobile-optimized config
 const modal = createAppKit({
   adapters: [wagmiAdapter],
   networks,
@@ -80,7 +81,16 @@ const modal = createAppKit({
     swaps: false,
     onramp: false
   },
-  themeMode: 'dark'
+  // Featured wallets shown first in the modal (MetaMask, Trust, Coinbase, Rainbow)
+  featuredWalletIds: [
+    'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+    '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0', // Trust Wallet
+    'fd20dc426fb37566d803205b19bbc1d4096b248ac04548e18e93c30de2mce23c4', // Coinbase Wallet
+    '1ae92b26df02f0abca6304df07debccd18262fdf5fe82daa81593582dac9a369', // Rainbow
+  ],
+  themeMode: 'dark',
+  // Allow all wallets but prioritize popular mobile ones
+  allWallets: 'SHOW'
 })
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)
@@ -89,11 +99,13 @@ root.render(
     <ErrorBoundary>
         <WagmiProvider config={wagmiAdapter.wagmiConfig}>
             <QueryClientProvider client={queryClient}>
-                <ToastProvider>
-                    <AuthProvider>
-                        <App />
-                    </AuthProvider>
-                </ToastProvider>
+                <ThemeProvider>
+                    <ToastProvider>
+                        <AuthProvider>
+                            <App />
+                        </AuthProvider>
+                    </ToastProvider>
+                </ThemeProvider>
             </QueryClientProvider>
         </WagmiProvider>
     </ErrorBoundary>,

@@ -150,9 +150,13 @@ export async function authMiddleware(
         res.locals.walletAddress = userData?.walletAddress || decoded.walletAddress || null;
 
         next();
-    } catch (error) {
-        console.error('Auth error:', error);
-        return res.status(401).json({ error: 'Invalid authentication token' });
+    } catch (error: any) {
+        console.error('Auth error:', error?.name, error?.message);
+        // Distinguish expired tokens from other auth failures
+        if (error?.name === 'TokenExpiredError') {
+            return res.status(401).json({ error: 'Token expired', code: 'TOKEN_EXPIRED' });
+        }
+        return res.status(401).json({ error: 'Invalid authentication token', code: 'TOKEN_INVALID' });
     }
 }
 

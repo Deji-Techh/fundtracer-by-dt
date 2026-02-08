@@ -13,7 +13,7 @@
 }
 
 .mobile-wallet-modal {
-    background: #1a1a24;
+    background: var(--color-bg-elevated);
     border-radius: 16px;
     padding: 24px;
     max-width: 400px;
@@ -33,13 +33,13 @@
 .mobile-wallet-header h2 {
     margin: 0;
     font-size: 1.25rem;
-    color: #ffffff;
+    color: var(--color-text-primary);
 }
 
 .mobile-wallet-close {
     background: none;
     border: none;
-    color: #ffffff;
+    color: var(--color-text-primary);
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
@@ -81,7 +81,7 @@
     gap: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #ffffff;
+    color: var(--color-text-primary);
 }
 
 .mobile-wallet-option:hover {
@@ -132,7 +132,7 @@
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     border: none;
     border-radius: 12px;
-    color: #ffffff;
+    color: var(--color-text-primary);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;

@@ -10,6 +10,7 @@ import {
 import { sendGasPayment, verifyGasPayment } from '../../services/paymentVerification.js';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotify } from '../../contexts/ToastContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 const GAS_PAYMENT_ADDRESS = '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd';
 const LINEA_CHAIN_ID = 59144;
@@ -23,6 +24,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
 
   const { wallet } = useAuth();
   const notify = useNotify();
+  const isMobile = useIsMobile();
 
   const handleCopyAddress = async () => {
     try {
@@ -92,26 +94,29 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
         inset: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-end' : 'center',
         justifyContent: 'center',
         zIndex: 9999,
+        padding: isMobile ? 0 : undefined,
       }}
       onClick={handleClose}
     >
       <div
         style={{
-          backgroundColor: '#1a1a1a',
-          borderRadius: '16px',
+          backgroundColor: 'var(--color-bg-elevated)',
+          borderRadius: isMobile ? '16px 16px 0 0' : '16px',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          maxWidth: '500px',
-          width: '90%',
+          maxWidth: isMobile ? '100%' : '500px',
+          width: isMobile ? '100%' : '90%',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          maxHeight: isMobile ? '85vh' : undefined,
+          overflowY: isMobile ? 'auto' : undefined,
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ color: '#ffffff', fontSize: '20px', fontWeight: '700', margin: 0 }}>
+            <h2 style={{ color: 'var(--color-text-primary)', fontSize: '20px', fontWeight: '700', margin: 0 }}>
               Gas Payment Required
             </h2>
             <button
@@ -120,9 +125,14 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#9ca3af',
-                padding: '8px',
+                color: 'var(--color-text-secondary)',
+                padding: '10px',
                 borderRadius: '8px',
+                minWidth: 44,
+                minHeight: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
@@ -133,10 +143,10 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <HugeiconsIcon icon={GasPipeIcon} size={32} color="#ea580c" strokeWidth={2} />
               <div>
-                <h3 style={{ color: '#ffffff', fontSize: '16px', fontWeight: '600', margin: '0 0 4px' }}>
+                <h3 style={{ color: 'var(--color-text-primary)', fontSize: '16px', fontWeight: '600', margin: '0 0 4px' }}>
                   Free Tier Limit Reached
                 </h3>
-                <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', margin: 0 }}>
                   You've used your 7 daily operations. Send a small gas payment (0.0001 ETH) to continue.
                 </p>
               </div>
@@ -144,7 +154,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
 
             <div
               style={{
-                backgroundColor: '#0f0f0f',
+                backgroundColor: 'var(--color-bg)',
                 borderRadius: '12px',
                 padding: '16px',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -152,7 +162,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
               }}
             >
               <div style={{ marginBottom: '8px' }}>
-                <label style={{ color: '#6b7280', fontSize: '12px', fontWeight: '600', display: 'block' }}>
+                <label style={{ color: 'var(--color-text-muted)', fontSize: '12px', fontWeight: '600', display: 'block' }}>
                   GAS PAYMENT ADDRESS
                 </label>
                 <div
@@ -160,7 +170,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                     display: 'flex',
                     gap: '12px',
                     alignItems: 'center',
-                    backgroundColor: '#1a1a1a',
+                    backgroundColor: 'var(--color-bg-elevated)',
                     padding: '12px',
                     borderRadius: '8px',
                     marginTop: '4px',
@@ -171,7 +181,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                       flex: 1,
                       fontFamily: 'var(--font-mono)',
                       fontSize: '13px',
-                      color: '#ffffff',
+                      color: 'var(--color-text-primary)',
                       wordBreak: 'break-all',
                     }}
                   >
@@ -181,11 +191,11 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                     onClick={handleCopyAddress}
                     style={{
                       padding: '8px',
-                      backgroundColor: '#2a2a2a',
+                      backgroundColor: 'var(--color-border)',
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                       borderRadius: '6px',
                       cursor: 'pointer',
-                      color: copied ? '#22c55e' : '#9ca3af',
+                      color: copied ? 'var(--color-positive)' : 'var(--color-text-secondary)',
                     }}
                   >
                     <HugeiconsIcon
@@ -197,7 +207,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6b7280', fontSize: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-muted)', fontSize: '12px' }}>
                 <HugeiconsIcon icon={Alert01Icon} size={16} color="#ea580c" strokeWidth={2} />
                 <span>Amount: 0.0001 ETH (~$0.30)</span>
               </div>
@@ -253,8 +263,8 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: '#2a2a2a',
-                color: '#ffffff',
+                backgroundColor: 'var(--color-border)',
+                color: 'var(--color-text-primary)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '8px',
                 fontSize: '14px',
@@ -262,6 +272,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 opacity: paying || verifying ? 0.5 : 1,
+                minHeight: 44,
               }}
             >
               Cancel
@@ -272,8 +283,8 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
               style={{
                 flex: 1,
                 padding: '12px',
-                backgroundColor: paying || verifying ? '#6b7280' : '#ea580c',
-                color: '#ffffff',
+                backgroundColor: paying || verifying ? 'var(--color-text-muted)' : '#ea580c',
+                color: 'var(--color-text-primary)',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '14px',
@@ -284,6 +295,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
+                minHeight: 44,
               }}
             >
               {paying ? (

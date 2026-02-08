@@ -101,6 +101,60 @@
 }
 
 /* ============================================================
+   Light Theme Overrides
+   ============================================================ */
+[data-theme="light"] {
+  /* Color Palette - Clean Light Professional Theme */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8f9fa;
+  --color-bg-tertiary: #f0f1f3;
+  --color-bg-elevated: #e8eaed;
+
+  /* Subtle borders and surfaces */
+  --color-surface: rgba(255, 255, 255, 0.95);
+  --color-surface-border: rgba(210, 215, 220, 0.8);
+  --color-surface-hover: rgba(245, 245, 248, 0.95);
+
+  /* Text colors */
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #5a5f72;
+  --color-text-muted: #8b90a0;
+
+  /* Accent */
+  --color-accent-primary: #d0d5dd;
+  --color-accent-highlight: #bfc5d0;
+  --color-accent-active: #a8b0be;
+
+  /* Status colors */
+  --color-success: #dcfce7;
+  --color-success-text: #166534;
+  --color-success-bg: rgba(22, 101, 52, 0.08);
+
+  --color-warning: #fef9c3;
+  --color-warning-text: #854d0e;
+  --color-warning-bg: rgba(133, 77, 14, 0.08);
+
+  --color-danger: #fee2e2;
+  --color-danger-text: #991b1b;
+  --color-danger-bg: rgba(153, 27, 27, 0.08);
+
+  --color-info: #dbeafe;
+  --color-info-text: #1e40af;
+  --color-info-bg: rgba(30, 64, 175, 0.08);
+
+  /* Risk indicators */
+  --color-risk-low: #dcfce7;
+  --color-risk-medium: #fef9c3;
+  --color-risk-high: #fee2e2;
+  --color-risk-critical: #fecaca;
+
+  /* Shadows - Softer for light mode */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* ============================================================
    Reset & Base
    ============================================================ */
 

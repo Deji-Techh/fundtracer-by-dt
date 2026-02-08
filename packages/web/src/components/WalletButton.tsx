@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useAuth } from '../contexts/AuthContext';
 import { Wallet, Unlink, AlertCircle } from 'lucide-react';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export function WalletButton() {
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
   const { wallet, unlinkWallet } = useAuth();
   const [showConfirm, setShowConfirm] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleConnect = () => {
     console.log('[WalletButton] Opening AppKit modal...');
@@ -77,19 +79,20 @@ export function WalletButton() {
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             backdropFilter: 'blur(4px)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: isMobile ? 'flex-end' : 'center',
             justifyContent: 'center',
             zIndex: 9999,
+            padding: isMobile ? 0 : undefined,
           }}
           onClick={() => setShowConfirm(false)}
         >
           <div
             style={{
               backgroundColor: 'var(--color-surface)',
-              borderRadius: '12px',
+              borderRadius: isMobile ? '16px 16px 0 0' : '12px',
               padding: '24px',
-              maxWidth: '400px',
-              width: '90%',
+              maxWidth: isMobile ? '100%' : '400px',
+              width: isMobile ? '100%' : '90%',
               border: '1px solid var(--color-border)',
               boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
             }}
@@ -108,7 +111,7 @@ export function WalletButton() {
                   margin: '0 auto 16px',
                 }}
               >
-                <AlertCircle size={24} color="#EF4444" />
+                <AlertCircle size={24} color="var(--color-negative)" />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
                 Disconnect Wallet?
@@ -124,7 +127,7 @@ export function WalletButton() {
               <button
                 onClick={() => setShowConfirm(false)}
                 className="btn btn-ghost"
-                style={{ flex: 1 }}
+                style={{ flex: 1, minHeight: 44 }}
               >
                 Cancel
               </button>
@@ -133,8 +136,9 @@ export function WalletButton() {
                 className="btn btn-primary"
                 style={{ 
                   flex: 1,
-                  background: '#EF4444',
-                  borderColor: '#EF4444'
+                  background: 'var(--color-negative)',
+                  borderColor: 'var(--color-negative)',
+                  minHeight: 44,
                 }}
               >
                 Disconnect

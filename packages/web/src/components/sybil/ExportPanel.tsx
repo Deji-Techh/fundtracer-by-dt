@@ -78,20 +78,20 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
 
   return (
     <div style={{
-      background: '#1a1a1a',
-      border: '1px solid #333',
+      background: 'var(--color-bg-elevated)',
+      border: '1px solid var(--color-border)',
       borderRadius: '12px',
       padding: '20px'
     }}>
       <h3 style={{ 
         margin: '0 0 16px 0', 
-        color: '#fff', 
+        color: 'var(--color-text-primary)', 
         fontSize: '16px',
         display: 'flex',
         alignItems: 'center',
         gap: '8px'
       }}>
-        <Download size={18} color="#60a5fa" />
+        <Download size={18} color="var(--color-accent)" />
         Export Evidence
       </h3>
 
@@ -105,23 +105,24 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             alignItems: 'center',
             gap: '12px',
             padding: '12px',
-            background: '#0f0f0f',
-            border: '1px solid #333',
+            minHeight: '44px',
+            background: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
             borderRadius: '8px',
-            color: '#fff',
+            color: 'var(--color-text-primary)',
             cursor: exporting ? 'not-allowed' : 'pointer',
             opacity: exporting ? 0.6 : 1,
             textAlign: 'left'
           }}
         >
-          <FileText size={20} color="#3b82f6" />
+          <FileText size={20} color="var(--color-accent)" />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 500, marginBottom: '2px' }}>JSON (Full Data)</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
               Machine-readable with integrity hash
             </div>
           </div>
-          <Download size={16} color="#6b7280" />
+          <Download size={16} color="var(--color-text-muted)" />
         </button>
 
         {/* CSV Export */}
@@ -133,23 +134,24 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             alignItems: 'center',
             gap: '12px',
             padding: '12px',
-            background: '#0f0f0f',
-            border: '1px solid #333',
+            minHeight: '44px',
+            background: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
             borderRadius: '8px',
-            color: '#fff',
+            color: 'var(--color-text-primary)',
             cursor: exporting ? 'not-allowed' : 'pointer',
             opacity: exporting ? 0.6 : 1,
             textAlign: 'left'
           }}
         >
-          <FileSpreadsheet size={20} color="#22c55e" />
+          <FileSpreadsheet size={20} color="var(--color-positive)" />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 500, marginBottom: '2px' }}>CSV (Summary)</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
               Spreadsheet format for Excel/Google Sheets
             </div>
           </div>
-          <Download size={16} color="#6b7280" />
+          <Download size={16} color="var(--color-text-muted)" />
         </button>
 
         {/* Legal Export */}
@@ -161,23 +163,24 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             alignItems: 'center',
             gap: '12px',
             padding: '12px',
-            background: '#0f0f0f',
-            border: '1px solid #333',
+            minHeight: '44px',
+            background: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
             borderRadius: '8px',
-            color: '#fff',
+            color: 'var(--color-text-primary)',
             cursor: exporting ? 'not-allowed' : 'pointer',
             opacity: exporting ? 0.6 : 1,
             textAlign: 'left'
           }}
         >
-          <Scale size={20} color="#f59e0b" />
+          <Scale size={20} color="var(--color-warning)" />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 500, marginBottom: '2px' }}>Legal Report</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
               Court-admissible markdown with chain of custody
             </div>
           </div>
-          <Download size={16} color="#6b7280" />
+          <Download size={16} color="var(--color-text-muted)" />
         </button>
       </div>
 
@@ -186,18 +189,18 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         <div style={{
           marginTop: '16px',
           padding: '12px',
-          background: '#0f0f0f',
+          background: 'var(--color-bg)',
           borderRadius: '8px'
         }}>
           <div style={{ 
             fontSize: '12px', 
-            color: '#6b7280', 
+            color: 'var(--color-text-muted)', 
             marginBottom: '6px',
             display: 'flex',
             alignItems: 'center',
             gap: '6px'
           }}>
-            <Check size={12} color="#22c55e" />
+            <Check size={12} color="var(--color-positive)" />
             Tamper-Evident SHA-256 Hash
           </div>
           <div style={{ 
@@ -209,10 +212,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           }}>
             <code style={{ 
               flex: 1,
-              background: '#1a1a1a',
+              background: 'var(--color-bg-elevated)',
               padding: '6px 10px',
               borderRadius: '4px',
-              color: '#22c55e',
+              color: 'var(--color-positive)',
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
@@ -221,12 +224,17 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             <button
               onClick={copyHash}
               style={{
-                padding: '6px',
-                background: '#2a2a2a',
-                border: '1px solid #444',
+                padding: '10px',
+                minWidth: '44px',
+                minHeight: '44px',
+                background: 'var(--color-border)',
+                border: '1px solid var(--color-border-light)',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                color: '#9ca3af'
+                color: 'var(--color-text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
               title="Copy full hash"
             >
@@ -235,7 +243,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           </div>
           <div style={{ 
             fontSize: '11px', 
-            color: '#6b7280', 
+            color: 'var(--color-text-muted)', 
             marginTop: '6px',
             lineHeight: 1.4
           }}>

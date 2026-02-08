@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { updateProfile } from '../api';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { User, Shield, CheckCircle, AlertTriangle, Save, Camera, Mail, ArrowLeft } from 'lucide-react';
 
 interface ProfilePageProps {
@@ -9,6 +10,7 @@ interface ProfilePageProps {
 
 export default function ProfilePage({ onBack }: ProfilePageProps) {
     const { user, profile, refreshProfile } = useAuth();
+    const isMobile = useIsMobile();
     const [name, setName] = useState(profile?.username || '');
     const [email, setEmail] = useState(profile?.email || '');
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
@@ -73,25 +75,25 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
     }
 
     return (
-        <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', padding: 'var(--space-6)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+        <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', padding: isMobile ? 'var(--space-3)' : 'var(--space-6)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: isMobile ? 'var(--space-4)' : 'var(--space-6)' }}>
                 {onBack && (
                     <button
                         onClick={onBack}
-                        className="btn btn-secondary btn-icon" // Assuming btn-icon exists or just use styling
-                        style={{ padding: '8px', borderRadius: '50%', minWidth: 'auto', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="btn btn-secondary btn-icon"
+                        style={{ padding: '8px', borderRadius: '50%', minWidth: 'auto', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Back to Dashboard"
                     >
                         <ArrowLeft size={20} />
                     </button>
                 )}
-                <h1 className="gradient-text" style={{ fontSize: 'var(--text-3xl)', margin: 0 }}>
+                <h1 className="gradient-text" style={{ fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-3xl)', margin: 0 }}>
                     Your Profile
                 </h1>
             </div>
 
-            <div className="card" style={{ padding: 'var(--space-8)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 'var(--space-8)' }}>
+            <div className="card" style={{ padding: isMobile ? 'var(--space-4)' : 'var(--space-8)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: isMobile ? 'var(--space-4)' : 'var(--space-8)' }}>
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -139,15 +141,15 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                                 borderRadius: '50%',
                                 padding: '8px',
                                 minWidth: 'auto',
-                                width: '32px',
-                                height: '32px',
+                                width: '44px',
+                                height: '44px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center'
                             }}
                             title="Change Profile Picture"
                         >
-                            <Camera size={16} />
+                            <Camera size={18} />
                         </button>
                     </div>
                         <div style={{ textAlign: 'center' }}>
@@ -158,7 +160,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                         </div>
                 </div>
 
-                <div className="grid grid-2" style={{ gap: 'var(--space-8)', marginBottom: 'var(--space-8)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: isMobile ? 'var(--space-4)' : 'var(--space-8)', marginBottom: isMobile ? 'var(--space-4)' : 'var(--space-8)' }}>
                     {/* Status Card */}
                     <div style={{
                         background: 'var(--color-bg-tertiary)',
@@ -274,12 +276,12 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: isMobile ? 'stretch' : 'flex-end' }}>
                         <button
                             type="submit"
                             className="btn btn-primary"
                             disabled={isSaving}
-                            style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', width: isMobile ? '100%' : 'auto' }}
                         >
                             {isSaving ? (
                                 <div className="loading-spinner" style={{ width: 16, height: 16 }} />

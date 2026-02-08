@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Users, TrendingUp, DollarSign, PieChart, ArrowUpRight } from 'lucide-react';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface WalletAnalytics {
   address: string;
@@ -23,6 +24,7 @@ export const WalletAnalytics = React.memo(function WalletAnalytics({ walletAddre
   const [similarWallets, setSimilarWallets] = useState<SimilarWallet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (walletAddress) {
@@ -141,70 +143,70 @@ export const WalletAnalytics = React.memo(function WalletAnalytics({ walletAddre
     }}>
       {/* Persona Header */}
       <div style={{ 
-        padding: '24px', 
+        padding: isMobile ? '16px' : '24px', 
         background: `linear-gradient(135deg, ${persona.color}20 0%, ${persona.color}05 100%)`,
         borderBottom: `2px solid ${persona.color}`,
         textAlign: 'center'
       }}>
-        <div style={{ fontSize: '48px', marginBottom: '8px' }}>{persona.icon}</div>
+        <div style={{ fontSize: isMobile ? '36px' : '48px', marginBottom: '8px' }}>{persona.icon}</div>
         <h2 style={{ 
-          fontSize: '24px', 
+          fontSize: isMobile ? '18px' : '24px', 
           fontWeight: 700, 
           color: persona.color,
           marginBottom: '8px'
         }}>
           {persona.label}
         </h2>
-        <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: isMobile ? '13px' : '14px' }}>
           {getPersonaDescription(analytics.persona)}
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div style={{ padding: '20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ padding: isMobile ? '16px' : '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: isMobile ? '12px' : '16px', marginBottom: '24px' }}>
           <div style={{ 
-            padding: '16px', 
+            padding: isMobile ? '12px' : '16px', 
             background: 'var(--color-bg-tertiary)', 
             borderRadius: '8px',
             textAlign: 'center'
           }}>
             <Activity size={20} style={{ color: 'var(--color-primary)', marginBottom: '8px' }} />
-            <div style={{ fontSize: '24px', fontWeight: 700 }}>{analytics.totalTransactions}</div>
-            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Total Transactions</div>
+            <div style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 700 }}>{analytics.totalTransactions}</div>
+            <div style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--color-text-muted)' }}>Total Transactions</div>
           </div>
 
           <div style={{ 
-            padding: '16px', 
+            padding: isMobile ? '12px' : '16px', 
             background: 'var(--color-bg-tertiary)', 
             borderRadius: '8px',
             textAlign: 'center'
           }}>
             <Users size={20} style={{ color: 'var(--color-primary)', marginBottom: '8px' }} />
-            <div style={{ fontSize: '24px', fontWeight: 700 }}>{analytics.uniqueContracts}</div>
-            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Unique Contracts</div>
+            <div style={{ fontSize: isMobile ? '18px' : '24px', fontWeight: 700 }}>{analytics.uniqueContracts}</div>
+            <div style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--color-text-muted)' }}>Unique Contracts</div>
           </div>
 
           <div style={{ 
-            padding: '16px', 
+            padding: isMobile ? '12px' : '16px', 
             background: 'var(--color-bg-tertiary)', 
             borderRadius: '8px',
             textAlign: 'center'
           }}>
             <DollarSign size={20} style={{ color: 'var(--color-primary)', marginBottom: '8px' }} />
-            <div style={{ fontSize: '24px', fontWeight: 700 }}>{analytics.avgTransactionValue.toFixed(2)} ETH</div>
-            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Avg Transaction</div>
+            <div style={{ fontSize: isMobile ? '16px' : '24px', fontWeight: 700 }}>{analytics.avgTransactionValue.toFixed(2)} ETH</div>
+            <div style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--color-text-muted)' }}>Avg Transaction</div>
           </div>
 
           <div style={{ 
-            padding: '16px', 
+            padding: isMobile ? '12px' : '16px', 
             background: 'var(--color-bg-tertiary)', 
             borderRadius: '8px',
             textAlign: 'center'
           }}>
             <PieChart size={20} style={{ color: 'var(--color-primary)', marginBottom: '8px' }} />
-            <div style={{ fontSize: '16px', fontWeight: 700 }}>{analytics.mostUsedProtocol}</div>
-            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Most Used</div>
+            <div style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: 700 }}>{analytics.mostUsedProtocol}</div>
+            <div style={{ fontSize: isMobile ? '11px' : '12px', color: 'var(--color-text-muted)' }}>Most Used</div>
           </div>
         </div>
 
@@ -241,13 +243,14 @@ export const WalletAnalytics = React.memo(function WalletAnalytics({ walletAddre
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {similarWallets.map((wallet, index) => (
-              <div
+                <div
                 key={wallet.address}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '12px',
+                  padding: isMobile ? '10px 12px' : '12px',
+                  minHeight: '44px',
                   background: 'var(--color-bg-tertiary)',
                   borderRadius: '8px',
                   animation: `fadeIn 0.3s ease ${index * 0.1}s both`

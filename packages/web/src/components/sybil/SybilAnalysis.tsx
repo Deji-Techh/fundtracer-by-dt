@@ -23,6 +23,7 @@ import { CaseManagerPanel } from './CaseManagerPanel';
 import { ExportPanel } from './ExportPanel';
 import { useNotify } from '../../contexts/ToastContext';
 import { InvestigationCase } from '../../services/CaseManager';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface SybilAnalysisProps {
   initialAddresses?: string[];
@@ -43,6 +44,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
   // Analysis hook
   const { state, result, currentCase, analyze, abort, reset } = useSybilAnalysis(currentCaseId);
   const notify = useNotify();
+  const isMobile = useIsMobile();
 
   // Handle address input
   const handleAddAddresses = () => {
@@ -108,32 +110,32 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
       case 'high': return '#ea580c';
       case 'medium': return '#d97706';
       case 'low': return '#16a34a';
-      default: return '#6b7280';
+      default: return 'var(--color-text-muted)';
     }
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? '12px' : '20px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: isMobile ? '16px' : '24px' }}>
         <h1 style={{ 
-          fontSize: '28px', 
+          fontSize: isMobile ? '20px' : '28px', 
           fontWeight: 700, 
-          color: '#fff',
+          color: 'var(--color-text-primary)',
           marginBottom: '8px',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px'
+          gap: isMobile ? '8px' : '12px'
         }}>
-          <Target size={32} color="#60a5fa" />
+          <Target size={isMobile ? 24 : 32} color="var(--color-accent)" />
           Advanced Sybil Detection
         </h1>
-        <p style={{ color: '#6b7280', fontSize: '15px' }}>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '13px' : '15px' }}>
           Multi-algorithm forensic analysis with explainable clustering and tamper-proof evidence
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '24px' }}>
+      <div style={{ display: isMobile ? 'flex' : 'grid', flexDirection: 'column', gridTemplateColumns: '350px 1fr', gap: isMobile ? '16px' : '24px' }}>
         {/* Left Panel - Case Management & Input */}
         <div>
           {/* Case Manager */}
@@ -145,28 +147,28 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
 
           {/* Address Input */}
           <div style={{
-            background: '#1a1a1a',
-            border: '1px solid #333',
+            background: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border)',
             borderRadius: '12px',
             padding: '20px',
             marginTop: '20px'
           }}>
             <h3 style={{ 
               margin: '0 0 16px 0', 
-              color: '#fff', 
+              color: 'var(--color-text-primary)', 
               fontSize: '16px',
               display: 'flex',
               alignItems: 'center',
               gap: '8px'
             }}>
-              <Users size={18} color="#60a5fa" />
+              <Users size={18} color="var(--color-accent)" />
               Wallet Addresses
               <span style={{ 
-                background: '#333', 
+                background: 'var(--color-border)', 
                 padding: '2px 8px', 
                 borderRadius: '12px',
                 fontSize: '12px',
-                color: '#9ca3af'
+                color: 'var(--color-text-secondary)'
               }}>
                 {addresses.length}
               </span>
@@ -179,12 +181,11 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: '#0f0f0f',
-                border: '1px solid #333',
+                minHeight: '44px',
+                background: 'var(--color-bg)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '8px',
-                color: '#fff',
-                fontSize: '14px',
-                marginBottom: '12px'
+                color: 'var(--color-text-primary)',
               }}
             >
               <option value="linea">Linea</option>
@@ -204,10 +205,10 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: '#0f0f0f',
-                border: '1px solid #333',
+                background: 'var(--color-bg)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '8px',
-                color: '#fff',
+                color: 'var(--color-text-primary)',
                 fontSize: '13px',
                 resize: 'vertical',
                 marginBottom: '12px',
@@ -221,10 +222,11 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
               style={{
                 width: '100%',
                 padding: '10px',
-                background: addressInput.trim() ? '#2a2a2a' : '#1a1a1a',
-                border: '1px solid #444',
+                minHeight: '44px',
+                background: addressInput.trim() ? 'var(--color-border)' : 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-light)',
                 borderRadius: '6px',
-                color: addressInput.trim() ? '#fff' : '#6b7280',
+                color: addressInput.trim() ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
                 fontSize: '13px',
                 cursor: addressInput.trim() ? 'pointer' : 'not-allowed',
                 marginBottom: '16px'
@@ -250,13 +252,13 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '8px 10px',
-                      background: '#0f0f0f',
+                      background: 'var(--color-bg)',
                       borderRadius: '6px',
                       fontSize: '12px',
                       fontFamily: 'monospace'
                     }}
                   >
-                    <span style={{ color: '#9ca3af' }}>
+                    <span style={{ color: 'var(--color-text-secondary)' }}>
                       {i + 1}. {addr.slice(0, 8)}...{addr.slice(-6)}
                     </span>
                     <button
@@ -264,10 +266,15 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                       style={{
                         background: 'transparent',
                         border: 'none',
-                        color: '#ef4444',
+                        color: 'var(--color-negative)',
                         cursor: 'pointer',
                         fontSize: '16px',
-                        padding: '0 4px'
+                        padding: '8px',
+                        minWidth: '44px',
+                        minHeight: '44px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}
                     >
                       ×
@@ -285,13 +292,13 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                 width: '100%',
                 padding: '14px',
                 background: state.status === 'extracting' || state.status === 'clustering' 
-                  ? '#ef4444' 
+                  ? 'var(--color-negative)' 
                   : addresses.length < 3 
-                    ? '#1a1a1a' 
-                    : '#3b82f6',
+                    ? 'var(--color-bg-elevated)' 
+                    : 'var(--color-accent)',
                 border: 'none',
                 borderRadius: '8px',
-                color: '#fff',
+                color: 'var(--color-text-primary)',
                 fontSize: '15px',
                 fontWeight: 600,
                 cursor: addresses.length < 3 ? 'not-allowed' : 'pointer',
@@ -312,7 +319,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
             {addresses.length < 3 && (
               <div style={{ 
                 fontSize: '12px', 
-                color: '#6b7280', 
+                color: 'var(--color-text-muted)', 
                 textAlign: 'center',
                 marginTop: '8px' 
               }}>
@@ -337,14 +344,14 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
         <div>
           {!showResults ? (
             <div style={{
-              background: '#1a1a1a',
-              border: '1px solid #333',
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
               borderRadius: '12px',
-              padding: '60px 40px',
+              padding: isMobile ? '40px 20px' : '60px 40px',
               textAlign: 'center'
             }}>
               <Activity size={48} color="#374151" style={{ marginBottom: '16px' }} />
-              <h3 style={{ color: '#6b7280', marginBottom: '8px' }}>
+              <h3 style={{ color: 'var(--color-text-muted)', marginBottom: '8px' }}>
                 Ready to Analyze
               </h3>
               <p style={{ color: '#4b5563', fontSize: '14px' }}>
@@ -354,17 +361,17 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
           ) : state.status === 'extracting' || state.status === 'clustering' ? (
             /* Progress View */
             <div style={{
-              background: '#1a1a1a',
-              border: '1px solid #333',
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
               borderRadius: '12px',
-              padding: '40px'
+              padding: isMobile ? '24px 16px' : '40px'
             }}>
               <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                 <div style={{
                   width: '80px',
                   height: '80px',
                   borderRadius: '50%',
-                  background: `conic-gradient(#3b82f6 ${state.progress * 3.6}deg, #1f2937 0deg)`,
+                  background: `conic-gradient(var(--color-accent) ${state.progress * 3.6}deg, #1f2937 0deg)`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -374,22 +381,22 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                     width: '64px',
                     height: '64px',
                     borderRadius: '50%',
-                    background: '#1a1a1a',
+                    background: 'var(--color-bg-elevated)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '18px',
                     fontWeight: 700,
-                    color: '#3b82f6'
+                    color: 'var(--color-accent)'
                   }}>
                     {Math.round(state.progress)}%
                   </div>
                 </div>
                 
-                <h3 style={{ color: '#fff', marginBottom: '8px' }}>
+                <h3 style={{ color: 'var(--color-text-primary)', marginBottom: '8px' }}>
                   {state.status === 'extracting' ? 'Extracting Features' : 'Clustering Wallets'}
                 </h3>
-                <p style={{ color: '#6b7280' }}>{state.message}</p>
+                <p style={{ color: 'var(--color-text-muted)' }}>{state.message}</p>
               </div>
 
               {/* Progress Steps */}
@@ -405,7 +412,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        background: isComplete ? '#22c55e' : isActive ? '#3b82f6' : '#374151',
+                        background: isComplete ? 'var(--color-positive)' : isActive ? 'var(--color-accent)' : '#374151',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -416,7 +423,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                       </div>
                       <div style={{ 
                         fontSize: '11px', 
-                        color: isActive ? '#fff' : '#6b7280' 
+                        color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-muted)' 
                       }}>
                         {step}
                       </div>
@@ -431,62 +438,62 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
               {/* Summary Cards */}
               <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(4, 1fr)', 
-                gap: '16px',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', 
+                gap: isMobile ? '12px' : '16px',
                 marginBottom: '24px'
               }}>
                 <div style={{
-                  background: '#1a1a1a',
-                  border: '1px solid #333',
+                  background: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '12px',
-                  padding: '20px'
+                  padding: isMobile ? '14px' : '20px'
                 }}>
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
                     Wallets Analyzed
                   </div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#fff' }}>
+                  <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
                     {result.features.length}
                   </div>
                 </div>
 
                 <div style={{
-                  background: '#1a1a1a',
-                  border: '1px solid #333',
+                  background: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '12px',
-                  padding: '20px'
+                  padding: isMobile ? '14px' : '20px'
                 }}>
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
                     Clusters Found
                   </div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>
+                  <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--color-accent)' }}>
                     {result.clusters.length}
                   </div>
                 </div>
 
                 <div style={{
-                  background: '#1a1a1a',
-                  border: '1px solid #333',
+                  background: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '12px',
-                  padding: '20px'
+                  padding: isMobile ? '14px' : '20px'
                 }}>
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
                     High Risk
                   </div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#ef4444' }}>
+                  <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: 'var(--color-negative)' }}>
                     {result.features.filter(f => f.riskLevel === 'high' || f.riskLevel === 'critical').length}
                   </div>
                 </div>
 
                 <div style={{
-                  background: '#1a1a1a',
-                  border: '1px solid #333',
+                  background: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '12px',
-                  padding: '20px'
+                  padding: isMobile ? '14px' : '20px'
                 }}>
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
                     Campaigns
                   </div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#f59e0b' }}>
+                  <div style={{ fontSize: isMobile ? '20px' : '28px', fontWeight: 700, color: '#f59e0b' }}>
                     {result.campaigns.length}
                   </div>
                 </div>
@@ -494,20 +501,20 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
 
               {/* Clusters List */}
               <div style={{
-                background: '#1a1a1a',
-                border: '1px solid #333',
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '12px',
                 padding: '20px'
               }}>
                 <h3 style={{ 
                   margin: '0 0 16px 0', 
-                  color: '#fff', 
+                  color: 'var(--color-text-primary)', 
                   fontSize: '18px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  <BarChart3 size={20} color="#60a5fa" />
+                  <BarChart3 size={20} color="var(--color-accent)" />
                   Detected Clusters
                 </h3>
 
@@ -517,8 +524,8 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                       key={cluster.id}
                       style={{
                         padding: '16px',
-                        background: '#0f0f0f',
-                        border: '1px solid #333',
+                        background: 'var(--color-bg)',
+                        border: '1px solid var(--color-border)',
                         borderRadius: '8px',
                         borderLeft: `4px solid ${getRiskColor(cluster.riskLevel)}`
                       }}
@@ -532,13 +539,13 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                         <div>
                           <div style={{ 
                             fontWeight: 600, 
-                            color: '#fff',
+                            color: 'var(--color-text-primary)',
                             fontSize: '15px',
                             marginBottom: '4px'
                           }}>
                             Cluster #{i + 1} • {cluster.wallets.length} wallets
                           </div>
-                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                             Suspicion Score: {Math.round(cluster.suspicionScore)}/100
                           </div>
                         </div>
@@ -567,10 +574,10 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                             key={j}
                             style={{
                               padding: '4px 10px',
-                              background: '#1a1a1a',
+                              background: 'var(--color-bg-elevated)',
                               borderRadius: '4px',
                               fontSize: '11px',
-                              color: '#9ca3af'
+                              color: 'var(--color-text-secondary)'
                             }}
                           >
                             {reason}
@@ -596,15 +603,15 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
               {/* Campaigns */}
               {result.campaigns.length > 0 && (
                 <div style={{
-                  background: '#1a1a1a',
-                  border: '1px solid #333',
+                  background: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '12px',
                   padding: '20px',
                   marginTop: '20px'
                 }}>
                   <h3 style={{ 
                     margin: '0 0 16px 0', 
-                    color: '#fff', 
+                    color: 'var(--color-text-primary)', 
                     fontSize: '18px',
                     display: 'flex',
                     alignItems: 'center',
@@ -620,8 +627,8 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                         key={campaign.id}
                         style={{
                           padding: '14px',
-                          background: '#0f0f0f',
-                          border: '1px solid #333',
+                          background: 'var(--color-bg)',
+                          border: '1px solid var(--color-border)',
                           borderRadius: '8px'
                         }}
                       >
@@ -631,14 +638,14 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                           alignItems: 'center',
                           marginBottom: '6px'
                         }}>
-                          <span style={{ fontWeight: 600, color: '#fff' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
                             {campaign.name}
                           </span>
-                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                             {campaign.walletCount} wallets
                           </span>
                         </div>
-                        <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                           {new Date(campaign.startTime * 1000).toLocaleString()} → {new Date(campaign.endTime * 1000).toLocaleString()}
                         </div>
                       </div>

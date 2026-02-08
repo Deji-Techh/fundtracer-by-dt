@@ -302,7 +302,7 @@ router.post('/login-wallet', async (req: Request, res: Response) => {
       tier,
       isVerified,
       authProvider: 'wallet'
-    }, JWT_SECRET, { expiresIn: '7d' });
+    }, JWT_SECRET, { expiresIn: '30d' });
 
     console.log('[AUTH] Wallet Login SUCCESS');
     res.json({

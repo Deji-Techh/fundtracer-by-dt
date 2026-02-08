@@ -155,7 +155,7 @@
 
 .delay-text {
     text-align: center;
-    color: #fff;
+    color: var(--color-text-primary);
 }
 
 .delay-text h3 {

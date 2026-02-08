@@ -1,14 +1,14 @@
 /* FAQ Page - Black, Ash, White, Grey Theme */
 
 .faq-page {
-  background: #000000;
+  background: var(--color-bg-primary);
   min-height: 100vh;
 }
 
 .faq-hero {
   padding: 120px 24px 80px;
   text-align: center;
-  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
 }
 
 .faq-label {
@@ -17,7 +17,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -28,21 +28,21 @@
 .faq-title {
   font-size: 3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
 
 .faq-subtitle {
   font-size: 1.125rem;
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 .faq-content {
   max-width: 900px;
   margin: 0 auto;
   padding: 0 24px 80px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .faq-category {
@@ -52,7 +52,7 @@
 .faq-category-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 32px;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -79,33 +79,33 @@
 .faq-question {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .faq-answer {
   font-size: 1rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.7;
 }
 
 .faq-cta {
   text-align: center;
   padding: 80px 24px;
-  background: #000000;
+  background: var(--color-bg-primary);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .faq-cta h2 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 12px;
 }
 
 .faq-cta p {
   font-size: 1rem;
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 /* Mobile */

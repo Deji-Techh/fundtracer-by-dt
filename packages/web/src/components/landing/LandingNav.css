@@ -43,7 +43,7 @@
 .landing-logo-text {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 /* Desktop Navigation */
@@ -54,7 +54,7 @@
 }
 
 .landing-nav-link {
-  color: #888888;
+  color: var(--color-text-secondary);
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
@@ -69,12 +69,12 @@
   left: 0;
   width: 0;
   height: 2px;
-  background: #ffffff;
+  background: var(--color-text-primary);
   transition: width 0.2s ease;
 }
 
 .landing-nav-link:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .landing-nav-link:hover::after {
@@ -107,7 +107,7 @@
   display: none;
   background: none;
   border: none;
-  color: #ffffff;
+  color: var(--color-text-primary);
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
@@ -148,7 +148,7 @@
 }
 
 .mobile-menu-link {
-  color: #aaaaaa;
+  color: var(--color-text-secondary);
   text-decoration: none;
   font-size: 1.125rem;
   font-weight: 500;
@@ -166,7 +166,7 @@
 }
 
 .mobile-menu-link:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
   padding-left: 8px;
 }
 

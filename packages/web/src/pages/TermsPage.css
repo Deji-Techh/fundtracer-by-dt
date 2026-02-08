@@ -2,7 +2,7 @@
 
 .terms-page,
 .privacy-page {
-  background: #000000;
+  background: var(--color-bg-primary);
   min-height: 100vh;
 }
 
@@ -10,7 +10,7 @@
 .privacy-hero {
   padding: 120px 24px 60px;
   text-align: center;
-  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
 }
 
 .terms-label,
@@ -20,7 +20,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -32,7 +32,7 @@
 .privacy-title {
   font-size: 3rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
@@ -40,7 +40,7 @@
 .terms-subtitle,
 .privacy-subtitle {
   font-size: 1rem;
-  color: #888888;
+  color: var(--color-text-secondary);
 }
 
 /* Content */
@@ -49,7 +49,7 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 60px 24px 100px;
-  background: #0a0a0a;
+  background: var(--color-bg-secondary);
 }
 
 .terms-section,
@@ -66,14 +66,14 @@
 .privacy-section h2 {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
 }
 
 .terms-section p,
 .privacy-section p {
   font-size: 1rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.8;
   margin-bottom: 16px;
 }
@@ -88,7 +88,7 @@
 .terms-section li,
 .privacy-section li {
   font-size: 1rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.8;
   margin-bottom: 12px;
   padding-left: 24px;
@@ -100,14 +100,14 @@
   content: '◆';
   position: absolute;
   left: 0;
-  color: #666666;
+  color: var(--color-text-muted);
   font-size: 0.5rem;
   top: 8px;
 }
 
 .terms-section strong,
 .privacy-section strong {
-  color: #aaaaaa;
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 

@@ -52,7 +52,10 @@ const MobileTreeNode = ({
     const [expanded, setExpanded] = useState(depth < 1); // Auto-expand first level
     const hasChildren = treeNode.children && treeNode.children.length > 0;
     const formatAddr = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`;
-    const formatVal = (v: number) => v < 0.0001 ? '<0.0001' : v.toFixed(4);
+    const formatVal = (v: number | string) => {
+        const num = typeof v === 'string' ? parseFloat(v) || 0 : v;
+        return num < 0.0001 ? '<0.0001' : num.toFixed(4);
+    };
 
     return (
         <div style={{ marginLeft: depth * 12 }}>
@@ -89,7 +92,7 @@ const MobileTreeNode = ({
                         {treeNode.label || formatAddr(treeNode.address)}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
-                        {formatVal(treeNode.totalValue)} {chainConfig.nativeCurrency}
+                        {formatVal(treeNode.totalValue)} {chainConfig.symbol}
                         {hasChildren && ` • ${treeNode.children.length} connection${treeNode.children.length > 1 ? 's' : ''}`}
                     </div>
                 </div>
@@ -348,7 +351,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
             const svg = d3.select(svgRef.current)
                 .attr('width', width)
                 .attr('height', height)
-                .style('background', 'radial-gradient(ellipse at center, #111 0%, #000 100%)');
+                .style('background', 'radial-gradient(ellipse at center, var(--color-bg-elevated) 0%, var(--color-bg) 100%)');
 
             // Create container for zoom
             const g = svg.append('g')
@@ -414,7 +417,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                     if (highlightedAddress && (d.source.data.address === highlightedAddress || d.target.data.address === highlightedAddress)) {
                         return direction === 'source' ? 'var(--color-success-text)' : 'var(--color-danger-text)';
                     }
-                    return '#333';
+                    return 'var(--color-border)';
                 })
                 .style('stroke-width', 1.5)
                 .style('opacity', 0.6);
@@ -430,11 +433,11 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
             // Node Circles
             nodes.append('circle')
                 .attr('r', d => d.depth === 0 ? 12 : 8)
-                .style('fill', '#1a1a1a')
+                .style('fill', 'var(--color-bg-elevated)')
                 .style('stroke', (d: any) => {
-                    if (d.data.address === highlightedAddress) return '#fff';
+                    if (d.data.address === highlightedAddress) return 'var(--color-text-primary)';
                     if (d.data.suspiciousScore > 50) return 'var(--color-danger-text)';
-                    return '#555';
+                    return 'var(--color-text-muted)';
                 })
                 .style('stroke-width', 2);
 
@@ -476,47 +479,16 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
 
     // Render Logic
 
-    // 1. Mobile - Show "Coming Soon" Message
-    if (isMobile) {
+    // 1. Mobile - Show MobileTreeView with option to view graph fullscreen
+    if (isMobile && !showMobileGraph) {
         return (
-            <div style={{
-                background: 'var(--color-bg-secondary)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '40px 24px',
-                textAlign: 'center',
-                border: '1px solid var(--color-surface-border)',
-                margin: '20px 0'
-            }}>
-                <div style={{
-                    fontSize: '48px',
-                    marginBottom: '16px'
-                }}>
-                    🖥️
-                </div>
-                <h3 style={{
-                    color: 'var(--color-text-primary)',
-                    fontSize: '1.25rem',
-                    fontWeight: 600,
-                    marginBottom: '12px'
-                }}>
-                    Funding Tree Visualization
-                </h3>
-                <p style={{
-                    color: 'var(--color-text-secondary)',
-                    fontSize: '0.95rem',
-                    marginBottom: '8px',
-                    lineHeight: 1.6
-                }}>
-                    Available on Desktop Soon
-                </p>
-                <p style={{
-                    color: 'var(--color-text-muted)',
-                    fontSize: '0.85rem',
-                    lineHeight: 1.5
-                }}>
-                    Please use a PC to view the interactive funding tree visualization
-                </p>
-            </div>
+            <MobileTreeView
+                node={node}
+                direction={direction}
+                title={title}
+                chainConfig={chainConfig}
+                onShowGraph={() => setShowMobileGraph(true)}
+            />
         );
     }
 
@@ -554,7 +526,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
         right: 0,
         bottom: 0,
         zIndex: 2000,
-        background: '#000',
+        background: 'var(--color-bg)',
         width: '100vw',
         height: '100vh',
     } : {
@@ -636,7 +608,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                     background: 'rgba(0,0,0,0.7)',
                     padding: '8px 16px',
                     borderRadius: 20,
-                    color: '#fff',
+                    color: 'var(--color-text-primary)',
                     fontSize: 11,
                     pointerEvents: 'none'
                 }}>

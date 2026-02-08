@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface NFT {
   contractAddress: string;
@@ -15,6 +16,7 @@ interface NFTGalleryProps {
 
 export const NFTGallery: React.FC<NFTGalleryProps> = ({ nfts, loading }) => {
   const [selectedNFT, setSelectedNFT] = useState<NFT | null>(null);
+  const isMobile = useIsMobile();
 
   if (loading) {
     return (
@@ -25,9 +27,9 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({ nfts, loading }) => {
       }}>
         {[...Array(6)].map((_, i) => (
           <div key={i} style={{ 
-            backgroundColor: '#ffffff', 
+            backgroundColor: 'var(--color-text-primary)', 
             borderRadius: '8px', 
-            border: '1px solid #e5e5e5',
+            border: '1px solid var(--color-border)',
             overflow: 'hidden',
           }}>
             <div className="skeleton" style={{ width: '100%', height: '200px' }} />
@@ -46,10 +48,10 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({ nfts, loading }) => {
       <div style={{ 
         padding: '48px 24px', 
         textAlign: 'center', 
-        color: '#9ca3af',
-        backgroundColor: '#ffffff',
+        color: 'var(--color-text-secondary)',
+        backgroundColor: 'var(--color-text-primary)',
         borderRadius: '8px',
-        border: '1px solid #e5e5e5',
+        border: '1px solid var(--color-border)',
       }}>
         No NFTs found in this wallet
       </div>
@@ -60,16 +62,16 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({ nfts, loading }) => {
     <>
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
-        gap: '24px' 
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))', 
+        gap: isMobile ? '12px' : '24px' 
       }}>
         {nfts.map((nft, index) => (
           <div 
             key={`${nft.contractAddress}-${nft.tokenId}`}
             style={{ 
-              backgroundColor: '#ffffff', 
+              backgroundColor: 'var(--color-text-primary)', 
               borderRadius: '8px', 
-              border: '1px solid #e5e5e5',
+              border: '1px solid var(--color-border)',
               overflow: 'hidden',
               cursor: 'pointer',
               transition: 'transform 0.2s, box-shadow 0.2s',
@@ -135,7 +137,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({ nfts, loading }) => {
               </div>
               <div style={{ 
                 fontSize: '0.875rem', 
-                color: '#6b7280',
+                color: 'var(--color-text-muted)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -158,34 +160,34 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({ nfts, loading }) => {
             bottom: 0,
             backgroundColor: 'rgba(0,0,0,0.8)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: isMobile ? 'flex-end' : 'center',
             justifyContent: 'center',
             zIndex: 1000,
-            padding: '24px',
+            padding: isMobile ? 0 : '24px',
           }}
           onClick={() => setSelectedNFT(null)}
         >
           <div 
             style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              maxWidth: '600px',
+              backgroundColor: 'var(--color-text-primary)',
+              borderRadius: isMobile ? '16px 16px 0 0' : '16px',
+              maxWidth: isMobile ? '100%' : '600px',
               width: '100%',
-              maxHeight: '90vh',
+              maxHeight: isMobile ? '85vh' : '90vh',
               overflow: 'auto',
-              padding: '32px',
+              padding: isMobile ? '20px' : '32px',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{
               width: '100%',
-              height: '400px',
+              height: isMobile ? '250px' : '400px',
               backgroundColor: '#f3f4f6',
               borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '24px',
+              marginBottom: isMobile ? '16px' : '24px',
             }}>
               {selectedNFT.imageUrl ? (
                 <img 
@@ -217,17 +219,18 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({ nfts, loading }) => {
             <h2 style={{ margin: '0 0 8px 0', color: '#111827' }}>
               {selectedNFT.name || `NFT #${selectedNFT.tokenId}`}
             </h2>
-            <p style={{ margin: '0 0 16px 0', color: '#6b7280' }}>
+            <p style={{ margin: '0 0 16px 0', color: 'var(--color-text-muted)' }}>
               {selectedNFT.collectionName || 'Unknown Collection'}
             </p>
 
             <div style={{
-              padding: '16px',
+              padding: isMobile ? '12px' : '16px',
               backgroundColor: '#f9fafb',
               borderRadius: '8px',
               fontFamily: 'monospace',
-              fontSize: '0.875rem',
-              color: '#6b7280',
+              fontSize: isMobile ? '0.75rem' : '0.875rem',
+              color: 'var(--color-text-muted)',
+              wordBreak: 'break-all',
             }}>
               <div>Contract: {selectedNFT.contractAddress}</div>
               <div>Token ID: {selectedNFT.tokenId}</div>
@@ -236,7 +239,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({ nfts, loading }) => {
             <button
               onClick={() => setSelectedNFT(null)}
               style={{
-                marginTop: '24px',
+                marginTop: isMobile ? '16px' : '24px',
                 width: '100%',
                 padding: '12px',
                 backgroundColor: '#f3f4f6',
@@ -244,6 +247,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({ nfts, loading }) => {
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: 600,
+                minHeight: 44,
               }}
             >
               Close

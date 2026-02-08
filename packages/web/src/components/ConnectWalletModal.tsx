@@ -1,6 +1,7 @@
 import { X, Wallet, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { WalletButton } from './WalletButton';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface ConnectWalletModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface ConnectWalletModalProps {
 
 export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this action' }: ConnectWalletModalProps) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   if (!isOpen) return null;
 
@@ -25,10 +27,11 @@ export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-end' : 'center',
         justifyContent: 'center',
         zIndex: 9999,
         animation: 'fadeIn 0.2s ease-out',
+        padding: isMobile ? 0 : undefined,
       }}
       onClick={onClose}
     >
@@ -36,13 +39,15 @@ export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this
         className="modal-content"
         style={{
           backgroundColor: 'var(--color-surface)',
-          borderRadius: '12px',
-          padding: '32px',
-          maxWidth: '420px',
-          width: '90%',
+          borderRadius: isMobile ? '16px 16px 0 0' : '12px',
+          padding: isMobile ? '24px' : '32px',
+          maxWidth: isMobile ? '100%' : '420px',
+          width: isMobile ? '100%' : '90%',
           border: '1px solid var(--color-border)',
           boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
           animation: 'scaleIn 0.3s ease-out',
+          maxHeight: isMobile ? '85vh' : undefined,
+          overflowY: isMobile ? 'auto' as const : undefined,
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -53,7 +58,7 @@ export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this
               width: 40,
               height: 40,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              background: 'linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -70,9 +75,14 @@ export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              padding: '4px',
+              padding: '10px',
               borderRadius: '4px',
               color: 'var(--color-text-muted)',
+              minWidth: 44,
+              minHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <X size={24} />
@@ -97,7 +107,7 @@ export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this
               padding: '12px',
               marginBottom: '16px',
             }}>
-              <p style={{ margin: 0, fontSize: '14px', color: '#60a5fa' }}>
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-accent)' }}>
                 Signed in as: <strong>{user.email}</strong>
               </p>
             </div>
@@ -134,6 +144,7 @@ export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this
               fontSize: '14px',
               fontWeight: 500,
               transition: 'all 0.2s ease',
+              minHeight: 44,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)';

@@ -1,7 +1,7 @@
 /* Footer - Black, Ash, White, Grey Theme */
 
 .landing-footer {
-  background: #000000;
+  background: var(--color-bg-primary);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 80px 24px 40px;
   position: relative;
@@ -47,12 +47,12 @@
 .footer-logo-text {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .footer-tagline {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.6;
   max-width: 280px;
 }
@@ -67,7 +67,7 @@
 .footer-column-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -83,14 +83,14 @@
 
 .footer-link {
   font-size: 0.875rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   text-decoration: none;
   transition: all 0.2s ease;
   cursor: pointer;
 }
 
 .footer-link:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 /* Bottom Bar */
@@ -107,7 +107,7 @@
 .footer-copyright,
 .footer-email {
   font-size: 0.75rem;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .footer-email {

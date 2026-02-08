@@ -7,7 +7,7 @@
   justify-content: center;
   align-items: center;
   padding: 120px 24px 80px;
-  background-color: #000000;
+  background-color: var(--color-bg-primary);
   position: relative;
   overflow: hidden;
 }
@@ -82,7 +82,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #a0a0a0;
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 32px;
@@ -102,7 +102,7 @@
   font-size: clamp(2.5rem, 6vw, 3.5rem);
   font-weight: 800;
   line-height: 1.1;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 24px;
   letter-spacing: -0.02em;
   animation: fadeInUp 0.8s ease-out 0.4s backwards;
@@ -152,7 +152,7 @@
 }
 
 .tagline-icon {
-  color: #666666;
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -161,7 +161,7 @@
   font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 1.125rem;
   font-weight: 500;
-  color: #e0e0e0;
+  color: var(--color-text-primary);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   margin: 0;
@@ -180,7 +180,7 @@
 /* Description */
 .hero-description {
   font-size: 1.125rem;
-  color: #888888;
+  color: var(--color-text-secondary);
   line-height: 1.7;
   max-width: 600px;
   margin: 0 auto 40px;
@@ -222,7 +222,7 @@
 
 .hero-btn-secondary {
   background: transparent;
-  color: #ffffff;
+  color: var(--color-text-primary);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -254,13 +254,13 @@
 .hero-stat-number {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 4px;
 }
 
 .hero-stat-label {
   font-size: 0.875rem;
-  color: #666666;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

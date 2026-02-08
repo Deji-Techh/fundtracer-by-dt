@@ -2,7 +2,7 @@
 
 .api-showcase {
   padding: 100px 24px;
-  background: linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
   position: relative;
   overflow: hidden;
 }
@@ -35,7 +35,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  color: #888888;
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -46,14 +46,14 @@
 .api-showcase-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   letter-spacing: -0.02em;
 }
 
 .api-showcase-subtitle {
   font-size: 1.125rem;
-  color: #666666;
+  color: var(--color-text-muted);
   max-width: 500px;
   margin: 0 auto;
 }
@@ -75,12 +75,12 @@
 
 .api-marquee-gradient-left {
   left: 0;
-  background: linear-gradient(90deg, #000000, transparent);
+  background: linear-gradient(90deg, var(--color-bg-primary), transparent);
 }
 
 .api-marquee-gradient-right {
   right: 0;
-  background: linear-gradient(-90deg, #000000, transparent);
+  background: linear-gradient(-90deg, var(--color-bg-primary), transparent);
 }
 
 .api-marquee {
@@ -154,7 +154,7 @@
   border-radius: 12px;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .api-provider-info {
@@ -166,13 +166,13 @@
 .api-provider-name {
   font-size: 1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .api-provider-category {
   font-size: 0.75rem;
-  color: #666666;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -197,8 +197,8 @@
 .api-stat-number {
   font-size: 2rem;
   font-weight: 800;
-  color: #ffffff;
-  background: linear-gradient(135deg, #ffffff 0%, #888888 100%);
+  color: var(--color-text-primary);
+  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-text-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -206,7 +206,7 @@
 
 .api-stat-label {
   font-size: 0.875rem;
-  color: #666666;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }

@@ -4,6 +4,7 @@ import FundingTree from './FundingTree';
 import TransactionList from './TransactionList';
 import AddressLabel from './AddressLabel';
 import { fetchFundingTree } from '../api';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface AnalysisViewProps {
     result: AnalysisResult;
@@ -20,6 +21,7 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
     const [fundingDestinations, setFundingDestinations] = useState<FundingNode | null>(null);
     const [treeLoading, setTreeLoading] = useState(false);
     const [treeError, setTreeError] = useState<string | null>(null);
+    const isMobile = useIsMobile();
 
     // Check if tree data was already included in the analysis result (non-empty children)
     const hasPreloadedTree = result.fundingSources?.children?.length > 0 || result.fundingDestinations?.children?.length > 0;
@@ -58,8 +60,8 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
         <div className="stagger-children">
             {/* Wallet Summary Card */}
             <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-                    <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: isMobile ? 'var(--space-3)' : 'var(--space-4)' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ marginBottom: 'var(--space-2)' }}>
                             <AddressLabel
                                 address={result.wallet.address}
@@ -67,9 +69,10 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                                 showAddress={true}
                                 style={{
                                     fontFamily: 'var(--font-mono)',
-                                    fontSize: 'var(--text-lg)',
+                                    fontSize: isMobile ? 'var(--text-sm)' : 'var(--text-lg)',
                                     fontWeight: 'bold',
-                                    color: 'var(--color-text-primary)'
+                                    color: 'var(--color-text-primary)',
+                                    wordBreak: 'break-all' as const
                                 }}
                             />
                         </div>
@@ -186,7 +189,7 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                 {/* Tab Content */}
                 <div className="animate-fade-in">
                     {activeTab === 'overview' && (
-                        <OverviewTab result={result} formatAddress={formatAddress} />
+                        <OverviewTab result={result} formatAddress={formatAddress} isMobile={isMobile} />
                     )}
 
                     {activeTab === 'funding' && (
@@ -304,13 +307,15 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
 // Overview Tab Component
 function OverviewTab({
     result,
-    formatAddress
+    formatAddress,
+    isMobile
 }: {
     result: AnalysisResult;
     formatAddress: (addr: string) => string;
+    isMobile: boolean;
 }) {
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-6)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${isMobile ? '100%' : '280px'}, 1fr))`, gap: 'var(--space-6)' }}>
             {/* Top Funding Sources */}
             <div>
                 <h4 style={{ marginBottom: 'var(--space-3)', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>

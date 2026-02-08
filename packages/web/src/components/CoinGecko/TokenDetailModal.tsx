@@ -2,6 +2,7 @@ import React from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon, ArrowUpRight01Icon, ArrowDown01Icon } from '@hugeicons/core-free-icons';
 import TokenChart from './TokenChart';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface TokenDetailModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
   onClose, 
   token 
 }) => {
+  const isMobile = useIsMobile();
+
   if (!isOpen || !token) return null;
 
   const formatPrice = (price: number) => {
@@ -61,20 +64,20 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
         background: 'rgba(0, 0, 0, 0.8)',
         zIndex: 2000,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-end' : 'center',
         justifyContent: 'center',
-        padding: '24px',
+        padding: isMobile ? 0 : 24,
       }}
       onClick={onClose}
     >
       <div 
         style={{
-          background: '#1a1a1a',
-          borderRadius: 16,
-          border: '1px solid #2a2a2a',
-          maxWidth: 900,
+          background: 'var(--color-bg-elevated)',
+          borderRadius: isMobile ? '16px 16px 0 0' : 16,
+          border: '1px solid var(--color-border)',
+          maxWidth: isMobile ? '100%' : 900,
           width: '100%',
-          maxHeight: '90vh',
+          maxHeight: isMobile ? '90vh' : '90vh',
           overflow: 'auto',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -84,43 +87,48 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '24px',
-          borderBottom: '1px solid #2a2a2a',
+          padding: isMobile ? '16px' : '24px',
+          borderBottom: '1px solid var(--color-border)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16, flex: 1, minWidth: 0 }}>
             {token.thumb ? (
               <img 
                 src={token.thumb}
                 alt={token.name}
                 style={{ 
-                  width: 56, 
-                  height: 56, 
+                  width: isMobile ? 40 : 56, 
+                  height: isMobile ? 40 : 56, 
                   borderRadius: '50%',
                   objectFit: 'cover',
+                  flexShrink: 0,
                 }}
               />
             ) : (
               <div style={{
-                width: 56,
-                height: 56,
+                width: isMobile ? 40 : 56,
+                height: isMobile ? 40 : 56,
                 borderRadius: '50%',
-                background: '#2a2a2a',
+                background: 'var(--color-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.25rem',
+                fontSize: isMobile ? '1rem' : '1.25rem',
                 fontWeight: 700,
+                flexShrink: 0,
               }}>
                 {token.symbol.slice(0, 2)}
               </div>
             )}
-            <div>
+            <div style={{ minWidth: 0 }}>
               <h2 style={{ 
-                fontSize: '1.75rem', 
+                fontSize: isMobile ? '1.25rem' : '1.75rem', 
                 fontWeight: 700, 
-                color: '#fff',
+                color: 'var(--color-text-primary)',
                 margin: 0,
                 marginBottom: 4,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}>
                 {token.name}
               </h2>
@@ -128,17 +136,18 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: 8,
-                color: '#9ca3af',
+                color: 'var(--color-text-secondary)',
+                flexWrap: 'wrap',
               }}>
-                <span style={{ fontSize: '1rem', fontWeight: 600 }}>
+                <span style={{ fontSize: isMobile ? '0.875rem' : '1rem', fontWeight: 600 }}>
                   {token.symbol}
                 </span>
                 <span>•</span>
-                <span style={{ fontSize: '0.875rem' }}>{token.chainId}</span>
+                <span style={{ fontSize: isMobile ? '0.8125rem' : '0.875rem' }}>{token.chainId}</span>
                 {token.dexId && (
                   <>
                     <span>•</span>
-                    <span style={{ fontSize: '0.875rem' }}>{token.dexId}</span>
+                    <span style={{ fontSize: isMobile ? '0.8125rem' : '0.875rem' }}>{token.dexId}</span>
                   </>
                 )}
               </div>
@@ -148,20 +157,26 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
           <button
             onClick={onClose}
             style={{
-              padding: 12,
+              padding: 10,
               borderRadius: 8,
               border: 'none',
               background: 'transparent',
-              color: '#9ca3af',
+              color: 'var(--color-text-secondary)',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
+              minWidth: 44,
+              minHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
             onMouseEnter={(e) => {
-              (e.target as HTMLButtonElement).style.color = '#fff';
-              (e.target as HTMLButtonElement).style.background = '#2a2a2a';
+              (e.target as HTMLButtonElement).style.color = 'var(--color-text-primary)';
+              (e.target as HTMLButtonElement).style.background = 'var(--color-border)';
             }}
             onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.color = '#9ca3af';
+              (e.target as HTMLButtonElement).style.color = 'var(--color-text-secondary)';
               (e.target as HTMLButtonElement).style.background = 'transparent';
             }}
           >
@@ -170,24 +185,25 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
         </div>
 
         {/* Price Section */}
-        <div style={{ padding: '24px' }}>
+        <div style={{ padding: isMobile ? '16px' : '24px' }}>
           <div style={{ 
             display: 'flex', 
-            alignItems: 'baseline', 
-            gap: 16,
-            marginBottom: 32,
+            alignItems: isMobile ? 'flex-start' : 'baseline', 
+            gap: isMobile ? 8 : 16,
+            marginBottom: isMobile ? 20 : 32,
+            flexWrap: 'wrap',
           }}>
             <span style={{ 
-              fontSize: '2.5rem', 
+              fontSize: isMobile ? '1.75rem' : '2.5rem', 
               fontWeight: 700, 
-              color: '#fff' 
+              color: 'var(--color-text-primary)' 
             }}>
               {formatPrice(token.price)}
             </span>
             <span style={{
               fontSize: '1.25rem',
               fontWeight: 600,
-              color: token.change24h >= 0 ? '#10b981' : '#ef4444',
+              color: token.change24h >= 0 ? 'var(--color-positive)' : 'var(--color-negative)',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
@@ -204,28 +220,28 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
           {/* Stats Grid */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 16,
-            marginBottom: 32,
+            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: isMobile ? 10 : 16,
+            marginBottom: isMobile ? 20 : 32,
           }}>
             {token.marketCap !== undefined && (
               <div style={{
-                background: '#0a0a0a',
-                padding: '20px',
+                background: 'var(--color-bg)',
+                padding: isMobile ? '14px' : '20px',
                 borderRadius: 12,
-                border: '1px solid #2a2a2a',
+                border: '1px solid var(--color-border)',
               }}>
                 <div style={{ 
-                  fontSize: '0.875rem', 
-                  color: '#6b7280',
-                  marginBottom: 8,
+                  fontSize: isMobile ? '0.75rem' : '0.875rem', 
+                  color: 'var(--color-text-muted)',
+                  marginBottom: 6,
                 }}>
                   Market Cap
                 </div>
                 <div style={{ 
-                  fontSize: '1.375rem', 
+                  fontSize: isMobile ? '1.125rem' : '1.375rem', 
                   fontWeight: 700,
-                  color: '#fff',
+                  color: 'var(--color-text-primary)',
                 }}>
                   {formatLargeNumber(token.marketCap)}
                 </div>
@@ -234,22 +250,22 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
 
             {token.fdv !== undefined && (
               <div style={{
-                background: '#0a0a0a',
-                padding: '20px',
+                background: 'var(--color-bg)',
+                padding: isMobile ? '14px' : '20px',
                 borderRadius: 12,
-                border: '1px solid #2a2a2a',
+                border: '1px solid var(--color-border)',
               }}>
                 <div style={{ 
-                  fontSize: '0.875rem', 
-                  color: '#6b7280',
-                  marginBottom: 8,
+                  fontSize: isMobile ? '0.75rem' : '0.875rem', 
+                  color: 'var(--color-text-muted)',
+                  marginBottom: 6,
                 }}>
                   FDV
                 </div>
                 <div style={{ 
-                  fontSize: '1.375rem', 
+                  fontSize: isMobile ? '1.125rem' : '1.375rem', 
                   fontWeight: 700,
-                  color: '#fff',
+                  color: 'var(--color-text-primary)',
                 }}>
                   {formatLargeNumber(token.fdv)}
                 </div>
@@ -258,22 +274,22 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
 
             {token.volume24h !== undefined && (
               <div style={{
-                background: '#0a0a0a',
-                padding: '20px',
+                background: 'var(--color-bg)',
+                padding: isMobile ? '14px' : '20px',
                 borderRadius: 12,
-                border: '1px solid #2a2a2a',
+                border: '1px solid var(--color-border)',
               }}>
                 <div style={{ 
-                  fontSize: '0.875rem', 
-                  color: '#6b7280',
-                  marginBottom: 8,
+                  fontSize: isMobile ? '0.75rem' : '0.875rem', 
+                  color: 'var(--color-text-muted)',
+                  marginBottom: 6,
                 }}>
                   Volume (24h)
                 </div>
                 <div style={{ 
-                  fontSize: '1.375rem', 
+                  fontSize: isMobile ? '1.125rem' : '1.375rem', 
                   fontWeight: 700,
-                  color: '#fff',
+                  color: 'var(--color-text-primary)',
                 }}>
                   {formatLargeNumber(token.volume24h)}
                 </div>
@@ -282,22 +298,22 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
 
             {token.liquidity !== undefined && (
               <div style={{
-                background: '#0a0a0a',
-                padding: '20px',
+                background: 'var(--color-bg)',
+                padding: isMobile ? '14px' : '20px',
                 borderRadius: 12,
-                border: '1px solid #2a2a2a',
+                border: '1px solid var(--color-border)',
               }}>
                 <div style={{ 
-                  fontSize: '0.875rem', 
-                  color: '#6b7280',
-                  marginBottom: 8,
+                  fontSize: isMobile ? '0.75rem' : '0.875rem', 
+                  color: 'var(--color-text-muted)',
+                  marginBottom: 6,
                 }}>
                   Liquidity
                 </div>
                 <div style={{ 
-                  fontSize: '1.375rem', 
+                  fontSize: isMobile ? '1.125rem' : '1.375rem', 
                   fontWeight: 700,
-                  color: '#fff',
+                  color: 'var(--color-text-primary)',
                 }}>
                   {formatLargeNumber(token.liquidity)}
                 </div>
@@ -310,7 +326,7 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
             <h3 style={{
               fontSize: '1.25rem',
               fontWeight: 700,
-              color: '#fff',
+              color: 'var(--color-text-primary)',
               marginBottom: 16,
             }}>
               Price Chart
@@ -318,7 +334,7 @@ const TokenDetailModal: React.FC<TokenDetailModalProps> = ({
             <TokenChart 
               chainId={token.chainId}
               tokenAddress={token.tokenAddress}
-              height={400}
+              height={isMobile ? 250 : 400}
             />
           </div>
         </div>

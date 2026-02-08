@@ -117,10 +117,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     }
                 } catch (error: any) {
                     console.error('Auth init error:', error);
-                    // Only clear auth if token is invalid/expired (401)
-                    // Keep auth for network errors (user might be offline)
-                    if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+                    // Clear auth if token is invalid/expired
+                    // Check both the HTTP status (added by apiRequest) and known error strings
+                    const status = error.status;
+                    const msg = error.message || '';
+                    if (
+                        status === 401 ||
+                        msg.includes('Invalid authentication token') ||
+                        msg.includes('Token expired') ||
+                        msg.includes('Unauthorized') ||
+                        msg.includes('Not authenticated')
+                    ) {
                         clearAuthData();
+                        // Don't notify on initial load — user will see the sign-in UI
                     }
                 }
             }

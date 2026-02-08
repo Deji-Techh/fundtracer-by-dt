@@ -1,4 +1,5 @@
 import { X, Shield, AlertTriangle, ExternalLink } from 'lucide-react';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface PoHVerificationModalProps {
   isOpen: boolean;
@@ -7,6 +8,8 @@ interface PoHVerificationModalProps {
 }
 
 export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVerificationModalProps) {
+  const isMobile = useIsMobile();
+
   if (!isOpen) return null;
 
   return (
@@ -21,10 +24,11 @@ export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVeri
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-end' : 'center',
         justifyContent: 'center',
         zIndex: 9999,
         animation: 'fadeIn 0.2s ease-out',
+        padding: isMobile ? 0 : undefined,
       }}
       onClick={onClose}
     >
@@ -32,13 +36,15 @@ export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVeri
         className="modal-content"
         style={{
           backgroundColor: 'var(--color-surface)',
-          borderRadius: '12px',
-          padding: '32px',
-          maxWidth: '480px',
-          width: '90%',
+          borderRadius: isMobile ? '16px 16px 0 0' : '12px',
+          padding: isMobile ? '24px' : '32px',
+          maxWidth: isMobile ? '100%' : '480px',
+          width: isMobile ? '100%' : '90%',
           border: '1px solid var(--color-border)',
           boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
           animation: 'scaleIn 0.3s ease-out',
+          maxHeight: isMobile ? '85vh' : undefined,
+          overflowY: isMobile ? 'auto' as const : undefined,
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -49,7 +55,7 @@ export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVeri
               width: 40,
               height: 40,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              background: 'linear-gradient(135deg, var(--color-negative) 0%, var(--color-negative) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -66,9 +72,14 @@ export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVeri
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              padding: '4px',
+              padding: '10px',
               borderRadius: '4px',
               color: 'var(--color-text-muted)',
+              minWidth: 44,
+              minHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <X size={24} />
@@ -86,9 +97,9 @@ export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVeri
           gap: '12px',
           alignItems: 'flex-start',
         }}>
-          <AlertTriangle size={20} color="#ef4444" style={{ flexShrink: 0 }} />
+          <AlertTriangle size={20} color="var(--color-negative)" style={{ flexShrink: 0 }} />
           <div>
-            <p style={{ margin: '0 0 4px 0', fontWeight: 600, color: '#ef4444' }}>
+            <p style={{ margin: '0 0 4px 0', fontWeight: 600, color: 'var(--color-negative)' }}>
               Wallet Not Verified
             </p>
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-secondary)' }}>
@@ -155,7 +166,7 @@ export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVeri
             rel="noopener noreferrer"
             style={{
               padding: '12px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%)',
               border: 'none',
               borderRadius: '8px',
               color: 'white',
@@ -168,6 +179,7 @@ export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVeri
               justifyContent: 'center',
               gap: '8px',
               transition: 'all 0.2s ease',
+              minHeight: 44,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'scale(1.02)';
@@ -194,6 +206,7 @@ export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVeri
               fontSize: '14px',
               fontWeight: 500,
               transition: 'all 0.2s ease',
+              minHeight: 44,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)';

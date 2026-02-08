@@ -1,5 +1,6 @@
 import React from 'react';
 import { MultiWalletResult } from '@fundtracer/core';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface MultiWalletViewProps {
     result: MultiWalletResult;
@@ -11,6 +12,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
     const [showAllDestinations, setShowAllDestinations] = React.useState(false);
     const [showSourcesAsList, setShowSourcesAsList] = React.useState(false);
     const [showDestinationsAsList, setShowDestinationsAsList] = React.useState(false);
+    const isMobile = useIsMobile();
 
     // Defensive ETH conversion - some transactions may have incorrect valueInEth
     const safeEthValue = (tx: any) => {
@@ -146,7 +148,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                         alignItems: 'center'
                                     }}
                                 >
-                                    <span style={{ color: 'var(--color-warning-text)' }}>{addr}</span>
+                                    <span style={{ color: 'var(--color-warning-text)', wordBreak: 'break-all' }}>{isMobile ? formatAddress(addr) : addr}</span>
                                     <a
                                         href={`https://etherscan.io/address/${addr}`}
                                         target="_blank"
@@ -254,7 +256,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                         alignItems: 'center'
                                     }}
                                 >
-                                    <span style={{ color: 'var(--color-info-text)' }}>{addr}</span>
+                                    <span style={{ color: 'var(--color-info-text)', wordBreak: 'break-all' }}>{isMobile ? formatAddress(addr) : addr}</span>
                                     <a
                                         href={`https://etherscan.io/address/${addr}`}
                                         target="_blank"
@@ -303,53 +305,109 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                     <div className="alert danger" style={{ marginBottom: 'var(--space-4)' }}>
                         These wallets have sent funds directly to each other
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table className="tx-table">
-                            <thead>
-                                <tr>
-                                    <th>From</th>
-                                    <th>To</th>
-                                    <th>Value</th>
-                                    <th>Time</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {result.directTransfers.map((tx, i) => {
-                                    const ethValue = safeEthValue(tx);
-                                    return (
-                                        <tr key={i}>
-                                            <td className="tx-address">
+                    {isMobile ? (
+                        /* Mobile: Card-based layout */
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {result.directTransfers.map((tx, i) => {
+                                const ethValue = safeEthValue(tx);
+                                return (
+                                    <div
+                                        key={i}
+                                        style={{
+                                            padding: 12,
+                                            background: 'var(--color-bg-tertiary)',
+                                            borderRadius: 8,
+                                            borderLeft: '3px solid var(--color-danger-text)',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                            <span className="tx-value outgoing" style={{ fontSize: 14, fontWeight: 600 }}>
+                                                {ethValue.toFixed(4)} ETH
+                                            </span>
+                                            <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                                                {tx.timestamp && tx.timestamp > 0 ? new Date(tx.timestamp * 1000).toLocaleDateString() : '-'}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                                            <div style={{ marginBottom: 2 }}>
+                                                From:{' '}
                                                 <a
                                                     href={`https://etherscan.io/address/${tx.from}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    style={{ color: 'var(--color-text-primary)' }}
+                                                    style={{ color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}
                                                 >
                                                     {formatAddress(tx.from)}
                                                 </a>
-                                            </td>
-                                            <td className="tx-address">
+                                            </div>
+                                            <div>
+                                                To:{' '}
                                                 {tx.to ? (
                                                     <a
                                                         href={`https://etherscan.io/address/${tx.to}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        style={{ color: 'var(--color-text-primary)' }}
+                                                        style={{ color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}
                                                     >
                                                         {formatAddress(tx.to)}
                                                     </a>
                                                 ) : '-'}
-                                            </td>
-                                            <td className="tx-value outgoing">{ethValue.toFixed(4)} ETH</td>
-                                            <td style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                                                {tx.timestamp && tx.timestamp > 0 ? new Date(tx.timestamp * 1000).toLocaleDateString() : '-'}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        /* Desktop: Table layout */
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="tx-table">
+                                <thead>
+                                    <tr>
+                                        <th>From</th>
+                                        <th>To</th>
+                                        <th>Value</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {result.directTransfers.map((tx, i) => {
+                                        const ethValue = safeEthValue(tx);
+                                        return (
+                                            <tr key={i}>
+                                                <td className="tx-address">
+                                                    <a
+                                                        href={`https://etherscan.io/address/${tx.from}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{ color: 'var(--color-text-primary)' }}
+                                                    >
+                                                        {formatAddress(tx.from)}
+                                                    </a>
+                                                </td>
+                                                <td className="tx-address">
+                                                    {tx.to ? (
+                                                        <a
+                                                            href={`https://etherscan.io/address/${tx.to}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{ color: 'var(--color-text-primary)' }}
+                                                        >
+                                                            {formatAddress(tx.to)}
+                                                        </a>
+                                                    ) : '-'}
+                                                </td>
+                                                <td className="tx-value outgoing">{ethValue.toFixed(4)} ETH</td>
+                                                <td style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                                                    {tx.timestamp && tx.timestamp > 0 ? new Date(tx.timestamp * 1000).toLocaleDateString() : '-'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
 

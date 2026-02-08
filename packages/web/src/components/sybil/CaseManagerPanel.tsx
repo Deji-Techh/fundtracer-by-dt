@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { caseManager, InvestigationCase } from '../../services/CaseManager';
 import { useNotify } from '../../contexts/ToastContext';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface CaseManagerPanelProps {
   currentCaseId: string | null;
@@ -31,6 +32,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [stats, setStats] = useState({ caseCount: 0, snapshotCount: 0, totalSize: '0 KB' });
   const notify = useNotify();
+  const isMobile = useIsMobile();
 
   // Load cases on mount
   useEffect(() => {
@@ -123,8 +125,8 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
 
   return (
     <div style={{
-      background: '#1a1a1a',
-      border: '1px solid #333',
+      background: 'var(--color-bg-elevated)',
+      border: '1px solid var(--color-border)',
       borderRadius: '12px',
       padding: '20px',
       marginBottom: '20px'
@@ -133,20 +135,22 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        flexWrap: 'wrap',
+        gap: '12px',
         marginBottom: '16px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Folder size={20} color="#60a5fa" />
-          <h3 style={{ margin: 0, color: '#fff', fontSize: '16px' }}>
+          <Folder size={20} color="var(--color-accent)" />
+          <h3 style={{ margin: 0, color: 'var(--color-text-primary)', fontSize: isMobile ? '14px' : '16px' }}>
             Investigation Cases
           </h3>
           <span style={{ 
-            background: '#333', 
+            background: 'var(--color-border)', 
             padding: '2px 8px', 
             borderRadius: '12px',
             fontSize: '12px',
-            color: '#9ca3af'
+            color: 'var(--color-text-secondary)'
           }}>
             {cases.length}
           </span>
@@ -155,10 +159,11 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
         <div style={{ display: 'flex', gap: '8px' }}>
           <label style={{
             padding: '8px 12px',
-            background: '#2a2a2a',
-            border: '1px solid #444',
+            minHeight: '44px',
+            background: 'var(--color-border)',
+            border: '1px solid var(--color-border-light)',
             borderRadius: '6px',
-            color: '#fff',
+            color: 'var(--color-text-primary)',
             fontSize: '13px',
             cursor: 'pointer',
             display: 'flex',
@@ -179,10 +184,11 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
             onClick={() => setShowCreateModal(true)}
             style={{
               padding: '8px 12px',
-              background: '#3b82f6',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#fff',
+            minHeight: '44px',
+            background: 'var(--color-accent)',
+            border: 'none',
+            borderRadius: '6px',
+            color: 'var(--color-text-primary)',
               fontSize: '13px',
               cursor: 'pointer',
               display: 'flex',
@@ -203,7 +209,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
           left: '12px', 
           top: '50%', 
           transform: 'translateY(-50%)',
-          color: '#6b7280'
+          color: 'var(--color-text-muted)'
         }} />
         <input
           type="text"
@@ -213,10 +219,11 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
           style={{
             width: '100%',
             padding: '10px 12px 10px 36px',
-            background: '#0f0f0f',
-            border: '1px solid #333',
+            minHeight: '44px',
+            background: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
             borderRadius: '8px',
-            color: '#fff',
+            color: 'var(--color-text-primary)',
             fontSize: '14px',
             outline: 'none'
           }}
@@ -230,8 +237,8 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
           onClick={() => onCaseSelect(null)}
           style={{
             padding: '12px',
-            background: currentCaseId === null ? 'rgba(59, 130, 246, 0.1)' : '#0f0f0f',
-            border: `1px solid ${currentCaseId === null ? '#3b82f6' : '#333'}`,
+            background: currentCaseId === null ? 'rgba(59, 130, 246, 0.1)' : 'var(--color-bg)',
+            border: `1px solid ${currentCaseId === null ? 'var(--color-accent)' : 'var(--color-border)'}`,
             borderRadius: '8px',
             cursor: 'pointer',
             display: 'flex',
@@ -239,9 +246,9 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
             gap: '12px'
           }}
         >
-          <X size={16} color="#6b7280" />
+          <X size={16} color="var(--color-text-muted)" />
           <div style={{ flex: 1 }}>
-            <div style={{ color: '#9ca3af', fontSize: '14px' }}>
+            <div style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>
               No Case (Analysis only)
             </div>
           </div>
@@ -254,8 +261,8 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
             onClick={() => onCaseSelect(case_.id)}
             style={{
               padding: '12px',
-              background: currentCaseId === case_.id ? 'rgba(59, 130, 246, 0.1)' : '#0f0f0f',
-              border: `1px solid ${currentCaseId === case_.id ? '#3b82f6' : '#333'}`,
+              background: currentCaseId === case_.id ? 'rgba(59, 130, 246, 0.1)' : 'var(--color-bg)',
+              border: `1px solid ${currentCaseId === case_.id ? 'var(--color-accent)' : 'var(--color-border)'}`,
               borderRadius: '8px',
               cursor: 'pointer'
             }}
@@ -263,7 +270,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
               <Folder 
                 size={18} 
-                color={currentCaseId === case_.id ? '#60a5fa' : '#6b7280'} 
+                color={currentCaseId === case_.id ? 'var(--color-accent)' : 'var(--color-text-muted)'} 
               />
               
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -274,7 +281,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   marginBottom: '4px'
                 }}>
                   <span style={{ 
-                    color: '#fff', 
+                    color: 'var(--color-text-primary)', 
                     fontWeight: 500,
                     fontSize: '14px',
                     overflow: 'hidden',
@@ -293,7 +300,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                 
                 {case_.description && (
                   <div style={{ 
-                    color: '#6b7280', 
+                    color: 'var(--color-text-muted)', 
                     fontSize: '12px',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -309,7 +316,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   alignItems: 'center', 
                   gap: '12px',
                   fontSize: '11px',
-                  color: '#6b7280'
+                  color: 'var(--color-text-muted)'
                 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Clock size={11} />
@@ -336,12 +343,17 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                 <button
                   onClick={(e) => handleExportCase(case_, e)}
                   style={{
-                    padding: '6px',
+                    padding: '10px',
+                    minWidth: '44px',
+                    minHeight: '44px',
                     background: 'transparent',
                     border: 'none',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    color: '#6b7280'
+                    color: 'var(--color-text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                   title="Export case"
                 >
@@ -350,12 +362,17 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                 <button
                   onClick={(e) => handleDeleteCase(case_.id, e)}
                   style={{
-                    padding: '6px',
+                    padding: '10px',
+                    minWidth: '44px',
+                    minHeight: '44px',
                     background: 'transparent',
                     border: 'none',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    color: '#ef4444'
+                    color: 'var(--color-negative)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                   title="Delete case"
                 >
@@ -371,10 +388,10 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
       <div style={{ 
         marginTop: '16px',
         padding: '12px',
-        background: '#0f0f0f',
+        background: 'var(--color-bg)',
         borderRadius: '8px',
         fontSize: '12px',
-        color: '#6b7280',
+        color: 'var(--color-text-muted)',
         display: 'flex',
         justifyContent: 'space-between'
       }}>
@@ -397,20 +414,20 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
           zIndex: 1000
         }}>
           <div style={{
-            background: '#1a1a1a',
-            border: '1px solid #333',
+            background: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border)',
             borderRadius: '12px',
             padding: '24px',
             width: '90%',
             maxWidth: '500px'
           }}>
-            <h3 style={{ margin: '0 0 20px 0', color: '#fff' }}>
+            <h3 style={{ margin: '0 0 20px 0', color: 'var(--color-text-primary)' }}>
               Create New Case
             </h3>
             
             <form onSubmit={handleCreateCase}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: '13px', marginBottom: '6px' }}>
+                <label style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '13px', marginBottom: '6px' }}>
                   Case Name *
                 </label>
                 <input
@@ -421,17 +438,18 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    background: '#0f0f0f',
-                    border: '1px solid #333',
+                    minHeight: '44px',
+                    background: 'var(--color-bg)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--color-text-primary)',
                     fontSize: '14px'
                   }}
                 />
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: '13px', marginBottom: '6px' }}>
+                <label style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '13px', marginBottom: '6px' }}>
                   Description
                 </label>
                 <textarea
@@ -441,10 +459,10 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    background: '#0f0f0f',
-                    border: '1px solid #333',
+                    background: 'var(--color-bg)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--color-text-primary)',
                     fontSize: '14px',
                     resize: 'vertical'
                   }}
@@ -452,7 +470,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: '13px', marginBottom: '6px' }}>
+                <label style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '13px', marginBottom: '6px' }}>
                   Target Contract (optional)
                 </label>
                 <input
@@ -462,17 +480,18 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    background: '#0f0f0f',
-                    border: '1px solid #333',
+                    minHeight: '44px',
+                    background: 'var(--color-bg)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--color-text-primary)',
                     fontSize: '14px'
                   }}
                 />
               </div>
               
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', color: '#9ca3af', fontSize: '13px', marginBottom: '6px' }}>
+                <label style={{ display: 'block', color: 'var(--color-text-secondary)', fontSize: '13px', marginBottom: '6px' }}>
                   Chain
                 </label>
                 <select
@@ -480,10 +499,11 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   style={{
                     width: '100%',
                     padding: '10px 12px',
-                    background: '#0f0f0f',
-                    border: '1px solid #333',
+                    minHeight: '44px',
+                    background: 'var(--color-bg)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--color-text-primary)',
                     fontSize: '14px'
                   }}
                 >
@@ -502,10 +522,11 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   onClick={() => setShowCreateModal(false)}
                   style={{
                     padding: '10px 20px',
-                    background: '#2a2a2a',
-                    border: '1px solid #444',
+                    minHeight: '44px',
+                    background: 'var(--color-border)',
+                    border: '1px solid var(--color-border-light)',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--color-text-primary)',
                     fontSize: '14px',
                     cursor: 'pointer'
                   }}
@@ -516,10 +537,11 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   type="submit"
                   style={{
                     padding: '10px 20px',
-                    background: '#3b82f6',
+                    minHeight: '44px',
+                    background: 'var(--color-accent)',
                     border: 'none',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--color-text-primary)',
                     fontSize: '14px',
                     cursor: 'pointer'
                   }}

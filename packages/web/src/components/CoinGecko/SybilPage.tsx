@@ -20,6 +20,7 @@ import SearchHistory from '../SearchHistory';
 import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
 import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions } from '../../api';
 import { addToHistory } from '../../utils/history';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface SybilPageProps {
   user: any;
@@ -54,6 +55,8 @@ const SybilPage: React.FC<SybilPageProps> = ({
   const [pagination, setPagination] = useState<{ total: number; offset: number; limit: number; hasMore: boolean } | null>(null);
   const [currentAnalysisAddress, setCurrentAnalysisAddress] = useState<string>('');
   const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
+
+  const isMobile = useIsMobile();
 
   const handleChainSelect = (chainId: ChainId) => {
     setSelectedChain(chainId);
@@ -211,25 +214,25 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
   return (
     <div className="main-content">
-      <div style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ padding: isMobile ? '12px' : '24px', maxWidth: 1200, margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ marginBottom: 32, marginTop: 16 }}>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#fff', marginBottom: 8 }}>
+        <div style={{ marginBottom: isMobile ? 20 : 32, marginTop: isMobile ? 8 : 16 }}>
+          <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>
             Wallet & Contract Analysis
           </h1>
-          <p style={{ color: '#9ca3af', fontSize: '1rem' }}>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: isMobile ? '0.875rem' : '1rem' }}>
             Analyze wallets, contracts, and detect Sybil patterns across multiple chains
           </p>
         </div>
 
         {/* Auth Panel - Only show if not connected */}
         {!isWalletConnected && (
-          <div className="card" style={{ marginBottom: 24, textAlign: 'center', padding: 32 }}>
-            <HugeiconsIcon icon={Wallet01Icon} size={48} strokeWidth={1.5} color="#3b82f6" />
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', marginTop: 16, marginBottom: 8 }}>
+          <div className="card" style={{ marginBottom: isMobile ? 16 : 24, textAlign: 'center', padding: isMobile ? 16 : 32 }}>
+            <HugeiconsIcon icon={Wallet01Icon} size={48} strokeWidth={1.5} color="var(--color-accent)" />
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text-primary)', marginTop: 16, marginBottom: 8 }}>
               Connect Your Wallet
             </h3>
-            <p style={{ color: '#9ca3af', marginBottom: 24 }}>
+            <p style={{ color: 'var(--color-text-secondary)', marginBottom: 24 }}>
               Connect your wallet to analyze addresses, contracts, and detect Sybil patterns
             </p>
             <button className="btn btn-primary" onClick={onConnectWallet}>
@@ -264,9 +267,9 @@ const SybilPage: React.FC<SybilPageProps> = ({
             gap: 8,
             padding: '8px 16px',
             borderRadius: 8,
-            border: '1px solid #2a2a2a',
+            border: '1px solid var(--color-border)',
             background: 'transparent',
-            color: '#9ca3af',
+            color: 'var(--color-text-secondary)',
             cursor: 'pointer',
             marginBottom: 16,
             fontSize: '0.875rem'
@@ -372,8 +375,8 @@ const SybilPage: React.FC<SybilPageProps> = ({
             <div style={{ 
               marginTop: 16, 
               padding: 12, 
-              background: '#ef4444', 
-              color: '#fff', 
+              background: 'var(--color-negative)', 
+              color: 'var(--color-text-primary)', 
               borderRadius: 8,
               fontSize: '0.875rem'
             }}>
