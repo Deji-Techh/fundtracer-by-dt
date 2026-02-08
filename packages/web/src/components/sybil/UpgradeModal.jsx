@@ -169,6 +169,7 @@ export function UpgradeModal({ isOpen, onClose, currentTier, walletAddress, onUp
                           color: 'var(--color-text-primary)',
                           fontSize: '12px',
                           fontWeight: '600',
+                        }}
                       >
                         Current
                       </div>
