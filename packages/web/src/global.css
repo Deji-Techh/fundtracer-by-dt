@@ -1459,14 +1459,66 @@ body {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
   }
-  
+
   .desktop-only {
     display: none !important;
   }
-  
+
   .mobile-only {
     display: flex !important;
   }
+}
+
+/* Mobile Touch Targets - Minimum 44px for accessibility */
+@media (max-width: 768px) {
+  button,
+  .btn,
+  .action-btn,
+  .action-btn-secondary,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  a,
+  .link,
+  .nav-link {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  .chain-pill,
+  .tier-card,
+  .mode-tab {
+    min-height: 44px;
+  }
+
+  .toast-close {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Virtual List Styles */
+.virtual-list-container {
+  will-change: transform;
+  -webkit-overflow-scrolling: touch;
+}
+
+.virtual-list-content {
+  will-change: transform;
+}
+
+.virtual-list-item {
+  box-sizing: border-box;
+  contain: layout;
 }
 
 /* Toast Notifications */

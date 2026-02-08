@@ -12,7 +12,7 @@ type Tier = 'pro' | 'max' | null;
 type Step = 'select' | 'details' | 'payment' | 'verifying';
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
-    const { user } = useAuth();
+    const { user, wallet } = useAuth();
     const [selectedTier, setSelectedTier] = useState<Tier>(null);
     const [step, setStep] = useState<Step>('select');
     const [copied, setCopied] = useState(false);
@@ -89,7 +89,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
     };
 
     const handleVerifyPayment = async () => {
-        if (!user?.address || !selectedTier) return;
+        if (!wallet?.address || !selectedTier) return;
 
         setIsVerifying(true);
         setStep('verifying');
@@ -107,7 +107,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    userAddress: user.address,
+                    userAddress: wallet.address,
                     tier: selectedTier,
                     paymentAddress
                 })
