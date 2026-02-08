@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, MessageSquare, ChevronDown, ChevronUp, Send, Bug } from 'lucide-react';
+import { useNotify } from '../contexts/ToastContext';
 
 interface FeedbackModalProps {
     isOpen: boolean;
@@ -26,6 +27,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
     const [debugLog, setDebugLog] = useState('');
     const [sending, setSending] = useState(false);
     const [sent, setSent] = useState(false);
+    const notify = useNotify();
 
     useEffect(() => {
         if (isOpen) {
@@ -41,7 +43,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
 
     const handleSend = () => {
         if (!name.trim() || !issue.trim()) {
-            alert('Please fill in your name and describe the issue.');
+            notify.warning('Please fill in your name and describe the issue.');
             return;
         }
 
