@@ -40,6 +40,7 @@ import {
   fetchWithTimeout,
   executeBatches 
 } from '../utils/alchemyHelpers';
+import { useNotify } from '../contexts/ToastContext';
 import './PortfolioAnalytics.css';
 
 // Types
@@ -682,6 +683,7 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [sparklines, setSparklines] = useState<{ [symbol: string]: number[] }>({});
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const notify = useNotify();
 
   const priceService = useMemo(() => new PriceService(''), []);
 
@@ -1126,16 +1128,17 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(shareData.url);
-        alert('Portfolio link copied to clipboard!');
+        notify.success('Portfolio link copied to clipboard!');
       }
     } catch (err) {
       console.error('Share failed:', err);
       // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(shareData.url);
-        alert('Portfolio link copied to clipboard!');
+        notify.success('Portfolio link copied to clipboard!');
       } catch (clipboardErr) {
         console.error('Clipboard failed:', clipboardErr);
+        notify.error('Failed to copy link. Please try again.');
       }
     }
   };
