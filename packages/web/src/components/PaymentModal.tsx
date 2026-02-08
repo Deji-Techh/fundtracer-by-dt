@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Copy, CheckCircle, ArrowLeft, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotify } from '../contexts/ToastContext';
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -11,13 +12,20 @@ type Tier = 'pro' | 'max' | null;
 type Step = 'select' | 'details' | 'payment' | 'verifying';
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
-    const { user } = useAuth();
+    const { user, wallet } = useAuth();
     const [selectedTier, setSelectedTier] = useState<Tier>(null);
     const [step, setStep] = useState<Step>('select');
     const [copied, setCopied] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
+    const notify = useNotify();
 
-    const paymentAddress = '0xFF1A1D11CB6bad91C6d9250082D1DF44d84e4b87';
+    // SECURITY: Payment address from environment variable
+    const paymentAddress = import.meta.env.VITE_PAYMENT_ADDRESS || 
+      process.env.VITE_PAYMENT_ADDRESS;
+    
+    if (!paymentAddress) {
+      console.error('CRITICAL: VITE_PAYMENT_ADDRESS environment variable is not set');
+    }
 
     const tiers = {
         pro: {
@@ -81,7 +89,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
     };
 
     const handleVerifyPayment = async () => {
-        if (!user?.address || !selectedTier) return;
+        if (!wallet?.address || !selectedTier) return;
 
         setIsVerifying(true);
         setStep('verifying');
@@ -99,7 +107,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    userAddress: user.address,
+                    userAddress: wallet.address,
                     tier: selectedTier,
                     paymentAddress
                 })
@@ -112,17 +120,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
             const data = await response.json();
 
             if (data.success) {
-                alert('✅ ' + (data.message || 'Payment verified! Your account has been upgraded to ' + selectedTier.toUpperCase() + ' tier.') + 
-                      '\n\n📧 Your tier is tied to your account email, not your wallet. You can connect different wallets freely!');
+                notify.success('Payment verified! Your account has been upgraded to ' + selectedTier.toUpperCase() + ' tier.', 5000);
                 onClose();
                 window.location.reload(); // Refresh to update tier
             } else {
-                alert('⚠️ ' + (data.error || 'Payment not found. Please wait 2 minutes after sending, then try again.'));
+                notify.warning(data.error || 'Payment not found. Please wait 2 minutes after sending, then try again.');
                 setStep('payment');
             }
         } catch (error: any) {
             console.error('Verification error:', error);
-            alert('❌ Verification failed: ' + (error.message || 'Please try again or contact support.'));
+            notify.error('Verification failed: ' + (error.message || 'Please try again or contact support.'));
             setStep('payment');
         } finally {
             setIsVerifying(false);

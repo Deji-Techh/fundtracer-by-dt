@@ -43,8 +43,11 @@ import {
   GasPipeIcon
 } from '@hugeicons/core-free-icons';
 import cytoscape from 'cytoscape';
+// @ts-ignore - JSX modules without type declarations
 import { UpgradeModal } from './sybil/UpgradeModal.jsx';
+// @ts-ignore - JSX modules without type declarations
 import { GasPaymentModal } from './sybil/GasPaymentModal.jsx';
+// @ts-ignore - JS modules without type declarations
 import {
   SYBIL_TIERS,
   getSybilUsage,
@@ -55,6 +58,7 @@ import {
   getStoredPaymentVerification,
   clearPaymentVerification,
 } from '../lib/sybilTier.js';
+// @ts-ignore - JS modules without type declarations
 import { verifySubscriptionPayment, sendGasPayment, verifyGasPayment } from '../services/paymentVerification.js';
 
 interface SybilDetectorProps {
@@ -2062,7 +2066,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         onClose={() => setShowUpgradeModal(false)}
         currentTier={currentTier}
         walletAddress={profile?.walletAddress || null}
-        onUpgradeComplete={(newTier) => {
+        onUpgradeComplete={(newTier: 'free' | 'pro' | 'max') => {
           setCurrentTier(newTier);
           setShowUpgradeModal(false);
           notify.success(`Successfully upgraded to ${SYBIL_TIERS[newTier]?.name}!`);
@@ -2072,7 +2076,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
       <GasPaymentModal
         isOpen={showGasPaymentModal}
         onClose={() => setShowGasPaymentModal(false)}
-        onPaymentSuccess={(txHash) => {
+        onPaymentSuccess={(txHash: string) => {
           setShowGasPaymentModal(false);
           notify.success('Gas payment verified! You can now proceed.');
         }}

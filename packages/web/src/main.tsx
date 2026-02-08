@@ -8,14 +8,45 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { linea, mainnet, arbitrum } from '@reown/appkit/networks'
 import { ToastProvider } from './contexts/ToastContext'
 import { AuthProvider } from './contexts/AuthContext'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import './index.css'
 
-// 0. Setup queryClient
-const queryClient = new QueryClient()
+// 0. Setup queryClient with optimized configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Cache data for 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Keep data in cache for 10 minutes
+      gcTime: 10 * 60 * 1000,
+      // Retry failed requests 2 times
+      retry: 2,
+      // Wait between retries (exponential backoff)
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // Refetch on window focus (useful for crypto prices)
+      refetchOnWindowFocus: true,
+      // Don't refetch on reconnect (we have other mechanisms)
+      refetchOnReconnect: false,
+      // Show errors in console but don't crash UI
+      throwOnError: false,
+    },
+    mutations: {
+      // Retry mutations once (they might fail due to network issues)
+      retry: 1,
+      retryDelay: 1000,
+    },
+  },
+})
 
-// 1. Get projectId from Reown Dashboard
-const projectId = '4e674e1e78cf4aeccc58b6ba6e810c13'
+// 1. Get projectId from environment variables
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+
+if (!projectId) {
+  console.error('CRITICAL: VITE_WALLETCONNECT_PROJECT_ID environment variable is not set')
+  console.error('Get a free project ID at: https://cloud.reown.com/')
+  throw new Error('WalletConnect Project ID is required')
+}
 
 // 2. Create a metadata object
 const metadata = {
@@ -25,8 +56,8 @@ const metadata = {
   icons: ['https://fundtracer.xyz/logo.png']
 }
 
-// 3. Set the networks
-const networks = [linea, mainnet, arbitrum]
+// 3. Set the networks (explicitly typed to satisfy AppKit requirements)
+const networks: [typeof linea, typeof mainnet, typeof arbitrum] = [linea, mainnet, arbitrum]
 
 // 4. Create Wagmi Adapter
 const wagmiAdapter = new WagmiAdapter({
@@ -54,13 +85,15 @@ const modal = createAppKit({
 const root = ReactDOM.createRoot(document.getElementById('root')!)
 
 root.render(
-    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
-        <QueryClientProvider client={queryClient}>
-            <ToastProvider>
-                <AuthProvider>
-                    <App />
-                </AuthProvider>
-            </ToastProvider>
-        </QueryClientProvider>
-    </WagmiProvider>,
+    <ErrorBoundary>
+        <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+            <QueryClientProvider client={queryClient}>
+                <ToastProvider>
+                    <AuthProvider>
+                        <App />
+                    </AuthProvider>
+                </ToastProvider>
+            </QueryClientProvider>
+        </WagmiProvider>
+    </ErrorBoundary>,
 )
