@@ -57,6 +57,7 @@ process.on('unhandledRejection', (reason, promise) => {
 import { initializeFirebase } from './firebase.js';
 import { authMiddleware } from './middleware/auth.js';
 import { usageMiddleware } from './middleware/usage.js';
+import { requestIdMiddleware } from './middleware/requestId.js';
 import { analyzeRoutes } from './routes/analyze.js';
 import { userRoutes } from './routes/user.js';
 import { duneRoutes } from './routes/dune.js';
@@ -198,10 +199,13 @@ app.use(helmet({
     },
 }));
 
+// Request ID middleware - adds unique ID for distributed tracing
+app.use(requestIdMiddleware);
+
 // DEBUG LOGGING - Log every request
 app.use((req, res, next) => {
-    console.log(`[DEBUG] Request: ${req.method} ${req.url}`);
-    console.log(`[DEBUG] Path: ${req.path}`);
+    console.log(`[${req.requestId}] Request: ${req.method} ${req.url}`);
+    console.log(`[${req.requestId}] Path: ${req.path}`);
     next();
 });
 

@@ -56,8 +56,8 @@ const metadata = {
   icons: ['https://fundtracer.xyz/logo.png']
 }
 
-// 3. Set the networks
-const networks = [linea, mainnet, arbitrum]
+// 3. Set the networks (explicitly typed to satisfy AppKit requirements)
+const networks: [typeof linea, typeof mainnet, typeof arbitrum] = [linea, mainnet, arbitrum]
 
 // 4. Create Wagmi Adapter
 const wagmiAdapter = new WagmiAdapter({
