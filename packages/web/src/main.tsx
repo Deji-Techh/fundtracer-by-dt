@@ -14,8 +14,14 @@ import './index.css'
 // 0. Setup queryClient
 const queryClient = new QueryClient()
 
-// 1. Get projectId from Reown Dashboard
-const projectId = '4e674e1e78cf4aeccc58b6ba6e810c13'
+// 1. Get projectId from environment variables
+const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+
+if (!projectId) {
+  console.error('CRITICAL: VITE_WALLETCONNECT_PROJECT_ID environment variable is not set')
+  console.error('Get a free project ID at: https://cloud.reown.com/')
+  throw new Error('WalletConnect Project ID is required')
+}
 
 // 2. Create a metadata object
 const metadata = {

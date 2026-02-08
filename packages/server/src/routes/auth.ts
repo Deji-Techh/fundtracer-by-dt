@@ -5,7 +5,16 @@ import bcrypt from 'bcrypt';
 import { getFirestore } from '../firebase.js';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-prod';
+
+// SECURITY: JWT_SECRET must be set in environment
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('CRITICAL: JWT_SECRET environment variable is not set');
+  console.error('Please set a strong random secret (min 256 bits)');
+  console.error('Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+  process.exit(1);
+}
+
 const SALT_ROUNDS = 12;
 
 // Simple UUID generator for user IDs
