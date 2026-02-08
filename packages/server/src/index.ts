@@ -6,6 +6,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -169,6 +170,32 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' })); // Increased for large wallet lists
 
+// Rate limiting configuration
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Stricter limit for auth endpoints
+  message: { error: 'Too many authentication attempts, please try again later' },
+  skipSuccessfulRequests: true, // Don't count successful requests
+});
+
+const analyzeLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30, // 30 analysis requests per minute
+  message: { error: 'Analysis rate limit exceeded, please slow down' },
+});
+
+// Apply general rate limiting to all API routes
+app.use('/api/', apiLimiter);
+app.use('/', apiLimiter);
+
 // Initialize Firebase Admin
 try {
     initializeFirebase();
@@ -207,7 +234,7 @@ import { authRoutes } from './routes/auth.js';
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 apiRouter.use('/user', authMiddleware, userRoutes);
-apiRouter.use('/auth', authRoutes); // Public auth route
+apiRouter.use('/auth', authLimiter, authRoutes); // Public auth route with stricter rate limiting
 apiRouter.use('/contracts', contractRoutes); // Public contract lookup
 apiRouter.use('/payment', paymentRoutes); // Payment verification
 apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
