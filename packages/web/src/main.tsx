@@ -12,8 +12,32 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import './index.css'
 
-// 0. Setup queryClient
-const queryClient = new QueryClient()
+// 0. Setup queryClient with optimized configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Cache data for 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Keep data in cache for 10 minutes
+      gcTime: 10 * 60 * 1000,
+      // Retry failed requests 2 times
+      retry: 2,
+      // Wait between retries (exponential backoff)
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // Refetch on window focus (useful for crypto prices)
+      refetchOnWindowFocus: true,
+      // Don't refetch on reconnect (we have other mechanisms)
+      refetchOnReconnect: false,
+      // Show errors in console but don't crash UI
+      throwOnError: false,
+    },
+    mutations: {
+      // Retry mutations once (they might fail due to network issues)
+      retry: 1,
+      retryDelay: 1000,
+    },
+  },
+})
 
 // 1. Get projectId from environment variables
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID

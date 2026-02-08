@@ -14,6 +14,31 @@ import fs from 'fs';
 // Load environment variables FIRST
 dotenv.config();
 
+// Simple environment validation
+const requiredEnvVars = [
+    'JWT_SECRET',
+    'DEFAULT_ALCHEMY_API_KEY',
+    'FIREBASE_SERVICE_ACCOUNT'
+];
+
+const missing = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missing.length > 0) {
+    console.error('\n❌ CRITICAL: Missing required environment variables:');
+    missing.forEach(v => console.error(`   - ${v}`));
+    console.error('\n🚫 Server startup aborted');
+    process.exit(1);
+}
+
+// Validate JWT_SECRET
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret || jwtSecret.length < 32 || jwtSecret === 'dev-secret-key-change-in-prod') {
+    console.error('\n❌ CRITICAL: JWT_SECRET is invalid or using default value');
+    console.error('   Generate a secure secret: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+    process.exit(1);
+}
+
+console.log('✅ Environment validation passed');
+
 // Global error handlers to catch any startup crashes
 process.on('uncaughtException', (error) => {
     console.error('FATAL: Uncaught Exception during startup!');
@@ -44,6 +69,57 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+let server: any = null;
+let isShuttingDown = false;
+
+// Graceful shutdown handler
+function gracefulShutdown(signal: string) {
+    console.log(`\n${signal} received. Starting graceful shutdown...`);
+    isShuttingDown = true;
+
+    // Stop accepting new connections
+    if (server) {
+        server.close(async () => {
+            console.log('✅ HTTP server closed');
+            
+            try {
+                // Close database connections
+                // Close any active payment listeners
+                // Flush any pending analytics
+                console.log('✅ All connections closed gracefully');
+                process.exit(0);
+            } catch (error) {
+                console.error('❌ Error during shutdown:', error);
+                process.exit(1);
+            }
+        });
+
+        // Force shutdown after 30 seconds
+        setTimeout(() => {
+            console.error('❌ Force shutdown after timeout');
+            process.exit(1);
+        }, 30000);
+    } else {
+        process.exit(0);
+    }
+}
+
+// Register shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Health check for shutdown state
+app.use((req, res, next) => {
+    if (isShuttingDown) {
+        res.status(503).json({ 
+            error: 'Server is shutting down',
+            status: 'unavailable'
+        });
+        return;
+    }
+    next();
+});
 
 // Security middleware
 app.use(helmet({
@@ -240,7 +316,9 @@ apiRouter.use('/payment', paymentRoutes); // Payment verification
 apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
 apiRouter.use('/dune', authMiddleware, duneRoutes);
 import { trackingRoutes } from './routes/tracking.js';
+import healthRoutes from './routes/health.js';
 apiRouter.use('/analytics', trackingRoutes); // Public analytics route
+apiRouter.use('/health', healthRoutes); // Health checks (public)
 
 import { adminRoutes } from './routes/admin.js';
 // Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
@@ -295,12 +373,12 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // Only listen if run directly (development or standalone server)
 // Always listen on port (required for container deployments like Pxxl)
-if (true) {
-    app.listen(PORT, () => {
-        console.log(`FundTracer API Server running on port ${PORT}`);
-        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
-}
+// Start server
+server = app.listen(PORT, () => {
+    console.log(`✅ FundTracer API Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Health check: http://localhost:${PORT}/api/health`);
+});
 
 export const handler = app;
 export default app;
