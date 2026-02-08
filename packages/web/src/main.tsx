@@ -8,6 +8,7 @@ import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { linea, mainnet, arbitrum } from '@reown/appkit/networks'
 import { ToastProvider } from './contexts/ToastContext'
 import { AuthProvider } from './contexts/AuthContext'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import './index.css'
 
@@ -60,13 +61,15 @@ const modal = createAppKit({
 const root = ReactDOM.createRoot(document.getElementById('root')!)
 
 root.render(
-    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
-        <QueryClientProvider client={queryClient}>
-            <ToastProvider>
-                <AuthProvider>
-                    <App />
-                </AuthProvider>
-            </ToastProvider>
-        </QueryClientProvider>
-    </WagmiProvider>,
+    <ErrorBoundary>
+        <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+            <QueryClientProvider client={queryClient}>
+                <ToastProvider>
+                    <AuthProvider>
+                        <App />
+                    </AuthProvider>
+                </ToastProvider>
+            </QueryClientProvider>
+        </WagmiProvider>
+    </ErrorBoundary>,
 )
