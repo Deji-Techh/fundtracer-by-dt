@@ -17,7 +17,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
     const [copied, setCopied] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
 
-    const paymentAddress = '0xFF1A1D11CB6bad91C6d9250082D1DF44d84e4b87';
+    // SECURITY: Payment address from environment variable
+    const paymentAddress = import.meta.env.VITE_PAYMENT_ADDRESS || 
+      process.env.VITE_PAYMENT_ADDRESS;
+    
+    if (!paymentAddress) {
+      console.error('CRITICAL: VITE_PAYMENT_ADDRESS environment variable is not set');
+    }
 
     const tiers = {
         pro: {

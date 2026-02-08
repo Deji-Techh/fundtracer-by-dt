@@ -41,7 +41,13 @@ export async function authMiddleware(
     next: NextFunction
 ) {
     const authHeader = req.headers.authorization;
-    const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-prod';
+    
+    // SECURITY: JWT_SECRET must be set in environment
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+        console.error('CRITICAL: JWT_SECRET environment variable is not set');
+        return res.status(500).json({ error: 'Server configuration error' });
+    }
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'No authentication token provided' });

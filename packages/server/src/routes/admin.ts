@@ -7,7 +7,14 @@ import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 console.log('[ADMIN] Loading admin routes module - TIMESTAMP: 2026-01-31-v3');
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-prod';
+
+// SECURITY: JWT_SECRET must be set in environment
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('CRITICAL: JWT_SECRET environment variable is not set');
+  process.exit(1);
+}
+
 const SALT_ROUNDS = 12;
 
 // Simple UUID generator
