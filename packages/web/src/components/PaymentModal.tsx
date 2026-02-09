@@ -159,7 +159,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                             <h2>Upgrade to Premium</h2>
                             <p className="payment-subtitle">Choose your tier to unlock advanced features</p>
                             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '8px', padding: '8px', background: 'var(--color-bg-tertiary)', borderRadius: '6px' }}>
-                                📧 <strong>Tiers are tied to your account</strong> - You can change wallets anytime, your premium access stays with your email.
+                                📧 <strong>Tiers are tied to your account</strong> - You can change wallets anytime, your premium access stays with your wallet address.
                             </p>
                         </div>
 
@@ -271,7 +271,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                             </div>
                             <p className="payment-instructions">
                                 Send <strong>{tiers[selectedTier].price}</strong> on <strong>Linea Mainnet</strong> to this address.
-                                Your tier upgrades automatically after verification and is tied to your account email (not this wallet).
+                                Your tier upgrades automatically after verification and is tied to your wallet address.
                             </p>
                         </div>
 

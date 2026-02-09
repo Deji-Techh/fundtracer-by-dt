@@ -3,9 +3,11 @@ import { HistoryItem, getHistory, removeFromHistory, clearHistory } from '../uti
 import { getLabel } from '../utils/addressBook';
 import { CHAINS, ChainId } from '@fundtracer/core';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useAuth } from '../contexts/AuthContext';
+import { WalletButton } from './WalletButton';
 
 interface HistoryPageProps {
-  onSelectScan: (address: string, chain: string) => void;
+  onSelectScan: (address: string, chain: string, type?: string) => void;
 }
 
 const CHAIN_COLORS: Record<string, string> = {
@@ -75,6 +77,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [confirmClear, setConfirmClear] = useState(false);
   const isMobile = useIsMobile();
+  const { isAuthenticated } = useAuth();
 
   const refreshHistory = useCallback(() => {
     setHistory(getHistory());
@@ -118,6 +121,58 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
   const getChainColor = (chainId?: string): string => {
     return CHAIN_COLORS[chainId || ''] || 'var(--color-text-muted)';
   };
+
+  // Not authenticated — show connect wallet prompt
+  if (!isAuthenticated) {
+    return (
+      <div style={{ padding: isMobile ? 16 : 24, maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ marginBottom: isMobile ? 20 : 32, marginTop: isMobile ? 8 : 16 }}>
+          <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>
+            Scan History
+          </h1>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: isMobile ? '0.875rem' : '1rem' }}>
+            Your recent wallet analysis scans
+          </p>
+        </div>
+
+        <div style={{
+          textAlign: 'center',
+          padding: isMobile ? '48px 24px' : '80px 48px',
+          background: 'var(--color-bg-tertiary)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--color-surface-border)',
+        }}>
+          <div style={{
+            width: 56,
+            height: 56,
+            borderRadius: '50%',
+            background: 'var(--color-bg-elevated)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            fontSize: 24,
+            color: 'var(--color-text-muted)',
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <path d="M16 12h.01" />
+              <path d="M2 10h20" />
+            </svg>
+          </div>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
+            Connect Your Wallet
+          </h3>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', maxWidth: 360, margin: '0 auto 24px' }}>
+            Connect your wallet to view and track your scan history across sessions.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <WalletButton />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Empty state
   if (history.length === 0) {
@@ -216,7 +271,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
           return (
             <div
               key={`${item.address}-${item.timestamp}`}
-              onClick={() => onSelectScan(item.address, item.chain || 'ethereum')}
+              onClick={() => onSelectScan(item.address, item.chain || 'ethereum', item.type)}
               className="animate-fade-in"
               style={{
                 padding: isMobile ? 14 : 18,

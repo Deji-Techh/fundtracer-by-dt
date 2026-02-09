@@ -22,7 +22,6 @@ interface ApiResponse<T> {
 
 export interface UserProfile {
     uid: string;
-    email: string;
     name?: string;
     displayName?: string;
     username?: string;
@@ -38,7 +37,7 @@ export interface UserProfile {
     walletAddress?: string | null;
     profilePicture?: string | null;
     photoURL?: string | null;
-    authProvider?: 'email' | 'google' | 'wallet';
+    authProvider?: 'wallet';
 }
 
 // Token management
@@ -139,41 +138,6 @@ export async function unlinkWalletFromGoogle(idToken: string): Promise<{ success
     return apiRequest('/api/auth/unlink-wallet', 'POST', { idToken });
 }
 
-// NEW: Simple Backend Authentication
-export async function register(
-    username: string,
-    email: string,
-    password: string,
-    keepSignedIn: boolean
-): Promise<{ token: string; user: any }> {
-    const data = await apiRequest<{ token: string; user: any }>('/api/auth/register', 'POST', {
-        username,
-        email,
-        password,
-        keepSignedIn
-    });
-    setAuthToken(data.token);
-    return data;
-}
-
-export async function login(
-    username: string,
-    password: string,
-    keepSignedIn: boolean
-): Promise<{ token: string; user: any }> {
-    const data = await apiRequest<{ token: string; user: any }>('/api/auth/login', 'POST', {
-        username,
-        password,
-        keepSignedIn
-    });
-    setAuthToken(data.token);
-    return data;
-}
-
-export async function checkUsername(username: string): Promise<{ available: boolean; reason?: string }> {
-    return apiRequest(`/api/auth/check-username/${username}`, 'GET');
-}
-
 export async function linkWalletToAccount(
     uid: string,
     address: string,
@@ -198,7 +162,7 @@ export async function getProfile(): Promise<UserProfile> {
     return apiRequest('/api/user/profile');
 }
 
-export async function updateProfile(data: { displayName?: string; email?: string; profilePicture?: string }): Promise<{ success: boolean; user: UserProfile }> {
+export async function updateProfile(data: { displayName?: string; profilePicture?: string }): Promise<{ success: boolean; user: UserProfile }> {
     return apiRequest('/api/user/profile', 'POST', data);
 }
 

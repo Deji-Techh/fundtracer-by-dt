@@ -441,8 +441,8 @@ export class OptimizedSybilAnalyzer {
     ): Promise<WalletFunding> {
         const providers: Promise<WalletFunding | null>[] = [];
 
-        // Create provider instances
-        const alchemyProvider = new AlchemyProvider(this.chain, apiKey);
+        // Create provider instances — pass moralisKey so AlchemyProvider's internal Moralis fallback works
+        const alchemyProvider = new AlchemyProvider(this.chain, apiKey, this.moralisKey || undefined);
 
         // Try Alchemy first (most reliable)
         providers.push(
@@ -514,8 +514,19 @@ export class OptimizedSybilAnalyzer {
     private async fetchFromMoralis(address: string): Promise<WalletFunding | null> {
         // Moralis implementation
         try {
+            // Moralis requires hex chain IDs or specific chain names
+            const chainMap: Record<string, string> = {
+                ethereum: '0x1',
+                polygon: '0x89',
+                arbitrum: '0xa4b1',
+                optimism: '0xa',
+                base: '0x2105',
+                linea: '0xe708',
+            };
+            const moralisChain = chainMap[this.chain] || '0x1';
+
             const response = await fetch(
-                `https://deep-index.moralis.io/api/v2.2/${address}/transactions?chain=${this.chain}&limit=100&order=ASC`,
+                `https://deep-index.moralis.io/api/v2.2/${address}/transactions?chain=${moralisChain}&limit=100&order=ASC`,
                 {
                     headers: {
                         'X-API-Key': this.moralisKey,
@@ -527,15 +538,21 @@ export class OptimizedSybilAnalyzer {
             if (!response.ok) return null;
 
             const data = await response.json();
-            const firstTx = data.result?.[0];
+            
+            // Find the first incoming transfer with value (the actual funder)
+            const addressLower = address.toLowerCase();
+            const fundingTx = data.result?.find((tx: any) =>
+                tx.to_address?.toLowerCase() === addressLower &&
+                parseFloat(tx.value) > 0
+            );
 
-            if (firstTx && firstTx.from_address !== address.toLowerCase()) {
+            if (fundingTx) {
                 return {
                     address,
-                    funder: firstTx.from_address,
-                    fundingTxHash: firstTx.hash,
-                    fundingTimestamp: new Date(firstTx.block_timestamp).getTime() / 1000,
-                    fundingAmount: parseFloat(firstTx.value) / 1e18,
+                    funder: fundingTx.from_address,
+                    fundingTxHash: fundingTx.hash,
+                    fundingTimestamp: new Date(fundingTx.block_timestamp).getTime() / 1000,
+                    fundingAmount: parseFloat(fundingTx.value) / 1e18,
                     interactionCount: 1
                 };
             }

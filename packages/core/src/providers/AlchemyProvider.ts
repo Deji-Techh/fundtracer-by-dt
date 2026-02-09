@@ -483,14 +483,14 @@ export class AlchemyProvider {
             if (moralisFunding) return moralisFunding;
         }
 
-        // Fallback to Alchemy (thorough but slower)
-        const transfers = await this.getAssetTransfers(address, 'to');
+        // Fallback to Alchemy — use ASC order to get oldest transfers first
+        const transfers = await this.getAssetTransfers(address, 'to', 'asc');
 
-        // Find first external transfer with value
+        // Find first incoming transfer with value (any category: external, internal, or erc20)
+        // On L2s like Linea/Arbitrum, many wallets are funded via bridge contracts
+        // which appear as 'internal' transfers, so we must not restrict to 'external' only
         const funderTx = transfers
-            .reverse() // Oldest first
             .find(t =>
-                t.category === 'external' &&
                 (typeof t.value === 'number' ? t.value : parseFloat(t.value || '0')) > 0
             );
 

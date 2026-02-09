@@ -80,7 +80,7 @@ export class SybilAnalyzer {
 
     constructor(chain: ChainId, alchemyKey: string, moralisKey?: string, covalentKey?: string) {
         this.chain = chain;
-        this.provider = new AlchemyProvider(chain, alchemyKey);
+        this.provider = new AlchemyProvider(chain, alchemyKey, moralisKey);
         this.moralisKey = moralisKey || '';
         if (covalentKey) {
             this.covalentProvider = new CovalentProvider(chain, covalentKey);

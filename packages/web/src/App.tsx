@@ -29,6 +29,7 @@ import FeedbackModal from './components/FeedbackModal';
 import PaymentModal from './components/PaymentModal';
 import FirstTimeModal from './components/FirstTimeModal';
 import PrivacyPolicyPage from './components/PrivacyPolicyPage';
+import { PoHVerificationModal } from './components/PoHVerificationModal';
 
 // Import global styles
 import './global.css';
@@ -118,6 +119,7 @@ function App() {
   // Prefill state for navigating from history → sybil tab
   const [prefillAddress, setPrefillAddress] = useState<string>('');
   const [prefillChain, setPrefillChain] = useState<string>('');
+  const [prefillType, setPrefillType] = useState<string>('');
   
   // Wallet state - synced with AppKit
   const [isWalletConnected, setIsWalletConnected] = useState(false);
@@ -149,6 +151,8 @@ function App() {
   const [showPayment, setShowPayment] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showFirstTime, setShowFirstTime] = useState(false);
+  const [showPoHModal, setShowPoHModal] = useState(false);
+  const pohCheckDone = useRef(false);
 
   // Track visit on mount
   React.useEffect(() => {
@@ -161,6 +165,24 @@ function App() {
       setShowOnboarding(true);
     }
   }, [user]);
+
+  // Show PoH verification modal after wallet auth if not verified
+  useEffect(() => {
+    if (isAuthenticated && profile && !profile.isVerified && !pohCheckDone.current) {
+      pohCheckDone.current = true;
+      // Small delay to not overlap with onboarding modal
+      const timer = setTimeout(() => {
+        if (!showOnboarding) {
+          setShowPoHModal(true);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    // Reset check flag when user disconnects
+    if (!isAuthenticated) {
+      pohCheckDone.current = false;
+    }
+  }, [isAuthenticated, profile, showOnboarding]);
 
   // Wallet state is synced from AppKit via the useEffect above (lines 129-137).
   // No additional wallet reset logic needed — AppKit is the single source of truth.
@@ -234,9 +256,10 @@ function App() {
           display: activeTab === 'history' ? 'block' : 'none' 
         }} className="main-content">
           <HistoryPage
-            onSelectScan={(address, chain) => {
+            onSelectScan={(address, chain, type) => {
               setPrefillAddress(address);
               setPrefillChain(chain);
+              setPrefillType(type || '');
               setActiveTab('sybil');
             }}
           />
@@ -254,7 +277,8 @@ function App() {
             walletAddress={walletAddress}
             prefillAddress={prefillAddress}
             prefillChain={prefillChain}
-            onPrefillConsumed={() => { setPrefillAddress(''); setPrefillChain(''); }}
+            prefillType={prefillType}
+            onPrefillConsumed={() => { setPrefillAddress(''); setPrefillChain(''); setPrefillType(''); }}
           />
         </div>
         
@@ -262,7 +286,7 @@ function App() {
         <div style={{ 
           display: activeTab === 'settings' ? 'block' : 'none' 
         }} className="main-content">
-          <SettingsPage onConnectWallet={handleConnectWallet} isWalletConnected={isWalletConnected} walletAddress={walletAddress} />
+          <SettingsPage onConnectWallet={handleConnectWallet} isWalletConnected={isWalletConnected} walletAddress={walletAddress} onUpgrade={() => setShowPayment(true)} />
         </div>
       </>
     );
@@ -312,6 +336,11 @@ function App() {
       <PaymentModal isOpen={showPayment} onClose={() => setShowPayment(false)} />
       <FeedbackModal isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
       {showFirstTime && <FirstTimeModal onClose={() => setShowFirstTime(false)} />}
+      <PoHVerificationModal
+        isOpen={showPoHModal}
+        onClose={() => setShowPoHModal(false)}
+        walletAddress={walletAddress}
+      />
     </div>
   );
 }

@@ -79,7 +79,7 @@ export function ConnectButton() {
                     fontWeight: 500
                 }}
             >
-                Disconnect {user.email?.split('@')[0] || user.address?.slice(0, 6)}...
+                Disconnect {user.walletAddress ? `${user.walletAddress.slice(0, 6)}...` : 'Wallet'}
             </button>
         );
     }

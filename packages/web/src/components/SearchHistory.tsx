@@ -32,7 +32,8 @@ function SearchHistory({ onSelect, currentAddress }: SearchHistoryProps) {
         setHistory(removeFromHistory(address));
     };
 
-    if (history.length === 0) return null;
+    const walletHistory = history.filter(item => !item.type || item.type === 'wallet');
+    if (walletHistory.length === 0) return null;
 
     return (
         <div style={{ marginTop: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
@@ -51,7 +52,7 @@ function SearchHistory({ onSelect, currentAddress }: SearchHistoryProps) {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                {history.map((item) => (
+                {walletHistory.map((item) => (
                     <div
                         key={`${item.address}-${item.timestamp}`}
                         className="animate-fade-in"

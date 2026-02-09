@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { updateProfile } from '../api';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { User, Shield, CheckCircle, AlertTriangle, Save, Camera, Mail, ArrowLeft } from 'lucide-react';
+import { User, Shield, CheckCircle, AlertTriangle, Save, Camera, ArrowLeft } from 'lucide-react';
 
 interface ProfilePageProps {
     onBack?: () => void;
@@ -12,7 +12,6 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
     const { user, profile, refreshProfile } = useAuth();
     const isMobile = useIsMobile();
     const [name, setName] = useState(profile?.username || '');
-    const [email, setEmail] = useState(profile?.email || '');
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -21,7 +20,6 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
     React.useEffect(() => {
         if (profile) {
             setName(profile.username || '');
-            setEmail(profile.email || '');
             setProfilePicture(profile.profilePicture || null);
         }
     }, [profile]);
@@ -60,7 +58,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
         setMessage(null);
 
         try {
-            await updateProfile({ displayName: name, email, profilePicture: profilePicture || undefined });
+            await updateProfile({ displayName: name, profilePicture: profilePicture || undefined });
             await refreshProfile();
             setMessage({ type: 'success', text: 'Profile updated successfully' });
         } catch (error: any) {
@@ -155,7 +153,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                         <div style={{ textAlign: 'center' }}>
                             <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 600 }}>{name || 'Anonymous User'}</h2>
                             <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-                                @{user.username}
+                                {user.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : 'No wallet'}
                             </div>
                         </div>
                 </div>
@@ -247,27 +245,6 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                             className="input"
                             maxLength={50}
                         />
-                    </div>
-
-                    <div style={{ marginBottom: 'var(--space-6)' }}>
-                        <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
-                            Email (Optional)
-                        </label>
-                        <div style={{ position: 'relative' }}>
-                            <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="For notifications"
-                                className="input"
-                                style={{ paddingLeft: '36px' }}
-                            // disabled={true} // Enabled now
-                            />
-                        </div>
-                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: 'var(--space-2)' }}>
-                            Used for strictly important updates only.
-                        </p>
                     </div>
 
                     {message && (

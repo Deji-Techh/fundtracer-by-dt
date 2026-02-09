@@ -14,8 +14,6 @@ import {
     removeAuthToken,
     getAuthToken,
     setAuthToken,
-    register as apiRegister,
-    login as apiLogin,
     loginWithWallet as apiLoginWithWallet,
     linkWalletToAccount,
     unlinkWalletFromAccount,
@@ -28,8 +26,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 interface AuthUser {
     uid: string;
-    email: string;
-    username: string;
+    walletAddress: string;
 }
 
 interface WalletInfo {
@@ -44,8 +41,6 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isWalletConnected: boolean;
     loading: boolean;
-    register: (username: string, email: string, password: string, keepSignedIn: boolean) => Promise<void>;
-    login: (username: string, password: string, keepSignedIn: boolean) => Promise<void>;
     signOut: () => Promise<void>;
     connectWallet: () => Promise<void>;
     unlinkWallet: () => Promise<void>;
@@ -100,8 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     if (userProfile.uid) {
                         setUser({
                             uid: userProfile.uid,
-                            email: userProfile.email || '',
-                            username: userProfile.username || ''
+                            walletAddress: userProfile.walletAddress || '',
                         });
                         setIsAuthenticated(true);
                         
@@ -189,12 +183,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setTokenWithExpiry(response.token, true);
                 setUser({
                     uid: response.user.address,
-                    email: response.user.address,
-                    username: response.user.address
+                    walletAddress: walletAddress,
                 });
                 setProfile({
                     uid: response.user.address,
-                    email: response.user.address,
                     hasCustomApiKey: false,
                     usage: { today: 0, limit: 100, remaining: 100 },
                     walletAddress: walletAddress,
@@ -217,80 +209,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         authenticateWallet();
     }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
-
-    // Register new user
-    const register = useCallback(async (
-        username: string,
-        email: string,
-        password: string,
-        keepSignedIn: boolean
-    ) => {
-        if (operationInProgress.current) return;
-        operationInProgress.current = true;
-        setLoading(true);
-
-        try {
-            const response = await apiRegister(username, email, password, keepSignedIn);
-            
-            setTokenWithExpiry(response.token, keepSignedIn);
-            setUser({
-                uid: response.user.uid,
-                email: response.user.email,
-                username: response.user.username
-            });
-            setProfile(response.user);
-            setIsAuthenticated(true);
-            
-            notify.success('Account created successfully!');
-        } catch (error: any) {
-            console.error('[AuthContext] Registration error:', error);
-            notify.error(error.message || 'Registration failed');
-            throw error;
-        } finally {
-            setLoading(false);
-            operationInProgress.current = false;
-        }
-    }, [notify, setTokenWithExpiry]);
-
-    // Login
-    const login = useCallback(async (
-        username: string,
-        password: string,
-        keepSignedIn: boolean
-    ) => {
-        if (operationInProgress.current) return;
-        operationInProgress.current = true;
-        setLoading(true);
-
-        try {
-            const response = await apiLogin(username, password, keepSignedIn);
-            
-            setTokenWithExpiry(response.token, keepSignedIn);
-            setUser({
-                uid: response.user.uid,
-                email: response.user.email,
-                username: response.user.username
-            });
-            setProfile(response.user);
-            setIsAuthenticated(true);
-            
-            if (response.user.walletAddress) {
-                setWallet({
-                    address: response.user.walletAddress,
-                    isConnected: true
-                });
-            }
-            
-            notify.success('Signed in successfully!');
-        } catch (error: any) {
-            console.error('[AuthContext] Login error:', error);
-            notify.error(error.message || 'Login failed');
-            throw error;
-        } finally {
-            setLoading(false);
-            operationInProgress.current = false;
-        }
-    }, [notify, setTokenWithExpiry]);
 
     // Sign out
     const signOut = useCallback(async () => {
@@ -447,12 +365,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setTokenWithExpiry(response.token, true);
             setUser({
                 uid: response.user.address,
-                email: response.user.address,
-                username: response.user.address
+                walletAddress: walletAddress,
             });
             setProfile({
                 uid: response.user.address,
-                email: response.user.address,
                 hasCustomApiKey: false,
                 usage: { today: 0, limit: 100, remaining: 100 },
                 walletAddress: walletAddress,
@@ -481,8 +397,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isAuthenticated,
             isWalletConnected: wallet?.isConnected || false,
             loading,
-            register,
-            login,
             signOut,
             connectWallet,
             unlinkWallet,

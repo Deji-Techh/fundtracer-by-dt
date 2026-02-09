@@ -142,7 +142,7 @@ export const MobileWalletConnect: React.FC<MobileWalletConnectProps> = ({ classN
         }}
       >
         <Wallet size={18} />
-        Disconnect {user.email?.split('@')[0] || 'Wallet'}
+        Disconnect {user.walletAddress ? `${user.walletAddress.slice(0, 6)}...` : 'Wallet'}
       </button>
     );
   }

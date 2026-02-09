@@ -7,18 +7,20 @@ import { useNotify } from '../contexts/ToastContext';
 import { ContactModal } from './ContactModal';
 import PrivacyPolicyModal from './PrivacyPolicyModal';
 import {
-  User, Shield, CheckCircle, AlertTriangle, Save, Camera, Mail,
+  User, Shield, CheckCircle, AlertTriangle, Save, Camera,
   Sun, Moon, Wallet, Unlink, MessageSquare, FileText, LogOut,
-  ChevronRight, Bell, Globe, Lock, HelpCircle, ExternalLink
+  ChevronRight, Bell, Globe, Lock, HelpCircle, ExternalLink,
+  ArrowUpCircle
 } from 'lucide-react';
 
 interface SettingsPageProps {
   onConnectWallet: () => void;
   isWalletConnected: boolean;
   walletAddress: string;
+  onUpgrade?: () => void;
 }
 
-export default function SettingsPage({ onConnectWallet, isWalletConnected, walletAddress }: SettingsPageProps) {
+export default function SettingsPage({ onConnectWallet, isWalletConnected, walletAddress, onUpgrade }: SettingsPageProps) {
   const { user, profile, refreshProfile, signOut, unlinkWallet } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const isMobile = useIsMobile();
@@ -26,7 +28,6 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
 
   // Profile state
   const [name, setName] = useState(profile?.username || '');
-  const [email, setEmail] = useState(profile?.email || '');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -39,7 +40,6 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
   useEffect(() => {
     if (profile) {
       setName(profile.username || '');
-      setEmail(profile.email || '');
       setProfilePicture(profile.profilePicture || null);
     }
   }, [profile]);
@@ -72,7 +72,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
     setIsSaving(true);
     setMessage(null);
     try {
-      await updateProfile({ displayName: name, email, profilePicture: profilePicture || undefined });
+      await updateProfile({ displayName: name, profilePicture: profilePicture || undefined });
       await refreshProfile();
       setMessage({ type: 'success', text: 'Profile updated successfully' });
     } catch (error: any) {
@@ -354,7 +354,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
               color: 'var(--color-text-muted)',
               fontFamily: 'var(--font-mono)',
             }}>
-              @{user.username}
+              {formatAddress(user.walletAddress)}
             </div>
           </div>
         </div>
@@ -386,39 +386,6 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
                 transition: 'border-color 0.2s',
               }}
             />
-          </div>
-
-          {/* Edit Email */}
-          <div style={{
-            padding: isMobile ? '14px 16px' : '16px 20px',
-            borderBottom: '1px solid var(--color-surface-border)',
-          }}>
-            <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-              Email (Optional)
-            </label>
-            <div style={{ position: 'relative' }}>
-              <Mail size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="For notifications"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px 10px 36px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--color-surface-border)',
-                  background: 'var(--color-bg-primary)',
-                  color: 'var(--color-text-primary)',
-                  fontSize: 'var(--text-sm)',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                }}
-              />
-            </div>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: 4 }}>
-              Used for strictly important updates only.
-            </p>
           </div>
 
           {/* Save Button */}
@@ -498,6 +465,27 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
             {profile.tier?.toUpperCase() || 'FREE'}
           </span>
         </div>
+
+        {/* Upgrade Plan */}
+        {onUpgrade && (
+          <div
+            style={rowClickableStyle}
+            onClick={onUpgrade}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <div style={rowLeftStyle}>
+              <div style={{ ...iconWrapStyle, background: 'rgba(139, 92, 246, 0.1)' }}>
+                <ArrowUpCircle size={18} color="#8b5cf6" />
+              </div>
+              <div>
+                <div style={labelStyle}>Upgrade Plan</div>
+                <div style={sublabelStyle}>Get more analyses and features</div>
+              </div>
+            </div>
+            <ChevronRight size={18} color="var(--color-text-muted)" />
+          </div>
+        )}
 
         {/* Verification */}
         <div style={rowStyle}>
@@ -740,7 +728,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
 
         <div
           style={{ ...rowClickableStyle, borderBottom: 'none' }}
-          onClick={() => window.open('https://github.com/FundTracerByDT', '_blank')}
+          onClick={() => window.open('/faq', '_blank')}
           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
         >

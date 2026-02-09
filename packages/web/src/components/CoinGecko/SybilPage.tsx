@@ -21,6 +21,15 @@ import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
 import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions } from '../../api';
 import { addToHistory } from '../../utils/history';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useGasPayment } from '../../hooks/useGasPayment';
+import { PoHVerificationModal } from '../PoHVerificationModal';
+import { PoHGuard } from '../PoHGuard';
+// @ts-ignore - JSX modules without type declarations
+import { GasPaymentModal } from '../sybil/GasPaymentModal.jsx';
+// @ts-ignore - JSX modules without type declarations
+import { UpgradeModal } from '../sybil/UpgradeModal.jsx';
+// @ts-ignore - JS modules without type declarations
+import { SYBIL_TIERS } from '../../lib/sybilTier.js';
 
 interface SybilPageProps {
   user: any;
@@ -30,6 +39,7 @@ interface SybilPageProps {
   walletAddress: string;
   prefillAddress?: string;
   prefillChain?: string;
+  prefillType?: string;
   onPrefillConsumed?: () => void;
 }
 
@@ -43,6 +53,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
   walletAddress,
   prefillAddress,
   prefillChain,
+  prefillType,
   onPrefillConsumed
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('wallet');
@@ -63,6 +74,21 @@ const SybilPage: React.FC<SybilPageProps> = ({
   const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
 
   const isMobile = useIsMobile();
+  const {
+    showGasPaymentModal,
+    showUpgradeModal,
+    currentTier,
+    closeGasModal,
+    closeUpgradeModal,
+    setCurrentTier,
+    gateOperation,
+    recordUsage,
+    handleGasPaymentSuccess,
+  } = useGasPayment();
+
+  // PoH verification gate
+  const [showPoHModal, setShowPoHModal] = useState(false);
+  const isPoHVerified = profile?.isVerified || false;
 
   // Handle prefill from history page navigation
   useEffect(() => {
@@ -71,13 +97,20 @@ const SybilPage: React.FC<SybilPageProps> = ({
       if (prefillChain) {
         setSelectedChain(prefillChain as ChainId);
       }
-      setViewMode('wallet');
+      // Route to the correct sub-tab based on history item type
+      const targetMode = (prefillType === 'sybil' || prefillType === 'contract' || prefillType === 'compare')
+        ? prefillType as ViewMode
+        : 'wallet';
+      setViewMode(targetMode);
+      if (targetMode === 'contract') {
+        setContractAddress(prefillAddress);
+      }
       // Clear any previous results so user sees the input
       setWalletResult(null);
       setError(null);
       onPrefillConsumed?.();
     }
-  }, [prefillAddress, prefillChain]);
+  }, [prefillAddress, prefillChain, prefillType]);
 
   const handleChainSelect = (chainId: ChainId) => {
     setSelectedChain(chainId);
@@ -138,6 +171,9 @@ const SybilPage: React.FC<SybilPageProps> = ({
           activityPeriodDays: response.result.summary?.activityPeriodDays,
           balanceInEth: response.result.wallet?.balanceInEth,
         });
+
+        // Track usage
+        recordUsage();
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
@@ -151,6 +187,11 @@ const SybilPage: React.FC<SybilPageProps> = ({
       onConnectWallet();
       return;
     }
+    if (!isPoHVerified) {
+      setShowPoHModal(true);
+      return;
+    }
+    if (!gateOperation()) return;
     const address = walletAddresses[0]?.trim();
     if (!address) return;
     _executeAnalyzeWallet();
@@ -200,6 +241,9 @@ const SybilPage: React.FC<SybilPageProps> = ({
           riskLevel: response.result.isSybilLikely ? 'high' : response.result.correlationScore > 60 ? 'high' : response.result.correlationScore > 30 ? 'medium' : 'low',
           totalTransactions: response.result.directTransfers?.length,
         }, 'compare');
+
+        // Track usage
+        recordUsage();
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
@@ -213,6 +257,11 @@ const SybilPage: React.FC<SybilPageProps> = ({
       onConnectWallet();
       return;
     }
+    if (!isPoHVerified) {
+      setShowPoHModal(true);
+      return;
+    }
+    if (!gateOperation()) return;
     const addresses = walletAddresses.filter(a => a.trim());
     if (addresses.length < 2) return;
     _executeCompareWallets();
@@ -234,6 +283,9 @@ const SybilPage: React.FC<SybilPageProps> = ({
         addToHistory(contractAddress.trim(), selectedChain, contractLabel, {
           totalTransactions: response.result.interactors?.length,
         }, 'contract');
+
+        // Track usage
+        recordUsage();
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
@@ -247,6 +299,11 @@ const SybilPage: React.FC<SybilPageProps> = ({
       onConnectWallet();
       return;
     }
+    if (!isPoHVerified) {
+      setShowPoHModal(true);
+      return;
+    }
+    if (!gateOperation()) return;
     if (!contractAddress.trim()) return;
     _executeAnalyzeContract();
   };
@@ -386,7 +443,9 @@ const SybilPage: React.FC<SybilPageProps> = ({
           )}
 
           {viewMode === 'sybil' && (
-            <SybilDetector />
+            <PoHGuard>
+              <SybilDetector />
+            </PoHGuard>
           )}
 
           {/* Analyze Button - Full Width for Mobile */}
@@ -477,6 +536,33 @@ const SybilPage: React.FC<SybilPageProps> = ({
           <MultiWalletView result={multiWalletResult} chain={selectedChain} />
         )}
       </div>
+
+      {/* Gas Payment Modal */}
+      <GasPaymentModal
+        isOpen={showGasPaymentModal}
+        onClose={closeGasModal}
+        onPaymentSuccess={handleGasPaymentSuccess}
+        onCancel={closeGasModal}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={closeUpgradeModal}
+        currentTier={currentTier}
+        walletAddress={walletAddress || null}
+        onUpgradeComplete={(newTier: 'free' | 'pro' | 'max') => {
+          setCurrentTier(newTier);
+          closeUpgradeModal();
+        }}
+      />
+
+      {/* PoH Verification Modal */}
+      <PoHVerificationModal
+        isOpen={showPoHModal}
+        onClose={() => setShowPoHModal(false)}
+        walletAddress={walletAddress}
+      />
     </div>
   );
 };

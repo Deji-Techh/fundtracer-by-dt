@@ -107,8 +107,8 @@ export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this
               padding: '12px',
               marginBottom: '16px',
             }}>
-              <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-accent)' }}>
-                Signed in as: <strong>{user.email}</strong>
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-accent)', fontFamily: 'var(--font-mono)' }}>
+                Signed in as: <strong>{user.walletAddress ? `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}` : 'Unknown'}</strong>
               </p>
             </div>
           )}

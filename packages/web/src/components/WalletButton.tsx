@@ -108,7 +108,7 @@ export function WalletButton() {
                 Are you sure you want to disconnect your wallet? You'll need to reconnect it to perform analyses.
               </p>
               <p style={{ color: 'var(--color-success, #10b981)', fontSize: '13px', marginTop: '12px', padding: '8px', background: 'color-mix(in srgb, var(--color-success, #10b981) 10%, transparent)', borderRadius: '6px' }}>
-                Your premium tier is tied to your account email, not this wallet. You won't lose your tier access.
+                Your premium tier is tied to your wallet address. You won't lose your tier access.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>

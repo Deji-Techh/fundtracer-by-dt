@@ -1039,14 +1039,18 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
         // Save sybil analysis to history
         const clusterCount = response.result.clusters?.length || 0;
+        const flaggedCount = response.result.flaggedClusters?.length || 0;
         const sybilLabel = `Sybil: ${allAddresses.length} addresses, ${clusterCount} clusters`;
+        const highRisk = response.result.summary?.highRiskWallets || 0;
+        const mediumRisk = response.result.summary?.mediumRiskWallets || 0;
+        const riskLevel = highRisk > 0 ? 'high' : mediumRisk > 0 ? 'medium' : 'low';
         addToHistory(
           contractAddress || allAddresses.slice(0, 3).join(','),
           chain,
           sybilLabel,
           {
-            riskScore: response.result.overallRisk || response.result.riskScore,
-            riskLevel: response.result.riskLevel,
+            riskScore: flaggedCount,
+            riskLevel,
             totalTransactions: allAddresses.length,
           },
           'sybil'
