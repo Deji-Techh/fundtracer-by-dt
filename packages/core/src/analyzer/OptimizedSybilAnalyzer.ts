@@ -487,6 +487,7 @@ export class OptimizedSybilAnalyzer {
         apiKey: string
     ): Promise<WalletFunding> {
         const providers: Promise<WalletFunding>[] = [];
+        const providerNames: string[] = [];
 
         // Create provider instances — pass moralisKey so AlchemyProvider's internal Moralis fallback works
         const alchemyProvider = new AlchemyProvider(this.chain, apiKey, this.moralisKey || undefined);
@@ -498,6 +499,7 @@ export class OptimizedSybilAnalyzer {
                 return r;
             })
         );
+        providerNames.push('Alchemy');
 
         // Try Moralis if key available
         if (this.moralisKey) {
@@ -507,6 +509,7 @@ export class OptimizedSybilAnalyzer {
                     return r;
                 })
             );
+            providerNames.push('Moralis');
         }
 
         // Try Covalent if key available
@@ -518,15 +521,19 @@ export class OptimizedSybilAnalyzer {
                     return r;
                 })
             );
+            providerNames.push('Covalent');
         }
+
+        console.log(`[SybilAnalyzer] Racing ${providerNames.join(', ')} for ${address}`);
 
         try {
             // Race all providers — returns as soon as the FIRST one succeeds
             const result = await Promise.any(providers);
+            console.log(`[SybilAnalyzer] Success for ${address}: ${result.funder ? 'Found funder' : 'No funder'}`);
             return result;
         } catch (err) {
             // All providers failed
-            console.warn(`[SybilAnalyzer] All funding providers failed for ${address}:`, err instanceof AggregateError ? err.errors.map(e => e.message) : err);
+            console.error(`[SybilAnalyzer] All ${providerNames.join(', ')} failed for ${address}:`, err instanceof AggregateError ? err.errors.map((e: any) => e.message || e) : err);
             return {
                 address,
                 funder: null,

@@ -661,36 +661,34 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
     }
 
     try {
-        console.log('[DEBUG] Setting up optimized sybil analyzer with 20 API keys...');
+        console.log('[DEBUG] Setting up optimized sybil analyzer with dedicated keys...');
         
-        // Collect all 20 API keys (10 wallet + 10 contract)
+        // Use single dedicated Alchemy key for sybil detection (faster, no rotation overhead)
+        const sybilAlchemyKey = process.env.SYBIL_WALLET_KEY_1;
         const apiKeys: string[] = [];
-        for (let i = 1; i <= 10; i++) {
-            const walletKey = process.env[`SYBIL_WALLET_KEY_${i}`];
-            const contractKey = process.env[`SYBIL_CONTRACT_KEY_${i}`];
-            if (walletKey) apiKeys.push(walletKey);
-            if (contractKey) apiKeys.push(contractKey);
+        
+        if (sybilAlchemyKey) {
+            // Use the dedicated key 20 times for the key manager (it will use the same key, no rotation needed)
+            for (let i = 0; i < 20; i++) apiKeys.push(sybilAlchemyKey);
+            console.log(`[DEBUG] Using dedicated Alchemy key for sybil: ${sybilAlchemyKey.substring(0, 8)}...${sybilAlchemyKey.substring(sybilAlchemyKey.length-4)}`);
+        } else {
+            console.error('[DEBUG] SYBIL_WALLET_KEY_1 not set!');
+            return res.status(400).json({ error: 'SYBIL_WALLET_KEY_1 not configured' });
         }
         
-        // Fallback to default keys if specific ones not set
-        if (apiKeys.length === 0) {
-            const defaultKey = process.env.DEFAULT_ALCHEMY_API_KEY;
-            if (defaultKey) {
-                // Use default key replicated 20 times (not optimal but works)
-                for (let i = 0; i < 20; i++) apiKeys.push(defaultKey);
-            }
-        }
-        
+        // Use dedicated Moralis key for sybil detection
         const moralisKey = process.env.MORALIS_API_KEY || '';
-        const covalentKey = process.env.COVALENT_API_KEY || '';
+        if (moralisKey) {
+            console.log(`[DEBUG] Moralis key configured: ${moralisKey.substring(0, 20)}...`);
+        } else {
+            console.log('[DEBUG] Moralis key not set');
+        }
         
-        console.log(`[DEBUG] Using ${apiKeys.length} API keys for parallel processing`);
-        console.log(`[DEBUG] API Key samples:`, apiKeys.slice(0, 3).map(k => `${k.substring(0, 8)}...${k.substring(k.length-4)}`));
-        console.log(`[DEBUG] Moralis key present: ${moralisKey ? 'Yes' : 'No'}`);
-        console.log(`[DEBUG] Covalent key present: ${covalentKey ? 'Yes' : 'No'}`);
+        // No Covalent for sybil (as requested)
+        const covalentKey = '';
 
         if (apiKeys.length === 0) {
-            return res.status(400).json({ error: 'API keys required for sybil detection. Please configure SYBIL_WALLET_KEY_1-10 and SYBIL_CONTRACT_KEY_1-10' });
+            return res.status(400).json({ error: 'SYBIL_WALLET_KEY_1 not configured for sybil detection' });
         }
 
         // Use optimized analyzer with 20 keys
