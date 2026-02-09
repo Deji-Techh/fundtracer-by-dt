@@ -409,6 +409,13 @@ export class OptimizedSybilAnalyzer {
                     const batchResults = await this.processBatch(batch, waveKeys[idx]);
                     processedCount += batch.length;
                     
+                    // Log batch results
+                    const successCount = batchResults.filter(r => r.funder).length;
+                    const failCount = batchResults.length - successCount;
+                    if (failCount > 0) {
+                        console.log(`[SybilAnalyzer] Batch ${Math.floor(i / concurrency) + 1}-${idx + 1}: ${successCount} success, ${failCount} failed`);
+                    }
+                    
                     // Report progress
                     this.reportProgress({
                         stage: 'funding',
@@ -554,7 +561,8 @@ export class OptimizedSybilAnalyzer {
                 };
             }
             return null;
-        } catch (error) {
+        } catch (error: any) {
+            console.error(`[SybilAnalyzer] Alchemy failed for ${address}:`, error.message || error);
             return null;
         }
     }
@@ -618,7 +626,8 @@ export class OptimizedSybilAnalyzer {
 
         try {
             return await withRetry(fetchWithRetry);
-        } catch (error) {
+        } catch (error: any) {
+            console.error(`[SybilAnalyzer] Moralis failed for ${address}:`, error.message || error);
             return null;
         }
     }
@@ -646,7 +655,8 @@ export class OptimizedSybilAnalyzer {
                 };
             }
             return null;
-        } catch (error) {
+        } catch (error: any) {
+            console.error(`[SybilAnalyzer] Covalent failed for ${address}:`, error.message || error);
             return null;
         }
     }

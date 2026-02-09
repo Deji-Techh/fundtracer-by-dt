@@ -681,10 +681,13 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
             }
         }
         
-        console.log(`[DEBUG] Using ${apiKeys.length} API keys for parallel processing`);
-        
         const moralisKey = process.env.MORALIS_API_KEY || '';
         const covalentKey = process.env.COVALENT_API_KEY || '';
+        
+        console.log(`[DEBUG] Using ${apiKeys.length} API keys for parallel processing`);
+        console.log(`[DEBUG] API Key samples:`, apiKeys.slice(0, 3).map(k => `${k.substring(0, 8)}...${k.substring(k.length-4)}`));
+        console.log(`[DEBUG] Moralis key present: ${moralisKey ? 'Yes' : 'No'}`);
+        console.log(`[DEBUG] Covalent key present: ${covalentKey ? 'Yes' : 'No'}`);
 
         if (apiKeys.length === 0) {
             return res.status(400).json({ error: 'API keys required for sybil detection. Please configure SYBIL_WALLET_KEY_1-10 and SYBIL_CONTRACT_KEY_1-10' });
@@ -718,7 +721,14 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
         );
         
         const duration = (Date.now() - startTime) / 1000;
+        const failedCount = result.failedAddresses?.length || 0;
+        const successCount = validAddresses.length - failedCount;
         console.log(`[DEBUG] Sybil analysis complete in ${duration}s`);
+        console.log(`[DEBUG] Results: ${successCount} wallets with funding data, ${failedCount} wallets failed`);
+        console.log(`[DEBUG] Clusters found: ${result.clusters?.length || 0}`);
+        if (failedCount > 0 && result.failedAddresses) {
+            console.log(`[DEBUG] Sample failed addresses:`, result.failedAddresses.slice(0, 5));
+        }
         
         res.json({
             success: true,
