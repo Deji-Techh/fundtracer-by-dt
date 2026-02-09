@@ -154,8 +154,19 @@ export abstract class BaseProvider {
                     }
                 }
 
-                console.error(`[DEBUG] Etherscan Error Result:`, errorResult);
-                throw new Error(`API Error: ${response.data.message} - ${errorResult}`);
+                // Check for "No records found" or similar benign empty responses
+                if (typeof response.data.result === 'string' && (
+                    response.data.result.includes('No records found') ||
+                    response.data.result.includes('No transactions found')
+                )) {
+                    // Return empty array for list-type queries
+                    return [] as unknown as T;
+                }
+
+                const action = params.action || 'unknown';
+                const module = params.module || 'unknown';
+                console.error(`[${this.chainName}] Etherscan API error (${module}/${action}):`, errorResult);
+                throw new Error(`[${this.chainName}] API Error (${action}): ${response.data.message} - ${errorResult}`);
             }
 
             this.cache.set(cacheKey, response.data.result);

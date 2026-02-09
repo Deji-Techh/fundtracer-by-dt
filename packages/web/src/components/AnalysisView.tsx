@@ -21,6 +21,7 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
     const [fundingDestinations, setFundingDestinations] = useState<FundingNode | null>(null);
     const [treeLoading, setTreeLoading] = useState(false);
     const [treeError, setTreeError] = useState<string | null>(null);
+    const [treeDepth, setTreeDepth] = useState(2);
     const isMobile = useIsMobile();
 
     // Check if tree data was already included in the analysis result (non-empty children)
@@ -31,7 +32,7 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
         setTreeLoading(true);
         setTreeError(null);
         try {
-            const response = await fetchFundingTree(result.wallet.address, result.wallet.chain);
+            const response = await fetchFundingTree(result.wallet.address, result.wallet.chain, treeDepth);
             if (response.result) {
                 setFundingSources(response.result.fundingSources);
                 setFundingDestinations(response.result.fundingDestinations);
@@ -229,6 +230,76 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                                         This requires additional API calls and may take a few seconds.
                                     </p>
 
+                                    {/* Depth Selector */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 'var(--space-3)',
+                                        padding: 'var(--space-3) var(--space-4)',
+                                        background: 'var(--color-bg-tertiary)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--color-surface-border)',
+                                    }}>
+                                        <span style={{
+                                            fontSize: 'var(--text-xs)',
+                                            color: 'var(--color-text-secondary)',
+                                            fontWeight: 500,
+                                            whiteSpace: 'nowrap' as const,
+                                        }}>
+                                            Trace Depth
+                                        </span>
+                                        <div style={{ display: 'flex', gap: 4 }}>
+                                            {[1, 2, 3, 4, 5].map((d) => (
+                                                <button
+                                                    key={d}
+                                                    onClick={() => setTreeDepth(d)}
+                                                    style={{
+                                                        width: 32,
+                                                        height: 32,
+                                                        borderRadius: 'var(--radius-sm)',
+                                                        border: treeDepth === d
+                                                            ? '1px solid var(--color-accent, #3b82f6)'
+                                                            : '1px solid var(--color-surface-border)',
+                                                        background: treeDepth === d
+                                                            ? 'var(--color-accent, #3b82f6)'
+                                                            : 'var(--color-bg-elevated)',
+                                                        color: treeDepth === d
+                                                            ? '#ffffff'
+                                                            : 'var(--color-text-secondary)',
+                                                        fontSize: 'var(--text-sm)',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s ease',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                    }}
+                                                >
+                                                    {d}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <span style={{
+                                            fontSize: 'var(--text-xs)',
+                                            color: 'var(--color-text-muted)',
+                                        }}>
+                                            {treeDepth <= 2 ? 'Fast' : treeDepth <= 3 ? 'Moderate' : 'Deep'}
+                                        </span>
+                                    </div>
+                                    {treeDepth > 3 && (
+                                        <div style={{
+                                            fontSize: 'var(--text-xs)',
+                                            color: 'var(--color-warning-text)',
+                                            background: 'var(--color-warning-bg)',
+                                            padding: 'var(--space-2) var(--space-3)',
+                                            borderRadius: 'var(--radius-sm)',
+                                            maxWidth: 400,
+                                            textAlign: 'center',
+                                        }}>
+                                            Higher depths use more API calls and may take longer or hit rate limits.
+                                        </div>
+                                    )}
+
                                     {treeError && (
                                         <div style={{
                                             padding: 'var(--space-3)',
@@ -275,6 +346,68 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                             ) : (
                                 /* Show tree visualization once generated */
                                 <div>
+                                    {/* Tree Controls */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        flexWrap: 'wrap',
+                                        gap: 'var(--space-3)',
+                                        marginBottom: 'var(--space-4)',
+                                        padding: 'var(--space-3) var(--space-4)',
+                                        background: 'var(--color-bg-tertiary)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid var(--color-surface-border)',
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Depth</span>
+                                            <div style={{ display: 'flex', gap: 3 }}>
+                                                {[1, 2, 3, 4, 5].map((d) => (
+                                                    <button
+                                                        key={d}
+                                                        onClick={() => setTreeDepth(d)}
+                                                        style={{
+                                                            width: 28,
+                                                            height: 28,
+                                                            borderRadius: 'var(--radius-sm)',
+                                                            border: treeDepth === d
+                                                                ? '1px solid var(--color-accent, #3b82f6)'
+                                                                : '1px solid var(--color-surface-border)',
+                                                            background: treeDepth === d
+                                                                ? 'var(--color-accent, #3b82f6)'
+                                                                : 'var(--color-bg-elevated)',
+                                                            color: treeDepth === d ? '#ffffff' : 'var(--color-text-secondary)',
+                                                            fontSize: 'var(--text-xs)',
+                                                            fontWeight: 600,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s ease',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                        }}
+                                                    >
+                                                        {d}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <button
+                                            className="btn btn-secondary btn-sm"
+                                            onClick={handleGenerateTree}
+                                            disabled={treeLoading}
+                                            style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-2) var(--space-3)' }}
+                                        >
+                                            {treeLoading ? (
+                                                <>
+                                                    <div className="loading-spinner" style={{ width: 12, height: 12 }} />
+                                                    Regenerating...
+                                                </>
+                                            ) : (
+                                                'Regenerate'
+                                            )}
+                                        </button>
+                                    </div>
+
                                     <h3 style={{ marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Funding Sources</h3>
                                     <FundingTree node={displaySources} direction="source" />
 

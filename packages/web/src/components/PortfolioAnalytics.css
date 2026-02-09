@@ -654,6 +654,358 @@
   font-weight: 600;
 }
 
+/* Skeleton Loading */
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-hover) 25%,
+    color-mix(in srgb, var(--color-border) 40%, var(--color-bg-hover)) 50%,
+    var(--color-bg-hover) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.8s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.skeleton-metric-card {
+  background: linear-gradient(145deg, var(--color-bg-elevated), var(--color-bg-hover));
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeleton-metric-label {
+  width: 80px;
+  height: 12px;
+}
+
+.skeleton-metric-value {
+  width: 140px;
+  height: 28px;
+}
+
+.skeleton-metric-change {
+  width: 100px;
+  height: 16px;
+}
+
+.skeleton-card {
+  background: linear-gradient(145deg, var(--color-bg-elevated), var(--color-bg-hover));
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.skeleton-card-title {
+  width: 150px;
+  height: 18px;
+  margin-bottom: 16px;
+}
+
+.skeleton-pie {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+}
+
+.skeleton-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.skeleton-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.skeleton-legend-text {
+  width: 50px;
+  height: 14px;
+}
+
+.skeleton-legend-value {
+  width: 60px;
+  height: 14px;
+  margin-left: auto;
+}
+
+.skeleton-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 8px;
+}
+
+.skeleton-table-header-cell {
+  height: 14px;
+}
+
+.skeleton-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-bg-hover);
+  align-items: center;
+}
+
+.skeleton-table-asset {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-table-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-table-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skeleton-table-name-text {
+  width: 80px;
+  height: 14px;
+}
+
+.skeleton-table-name-sub {
+  width: 40px;
+  height: 12px;
+}
+
+.skeleton-table-cell {
+  height: 14px;
+}
+
+.skeleton-sparkline {
+  width: 100%;
+  height: 80px;
+  margin-bottom: 16px;
+}
+
+.skeleton-trend-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.skeleton-trend-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skeleton-trend-label {
+  width: 50px;
+  height: 11px;
+}
+
+.skeleton-trend-value {
+  width: 70px;
+  height: 14px;
+}
+
+/* Partial loading indicator */
+.section-loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.section-loading-indicator .loading-spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+/* Empty States */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  gap: 12px;
+}
+
+.empty-state-icon {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.empty-state-description {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* Price Change Pill */
+.price-change-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.price-change-pill.positive {
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+}
+
+.price-change-pill.negative {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+}
+
+/* Mobile Asset Cards */
+.asset-cards-mobile {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.asset-card-mobile {
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.asset-card-mobile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.asset-card-mobile-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.asset-card-mobile-left .asset-logo {
+  width: 36px;
+  height: 36px;
+}
+
+.asset-card-mobile-left .asset-icon {
+  width: 36px;
+  height: 36px;
+}
+
+.asset-card-mobile-value {
+  text-align: right;
+}
+
+.asset-card-mobile-value .value-main {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.asset-card-mobile-value .value-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.asset-card-mobile-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.asset-card-mobile-footer .price-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.asset-card-mobile-footer .price-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.asset-card-mobile-footer .mobile-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.asset-card-mobile-footer .mobile-change.positive {
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+}
+
+.asset-card-mobile-footer .mobile-change.negative {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+}
+
+.asset-card-mobile-allocation {
+  height: 3px;
+  background: var(--color-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.asset-card-mobile-allocation-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-success));
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
@@ -1021,21 +1373,13 @@
     font-size: 26px;
   }
   
+  /* Switch to mobile card view for assets */
   .asset-table-container {
-    font-size: 12px;
-  }
-  
-  .asset-table th,
-  .asset-table td {
-    padding: 8px;
-  }
-  
-  /* Hide less critical columns on mobile */
-  .asset-table th:nth-child(5),
-  .asset-table td:nth-child(5),
-  .asset-table th:nth-child(6),
-  .asset-table td:nth-child(6) {
     display: none;
+  }
+  
+  .asset-cards-mobile {
+    display: flex;
   }
   
   .chart-card,

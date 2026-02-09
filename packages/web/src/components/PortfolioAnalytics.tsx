@@ -406,23 +406,81 @@ const AssetTable: React.FC<{
     }));
   };
 
+  const formatBalance = (token: TokenBalance) => {
+    if (token.contractAddress === 'native') {
+      return (parseInt(token.tokenBalance, 16) / 1e18).toFixed(4);
+    }
+    return (parseInt(token.tokenBalance) / Math.pow(10, token.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 });
+  };
+
   return (
-    <div className="asset-table-container">
-      <table className="asset-table">
-        <thead>
-          <tr>
-            <th onClick={() => handleSort('name')}>Asset</th>
-            <th onClick={() => handleSort('tokenBalance')}>Balance</th>
-            <th onClick={() => handleSort('price')}>Price</th>
-            <th onClick={() => handleSort('usdValue')}>Value</th>
-            <th onClick={() => handleSort('percentage')}>Allocation</th>
-            <th>7D Trend</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedTokens.map((token, index) => (
-            <tr key={token.contractAddress} style={{ animationDelay: `${index * 0.05}s` }}>
-              <td className="asset-cell">
+    <>
+      {/* Desktop table view */}
+      <div className="asset-table-container">
+        <table className="asset-table">
+          <thead>
+            <tr>
+              <th onClick={() => handleSort('name')}>Asset</th>
+              <th onClick={() => handleSort('tokenBalance')}>Balance</th>
+              <th onClick={() => handleSort('price')}>Price</th>
+              <th onClick={() => handleSort('usdValue')}>Value</th>
+              <th onClick={() => handleSort('percentage')}>Allocation</th>
+              <th>7D Trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedTokens.map((token, index) => (
+              <tr key={token.contractAddress} style={{ animationDelay: `${index * 0.05}s` }}>
+                <td className="asset-cell">
+                  {token.logo ? (
+                    <img src={token.logo} alt={token.symbol} className="asset-logo" />
+                  ) : (
+                    <div className="asset-icon">{token.symbol?.[0]}</div>
+                  )}
+                  <div className="asset-info">
+                    <span className="asset-name">{token.name}</span>
+                    <span className="asset-symbol">{token.symbol}</span>
+                  </div>
+                </td>
+                <td className="balance-cell">{formatBalance(token)}</td>
+                <td className="price-cell">
+                  ${token.price.toFixed(2)}
+                  {token.priceChange24h !== 0 && (
+                    <span className={`price-change ${token.priceChange24h >= 0 ? 'positive' : 'negative'}`}>
+                      {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(2)}%
+                    </span>
+                  )}
+                </td>
+                <td className="value-cell">
+                  ${token.usdValue.toLocaleString()}
+                </td>
+                <td className="allocation-cell">
+                  <div className="allocation-bar">
+                    <div 
+                      className="allocation-fill" 
+                      style={{ width: `${token.percentage}%` }}
+                    />
+                  </div>
+                  <span>{token.percentage.toFixed(1)}%</span>
+                </td>
+                <td className="trend-cell">
+                  <Sparkline 
+                    data={sparklines[token.symbol] || [token.usdValue * 0.9, token.usdValue]} 
+                    color={token.priceChange24h >= 0 ? '#34d399' : '#f87171'}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile card view */}
+      <div className="asset-cards-mobile">
+        {sortedTokens.map((token) => (
+          <div key={token.contractAddress} className="asset-card-mobile">
+            <div className="asset-card-mobile-header">
+              <div className="asset-card-mobile-left">
                 {token.logo ? (
                   <img src={token.logo} alt={token.symbol} className="asset-logo" />
                 ) : (
@@ -430,46 +488,35 @@ const AssetTable: React.FC<{
                 )}
                 <div className="asset-info">
                   <span className="asset-name">{token.name}</span>
-                  <span className="asset-symbol">{token.symbol}</span>
+                  <span className="asset-symbol">{formatBalance(token)} {token.symbol}</span>
                 </div>
-              </td>
-              <td className="balance-cell">
-                {token.contractAddress === 'native' 
-                  ? (parseInt(token.tokenBalance, 16) / 1e18).toFixed(4)
-                  : (parseInt(token.tokenBalance) / Math.pow(10, token.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 })
-                }
-              </td>
-              <td className="price-cell">
-                ${token.price.toFixed(2)}
-                {token.priceChange24h !== 0 && (
-                  <span className={`price-change ${token.priceChange24h >= 0 ? 'positive' : 'negative'}`}>
-                    {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(2)}%
-                  </span>
-                )}
-              </td>
-              <td className="value-cell">
-                ${token.usdValue.toLocaleString()}
-              </td>
-              <td className="allocation-cell">
-                <div className="allocation-bar">
-                  <div 
-                    className="allocation-fill" 
-                    style={{ width: `${token.percentage}%` }}
-                  />
-                </div>
-                <span>{token.percentage.toFixed(1)}%</span>
-              </td>
-              <td className="trend-cell">
-                <Sparkline 
-                  data={sparklines[token.symbol] || [token.usdValue * 0.9, token.usdValue]} 
-                  color={token.priceChange24h >= 0 ? '#34d399' : '#f87171'}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+              </div>
+              <div className="asset-card-mobile-value">
+                <span className="value-main">${token.usdValue.toLocaleString()}</span>
+                <span className="value-sub">{token.percentage.toFixed(1)}%</span>
+              </div>
+            </div>
+            <div className="asset-card-mobile-allocation">
+              <div 
+                className="asset-card-mobile-allocation-fill" 
+                style={{ width: `${token.percentage}%` }}
+              />
+            </div>
+            <div className="asset-card-mobile-footer">
+              <div>
+                <span className="price-label">Price </span>
+                <span className="price-value">${token.price.toFixed(2)}</span>
+              </div>
+              {token.priceChange24h !== 0 && (
+                <span className={`mobile-change ${token.priceChange24h >= 0 ? 'positive' : 'negative'}`}>
+                  {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(1)}%
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 };
 
@@ -672,6 +719,108 @@ const ReceiveModal: React.FC<{
   );
 };
 
+// Skeleton Loading Component
+const PortfolioSkeleton: React.FC = () => (
+  <div className="portfolio-analytics">
+    {/* Header Skeleton */}
+    <div className="analytics-header">
+      <div className="header-title">
+        <div className="skeleton" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+        <div>
+          <div className="skeleton" style={{ width: 200, height: 24, marginBottom: 6 }} />
+          <div className="skeleton" style={{ width: 140, height: 14 }} />
+        </div>
+      </div>
+      <div className="header-actions">
+        <div className="skeleton" style={{ width: 60, height: 14 }} />
+        <div className="skeleton" style={{ width: 36, height: 36, borderRadius: 6 }} />
+      </div>
+    </div>
+
+    {/* Metrics Skeleton */}
+    <div className="metrics-grid">
+      {[0, 1, 2, 3].map(i => (
+        <div key={i} className="skeleton-metric-card">
+          <div className="skeleton skeleton-metric-label" />
+          <div className="skeleton skeleton-metric-value" />
+          <div className="skeleton skeleton-metric-change" />
+        </div>
+      ))}
+    </div>
+
+    {/* Grid Skeleton */}
+    <div className="analytics-grid">
+      <div className="analytics-left">
+        {/* Pie Chart Skeleton */}
+        <div className="skeleton-card">
+          <div className="skeleton skeleton-card-title" />
+          <div className="skeleton skeleton-pie" />
+          {[0, 1, 2, 3, 4].map(i => (
+            <div key={i} className="skeleton-legend-row">
+              <div className="skeleton skeleton-legend-dot" />
+              <div className="skeleton skeleton-legend-text" />
+              <div className="skeleton skeleton-legend-value" />
+            </div>
+          ))}
+        </div>
+
+        {/* Trend Skeleton */}
+        <div className="skeleton-card">
+          <div className="skeleton skeleton-card-title" />
+          <div className="skeleton skeleton-sparkline" />
+          <div className="skeleton-trend-stats">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="skeleton-trend-stat">
+                <div className="skeleton skeleton-trend-label" />
+                <div className="skeleton skeleton-trend-value" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Asset Table Skeleton */}
+      <div className="analytics-right">
+        <div className="skeleton-card">
+          <div className="skeleton skeleton-card-title" />
+          <div className="skeleton-table-header">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="skeleton skeleton-table-header-cell" />
+            ))}
+          </div>
+          {[0, 1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="skeleton-table-row">
+              <div className="skeleton-table-asset">
+                <div className="skeleton skeleton-table-icon" />
+                <div className="skeleton-table-name">
+                  <div className="skeleton skeleton-table-name-text" />
+                  <div className="skeleton skeleton-table-name-sub" />
+                </div>
+              </div>
+              <div className="skeleton skeleton-table-cell" style={{ width: '60%' }} />
+              <div className="skeleton skeleton-table-cell" style={{ width: '70%' }} />
+              <div className="skeleton skeleton-table-cell" style={{ width: '50%' }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Empty State Component
+const EmptyState: React.FC<{ 
+  icon: React.ReactNode; 
+  title: string; 
+  description: string;
+}> = ({ icon, title, description }) => (
+  <div className="empty-state">
+    <div className="empty-state-icon">{icon}</div>
+    <p className="empty-state-title">{title}</p>
+    <p className="empty-state-description">{description}</p>
+  </div>
+);
+
 // Main Portfolio Analytics Component
 export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ walletAddress }) => {
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
@@ -682,6 +831,7 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [sparklines, setSparklines] = useState<{ [symbol: string]: number[] }>({});
+  const [loadingStages, setLoadingStages] = useState<{ eth: boolean; tokens: boolean; nfts: boolean; txs: boolean }>({ eth: true, tokens: true, nfts: true, txs: true });
   const dashboardRef = useRef<HTMLDivElement>(null);
   const notify = useNotify();
 
@@ -919,57 +1069,109 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
     return uniqueTxs;
   };
 
-  // Fetch portfolio data
+  // Fetch portfolio data with progressive loading
   const fetchPortfolio = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
+      setLoadingStages({ eth: true, tokens: true, nfts: true, txs: true });
       
-      // Fetch all data in parallel
-      const [ethBalance, tokens, nfts, transactions] = await Promise.all([
-        fetchEthBalance().catch(err => {
-          console.error('ETH fetch error:', err);
-          return '0';
-        }),
-        fetchTokenBalances().catch(err => {
-          console.error('Token fetch error:', err);
-          return [];
-        }),
-        fetchNFTs().catch(err => {
-          console.error('NFT fetch error:', err);
-          return [];
-        }),
-        fetchTransactions().catch(err => {
-          console.error('Transaction fetch error:', err);
-          return [];
-        })
-      ]);
-
-      // Calculate ETH value
-      const ethBalanceNum = parseInt(ethBalance, 16) / 1e18;
+      // Stage 1: Fetch ETH balance first (fastest)
+      let ethBalance = '0';
+      try {
+        ethBalance = await fetchEthBalance();
+      } catch (err) {
+        console.error('ETH fetch error:', err);
+      }
+      setLoadingStages(prev => ({ ...prev, eth: false }));
+      
+      // Get ETH price to show partial data immediately
       const ethPriceData = (await priceService.getTokenPrices(['ethereum']))['ethereum'] || { price: 0, change24h: 0 };
       const ethPrice = ethPriceData.price;
+      const ethBalanceNum = parseInt(ethBalance, 16) / 1e18;
       const ethUsdValue = ethBalanceNum * ethPrice;
-
-      // Calculate total value and percentages
+      
+      // Show partial portfolio with just ETH
+      setPortfolio({
+        address: walletAddress,
+        ethBalance,
+        ethUsdValue,
+        tokens: [],
+        nfts: [],
+        transactions: [],
+        totalUsdValue: ethUsdValue,
+        totalChange24h: ethUsdValue * (ethPriceData.change24h / 100),
+        totalChange7d: 0,
+        lastUpdated: Date.now()
+      });
+      setLoading(false); // Hide skeleton, show partial data
+      
+      // Stage 2: Fetch tokens (medium speed)
+      let tokens: TokenBalance[] = [];
+      try {
+        tokens = await fetchTokenBalances();
+      } catch (err) {
+        console.error('Token fetch error:', err);
+      }
+      setLoadingStages(prev => ({ ...prev, tokens: false }));
+      
+      // Calculate totals with tokens
       const totalTokenValue = tokens.reduce((sum, t) => sum + t.usdValue, 0);
       const totalUsdValue = ethUsdValue + totalTokenValue;
-      
-      // Update percentages
       const tokensWithPercentage = tokens.map(t => ({
         ...t,
         percentage: totalUsdValue > 0 ? (t.usdValue / totalUsdValue) * 100 : 0
       }));
-
-      // Fetch real historical prices for sparklines
-      const sparklineData: { [symbol: string]: number[] } = {};
       
-      // Fetch historical data for top tokens by value (limited to avoid API limits)
+      let totalChange24h = ethUsdValue * (ethPriceData.change24h / 100);
+      tokensWithPercentage.forEach(token => {
+        if (token.priceChange24h !== 0) {
+          totalChange24h += token.usdValue * (token.priceChange24h / 100);
+        }
+      });
+      
+      // Update portfolio with tokens
+      setPortfolio(prev => prev ? {
+        ...prev,
+        tokens: tokensWithPercentage.sort((a, b) => b.usdValue - a.usdValue),
+        totalUsdValue,
+        totalChange24h,
+        lastUpdated: Date.now()
+      } : prev);
+      
+      // Stage 3: Fetch NFTs and transactions in parallel (slowest)
+      const [nfts, transactions] = await Promise.all([
+        fetchNFTs().catch(err => {
+          console.error('NFT fetch error:', err);
+          return [] as NFTItem[];
+        }).then(result => {
+          setLoadingStages(prev => ({ ...prev, nfts: false }));
+          return result;
+        }),
+        fetchTransactions().catch(err => {
+          console.error('Transaction fetch error:', err);
+          return [] as Transaction[];
+        }).then(result => {
+          setLoadingStages(prev => ({ ...prev, txs: false }));
+          return result;
+        })
+      ]);
+      
+      // Final portfolio update with everything
+      setPortfolio(prev => prev ? {
+        ...prev,
+        nfts,
+        transactions,
+        lastUpdated: Date.now()
+      } : prev);
+      
+      // Fetch sparklines in background (non-blocking)
       const topTokens = [...tokensWithPercentage]
         .sort((a, b) => b.usdValue - a.usdValue)
         .slice(0, 5)
         .map(t => t.symbol);
       
+      const sparklineData: { [symbol: string]: number[] } = {};
       await Promise.all(
         ['ETH', ...topTokens].map(async (symbol) => {
           if (symbol && symbol !== '?') {
@@ -977,7 +1179,6 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
             if (history.length > 0) {
               sparklineData[symbol] = history;
             } else {
-              // Fallback: generate flat line from current value
               const token = tokensWithPercentage.find(t => t.symbol === symbol);
               const currentPrice = symbol === 'ETH' ? ethPrice : (token?.price || 0);
               sparklineData[symbol] = Array(7).fill(currentPrice);
@@ -985,40 +1186,12 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
           }
         })
       );
-
-      // Calculate real 24h and 7d changes based on portfolio composition
-      let totalChange24h = 0;
-      let totalChange7d = 0;
-      
-      // ETH contribution to change
-      totalChange24h += ethUsdValue * (ethPriceData.change24h / 100);
-      
-      // Token contributions to change
-      tokensWithPercentage.forEach(token => {
-        if (token.priceChange24h !== 0) {
-          totalChange24h += token.usdValue * (token.priceChange24h / 100);
-        }
-      });
-
-      setPortfolio({
-        address: walletAddress,
-        ethBalance,
-        ethUsdValue,
-        tokens: tokensWithPercentage.sort((a, b) => b.usdValue - a.usdValue),
-        nfts,
-        transactions,
-        totalUsdValue,
-        totalChange24h,
-        totalChange7d,
-        lastUpdated: Date.now()
-      });
       
       setSparklines(sparklineData);
       setLastRefresh(Date.now());
     } catch (err: any) {
       console.error('Failed to fetch portfolio:', err);
       setError(err.message || 'Failed to load portfolio');
-    } finally {
       setLoading(false);
     }
   }, [walletAddress]);
@@ -1158,12 +1331,7 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
   };
 
   if (loading) {
-    return (
-      <div className="analytics-loading">
-        <div className="loading-spinner" />
-        <p>Loading portfolio analytics...</p>
-      </div>
-    );
+    return <PortfolioSkeleton />;
   }
 
   if (error) {
@@ -1221,9 +1389,9 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
             <span className="metric-value">
               ${portfolio.totalUsdValue.toLocaleString()}
             </span>
-            <div className={`metric-change ${isPositive24h ? 'positive' : 'negative'}`}>
-              {isPositive24h ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-              <span>${Math.abs(portfolio.totalChange24h).toFixed(2)} ({((portfolio.totalChange24h / portfolio.totalUsdValue) * 100).toFixed(1)}%)</span>
+            <div className={`price-change-pill ${isPositive24h ? 'positive' : 'negative'}`}>
+              {isPositive24h ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+              <span>${Math.abs(portfolio.totalChange24h).toFixed(2)} ({portfolio.totalUsdValue > 0 ? ((portfolio.totalChange24h / portfolio.totalUsdValue) * 100).toFixed(1) : '0.0'}%)</span>
               <span className="change-period">24h</span>
             </div>
           </div>
@@ -1235,7 +1403,7 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
             </span>
             <div className={`metric-change ${isPositive7d ? 'positive' : 'negative'}`}>
               {isPositive7d ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-              <span>{((portfolio.totalChange7d / portfolio.totalUsdValue) * 100).toFixed(1)}%</span>
+              <span>{portfolio.totalUsdValue > 0 ? ((portfolio.totalChange7d / portfolio.totalUsdValue) * 100).toFixed(1) : '0.0'}%</span>
             </div>
           </div>
           
@@ -1281,10 +1449,29 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
           <div className="analytics-left">
             <div className="chart-card">
               <h3><PieChart size={18} /> Asset Allocation</h3>
-              <PieChart3D 
-                data={portfolio.tokens} 
-                totalValue={portfolio.totalUsdValue} 
-              />
+              {loadingStages.tokens ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
+                  <div className="skeleton skeleton-pie" />
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="skeleton-legend-row" style={{ width: '100%' }}>
+                      <div className="skeleton skeleton-legend-dot" />
+                      <div className="skeleton skeleton-legend-text" />
+                      <div className="skeleton skeleton-legend-value" />
+                    </div>
+                  ))}
+                </div>
+              ) : portfolio.tokens.length > 0 ? (
+                <PieChart3D 
+                  data={portfolio.tokens} 
+                  totalValue={portfolio.totalUsdValue} 
+                />
+              ) : (
+                <EmptyState
+                  icon={<PieChart size={36} />}
+                  title="No Token Holdings"
+                  description="This wallet has no ERC-20 tokens on Linea. Only the native ETH balance is shown."
+                />
+              )}
             </div>
             
             <div className="activity-card">
@@ -1347,6 +1534,12 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
           <div className="analytics-right">
             <div className="assets-card">
               <h3><Coins size={18} /> Asset Breakdown</h3>
+              {loadingStages.tokens && (
+                <div className="section-loading-indicator">
+                  <div className="loading-spinner" />
+                  Loading token balances...
+                </div>
+              )}
               <AssetTable 
                 tokens={portfolio.tokens}
                 ethBalance={portfolio.ethBalance}
@@ -1359,9 +1552,14 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
         </div>
 
         {/* NFT Section */}
-        {portfolio.nfts.length > 0 && (
-          <div className="nfts-section">
-            <h3><Image size={18} /> NFT Collections</h3>
+        <div className="nfts-section">
+          <h3><Image size={18} /> NFT Collections</h3>
+          {loadingStages.nfts ? (
+            <div className="section-loading-indicator">
+              <div className="loading-spinner" />
+              Loading NFTs...
+            </div>
+          ) : portfolio.nfts.length > 0 ? (
             <div className="nfts-grid">
               {portfolio.nfts.slice(0, 4).map((nft, index) => (
                 <div key={index} className="nft-collection-card">
@@ -1384,8 +1582,14 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <EmptyState
+              icon={<Image size={36} />}
+              title="No NFTs Found"
+              description="This wallet doesn't hold any NFTs on Linea. NFTs will appear here once acquired."
+            />
+          )}
+        </div>
 
         {/* Action Bar */}
         <div className="action-bar">

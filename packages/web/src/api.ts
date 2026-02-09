@@ -81,8 +81,10 @@ async function apiRequest<T>(
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || errorData.message || `API error: ${response.status}`;
-        console.error(`[API Error] ${endpoint}: ${response.status} ${errorMessage}`);
+        // Prefer the descriptive message, then error label, then generic status
+        const errorMessage = errorData.message || errorData.error || `API error: ${response.status}`;
+        const hint = errorData.hint;
+        console.error(`[API Error] ${endpoint}: ${response.status} ${errorMessage}${hint ? ` (Hint: ${hint})` : ''}`);
 
         // If server returns 401, the token is invalid/expired — clear it immediately
         if (response.status === 401) {
@@ -90,9 +92,10 @@ async function apiRequest<T>(
             localStorage.removeItem('fundtracer_token_expiry');
         }
 
-        // Include status code in error so callers can detect auth failures
-        const error = new Error(errorMessage);
+        // Include status code and hint in error so callers can detect auth failures and show hints
+        const error = new Error(hint ? `${errorMessage} ${hint}` : errorMessage);
         (error as any).status = response.status;
+        (error as any).hint = hint;
         throw error;
     }
 
@@ -254,16 +257,22 @@ export async function compareWallets(
 // Fetch funding tree on-demand (separate from initial wallet analysis for speed)
 export async function fetchFundingTree(
     address: string,
-    chain: ChainId
+    chain: ChainId,
+    maxDepth?: number
 ): Promise<ApiResponse<{ fundingSources: FundingNode; fundingDestinations: FundingNode }>> {
-    return apiRequest('/api/analyze/funding-tree', 'POST', { address, chain });
+    const body: any = { address, chain };
+    if (maxDepth !== undefined) {
+        body.options = { treeConfig: { maxDepth } };
+    }
+    return apiRequest('/api/analyze/funding-tree', 'POST', body);
 }
 
 export async function analyzeContract(
-    address: string,
-    chain: ChainId
+    contractAddress: string,
+    chain: ChainId,
+    options?: { maxInteractors?: number; analyzeFunding?: boolean }
 ): Promise<ApiResponse<any>> {
-    return apiRequest('/api/analyze/contract', 'POST', { address, chain });
+    return apiRequest('/api/analyze/contract', 'POST', { contractAddress, chain, options });
 }
 
 // Contract endpoints

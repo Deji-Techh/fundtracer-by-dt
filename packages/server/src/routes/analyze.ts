@@ -17,6 +17,80 @@ import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
 
+// Helper to parse API errors into user-friendly messages
+function getUserFriendlyError(error: any): { status: number; error: string; message: string; hint?: string } {
+    const msg = error.message || '';
+
+    // Timeout errors
+    if (msg.includes('timed out')) {
+        return {
+            status: 504,
+            error: 'Analysis timed out',
+            message: 'The analysis took too long to complete.',
+            hint: 'Try again or reduce the scope (fewer interactors, simpler wallet).'
+        };
+    }
+
+    // Etherscan NOTOK / API errors
+    if (msg.includes('API Error') || msg.includes('NOTOK')) {
+        // Extract chain name if present (format: [ChainName] API Error ...)
+        const chainMatch = msg.match(/\[(\w+)\]/);
+        const chainName = chainMatch ? chainMatch[1] : 'this chain';
+
+        if (msg.includes('No records found') || msg.includes('No transactions found')) {
+            return {
+                status: 404,
+                error: 'No data found',
+                message: `No transaction data found for this address on ${chainName}.`,
+                hint: 'Verify the address is correct and has activity on the selected chain.'
+            };
+        }
+
+        if (msg.includes('Invalid API Key') || msg.includes('Invalid API key')) {
+            return {
+                status: 503,
+                error: 'API configuration error',
+                message: `The block explorer API key for ${chainName} is invalid or missing.`,
+                hint: 'Please contact support or try a different chain.'
+            };
+        }
+
+        return {
+            status: 502,
+            error: 'Block explorer error',
+            message: `The block explorer API returned an error for ${chainName}. This chain may have limited API support.`,
+            hint: 'Try Linea or Ethereum which have the best API coverage.'
+        };
+    }
+
+    // Rate limit
+    if (msg.includes('Max calls per sec') || msg.includes('rate limit')) {
+        return {
+            status: 429,
+            error: 'Rate limited',
+            message: 'Too many requests. Please wait a moment and try again.',
+            hint: 'The API rate limit was exceeded. Wait 10-30 seconds before retrying.'
+        };
+    }
+
+    // Network errors
+    if (msg.includes('ECONNREFUSED') || msg.includes('ETIMEDOUT') || msg.includes('Network Error')) {
+        return {
+            status: 503,
+            error: 'Service unavailable',
+            message: 'Could not connect to the blockchain data provider.',
+            hint: 'Check your internet connection or try again in a few moments.'
+        };
+    }
+
+    // Default
+    return {
+        status: 500,
+        error: 'Analysis failed',
+        message: msg || 'An unexpected error occurred during analysis.',
+    };
+}
+
 const router = Router();
 
 // In-memory TTL cache for Alchemy API keys (avoids hitting Firestore on every request)
@@ -274,10 +348,8 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         }).catch(err => console.error('Failed to track analytics:', err));
     } catch (error: any) {
         console.error('Wallet analysis error:', error.message);
-        res.status(500).json({
-            error: 'Analysis failed',
-            message: error.message
-        });
+        const errInfo = getUserFriendlyError(error);
+        res.status(errInfo.status).json(errInfo);
     }
 });
 
@@ -326,12 +398,12 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
         });
     } catch (error: any) {
         console.error('Funding tree error:', error.message);
-        res.status(500).json({
-            error: 'Funding tree generation failed',
-            message: error.message,
-            hint: error.message.includes('timed out')
+        const errInfo = getUserFriendlyError(error);
+        res.status(errInfo.status).json({
+            ...errInfo,
+            hint: errInfo.hint || (error.message.includes('timed out')
                 ? 'The wallet has too many transactions. The tree may take longer for active wallets.'
-                : undefined
+                : undefined)
         });
     }
 });
@@ -387,10 +459,8 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         }).catch(err => console.error('Failed to track analytics:', err));
     } catch (error: any) {
         console.error('Comparison error:', error);
-        res.status(500).json({
-            error: 'Comparison failed',
-            message: error.message
-        });
+        const errInfo = getUserFriendlyError(error);
+        res.status(errInfo.status).json(errInfo);
     }
 });
 
@@ -479,12 +549,12 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         }).catch(err => console.error('Failed to track analytics:', err));
     } catch (error: any) {
         console.error('Contract analysis error:', error.message);
-        res.status(500).json({
-            error: 'Contract analysis failed',
-            message: error.message,
-            hint: error.message.includes('timed out')
+        const errInfo = getUserFriendlyError(error);
+        res.status(errInfo.status).json({
+            ...errInfo,
+            hint: errInfo.hint || (error.message.includes('timed out')
                 ? 'The contract has too many interactions. Try limiting maxInteractors.'
-                : undefined
+                : undefined)
         });
     }
 });
@@ -550,12 +620,12 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
         }).catch(err => console.error('Failed to track analytics:', err));
     } catch (error: any) {
         console.error('Sybil analysis error:', error.message);
-        res.status(500).json({
-            error: 'Sybil analysis failed',
-            message: error.message,
-            hint: error.message.includes('timed out')
+        const errInfo = getUserFriendlyError(error);
+        res.status(errInfo.status).json({
+            ...errInfo,
+            hint: errInfo.hint || (error.message.includes('timed out')
                 ? 'The contract has too many interactors. Try reducing maxInteractors.'
-                : undefined
+                : undefined)
         });
     }
 });

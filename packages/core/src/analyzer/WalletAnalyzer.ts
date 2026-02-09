@@ -555,14 +555,71 @@ export class WalletAnalyzer {
             if (tx.to) uniqueAddresses.add(tx.to);
         }
 
-        // Calculate activity period - ALWAYS use wallet firstTxTimestamp for consistency
-        // This ensures the same result regardless of transaction limit/pagination
+        // Calculate activity period - prefer wallet firstTxTimestamp, but validate it
+        // and fall back to earliest transaction in the fetched set if needed
         const nowTimestamp = Math.floor(Date.now() / 1000);
-        const activityPeriodDays = (firstTxTimestamp && firstTxTimestamp > 0)
-            ? Math.max(1, Math.ceil((nowTimestamp - firstTxTimestamp) / 86400))
+
+        // Get the earliest transaction timestamp from our fetched set as a fallback
+        const txTimestamps = transactions.map(tx => tx.timestamp).filter(t => t > 0 && t < nowTimestamp);
+        const earliestFetchedTx = txTimestamps.length > 0 ? Math.min(...txTimestamps) : undefined;
+
+        // Validate firstTxTimestamp: must be positive, in the past, and not unreasonably close to now
+        let validFirstTx = firstTxTimestamp;
+        if (!validFirstTx || validFirstTx <= 0 || validFirstTx >= nowTimestamp) {
+            validFirstTx = earliestFetchedTx;
+        }
+        // If we have fetched transactions older than firstTxTimestamp, use those instead
+        if (earliestFetchedTx && validFirstTx && earliestFetchedTx < validFirstTx) {
+            validFirstTx = earliestFetchedTx;
+        }
+
+        const activityPeriodDays = (validFirstTx && validFirstTx > 0)
+            ? Math.max(1, Math.ceil((nowTimestamp - validFirstTx) / 86400))
             : 1;
 
-        console.log(`[ActivityPeriod] Using wallet firstTx: ${firstTxTimestamp}, Now: ${nowTimestamp}, Days: ${activityPeriodDays}`);
+        console.log(`[ActivityPeriod] firstTxTimestamp=${firstTxTimestamp}, earliestFetched=${earliestFetchedTx}, used=${validFirstTx}, days=${activityPeriodDays}`);
+
+        // Compute top funding sources from tree if available, otherwise from transactions
+        let topFundingSources: Array<{ address: string; valueEth: number }>;
+        if (sources.children.length > 0) {
+            topFundingSources = sources.children
+                .slice(0, 5)
+                .map(c => ({ address: c.address, valueEth: c.totalValueInEth }));
+        } else {
+            // Derive from incoming transactions — group by sender, sort by total value
+            const senderMap = new Map<string, number>();
+            for (const tx of transactions) {
+                if (tx.isIncoming && tx.valueInEth > 0) {
+                    const sender = tx.from.toLowerCase();
+                    senderMap.set(sender, (senderMap.get(sender) || 0) + tx.valueInEth);
+                }
+            }
+            topFundingSources = Array.from(senderMap.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([address, valueEth]) => ({ address, valueEth }));
+        }
+
+        // Compute top funding destinations from tree if available, otherwise from transactions
+        let topFundingDestinations: Array<{ address: string; valueEth: number }>;
+        if (destinations.children.length > 0) {
+            topFundingDestinations = destinations.children
+                .slice(0, 5)
+                .map(c => ({ address: c.address, valueEth: c.totalValueInEth }));
+        } else {
+            // Derive from outgoing transactions — group by recipient, sort by total value
+            const recipientMap = new Map<string, number>();
+            for (const tx of transactions) {
+                if (!tx.isIncoming && tx.to && tx.valueInEth > 0) {
+                    const recipient = tx.to.toLowerCase();
+                    recipientMap.set(recipient, (recipientMap.get(recipient) || 0) + tx.valueInEth);
+                }
+            }
+            topFundingDestinations = Array.from(recipientMap.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([address, valueEth]) => ({ address, valueEth }));
+        }
 
         return {
             totalTransactions: transactions.length,
@@ -571,12 +628,8 @@ export class WalletAnalyzer {
             totalValueSentEth: totalSent,
             totalValueReceivedEth: totalReceived,
             uniqueInteractedAddresses: uniqueAddresses.size,
-            topFundingSources: sources.children
-                .slice(0, 5)
-                .map(c => ({ address: c.address, valueEth: c.totalValueInEth })),
-            topFundingDestinations: destinations.children
-                .slice(0, 5)
-                .map(c => ({ address: c.address, valueEth: c.totalValueInEth })),
+            topFundingSources,
+            topFundingDestinations,
             activityPeriodDays: Math.max(1, activityPeriodDays),
             averageTxPerDay: transactions.length / Math.max(1, activityPeriodDays),
         };

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useAuth } from '../contexts/AuthContext';
-import { Wallet, Unlink, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Wallet01Icon } from '@hugeicons/core-free-icons';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 export function WalletButton() {
@@ -29,41 +31,27 @@ export function WalletButton() {
   const isWalletConnected = isConnected || !!wallet?.address;
   const displayAddress = address || wallet?.address;
 
+  const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+
   return (
     <>
       {isWalletConnected && displayAddress ? (
-        // Connected state - match upgrade-btn size
         <button
+          className="connect-btn connected"
           onClick={handleDisconnectClick}
-          className="btn btn-ghost"
-          style={{
-            padding: 'var(--space-2) var(--space-3)',
-            fontSize: 'var(--text-xs)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-1)'
-          }}
           title="Disconnect wallet"
         >
-          <Unlink size={14} />
-          <span>{displayAddress.slice(0, 6)}...{displayAddress.slice(-4)}</span>
+          <HugeiconsIcon icon={Wallet01Icon} size={18} strokeWidth={1.5} />
+          <span>{formatAddress(displayAddress)}</span>
         </button>
       ) : (
-        // Disconnected state - match upgrade-btn size
         <button
+          className="connect-btn"
           onClick={handleConnect}
-          className="btn btn-primary"
-          style={{
-            padding: 'var(--space-2) var(--space-3)',
-            fontSize: 'var(--text-xs)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-1)'
-          }}
           title="Connect wallet"
         >
-          <Wallet size={14} />
-          <span>Connect</span>
+          <HugeiconsIcon icon={Wallet01Icon} size={18} strokeWidth={1.5} />
+          <span>Connect Wallet</span>
         </button>
       )}
 
@@ -88,7 +76,7 @@ export function WalletButton() {
         >
           <div
             style={{
-              backgroundColor: 'var(--color-surface)',
+              backgroundColor: 'var(--color-bg-elevated, var(--color-surface))',
               borderRadius: isMobile ? '16px 16px 0 0' : '12px',
               padding: '24px',
               maxWidth: isMobile ? '100%' : '400px',
@@ -104,41 +92,56 @@ export function WalletButton() {
                   width: 48,
                   height: 48,
                   borderRadius: '50%',
-                  background: 'rgba(239, 68, 68, 0.1)',
+                  background: 'color-mix(in srgb, var(--color-danger, #ef4444) 10%, transparent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 16px',
                 }}
               >
-                <AlertCircle size={24} color="var(--color-negative)" />
+                <AlertCircle size={24} color="var(--color-danger, #ef4444)" />
               </div>
-              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--color-text-primary)' }}>
                 Disconnect Wallet?
               </h3>
               <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>
                 Are you sure you want to disconnect your wallet? You'll need to reconnect it to perform analyses.
               </p>
-              <p style={{ color: 'var(--color-success)', fontSize: '13px', marginTop: '12px', padding: '8px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '6px' }}>
-                ✓ Your premium tier is tied to your account email, not this wallet. You won't lose your tier access.
+              <p style={{ color: 'var(--color-success, #10b981)', fontSize: '13px', marginTop: '12px', padding: '8px', background: 'color-mix(in srgb, var(--color-success, #10b981) 10%, transparent)', borderRadius: '6px' }}>
+                Your premium tier is tied to your account email, not this wallet. You won't lose your tier access.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 onClick={() => setShowConfirm(false)}
-                className="btn btn-ghost"
-                style={{ flex: 1, minHeight: 44 }}
+                style={{
+                  flex: 1,
+                  minHeight: 44,
+                  padding: '10px 20px',
+                  borderRadius: 8,
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-bg-hover, var(--color-bg-elevated))',
+                  color: 'var(--color-text-secondary)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDisconnect}
-                className="btn btn-primary"
-                style={{ 
+                style={{
                   flex: 1,
-                  background: 'var(--color-negative)',
-                  borderColor: 'var(--color-negative)',
                   minHeight: 44,
+                  padding: '10px 20px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'var(--color-danger, #ef4444)',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
                 }}
               >
                 Disconnect

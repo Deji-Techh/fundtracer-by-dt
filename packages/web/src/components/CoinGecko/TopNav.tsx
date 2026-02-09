@@ -18,13 +18,12 @@ import { searchDEXScreenerPairs } from '../../api';
 import { MobileFooter } from '../common/MobileFooter';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { WalletButton } from '../WalletButton';
 
 interface TopNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  onConnectWallet: () => void;
-  isWalletConnected: boolean;
-  walletAddress?: string;
 }
 
 interface SearchResult {
@@ -41,12 +40,11 @@ interface SearchResult {
 const TopNav: React.FC<TopNavProps> = ({
   activeTab,
   onTabChange,
-  onConnectWallet,
-  isWalletConnected,
-  walletAddress
 }) => {
   const isMobile = useIsMobile();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { profile } = useAuth();
+  const tier = (profile?.tier || 'free').toUpperCase();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -58,14 +56,10 @@ const TopNav: React.FC<TopNavProps> = ({
   const navLinks = [
     { id: 'home', label: 'Home', icon: Home01Icon },
     { id: 'portfolio', label: 'Portfolio', icon: Wallet01Icon },
-    { id: 'history', label: 'History', icon: Clock01Icon },
     { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
+    { id: 'history', label: 'History', icon: Clock01Icon },
     { id: 'settings', label: 'Settings', icon: Settings01Icon },
   ];
-
-  const formatWalletAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
 
   // Handle search with debounce
   useEffect(() => {
@@ -301,17 +295,27 @@ const TopNav: React.FC<TopNavProps> = ({
           >
             <HugeiconsIcon icon={isDark ? Sun02Icon : Moon02Icon} size={20} strokeWidth={1.5} />
           </button>
-          <button
-            className={`connect-btn ${isWalletConnected ? 'connected' : ''}`}
-            onClick={onConnectWallet}
+          {/* Tier Badge */}
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '4px 10px',
+              borderRadius: 6,
+              fontSize: '0.6875rem',
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              lineHeight: 1,
+              background: tier === 'MAX' ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
+                : tier === 'PRO' ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+                : 'var(--color-bg-elevated)',
+              color: tier === 'FREE' ? 'var(--color-text-muted)' : '#ffffff',
+              border: tier === 'FREE' ? '1px solid var(--color-border)' : 'none',
+            }}
           >
-            <HugeiconsIcon icon={Wallet01Icon} size={18} strokeWidth={1.5} />
-            <span>
-              {isWalletConnected && walletAddress
-                ? formatWalletAddress(walletAddress)
-                : 'Connect Wallet'}
-            </span>
-          </button>
+            {tier}
+          </span>
+          <WalletButton />
         </div>
       </nav>
 

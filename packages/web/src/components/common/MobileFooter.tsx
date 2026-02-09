@@ -17,8 +17,8 @@ export function MobileFooter({ activeTab, onTabChange }: MobileFooterProps) {
   const navItems = [
     { id: 'home', label: 'Home', icon: Home01Icon },
     { id: 'portfolio', label: 'Portfolio', icon: Wallet01Icon },
-    { id: 'history', label: 'History', icon: Clock01Icon },
     { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
+    { id: 'history', label: 'History', icon: Clock01Icon },
     { id: 'settings', label: 'Settings', icon: Settings01Icon },
   ];
 

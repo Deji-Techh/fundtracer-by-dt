@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { 
   Wallet01Icon, 
@@ -28,6 +28,9 @@ interface SybilPageProps {
   onConnectWallet: () => void;
   isWalletConnected: boolean;
   walletAddress: string;
+  prefillAddress?: string;
+  prefillChain?: string;
+  onPrefillConsumed?: () => void;
 }
 
 type ViewMode = 'wallet' | 'contract' | 'compare' | 'sybil';
@@ -37,7 +40,10 @@ const SybilPage: React.FC<SybilPageProps> = ({
   profile,
   onConnectWallet,
   isWalletConnected,
-  walletAddress
+  walletAddress,
+  prefillAddress,
+  prefillChain,
+  onPrefillConsumed
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('wallet');
   const [selectedChain, setSelectedChain] = useState<ChainId>('ethereum');
@@ -48,7 +54,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
   // Analysis state
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; hint?: string } | null>(null);
   const [walletResult, setWalletResult] = useState<AnalysisResult | null>(null);
   const [multiWalletResult, setMultiWalletResult] = useState<MultiWalletResult | null>(null);
   const [contractResult, setContractResult] = useState<ContractAnalysisResult | null>(null);
@@ -57,6 +63,21 @@ const SybilPage: React.FC<SybilPageProps> = ({
   const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
 
   const isMobile = useIsMobile();
+
+  // Handle prefill from history page navigation
+  useEffect(() => {
+    if (prefillAddress) {
+      setWalletAddresses([prefillAddress]);
+      if (prefillChain) {
+        setSelectedChain(prefillChain as ChainId);
+      }
+      setViewMode('wallet');
+      // Clear any previous results so user sees the input
+      setWalletResult(null);
+      setError(null);
+      onPrefillConsumed?.();
+    }
+  }, [prefillAddress, prefillChain]);
 
   const handleChainSelect = (chainId: ChainId) => {
     setSelectedChain(chainId);
@@ -106,9 +127,20 @@ const SybilPage: React.FC<SybilPageProps> = ({
         if (response.result.pagination) {
           setPagination(response.result.pagination);
         }
+
+        // Update history with analysis summary
+        addToHistory(address, selectedChain, undefined, {
+          riskScore: response.result.overallRiskScore,
+          riskLevel: response.result.riskLevel,
+          totalTransactions: response.result.summary?.totalTransactions,
+          totalValueSentEth: response.result.summary?.totalValueSentEth,
+          totalValueReceivedEth: response.result.summary?.totalValueReceivedEth,
+          activityPeriodDays: response.result.summary?.activityPeriodDays,
+          balanceInEth: response.result.wallet?.balanceInEth,
+        });
       }
     } catch (err: any) {
-      setError(err.message);
+      setError({ message: err.message, hint: err.hint });
     } finally {
       setLoading(false);
     }
@@ -162,7 +194,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
         setMultiWalletResult(response.result);
       }
     } catch (err: any) {
-      setError(err.message);
+      setError({ message: err.message, hint: err.hint });
     } finally {
       setLoading(false);
     }
@@ -190,7 +222,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
         setContractResult(response.result);
       }
     } catch (err: any) {
-      setError(err.message);
+      setError({ message: err.message, hint: err.hint });
     } finally {
       setLoading(false);
     }
@@ -374,13 +406,31 @@ const SybilPage: React.FC<SybilPageProps> = ({
           {error && (
             <div style={{ 
               marginTop: 16, 
-              padding: 12, 
-              background: 'var(--color-negative)', 
+              padding: 16, 
+              background: 'var(--color-bg-elevated)', 
+              border: '1px solid var(--color-danger, #ef4444)',
               color: 'var(--color-text-primary)', 
-              borderRadius: 8,
+              borderRadius: 12,
               fontSize: '0.875rem'
             }}>
-              {error}
+              <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--color-danger, #ef4444)' }}>
+                Analysis Error
+              </div>
+              <div style={{ color: 'var(--color-text-secondary)', marginBottom: error.hint ? 8 : 0 }}>
+                {error.message}
+              </div>
+              {error.hint && (
+                <div style={{
+                  padding: '8px 12px',
+                  background: 'var(--color-bg-tertiary)',
+                  borderRadius: 8,
+                  fontSize: '0.8125rem',
+                  color: 'var(--color-text-muted)',
+                  borderLeft: '2px solid var(--color-text-muted)',
+                }}>
+                  {error.hint}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -410,7 +460,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
         )}
 
         {viewMode === 'compare' && multiWalletResult && (
-          <MultiWalletView result={multiWalletResult} />
+          <MultiWalletView result={multiWalletResult} chain={selectedChain} />
         )}
       </div>
     </div>

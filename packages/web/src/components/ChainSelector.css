@@ -11,8 +11,8 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-bg-elevated, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
   border-radius: 8px;
   color: var(--color-text-secondary);
   font-size: 0.875rem;
@@ -22,15 +22,22 @@
 }
 
 .chain-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: var(--color-text-secondary);
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.05));
+  border-color: var(--color-border-light, rgba(255, 255, 255, 0.15));
+  color: var(--color-text-primary);
 }
 
 .chain-btn-active {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: var(--color-text-primary);
+  background: var(--color-accent, #3b82f6);
+  border-color: var(--color-accent, #3b82f6);
+  color: #ffffff;
+}
+
+.chain-btn-active:hover {
+  background: var(--color-accent, #3b82f6);
+  border-color: var(--color-accent, #3b82f6);
+  color: #ffffff;
+  opacity: 0.9;
 }
 
 .chain-dot {
@@ -42,8 +49,12 @@
 }
 
 .chain-dot-active {
-  background: var(--color-text-primary);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.chain-btn-active .chain-dot-active {
+  background: #ffffff;
 }
 
 .chain-lock {
@@ -52,7 +63,7 @@
   gap: 4px;
   font-size: 0.625rem;
   color: var(--color-text-muted);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-bg-elevated, rgba(255, 255, 255, 0.05));
   padding: 2px 6px;
   border-radius: 4px;
   margin-left: 4px;
@@ -70,8 +81,8 @@
   gap: 12px;
   width: 100%;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-bg-elevated, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
   color: var(--color-text-primary);
   font-size: 0.875rem;
@@ -81,8 +92,8 @@
 }
 
 .chain-dropdown-trigger:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.05));
+  border-color: var(--color-border-light, rgba(255, 255, 255, 0.15));
 }
 
 .chain-selected-name {
@@ -104,9 +115,9 @@
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: rgba(10, 10, 10, 0.98);
+  background: var(--color-bg, rgba(10, 10, 10, 0.98));
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   border-radius: 12px;
   padding: 8px;
   z-index: 100;
@@ -142,13 +153,19 @@
 }
 
 .chain-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--color-text-secondary);
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.05));
+  color: var(--color-text-primary);
 }
 
 .chain-dropdown-item-active {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--color-text-primary);
+  background: var(--color-accent, #3b82f6);
+  color: #ffffff;
+}
+
+.chain-dropdown-item-active:hover {
+  background: var(--color-accent, #3b82f6);
+  color: #ffffff;
+  opacity: 0.9;
 }
 
 .chain-item-name {

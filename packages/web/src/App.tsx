@@ -41,7 +41,10 @@ const PortfolioAnalytics = lazy(() => import('./components/PortfolioAnalytics').
 // Import SettingsPage
 import SettingsPage from './components/SettingsPage';
 
-type TabType = 'home' | 'portfolio' | 'history' | 'sybil' | 'settings';
+// Import HistoryPage
+import HistoryPage from './components/HistoryPage';
+
+type TabType = 'home' | 'portfolio' | 'sybil' | 'history' | 'settings';
 
 function App() {
   // Simple routing for standalone pages
@@ -112,6 +115,10 @@ function App() {
   // Navigation state
   const [activeTab, setActiveTab] = useState<TabType>('home');
   
+  // Prefill state for navigating from history → sybil tab
+  const [prefillAddress, setPrefillAddress] = useState<string>('');
+  const [prefillChain, setPrefillChain] = useState<string>('');
+  
   // Wallet state - synced with AppKit
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string>('');
@@ -155,13 +162,8 @@ function App() {
     }
   }, [user]);
 
-  // Check if wallet is already connected
-  React.useEffect(() => {
-    if (user?.uid) {
-      // Wallet address would come from a separate wallet context/provider
-      setIsWalletConnected(false);
-    }
-  }, [user]);
+  // Wallet state is synced from AppKit via the useEffect above (lines 129-137).
+  // No additional wallet reset logic needed — AppKit is the single source of truth.
 
   // Mobile detection
   const isMobileDevice = useCallback(() => {
@@ -178,24 +180,19 @@ function App() {
   }, []);
 
   const handleConnectWallet = useCallback(() => {
-    if (isWalletConnected) {
-      // Disconnect wallet logic
-      setIsWalletConnected(false);
-      setWalletAddress('');
-    } else {
+    if (!isWalletConnected) {
       // Open AppKit wallet connection modal
       // IMPORTANT: Must be synchronous for mobile deep links to work
       open();
 
       // On mobile regular browsers (not wallet browsers), AppKit modal
-      // may spin indefinitely. Set a timeout to detect this and show
-      // the native AppKit modal which has its own wallet deep-link buttons.
-      // The AppKit v1.8+ modal already handles mobile deep links natively,
-      // so we just need to ensure it opens properly.
+      // may spin indefinitely. The AppKit v1.8+ modal handles mobile
+      // deep links natively, so we just ensure it opens properly.
       if (isMobileDevice() && !isWalletBrowser()) {
         console.log('[App] Mobile regular browser detected - AppKit modal opened with deep-link support');
       }
     }
+    // Disconnect is handled by WalletButton component directly
   }, [isWalletConnected, open, isMobileDevice, isWalletBrowser]);
 
   // Render main content based on active tab
@@ -236,14 +233,13 @@ function App() {
         <div style={{ 
           display: activeTab === 'history' ? 'block' : 'none' 
         }} className="main-content">
-          <div style={{ padding: 24 }}>
-            <h2 style={{ color: 'var(--color-text-primary)', marginBottom: 24, marginTop: 16 }}>Transaction History</h2>
-            <div className="card" style={{ textAlign: 'center', padding: 48 }}>
-              <p style={{ color: 'var(--color-text-secondary)' }}>
-                Connect your wallet and analyze an address to view transaction history
-              </p>
-            </div>
-          </div>
+          <HistoryPage
+            onSelectScan={(address, chain) => {
+              setPrefillAddress(address);
+              setPrefillChain(chain);
+              setActiveTab('sybil');
+            }}
+          />
         </div>
         
         {/* Sybil Tab */}
@@ -256,6 +252,9 @@ function App() {
             onConnectWallet={handleConnectWallet}
             isWalletConnected={isWalletConnected}
             walletAddress={walletAddress}
+            prefillAddress={prefillAddress}
+            prefillChain={prefillChain}
+            onPrefillConsumed={() => { setPrefillAddress(''); setPrefillChain(''); }}
           />
         </div>
         
@@ -276,9 +275,6 @@ function App() {
         <TopNav
           activeTab={activeTab}
           onTabChange={(tab) => setActiveTab(tab as TabType)}
-          onConnectWallet={handleConnectWallet}
-          isWalletConnected={isWalletConnected}
-          walletAddress={walletAddress}
         />
       )}
 

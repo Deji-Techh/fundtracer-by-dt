@@ -1,18 +1,22 @@
 import React from 'react';
-import { MultiWalletResult } from '@fundtracer/core';
+import { MultiWalletResult, ChainId, CHAINS } from '@fundtracer/core';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 interface MultiWalletViewProps {
     result: MultiWalletResult;
+    chain: ChainId;
 }
 
-function MultiWalletView({ result }: MultiWalletViewProps) {
+function MultiWalletView({ result, chain }: MultiWalletViewProps) {
     const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
     const [showAllSources, setShowAllSources] = React.useState(false);
     const [showAllDestinations, setShowAllDestinations] = React.useState(false);
     const [showSourcesAsList, setShowSourcesAsList] = React.useState(false);
     const [showDestinationsAsList, setShowDestinationsAsList] = React.useState(false);
     const isMobile = useIsMobile();
+
+    const chainConfig = CHAINS[chain];
+    const explorerBase = chainConfig?.explorer || 'https://etherscan.io';
 
     // Defensive ETH conversion - some transactions may have incorrect valueInEth
     const safeEthValue = (tx: any) => {
@@ -25,22 +29,27 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
         return tx.valueInEth;
     };
 
+    const hasNoFindings = result.commonFundingSources.length === 0 
+        && result.commonDestinations.length === 0 
+        && result.directTransfers.length === 0 
+        && result.sharedProjects.length === 0;
+
     return (
         <div className="stagger-children">
             {/* Correlation Score */}
             <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
                     <div>
                         <h2 style={{ marginBottom: 'var(--space-2)', fontSize: 'var(--text-lg)' }}>Multi-Wallet Analysis</h2>
                         <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-                            Comparing {result.wallets.length} wallets for shared activity and relationships
+                            Comparing {result.wallets.length} wallets on {chainConfig?.name || chain} for shared activity
                         </p>
                     </div>
 
                     <div className="risk-score">
                         <span
                             className="risk-score-value"
-                            style={{ color: result.correlationScore > 60 ? 'var(--color-danger-text)' : 'var(--color-success-text)' }}
+                            style={{ color: result.correlationScore > 60 ? 'var(--color-danger-text, var(--color-danger, #ef4444))' : result.correlationScore > 30 ? 'var(--color-warning-text, var(--color-warning, #f59e0b))' : 'var(--color-success-text, var(--color-success, #10b981))' }}
                         >
                             {result.correlationScore}%
                         </span>
@@ -60,7 +69,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
             <div className="stats-grid" style={{ marginBottom: 'var(--space-4)' }}>
                 <div className="stat-card">
                     <div className="stat-label">Common Funding Sources</div>
-                    <div className="stat-value" style={{ color: result.commonFundingSources.length > 0 ? 'var(--color-warning-text)' : undefined }}>
+                    <div className="stat-value" style={{ color: result.commonFundingSources.length > 0 ? 'var(--color-warning-text, var(--color-warning, #f59e0b))' : undefined }}>
                         {result.commonFundingSources.length}
                     </div>
                 </div>
@@ -74,11 +83,28 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Direct Transfers</div>
-                    <div className="stat-value" style={{ color: result.directTransfers.length > 0 ? 'var(--color-danger-text)' : undefined }}>
+                    <div className="stat-value" style={{ color: result.directTransfers.length > 0 ? 'var(--color-danger-text, var(--color-danger, #ef4444))' : undefined }}>
                         {result.directTransfers.length}
                     </div>
                 </div>
             </div>
+
+            {/* No findings message */}
+            {hasNoFindings && !result.isSybilLikely && (
+                <div className="card" style={{ marginBottom: 'var(--space-4)', textAlign: 'center', padding: 'var(--space-8)' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 'var(--space-3)' }}>
+                        {result.correlationScore < 20 ? '' : ''}
+                    </div>
+                    <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-2)' }}>
+                        {result.correlationScore < 20 ? 'No Significant Correlation Found' : 'Limited Correlation Found'}
+                    </h3>
+                    <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', maxWidth: 480, margin: '0 auto' }}>
+                        {result.correlationScore < 20
+                            ? 'These wallets appear to be independent with no shared funding sources, destinations, or direct transfers.'
+                            : 'Some minor correlation detected but no strong evidence of coordinated behavior.'}
+                    </p>
+                </div>
+            )}
 
             {/* Common Funding Sources */}
             {result.commonFundingSources.length > 0 && (
@@ -86,30 +112,10 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                     <h3 className="card-title" style={{ marginBottom: 'var(--space-4)' }}>
                         Common Funding Sources
                     </h3>
-                    <p style={{ color: 'var(--color-warning-text)', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>
+                    <p style={{ color: 'var(--color-warning-text, var(--color-warning, #f59e0b))', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>
                         These wallets share the same funding sources, which may indicate a common origin.
                     </p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
-                        {(showAllSources ? result.commonFundingSources : result.commonFundingSources.slice(0, 12)).map((addr) => (
-                            <a
-                                key={addr}
-                                href={`https://etherscan.io/address/${addr}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                    padding: 'var(--space-2) var(--space-3)',
-                                    background: 'var(--color-warning-bg)',
-                                    borderRadius: 'var(--radius-md)',
-                                    fontFamily: 'var(--font-mono)',
-                                    fontSize: 'var(--text-xs)',
-                                    color: 'var(--color-warning-text)',
-                                }}
-                            >
-                                {formatAddress(addr)}
-                            </a>
-                        ))}
-                    </div>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
                         <button
                             onClick={() => setShowSourcesAsList(!showSourcesAsList)}
                             className="btn btn-secondary btn-sm"
@@ -148,17 +154,19 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                         alignItems: 'center'
                                     }}
                                 >
-                                    <span style={{ color: 'var(--color-warning-text)', wordBreak: 'break-all' }}>{isMobile ? formatAddress(addr) : addr}</span>
+                                    <span style={{ color: 'var(--color-warning-text, var(--color-warning, #f59e0b))', wordBreak: 'break-all' }}>{isMobile ? formatAddress(addr) : addr}</span>
                                     <a
-                                        href={`https://etherscan.io/address/${addr}`}
+                                        href={`${explorerBase}/address/${addr}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         style={{
                                             color: 'var(--color-text-muted)',
-                                            fontSize: '11px'
+                                            fontSize: '11px',
+                                            whiteSpace: 'nowrap',
+                                            marginLeft: 8,
                                         }}
                                     >
-                                        View ↗
+                                        View
                                     </a>
                                 </div>
                             ))}
@@ -168,16 +176,16 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                             {(showAllSources ? result.commonFundingSources : result.commonFundingSources.slice(0, 12)).map((addr) => (
                                 <a
                                     key={addr}
-                                    href={`https://etherscan.io/address/${addr}`}
+                                    href={`${explorerBase}/address/${addr}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     style={{
                                         padding: 'var(--space-2) var(--space-3)',
-                                        background: 'var(--color-warning-bg)',
+                                        background: 'var(--color-warning-bg, rgba(245, 158, 11, 0.05))',
                                         borderRadius: 'var(--radius-md)',
                                         fontFamily: 'var(--font-mono)',
                                         fontSize: 'var(--text-xs)',
-                                        color: 'var(--color-warning-text)',
+                                        color: 'var(--color-warning-text, var(--color-warning, #f59e0b))',
                                     }}
                                 >
                                     {formatAddress(addr)}
@@ -197,27 +205,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                     <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>
                         These wallets have sent funds to the same addresses.
                     </p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
-                        {(showAllDestinations ? result.commonDestinations : result.commonDestinations.slice(0, 12)).map((addr) => (
-                            <a
-                                key={addr}
-                                href={`https://etherscan.io/address/${addr}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                    padding: 'var(--space-2) var(--space-3)',
-                                    background: 'var(--color-info-bg)',
-                                    borderRadius: 'var(--radius-md)',
-                                    fontFamily: 'var(--font-mono)',
-                                    fontSize: 'var(--text-xs)',
-                                    color: 'var(--color-info-text)',
-                                }}
-                            >
-                                {formatAddress(addr)}
-                            </a>
-                        ))}
-                    </div>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
                         <button
                             onClick={() => setShowDestinationsAsList(!showDestinationsAsList)}
                             className="btn btn-secondary btn-sm"
@@ -256,17 +244,19 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                         alignItems: 'center'
                                     }}
                                 >
-                                    <span style={{ color: 'var(--color-info-text)', wordBreak: 'break-all' }}>{isMobile ? formatAddress(addr) : addr}</span>
+                                    <span style={{ color: 'var(--color-info-text, var(--color-accent, #3b82f6))', wordBreak: 'break-all' }}>{isMobile ? formatAddress(addr) : addr}</span>
                                     <a
-                                        href={`https://etherscan.io/address/${addr}`}
+                                        href={`${explorerBase}/address/${addr}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         style={{
                                             color: 'var(--color-text-muted)',
-                                            fontSize: '11px'
+                                            fontSize: '11px',
+                                            whiteSpace: 'nowrap',
+                                            marginLeft: 8,
                                         }}
                                     >
-                                        View ↗
+                                        View
                                     </a>
                                 </div>
                             ))}
@@ -276,16 +266,16 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                             {(showAllDestinations ? result.commonDestinations : result.commonDestinations.slice(0, 12)).map((addr) => (
                                 <a
                                     key={addr}
-                                    href={`https://etherscan.io/address/${addr}`}
+                                    href={`${explorerBase}/address/${addr}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     style={{
                                         padding: 'var(--space-2) var(--space-3)',
-                                        background: 'var(--color-info-bg)',
+                                        background: 'var(--color-info-bg, rgba(59, 130, 246, 0.05))',
                                         borderRadius: 'var(--radius-md)',
                                         fontFamily: 'var(--font-mono)',
                                         fontSize: 'var(--text-xs)',
-                                        color: 'var(--color-info-text)',
+                                        color: 'var(--color-info-text, var(--color-accent, #3b82f6))',
                                     }}
                                 >
                                     {formatAddress(addr)}
@@ -317,7 +307,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                             padding: 12,
                                             background: 'var(--color-bg-tertiary)',
                                             borderRadius: 8,
-                                            borderLeft: '3px solid var(--color-danger-text)',
+                                            borderLeft: '3px solid var(--color-danger-text, var(--color-danger, #ef4444))',
                                         }}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -332,7 +322,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                             <div style={{ marginBottom: 2 }}>
                                                 From:{' '}
                                                 <a
-                                                    href={`https://etherscan.io/address/${tx.from}`}
+                                                    href={`${explorerBase}/address/${tx.from}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     style={{ color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}
@@ -344,7 +334,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                                 To:{' '}
                                                 {tx.to ? (
                                                     <a
-                                                        href={`https://etherscan.io/address/${tx.to}`}
+                                                        href={`${explorerBase}/address/${tx.to}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         style={{ color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}
@@ -377,7 +367,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                             <tr key={i}>
                                                 <td className="tx-address">
                                                     <a
-                                                        href={`https://etherscan.io/address/${tx.from}`}
+                                                        href={`${explorerBase}/address/${tx.from}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         style={{ color: 'var(--color-text-primary)' }}
@@ -388,7 +378,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                                 <td className="tx-address">
                                                     {tx.to ? (
                                                         <a
-                                                            href={`https://etherscan.io/address/${tx.to}`}
+                                                            href={`${explorerBase}/address/${tx.to}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             style={{ color: 'var(--color-text-primary)' }}
@@ -425,17 +415,22 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                 background: 'var(--color-bg-tertiary)',
                                 borderRadius: 'var(--radius-md)',
                                 borderLeft: `3px solid ${wallet.riskLevel === 'critical' || wallet.riskLevel === 'high'
-                                    ? 'var(--color-danger-text)'
+                                    ? 'var(--color-danger-text, var(--color-danger, #ef4444))'
                                     : wallet.riskLevel === 'medium'
-                                        ? 'var(--color-warning-text)'
-                                        : 'var(--color-success-text)'
+                                        ? 'var(--color-warning-text, var(--color-warning, #f59e0b))'
+                                        : 'var(--color-success-text, var(--color-success, #10b981))'
                                     }`,
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
-                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
+                                <a
+                                    href={`${explorerBase}/address/${wallet.wallet.address}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-primary)' }}
+                                >
                                     {formatAddress(wallet.wallet.address)}
-                                </span>
+                                </a>
                                 <span className={`risk-badge ${wallet.riskLevel}`}>
                                     {wallet.overallRiskScore} pts
                                 </span>
@@ -454,7 +449,7 @@ function MultiWalletView({ result }: MultiWalletViewProps) {
                                     <div style={{ color: 'var(--color-text-muted)' }}>Suspicious Flags</div>
                                     <div style={{
                                         fontFamily: 'var(--font-mono)',
-                                        color: wallet.suspiciousIndicators.length > 0 ? 'var(--color-warning-text)' : 'var(--color-success-text)'
+                                        color: wallet.suspiciousIndicators.length > 0 ? 'var(--color-warning-text, var(--color-warning, #f59e0b))' : 'var(--color-success-text, var(--color-success, #10b981))'
                                     }}>
                                         {wallet.suspiciousIndicators.length}
                                     </div>
