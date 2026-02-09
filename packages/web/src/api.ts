@@ -309,7 +309,7 @@ export async function fetchDuneInteractors(
     chain: ChainId,
     options?: { limit?: number; customApiKey?: string }
 ): Promise<{ success: boolean; wallets?: string[]; error?: string }> {
-    return apiRequest('/api/dune/interactors', 'POST', {
+    return apiRequest('/api/dune/fetch', 'POST', {
         contractAddress,
         chain,
         ...options
@@ -322,7 +322,7 @@ export async function analyzeSybilAddresses(
     chain: ChainId,
     options?: { txHash?: string }
 ): Promise<{ success: boolean; result?: any; error?: string }> {
-    return apiRequest('/api/analyze/sybil-batch', 'POST', { addresses, chain, txHash: options?.txHash });
+    return apiRequest('/api/analyze/sybil-addresses', 'POST', { addresses, chain, txHash: options?.txHash });
 }
 
 // Search tokens via CoinGecko

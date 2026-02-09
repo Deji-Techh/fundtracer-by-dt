@@ -3,6 +3,7 @@ export interface HistoryItem {
     label?: string;
     timestamp: number;
     chain?: string;
+    type?: 'wallet' | 'contract' | 'compare' | 'sybil';
     // Analysis summary (stored after successful scan)
     riskScore?: number;
     riskLevel?: string;
@@ -37,7 +38,8 @@ export const addToHistory = (
         totalValueReceivedEth?: number;
         activityPeriodDays?: number;
         balanceInEth?: number;
-    }
+    },
+    type?: 'wallet' | 'contract' | 'compare' | 'sybil'
 ) => {
     const history = getHistory();
     // Remove if exists (to move to top)
@@ -48,6 +50,7 @@ export const addToHistory = (
         label,
         timestamp: Date.now(),
         chain,
+        type: type || 'wallet',
         ...summary,
     };
 

@@ -39,6 +39,15 @@ function getRiskBg(level?: string): string {
   }
 }
 
+function getTypeLabel(type?: string): { label: string; color: string; bg: string } {
+  switch (type) {
+    case 'contract': return { label: 'Contract', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)' };
+    case 'compare': return { label: 'Compare', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)' };
+    case 'sybil': return { label: 'Sybil', color: '#ea580c', bg: 'rgba(234, 88, 12, 0.12)' };
+    default: return { label: 'Wallet', color: 'var(--color-text-muted)', bg: 'var(--color-bg-elevated)' };
+  }
+}
+
 function formatRelativeTime(timestamp: number): string {
   const now = Date.now();
   const diff = now - timestamp;
@@ -268,9 +277,13 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap' as const,
                       }}>
-                        {isMobile
-                          ? `${item.address.slice(0, 8)}...${item.address.slice(-6)}`
-                          : item.address
+                        {item.type === 'compare'
+                          ? (isMobile
+                            ? `${item.address.split(',').length} wallets`
+                            : item.address.split(',').map(a => `${a.slice(0, 6)}...${a.slice(-4)}`).join(', '))
+                          : (isMobile
+                            ? `${item.address.slice(0, 8)}...${item.address.slice(-6)}`
+                            : item.address)
                         }
                       </span>
                     </div>
@@ -285,6 +298,25 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
                       <span>{getChainName(item.chain)}</span>
                       <span style={{ opacity: 0.4 }}>|</span>
                       <span>{formatRelativeTime(item.timestamp)}</span>
+                      {item.type && item.type !== 'wallet' && (() => {
+                        const typeInfo = getTypeLabel(item.type);
+                        return (
+                          <>
+                            <span style={{ opacity: 0.4 }}>|</span>
+                            <span style={{
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              background: typeInfo.bg,
+                              color: typeInfo.color,
+                              fontSize: '0.6875rem',
+                              fontWeight: 600,
+                              letterSpacing: '0.02em',
+                            }}>
+                              {typeInfo.label}
+                            </span>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

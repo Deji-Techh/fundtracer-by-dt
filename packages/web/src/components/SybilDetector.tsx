@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ChainId, CHAINS, SybilAnalysisResult, SybilCluster } from '@fundtracer/core';
 import { analyzeSybilAddresses, fetchDuneInteractors } from '../api';
+import { addToHistory } from '../utils/history';
 import { useNotify } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -90,7 +91,7 @@ const Skeleton: React.FC<{ width?: string; height?: string; className?: string }
       width,
       height,
       borderRadius: '4px',
-      background: 'linear-gradient(90deg, rgba(40, 40, 40, 0.8) 0%, rgba(60, 60, 60, 0.8) 50%, rgba(40, 40, 40, 0.8) 100%)',
+      background: 'linear-gradient(90deg, var(--color-bg-elevated) 0%, var(--color-bg-tertiary) 50%, var(--color-bg-elevated) 100%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.5s ease-in-out infinite',
     }}
@@ -102,7 +103,7 @@ const SkeletonCard: React.FC = () => (
     padding: '16px',
     backgroundColor: 'var(--color-bg-elevated)',
     borderRadius: '8px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '1px solid var(--color-border)',
     marginBottom: '12px',
   }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
@@ -373,10 +374,10 @@ const NetworkGraph: React.FC<{
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        backgroundColor: 'rgba(26, 26, 26, 0.9)',
+        backgroundColor: 'var(--color-bg-elevated)',
         padding: '8px',
         borderRadius: '8px',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        border: '1px solid var(--color-border)',
       }}>
         <button onClick={handleZoomIn} style={graphControlBtnStyle} title="Zoom in">
           <HugeiconsIcon icon={Search01Icon} size={18} strokeWidth={1.5} />
@@ -394,10 +395,10 @@ const NetworkGraph: React.FC<{
         position: 'absolute',
         bottom: '12px',
         left: '12px',
-        backgroundColor: 'rgba(26, 26, 26, 0.9)',
+        backgroundColor: 'var(--color-bg-elevated)',
         padding: '12px',
         borderRadius: '8px',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        border: '1px solid var(--color-border)',
       }}>
         <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '8px', color: 'var(--color-text-secondary)' }}>
           Risk Levels
@@ -574,9 +575,9 @@ const ExportDropdown: React.FC<{
           gap: '8px',
           padding: '10px 16px',
           backgroundColor: 'var(--color-bg-elevated)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid var(--color-border)',
           borderRadius: '8px',
-          color: '#e5e5e5',
+          color: 'var(--color-text-primary)',
           fontSize: '0.875rem',
           fontWeight: 500,
           cursor: 'pointer',
@@ -600,7 +601,7 @@ const ExportDropdown: React.FC<{
           top: 'calc(100% + 8px)',
           right: 0,
           backgroundColor: 'var(--color-bg-elevated)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid var(--color-border)',
           borderRadius: '8px',
           padding: '8px',
           minWidth: '180px',
@@ -633,7 +634,7 @@ const exportOptionStyle: React.CSSProperties = {
   padding: '10px 12px',
   background: 'none',
   border: 'none',
-  color: '#e5e5e5',
+  color: 'var(--color-text-primary)',
   fontSize: '0.875rem',
   cursor: 'pointer',
   borderRadius: '6px',
@@ -651,7 +652,7 @@ const ClusterCard: React.FC<{
 }> = ({ cluster, isExpanded, onToggle, chainConfig }) => {
   return (
     <div style={{
-      border: '1px solid rgba(255, 255, 255, 0.1)',
+      border: '1px solid var(--color-border)',
       borderRadius: '12px',
       marginBottom: '12px',
       overflow: 'hidden',
@@ -661,7 +662,7 @@ const ClusterCard: React.FC<{
         onClick={onToggle}
         style={{
           padding: '16px',
-          backgroundColor: '#141414',
+          backgroundColor: 'var(--color-bg-elevated)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -698,7 +699,7 @@ const ClusterCard: React.FC<{
           
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{ fontWeight: 600, color: '#e5e5e5' }}>
+              <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
                 {cluster.totalWallets} wallets
               </span>
               <RiskBadge score={cluster.sybilScore} showIcon={false} />
@@ -744,7 +745,7 @@ const ClusterCard: React.FC<{
       </div>
 
       {isExpanded && (
-        <div style={{ padding: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+        <div style={{ padding: '16px', borderTop: '1px solid var(--color-surface-border)' }}>
           <div style={{ marginBottom: '12px' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
               Cluster Details
@@ -752,20 +753,20 @@ const ClusterCard: React.FC<{
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Total Wallets</div>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.totalWallets}</div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>{cluster.totalWallets}</div>
               </div>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Total Interactions</div>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.totalInteractions.toLocaleString()}</div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>{cluster.totalInteractions.toLocaleString()}</div>
               </div>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Avg Funding</div>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.averageFundingAmount.toFixed(4)} ETH</div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>{cluster.averageFundingAmount.toFixed(4)} ETH</div>
               </div>
               {cluster.timeSpan.durationHours > 0 && (
                 <div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Time Span</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e5e5e5' }}>{cluster.timeSpan.durationHours.toFixed(1)}h</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>{cluster.timeSpan.durationHours.toFixed(1)}h</div>
                 </div>
               )}
             </div>
@@ -803,7 +804,7 @@ const ClusterCard: React.FC<{
                   alignItems: 'center',
                   gap: '6px',
                   padding: '6px 10px',
-                  backgroundColor: 'rgba(40, 40, 40, 0.8)',
+                  backgroundColor: 'var(--color-bg-tertiary)',
                   borderRadius: '6px',
                   fontSize: '0.75rem',
                 }}>
@@ -1036,6 +1037,21 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         setStep('results');
         notify.success('Analysis complete!');
 
+        // Save sybil analysis to history
+        const clusterCount = response.result.clusters?.length || 0;
+        const sybilLabel = `Sybil: ${allAddresses.length} addresses, ${clusterCount} clusters`;
+        addToHistory(
+          contractAddress || allAddresses.slice(0, 3).join(','),
+          chain,
+          sybilLabel,
+          {
+            riskScore: response.result.overallRisk || response.result.riskScore,
+            riskLevel: response.result.riskLevel,
+            totalTransactions: allAddresses.length,
+          },
+          'sybil'
+        );
+
         // Increment usage count
         incrementSybilUsage();
       } else {
@@ -1083,14 +1099,14 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
     <div style={{
       backgroundColor: 'var(--color-bg)',
       borderRadius: '16px',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
+      border: '1px solid var(--color-border)',
       overflow: 'hidden',
     }}>
       {/* Header */}
       <div style={{
         padding: isMobile ? '16px' : '24px',
-        background: 'linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(15, 15, 15, 0.95) 100%)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        background: 'var(--color-bg-secondary)',
+        borderBottom: '1px solid var(--color-border)',
       }}>
         <div style={{ 
           display: 'flex', 
@@ -1120,66 +1136,8 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                  </p>
                </div>
              </div>
-
-             {/* Tier Display & Upgrade Button */}
-             <div style={{
-               display: 'flex',
-               alignItems: 'center',
-               gap: isMobile ? '8px' : '16px',
-               backgroundColor: 'rgba(255,255,255,0.05)',
-               padding: isMobile ? '8px 12px' : '12px 16px',
-               borderRadius: '12px',
-               border: `1px solid ${SYBIL_TIERS[currentTier]?.color || 'rgba(255,255,255,0.1)'}`,
-               flexWrap: 'wrap',
-             }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                 <div style={{
-                   padding: '6px 12px',
-                   borderRadius: '8px',
-                   backgroundColor: SYBIL_TIERS[currentTier]?.bgColor,
-                   color: SYBIL_TIERS[currentTier]?.color,
-                   fontSize: isMobile ? '0.75rem' : '0.875rem',
-                   fontWeight: 600,
-                 }}>
-                   {SYBIL_TIERS[currentTier]?.name || 'Free'}
-                 </div>
-                  <div style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-                    {getRemainingOperations(currentTier) === 'unlimited' ? 'Unlimited' : `${getRemainingOperations(currentTier)}/7 ops`}
-                 </div>
-               </div>
-
-                 {currentTier === 'free' && (
-                 <button
-                   onClick={() => setShowUpgradeModal(true)}
-                   style={{
-                     display: 'flex',
-                     alignItems: 'center',
-                     gap: '8px',
-                     padding: '10px 16px',
-                      backgroundColor: 'var(--color-accent)',
-                      color: 'var(--color-text-primary)',
-                      border: 'none',
-                     borderRadius: '8px',
-                     fontSize: '0.875rem',
-                     fontWeight: 600,
-                     cursor: 'pointer',
-                     transition: 'all 0.2s',
-                   }}
-                    onMouseEnter={(e: React.MouseEvent) => {
-                     (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-accent-hover)';
-                     (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)';
-                    }}
-                    onMouseLeave={(e: React.MouseEvent) => {
-                     (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-accent)';
-                     (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-                    }}
-                 >
-                   <HugeiconsIcon icon={StarIcon} size={18} strokeWidth={2} />
-                   Upgrade
-                 </button>
-                 )}
-             </div>
            </div>
+          </div>
           
           <div style={{ display: 'flex', gap: '8px' }}>
             {step !== 'fetch' && (
@@ -1191,7 +1149,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   gap: '8px',
                   padding: '10px 16px',
                   backgroundColor: 'transparent',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '8px',
                   color: 'var(--color-text-secondary)',
                   fontSize: '0.875rem',
@@ -1214,7 +1172,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   gap: '8px',
                   padding: '10px 16px',
                   backgroundColor: 'transparent',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '8px',
                   color: 'var(--color-text-secondary)',
                   fontSize: '0.875rem',
@@ -1229,7 +1187,6 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               </button>
             )}
           </div>
-        </div>
 
         {/* Progress Steps */}
         <div style={{ 
@@ -1264,7 +1221,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   color: isActive ? 'var(--color-text-primary)' : isCompleted ? 'var(--color-positive)' : 'var(--color-text-muted)',
                   fontSize: '1rem',
                   fontWeight: 600,
-                  border: isActive ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                  border: isActive ? 'none' : '1px solid var(--color-border)',
                 }}>
                   {isCompleted ? (
                     <HugeiconsIcon icon={CheckmarkCircle02Icon} size={isMobile ? 16 : 20} strokeWidth={1.5} />
@@ -1273,7 +1230,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   )}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', fontWeight: 600, color: '#e5e5e5' }}>
+                  <div style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                     {isMobile ? s.label : `${i + 1}. ${s.label}`}
                   </div>
                   {!isMobile && (
@@ -1304,7 +1261,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             <h3 style={{ 
               fontSize: '1.125rem', 
               fontWeight: 600, 
-              color: '#e5e5e5', 
+              color: 'var(--color-text-primary)', 
               marginBottom: '8px',
               display: 'flex',
               alignItems: 'center',
@@ -1344,10 +1301,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 style={{
                   width: '100%',
                   padding: '12px 16px',
-                  backgroundColor: '#141414',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '8px',
-                  color: '#e5e5e5',
+                  color: 'var(--color-text-primary)',
                   fontFamily: 'var(--font-mono)',
                   fontSize: '0.875rem',
                   outline: 'none',
@@ -1375,10 +1332,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 style={{
                   width: '100%',
                   padding: '12px 16px',
-                  backgroundColor: '#141414',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '8px',
-                  color: '#e5e5e5',
+                  color: 'var(--color-text-primary)',
                   fontSize: '0.875rem',
                   outline: 'none',
                   cursor: 'pointer',
@@ -1412,10 +1369,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 style={{
                   width: '100%',
                   padding: '12px 16px',
-                  backgroundColor: '#141414',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backgroundColor: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '8px',
-                  color: '#e5e5e5',
+                  color: 'var(--color-text-primary)',
                   fontSize: '0.875rem',
                   outline: 'none',
                   minHeight: '48px',
@@ -1426,11 +1383,11 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
           {/* Custom Dune API Key Option */}
           <div style={{
-            backgroundColor: '#141414',
+            backgroundColor: 'var(--color-bg-elevated)',
             padding: '16px',
             borderRadius: '12px',
             marginBottom: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--color-surface-border)',
           }}>
             <label style={{ 
               display: 'flex', 
@@ -1450,7 +1407,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               />
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <HugeiconsIcon icon={Key01Icon} size={18} strokeWidth={1.5} color="var(--color-text-secondary)" />
-                <span style={{ fontSize: '0.875rem', color: '#e5e5e5' }}>Use my own Dune API key</span>
+                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>Use my own Dune API key</span>
               </div>
             </label>
             {useCustomDuneKey && (
@@ -1463,9 +1420,9 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   width: '100%',
                   padding: '12px 16px',
                   backgroundColor: 'var(--color-bg)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid var(--color-border)',
                   borderRadius: '8px',
-                  color: '#e5e5e5',
+                  color: 'var(--color-text-primary)',
                   fontSize: '0.875rem',
                   outline: 'none',
                   marginTop: '12px',
@@ -1519,7 +1476,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 <div style={{
                   width: '20px',
                   height: '20px',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  border: '2px solid var(--color-border)',
                   borderTopColor: 'var(--color-text-primary)',
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite',
@@ -1547,7 +1504,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               left: 0,
               right: 0,
               height: '1px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'var(--color-bg-tertiary)',
             }} />
             <span style={{
               position: 'relative',
@@ -1566,10 +1523,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             style={{
               width: '100%',
               padding: '16px',
-              backgroundColor: '#141414',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
               borderRadius: '8px',
-              color: '#e5e5e5',
+              color: 'var(--color-text-primary)',
               fontFamily: 'var(--font-mono)',
               fontSize: '0.75rem',
               outline: 'none',
@@ -1599,9 +1556,9 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 width: '100%',
                 padding: '16px',
                 backgroundColor: 'var(--color-bg-elevated)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '12px',
-                color: '#e5e5e5',
+                color: 'var(--color-text-primary)',
                 fontSize: '1rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -1627,7 +1584,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             <h3 style={{ 
               fontSize: '1.125rem', 
               fontWeight: 600, 
-              color: '#e5e5e5', 
+              color: 'var(--color-text-primary)', 
               marginBottom: '8px',
               display: 'flex',
               alignItems: 'center',
@@ -1643,11 +1600,11 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
           {/* Address Summary Card */}
           <div style={{
-            backgroundColor: '#141414',
+            backgroundColor: 'var(--color-bg-elevated)',
             padding: '24px',
             borderRadius: '12px',
             marginBottom: '24px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--color-surface-border)',
           }}>
             <div style={{
               display: 'flex',
@@ -1697,10 +1654,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               style={{
                 width: '100%',
                 padding: '16px',
-                backgroundColor: '#141414',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backgroundColor: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '8px',
-                color: '#e5e5e5',
+                color: 'var(--color-text-primary)',
                 fontFamily: 'var(--font-mono)',
                 fontSize: '0.75rem',
                 outline: 'none',
@@ -1754,7 +1711,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 <div style={{
                   width: '20px',
                   height: '20px',
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  border: '2px solid var(--color-border)',
                   borderTopColor: 'var(--color-text-primary)',
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite',
@@ -1793,10 +1750,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             marginBottom: '24px',
           }}>
             <div style={{
-              backgroundColor: '#141414',
+              backgroundColor: 'var(--color-bg-elevated)',
               padding: isMobile ? '12px' : '20px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--color-surface-border)',
               textAlign: 'center',
             }}>
               <div style={{ 
@@ -1811,16 +1768,16 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             </div>
 
             <div style={{
-              backgroundColor: '#141414',
+              backgroundColor: 'var(--color-bg-elevated)',
               padding: isMobile ? '12px' : '20px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--color-surface-border)',
               textAlign: 'center',
             }}>
               <div style={{ 
                 fontSize: isMobile ? '1.25rem' : '2rem', 
                 fontWeight: 700, 
-                color: '#e5e5e5',
+                color: 'var(--color-text-primary)',
                 marginBottom: '4px',
               }}>
                 {result.clusters.length.toLocaleString()}
@@ -1829,10 +1786,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             </div>
 
             <div style={{
-              backgroundColor: '#141414',
+              backgroundColor: 'var(--color-bg-elevated)',
               padding: isMobile ? '12px' : '20px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--color-surface-border)',
               textAlign: 'center',
             }}>
               <div style={{ 
@@ -1847,10 +1804,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             </div>
 
             <div style={{
-              backgroundColor: '#141414',
+              backgroundColor: 'var(--color-bg-elevated)',
               padding: isMobile ? '12px' : '20px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--color-surface-border)',
               textAlign: 'center',
             }}>
               <div style={{ 
@@ -1868,10 +1825,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
           {/* Risk Distribution */}
           {result.summary && (
             <div style={{
-              backgroundColor: '#141414',
+              backgroundColor: 'var(--color-bg-elevated)',
               padding: '20px',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--color-surface-border)',
               marginBottom: '24px',
             }}>
               <h4 style={{ 
@@ -1887,19 +1844,19 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#dc2626' }} />
-                  <span style={{ fontSize: '0.875rem', color: '#e5e5e5' }}>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
                     High Risk: {result.summary.highRiskWallets || 0}
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#d97706' }} />
-                  <span style={{ fontSize: '0.875rem', color: '#e5e5e5' }}>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
                     Medium Risk: {result.summary.mediumRiskWallets || 0}
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#16a34a' }} />
-                  <span style={{ fontSize: '0.875rem', color: '#e5e5e5' }}>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
                     Low Risk: {result.summary.lowRiskWallets || 0}
                   </span>
                 </div>
@@ -1917,9 +1874,9 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             gap: isMobile ? '12px' : '16px',
             marginBottom: '24px',
             padding: isMobile ? '12px' : '16px',
-            backgroundColor: '#141414',
+            backgroundColor: 'var(--color-bg-elevated)',
             borderRadius: '12px',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--color-surface-border)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '16px', flexWrap: 'wrap' }}>
               {/* View Mode Toggle */}
@@ -1932,7 +1889,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                     gap: '8px',
                     padding: '10px 16px',
                     backgroundColor: viewMode === 'list' ? 'var(--color-accent)' : 'var(--color-bg-elevated)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '8px',
                     color: viewMode === 'list' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                     fontSize: '0.875rem',
@@ -1953,7 +1910,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                     gap: '8px',
                     padding: '10px 16px',
                     backgroundColor: viewMode === 'graph' ? 'var(--color-accent)' : 'var(--color-bg-elevated)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    border: '1px solid var(--color-border)',
                     borderRadius: '8px',
                     color: viewMode === 'graph' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
                     fontSize: '0.875rem',
@@ -1983,7 +1940,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                 <span style={{ 
                   fontSize: '0.875rem', 
                   fontWeight: 600, 
-                  color: '#e5e5e5',
+                  color: 'var(--color-text-primary)',
                   minWidth: '32px',
                 }}>
                   {filterMinScore}
@@ -2013,9 +1970,9 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             <div style={{ 
               textAlign: 'center', 
               padding: '48px',
-              backgroundColor: '#141414',
+              backgroundColor: 'var(--color-bg-elevated)',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--color-surface-border)',
             }}>
               <div style={{
                 width: '80px',
@@ -2029,7 +1986,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               }}>
                 <HugeiconsIcon icon={ShieldCheck} size={40} strokeWidth={1.5} color="var(--color-positive)" />
               </div>
-              <h4 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#e5e5e5', marginBottom: '8px' }}>
+              <h4 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
                 No Suspicious Clusters Found
               </h4>
               <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>

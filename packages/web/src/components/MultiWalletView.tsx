@@ -314,9 +314,18 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                                             <span className="tx-value outgoing" style={{ fontSize: 14, fontWeight: 600 }}>
                                                 {ethValue.toFixed(4)} ETH
                                             </span>
-                                            <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                                                {tx.timestamp && tx.timestamp > 0 ? new Date(tx.timestamp * 1000).toLocaleDateString() : '-'}
-                                            </span>
+                                            {tx.hash ? (
+                                                <a
+                                                    href={`${explorerBase}/tx/${tx.hash}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--color-accent, #3b82f6)' }}
+                                                >
+                                                    {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
+                                                </a>
+                                            ) : (
+                                                <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>-</span>
+                                            )}
                                         </div>
                                         <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
                                             <div style={{ marginBottom: 2 }}>
@@ -357,7 +366,7 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                                         <th>From</th>
                                         <th>To</th>
                                         <th>Value</th>
-                                        <th>Time</th>
+                                        <th>Tx Hash</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -388,8 +397,20 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                                                     ) : '-'}
                                                 </td>
                                                 <td className="tx-value outgoing">{ethValue.toFixed(4)} ETH</td>
-                                                <td style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                                                    {tx.timestamp && tx.timestamp > 0 ? new Date(tx.timestamp * 1000).toLocaleDateString() : '-'}
+                                                <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
+                                                    {tx.hash ? (
+                                                        <a
+                                                            href={`${explorerBase}/tx/${tx.hash}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{ color: 'var(--color-accent, #3b82f6)' }}
+                                                            title={tx.hash}
+                                                        >
+                                                            {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
+                                                        </a>
+                                                    ) : (
+                                                        <span style={{ color: 'var(--color-text-muted)' }}>-</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

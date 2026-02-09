@@ -192,6 +192,14 @@ const SybilPage: React.FC<SybilPageProps> = ({
       const response = await compareWallets(addresses, selectedChain);
       if (response.result) {
         setMultiWalletResult(response.result);
+
+        // Save to history
+        const compareLabel = `Compare: ${addresses.length} wallets`;
+        addToHistory(addresses.join(','), selectedChain, compareLabel, {
+          riskScore: response.result.correlationScore,
+          riskLevel: response.result.isSybilLikely ? 'high' : response.result.correlationScore > 60 ? 'high' : response.result.correlationScore > 30 ? 'medium' : 'low',
+          totalTransactions: response.result.directTransfers?.length,
+        }, 'compare');
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
@@ -220,6 +228,12 @@ const SybilPage: React.FC<SybilPageProps> = ({
       const response = await analyzeContract(contractAddress.trim(), selectedChain);
       if (response.result) {
         setContractResult(response.result);
+
+        // Save to history
+        const contractLabel = response.result.contractName ? `Contract: ${response.result.contractName}` : 'Contract Analysis';
+        addToHistory(contractAddress.trim(), selectedChain, contractLabel, {
+          totalTransactions: response.result.interactors?.length,
+        }, 'contract');
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
