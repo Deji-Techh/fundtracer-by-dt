@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (token) {
                 try {
                     const userProfile = await getProfile();
-                    setProfile(userProfile);
+                    setProfile({ ...userProfile, isVerified: userProfile.isVerified ?? false });
                     
                     if (userProfile.uid) {
                         setUser({

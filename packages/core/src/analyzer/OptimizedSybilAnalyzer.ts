@@ -439,20 +439,26 @@ export class OptimizedSybilAnalyzer {
         address: string,
         apiKey: string
     ): Promise<WalletFunding> {
-        const providers: Promise<WalletFunding | null>[] = [];
+        const providers: Promise<WalletFunding>[] = [];
 
         // Create provider instances — pass moralisKey so AlchemyProvider's internal Moralis fallback works
         const alchemyProvider = new AlchemyProvider(this.chain, apiKey, this.moralisKey || undefined);
 
         // Try Alchemy first (most reliable)
         providers.push(
-            this.fetchFromAlchemy(address, alchemyProvider).catch(() => null)
+            this.fetchFromAlchemy(address, alchemyProvider).then(r => {
+                if (!r) throw new Error('Alchemy returned null');
+                return r;
+            })
         );
 
         // Try Moralis if key available
         if (this.moralisKey) {
             providers.push(
-                this.fetchFromMoralis(address).catch(() => null)
+                this.fetchFromMoralis(address).then(r => {
+                    if (!r) throw new Error('Moralis returned null');
+                    return r;
+                })
             );
         }
 
@@ -460,27 +466,29 @@ export class OptimizedSybilAnalyzer {
         if (this.covalentKey) {
             const covalentProvider = new CovalentProvider(this.chain, this.covalentKey);
             providers.push(
-                this.fetchFromCovalent(address, covalentProvider).catch(() => null)
+                this.fetchFromCovalent(address, covalentProvider).then(r => {
+                    if (!r) throw new Error('Covalent returned null');
+                    return r;
+                })
             );
         }
 
-        // Race all providers
-        const results = await Promise.all(providers);
-        const firstSuccess = results.find(r => r !== null);
-
-        if (firstSuccess) {
-            return firstSuccess;
+        try {
+            // Race all providers — returns as soon as the FIRST one succeeds
+            const result = await Promise.any(providers);
+            return result;
+        } catch (err) {
+            // All providers failed
+            console.warn(`[SybilAnalyzer] All funding providers failed for ${address}:`, err instanceof AggregateError ? err.errors.map(e => e.message) : err);
+            return {
+                address,
+                funder: null,
+                fundingTxHash: null,
+                fundingTimestamp: null,
+                fundingAmount: 0,
+                interactionCount: 1
+            };
         }
-
-        // All providers failed
-        return {
-            address,
-            funder: null,
-            fundingTxHash: null,
-            fundingTimestamp: null,
-            fundingAmount: 0,
-            interactionCount: 1
-        };
     }
 
     private async fetchFromAlchemy(

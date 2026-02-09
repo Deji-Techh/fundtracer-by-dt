@@ -82,16 +82,6 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
               {link.label}
             </a>
           ))}
-          <button 
-            onClick={() => {
-              setMobileMenuOpen(false);
-              onLaunchApp?.();
-            }}
-            className="mobile-menu-cta"
-          >
-            Launch App
-            <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />
-          </button>
         </div>
       </div>
     </nav>

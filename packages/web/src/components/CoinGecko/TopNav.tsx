@@ -20,6 +20,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { WalletButton } from '../WalletButton';
+import { TokenDetailModal } from '../TokenDetailModal';
 
 interface TopNavProps {
   activeTab: string;
@@ -52,6 +53,7 @@ const TopNav: React.FC<TopNavProps> = ({
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const [selectedToken, setSelectedToken] = useState<SearchResult | null>(null);
 
   const navLinks = [
     { id: 'home', label: 'Home', icon: Home01Icon },
@@ -112,8 +114,8 @@ const TopNav: React.FC<TopNavProps> = ({
     setSearchQuery(result.name);
     setShowResults(false);
     setMobileSearchOpen(false);
-    // Navigate to token detail
-    onTabChange('explorer');
+    // Open token detail modal
+    setSelectedToken(result);
   };
 
   // Auto-focus mobile search input when overlay opens
@@ -523,6 +525,15 @@ const TopNav: React.FC<TopNavProps> = ({
 
       {/* Mobile Footer - Only on mobile screens */}
       <MobileFooter activeTab={activeTab} onTabChange={onTabChange} />
+
+      {/* Token Detail Modal */}
+      {selectedToken && (
+        <TokenDetailModal
+          token={selectedToken}
+          isOpen={!!selectedToken}
+          onClose={() => setSelectedToken(null)}
+        />
+      )}
     </>
   );
 }

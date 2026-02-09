@@ -324,3 +324,39 @@ export async function getDEXScreenerTokenDetails(chainId: string, tokenAddress: 
 export async function getDEXScreenerTokenPairs(chainId: string, tokenAddress: string): Promise<any> {
     return apiRequest(`/api/dexscreener/pairs/${chainId}/${tokenAddress}`);
 }
+
+// Scan History sync endpoints
+export interface ScanHistoryItem {
+    address: string;
+    label?: string;
+    timestamp: number;
+    chain?: string;
+    type?: 'wallet' | 'contract' | 'compare' | 'sybil';
+    riskScore?: number;
+    riskLevel?: string;
+    totalTransactions?: number;
+    totalValueSentEth?: number;
+    totalValueReceivedEth?: number;
+    activityPeriodDays?: number;
+    balanceInEth?: number;
+}
+
+export async function fetchScanHistory(): Promise<{ success: boolean; items: ScanHistoryItem[] }> {
+    return apiRequest('/api/scan-history');
+}
+
+export async function saveScanHistoryItem(item: ScanHistoryItem): Promise<{ success: boolean }> {
+    return apiRequest('/api/scan-history', 'POST', item);
+}
+
+export async function syncScanHistory(items: ScanHistoryItem[]): Promise<{ success: boolean; items: ScanHistoryItem[] }> {
+    return apiRequest('/api/scan-history/sync', 'POST', { items });
+}
+
+export async function deleteScanHistoryItem(address: string): Promise<{ success: boolean }> {
+    return apiRequest(`/api/scan-history/${encodeURIComponent(address)}`, 'DELETE');
+}
+
+export async function clearScanHistory(): Promise<{ success: boolean }> {
+    return apiRequest('/api/scan-history', 'DELETE');
+}

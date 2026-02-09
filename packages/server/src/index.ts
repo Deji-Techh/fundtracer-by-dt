@@ -337,6 +337,7 @@ import { safetyRoutes } from './routes/safety.js';
 import { debugRoutes } from './routes/debug.js';
 import { dexScreenerRoutes } from './routes/dexscreener.js';
 import { geckoTerminalRoutes } from './routes/geckoterminal.js';
+import { scanHistoryRoutes } from './routes/scanHistory.js';
 
 apiRouter.use('/portfolio', authMiddleware, portfolioRoutes);
 apiRouter.use('/history', authMiddleware, historyRoutes);
@@ -346,6 +347,7 @@ apiRouter.use('/safety', authMiddleware, safetyRoutes); // Token safety checks
 apiRouter.use('/debug', debugRoutes); // Debug routes (public)
 apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
 apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
+apiRouter.use('/scan-history', scanHistoryRoutes); // Scan history sync (auth required, middleware inside route)
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);

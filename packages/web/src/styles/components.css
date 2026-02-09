@@ -684,6 +684,7 @@
 @media (max-width: 768px) {
     .main-content {
         padding: var(--space-4);
+        max-width: none;
     }
 
     .header-inner {

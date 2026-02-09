@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { HistoryItem, getHistory, removeFromHistory, clearHistory } from '../utils/history';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { HistoryItem, getHistory, removeFromHistory, clearHistory, syncHistoryWithServer } from '../utils/history';
 import { getLabel } from '../utils/addressBook';
 import { CHAINS, ChainId } from '@fundtracer/core';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -76,8 +76,10 @@ function formatEth(value?: number): string {
 const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const isMobile = useIsMobile();
   const { isAuthenticated } = useAuth();
+  const hasSynced = useRef(false);
 
   const refreshHistory = useCallback(() => {
     setHistory(getHistory());
@@ -95,6 +97,21 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
       window.removeEventListener('storage', handleChange);
     };
   }, [refreshHistory]);
+
+  // Sync with server on mount when authenticated
+  useEffect(() => {
+    if (isAuthenticated && !hasSynced.current) {
+      hasSynced.current = true;
+      setSyncing(true);
+      syncHistoryWithServer()
+        .then((changed) => {
+          if (changed) {
+            refreshHistory();
+          }
+        })
+        .finally(() => setSyncing(false));
+    }
+  }, [isAuthenticated, refreshHistory]);
 
   const handleDelete = (e: React.MouseEvent, address: string) => {
     e.stopPropagation();
@@ -125,7 +142,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
   // Not authenticated — show connect wallet prompt
   if (!isAuthenticated) {
     return (
-      <div style={{ padding: isMobile ? 16 : 24, maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ padding: isMobile ? 16 : 24, maxWidth: isMobile ? 'none' : 900, margin: '0 auto' }}>
         <div style={{ marginBottom: isMobile ? 20 : 32, marginTop: isMobile ? 8 : 16 }}>
           <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>
             Scan History
@@ -177,7 +194,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
   // Empty state
   if (history.length === 0) {
     return (
-      <div style={{ padding: isMobile ? 16 : 24, maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ padding: isMobile ? 16 : 24, maxWidth: isMobile ? 'none' : 900, margin: '0 auto' }}>
         <div style={{ marginBottom: isMobile ? 20 : 32, marginTop: isMobile ? 8 : 16 }}>
           <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>
             Scan History
@@ -224,7 +241,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
   }
 
   return (
-    <div style={{ padding: isMobile ? 16 : 24, maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ padding: isMobile ? 16 : 24, maxWidth: isMobile ? 'none' : 900, margin: '0 auto' }}>
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -241,6 +258,11 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
           </h1>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: isMobile ? '0.8125rem' : '0.9375rem' }}>
             {history.length} scan{history.length !== 1 ? 's' : ''} recorded
+            {syncing && (
+              <span style={{ marginLeft: 8, fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                Syncing...
+              </span>
+            )}
           </p>
         </div>
         <button

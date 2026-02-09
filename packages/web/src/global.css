@@ -1058,7 +1058,8 @@ body {
 
   /* Main Content */
   .main-content {
-    padding-top: 72px;
+    padding-top: 60px;
+    max-width: none;
   }
 
   /* Search - Mobile improvements */

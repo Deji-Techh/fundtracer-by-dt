@@ -29,16 +29,10 @@ export const MobileWalletConnect: React.FC<MobileWalletConnectProps> = ({ classN
     checkMobile();
   }, []);
 
-  // Generate WalletConnect URI for fallback
+  // Generate direct deeplinks for fallback (no WC URI needed — AppKit handles pairing)
   const generateWalletUrl = useCallback(() => {
-    // This creates a direct deeplink to MetaMask
-    // You can customize this for other wallets
-    const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID;
-    const uri = `wc:${projectId}@2`;
-    const encodedUri = encodeURIComponent(uri);
-    
-    // MetaMask universal link
-    const metamaskUrl = `https://metamask.app.link/wc?uri=${encodedUri}`;
+    // Direct deeplink to open FundTracer in MetaMask's in-app browser
+    const metamaskUrl = 'https://metamask.app.link/dapp/fundtracer.xyz';
     setWalletUrl(metamaskUrl);
   }, []);
 
@@ -86,19 +80,13 @@ export const MobileWalletConnect: React.FC<MobileWalletConnectProps> = ({ classN
   };
 
   const copyWalletLink = () => {
-    if (walletUrl) {
-      navigator.clipboard.writeText(walletUrl);
-      notify.success('Wallet connection link copied! Open it in your wallet app.');
-    }
+    navigator.clipboard.writeText('https://fundtracer.xyz');
+    notify.success('Link copied! Open it in your wallet app\'s browser.');
   };
 
   const openMetaMask = () => {
-    if (walletUrl) {
-      window.location.href = walletUrl;
-    } else {
-      // Fallback to direct MetaMask deeplink
-      window.location.href = 'https://metamask.app.link/dapp/fundtracer.xyz';
-    }
+    // Direct deeplink to open FundTracer in MetaMask's in-app browser
+    window.location.href = 'https://metamask.app.link/dapp/fundtracer.xyz';
   };
 
   const openTrustWallet = () => {
@@ -302,50 +290,48 @@ export const MobileWalletConnect: React.FC<MobileWalletConnectProps> = ({ classN
           </div>
 
           {/* Option 2: Copy Link */}
-          {walletUrl && (
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                color: '#d1d5db',
-                marginBottom: '8px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                Copy Connection Link
-              </p>
-              
-              <button
-                onClick={copyWalletLink}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  backgroundColor: '#1a1a1a',
-                  border: '1px solid #333',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}
-              >
-                <Copy size={14} />
-                Copy WalletConnect Link
-              </button>
-              
-              <p style={{
-                fontSize: '11px',
-                color: '#6b7280',
-                marginTop: '6px',
-                textAlign: 'center'
-              }}>
-                Paste this link in your wallet app's browser
-              </p>
-            </div>
-          )}
+          <div style={{ marginBottom: '16px' }}>
+            <p style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              color: '#d1d5db',
+              marginBottom: '8px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Open in Wallet Browser
+            </p>
+            
+            <button
+              onClick={copyWalletLink}
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                backgroundColor: '#1a1a1a',
+                border: '1px solid #333',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <Copy size={14} />
+              Copy Link
+            </button>
+            
+            <p style={{
+              fontSize: '11px',
+              color: '#6b7280',
+              marginTop: '6px',
+              textAlign: 'center'
+            }}>
+              Paste this link in your wallet app's browser
+            </p>
+          </div>
 
           {/* Retry Button */}
           <button

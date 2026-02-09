@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Terminal, Globe, Shield, Zap } from 'lucide-react';
+import { ChevronDown, ChevronUp, Terminal, Globe, Shield, Zap, Wallet } from 'lucide-react';
 
 interface HowToUseProps {
     isOpen: boolean;
@@ -18,37 +18,32 @@ function HowToUse({ isOpen, onToggle }: HowToUseProps) {
                 <div className="how-to-use-content">
                     <div className="use-section">
                         <div className="use-icon">
-                            <Globe size={24} />
+                            <Wallet size={24} />
                         </div>
                         <div className="use-details">
-                            <h3>Web Dashboard</h3>
+                            <h3>Getting Started</h3>
                             <ol>
-                                <li>Sign in with your Google account</li>
-                                <li>Select the blockchain network (Ethereum, Linea, etc.)</li>
+                                <li>Connect your wallet (MetaMask, WalletConnect, Coinbase, etc.)</li>
+                                <li>Select the blockchain network (Ethereum, Linea, Base, etc.)</li>
                                 <li>Enter a wallet address to analyze</li>
                                 <li>View funding sources, destinations, and risk indicators</li>
                             </ol>
-                            <p className="use-note">Free tier: 7 analyses per day. Add your own API key for unlimited access.</p>
+                            <p className="use-note">Free tier: 7 analyses per day. Upgrade your plan for more access.</p>
                         </div>
                     </div>
 
                     <div className="use-section">
                         <div className="use-icon">
-                            <Terminal size={24} />
+                            <Globe size={24} />
                         </div>
                         <div className="use-details">
-                            <h3>CLI Tool</h3>
-                            <div className="code-block">
-                                <code>
-                                    <span className="code-comment"># Install and configure</span><br />
-                                    npm install -g @fundtracer/cli<br />
-                                    fundtracer config --set-key YOUR_API_KEY<br /><br />
-                                    <span className="code-comment"># Analyze a wallet</span><br />
-                                    fundtracer analyze 0x742d35Cc...<br /><br />
-                                    <span className="code-comment"># Compare wallets for Sybil detection</span><br />
-                                    fundtracer compare 0xAddr1 0xAddr2 0xAddr3
-                                </code>
-                            </div>
+                            <h3>Analysis Types</h3>
+                            <ul className="detection-list">
+                                <li><Zap size={14} /> <strong>Wallet Analysis</strong> — Trace funding sources &amp; destinations</li>
+                                <li><Zap size={14} /> <strong>Sybil Detection</strong> — Detect linked wallets &amp; farming patterns</li>
+                                <li><Zap size={14} /> <strong>Contract Analysis</strong> — Inspect smart contract interactions</li>
+                                <li><Zap size={14} /> <strong>Wallet Compare</strong> — Compare multiple wallets side-by-side</li>
+                            </ul>
                         </div>
                     </div>
 

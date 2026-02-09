@@ -153,6 +153,7 @@ function App() {
   const [showFirstTime, setShowFirstTime] = useState(false);
   const [showPoHModal, setShowPoHModal] = useState(false);
   const pohCheckDone = useRef(false);
+  const wasJustConnected = useRef(false);
 
   // Track visit on mount
   React.useEffect(() => {
@@ -166,9 +167,9 @@ function App() {
     }
   }, [user]);
 
-  // Show PoH verification modal after wallet auth if not verified
+  // Show PoH verification modal after fresh wallet connect if not verified
   useEffect(() => {
-    if (isAuthenticated && profile && !profile.isVerified && !pohCheckDone.current) {
+    if (isAuthenticated && profile && profile.isVerified === false && !pohCheckDone.current && wasJustConnected.current) {
       pohCheckDone.current = true;
       // Small delay to not overlap with onboarding modal
       const timer = setTimeout(() => {
@@ -181,6 +182,7 @@ function App() {
     // Reset check flag when user disconnects
     if (!isAuthenticated) {
       pohCheckDone.current = false;
+      wasJustConnected.current = false;
     }
   }, [isAuthenticated, profile, showOnboarding]);
 
@@ -203,6 +205,8 @@ function App() {
 
   const handleConnectWallet = useCallback(() => {
     if (!isWalletConnected) {
+      // Mark that user is actively connecting (not a session restore)
+      wasJustConnected.current = true;
       // Open AppKit wallet connection modal
       // IMPORTANT: Must be synchronous for mobile deep links to work
       open();
