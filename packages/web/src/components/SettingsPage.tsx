@@ -170,7 +170,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
       <div className="animate-fade-in" style={{
         maxWidth: isMobile ? 'none' : 640,
         margin: '0 auto',
-        padding: isMobile ? '16px 12px' : '40px 24px',
+        padding: isMobile ? '20px 16px' : '40px 24px',
       }}>
         <h1 style={{
           fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-2xl)',
@@ -271,13 +271,13 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
     <div className="animate-fade-in" style={{
       maxWidth: isMobile ? 'none' : 640,
       margin: '0 auto',
-      padding: isMobile ? '16px 12px' : '40px 24px',
+      padding: isMobile ? '20px 16px' : '40px 24px',
     }}>
       <h1 style={{
         fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-2xl)',
         fontWeight: 700,
         color: 'var(--color-text-primary)',
-        marginBottom: 24,
+        marginBottom: isMobile ? 20 : 24,
       }}>Settings</h1>
 
       {/* ===== PROFILE SECTION ===== */}

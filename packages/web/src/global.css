@@ -1466,6 +1466,137 @@ body {
   .btn {
     width: 100%;
   }
+  
+  /* ============================================================
+     Mobile Layout Improvements - Stretch and Space
+     ============================================================ */
+  
+  /* Main content full width on mobile */
+  .main-content {
+    padding: 0 !important;
+  }
+  
+  .main-content > div {
+    padding: 16px 16px 24px 16px !important;
+    max-width: none !important;
+  }
+  
+  /* Cards - better padding and full width */
+  .card {
+    padding: 20px !important;
+    margin-bottom: 20px !important;
+    border-radius: 16px !important;
+  }
+  
+  .analysis-card {
+    padding: 20px !important;
+  }
+  
+  /* Analysis sections better spacing */
+  .analysis-section {
+    margin-bottom: 20px !important;
+  }
+  
+  .analysis-section:last-of-type {
+    margin-bottom: 0 !important;
+  }
+  
+  .analysis-label {
+    font-size: 0.8125rem !important;
+    margin-bottom: 10px !important;
+  }
+  
+  /* Mode selector improvements */
+  .mode-selector-container {
+    margin-bottom: 20px !important;
+  }
+  
+  .mode-tab {
+    padding: 14px 18px !important;
+    font-size: 0.9375rem !important;
+    gap: 8px !important;
+  }
+  
+  /* Wallet input wrapper */
+  .wallet-input-wrapper {
+    margin-bottom: 12px !important;
+  }
+  
+  /* Analyze button spacing */
+  .btn-analyze {
+    margin-top: 16px !important;
+    padding: 14px 20px !important;
+    font-size: 1rem !important;
+  }
+  
+  /* Add wallet button */
+  .btn-add-wallet {
+    margin-top: 12px !important;
+    padding: 12px !important;
+  }
+  
+  /* Header spacing */
+  .main-content h1 {
+    font-size: 1.375rem !important;
+    margin-bottom: 8px !important;
+  }
+  
+  /* Form elements full width with spacing */
+  input[type="text"],
+  input[type="search"],
+  select,
+  textarea {
+    width: 100% !important;
+    padding: 14px 16px !important;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    margin-bottom: 4px !important;
+  }
+  
+  /* Chain selector improvements */
+  .chain-selector-mobile {
+    gap: 12px !important;
+  }
+  
+  .chain-btn-mobile {
+    padding: 16px 12px !important;
+    min-height: 72px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Better spacing for history items */
+  .history-list-item {
+    padding: 18px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  /* Settings page improvements */
+  .settings-section {
+    padding: 20px !important;
+    margin-bottom: 20px !important;
+  }
+  
+  /* Section headers */
+  .section-header {
+    margin-bottom: 20px !important;
+  }
+  
+  .section-title {
+    font-size: 1.125rem !important;
+  }
+  
+  /* Better vertical rhythm */
+  .page-header {
+    margin-bottom: 24px !important;
+    margin-top: 8px !important;
+  }
+  
+  .page-header h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  .page-header p {
+    font-size: 0.9375rem !important;
+  }
 }
 
 /* Tablet breakpoint */

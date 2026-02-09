@@ -317,7 +317,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
   return (
     <div className="main-content">
-      <div style={{ padding: isMobile ? '12px' : '24px', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ padding: isMobile ? '16px' : '24px', maxWidth: isMobile ? 'none' : 1200, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ marginBottom: isMobile ? 20 : 32, marginTop: isMobile ? 8 : 16 }}>
           <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>

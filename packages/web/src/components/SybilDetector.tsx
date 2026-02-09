@@ -1108,7 +1108,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
     }}>
       {/* Header */}
       <div style={{
-        padding: isMobile ? '16px' : '24px',
+        padding: isMobile ? '20px' : '24px',
         background: 'var(--color-bg-secondary)',
         borderBottom: '1px solid var(--color-border)',
       }}>
@@ -1195,8 +1195,8 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         {/* Progress Steps */}
         <div style={{ 
           display: 'flex', 
-          gap: isMobile ? '8px' : '16px', 
-          marginTop: isMobile ? '16px' : '24px',
+          gap: isMobile ? '12px' : '16px', 
+          marginTop: isMobile ? '20px' : '24px',
           flexWrap: 'wrap',
         }}>
           {wizardSteps.map((s, i) => {
@@ -1260,8 +1260,8 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
       {/* Step 1: Fetch from Dune */}
       {step === 'fetch' && (
-        <div style={{ padding: isMobile ? '16px' : '24px' }}>
-          <div style={{ marginBottom: '24px' }}>
+        <div style={{ padding: isMobile ? '20px' : '24px' }}>
+          <div style={{ marginBottom: isMobile ? '28px' : '24px' }}>
             <h3 style={{ 
               fontSize: '1.125rem', 
               fontWeight: 600, 
@@ -1282,8 +1282,8 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(250px, 1fr))', 
-            gap: '16px',
-            marginBottom: '24px',
+            gap: isMobile ? '20px' : '16px',
+            marginBottom: isMobile ? '28px' : '24px',
           }}>
             <div>
               <label style={{ 
@@ -1583,7 +1583,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
       {/* Step 2: Review & Analyze */}
       {step === 'analyze' && (
-        <div style={{ padding: isMobile ? '16px' : '24px' }}>
+        <div style={{ padding: isMobile ? '20px' : '24px' }}>
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{ 
               fontSize: '1.125rem', 
@@ -1745,13 +1745,13 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
       {/* Step 3: Results */}
       {step === 'results' && result && (
-        <div style={{ padding: isMobile ? '16px' : '24px' }}>
+        <div style={{ padding: isMobile ? '20px' : '24px' }}>
           {/* Summary Statistics */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: isMobile ? '8px' : '16px',
-            marginBottom: '24px',
+            gap: isMobile ? '12px' : '16px',
+            marginBottom: isMobile ? '28px' : '24px',
           }}>
             <div style={{
               backgroundColor: 'var(--color-bg-elevated)',
@@ -1830,10 +1830,10 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
           {result.summary && (
             <div style={{
               backgroundColor: 'var(--color-bg-elevated)',
-              padding: '20px',
+              padding: isMobile ? '16px' : '20px',
               borderRadius: '12px',
               border: '1px solid var(--color-surface-border)',
-              marginBottom: '24px',
+              textAlign: 'center',
             }}>
               <h4 style={{ 
                 fontSize: '0.875rem', 
