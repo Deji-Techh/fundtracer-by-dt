@@ -5,7 +5,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
 import { createAppKit } from '@reown/appkit/react'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
-import { linea, mainnet, arbitrum } from '@reown/appkit/networks'
+import { 
+  linea, 
+  mainnet, 
+  arbitrum, 
+  polygon, 
+  optimism, 
+  base,
+  type AppKitNetwork 
+} from '@reown/appkit/networks'
 import { ToastProvider } from './contexts/ToastContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -58,14 +66,31 @@ const metadata = {
   icons: ['https://fundtracer.xyz/logo.png']
 }
 
-// 3. Set the networks (explicitly typed to satisfy AppKit requirements)
-const networks: [typeof linea, typeof mainnet, typeof arbitrum] = [linea, mainnet, arbitrum]
+// 3. Set the networks with explicit RPC URLs for mobile compatibility
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
+  linea,
+  mainnet,
+  arbitrum,
+  polygon,
+  optimism,
+  base
+]
 
-// 4. Create Wagmi Adapter
+// Explicit RPC URLs for each network (helps mobile wallets)
+const rpcUrls = {
+  59144: 'https://rpc.linea.build', // Linea
+  1: 'https://eth.llamarpc.com', // Ethereum
+  42161: 'https://arb1.arbitrum.io/rpc', // Arbitrum
+  137: 'https://polygon.llamarpc.com', // Polygon
+  10: 'https://mainnet.optimism.io', // Optimism
+  8453: 'https://mainnet.base.org', // Base
+}
+
+// 4. Create Wagmi Adapter with explicit transports
 const wagmiAdapter = new WagmiAdapter({
   networks,
   projectId,
-  ssr: false
+  ssr: false,
 })
 
 // 5. Create modal with mobile-optimized config
@@ -74,6 +99,8 @@ const modal = createAppKit({
   networks,
   projectId,
   metadata,
+  // Use new WalletConnect relay URL (not the old .org domain)
+  relayUrl: 'wss://relay.walletconnect.com',
   features: {
     analytics: false,
     email: false,
@@ -98,7 +125,9 @@ const modal = createAppKit({
   // Enable WalletConnect protocol for mobile deep-linking
   enableWalletConnect: true,
   // Enable Coinbase SDK
-  enableCoinbase: true
+  enableCoinbase: true,
+  // Mobile-specific settings
+  mobileWalletName: 'FundTracer',
 })
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)
