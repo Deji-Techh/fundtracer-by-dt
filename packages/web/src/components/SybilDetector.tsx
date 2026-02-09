@@ -926,7 +926,6 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
       if (response.success && response.wallets) {
         setFetchedAddresses(response.wallets);
-        setStep('analyze');
         notify.success(`Fetched ${response.wallets.length} addresses from Dune`);
 
         // Increment usage count
@@ -1495,6 +1494,105 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
             )}
           </button>
 
+          {/* Fetched Results */}
+          {fetchedAddresses.length > 0 && (
+            <div style={{
+              backgroundColor: 'var(--color-bg-elevated)',
+              padding: '20px',
+              borderRadius: '12px',
+              marginBottom: '24px',
+              border: '1px solid var(--color-surface-border)',
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '16px',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <HugeiconsIcon icon={CheckmarkCircle02Icon} size={20} strokeWidth={1.5} color="var(--color-positive)" />
+                  <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                    Fetched {fetchedAddresses.length.toLocaleString()} addresses
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      const dataStr = JSON.stringify(fetchedAddresses, null, 2);
+                      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                      const url = URL.createObjectURL(dataBlob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `fetched-wallets-${contractAddress.slice(0, 8)}-${Date.now()}.json`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                    }}
+                    style={{
+                      padding: '10px 16px',
+                      backgroundColor: 'var(--color-bg-secondary)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '8px',
+                      color: 'var(--color-text-secondary)',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      minHeight: '44px',
+                    }}
+                  >
+                    <HugeiconsIcon icon={Download01Icon} size={18} strokeWidth={1.5} />
+                    Download JSON
+                  </button>
+                  <button
+                    onClick={() => setStep('analyze')}
+                    style={{
+                      padding: '10px 16px',
+                      background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'var(--color-text-primary)',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      minHeight: '44px',
+                    }}
+                  >
+                    Continue
+                    <HugeiconsIcon icon={ArrowRight01Icon} size={18} strokeWidth={1.5} />
+                  </button>
+                </div>
+              </div>
+              <div style={{
+                maxHeight: '200px',
+                overflowY: 'auto',
+                backgroundColor: 'var(--color-bg)',
+                padding: '12px',
+                borderRadius: '8px',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.75rem',
+                color: 'var(--color-text-muted)',
+              }}>
+                {fetchedAddresses.slice(0, 10).map((addr, i) => (
+                  <div key={i} style={{ marginBottom: '4px' }}>{addr}</div>
+                ))}
+                {fetchedAddresses.length > 10 && (
+                  <div style={{ color: 'var(--color-text-secondary)', marginTop: '8px' }}>
+                    ... and {fetchedAddresses.length - 10} more
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Or paste manually */}
           <div style={{ 
             textAlign: 'center', 
@@ -1824,6 +1922,28 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               </div>
               <div style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', color: 'var(--color-text-muted)' }}>Flagged Wallets</div>
             </div>
+
+            {result.failedAddresses && result.failedAddresses.length > 0 && (
+              <div style={{
+                backgroundColor: 'var(--color-bg-elevated)',
+                padding: isMobile ? '12px' : '20px',
+                borderRadius: '12px',
+                border: '1px solid var(--color-warning)',
+                textAlign: 'center',
+              }}>
+                <div style={{ 
+                  fontSize: isMobile ? '1.25rem' : '2rem', 
+                  fontWeight: 700, 
+                  color: 'var(--color-warning)',
+                  marginBottom: '4px',
+                }}>
+                  {result.failedAddresses.length.toLocaleString()}
+                </div>
+                <div style={{ fontSize: isMobile ? '0.75rem' : '0.875rem', color: 'var(--color-text-muted)' }}>
+                  No Funding Data
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Risk Distribution */}
@@ -1835,17 +1955,17 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
               border: '1px solid var(--color-surface-border)',
               textAlign: 'center',
             }}>
-              <h4 style={{ 
-                fontSize: '0.875rem', 
-                fontWeight: 600, 
-                color: 'var(--color-text-secondary)', 
+              <h4 style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: 'var(--color-text-secondary)',
                 marginBottom: '16px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
               }}>
                 Risk Distribution
               </h4>
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#dc2626' }} />
                   <span style={{ fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
@@ -1865,6 +1985,27 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
                   </span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Failed Addresses Note */}
+          {result.failedAddresses && result.failedAddresses.length > 0 && (
+            <div style={{
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+            }}>
+              <p style={{
+                fontSize: '0.875rem',
+                color: 'var(--color-text-secondary)',
+                margin: 0,
+              }}>
+                <strong>Note:</strong> {result.failedAddresses.length.toLocaleString()} wallet(s) could not be analyzed 
+                due to missing funding transaction data. This may occur if wallets have no incoming transactions 
+                or if API providers are temporarily unavailable.
+              </p>
             </div>
           )}
 

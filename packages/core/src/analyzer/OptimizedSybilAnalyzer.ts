@@ -49,6 +49,7 @@ export interface SybilAnalysisResult {
         mediumRiskWallets: number;
         lowRiskWallets: number;
     };
+    failedAddresses?: string[];  // Addresses where funding lookup failed
     progress?: {
         processed: number;
         total: number;
@@ -79,12 +80,44 @@ const KNOWN_SOURCES: Record<string, string> = {
 };
 
 const THRESHOLDS = {
-    minClusterSize: 3,
+    minClusterSize: 2,  // Lowered from 3 to catch smaller sybil rings
     highRiskScore: 60,
     mediumRiskScore: 30,
     shortTimeSpanHours: 48,
     veryShortTimeSpanHours: 6,
 };
+
+// Retry configuration
+const RETRY_CONFIG = {
+    maxRetries: 2,
+    baseDelayMs: 1000,
+    maxDelayMs: 5000,
+};
+
+// Helper function for retry with exponential backoff
+async function withRetry<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = RETRY_CONFIG.maxRetries
+): Promise<T> {
+    let lastError: Error | undefined;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error as Error;
+            if (attempt < maxRetries) {
+                const delay = Math.min(
+                    RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt),
+                    RETRY_CONFIG.maxDelayMs
+                );
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+    
+    throw lastError;
+}
 
 // ============================================================
 // API Key Manager with Rotation and Load Balancing
@@ -310,8 +343,14 @@ export class OptimizedSybilAnalyzer {
             .reduce((sum, c) => sum + c.wallets.length, 0);
         const lowRiskWallets = allWallets.length - highRiskWallets - mediumRiskWallets;
 
+        // Track wallets with no funding data (failed lookups)
+        const failedAddresses = fundingResults
+            .filter(w => !w.funder)
+            .map(w => w.address);
+
         const duration = (Date.now() - startTime) / 1000;
         console.log(`[SybilAnalyzer] Analysis complete in ${duration}s`);
+        console.log(`[SybilAnalyzer] Results: ${allWallets.length} wallets, ${clusters.length} clusters, ${failedAddresses.length} failed lookups`);
 
         // Report completion
         this.reportProgress({
@@ -334,7 +373,8 @@ export class OptimizedSybilAnalyzer {
                 highRiskWallets,
                 mediumRiskWallets,
                 lowRiskWallets
-            }
+            },
+            failedAddresses
         };
     }
 
@@ -497,9 +537,9 @@ export class OptimizedSybilAnalyzer {
     ): Promise<WalletFunding | null> {
         try {
             const funding = await Promise.race([
-                provider.getFirstFunder(address),
+                withRetry(() => provider.getFirstFunder(address)),
                 new Promise<null>((_, reject) => 
-                    setTimeout(() => reject(new Error('Timeout')), 5000)
+                    setTimeout(() => reject(new Error('Timeout')), 10000)  // Increased from 5s to 10s
                 )
             ]);
 
@@ -520,8 +560,8 @@ export class OptimizedSybilAnalyzer {
     }
 
     private async fetchFromMoralis(address: string): Promise<WalletFunding | null> {
-        // Moralis implementation
-        try {
+        // Moralis implementation with retry
+        const fetchWithRetry = async (): Promise<WalletFunding | null> => {
             // Moralis requires hex chain IDs or specific chain names
             const chainMap: Record<string, string> = {
                 ethereum: '0x1',
@@ -533,38 +573,51 @@ export class OptimizedSybilAnalyzer {
             };
             const moralisChain = chainMap[this.chain] || '0x1';
 
-            const response = await fetch(
-                `https://deep-index.moralis.io/api/v2.2/${address}/transactions?chain=${moralisChain}&limit=100&order=ASC`,
-                {
-                    headers: {
-                        'X-API-Key': this.moralisKey,
-                        'Accept': 'application/json'
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);  // 10s timeout
+
+            try {
+                const response = await fetch(
+                    `https://deep-index.moralis.io/api/v2.2/${address}/transactions?chain=${moralisChain}&limit=100&order=ASC`,
+                    {
+                        signal: controller.signal,
+                        headers: {
+                            'X-API-Key': this.moralisKey,
+                            'Accept': 'application/json'
+                        }
                     }
+                );
+                clearTimeout(timeoutId);
+
+                if (!response.ok) return null;
+
+                const data = await response.json();
+                
+                // Find the first incoming transfer with value (the actual funder)
+                const addressLower = address.toLowerCase();
+                const fundingTx = data.result?.find((tx: any) =>
+                    tx.to_address?.toLowerCase() === addressLower &&
+                    parseFloat(tx.value) > 0
+                );
+
+                if (fundingTx) {
+                    return {
+                        address,
+                        funder: fundingTx.from_address,
+                        fundingTxHash: fundingTx.hash,
+                        fundingTimestamp: new Date(fundingTx.block_timestamp).getTime() / 1000,
+                        fundingAmount: parseFloat(fundingTx.value) / 1e18,
+                        interactionCount: 1
+                    };
                 }
-            );
-
-            if (!response.ok) return null;
-
-            const data = await response.json();
-            
-            // Find the first incoming transfer with value (the actual funder)
-            const addressLower = address.toLowerCase();
-            const fundingTx = data.result?.find((tx: any) =>
-                tx.to_address?.toLowerCase() === addressLower &&
-                parseFloat(tx.value) > 0
-            );
-
-            if (fundingTx) {
-                return {
-                    address,
-                    funder: fundingTx.from_address,
-                    fundingTxHash: fundingTx.hash,
-                    fundingTimestamp: new Date(fundingTx.block_timestamp).getTime() / 1000,
-                    fundingAmount: parseFloat(fundingTx.value) / 1e18,
-                    interactionCount: 1
-                };
+                return null;
+            } finally {
+                clearTimeout(timeoutId);
             }
-            return null;
+        };
+
+        try {
+            return await withRetry(fetchWithRetry);
         } catch (error) {
             return null;
         }
@@ -576,9 +629,9 @@ export class OptimizedSybilAnalyzer {
     ): Promise<WalletFunding | null> {
         try {
             const funding = await Promise.race([
-                provider.getFirstFunder(address),
+                withRetry(() => provider.getFirstFunder(address)),
                 new Promise<null>((_, reject) => 
-                    setTimeout(() => reject(new Error('Timeout')), 5000)
+                    setTimeout(() => reject(new Error('Timeout')), 10000)  // Increased from 5s to 10s
                 )
             ]);
 

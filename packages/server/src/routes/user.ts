@@ -21,6 +21,16 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
         const userDoc = await userRef.get();
         let userData = userDoc.data();
 
+        // Check PoH verification status - use JWT token value as source of truth
+        // The auth middleware already verified this, so we trust res.locals.isVerified
+        const isVerified = res.locals.isVerified === true;
+        
+        // If verified in JWT but not in Firestore, update Firestore
+        if (isVerified && userData && !userData.isVerified) {
+            await userRef.update({ isVerified: true });
+            userData.isVerified = true;
+        }
+
         // Create user document if first time
         if (!userDoc.exists) {
             userData = {
