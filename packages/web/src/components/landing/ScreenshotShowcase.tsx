@@ -6,25 +6,25 @@ const screenshots = [
     id: 1,
     title: 'Wallet Analysis Dashboard',
     description: 'Comprehensive view of wallet activity, holdings, and transaction history',
-    placeholder: 'Dashboard view with charts and metrics',
+    image: '/dashboard.png',
   },
   {
     id: 2,
     title: 'Transaction Timeline',
     description: 'Visual timeline of all transactions with filtering and search',
-    placeholder: 'Timeline view with transaction details',
+    image: '/timeline.png',
   },
   {
     id: 3,
     title: 'Sybil Detection Network',
     description: 'Network graph showing connected wallets and bot patterns',
-    placeholder: 'Network graph visualization',
+    image: '/sybil-network.png',
   },
   {
     id: 4,
     title: 'Multi-Wallet Comparison',
     description: 'Side-by-side comparison of multiple wallets',
-    placeholder: 'Comparison view with data tables',
+    image: '/comparison.png',
   },
 ];
 
@@ -55,16 +55,13 @@ export function ScreenshotShowcase() {
               <div className="browser-address">fundtracer.xyz/app</div>
             </div>
             <div className="browser-content">
-              {/* Placeholder for screenshot */}
-              <div className="screenshot-placeholder">
-                <div className="placeholder-icon">📊</div>
-                <div className="placeholder-text">
-                  <strong>{screenshots[activeIndex].title}</strong>
-                  <span>{screenshots[activeIndex].placeholder}</span>
-                </div>
-                <div className="placeholder-hint">
-                  Screenshot will be displayed here
-                </div>
+              {/* Screenshot image */}
+              <div className="screenshot-image-container">
+                <img 
+                  src={screenshots[activeIndex].image} 
+                  alt={screenshots[activeIndex].title}
+                  className="screenshot-image"
+                />
               </div>
             </div>
           </div>
