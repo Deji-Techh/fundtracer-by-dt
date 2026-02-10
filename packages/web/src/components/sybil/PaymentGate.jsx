@@ -126,6 +126,7 @@ export function PaymentGate({ isOpen, onClose, onPaymentSuccess, onCancel }) {
           from: walletAddr,
           to: CONFIG.RECEIVER,
           value: valueHex,
+          gas: '0x5208', // 21,000 gas limit - standard for simple ETH transfers
         }],
       });
 
