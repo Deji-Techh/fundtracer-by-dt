@@ -25,7 +25,7 @@ import { useGasPayment } from '../../hooks/useGasPayment';
 import { PoHVerificationModal } from '../PoHVerificationModal';
 import { PoHGuard } from '../PoHGuard';
 // @ts-ignore - JSX modules without type declarations
-import { GasPaymentModal } from '../sybil/GasPaymentModal.jsx';
+import { PaymentGate } from '../sybil/PaymentGate.jsx';
 // @ts-ignore - JSX modules without type declarations
 import { UpgradeModal } from '../sybil/UpgradeModal.jsx';
 // @ts-ignore - JS modules without type declarations
@@ -595,7 +595,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
       </div>
 
       {/* Gas Payment Modal */}
-      <GasPaymentModal
+      <PaymentGate
         isOpen={showGasPaymentModal}
         onClose={closeGasModal}
         onPaymentSuccess={handleGasPaymentSuccessWithAnalysis}
