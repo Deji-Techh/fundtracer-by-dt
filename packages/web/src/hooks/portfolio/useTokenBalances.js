@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAccount, useBalance, useReadContracts } from 'wagmi';
 import { CHAINS } from '../../lib/chains.js';
 
 const NATIVE_TOKEN_ADDRESS = '0x0000000000000000000000000000000000000000';

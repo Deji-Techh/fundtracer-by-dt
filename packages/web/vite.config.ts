@@ -5,6 +5,7 @@ import path from 'path';
 export default defineConfig({
   define: {
     global: 'globalThis',
+    'process.env': {},
   },
   plugins: [react()],
   resolve: {
@@ -30,8 +31,7 @@ export default defineConfig({
         manualChunks: {
           'vendor': ['react', 'react-dom'],
           'firebase': ['firebase/app', 'firebase/auth'],
-          'wagmi': ['wagmi', 'viem'],
-          'appkit': ['@reown/appkit', '@reown/appkit-adapter-wagmi'],
+          'appkit': ['@reown/appkit', '@reown/appkit-adapter-ethers'],
         },
       },
     },
@@ -41,10 +41,7 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       '@reown/appkit',
-      '@reown/appkit-adapter-wagmi',
-      '@reown/appkit-wallet-button',
-      'wagmi',
-      'viem',
+      '@reown/appkit-adapter-ethers',
       'ethers',
       'firebase/app',
       'firebase/auth',

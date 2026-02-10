@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppKitWallet } from '@reown/appkit-wallet-button/react';
+import { useAppKit } from '@reown/appkit/react';
 import './MobileWalletSelector.css';
 
 interface MobileWalletSelectorProps {
@@ -9,14 +9,14 @@ interface MobileWalletSelectorProps {
 }
 
 const wallets = [
-    { id: 'metamask', name: 'MetaMask', icon: '🦊' },
-    { id: 'trust', name: 'Trust Wallet', icon: '🛡️' },
-    { id: 'rainbow', name: 'Rainbow', icon: '🌈' },
-    { id: 'coinbase', name: 'Coinbase', icon: '🔵' },
-    { id: 'okx', name: 'OKX', icon: '⚫' },
-    { id: 'phantom', name: 'Phantom', icon: '👻' },
-    { id: 'zerion', name: 'Zerion', icon: '🟣' },
-    { id: 'bitget', name: 'Bitget', icon: '🔷' },
+    { id: 'metamask', name: 'MetaMask', icon: '🦊', deeplink: 'https://metamask.app.link/dapp/' },
+    { id: 'trust', name: 'Trust Wallet', icon: '🛡️', deeplink: 'https://link.trustwallet.com/open_url?url=' },
+    { id: 'rainbow', name: 'Rainbow', icon: '🌈', deeplink: 'https://rnbwapp.com/' },
+    { id: 'coinbase', name: 'Coinbase', icon: '🔵', deeplink: 'https://go.cb-w.com/dapp?cb_url=' },
+    { id: 'okx', name: 'OKX', icon: '⚫', deeplink: null },
+    { id: 'phantom', name: 'Phantom', icon: '👻', deeplink: 'https://phantom.app/ul/browse/' },
+    { id: 'zerion', name: 'Zerion', icon: '🟣', deeplink: null },
+    { id: 'bitget', name: 'Bitget', icon: '🔷', deeplink: null },
 ];
 
 export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({ 
@@ -24,21 +24,31 @@ export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({
     onClose, 
     onConnect 
 }) => {
-    const { connect, isPending } = useAppKitWallet({
-        onSuccess: () => {
-            onConnect();
-            onClose();
-        },
-        onError: (error) => {
-            console.error('Wallet connection error:', error);
-        }
-    });
+    const { open } = useAppKit();
 
     if (!isOpen) return null;
 
     const handleWalletClick = async (walletId: string) => {
         try {
-            await connect(walletId as any);
+            // For MetaMask and other mobile wallets, use deep linking
+            const wallet = wallets.find(w => w.id === walletId);
+            const currentUrl = window.location.href;
+            
+            if (wallet?.deeplink) {
+                // Open wallet app with current dapp URL
+                const deeplinkUrl = wallet.deeplink + encodeURIComponent(currentUrl);
+                window.location.href = deeplinkUrl;
+                
+                // Also open AppKit for connection
+                setTimeout(() => {
+                    open();
+                }, 500);
+            } else {
+                // For wallets without deep linking, just open AppKit
+                open();
+            }
+            
+            onClose();
         } catch (error) {
             console.error(`Failed to connect to ${walletId}:`, error);
         }
@@ -60,9 +70,8 @@ export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({
                     {wallets.map((wallet) => (
                         <button
                             key={wallet.id}
-                            className={`mobile-wallet-option ${isPending ? 'disabled' : ''}`}
+                            className="mobile-wallet-option"
                             onClick={() => handleWalletClick(wallet.id)}
-                            disabled={isPending}
                         >
                             <span className="mobile-wallet-icon">{wallet.icon}</span>
                             <span className="mobile-wallet-name">{wallet.name}</span>
@@ -76,10 +85,12 @@ export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({
 
                 <button 
                     className="mobile-wallet-qr-btn"
-                    onClick={() => handleWalletClick('walletConnect')}
-                    disabled={isPending}
+                    onClick={() => {
+                        open();
+                        onClose();
+                    }}
                 >
-                    {isPending ? 'Connecting...' : '🔗 Use WalletConnect QR'}
+                    🔗 Use WalletConnect QR
                 </button>
 
                 <p className="mobile-wallet-hint">
