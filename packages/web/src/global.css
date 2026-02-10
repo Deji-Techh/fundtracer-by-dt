@@ -1192,8 +1192,8 @@ body {
   display: none;
 }
 
-/* Mobile Footer Styles */
-@media (max-width: 1024px) {
+/* Mobile Footer Styles - Only on actual mobile devices (<640px) */
+@media (max-width: 640px) {
   .mobile-footer {
     display: flex;
     position: fixed;
@@ -1473,7 +1473,7 @@ body {
   
   /* Main content full width on mobile */
   .main-content {
-    padding: 0 !important;
+    padding: 64px 0 0 0 !important;
   }
   
   .main-content > div {

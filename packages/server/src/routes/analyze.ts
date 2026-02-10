@@ -266,7 +266,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
     // Free Tier Enforcement
     const tier = res.locals.tier || 'free'; // Passed from authMiddleware
     if (tier === 'free') {
-        const txHash = req.body.options?.txHash;
+        const txHash = req.body.txHash || req.body.options?.txHash;
         if (!txHash) {
             return res.status(402).json({ error: 'Free Tier requires a gas payment transaction hash.' });
         }

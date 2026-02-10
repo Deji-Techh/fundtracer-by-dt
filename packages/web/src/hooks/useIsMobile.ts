@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react';
 
 /**
  * Hook to detect mobile devices based on screen width.
- * Returns true if viewport width < 768px.
+ * Returns true if viewport width < 640px.
  */
 export function useIsMobile(): boolean {
     const [isMobile, setIsMobile] = useState(() => {
         // Initialize with actual check instead of false to prevent mobile flash
-        return typeof window !== 'undefined' && window.innerWidth < 768;
+        return typeof window !== 'undefined' && window.innerWidth < 640;
     });
 
     useEffect(() => {
         const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768);
+            setIsMobile(window.innerWidth < 640);
         };
 
         checkMobile();
