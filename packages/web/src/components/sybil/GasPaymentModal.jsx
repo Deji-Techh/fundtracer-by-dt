@@ -6,6 +6,7 @@ import {
   Loading01Icon,
   CheckmarkCircle02Icon,
   Alert01Icon,
+  Copy01Icon,
 } from '@hugeicons/core-free-icons';
 import { sendGasPayment, verifyGasPayment } from '../../services/paymentVerification.js';
 import { useAuth } from '../../contexts/AuthContext';
@@ -199,7 +200,7 @@ export function GasPaymentModal({ isOpen, onClose, onPaymentSuccess, onCancel })
                     }}
                   >
                     <HugeiconsIcon
-                      icon={copied ? CheckmarkCircle02Icon : require('@hugeicons/core-free-icons').Copy01Icon}
+                      icon={copied ? CheckmarkCircle02Icon : Copy01Icon}
                       size={16}
                       strokeWidth={2}
                     />
