@@ -9,7 +9,6 @@ import { getFirestore } from '../firebase.js';
 import {
     WalletAnalyzer,
     SybilAnalyzer,
-    OptimizedSybilAnalyzer,
     ChainId,
     FilterOptions
 } from '@fundtracer/core';
@@ -661,79 +660,42 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
     }
 
     try {
-        console.log('[DEBUG] Setting up optimized sybil analyzer with dedicated keys...');
+        console.log('[DEBUG] Using original SybilAnalyzer for direct address analysis...');
         
-        // Use single dedicated Alchemy key for sybil detection (faster, no rotation overhead)
-        const sybilAlchemyKey = process.env.SYBIL_WALLET_KEY_1;
-        const apiKeys: string[] = [];
-        
-        if (sybilAlchemyKey) {
-            // Use the dedicated key 20 times for the key manager (it will use the same key, no rotation needed)
-            for (let i = 0; i < 20; i++) apiKeys.push(sybilAlchemyKey);
-            console.log(`[DEBUG] Using dedicated Alchemy key for sybil: ${sybilAlchemyKey.substring(0, 8)}...${sybilAlchemyKey.substring(sybilAlchemyKey.length-4)}`);
-        } else {
-            console.error('[DEBUG] SYBIL_WALLET_KEY_1 not set!');
-            return res.status(400).json({ error: 'SYBIL_WALLET_KEY_1 not configured' });
-        }
-        
-        // Use dedicated Moralis key for sybil detection
+        // Get Alchemy key for user
+        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
         const moralisKey = process.env.MORALIS_API_KEY || '';
-        if (moralisKey) {
-            console.log(`[DEBUG] Moralis key configured: ${moralisKey.substring(0, 20)}...`);
-        } else {
-            console.log('[DEBUG] Moralis key not set');
-        }
-        
-        // No Covalent for sybil (as requested)
-        const covalentKey = '';
+        const covalentKey = process.env.COVALENT_API_KEY || '';
 
-        if (apiKeys.length === 0) {
-            return res.status(400).json({ error: 'SYBIL_WALLET_KEY_1 not configured for sybil detection' });
+        if (!alchemyKey) {
+            return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
         }
 
-        // Use optimized analyzer with 20 keys
-        const analyzer = new OptimizedSybilAnalyzer(
-            chain as ChainId,
-            apiKeys,
-            {
-                moralisKey,
-                covalentKey,
-                concurrency: 10, // Process 10 batches in parallel
-            }
-        );
+        // Use original SybilAnalyzer (proven to work)
+        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyKey, moralisKey, covalentKey);
 
-        console.log(`[DEBUG] Starting optimized sybil analysis on ${validAddresses.length} addresses with ${apiKeys.length} API keys...`);
+        console.log(`[DEBUG] Starting sybil analysis on ${validAddresses.length} addresses...`);
         const startTime = Date.now();
         
         const result = await withTimeout(
-            analyzer.analyzeContract(
-                'direct-analysis',
-                validAddresses,
-                {
-                    minClusterSize: options?.minClusterSize || 3,
-                    concurrency: 10,
-                }
-            ),
-            120000, // 2 minute timeout (much faster with optimization)
+            analyzer.analyzeAddresses(validAddresses, {
+                minClusterSize: options?.minClusterSize || 3,
+            }),
+            600000, // 10 minute timeout
             'Sybil analysis'
         );
         
         const duration = (Date.now() - startTime) / 1000;
-        const failedCount = result.failedAddresses?.length || 0;
-        const successCount = validAddresses.length - failedCount;
         console.log(`[DEBUG] Sybil analysis complete in ${duration}s`);
-        console.log(`[DEBUG] Results: ${successCount} wallets with funding data, ${failedCount} wallets failed`);
         console.log(`[DEBUG] Clusters found: ${result.clusters?.length || 0}`);
-        if (failedCount > 0 && result.failedAddresses) {
-            console.log(`[DEBUG] Sample failed addresses:`, result.failedAddresses.slice(0, 5));
-        }
+        console.log(`[DEBUG] Total interactors: ${result.totalInteractors}`);
+        console.log(`[DEBUG] Flagged clusters: ${result.flaggedClusters?.length || 0}`);
         
         res.json({
             success: true,
             result,
             meta: {
                 duration: `${duration}s`,
-                apiKeysUsed: apiKeys.length,
                 walletsAnalyzed: validAddresses.length,
             },
             usageRemaining: res.locals.usageRemaining,
