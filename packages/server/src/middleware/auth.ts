@@ -137,7 +137,7 @@ export async function authMiddleware(
         req.user = {
             uid: uid,
             email: userData?.email || decoded.email || uid,
-            name: userData?.displayName || decoded.name || uid.slice(0, 6) + '...' + uid.slice(-4),
+            name: userData?.displayName || decoded.displayName || uid.slice(0, 6) + '...' + uid.slice(-4),
             photoURL: userData?.photoURL || decoded.photoURL || null,
             walletAddress: userData?.walletAddress || decoded.walletAddress || null,
             type: 'user'

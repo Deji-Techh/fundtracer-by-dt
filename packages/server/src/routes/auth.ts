@@ -27,8 +27,9 @@ function generateUUID(): string {
 async function checkPoH(address: string): Promise<boolean> {
   try {
     const response = await fetch(`https://poh-api.linea.build/poh/v2/${address}`);
-    const data = await response.json() as { poh: boolean };
-    return data.poh === true;
+    // API returns plain text "true" or "false", not JSON
+    const text = (await response.text()).trim();
+    return text === "true";
   } catch (error) {
     console.error('PoH Check failed:', error);
     return false;
@@ -66,11 +67,13 @@ router.post('/login-wallet', async (req: Request, res: Response) => {
 
     let tier = 'free';
     let expiry = 0;
+    let displayName = '';
 
     if (userDoc.exists) {
       const data = userDoc.data();
       tier = data?.tier || 'free';
       expiry = data?.subscriptionExpiry || 0;
+      displayName = data?.displayName || '';
     }
 
     // Check if subscription expired
@@ -93,6 +96,7 @@ router.post('/login-wallet', async (req: Request, res: Response) => {
       address: address.toLowerCase(),
       tier,
       isVerified,
+      displayName,
       authProvider: 'wallet'
     }, JWT_SECRET, { expiresIn: '30d' });
 
@@ -103,6 +107,7 @@ router.post('/login-wallet', async (req: Request, res: Response) => {
         address,
         tier,
         isVerified,
+        displayName,
         subscriptionExpiry: expiry
       }
     });

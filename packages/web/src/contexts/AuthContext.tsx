@@ -374,7 +374,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 walletAddress: walletAddress,
                 isVerified: response.user.isVerified,
                 tier: response.user.tier || 'free',
-                authProvider: 'wallet'
+                authProvider: 'wallet',
+                displayName: response.user.displayName || ''
             });
             setIsAuthenticated(true);
 
