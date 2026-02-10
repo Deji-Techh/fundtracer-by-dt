@@ -272,6 +272,13 @@ const analyzeLimiter = rateLimit({
   message: { error: 'Analysis rate limit exceeded, please slow down' },
 });
 
+const scanHistoryLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // 20 scan history requests per minute
+  message: { error: 'Scan history sync rate limit exceeded, please slow down' },
+  skipSuccessfulRequests: true, // Don't count successful requests
+});
+
 // Apply general rate limiting to all API routes
 app.use('/api/', apiLimiter);
 app.use('/', apiLimiter);
@@ -317,7 +324,7 @@ apiRouter.use('/user', authMiddleware, userRoutes);
 apiRouter.use('/auth', authLimiter, authRoutes); // Public auth route with stricter rate limiting
 apiRouter.use('/contracts', contractRoutes); // Public contract lookup
 apiRouter.use('/payment', paymentRoutes); // Payment verification
-apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeRoutes);
+apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
 apiRouter.use('/dune', authMiddleware, duneRoutes);
 import { trackingRoutes } from './routes/tracking.js';
 import healthRoutes from './routes/health.js';
@@ -347,7 +354,7 @@ apiRouter.use('/safety', authMiddleware, safetyRoutes); // Token safety checks
 apiRouter.use('/debug', debugRoutes); // Debug routes (public)
 apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
 apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
-apiRouter.use('/scan-history', scanHistoryRoutes); // Scan history sync (auth required, middleware inside route)
+apiRouter.use('/scan-history', authMiddleware, scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);

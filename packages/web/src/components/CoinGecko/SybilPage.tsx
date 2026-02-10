@@ -158,7 +158,6 @@ const SybilPage: React.FC<SybilPageProps> = ({
     }
 
     try {
-      addToHistory(address, selectedChain);
       const response = await analyzeWallet(address, selectedChain, { limit: 100, offset: 0, txHash: gasTxHash });
       if (response.result) {
         setWalletResult(response.result);
@@ -225,7 +224,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
     } else if (pendingAnalysis.type === 'compare') {
       _executeCompareWallets(txHash);
     } else if (pendingAnalysis.type === 'contract') {
-      _executeContractAnalysis(txHash);
+      _executeAnalyzeContract(txHash);
     }
 
     // Clear pending analysis
