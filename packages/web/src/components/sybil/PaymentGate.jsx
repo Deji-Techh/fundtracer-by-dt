@@ -13,7 +13,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 // Config - Hardcoded values
 const CONFIG = {
   RECEIVER: '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd',
-  FEE: '0.0001',
+  FEE: '0.001',
   CHAIN_ID: '0xE708',
   CHAIN_ID_DEC: 59144,
   RPC: 'https://rpc.linea.build',
