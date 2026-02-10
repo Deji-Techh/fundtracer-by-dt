@@ -48,7 +48,7 @@ import cytoscape from 'cytoscape';
 // @ts-ignore - JSX modules without type declarations
 import { UpgradeModal } from './sybil/UpgradeModal.jsx';
 // @ts-ignore - JSX modules without type declarations
-import { GasPaymentModal } from './sybil/GasPaymentModal.jsx';
+
 // @ts-ignore - JS modules without type declarations
 import {
   SYBIL_TIERS,
@@ -1666,7 +1666,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
   // Tier system state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showGasPaymentModal, setShowGasPaymentModal] = useState(false);
+
   const [currentTier, setCurrentTier] = useState<'free' | 'pro' | 'max'>(() => profile?.tier || 'free');
 
   // Update tier when profile changes
@@ -1691,14 +1691,9 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
   // Fetch addresses from Dune
   const handleFetch = async () => {
-    // Check if user can perform operation based on tier
+    // Check tier limits for fetch operation
     if (!canPerformSybilOperation(currentTier)) {
       const remaining = getRemainingOperations(currentTier);
-      if (currentTier === 'free' && (remaining === 0 || remaining === 0)) {
-        // Show gas payment modal for free tier
-        setShowGasPaymentModal(true);
-        return;
-      }
       setError(`Daily limit reached. ${remaining === 'unlimited' ? 'Upgrade for unlimited access' : `${remaining} operations remaining`}`);
       if (currentTier === 'free') {
         setShowUpgradeModal(true);
@@ -1793,21 +1788,6 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
   // Analyze the addresses
   const handleAnalyze = async () => {
-    // Check if user can perform operation based on tier
-    if (!canPerformSybilOperation(currentTier)) {
-      const remaining = getRemainingOperations(currentTier);
-      if (currentTier === 'free' && (remaining === 0 || remaining === 0)) {
-        // Show gas payment modal for free tier
-        setShowGasPaymentModal(true);
-        return;
-      }
-      setError(`Daily limit reached. ${remaining === 'unlimited' ? 'Upgrade for unlimited access' : `${remaining} operations remaining`}`);
-      if (currentTier === 'free') {
-        setShowUpgradeModal(true);
-      }
-      return;
-    }
-
     if (allAddresses.length < 10) {
       setError('Need at least 10 addresses for meaningful analysis');
       return;
@@ -1819,7 +1799,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
 
     let txHash: string | undefined;
 
-    // Check if free tier and send gas transaction
+    // FREE TIER: Always require gas payment before analysis
     if (profile?.tier === 'free') {
       const gasTxHash = await sendFreeTierGas();
       if (!gasTxHash) {
@@ -1827,6 +1807,17 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         return;
       }
       txHash = gasTxHash;
+    }
+
+    // Check if user can perform operation based on tier (after gas payment for free tier)
+    if (!canPerformSybilOperation(currentTier)) {
+      const remaining = getRemainingOperations(currentTier);
+      setError(`Daily limit reached. ${remaining === 'unlimited' ? 'Upgrade for unlimited access' : `${remaining} operations remaining`}`);
+      if (currentTier === 'free') {
+        setShowUpgradeModal(true);
+      }
+      setAnalyzing(false);
+      return;
     }
 
     try {
@@ -2979,17 +2970,6 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         }}
       />
 
-      <GasPaymentModal
-        isOpen={showGasPaymentModal}
-        onClose={() => setShowGasPaymentModal(false)}
-        onPaymentSuccess={(txHash: string) => {
-          setShowGasPaymentModal(false);
-          notify.success('Gas payment verified! You can now proceed.');
-        }}
-        onCancel={() => {
-          setShowGasPaymentModal(false);
-        }}
-      />
     </div>
   );
 }
