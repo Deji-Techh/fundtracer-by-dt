@@ -213,9 +213,10 @@ export async function loadMoreTransactions(
 
 export async function compareWallets(
     addresses: string[],
-    chain: ChainId
+    chain: ChainId,
+    options?: { txHash?: string }
 ): Promise<ApiResponse<MultiWalletResult>> {
-    return apiRequest('/api/analyze/compare', 'POST', { addresses, chain });
+    return apiRequest('/api/analyze/compare', 'POST', { addresses, chain, txHash: options?.txHash });
 }
 
 // Fetch funding tree on-demand (separate from initial wallet analysis for speed)
@@ -234,7 +235,7 @@ export async function fetchFundingTree(
 export async function analyzeContract(
     contractAddress: string,
     chain: ChainId,
-    options?: { maxInteractors?: number; analyzeFunding?: boolean }
+    options?: { maxInteractors?: number; analyzeFunding?: boolean; txHash?: string }
 ): Promise<ApiResponse<any>> {
     return apiRequest('/api/analyze/contract', 'POST', { contractAddress, chain, options });
 }

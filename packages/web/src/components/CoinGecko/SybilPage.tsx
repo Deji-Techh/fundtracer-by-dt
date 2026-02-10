@@ -73,11 +73,18 @@ const SybilPage: React.FC<SybilPageProps> = ({
   const [currentAnalysisAddress, setCurrentAnalysisAddress] = useState<string>('');
   const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
 
+  // Pending analysis state for gas payment flow
+  const [pendingAnalysis, setPendingAnalysis] = useState<{
+    type: 'wallet' | 'compare' | 'contract' | null;
+    txHash: string | null;
+  }>({ type: null, txHash: null });
+
   const isMobile = useIsMobile();
   const {
     showGasPaymentModal,
     showUpgradeModal,
     currentTier,
+    openGasModal,
     closeGasModal,
     closeUpgradeModal,
     setCurrentTier,
@@ -130,7 +137,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
     setWalletAddresses(updated);
   };
 
-  const _executeAnalyzeWallet = async () => {
+  const _executeAnalyzeWallet = async (gasTxHash?: string) => {
     const address = walletAddresses[0]?.trim();
     if (!address) return;
 
@@ -152,7 +159,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
     try {
       addToHistory(address, selectedChain);
-      const response = await analyzeWallet(address, selectedChain, { limit: 100, offset: 0 });
+      const response = await analyzeWallet(address, selectedChain, { limit: 100, offset: 0, txHash: gasTxHash });
       if (response.result) {
         setWalletResult(response.result);
         setResultsCache(prev => ({ ...prev, [cacheKey]: response.result }));
@@ -191,10 +198,38 @@ const SybilPage: React.FC<SybilPageProps> = ({
       setShowPoHModal(true);
       return;
     }
-    if (!gateOperation()) return;
+
     const address = walletAddresses[0]?.trim();
     if (!address) return;
+
+    // For free tier, always require gas payment before analysis
+    if (currentTier === 'free') {
+      setPendingAnalysis({ type: 'wallet', txHash: null });
+      openGasModal();
+      return;
+    }
+
+    // For paid tiers, use the existing gate operation
+    if (!gateOperation()) return;
+
     _executeAnalyzeWallet();
+  };
+
+  const handleGasPaymentSuccessWithAnalysis = (txHash: string) => {
+    // Close the gas modal
+    closeGasModal();
+
+    // Proceed with the pending analysis
+    if (pendingAnalysis.type === 'wallet') {
+      _executeAnalyzeWallet(txHash);
+    } else if (pendingAnalysis.type === 'compare') {
+      _executeCompareWallets(txHash);
+    } else if (pendingAnalysis.type === 'contract') {
+      _executeContractAnalysis(txHash);
+    }
+
+    // Clear pending analysis
+    setPendingAnalysis({ type: null, txHash: null });
   };
 
   const handleLoadMoreTransactions = async () => {
@@ -222,7 +257,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
     }
   };
 
-  const _executeCompareWallets = async () => {
+  const _executeCompareWallets = async (gasTxHash?: string) => {
     const addresses = walletAddresses.filter(a => a.trim());
     if (addresses.length < 2) return;
 
@@ -230,7 +265,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
     setError(null);
 
     try {
-      const response = await compareWallets(addresses, selectedChain);
+      const response = await compareWallets(addresses, selectedChain, { txHash: gasTxHash });
       if (response.result) {
         setMultiWalletResult(response.result);
 
@@ -261,20 +296,31 @@ const SybilPage: React.FC<SybilPageProps> = ({
       setShowPoHModal(true);
       return;
     }
-    if (!gateOperation()) return;
+
     const addresses = walletAddresses.filter(a => a.trim());
     if (addresses.length < 2) return;
+
+    // For free tier, always require gas payment before analysis
+    if (currentTier === 'free') {
+      setPendingAnalysis({ type: 'compare', txHash: null });
+      openGasModal();
+      return;
+    }
+
+    // For paid tiers, use the existing gate operation
+    if (!gateOperation()) return;
+
     _executeCompareWallets();
   };
 
-  const _executeAnalyzeContract = async () => {
+  const _executeAnalyzeContract = async (gasTxHash?: string) => {
     if (!contractAddress.trim()) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await analyzeContract(contractAddress.trim(), selectedChain);
+      const response = await analyzeContract(contractAddress.trim(), selectedChain, { txHash: gasTxHash });
       if (response.result) {
         setContractResult(response.result);
 
@@ -303,8 +349,19 @@ const SybilPage: React.FC<SybilPageProps> = ({
       setShowPoHModal(true);
       return;
     }
-    if (!gateOperation()) return;
+
     if (!contractAddress.trim()) return;
+
+    // For free tier, always require gas payment before analysis
+    if (currentTier === 'free') {
+      setPendingAnalysis({ type: 'contract', txHash: null });
+      openGasModal();
+      return;
+    }
+
+    // For paid tiers, use the existing gate operation
+    if (!gateOperation()) return;
+
     _executeAnalyzeContract();
   };
 
@@ -541,7 +598,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
       <GasPaymentModal
         isOpen={showGasPaymentModal}
         onClose={closeGasModal}
-        onPaymentSuccess={handleGasPaymentSuccess}
+        onPaymentSuccess={handleGasPaymentSuccessWithAnalysis}
         onCancel={closeGasModal}
       />
 
