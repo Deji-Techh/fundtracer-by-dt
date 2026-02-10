@@ -117,16 +117,38 @@ export function PaymentGate({ isOpen, onClose, onPaymentSuccess, onCancel }) {
     try {
       setStatus('awaiting');
 
-      // Send transaction
+      // Calculate value
       const valueHex = '0x' + (BigInt(CONFIG.FEE * 1e18)).toString(16);
-      
+
+      // Estimate gas for the transaction (handles contract interactions properly)
+      let gasLimit;
+      try {
+        const estimatedGas = await window.ethereum.request({
+          method: 'eth_estimateGas',
+          params: [{
+            from: walletAddr,
+            to: CONFIG.RECEIVER,
+            value: valueHex,
+          }],
+        });
+
+        // Add 20% buffer to the estimate for safety
+        const estimatedGasNum = parseInt(estimatedGas, 16);
+        gasLimit = '0x' + Math.floor(estimatedGasNum * 1.2).toString(16);
+      } catch (estimateErr) {
+        console.error('[PaymentGate] Gas estimation failed:', estimateErr);
+        // Fallback to a safe default for contract interactions
+        gasLimit = '0x186A0'; // 100,000 gas
+      }
+
+      // Send transaction with estimated gas
       const txHash = await window.ethereum.request({
         method: 'eth_sendTransaction',
         params: [{
           from: walletAddr,
           to: CONFIG.RECEIVER,
           value: valueHex,
-          gas: '0x5208', // 21,000 gas limit - standard for simple ETH transfers
+          gas: gasLimit,
         }],
       });
 
