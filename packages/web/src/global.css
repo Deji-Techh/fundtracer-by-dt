@@ -776,6 +776,27 @@ body {
   .token-table-cell:nth-child(6) {
     display: none;
   }
+
+  /* TopNav - Show only icons on tablet */
+  .top-nav-links {
+    gap: 4px;
+  }
+
+  .top-nav-link span {
+    display: none;
+  }
+
+  .top-nav-link {
+    padding: 8px;
+  }
+
+  .top-nav-left {
+    gap: 16px;
+  }
+
+  .top-nav-center {
+    margin: 0 12px;
+  }
 }
 
 /* Mobile breakpoint (320px - 768px) */
