@@ -51,9 +51,20 @@ export function PaymentGate({ isOpen, onClose, onPaymentSuccess, onCancel }) {
     }
 
     try {
+      // Check if already connected - use eth_accounts first (doesn't trigger popup)
+      const existingAccounts = await window.ethereum.request({
+        method: 'eth_accounts',
+      });
+
+      if (existingAccounts && existingAccounts.length > 0) {
+        // Already connected, skip to chain check
+        setWalletAddr(existingAccounts[0]);
+        await checkChainAndBalance(existingAccounts[0]);
+        return;
+      }
+
+      // Not connected, request accounts (this will trigger popup)
       setStatus('connecting');
-      
-      // Request accounts
       const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts',
       });
@@ -66,7 +77,19 @@ export function PaymentGate({ isOpen, onClose, onPaymentSuccess, onCancel }) {
 
       const address = accounts[0];
       setWalletAddr(address);
+      await checkChainAndBalance(address);
+    } catch (err) {
+      console.error('[PaymentGate] Init error:', err);
+      setError('Wallet connection failed. Please try again.');
+      setStatus('failed');
+    }
+  }
 
+  // Check chain and get balance
+  async function checkChainAndBalance(address) {
+    try {
+      setStatus('connecting');
+      
       // Force switch to Linea
       try {
         await window.ethereum.request({
@@ -86,8 +109,8 @@ export function PaymentGate({ isOpen, onClose, onPaymentSuccess, onCancel }) {
               blockExplorerUrls: [CONFIG.EXPLORER],
             }],
           });
-        } else if (switchErr.code !== -32002) {
-          // -32002 means already pending, ignore
+        } else if (switchErr.code !== -32002 && switchErr.code !== -32001) {
+          // -32002 = already pending, -32001 = already processing
           throw switchErr;
         }
       }
@@ -104,8 +127,8 @@ export function PaymentGate({ isOpen, onClose, onPaymentSuccess, onCancel }) {
 
       setStatus('ready');
     } catch (err) {
-      console.error('[PaymentGate] Init error:', err);
-      setError('Wallet connection failed. Please try again.');
+      console.error('[PaymentGate] Chain/Balance error:', err);
+      setError('Failed to check wallet balance. Please try again.');
       setStatus('failed');
     }
   }
