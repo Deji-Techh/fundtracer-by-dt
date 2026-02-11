@@ -35,7 +35,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
             features: [
                 '30 days access',
                 'Access to Linea, Arb, Base',
-                'No gas fees',
                 '25 analyses per 4 hours',
                 '2s action delay',
                 'Fast API access',
@@ -54,7 +53,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                 'Sybil detection',
                 'API access',
                 'No action delay',
-                'Premium support',
+                'Priority support',
                 'Advanced analytics',
                 'Export reports'
             ]

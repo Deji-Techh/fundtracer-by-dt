@@ -214,14 +214,14 @@ const SybilPage: React.FC<SybilPageProps> = ({
     const address = walletAddresses[0]?.trim();
     if (!address) return;
 
-    // For free tier, always require gas payment before analysis
-    if (currentTier === 'free') {
-      setPendingAnalysis({ type: 'wallet', txHash: null });
-      openGasModal();
-      return;
-    }
+    // For free tier, skip gas payment (temporarily disabled)
+    // if (currentTier === 'free') {
+    //   setPendingAnalysis({ type: 'wallet', txHash: null });
+    //   openGasModal();
+    //   return;
+    // }
 
-    // For paid tiers, use the existing gate operation
+    // For all tiers, use the gate operation
     if (!gateOperation()) return;
 
     _executeAnalyzeWallet();
@@ -312,14 +312,14 @@ const SybilPage: React.FC<SybilPageProps> = ({
     const addresses = walletAddresses.filter(a => a.trim());
     if (addresses.length < 2) return;
 
-    // For free tier, always require gas payment before analysis
-    if (currentTier === 'free') {
-      setPendingAnalysis({ type: 'compare', txHash: null });
-      openGasModal();
-      return;
-    }
+    // For free tier, skip gas payment (temporarily disabled)
+    // if (currentTier === 'free') {
+    //   setPendingAnalysis({ type: 'compare', txHash: null });
+    //   openGasModal();
+    //   return;
+    // }
 
-    // For paid tiers, use the existing gate operation
+    // For all tiers, use the gate operation
     if (!gateOperation()) return;
 
     _executeCompareWallets();
@@ -364,14 +364,14 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
     if (!contractAddress.trim()) return;
 
-    // For free tier, always require gas payment before analysis
-    if (currentTier === 'free') {
-      setPendingAnalysis({ type: 'contract', txHash: null });
-      openGasModal();
-      return;
-    }
+    // For free tier, skip gas payment (temporarily disabled)
+    // if (currentTier === 'free') {
+    //   setPendingAnalysis({ type: 'contract', txHash: null });
+    //   openGasModal();
+    //   return;
+    // }
 
-    // For paid tiers, use the existing gate operation
+    // For all tiers, use the gate operation
     if (!gateOperation()) return;
 
     _executeAnalyzeContract();

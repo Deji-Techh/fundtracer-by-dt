@@ -265,19 +265,19 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Free Tier Enforcement
-    const tier = res.locals.tier || 'free'; // Passed from authMiddleware
-    if (tier === 'free') {
-        const txHash = req.body.txHash || req.body.options?.txHash;
-        if (!txHash) {
-            return res.status(402).json({ error: 'Free Tier requires a gas payment transaction hash.' });
-        }
-
-        const isValid = await validateFreeTierTx(txHash, req.user.uid);
-        if (!isValid) {
-            return res.status(402).json({ error: 'Invalid payment transaction. Must be on Linea Mainnet sent to target wallet.' });
-        }
-    }
+    // Free Tier Enforcement - Gas payment temporarily disabled
+    // const tier = res.locals.tier || 'free'; // Passed from authMiddleware
+    // if (tier === 'free') {
+    //     const txHash = req.body.txHash || req.body.options?.txHash;
+    //     if (!txHash) {
+    //         return res.status(402).json({ error: 'Free Tier requires a gas payment transaction hash.' });
+    //     }
+    //
+    //     const isValid = await validateFreeTierTx(txHash, req.user.uid);
+    //     if (!isValid) {
+    //         return res.status(402).json({ error: 'Invalid payment transaction. Must be on Linea Mainnet sent to target wallet.' });
+    //     }
+    // }
 
     const { address, chain, options } = req.body;
 
@@ -430,19 +430,19 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Free Tier Enforcement
-    const tier = res.locals.tier || 'free';
-    if (tier === 'free') {
-        const txHash = req.body.txHash || req.body.options?.txHash;
-        if (!txHash) {
-            return res.status(402).json({ error: 'Free Tier requires a gas payment transaction hash.' });
-        }
-
-        const isValid = await validateFreeTierTx(txHash, req.user.uid);
-        if (!isValid) {
-            return res.status(402).json({ error: 'Invalid payment transaction. Must be on Linea Mainnet sent to target wallet.' });
-        }
-    }
+    // Free Tier Enforcement - Gas payment temporarily disabled
+    // const tier = res.locals.tier || 'free';
+    // if (tier === 'free') {
+    //     const txHash = req.body.txHash || req.body.options?.txHash;
+    //     if (!txHash) {
+    //         return res.status(402).json({ error: 'Free Tier requires a gas payment transaction hash.' });
+    //     }
+    //
+    //     const isValid = await validateFreeTierTx(txHash, req.user.uid);
+    //     if (!isValid) {
+    //         return res.status(402).json({ error: 'Invalid payment transaction. Must be on Linea Mainnet sent to target wallet.' });
+    //     }
+    // }
 
     const { addresses, chain, options } = req.body;
 
@@ -505,19 +505,19 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    // Free Tier Enforcement
-    const tier = res.locals.tier || 'free';
-    if (tier === 'free') {
-        const txHash = req.body.txHash || req.body.options?.txHash;
-        if (!txHash) {
-            return res.status(402).json({ error: 'Free Tier requires a gas payment transaction hash.' });
-        }
-
-        const isValid = await validateFreeTierTx(txHash, req.user.uid);
-        if (!isValid) {
-            return res.status(402).json({ error: 'Invalid payment transaction. Must be on Linea Mainnet sent to target wallet.' });
-        }
-    }
+    // Free Tier Enforcement - Gas payment temporarily disabled
+    // const tier = res.locals.tier || 'free';
+    // if (tier === 'free') {
+    //     const txHash = req.body.txHash || req.body.options?.txHash;
+    //     if (!txHash) {
+    //         return res.status(402).json({ error: 'Free Tier requires a gas payment transaction hash.' });
+    //     }
+    //
+    //     const isValid = await validateFreeTierTx(txHash, req.user.uid);
+    //     if (!isValid) {
+    //         return res.status(402).json({ error: 'Invalid payment transaction. Must be on Linea Mainnet sent to target wallet.' });
+    //     }
+    // }
 
     const { contractAddress, chain, options } = req.body;
 

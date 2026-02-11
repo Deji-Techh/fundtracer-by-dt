@@ -147,7 +147,8 @@ app.use(helmet({
                 "https://api.geckoterminal.com",
                 "https://api.dexscreener.com",
                 "https://*.g.alchemy.com",
-                "https://*.alchemy.com"
+                "https://*.alchemy.com",
+                "https://api.coingecko.com"
             ],
             "frame-src": [
                 "'self'",
@@ -248,47 +249,13 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' })); // Increased for large wallet lists
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Limit URL-encoded bodies
 
-// Security headers middleware
+// Security headers middleware (CSP handled by Helmet above)
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-    
-    // Content Security Policy - allows necessary external connections
-    const cspDirectives = [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.reown.com https://*.walletconnect.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.reown.com",
-        "img-src 'self' data: https: blob:",
-        "font-src 'self' https://fonts.reown.com",
-        "connect-src 'self' " +
-            // APIs
-            "https://api.coingecko.com " +
-            "https://*.alchemy.com " +
-            "https://rpc.linea.build " +
-            "https://*.walletconnect.com " +
-            "https://*.reown.com " +
-            "https://pulse.walletconnect.org " +
-            "https://api.relay.link " +
-            "https://rpc.walletconnect.com " +
-            // Chains
-            "https://ethereum-rpc.publicnode.com " +
-            "https://arb1.arbitrum.io " +
-            "https://mainnet.optimism.io " +
-            "https://rpc.ankr.com " +
-            "https://polygon-rpc.com " +
-            "https://base.llamarpc.com " +
-            // Dune
-            "https://api.dune.com " +
-            "wss://*.walletconnect.com",
-        "frame-ancestors 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-    ].join('; ');
-    
-    res.setHeader('Content-Security-Policy', cspDirectives);
     next();
 });
 
