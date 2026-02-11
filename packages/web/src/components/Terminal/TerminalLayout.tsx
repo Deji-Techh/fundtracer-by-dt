@@ -9,9 +9,10 @@ import LiveIndicator from './LiveIndicator';
 import ChartErrorBoundary from './ChartErrorBoundary';
 import { getTrendingPoolsUrl, getChainConfig, ChainKey, DEFAULT_CHAIN } from '../../config/chains';
 import { usePrefetchTrendingPools } from '../../hooks/useLiveCrypto';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ChartLineData01Icon, DollarCircleIcon } from '@hugeicons/core-free-icons';
-import { ArrowLeftRight } from 'lucide-react';
+import { ArrowLeftRight, Menu, X } from 'lucide-react';
 
 interface Pool {
   address: string;
@@ -52,6 +53,8 @@ const TerminalLayout: React.FC = () => {
   const [activeChain, setActiveChain] = useState<ChainKey>(DEFAULT_CHAIN);
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const chainConfig = getChainConfig(activeChain);
 
@@ -139,12 +142,41 @@ const TerminalLayout: React.FC = () => {
       height: '100vh',
       background: '#0a0a0a',
       overflow: 'hidden',
+      position: 'relative',
     }}>
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && sidebarOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 40,
+          }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <TerminalSidebar 
-        activeChain={activeChain}
-        onChainSelect={handleChainChange}
-      />
+      <div style={{
+        position: isMobile ? 'fixed' : 'relative',
+        left: isMobile ? (sidebarOpen ? 0 : -200) : 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 50,
+        transition: 'left 0.3s ease',
+      }}>
+        <TerminalSidebar 
+          activeChain={activeChain}
+          onChainSelect={(chain) => {
+            handleChainChange(chain);
+            if (isMobile) setSidebarOpen(false);
+          }}
+        />
+      </div>
 
       {/* Main content */}
       <div style={{
@@ -152,18 +184,39 @@ const TerminalLayout: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        minWidth: 0,
       }}>
         {/* Top price ticker bar */}
         <div style={{
-          height: 56,
+          height: isMobile ? 'auto' : 56,
+          minHeight: 56,
           background: '#0f0f0f',
           borderBottom: '1px solid #1a1a1a',
           display: 'flex',
           alignItems: 'center',
-          padding: '0 20px',
-          gap: 24,
+          padding: isMobile ? '12px 16px' : '0 20px',
+          gap: isMobile ? 16 : 24,
           overflow: 'hidden',
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
         }}>
+          {/* Mobile Menu Button */}
+          {isMobile && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                padding: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Menu size={20} />
+            </button>
+          )}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -247,24 +300,27 @@ const TerminalLayout: React.FC = () => {
         {/* Main content area - Chart + Trade feed */}
         <div style={{
           flex: 1,
-          display: 'grid',
-          gridTemplateColumns: '1fr 400px',
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
           gap: 16,
-          padding: 16,
+          padding: isMobile ? 12 : 16,
           overflow: 'hidden',
+          minHeight: 0,
         }}>
           {/* Chart section */}
           <div style={{
+            flex: isMobile ? '1 1 50%' : '1 1 60%',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            minHeight: 0,
           }}>
             {selectedPool ? (
               <ChartErrorBoundary>
                 <TradingChart
                   chainKey={activeChain}
                   poolAddress={selectedPool}
-                  height={500}
+                  height={isMobile ? 300 : 500}
                 />
               </ChartErrorBoundary>
             ) : (
@@ -284,13 +340,15 @@ const TerminalLayout: React.FC = () => {
 
           {/* Trade feed section */}
           <div style={{
+            flex: isMobile ? '1 1 50%' : '0 0 400px',
             overflow: 'hidden',
+            minHeight: 0,
           }}>
             {selectedPool ? (
               <LiveTradeFeed 
                 chainKey={activeChain}
                 poolAddress={selectedPool}
-                maxTrades={50}
+                maxTrades={isMobile ? 20 : 50}
               />
             ) : (
               <div style={{
@@ -310,9 +368,9 @@ const TerminalLayout: React.FC = () => {
 
         {/* Bottom pool cards grid */}
         <div style={{
-          height: 200,
+          height: isMobile ? 160 : 200,
           borderTop: '1px solid #1a1a1a',
-          padding: 16,
+          padding: isMobile ? 12 : 16,
           overflow: 'hidden',
         }}>
           <div style={{
@@ -328,13 +386,16 @@ const TerminalLayout: React.FC = () => {
 
           {poolsLoading && !pools ? (
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              display: isMobile ? 'flex' : 'grid',
+              gridTemplateColumns: isMobile ? undefined : 'repeat(auto-fill, minmax(240px, 1fr))',
               gap: 12,
-              height: 140,
+              height: isMobile ? 120 : 140,
+              overflowX: isMobile ? 'auto' : undefined,
             }}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <PoolSkeleton key={i} />
+              {Array.from({ length: isMobile ? 3 : 6 }).map((_, i) => (
+                <div key={i} style={{ minWidth: isMobile ? 200 : undefined }}>
+                  <PoolSkeleton />
+                </div>
               ))}
             </div>
           ) : poolsError ? (
@@ -343,21 +404,21 @@ const TerminalLayout: React.FC = () => {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              height: 140,
+              height: isMobile ? 120 : 140,
               gap: 12,
             }}>
-              <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>
+              <span style={{ color: '#ef4444', fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
                 Failed to load pools
               </span>
               <button 
                 onClick={() => refetchPools()}
                 style={{
-                  padding: '8px 16px',
+                  padding: isMobile ? '6px 12px' : '8px 16px',
                   borderRadius: 6,
                   border: '1px solid #2a2a2a',
                   background: '#1a1a1a',
                   color: '#fff',
-                  fontSize: '0.875rem',
+                  fontSize: isMobile ? '0.75rem' : '0.875rem',
                   cursor: 'pointer',
                 }}
               >
@@ -366,14 +427,14 @@ const TerminalLayout: React.FC = () => {
             </div>
           ) : pools && pools.length > 0 ? (
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+              display: isMobile ? 'flex' : 'grid',
+              gridTemplateColumns: isMobile ? undefined : 'repeat(auto-fill, minmax(240px, 1fr))',
               gap: 12,
-              overflowX: 'auto',
-              height: 140,
+              overflowX: isMobile ? 'auto' : undefined,
+              height: isMobile ? 120 : 140,
             }}>
               <AnimatePresence mode="popLayout">
-                {pools.slice(0, 6).map((pool) => (
+                {pools.slice(0, isMobile ? 6 : 6).map((pool) => (
                   <motion.div
                     key={pool.address}
                     layout
@@ -381,6 +442,10 @@ const TerminalLayout: React.FC = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.2 }}
+                    style={{
+                      minWidth: isMobile ? 200 : undefined,
+                      flexShrink: 0,
+                    }}
                   >
                     <PoolCard 
                       pool={pool}
@@ -396,8 +461,9 @@ const TerminalLayout: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: 140,
+              height: isMobile ? 120 : 140,
               color: '#6b7280',
+              fontSize: isMobile ? '0.875rem' : '1rem',
             }}>
               No pools available
             </div>
