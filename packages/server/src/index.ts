@@ -371,6 +371,10 @@ apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
 apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
 apiRouter.use('/scan-history', authMiddleware, scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
 
+// NEW: Contract Scanner Routes
+import contractScannerRoutes from './routes/contractRoutes.js';
+apiRouter.use('/contract', authMiddleware, contractScannerRoutes);
+
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
 app.use('/', apiRouter);

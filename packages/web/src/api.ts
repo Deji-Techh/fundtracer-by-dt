@@ -132,7 +132,7 @@ async function apiRequestWithRetry<T>(
 }
 
 // Export alias for backward compatibility
-const apiRequest = apiRequestWithRetry;
+export const apiRequest = apiRequestWithRetry;
 
 // Authentication endpoints
 export async function loginWithWallet(address: string, signature: string, message: string): Promise<{ token: string, user: any }> {

@@ -19,6 +19,7 @@ import ContractSearch from '../ContractSearch';
 import SearchHistory from '../SearchHistory';
 import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
 import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions } from '../../api';
+import ContractScanner from '../ContractScanner';
 import { addToHistory } from '../../utils/history';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useGasPayment } from '../../hooks/useGasPayment';
@@ -379,7 +380,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
   const modeButtons = [
     { id: 'wallet', label: 'Wallet', icon: Wallet01Icon },
-    { id: 'contract', label: 'Contract', icon: File02Icon },
+    { id: 'contract', label: 'Scanner', icon: File02Icon },
     { id: 'compare', label: 'Compare', icon: GitCompareIcon },
     { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
   ];
@@ -483,13 +484,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
           )}
 
           {viewMode === 'contract' && (
-            <div className="analysis-section">
-              <div className="analysis-label">Contract Address</div>
-              <ContractSearch
-                onSelect={(address) => setContractAddress(address)}
-                placeholder="Search by name or paste address"
-              />
-            </div>
+            <ContractScanner />
           )}
 
           {viewMode === 'compare' && (
@@ -517,14 +512,12 @@ const SybilPage: React.FC<SybilPageProps> = ({
             </PoHGuard>
           )}
 
-          {/* Analyze Button - Full Width for Mobile */}
-          {viewMode !== 'sybil' && (
+          {/* Analyze Button - Only for Wallet and Compare tabs */}
+          {(viewMode === 'wallet' || viewMode === 'compare') && (
             <button
               className="btn btn-primary btn-analyze"
               onClick={
-                viewMode === 'wallet' ? handleAnalyzeWallet :
-                  viewMode === 'contract' ? handleAnalyzeContract :
-                    handleCompareWallets
+                viewMode === 'wallet' ? handleAnalyzeWallet : handleCompareWallets
               }
               disabled={loading}
             >
@@ -535,10 +528,8 @@ const SybilPage: React.FC<SybilPageProps> = ({
                 </span>
               ) : (
                 <span className="btn-content">
-                  <HugeiconsIcon icon={viewMode === 'wallet' ? Wallet01Icon : viewMode === 'contract' ? File02Icon : GitCompareIcon} size={18} strokeWidth={1.5} />
-                  {viewMode === 'wallet' ? 'Analyze Wallet' :
-                    viewMode === 'contract' ? 'Analyze Contract' :
-                      'Compare Wallets'}
+                  <HugeiconsIcon icon={viewMode === 'wallet' ? Wallet01Icon : GitCompareIcon} size={18} strokeWidth={1.5} />
+                  {viewMode === 'wallet' ? 'Analyze Wallet' : 'Compare Wallets'}
                 </span>
               )}
             </button>
