@@ -8,7 +8,7 @@ import { ContactModal } from './ContactModal';
 import PrivacyPolicyModal from './PrivacyPolicyModal';
 import {
   User, Shield, CheckCircle, AlertTriangle, Save, Camera,
-  Sun, Moon, Wallet, Unlink, MessageSquare, FileText, LogOut,
+  Sun, Moon, Wallet, MessageSquare, FileText, LogOut,
   ChevronRight, Bell, Globe, Lock, HelpCircle, ExternalLink,
   ArrowUpCircle
 } from 'lucide-react';
@@ -21,7 +21,7 @@ interface SettingsPageProps {
 }
 
 export default function SettingsPage({ onConnectWallet, isWalletConnected, walletAddress, onUpgrade }: SettingsPageProps) {
-  const { user, profile, refreshProfile, signOut, unlinkWallet } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const isMobile = useIsMobile();
   const notify = useNotify();
@@ -79,14 +79,6 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
       setMessage({ type: 'error', text: error.message });
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleDisconnectWallet = async () => {
-    try {
-      await unlinkWallet();
-    } catch (error: any) {
-      notify.error(error.message || 'Failed to disconnect wallet');
     }
   };
 
@@ -510,42 +502,42 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
           </span>
         </div>
 
-        {/* Daily Usage */}
+        {/* Usage */}
         <div style={{ ...rowStyle, flexDirection: 'column', alignItems: 'stretch', borderBottom: 'none' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ ...iconWrapStyle, background: 'rgba(139, 92, 246, 0.1)' }}>
                 <Globe size={18} color="#8b5cf6" />
               </div>
-              <div style={labelStyle}>Daily Usage</div>
+              <div style={labelStyle}>Usage (per 4 hours)</div>
             </div>
             <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>
-              {profile.usage?.today || 0} / {profile.usage?.limit || 'unlimited'}
+              {profile.tier === 'max' ? 'Unlimited' : `${profile.usage?.today || 0} / ${profile.tier === 'pro' ? 25 : 7}`}
             </span>
           </div>
-          <div style={{
-            width: '100%',
-            height: 6,
-            background: 'var(--color-bg-elevated)',
-            borderRadius: 3,
-            overflow: 'hidden',
-            marginLeft: isMobile ? 0 : 48,
-            maxWidth: isMobile ? '100%' : 'calc(100% - 48px)',
-          }}>
-            <div style={{
-              width: (profile.usage?.limit === 'unlimited' || !profile.usage?.limit)
-                ? '0%'
-                : `${Math.min(100, ((profile.usage?.today || 0) / (profile.usage?.limit as number)) * 100)}%`,
-              height: '100%',
-              background: 'var(--color-accent)',
-              borderRadius: 3,
-              transition: 'width 0.3s ease',
-            }} />
-          </div>
-          {profile.usage?.limit !== 'unlimited' && (
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: 4, marginLeft: isMobile ? 0 : 48 }}>
-              Resets daily at midnight UTC
-            </p>
+          {profile.tier !== 'max' && (
+            <>
+              <div style={{
+                width: '100%',
+                height: 6,
+                background: 'var(--color-bg-elevated)',
+                borderRadius: 3,
+                overflow: 'hidden',
+                marginLeft: isMobile ? 0 : 48,
+                maxWidth: isMobile ? '100%' : 'calc(100% - 48px)',
+              }}>
+                <div style={{
+                  width: `${Math.min(100, ((profile.usage?.today || 0) / (profile.tier === 'pro' ? 25 : 7)) * 100)}%`,
+                  height: '100%',
+                  background: 'var(--color-accent)',
+                  borderRadius: 3,
+                  transition: 'width 0.3s ease',
+                }} />
+              </div>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: 4, marginLeft: isMobile ? 0 : 48 }}>
+                Resets every 4 hours
+              </p>
+            </>
           )}
         </div>
       </div>
@@ -622,32 +614,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
                 Connected
               </span>
             </div>
-            <div style={{ ...rowStyle, borderBottom: 'none' }}>
-              <button
-                onClick={handleDisconnectWallet}
-                style={{
-                  width: '100%',
-                  padding: '10px 16px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--color-danger)',
-                  background: 'var(--color-danger-bg)',
-                  color: 'var(--color-danger-text)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  minHeight: 44,
-                  transition: 'opacity 0.2s',
-                }}
-              >
-                <Unlink size={16} />
-                Disconnect Wallet
-              </button>
-            </div>
-          </>
+            </>
         ) : (
           <div style={{ ...rowStyle, borderBottom: 'none' }}>
             <button

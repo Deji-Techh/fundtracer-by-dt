@@ -204,13 +204,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     uid: response.user.address,
                     walletAddress: walletAddress,
                 });
+                const userTier = response.user.tier || 'free';
+                const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
                 setProfile({
                     uid: response.user.address,
                     hasCustomApiKey: false,
-                    usage: { today: 0, limit: 100, remaining: 100 },
+                    usage: { today: 0, limit: tierLimit, remaining: tierLimit },
                     walletAddress: walletAddress,
                     isVerified: response.user.isVerified,
-                    tier: response.user.tier || 'free',
+                    tier: userTier,
                     authProvider: 'wallet'
                 });
                 setIsAuthenticated(true);
@@ -386,13 +388,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 uid: response.user.address,
                 walletAddress: walletAddress,
             });
+            const userTier = response.user.tier || 'free';
+            const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
             setProfile({
                 uid: response.user.address,
                 hasCustomApiKey: false,
-                usage: { today: 0, limit: 100, remaining: 100 },
+                usage: { today: 0, limit: tierLimit, remaining: tierLimit },
                 walletAddress: walletAddress,
                 isVerified: response.user.isVerified,
-                tier: response.user.tier || 'free',
+                tier: userTier,
                 authProvider: 'wallet',
                 displayName: response.user.displayName || ''
             });
