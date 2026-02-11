@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useAuth } from '../contexts/AuthContext';
-import { AlertCircle } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Wallet01Icon } from '@hugeicons/core-free-icons';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -9,7 +9,7 @@ import { useIsMobile } from '../hooks/useIsMobile';
 export function WalletButton() {
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
-  const { wallet, unlinkWallet } = useAuth();
+  const { wallet, signOut } = useAuth();
   const [showConfirm, setShowConfirm] = useState(false);
   const isMobile = useIsMobile();
 
@@ -18,13 +18,13 @@ export function WalletButton() {
     open();
   };
 
-  const handleDisconnectClick = () => {
+  const handleSignOutClick = () => {
     setShowConfirm(true);
   };
 
-  const handleConfirmDisconnect = async () => {
-    console.log('[WalletButton] Disconnecting wallet...');
-    await unlinkWallet();
+  const handleConfirmSignOut = async () => {
+    console.log('[WalletButton] Signing out...');
+    await signOut();
     setShowConfirm(false);
   };
 
@@ -38,8 +38,8 @@ export function WalletButton() {
       {isWalletConnected && displayAddress ? (
         <button
           className="connect-btn connected"
-          onClick={handleDisconnectClick}
-          title="Disconnect wallet"
+          onClick={handleSignOutClick}
+          title="Sign out"
         >
           <HugeiconsIcon icon={Wallet01Icon} size={18} strokeWidth={1.5} />
           <span>{formatAddress(displayAddress)}</span>
@@ -55,7 +55,7 @@ export function WalletButton() {
         </button>
       )}
 
-      {/* Disconnect Confirmation Modal */}
+      {/* Sign Out Confirmation Modal */}
       {showConfirm && (
         <div
           style={{
@@ -99,16 +99,16 @@ export function WalletButton() {
                   margin: '0 auto 16px',
                 }}
               >
-                <AlertCircle size={24} color="var(--color-danger, #ef4444)" />
+                <LogOut size={24} color="var(--color-danger, #ef4444)" />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--color-text-primary)' }}>
-                Disconnect Wallet?
+                Sign Out?
               </h3>
               <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>
-                Are you sure you want to disconnect your wallet? You'll need to reconnect it to perform analyses.
+                This will disconnect your wallet and clear all local data. Your account and history are safely stored on our servers.
               </p>
-              <p style={{ color: 'var(--color-success, #10b981)', fontSize: '13px', marginTop: '12px', padding: '8px', background: 'color-mix(in srgb, var(--color-success, #10b981) 10%, transparent)', borderRadius: '6px' }}>
-                Your premium tier is tied to your wallet address. You won't lose your tier access.
+              <p style={{ color: 'var(--color-warning, #f59e0b)', fontSize: '13px', marginTop: '12px', padding: '8px', background: 'color-mix(in srgb, var(--color-warning, #f59e0b) 10%, transparent)', borderRadius: '6px' }}>
+                Your premium tier and history are tied to your wallet address. They will be restored when you sign back in.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
@@ -130,7 +130,7 @@ export function WalletButton() {
                 Cancel
               </button>
               <button
-                onClick={handleConfirmDisconnect}
+                onClick={handleConfirmSignOut}
                 style={{
                   flex: 1,
                   minHeight: 44,
@@ -144,7 +144,7 @@ export function WalletButton() {
                   transition: 'all 0.2s',
                 }}
               >
-                Disconnect
+                Sign Out
               </button>
             </div>
           </div>

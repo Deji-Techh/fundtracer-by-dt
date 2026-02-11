@@ -76,11 +76,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const clearAuthData = useCallback(() => {
-        removeAuthToken();
-        localStorage.removeItem(TOKEN_EXPIRY_KEY);
+        // Clear ALL FundTracer localStorage data
+        const keysToRemove = [
+            'fundtracer_token',
+            TOKEN_EXPIRY_KEY,
+            'fundtracer_search_history',
+            'fundtracer_sybil_usage',
+            'fundtracer_sybil_payment',
+            'fundtracer_history_last_sync',
+            'fundtracer_address_book',
+        ];
+        
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        // Also remove any keys starting with fundtracer_
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('fundtracer_')) {
+                localStorage.removeItem(key);
+            }
+        });
+        
         setUser(null);
         setProfile(null);
         setIsAuthenticated(false);
+        setWallet(null);
     }, []);
 
     // Check auth on mount
@@ -210,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authenticateWallet();
     }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
 
-    // Sign out
+    // Sign out - disconnects wallet and clears all local data
     const signOut = useCallback(async () => {
         try {
             disconnect();

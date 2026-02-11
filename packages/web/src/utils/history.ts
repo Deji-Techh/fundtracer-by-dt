@@ -24,10 +24,6 @@ export interface HistoryItem {
     balanceInEth?: number;
 }
 
-const HISTORY_KEY = 'fundtracer_search_history';
-const MAX_HISTORY = 50;
-const LAST_SYNC_KEY = 'fundtracer_history_last_sync';
-
 // Flag to prevent duplicate syncs
 let syncInProgress = false;
 
@@ -35,26 +31,23 @@ function isAuthenticated(): boolean {
     return !!getAuthToken();
 }
 
+// In-memory cache (cleared on page refresh/sign out)
+let memoryHistory: HistoryItem[] = [];
+
 // ============================================================
-// Local Storage Operations (always fast, always available)
+// Public API (server-only, no localStorage persistence)
 // ============================================================
 
 export const getHistory = (): HistoryItem[] => {
-    try {
-        const stored = localStorage.getItem(HISTORY_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch {
-        return [];
-    }
+    // Return in-memory cache - cleared on page refresh
+    return memoryHistory;
 };
 
-const saveHistoryToLocal = (items: HistoryItem[]): void => {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+const saveHistoryToMemory = (items: HistoryItem[]): void => {
+    memoryHistory = items;
+    // Dispatch event so other components can react
+    window.dispatchEvent(new Event('historyChanged'));
 };
-
-// ============================================================
-// Server Sync (background, non-blocking)
-// ============================================================
 
 /**
  * Push a single item to the server (fire-and-forget).
@@ -87,10 +80,6 @@ function clearServerHistory(): void {
     });
 }
 
-// ============================================================
-// Public API (localStorage + server sync)
-// ============================================================
-
 export const addToHistory = (
     address: string,
     chain: string,
@@ -119,20 +108,17 @@ export const addToHistory = (
         ...summary,
     };
 
-    const newHistory = [newItem, ...filtered].slice(0, MAX_HISTORY);
-    saveHistoryToLocal(newHistory);
+    const newHistory = [newItem, ...filtered].slice(0, 50);
+    saveHistoryToMemory(newHistory);
 
     // Push to server in background
     pushItemToServer(newItem);
-
-    // Dispatch event so other components can react
-    window.dispatchEvent(new Event('historyChanged'));
 
     return newHistory;
 };
 
 export const clearHistory = () => {
-    localStorage.removeItem(HISTORY_KEY);
+    memoryHistory = [];
     clearServerHistory();
     window.dispatchEvent(new Event('historyChanged'));
 };
@@ -140,34 +126,28 @@ export const clearHistory = () => {
 export const removeFromHistory = (address: string) => {
     const history = getHistory();
     const newHistory = history.filter(item => item.address.toLowerCase() !== address.toLowerCase());
-    saveHistoryToLocal(newHistory);
+    saveHistoryToMemory(newHistory);
 
     // Delete from server in background
     deleteItemFromServer(address);
 
-    window.dispatchEvent(new Event('historyChanged'));
     return newHistory;
 };
 
 // ============================================================
-// Full Sync — merge local + server, called on auth / page load
+// Full Sync — fetch from server, called on auth / page load
 // ============================================================
 
 /**
- * Syncs local history with the server.
- * - Sends local items to server
- * - Server merges (newer timestamp wins per address)
- * - Returns merged list which is saved to localStorage
- *
- * Returns true if history changed as a result of sync.
+ * Fetches history from the server and updates in-memory cache.
+ * Called on page load when authenticated.
  */
 export async function syncHistoryWithServer(): Promise<boolean> {
     if (!isAuthenticated() || syncInProgress) return false;
 
     syncInProgress = true;
     try {
-        const localItems = getHistory();
-        const response = await syncScanHistory(localItems as ScanHistoryItem[]);
+        const response = await fetchScanHistory();
 
         if (!response.success || !response.items) {
             return false;
@@ -176,25 +156,23 @@ export async function syncHistoryWithServer(): Promise<boolean> {
         const serverItems = response.items as HistoryItem[];
 
         // Check if anything actually changed
-        const localSet = new Set(localItems.map(i => `${i.address.toLowerCase()}_${i.timestamp}`));
-        const serverSet = new Set(serverItems.map(i => `${i.address.toLowerCase()}_${i.timestamp}`));
-        const changed = serverItems.length !== localItems.length ||
-            serverItems.some(i => !localSet.has(`${i.address.toLowerCase()}_${i.timestamp}`)) ||
-            localItems.some(i => !serverSet.has(`${i.address.toLowerCase()}_${i.timestamp}`));
+        const changed = serverItems.length !== memoryHistory.length ||
+            serverItems.some((i, idx) => {
+                const localItem = memoryHistory[idx];
+                return !localItem || i.address !== localItem.address || i.timestamp !== localItem.timestamp;
+            });
 
         if (changed) {
-            // Sort by timestamp desc (server already does this, but ensure)
-            const merged = serverItems
+            // Sort by timestamp desc
+            const sorted = serverItems
                 .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-                .slice(0, MAX_HISTORY);
+                .slice(0, 50);
 
-            saveHistoryToLocal(merged);
-            localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
+            memoryHistory = sorted;
             window.dispatchEvent(new Event('historyChanged'));
             return true;
         }
 
-        localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
         return false;
     } catch (err: any) {
         console.warn('[History] Sync failed:', err.message);
@@ -206,7 +184,6 @@ export async function syncHistoryWithServer(): Promise<boolean> {
 
 /**
  * Fetch server history without merging (useful for pull-only).
- * Falls back to local history on error.
  */
 export async function fetchServerHistory(): Promise<HistoryItem[]> {
     if (!isAuthenticated()) return getHistory();
@@ -214,7 +191,11 @@ export async function fetchServerHistory(): Promise<HistoryItem[]> {
     try {
         const response = await fetchScanHistory();
         if (response.success && response.items) {
-            return response.items as HistoryItem[];
+            const sorted = response.items
+                .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+                .slice(0, 50) as HistoryItem[];
+            memoryHistory = sorted;
+            return sorted;
         }
     } catch (err: any) {
         console.warn('[History] Failed to fetch server history:', err.message);
