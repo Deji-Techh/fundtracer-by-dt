@@ -11,9 +11,14 @@ router.post('/scan', async (req, res) => {
     return res.status(400).json({ error: 'Contract address is required' });
   }
   
+  const apiKey = process.env.DEFAULT_ALCHEMY_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'Alchemy API key not configured' });
+  }
+  
   try {
     const scanner = new ContractScanner(
-      process.env.DEFAULT_ALCHEMY_API_KEY,
+      apiKey,
       process.env.LINEASCAN_API_KEY
     );
     
@@ -25,9 +30,10 @@ router.post('/scan', async (req, res) => {
     });
   } catch (error) {
     console.error('[Contract Scan Error]', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to scan contract';
     res.status(500).json({
-      error: error.message || 'Failed to scan contract',
-      hint: error.message?.includes('not a contract') 
+      error: errorMessage,
+      hint: errorMessage.includes('not a contract') 
         ? 'Please enter a valid smart contract address'
         : undefined
     });

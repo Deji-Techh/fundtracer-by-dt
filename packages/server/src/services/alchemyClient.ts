@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Compute Unit costs for Alchemy methods
-const CU_COSTS = {
+const CU_COSTS: Record<string, number> = {
   'eth_getCode': 26,
   'eth_call': 26,
   'eth_getBalance': 19,
@@ -12,6 +12,11 @@ const CU_COSTS = {
 
 // Rate limiter class for tracking CU budget
 class RateLimiter {
+  private maxCU: number;
+  private windowMs: number;
+  private usedCU: number;
+  private resetTime: number;
+
   constructor(maxCU = 300, windowMs = 1000) {
     this.maxCU = maxCU;
     this.windowMs = windowMs;
@@ -19,17 +24,17 @@ class RateLimiter {
     this.resetTime = Date.now() + windowMs;
   }
 
-  canSpend(cu) {
+  canSpend(cu: number): boolean {
     this.checkReset();
     return this.usedCU + cu <= this.maxCU;
   }
 
-  spend(cu) {
+  spend(cu: number): void {
     this.checkReset();
     this.usedCU += cu;
   }
 
-  async waitForBudget(cu) {
+  async waitForBudget(cu: number): Promise<void> {
     while (!this.canSpend(cu)) {
       const waitTime = this.resetTime - Date.now();
       if (waitTime > 0) {
@@ -39,7 +44,7 @@ class RateLimiter {
     }
   }
 
-  checkReset() {
+  checkReset(): void {
     const now = Date.now();
     if (now >= this.resetTime) {
       this.usedCU = 0;
@@ -49,26 +54,27 @@ class RateLimiter {
 }
 
 export class AlchemyClient {
-  constructor(apiKey) {
+  private baseUrl: string;
+  private rateLimiter: RateLimiter;
+
+  constructor(apiKey: string) {
     this.baseUrl = `https://linea-mainnet.g.alchemy.com/v2/${apiKey}`;
     this.rateLimiter = new RateLimiter(300, 1000); // 300 CU/sec
-    this.requestQueue = [];
-    this.processing = false;
   }
 
   // Get CU cost for a method
-  getCUCost(method) {
+  getCUCost(method: string): number {
     return CU_COSTS[method] || 26; // Default to eth_call cost
   }
 
   // Exponential backoff retry
-  async retryWithBackoff(operation, maxRetries = 3) {
-    let lastError;
+  async retryWithBackoff<T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> {
+    let lastError: any;
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         return await operation();
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
         
         // Retry on rate limit (429) or server errors (5xx)
@@ -91,7 +97,7 @@ export class AlchemyClient {
   }
 
   // Single JSON-RPC call
-  async singleCall(method, params = []) {
+  async singleCall(method: string, params: any[] = []): Promise<any> {
     const cu = this.getCUCost(method);
     await this.rateLimiter.waitForBudget(cu);
     
@@ -121,7 +127,7 @@ export class AlchemyClient {
   }
 
   // Batch multiple JSON-RPC calls into one request
-  async batchCall(calls) {
+  async batchCall(calls: { method: string; params?: any[] }[]): Promise<any[]> {
     if (!calls || calls.length === 0) return [];
     
     // Calculate total CU for batch
@@ -148,9 +154,9 @@ export class AlchemyClient {
       this.rateLimiter.spend(totalCU);
       
       // Sort responses by ID to maintain order
-      const results = response.data.sort((a, b) => a.id - b.id);
+      const results = response.data.sort((a: any, b: any) => a.id - b.id);
       
-      return results.map(result => {
+      return results.map((result: any) => {
         if (result.error) {
           console.warn(`[AlchemyClient] Batch call error: ${result.error.message}`);
           return null;
@@ -161,9 +167,9 @@ export class AlchemyClient {
   }
 
   // Fetch asset transfers with automatic pagination
-  async getAssetTransfers(params) {
-    const allTransfers = [];
-    let pageKey = null;
+  async getAssetTransfers(params: any): Promise<any[]> {
+    const allTransfers: any[] = [];
+    let pageKey: string | null = null;
     let pageCount = 0;
     const maxPages = 100; // Safety limit
     
@@ -201,7 +207,7 @@ export class AlchemyClient {
   }
 
   // Get contract metadata (batched)
-  async getContractMetadata(address) {
+  async getContractMetadata(address: string): Promise<any> {
     const calls = [
       { method: 'eth_getCode', params: [address, 'latest'] },
       { method: 'eth_getBalance', params: [address, 'latest'] },
@@ -255,7 +261,7 @@ export class AlchemyClient {
   }
 
   // Decode string result from eth_call
-  decodeStringResult(hex) {
+  decodeStringResult(hex: string | null): string | null {
     if (!hex || hex === '0x') return null;
     try {
       // Remove 0x prefix and offset (first 64 chars)
@@ -275,7 +281,7 @@ export class AlchemyClient {
   }
 
   // Decode uint result from eth_call
-  decodeUintResult(hex) {
+  decodeUintResult(hex: string | null): number | null {
     if (!hex || hex === '0x') return null;
     try {
       return parseInt(hex, 16);

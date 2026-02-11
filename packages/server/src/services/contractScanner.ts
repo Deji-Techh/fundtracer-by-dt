@@ -4,15 +4,75 @@ import axios from 'axios';
 
 const Timestamp = admin.firestore.Timestamp;
 
+interface ContractMetadata {
+  code: string;
+  balance: string;
+  name: string | null;
+  symbol: string | null;
+  decimals: number | null;
+  totalSupply: number | null;
+  isERC721: boolean;
+  isERC1155: boolean;
+}
+
+interface CreationInfo {
+  creator: string | null;
+  txHash: string | null;
+  createdAt: string | null;
+}
+
+interface WalletEntry {
+  rank: number;
+  address: string;
+  interactions: number;
+  firstSeen: Date | null;
+  lastSeen: Date | null;
+  sentToContract: number;
+  receivedFromContract: number;
+  topCategory: string;
+  categories: Record<string, number>;
+  uniqueAssets: Set<string>;
+}
+
+interface ScanResult {
+  contract: {
+    address: string;
+    name: string;
+    symbol: string | null;
+    type: string;
+    decimals: number | null;
+    totalSupply: string | null;
+    creator: string | null;
+    creationTxHash: string | null;
+    createdAt: string | null;
+    balanceETH: string;
+    isContract: boolean;
+  };
+  stats: {
+    uniqueWallets: number;
+    totalTransfers: number;
+    incomingTransfers: number;
+    outgoingTransfers: number;
+    categoryCounts: Record<string, number>;
+  };
+  wallets: any[];
+  scannedAt: string;
+  scanDurationMs: number;
+}
+
 export class ContractScanner {
-  constructor(alchemyApiKey, lineascanApiKey = null) {
+  private alchemy: AlchemyClient;
+  private lineascanKey: string | null;
+  private db: any;
+
+  constructor(alchemyApiKey: string, lineascanApiKey: string | null = null) {
     this.alchemy = new AlchemyClient(alchemyApiKey);
     this.lineascanKey = lineascanApiKey;
     this.db = getFirestore();
   }
 
   // Main scan method
-  async scan(contractAddress) {
+  async scan(contractAddress: string): Promise<ScanResult> {
     const startTime = Date.now();
     
     // Check cache first
@@ -75,7 +135,7 @@ export class ContractScanner {
     });
     
     // Build response
-    const result = {
+    const result: ScanResult = {
       contract: {
         address: contractAddress.toLowerCase(),
         name: metadata.name || 'Unknown',
@@ -108,12 +168,12 @@ export class ContractScanner {
   }
 
   // Validate Ethereum address
-  isValidAddress(address) {
+  isValidAddress(address: string): boolean {
     return /^0x[a-fA-F0-9]{40}$/.test(address);
   }
 
   // Detect contract type from metadata
-  detectContractType(metadata) {
+  detectContractType(metadata: ContractMetadata): string {
     if (metadata.isERC721) return 'ERC-721 (NFT)';
     if (metadata.isERC1155) return 'ERC-1155 (Multi-Token)';
     if (metadata.name && metadata.symbol && metadata.decimals !== null) {
@@ -123,8 +183,8 @@ export class ContractScanner {
   }
 
   // Get contract creation info
-  async getCreationInfo(contractAddress) {
-    const result = {
+  async getCreationInfo(contractAddress: string): Promise<CreationInfo> {
+    const result: CreationInfo = {
       creator: null,
       txHash: null,
       createdAt: null
@@ -164,7 +224,7 @@ export class ContractScanner {
           
           return result;
         }
-      } catch (error) {
+      } catch (error: any) {
         console.warn('[ContractScanner] Lineascan API failed:', error.message);
       }
     }
@@ -178,9 +238,9 @@ export class ContractScanner {
   }
 
   // Fetch transfers with progress logging
-  async fetchTransfersWithProgress(params) {
-    const transfers = [];
-    let pageKey = null;
+  async fetchTransfersWithProgress(params: any): Promise<any[]> {
+    const transfers: any[] = [];
+    let pageKey: string | null = null;
     let pageCount = 0;
     const maxPages = 200; // 200 * 1000 = 200k transfers max
     
@@ -222,9 +282,9 @@ export class ContractScanner {
   }
 
   // Aggregate wallet data from transfers
-  aggregateWallets(incoming, outgoing, contractAddress) {
-    const walletMap = new Map();
-    const categoryCounts = {
+  aggregateWallets(incoming: any[], outgoing: any[], contractAddress: string): { wallets: any[], stats: any } {
+    const walletMap = new Map<string, WalletEntry>();
+    const categoryCounts: Record<string, number> = {
       external: 0,
       erc20: 0,
       erc721: 0,
@@ -243,7 +303,7 @@ export class ContractScanner {
         walletMap.set(from, this.createWalletEntry(from));
       }
       
-      const wallet = walletMap.get(from);
+      const wallet = walletMap.get(from)!;
       wallet.interactions++;
       wallet.sentToContract++;
       wallet.categories[tx.category] = (wallet.categories[tx.category] || 0) + 1;
@@ -274,7 +334,7 @@ export class ContractScanner {
         walletMap.set(to, this.createWalletEntry(to));
       }
       
-      const wallet = walletMap.get(to);
+      const wallet = walletMap.get(to)!;
       wallet.interactions++;
       wallet.receivedFromContract++;
       wallet.categories[tx.category] = (wallet.categories[tx.category] || 0) + 1;
@@ -302,7 +362,7 @@ export class ContractScanner {
       
       for (const [cat, count] of Object.entries(wallet.categories)) {
         if (count > maxCount) {
-          maxCount = count;
+          maxCount = count as number;
           topCategory = cat;
         }
       }
@@ -327,7 +387,7 @@ export class ContractScanner {
   }
 
   // Create initial wallet entry
-  createWalletEntry(address) {
+  createWalletEntry(address: string): WalletEntry {
     return {
       rank: 0,
       address,
@@ -349,7 +409,7 @@ export class ContractScanner {
   }
 
   // Format big number with decimals
-  formatBigNumber(value, decimals) {
+  formatBigNumber(value: string, decimals: number): string {
     try {
       const num = BigInt(value);
       const divisor = BigInt(10) ** BigInt(decimals);
@@ -362,7 +422,7 @@ export class ContractScanner {
   }
 
   // Format ETH balance
-  formatETH(balanceHex) {
+  formatETH(balanceHex: string): string {
     if (!balanceHex || balanceHex === '0x') return '0.0000';
     try {
       const wei = BigInt(balanceHex);
@@ -374,7 +434,7 @@ export class ContractScanner {
   }
 
   // Get cached scan from Firestore
-  async getCachedScan(address) {
+  async getCachedScan(address: string): Promise<ScanResult | null> {
     try {
       const docRef = this.db.collection('contractScans').doc(address.toLowerCase());
       const doc = await docRef.get();
@@ -387,14 +447,14 @@ export class ContractScanner {
           return data.result;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn('[ContractScanner] Cache read error:', error.message);
     }
     return null;
   }
 
   // Cache scan result in Firestore
-  async cacheScan(address, result) {
+  async cacheScan(address: string, result: ScanResult): Promise<void> {
     try {
       const docRef = this.db.collection('contractScans').doc(address.toLowerCase());
       await docRef.set({
@@ -402,7 +462,7 @@ export class ContractScanner {
         cachedAt: Timestamp.now(),
         address: address.toLowerCase()
       });
-    } catch (error) {
+    } catch (error: any) {
       console.warn('[ContractScanner] Cache write error:', error.message);
     }
   }
