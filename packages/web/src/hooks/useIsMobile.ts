@@ -2,17 +2,17 @@ import { useState, useEffect } from 'react';
 
 /**
  * Hook to detect mobile devices based on screen width.
- * Returns true if viewport width < 640px.
+ * Returns true if viewport width < 768px.
  */
 export function useIsMobile(): boolean {
     const [isMobile, setIsMobile] = useState(() => {
         // Initialize with actual check instead of false to prevent mobile flash
-        return typeof window !== 'undefined' && window.innerWidth < 640;
+        return typeof window !== 'undefined' && window.innerWidth < 768;
     });
 
     useEffect(() => {
         const checkMobile = () => {
-            setIsMobile(window.innerWidth < 640);
+            setIsMobile(window.innerWidth < 768);
         };
 
         checkMobile();
@@ -42,4 +42,26 @@ export function useIsTablet(): boolean {
     }, []);
 
     return isTablet;
+}
+
+/**
+ * Hook to detect if device is touch-enabled (mobile or tablet).
+ * Returns true if viewport width < 1024px.
+ */
+export function useIsTouchDevice(): boolean {
+    const [isTouch, setIsTouch] = useState(() => {
+        return typeof window !== 'undefined' && window.innerWidth < 1024;
+    });
+
+    useEffect(() => {
+        const checkTouch = () => {
+            setIsTouch(window.innerWidth < 1024);
+        };
+
+        checkTouch();
+        window.addEventListener('resize', checkTouch);
+        return () => window.removeEventListener('resize', checkTouch);
+    }, []);
+
+    return isTouch;
 }
