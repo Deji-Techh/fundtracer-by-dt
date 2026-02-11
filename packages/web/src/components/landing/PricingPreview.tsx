@@ -11,7 +11,7 @@ const tiers = [
     period: '/month',
     description: 'Perfect for getting started',
     features: [
-      '7 analyses per day',
+      '7 analyses per 4 hours',
       'Basic wallet analysis',
       '3-day transaction history',
       'Linea chain only',
@@ -26,7 +26,7 @@ const tiers = [
     period: '/month',
     description: 'Most popular for researchers',
     features: [
-      '25 analyses per day',
+      '25 analyses per 4 hours',
       'Advanced wallet analysis',
       '30-day transaction history',
       'All chains (7+)',

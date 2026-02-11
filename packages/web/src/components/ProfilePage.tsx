@@ -226,7 +226,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                         </div>
                         {profile?.usage?.limit !== 'unlimited' && (
                             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-                                Resets daily at midnight UTC
+                                Resets every 4 hours
                             </p>
                         )}
                     </div>

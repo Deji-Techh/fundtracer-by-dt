@@ -28,7 +28,7 @@ function HowToUse({ isOpen, onToggle }: HowToUseProps) {
                                 <li>Enter a wallet address to analyze</li>
                                 <li>View funding sources, destinations, and risk indicators</li>
                             </ol>
-                            <p className="use-note">Free tier: 7 analyses per day. Upgrade your plan for more access.</p>
+                            <p className="use-note">Free tier: 7 analyses per 4 hours. Upgrade your plan for more access.</p>
                         </div>
                     </div>
 
