@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowRight01Icon, PlayIcon } from '@hugeicons/core-free-icons';
+import { VideoModal } from '../VideoModal';
 import './Hero.css';
 
 interface HeroProps {
@@ -8,6 +9,8 @@ interface HeroProps {
 }
 
 export function Hero({ onLaunchApp }: HeroProps) {
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+
   return (
     <section className="hero-section">
       {/* Animated Background */}
@@ -72,13 +75,19 @@ export function Hero({ onLaunchApp }: HeroProps) {
             <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} />
           </button>
           <button 
-            onClick={onLaunchApp}
+            onClick={() => setIsVideoOpen(true)}
             className="hero-btn hero-btn-secondary"
           >
             <HugeiconsIcon icon={PlayIcon} size={20} strokeWidth={2} />
             View Demo
           </button>
         </div>
+
+        <VideoModal
+          isOpen={isVideoOpen}
+          onClose={() => setIsVideoOpen(false)}
+          videoSrc="/videos/demo.mp4"
+        />
 
         {/* Stats */}
         <div className="hero-stats">
