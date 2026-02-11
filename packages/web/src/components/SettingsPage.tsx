@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { updateProfile } from '../api';
@@ -10,7 +11,7 @@ import {
   User, Shield, CheckCircle, AlertTriangle, Save, Camera,
   Sun, Moon, Wallet, MessageSquare, FileText, LogOut,
   ChevronRight, Bell, Globe, Lock, HelpCircle, ExternalLink,
-  ArrowUpCircle
+  ArrowUpCircle, Sparkles, Crown, Zap, Clock
 } from 'lucide-react';
 
 interface SettingsPageProps {
@@ -19,6 +20,47 @@ interface SettingsPageProps {
   walletAddress: string;
   onUpgrade?: () => void;
 }
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {
+      duration: 0.3,
+      ease: "easeOut"
+    }
+  }
+};
+
+const pulseAnimation = {
+  scale: [1, 1.02, 1],
+  transition: {
+    duration: 2,
+    repeat: Infinity,
+    ease: "easeInOut"
+  }
+};
 
 export default function SettingsPage({ onConnectWallet, isWalletConnected, walletAddress, onUpgrade }: SettingsPageProps) {
   const { user, profile, refreshProfile, signOut } = useAuth();
@@ -36,6 +78,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
   // Modal state
   const [showContact, setShowContact] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -84,661 +127,611 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
 
   const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
-  // Styles
-  const sectionStyle: React.CSSProperties = {
-    background: 'var(--color-surface)',
-    border: '1px solid var(--color-surface-border)',
-    borderRadius: 'var(--radius-lg)',
-    overflow: 'hidden',
-    marginBottom: isMobile ? 16 : 20,
+  const getTierColor = (tier?: string) => {
+    switch (tier) {
+      case 'max': return '#8b5cf6';
+      case 'pro': return '#3b82f6';
+      default: return '#6b7280';
+    }
   };
 
-  const sectionHeaderStyle: React.CSSProperties = {
-    padding: isMobile ? '14px 16px' : '16px 20px',
-    fontSize: 'var(--text-sm)',
-    fontWeight: 600,
-    color: 'var(--color-text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    borderBottom: '1px solid var(--color-surface-border)',
-  };
-
-  const rowStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: isMobile ? '14px 16px' : '16px 20px',
-    borderBottom: '1px solid var(--color-surface-border)',
-    minHeight: 52,
-    gap: 12,
-    cursor: 'default',
-  };
-
-  const rowClickableStyle: React.CSSProperties = {
-    ...rowStyle,
-    cursor: 'pointer',
-    transition: 'background 0.15s ease',
-  };
-
-  const rowLeftStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-    minWidth: 0,
-  };
-
-  const iconWrapStyle: React.CSSProperties = {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: 'var(--text-base)',
-    fontWeight: 500,
-    color: 'var(--color-text-primary)',
-  };
-
-  const sublabelStyle: React.CSSProperties = {
-    fontSize: 'var(--text-xs)',
-    color: 'var(--color-text-muted)',
-    marginTop: 2,
-  };
-
-  const valueStyle: React.CSSProperties = {
-    fontSize: 'var(--text-sm)',
-    color: 'var(--color-text-secondary)',
-    flexShrink: 0,
+  const getTierIcon = (tier?: string) => {
+    switch (tier) {
+      case 'max': return <Crown size={20} color="#8b5cf6" />;
+      case 'pro': return <Zap size={20} color="#3b82f6" />;
+      default: return <Sparkles size={20} color="#6b7280" />;
+    }
   };
 
   // Not logged in state
   if (!user || !profile) {
     return (
-      <div className="animate-fade-in" style={{
-        maxWidth: isMobile ? 'none' : 640,
-        margin: '0 auto',
-        padding: isMobile ? '20px 16px' : '40px 24px',
-      }}>
-        <h1 style={{
-          fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-2xl)',
-          fontWeight: 700,
-          color: 'var(--color-text-primary)',
-          marginBottom: 24,
-        }}>Settings</h1>
+      <motion.div 
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        style={{
+          maxWidth: isMobile ? 'none' : 680,
+          margin: '0 auto',
+          padding: isMobile ? '20px 16px' : '40px 24px',
+          minHeight: '100vh',
+          background: 'var(--color-bg)'
+        }}
+      >
+        <motion.h1 
+          variants={sectionVariants}
+          style={{
+            fontSize: isMobile ? '1.75rem' : '2rem',
+            fontWeight: 800,
+            color: 'var(--color-text-primary)',
+            marginBottom: 32,
+            background: 'linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-accent) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
+          Settings
+        </motion.h1>
 
-        {/* Appearance */}
-        <div style={sectionStyle}>
-          <div style={sectionHeaderStyle}>Appearance</div>
-          <div
-            style={rowClickableStyle}
+        <motion.div 
+          variants={sectionVariants}
+          whileHover={{ scale: 1.01 }}
+          transition={{ duration: 0.2 }}
+          style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 20,
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+          }}
+        >
+          <div 
             onClick={toggleTheme}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <div style={rowLeftStyle}>
-              <div style={{ ...iconWrapStyle, background: isDark ? 'rgba(251, 191, 36, 0.1)' : 'rgba(59, 130, 246, 0.1)' }}>
-                {isDark ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color="#3b82f6" />}
-              </div>
-              <div>
-                <div style={labelStyle}>Theme</div>
-                <div style={sublabelStyle}>{isDark ? 'Dark mode' : 'Light mode'}</div>
-              </div>
-            </div>
-            <div style={{
-              width: 48,
-              height: 28,
-              borderRadius: 14,
-              background: isDark ? 'var(--color-accent-primary)' : 'var(--color-accent)',
-              position: 'relative',
+            style={{
+              padding: isMobile ? '18px 20px' : '22px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               cursor: 'pointer',
               transition: 'background 0.2s ease',
-              flexShrink: 0,
-            }}>
-              <div style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                background: 'white',
-                position: 'absolute',
-                top: 3,
-                left: isDark ? 3 : 23,
-                transition: 'left 0.2s ease',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-              }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Support */}
-        <div style={sectionStyle}>
-          <div style={sectionHeaderStyle}>Support</div>
-          <div
-            style={{ ...rowClickableStyle, borderBottom: '1px solid var(--color-surface-border)' }}
-            onClick={() => setShowContact(true)}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--color-bg-elevated)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
           >
-            <div style={rowLeftStyle}>
-              <div style={{ ...iconWrapStyle, background: 'rgba(59, 130, 246, 0.1)' }}>
-                <MessageSquare size={18} color="#3b82f6" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <motion.div 
+                whileHover={{ rotate: 180 }}
+                transition={{ duration: 0.3 }}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: isDark ? 'rgba(251, 191, 36, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {isDark ? <Sun size={22} color="#fbbf24" /> : <Moon size={22} color="#3b82f6" />}
+              </motion.div>
+              <div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                  Theme
+                </div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                  {isDark ? 'Dark mode' : 'Light mode'}
+                </div>
               </div>
-              <div style={labelStyle}>Contact Us</div>
             </div>
-            <ChevronRight size={18} color="var(--color-text-muted)" />
+            <motion.div 
+              animate={isDark ? { x: 24 } : { x: 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              style={{
+                width: 52,
+                height: 28,
+                borderRadius: 14,
+                background: isDark ? '#6366f1' : '#e5e7eb',
+                position: 'relative',
+                cursor: 'pointer',
+                padding: 2,
+              }}
+            >
+              <motion.div 
+                layout
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  background: '#ffffff',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                }}
+              />
+            </motion.div>
           </div>
-          <div
-            style={{ ...rowClickableStyle, borderBottom: 'none' }}
-            onClick={() => setShowPrivacy(true)}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <div style={rowLeftStyle}>
-              <div style={{ ...iconWrapStyle, background: 'rgba(107, 114, 128, 0.1)' }}>
-                <FileText size={18} color="#6b7280" />
-              </div>
-              <div style={labelStyle}>Privacy Policy</div>
-            </div>
-            <ChevronRight size={18} color="var(--color-text-muted)" />
-          </div>
-        </div>
+        </motion.div>
 
-        <div style={{ textAlign: 'center', marginTop: 32 }}>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-            Sign in to access all settings
-          </p>
-        </div>
-
-        <ContactModal isOpen={showContact} onClose={() => setShowContact(false)} />
-        <PrivacyPolicyModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
-      </div>
+        <motion.p 
+          variants={sectionVariants}
+          style={{
+            textAlign: 'center',
+            color: 'var(--color-text-muted)',
+            marginTop: 40,
+            fontSize: '0.875rem',
+          }}
+        >
+          Sign in to access all settings
+        </motion.p>
+      </motion.div>
     );
   }
 
   return (
-    <div className="animate-fade-in" style={{
-      maxWidth: isMobile ? 'none' : 640,
-      margin: '0 auto',
-      padding: isMobile ? '20px 16px' : '40px 24px',
-    }}>
-      <h1 style={{
-        fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-2xl)',
-        fontWeight: 700,
-        color: 'var(--color-text-primary)',
-        marginBottom: isMobile ? 20 : 24,
-      }}>Settings</h1>
-
-      {/* ===== PROFILE SECTION ===== */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>Profile</div>
-
-        {/* Avatar & Name */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-          padding: isMobile ? '16px' : '20px',
-          borderBottom: '1px solid var(--color-surface-border)',
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      style={{
+        maxWidth: isMobile ? 'none' : 800,
+        margin: '0 auto',
+        padding: isMobile ? '16px' : '32px 24px',
+        minHeight: '100vh',
+        background: 'var(--color-bg)'
+      }}
+    >
+      {/* Header */}
+      <motion.div variants={sectionVariants} style={{ marginBottom: 32 }}>
+        <h1 style={{
+          fontSize: isMobile ? '1.75rem' : '2.25rem',
+          fontWeight: 800,
+          color: 'var(--color-text-primary)',
+          marginBottom: 8,
+          background: 'linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-accent) 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
         }}>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-          />
-          <div
+          Settings
+        </h1>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem' }}>
+          Manage your account and preferences
+        </p>
+      </motion.div>
+
+      {/* Profile Card */}
+      <motion.div 
+        variants={sectionVariants}
+        whileHover={{ y: -2 }}
+        transition={{ duration: 0.2 }}
+        style={{
+          background: 'linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg-elevated) 100%)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 24,
+          padding: isMobile ? '24px 20px' : '32px',
+          marginBottom: 24,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Background decoration */}
+        <div style={{
+          position: 'absolute',
+          top: -50,
+          right: -50,
+          width: 200,
+          height: 200,
+          background: `radial-gradient(circle, ${getTierColor(profile?.tier)}20 0%, transparent 70%)`,
+          borderRadius: '50%',
+        }} />
+
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'center' : 'flex-start',
+          gap: 24,
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          {/* Avatar */}
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={handleProfilePictureClick}
             style={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              background: profilePicture ? 'transparent' : 'linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 24,
-              fontWeight: 'bold',
-              color: 'white',
               position: 'relative',
-              overflow: 'hidden',
-              border: '2px solid var(--color-surface-border)',
               cursor: 'pointer',
               flexShrink: 0,
             }}
           >
-            {profilePicture ? (
-              <img src={profilePicture} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              name ? name[0].toUpperCase() : <User size={28} />
-            )}
             <div style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 22,
-              background: 'rgba(0,0,0,0.5)',
+              width: isMobile ? 100 : 120,
+              height: isMobile ? 100 : 120,
+              borderRadius: '50%',
+              background: profilePicture 
+                ? `url(${profilePicture}) center/cover`
+                : 'linear-gradient(135deg, var(--color-accent) 0%, #8b5cf6 100%)',
+              border: '4px solid var(--color-surface)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Camera size={12} color="white" />
+              {!profilePicture && (
+                <User size={isMobile ? 40 : 48} color="white" />
+              )}
             </div>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: 'var(--text-lg)',
-              fontWeight: 600,
-              color: 'var(--color-text-primary)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}>
-              {name || 'Anonymous User'}
-            </div>
-            <div style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-text-muted)',
-              fontFamily: 'var(--font-mono)',
-            }}>
-              {formatAddress(user.walletAddress)}
-            </div>
-          </div>
-        </div>
-
-        {/* Edit Name */}
-        <form onSubmit={handleSave}>
-          <div style={{
-            padding: isMobile ? '14px 16px' : '16px 20px',
-            borderBottom: '1px solid var(--color-surface-border)',
-          }}>
-            <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-              Display Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="How should we call you?"
-              maxLength={50}
+            <motion.div 
+              whileHover={{ scale: 1.1 }}
               style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--color-surface-border)',
-                background: 'var(--color-bg-primary)',
-                color: 'var(--color-text-primary)',
-                fontSize: 'var(--text-sm)',
-                outline: 'none',
-                transition: 'border-color 0.2s',
-              }}
-            />
-          </div>
-
-          {/* Save Button */}
-          <div style={{
-            padding: isMobile ? '14px 16px' : '16px 20px',
-          }}>
-            {message && (
-              <div style={{
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-md)',
-                marginBottom: 12,
-                fontSize: 'var(--text-sm)',
-                background: message.type === 'success' ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
-                color: message.type === 'success' ? 'var(--color-success-text)' : 'var(--color-danger-text)',
-                border: `1px solid ${message.type === 'success' ? 'var(--color-success)' : 'var(--color-danger)'}`,
-              }}>
-                {message.text}
-              </div>
-            )}
-            <button
-              type="submit"
-              disabled={isSaving}
-              style={{
-                width: '100%',
-                padding: '10px 16px',
-                borderRadius: 'var(--radius-md)',
-                border: 'none',
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
                 background: 'var(--color-accent)',
-                color: '#ffffff',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 600,
-                cursor: isSaving ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                opacity: isSaving ? 0.6 : 1,
-                transition: 'opacity 0.2s, background 0.2s',
-                minHeight: 44,
+                border: '3px solid var(--color-surface)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
               }}
             >
-              {isSaving ? (
-                <div className="loading-spinner" style={{ width: 16, height: 16 }} />
-              ) : (
-                <Save size={16} />
+              <Camera size={18} color="white" />
+            </motion.div>
+          </motion.div>
+
+          {/* User Info */}
+          <div style={{ flex: 1, textAlign: isMobile ? 'center' : 'left', width: '100%' }}>
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h2 style={{
+                fontSize: isMobile ? '1.5rem' : '1.875rem',
+                fontWeight: 700,
+                color: 'var(--color-text-primary)',
+                marginBottom: 8,
+              }}>
+                {name || 'Anonymous User'}
+              </h2>
+              
+              {/* Tier Badge */}
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  borderRadius: 20,
+                  background: `${getTierColor(profile?.tier)}15`,
+                  border: `1px solid ${getTierColor(profile?.tier)}30`,
+                  marginBottom: 12,
+                }}
+              >
+                {getTierIcon(profile?.tier)}
+                <span style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: getTierColor(profile?.tier),
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}>
+                  {profile?.tier || 'Free'} Tier
+                </span>
+              </motion.div>
+
+              {/* Wallet Address */}
+              {walletAddress && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    justifyContent: isMobile ? 'center' : 'flex-start',
+                    marginTop: 12,
+                  }}
+                >
+                  <Wallet size={16} color="var(--color-text-muted)" />
+                  <span style={{
+                    fontFamily: 'monospace',
+                    fontSize: '0.875rem',
+                    color: 'var(--color-text-secondary)',
+                    background: 'var(--color-bg-elevated)',
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                  }}>
+                    {formatAddress(walletAddress)}
+                  </span>
+                </motion.div>
               )}
-              Save Changes
-            </button>
+            </motion.div>
           </div>
-        </form>
-      </div>
-
-      {/* ===== ACCOUNT STATUS ===== */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>Account</div>
-
-        {/* Tier */}
-        <div style={rowStyle}>
-          <div style={rowLeftStyle}>
-            <div style={{ ...iconWrapStyle, background: 'rgba(59, 130, 246, 0.1)' }}>
-              <Shield size={18} color="#3b82f6" />
-            </div>
-            <div>
-              <div style={labelStyle}>Current Tier</div>
-              <div style={sublabelStyle}>Your subscription plan</div>
-            </div>
-          </div>
-          <span style={{
-            padding: '4px 10px',
-            borderRadius: 12,
-            fontSize: 'var(--text-xs)',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            background: profile.tier === 'free' ? 'var(--color-accent-primary)' : 'rgba(59, 130, 246, 0.15)',
-            color: profile.tier === 'free' ? 'var(--color-text-secondary)' : '#3b82f6',
-          }}>
-            {profile.tier?.toUpperCase() || 'FREE'}
-          </span>
         </div>
 
-        {/* Upgrade Plan */}
-        {onUpgrade && (
-          <div
-            style={rowClickableStyle}
-            onClick={onUpgrade}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <div style={rowLeftStyle}>
-              <div style={{ ...iconWrapStyle, background: 'rgba(139, 92, 246, 0.1)' }}>
-                <ArrowUpCircle size={18} color="#8b5cf6" />
-              </div>
-              <div>
-                <div style={labelStyle}>Upgrade Plan</div>
-                <div style={sublabelStyle}>Get more analyses and features</div>
-              </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+      </motion.div>
+
+      {/* Usage Stats */}
+      <motion.div 
+        variants={sectionVariants}
+        whileHover={{ y: -2 }}
+        transition={{ duration: 0.2 }}
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 20,
+          padding: isMobile ? '20px' : '24px',
+          marginBottom: 24,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            background: 'rgba(139, 92, 246, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Clock size={20} color="#8b5cf6" />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+              Usage (per 4 hours)
             </div>
-            <ChevronRight size={18} color="var(--color-text-muted)" />
+            <div style={{ 
+              fontSize: '1.25rem', 
+              fontWeight: 700, 
+              color: 'var(--color-text-primary)',
+              fontFamily: 'monospace',
+            }}>
+              {profile?.tier === 'max' ? 'Unlimited' : `${profile?.usage?.today || 0} / ${profile?.tier === 'pro' ? 25 : 7}`}
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        {profile?.tier !== 'max' && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{
+              height: 8,
+              background: 'var(--color-bg-elevated)',
+              borderRadius: 4,
+              overflow: 'hidden',
+            }}>
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, ((profile?.usage?.today || 0) / (profile?.tier === 'pro' ? 25 : 7)) * 100)}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                style={{
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)',
+                  borderRadius: 4,
+                }}
+              />
+            </div>
+            <div style={{ 
+              fontSize: '0.75rem', 
+              color: 'var(--color-text-muted)', 
+              marginTop: 8,
+              textAlign: 'right',
+            }}>
+              Resets every 4 hours
+            </div>
           </div>
         )}
+      </motion.div>
 
-        {/* Verification */}
-        <div style={rowStyle}>
-          <div style={rowLeftStyle}>
-            <div style={{ ...iconWrapStyle, background: profile.isVerified ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)' }}>
-              {profile.isVerified ? (
-                <CheckCircle size={18} color="#10b981" />
-              ) : (
-                <AlertTriangle size={18} color="#f59e0b" />
-              )}
+      {/* Theme Toggle */}
+      <motion.div 
+        variants={sectionVariants}
+        whileHover={{ scale: 1.01 }}
+        transition={{ duration: 0.2 }}
+        onClick={toggleTheme}
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 16,
+          padding: isMobile ? '16px 20px' : '20px 24px',
+          marginBottom: 16,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <motion.div 
+            animate={{ rotate: isDark ? 180 : 0 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: isDark ? 'rgba(251, 191, 36, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {isDark ? <Sun size={22} color="#fbbf24" /> : <Moon size={22} color="#3b82f6" />}
+          </motion.div>
+          <div>
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+              Appearance
             </div>
-            <div>
-              <div style={labelStyle}>Verification</div>
-              <div style={sublabelStyle}>{profile.isVerified ? 'Proof-of-Humanity verified' : 'Not yet verified'}</div>
+            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+              {isDark ? 'Dark mode' : 'Light mode'}
             </div>
           </div>
-          <span style={{
-            ...valueStyle,
-            color: profile.isVerified ? '#10b981' : 'var(--color-text-muted)',
-          }}>
-            {profile.isVerified ? 'Verified' : 'Unverified'}
-          </span>
         </div>
-
-        {/* Usage */}
-        <div style={{ ...rowStyle, flexDirection: 'column', alignItems: 'stretch', borderBottom: 'none' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ ...iconWrapStyle, background: 'rgba(139, 92, 246, 0.1)' }}>
-                <Globe size={18} color="#8b5cf6" />
-              </div>
-              <div style={labelStyle}>Usage (per 4 hours)</div>
-            </div>
-            <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)' }}>
-              {profile.tier === 'max' ? 'Unlimited' : `${profile.usage?.today || 0} / ${profile.tier === 'pro' ? 25 : 7}`}
-            </span>
-          </div>
-          {profile.tier !== 'max' && (
-            <>
-              <div style={{
-                width: '100%',
-                height: 6,
-                background: 'var(--color-bg-elevated)',
-                borderRadius: 3,
-                overflow: 'hidden',
-                marginLeft: isMobile ? 0 : 48,
-                maxWidth: isMobile ? '100%' : 'calc(100% - 48px)',
-              }}>
-                <div style={{
-                  width: `${Math.min(100, ((profile.usage?.today || 0) / (profile.tier === 'pro' ? 25 : 7)) * 100)}%`,
-                  height: '100%',
-                  background: 'var(--color-accent)',
-                  borderRadius: 3,
-                  transition: 'width 0.3s ease',
-                }} />
-              </div>
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: 4, marginLeft: isMobile ? 0 : 48 }}>
-                Resets every 4 hours
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* ===== APPEARANCE ===== */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>Appearance</div>
-        <div
-          style={{ ...rowClickableStyle, borderBottom: 'none' }}
-          onClick={toggleTheme}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <div style={rowLeftStyle}>
-            <div style={{ ...iconWrapStyle, background: isDark ? 'rgba(251, 191, 36, 0.1)' : 'rgba(59, 130, 246, 0.1)' }}>
-              {isDark ? <Sun size={18} color="#fbbf24" /> : <Moon size={18} color="#3b82f6" />}
-            </div>
-            <div>
-              <div style={labelStyle}>Theme</div>
-              <div style={sublabelStyle}>{isDark ? 'Dark mode is active' : 'Light mode is active'}</div>
-            </div>
-          </div>
-          {/* Toggle switch */}
-          <div style={{
-            width: 48,
+        <motion.div 
+          animate={{ x: isDark ? 26 : 0 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          style={{
+            width: 52,
             height: 28,
             borderRadius: 14,
-            background: isDark ? 'var(--color-accent-primary)' : 'var(--color-accent)',
+            background: isDark ? '#6366f1' : '#e5e7eb',
             position: 'relative',
-            cursor: 'pointer',
-            transition: 'background 0.2s ease',
-            flexShrink: 0,
-          }}>
-            <div style={{
-              width: 22,
-              height: 22,
-              borderRadius: '50%',
-              background: 'white',
-              position: 'absolute',
-              top: 3,
-              left: isDark ? 3 : 23,
-              transition: 'left 0.2s ease',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-            }} />
-          </div>
-        </div>
-      </div>
-
-      {/* ===== WALLET ===== */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>Wallet</div>
-        {isWalletConnected && walletAddress ? (
-          <>
-            <div style={rowStyle}>
-              <div style={rowLeftStyle}>
-                <div style={{ ...iconWrapStyle, background: 'rgba(16, 185, 129, 0.1)' }}>
-                  <Wallet size={18} color="#10b981" />
-                </div>
-                <div>
-                  <div style={labelStyle}>Connected Wallet</div>
-                  <div style={{ ...sublabelStyle, fontFamily: 'var(--font-mono)' }}>
-                    {isMobile ? formatAddress(walletAddress) : walletAddress}
-                  </div>
-                </div>
-              </div>
-              <span style={{
-                padding: '4px 10px',
-                borderRadius: 12,
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: '#10b981',
-              }}>
-                Connected
-              </span>
-            </div>
-            </>
-        ) : (
-          <div style={{ ...rowStyle, borderBottom: 'none' }}>
-            <button
-              onClick={onConnectWallet}
-              style={{
-                width: '100%',
-                padding: '10px 16px',
-                borderRadius: 'var(--radius-md)',
-                border: 'none',
-                background: 'var(--color-accent)',
-                color: '#ffffff',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                minHeight: 44,
-                transition: 'background 0.2s',
-              }}
-            >
-              <Wallet size={16} />
-              Connect Wallet
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ===== SUPPORT & LEGAL ===== */}
-      <div style={sectionStyle}>
-        <div style={sectionHeaderStyle}>Support & Legal</div>
-
-        <div
-          style={rowClickableStyle}
-          onClick={() => setShowContact(true)}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            padding: 2,
+          }}
         >
-          <div style={rowLeftStyle}>
-            <div style={{ ...iconWrapStyle, background: 'rgba(59, 130, 246, 0.1)' }}>
-              <MessageSquare size={18} color="#3b82f6" />
-            </div>
-            <div style={labelStyle}>Contact Us</div>
-          </div>
-          <ChevronRight size={18} color="var(--color-text-muted)" />
-        </div>
+          <motion.div 
+            layout
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              background: '#ffffff',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+            }}
+          />
+        </motion.div>
+      </motion.div>
 
-        <div
-          style={rowClickableStyle}
-          onClick={() => setShowPrivacy(true)}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <div style={rowLeftStyle}>
-            <div style={{ ...iconWrapStyle, background: 'rgba(107, 114, 128, 0.1)' }}>
-              <FileText size={18} color="#6b7280" />
-            </div>
-            <div style={labelStyle}>Privacy Policy</div>
-          </div>
-          <ChevronRight size={18} color="var(--color-text-muted)" />
+      {/* Sign Out */}
+      <motion.div 
+        variants={sectionVariants}
+        whileHover={{ scale: 1.01, backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
+        whileTap={{ scale: 0.99 }}
+        onClick={signOut}
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 16,
+          padding: isMobile ? '16px 20px' : '20px 24px',
+          marginBottom: 16,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          transition: 'background 0.2s ease',
+        }}
+      >
+        <div style={{
+          width: 44,
+          height: 44,
+          borderRadius: 12,
+          background: 'rgba(239, 68, 68, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <LogOut size={22} color="#ef4444" />
         </div>
-
-        <div
-          style={rowClickableStyle}
-          onClick={() => window.open('/terms', '_blank')}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <div style={rowLeftStyle}>
-            <div style={{ ...iconWrapStyle, background: 'rgba(107, 114, 128, 0.1)' }}>
-              <Lock size={18} color="#6b7280" />
-            </div>
-            <div style={labelStyle}>Terms of Service</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444' }}>
+            Sign Out
           </div>
-          <ExternalLink size={16} color="var(--color-text-muted)" />
-        </div>
-
-        <div
-          style={{ ...rowClickableStyle, borderBottom: 'none' }}
-          onClick={() => window.open('/faq', '_blank')}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <div style={rowLeftStyle}>
-            <div style={{ ...iconWrapStyle, background: 'rgba(107, 114, 128, 0.1)' }}>
-              <HelpCircle size={18} color="#6b7280" />
-            </div>
-            <div style={labelStyle}>Help & FAQ</div>
-          </div>
-          <ExternalLink size={16} color="var(--color-text-muted)" />
-        </div>
-      </div>
-
-      {/* ===== SIGN OUT ===== */}
-      <div style={sectionStyle}>
-        <div
-          style={{ ...rowClickableStyle, borderBottom: 'none' }}
-          onClick={signOut}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <div style={rowLeftStyle}>
-            <div style={{ ...iconWrapStyle, background: 'rgba(239, 68, 68, 0.1)' }}>
-              <LogOut size={18} color="#ef4444" />
-            </div>
-            <div style={{ ...labelStyle, color: '#ef4444' }}>Sign Out</div>
+          <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+            Disconnect your wallet
           </div>
         </div>
-      </div>
+        <ChevronRight size={20} color="var(--color-text-muted)" />
+      </motion.div>
 
-      {/* Version info */}
-      <div style={{
-        textAlign: 'center',
-        padding: '16px 0 32px',
-        color: 'var(--color-text-muted)',
-        fontSize: 'var(--text-xs)',
-      }}>
-        FundTracer by DT v1.0.0
-      </div>
+      {/* Contact & Privacy */}
+      <motion.div variants={sectionVariants} style={{ marginTop: 32 }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: 16, 
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: 'center',
+        }}>
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowContact(true)}
+            style={{
+              padding: '12px 24px',
+              borderRadius: 12,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text-secondary)',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <MessageSquare size={16} />
+            Contact Support
+          </motion.button>
+          
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowPrivacy(true)}
+            style={{
+              padding: '12px 24px',
+              borderRadius: 12,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text-secondary)',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <FileText size={16} />
+            Privacy Policy
+          </motion.button>
+        </div>
+      </motion.div>
 
       {/* Modals */}
       <ContactModal isOpen={showContact} onClose={() => setShowContact(false)} />
       <PrivacyPolicyModal isOpen={showPrivacy} onClose={() => setShowPrivacy(false)} />
-    </div>
+
+      {/* Toast Message */}
+      <AnimatePresence>
+        {message && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            style={{
+              position: 'fixed',
+              bottom: 24,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              padding: '12px 24px',
+              borderRadius: 12,
+              background: message.type === 'success' ? '#10b981' : '#ef4444',
+              color: 'white',
+              fontWeight: 500,
+              zIndex: 9999,
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+            }}
+          >
+            {message.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
