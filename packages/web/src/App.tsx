@@ -44,6 +44,7 @@ import SettingsPage from './components/SettingsPage';
 
 // Import HistoryPage
 import HistoryPage from './components/HistoryPage';
+import { PageLoading } from './components/common/PageLoading';
 
 type TabType = 'home' | 'portfolio' | 'sybil' | 'history' | 'settings';
 
@@ -250,7 +251,7 @@ function App() {
         <div style={{ 
           display: activeTab === 'portfolio' ? 'block' : 'none' 
         }} className="main-content">
-          <Suspense fallback={<div className="loading-spinner" style={{ width: 24, height: 24 }} />}>
+          <Suspense fallback={<PageLoading />}>
             <PortfolioAnalytics walletAddress={walletAddress} />
           </Suspense>
         </div>

@@ -261,8 +261,6 @@ async function validateFreeTierTx(txHash: string, userAddress: string): Promise<
 
 // Analyze a single wallet
 router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
-    console.log('[DEBUG] /wallet endpoint hit');
-
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -503,15 +501,9 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
 
 // Analyze contract interactors
 router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
-    console.log('[DEBUG] /contract endpoint hit');
-    console.log('[DEBUG] Request body:', JSON.stringify(req.body));
-
     if (!req.user) {
-        console.log('[DEBUG] No user found on request');
         return res.status(401).json({ error: 'Not authenticated' });
     }
-
-    console.log('[DEBUG] User authenticated:', req.user.uid);
 
     // Free Tier Enforcement
     const tier = res.locals.tier || 'free';
@@ -615,9 +607,6 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
 
 // Sybil Detection - Find wallets with common funding sources
 router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
-    console.log('[DEBUG] /sybil endpoint hit');
-    console.log('[DEBUG] Request body:', JSON.stringify(req.body));
-
     if (!req.user) {
         return res.status(401).json({ error: 'Authentication required' });
     }

@@ -45,10 +45,18 @@ export const getAuthToken = () => localStorage.getItem('fundtracer_token');
 export const setAuthToken = (token: string) => localStorage.setItem('fundtracer_token', token);
 export const removeAuthToken = () => localStorage.removeItem('fundtracer_token');
 
-async function apiRequest<T>(
+// Retry configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+
+// Helper to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function apiRequestWithRetry<T>(
     endpoint: string,
     method: 'GET' | 'POST' | 'DELETE' = 'GET',
-    body?: any
+    body?: any,
+    retryCount = 0
 ): Promise<T> {
     const token = getAuthToken();
 
@@ -72,34 +80,59 @@ async function apiRequest<T>(
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-    });
+    try {
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+            method,
+            headers,
+            body: body ? JSON.stringify(body) : undefined,
+        });
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        // Prefer the descriptive message, then error label, then generic status
-        const errorMessage = errorData.message || errorData.error || `API error: ${response.status}`;
-        const hint = errorData.hint;
-        console.error(`[API Error] ${endpoint}: ${response.status} ${errorMessage}${hint ? ` (Hint: ${hint})` : ''}`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            // Prefer the descriptive message, then error label, then generic status
+            const errorMessage = errorData.message || errorData.error || `API error: ${response.status}`;
+            const hint = errorData.hint;
 
-        // If server returns 401, the token is invalid/expired — clear it immediately
-        if (response.status === 401) {
-            removeAuthToken();
-            localStorage.removeItem('fundtracer_token_expiry');
-        }
+            // If server returns 401, the token is invalid/expired — clear it immediately
+            if (response.status === 401) {
+                removeAuthToken();
+                localStorage.removeItem('fundtracer_token_expiry');
+            }
 
-        // Include status code and hint in error so callers can detect auth failures and show hints
-        const error = new Error(hint ? `${errorMessage} ${hint}` : errorMessage);
+            // Retry on server errors (5xx) and certain client errors
+            const shouldRetry = response.status >= 500 || response.status === 429;
+            if (shouldRetry && retryCount < MAX_RETRIES) {
+                const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+                console.log(`[API Retry] ${endpoint}: Retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+                await delay(retryDelay);
+                return apiRequestWithRetry<T>(endpoint, method, body, retryCount + 1);
+            }
+
+            console.error(`[API Error] ${endpoint}: ${response.status} ${errorMessage}${hint ? ` (Hint: ${hint})` : ''}`);
+
+            // Include status code and hint in error so callers can detect auth failures and show hints
+            const error = new Error(hint ? `${errorMessage} ${hint}` : errorMessage);
         (error as any).status = response.status;
         (error as any).hint = hint;
         throw error;
     }
 
     return response.json();
+    } catch (networkError: any) {
+        // Network errors (fetch failed) - retry if possible
+        const shouldRetry = retryCount < MAX_RETRIES;
+        if (shouldRetry) {
+            const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
+            console.log(`[API Retry] ${endpoint}: Network error, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+            await delay(retryDelay);
+            return apiRequestWithRetry<T>(endpoint, method, body, retryCount + 1);
+        }
+        throw networkError;
+    }
 }
+
+// Export alias for backward compatibility
+const apiRequest = apiRequestWithRetry;
 
 // Authentication endpoints
 export async function loginWithWallet(address: string, signature: string, message: string): Promise<{ token: string, user: any }> {

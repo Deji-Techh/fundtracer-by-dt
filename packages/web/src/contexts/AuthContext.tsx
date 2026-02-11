@@ -236,6 +236,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             disconnect();
             clearAuthData();
+            // Reset auth attempt flag so auto-auth works on next connection
+            walletAuthAttempted.current = false;
             notify.success('Signed out successfully');
         } catch (error) {
             console.error('Sign out error:', error);
