@@ -249,6 +249,7 @@ app.use(cors({
     credentials: true,
 }));
 app.use(express.json({ limit: '10mb' })); // Increased for large wallet lists
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Limit URL-encoded bodies
 
 // Rate limiting configuration
 const apiLimiter = rateLimit({
@@ -279,6 +280,13 @@ const scanHistoryLimiter = rateLimit({
   skipSuccessfulRequests: true, // Don't count successful requests
 });
 
+// Public endpoint rate limiter - stricter limits for unauthenticated endpoints
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // 50 requests per 15 minutes for public endpoints
+  message: { error: 'Rate limit exceeded for public endpoints, please try again later' },
+});
+
 // Apply general rate limiting to all API routes
 app.use('/api/', apiLimiter);
 app.use('/', apiLimiter);
@@ -304,8 +312,7 @@ try {
     console.warn('[WARN] Failed to start PaymentListener (acceptable in serverless):', err);
 }
 
-console.log('[DEBUG] Default Alchemy API Key Present:', !!process.env.DEFAULT_ALCHEMY_API_KEY);
-console.log('[DEBUG] Default Alchemy API Key Length:', process.env.DEFAULT_ALCHEMY_API_KEY?.length);
+// API keys configuration verified (logging removed for security)
 
 // Health check (public)
 app.get('/health', (req, res) => {
@@ -322,14 +329,14 @@ import { authRoutes } from './routes/auth.js';
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 apiRouter.use('/user', authMiddleware, userRoutes);
 apiRouter.use('/auth', authLimiter, authRoutes); // Public auth route with stricter rate limiting
-apiRouter.use('/contracts', contractRoutes); // Public contract lookup
-apiRouter.use('/payment', paymentRoutes); // Payment verification
+apiRouter.use('/contracts', publicLimiter, contractRoutes); // Public contract lookup with rate limiting
+apiRouter.use('/payment', publicLimiter, paymentRoutes); // Payment verification with rate limiting
 apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
 apiRouter.use('/dune', authMiddleware, duneRoutes);
 import { trackingRoutes } from './routes/tracking.js';
 import healthRoutes from './routes/health.js';
-apiRouter.use('/analytics', trackingRoutes); // Public analytics route
-apiRouter.use('/health', healthRoutes); // Health checks (public)
+apiRouter.use('/analytics', publicLimiter, trackingRoutes); // Public analytics route with rate limiting
+apiRouter.use('/health', healthRoutes); // Health checks (public) - keep open for monitoring
 
 import { adminRoutes } from './routes/admin.js';
 // Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
@@ -348,10 +355,10 @@ import { scanHistoryRoutes } from './routes/scanHistory.js';
 
 apiRouter.use('/portfolio', authMiddleware, portfolioRoutes);
 apiRouter.use('/history', authMiddleware, historyRoutes);
-apiRouter.use('/tokens', tokenRoutes); // Public token search
-apiRouter.use('/market', marketRoutes); // Public market stats
+apiRouter.use('/tokens', publicLimiter, tokenRoutes); // Public token search with rate limiting
+apiRouter.use('/market', publicLimiter, marketRoutes); // Public market stats with rate limiting
 apiRouter.use('/safety', authMiddleware, safetyRoutes); // Token safety checks
-apiRouter.use('/debug', debugRoutes); // Debug routes (public)
+apiRouter.use('/debug', publicLimiter, debugRoutes); // Debug routes (public) with rate limiting
 apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
 apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
 apiRouter.use('/scan-history', authMiddleware, scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting

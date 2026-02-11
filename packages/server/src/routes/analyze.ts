@@ -16,6 +16,10 @@ import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
 
+// Constants for validation - defined once at module level for performance
+const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+const ALLOWED_CHAINS = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon', 'bsc'];
+
 // Helper to parse API errors into user-friendly messages
 function getUserFriendlyError(error: any): { status: number; error: string; message: string; hint?: string } {
     const msg = error.message || '';
@@ -109,7 +113,7 @@ function enrichAnalysisResult(result: any): any {
             const fromInfo = tx.from ? contractService.getContract(tx.from) : null;
 
             // Queue lookup if unknown and appears to be a contract interaction
-            if (tx.to && !toInfo && /^0x[a-fA-F0-9]{40}$/.test(tx.to)) {
+            if (tx.to && !toInfo && ETH_ADDRESS_REGEX.test(tx.to)) {
                 const isContractInteraction = [
                     'contract_call', 'token_transfer', 'dex_swap',
                     'bridge', 'lending', 'staking', 'nft_transfer'
@@ -283,13 +287,23 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Address and chain are required' });
     }
 
+    // Validate chain parameter
+    const ALLOWED_CHAINS = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon', 'bsc'];
+    if (!ALLOWED_CHAINS.includes(chain)) {
+        return res.status(400).json({ error: 'Invalid chain parameter' });
+    }
+
     // ... existing logic
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    if (!ETH_ADDRESS_REGEX.test(address)) {
         return res.status(400).json({ error: 'Invalid wallet address format' });
     }
 
+    // Validate chain parameter
+    if (!ALLOWED_CHAINS.includes(chain)) {
+        return res.status(400).json({ error: 'Invalid chain parameter' });
+    }
+
     try {
-        console.log('[DEBUG] Fetching Alchemy API key for user...');
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
 
         const analyzer = new WalletAnalyzer({
@@ -364,8 +378,13 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
         return res.status(400).json({ error: 'Address and chain are required' });
     }
 
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    if (!ETH_ADDRESS_REGEX.test(address)) {
         return res.status(400).json({ error: 'Invalid wallet address format' });
+    }
+
+    // Validate chain parameter
+    if (!ALLOWED_CHAINS.includes(chain)) {
+        return res.status(400).json({ error: 'Invalid chain parameter' });
     }
 
     try {
@@ -435,9 +454,14 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
 
     // Validate all addresses
     for (const addr of addresses) {
-        if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+        if (!ETH_ADDRESS_REGEX.test(addr)) {
             return res.status(400).json({ error: `Invalid address format: ${addr}` });
         }
+    }
+
+    // Validate chain parameter
+    if (!ALLOWED_CHAINS.includes(chain)) {
+        return res.status(400).json({ error: 'Invalid chain parameter' });
     }
 
     try {
@@ -509,14 +533,17 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Contract address and chain are required' });
     }
 
-    if (!/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
+    if (!ETH_ADDRESS_REGEX.test(contractAddress)) {
         return res.status(400).json({ error: 'Invalid contract address format' });
     }
 
+    // Validate chain parameter
+    if (!ALLOWED_CHAINS.includes(chain)) {
+        return res.status(400).json({ error: 'Invalid chain parameter' });
+    }
+
     try {
-        console.log('[DEBUG] Fetching Alchemy API key for user...');
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
-        console.log('[DEBUG] Alchemy key retrieved, length:', alchemyKey?.length);
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -601,18 +628,19 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Contract address is required' });
     }
 
-    if (!/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
+    if (!ETH_ADDRESS_REGEX.test(contractAddress)) {
         return res.status(400).json({ error: 'Invalid contract address format' });
     }
 
+    // Validate chain parameter
+    if (!ALLOWED_CHAINS.includes(chain)) {
+        return res.status(400).json({ error: 'Invalid chain parameter' });
+    }
+
     try {
-        console.log('[DEBUG] Fetching Alchemy API key for user...');
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
         const moralisKey = process.env.MORALIS_API_KEY || '';
         const covalentKey = process.env.COVALENT_API_KEY || '';
-        console.log('[DEBUG] Alchemy key retrieved, length:', alchemyKey?.length);
-        console.log('[DEBUG] Moralis key present:', !!moralisKey);
-        console.log('[DEBUG] Covalent key present:', !!covalentKey);
 
         if (!alchemyKey) {
             return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
@@ -680,11 +708,15 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
     }
 
     // Validate addresses
-    const validAddresses = addresses.filter((addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr));
-    console.log(`[DEBUG] Valid addresses: ${validAddresses.length}/${addresses.length}`);
+    const validAddresses = addresses.filter((addr: string) => ETH_ADDRESS_REGEX.test(addr));
 
     if (validAddresses.length === 0) {
         return res.status(400).json({ error: 'No valid addresses provided' });
+    }
+
+    // Validate chain parameter
+    if (!ALLOWED_CHAINS.includes(chain)) {
+        return res.status(400).json({ error: 'Invalid chain parameter' });
     }
 
     try {

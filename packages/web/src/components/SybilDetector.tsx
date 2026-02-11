@@ -248,6 +248,17 @@ const NetworkGraph: React.FC<{
   const [nodeLimit, setNodeLimit] = useState(100);
   const notify = useNotify();
 
+  // Cleanup Cytoscape instance on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (cyRef.current) {
+        cyRef.current.removeAllListeners();
+        cyRef.current.destroy();
+        cyRef.current = null;
+      }
+    };
+  }, []);
+
   // Build graph data
   const buildGraphData = useCallback((limit: number) => {
     const nodes: GraphNode[] = [];
