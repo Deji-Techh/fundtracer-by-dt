@@ -100,20 +100,33 @@ const SybilPage: React.FC<SybilPageProps> = ({
   // Handle prefill from history page navigation
   useEffect(() => {
     if (prefillAddress) {
-      setWalletAddresses([prefillAddress]);
       if (prefillChain) {
         setSelectedChain(prefillChain as ChainId);
       }
+      
       // Route to the correct sub-tab based on history item type
       const targetMode = (prefillType === 'sybil' || prefillType === 'contract' || prefillType === 'compare')
         ? prefillType as ViewMode
         : 'wallet';
       setViewMode(targetMode);
-      if (targetMode === 'contract') {
+      
+      // Handle different prefill types
+      if (prefillType === 'compare') {
+        // Split comma-separated addresses for compare type
+        const addresses = prefillAddress.split(',').map(a => a.trim()).filter(a => a);
+        setWalletAddresses(addresses);
+      } else if (prefillType === 'contract') {
         setContractAddress(prefillAddress);
+        setWalletAddresses(['']);
+      } else {
+        // For 'sybil' and 'wallet' types
+        setWalletAddresses([prefillAddress]);
       }
+      
       // Clear any previous results so user sees the input
       setWalletResult(null);
+      setContractResult(null);
+      setMultiWalletResult(null);
       setError(null);
       onPrefillConsumed?.();
     }

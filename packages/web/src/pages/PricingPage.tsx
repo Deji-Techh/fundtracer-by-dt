@@ -10,7 +10,7 @@ const tiers = [
     period: 'forever',
     description: 'Perfect for getting started',
     features: [
-      '7 analyses per day',
+      '7 analyses per 4 hours',
       'Basic wallet analysis',
       '3-day transaction history',
       'Linea chain only',
@@ -25,7 +25,7 @@ const tiers = [
     period: '/month',
     description: 'Most popular for researchers',
     features: [
-      '25 analyses per day',
+      '25 analyses per 4 hours',
       'Advanced wallet analysis',
       '30-day transaction history',
       'All chains (7+)',
@@ -70,7 +70,7 @@ const faqs = [
   },
   {
     question: 'What happens if I exceed my analysis limit?',
-    answer: 'You\'ll need to wait for the next day or upgrade to a higher plan for immediate access.'
+    answer: 'You\'ll need to wait for the next 4-hour window or upgrade to a higher plan for immediate access.'
   },
 ];
 
@@ -139,7 +139,7 @@ export function PricingPage() {
             <span>Max</span>
           </div>
           {[
-            ['Daily Analyses', '7', '25', 'Unlimited'],
+            ['Analyses per 4 hours', '7', '25', 'Unlimited'],
             ['Transaction History', '3 days', '30 days', 'Full History'],
             ['Supported Chains', '1', '7+', 'All + Future'],
             ['Export Formats', '-', 'CSV, JSON', 'All Formats'],

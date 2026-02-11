@@ -15,7 +15,7 @@ const faqs = [
       },
       {
         q: 'Is FundTracer free to use?',
-        a: 'Yes! We offer a free tier with 7 analyses per day. Upgrade to Pro or Max for unlimited access and advanced features.'
+        a: 'Yes! We offer a free tier with 7 analyses every 4 hours. Upgrade to Pro for 25 analyses every 4 hours, or Max for unlimited access and advanced features.'
       }
     ]
   },
@@ -66,7 +66,7 @@ const faqs = [
       },
       {
         q: 'What payment methods are accepted?',
-        a: 'We accept credit cards, cryptocurrency, and PayPal for Pro and Max subscriptions.'
+        a: 'We accept USDT (Linea network) for Pro and Max subscriptions. Simply connect your wallet and pay with USDT.'
       },
       {
         q: 'Is there a refund policy?',

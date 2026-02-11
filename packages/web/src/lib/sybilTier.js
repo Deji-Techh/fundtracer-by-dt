@@ -2,6 +2,8 @@
 // Sybil Tier System & Payment Configuration
 // ============================================================
 
+const FOUR_HOURS_MS = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+
 // Tier configurations
 export const SYBIL_TIERS = {
   free: {
@@ -9,11 +11,12 @@ export const SYBIL_TIERS = {
     name: 'Free Tier',
     price: 0,
     monthly: false,
-    dailyLimit: 7,
+    windowLimit: 7, // 7 operations per 4 hours
+    windowHours: 4,
     requiresGasPayment: true,
     paymentAddress: '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd',
     benefits: [
-      '7 operations per day',
+      '7 analyses per 4 hours',
       'Basic Sybil detection',
       'Manual address input',
       'Network graph view',
@@ -26,11 +29,12 @@ export const SYBIL_TIERS = {
     name: 'Pro Tier',
     price: 5,
     monthly: true,
-    dailyLimit: 25,
+    windowLimit: 25, // 25 operations per 4 hours
+    windowHours: 4,
     requiresGasPayment: false,
     paymentAddress: '0xFF1A1D11CB6bad91C6d9250082D1DF44d84e4b87',
     benefits: [
-      '25 operations per day',
+      '25 analyses per 4 hours',
       'Advanced Sybil detection',
       'Auto-fetch from contracts',
       'Export to CSV/JSON/PDF',
@@ -44,11 +48,12 @@ export const SYBIL_TIERS = {
     name: 'Max Tier',
     price: 10,
     monthly: true,
-    dailyLimit: 'unlimited',
+    windowLimit: 'unlimited',
+    windowHours: null,
     requiresGasPayment: false,
     paymentAddress: '0xFF1A1D11CB6bad91C6d9250082D1DF44d84e4b87',
     benefits: [
-      'Unlimited operations',
+      'Unlimited analyses',
       'All Pro features',
       'API access',
       'Custom branding',
@@ -63,24 +68,21 @@ export const SYBIL_TIERS = {
 const SYBIL_USAGE_KEY = 'fundtracer_sybil_usage';
 const SYBIL_PAYMENT_KEY = 'fundtracer_sybil_payment';
 
-// Get midnight UTC timestamp for today
-function getMidnightUTC() {
-  const now = new Date();
-  const midnight = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  );
-  return midnight.getTime();
+// Get the start of current 4-hour window
+function getWindowStart() {
+  const now = Date.now();
+  return now - (now % FOUR_HOURS_MS);
 }
 
-// Check if usage needs reset (daily)
+// Check if usage needs reset (new 4-hour window)
 function shouldResetUsage() {
   const stored = localStorage.getItem(SYBIL_USAGE_KEY);
   if (!stored) return true;
 
   try {
     const usage = JSON.parse(stored);
-    const midnight = getMidnightUTC();
-    return usage.lastReset < midnight;
+    const currentWindow = getWindowStart();
+    return usage.windowStart < currentWindow;
   } catch {
     return true;
   }
@@ -91,7 +93,7 @@ export function getSybilUsage() {
   if (shouldResetUsage()) {
     const fresh = {
       operations: 0,
-      lastReset: getMidnightUTC(),
+      windowStart: getWindowStart(),
     };
     localStorage.setItem(SYBIL_USAGE_KEY, JSON.stringify(fresh));
     return fresh;
@@ -101,7 +103,7 @@ export function getSybilUsage() {
   if (!stored) {
     const fresh = {
       operations: 0,
-      lastReset: getMidnightUTC(),
+      windowStart: getWindowStart(),
     };
     localStorage.setItem(SYBIL_USAGE_KEY, JSON.stringify(fresh));
     return fresh;
@@ -112,7 +114,7 @@ export function getSybilUsage() {
   } catch {
     return {
       operations: 0,
-      lastReset: getMidnightUTC(),
+      windowStart: getWindowStart(),
     };
   }
 }
@@ -122,7 +124,7 @@ export function incrementSybilUsage() {
   const usage = getSybilUsage();
   const updated = {
     operations: usage.operations + 1,
-    lastReset: usage.lastReset,
+    windowStart: usage.windowStart,
   };
   localStorage.setItem(SYBIL_USAGE_KEY, JSON.stringify(updated));
   return updated.operations;
@@ -135,8 +137,8 @@ export function canPerformSybilOperation(tier) {
 
   const usage = getSybilUsage();
 
-  if (config.dailyLimit === 'unlimited') return true;
-  return usage.operations < config.dailyLimit;
+  if (config.windowLimit === 'unlimited') return true;
+  return usage.operations < config.windowLimit;
 }
 
 // Get remaining operations
@@ -144,10 +146,19 @@ export function getRemainingOperations(tier) {
   const config = SYBIL_TIERS[tier];
   if (!config) return 0;
 
-  if (config.dailyLimit === 'unlimited') return 'unlimited';
+  if (config.windowLimit === 'unlimited') return 'unlimited';
 
   const usage = getSybilUsage();
-  return Math.max(0, config.dailyLimit - usage.operations);
+  return Math.max(0, config.windowLimit - usage.operations);
+}
+
+// Get time until next window (in minutes)
+export function getTimeUntilNextWindow() {
+  const now = Date.now();
+  const currentWindow = getWindowStart();
+  const nextWindow = currentWindow + FOUR_HOURS_MS;
+  const remainingMs = nextWindow - now;
+  return Math.ceil(remainingMs / (60 * 1000)); // Convert to minutes
 }
 
 // Store payment for verification

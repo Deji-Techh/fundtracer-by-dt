@@ -1,12 +1,12 @@
 // ============================================================
-// Usage Tracking Middleware - Enforce Daily Limits
+// Usage Tracking Middleware - Enforce 4-Hour Window Limits
 // ============================================================
 
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth.js';
 import { getFirestore } from '../firebase.js';
 
-
+const FOUR_HOURS_MS = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 
 export async function usageMiddleware(
     req: AuthenticatedRequest,
@@ -22,7 +22,7 @@ export async function usageMiddleware(
         const userRef = db.collection('users').doc(req.user.uid);
         const userDoc = await userRef.get();
 
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const now = Date.now();
         const userData = userDoc.data();
 
         // Determine user tier and limit
@@ -43,39 +43,53 @@ export async function usageMiddleware(
             }
         }
 
-        let dailyLimit = 7; // Default Free
-        if (tier === 'pro') dailyLimit = 25;
-        if (tier === 'max') dailyLimit = Infinity;
+        let operationLimit = 7; // Default Free: 7 per 4 hours
+        if (tier === 'pro') operationLimit = 25; // Pro: 25 per 4 hours
+        if (tier === 'max') operationLimit = Infinity; // Max: Unlimited
 
         // Check if user has their own API key (treat as unlimited)
         if (userData?.customApiKey) {
-            dailyLimit = Infinity;
+            operationLimit = Infinity;
         }
 
-        // Check daily usage
-        const usageToday = userData?.dailyUsage?.[today] || 0;
+        // Get usage tracking data
+        const usageData = userData?.usageWindow || {};
+        const windowStart = usageData.windowStart || 0;
+        const operationsInWindow = usageData.operations || 0;
+
+        // Check if we need to reset the window (4 hours passed)
+        let currentOperations = operationsInWindow;
+        let currentWindowStart = windowStart;
+        
+        if (now - windowStart >= FOUR_HOURS_MS) {
+            // Reset window
+            currentOperations = 0;
+            currentWindowStart = now;
+        }
 
         // Enforce Limit
-        if (usageToday >= dailyLimit) {
+        if (currentOperations >= operationLimit) {
+            const resetTime = new Date(currentWindowStart + FOUR_HOURS_MS);
             return res.status(429).json({
-                error: 'Daily limit exceeded',
-                message: `You have reached your daily limit of ${dailyLimit} analyses for the ${tier} tier. Upgrade to increase your limit.`,
-                limit: dailyLimit,
-                used: usageToday,
-                resetsAt: getNextMidnight(),
+                error: 'Rate limit exceeded',
+                message: `You have reached your limit of ${operationLimit} analyses per 4 hours on the ${tier} tier. Upgrade to increase your limit or wait until ${resetTime.toLocaleTimeString()}.`,
+                limit: operationLimit,
+                used: currentOperations,
+                resetsAt: resetTime.toISOString(),
             });
         }
 
         // Increment usage counter
         await userRef.set({
-            dailyUsage: {
-                [today]: usageToday + 1,
+            usageWindow: {
+                windowStart: currentWindowStart,
+                operations: currentOperations + 1,
             },
             lastActive: new Date().toISOString(),
         }, { merge: true });
 
         // Attach remaining usage to response (if unlimited, return -1 or a large number)
-        res.locals.usageRemaining = dailyLimit === Infinity ? 9999 : dailyLimit - usageToday - 1;
+        res.locals.usageRemaining = operationLimit === Infinity ? 9999 : operationLimit - currentOperations - 1;
 
         next();
     } catch (error) {
@@ -83,11 +97,4 @@ export async function usageMiddleware(
         // Allow request to proceed if usage tracking fails
         next();
     }
-}
-
-function getNextMidnight(): string {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    return tomorrow.toISOString();
 }
