@@ -9,6 +9,7 @@ import {
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useNotify } from '../contexts/ToastContext';
 import { apiRequest } from '../api';
+import { addToHistory } from '../utils/history';
 
 // Animation variants
 const containerVariants = {
@@ -82,6 +83,18 @@ export default function ContractScanner() {
       if (response.success) {
         setResult(response);
         notify.success(`Contract scanned successfully! Found ${response.stats.uniqueWallets} wallets`);
+        
+        // Add to history
+        addToHistory(
+          address.trim(),
+          'linea',
+          response.contract?.name || 'Contract Scan',
+          {
+            totalTransactions: response.stats?.totalTransfers,
+            riskLevel: 'unknown'
+          },
+          'contract'
+        );
       } else {
         throw new Error(response.error || 'Scan failed');
       }
@@ -196,17 +209,21 @@ export default function ContractScanner() {
       {/* Header */}
       <motion.div variants={itemVariants} style={{ marginBottom: 32 }}>
         <h1 style={{
-          fontSize: isMobile ? '1.75rem' : '2.5rem',
+          fontSize: isMobile ? '1.5rem' : '2.5rem',
           fontWeight: 800,
           color: 'var(--color-text-primary)',
-          marginBottom: 8,
+          marginBottom: isMobile ? 12 : 8,
           background: 'linear-gradient(135deg, var(--color-text-primary) 0%, #8b5cf6 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>
           Contract Scanner
         </h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem' }}>
+        <p style={{ 
+          color: 'var(--color-text-muted)', 
+          fontSize: isMobile ? '0.875rem' : '1rem',
+          lineHeight: isMobile ? 1.5 : 1.4 
+        }}>
           Analyze smart contracts and discover all interacting wallets
         </p>
       </motion.div>

@@ -79,8 +79,8 @@ export function useGasPayment(): UseGasPaymentReturn {
     return true;
   }, [currentTier]);
 
-  const recordUsage = useCallback(() => {
-    incrementSybilUsage();
+  const recordUsage = useCallback(async () => {
+    await incrementSybilUsage();
   }, []);
 
   const handleGasPaymentSuccess = useCallback((txHash: string) => {

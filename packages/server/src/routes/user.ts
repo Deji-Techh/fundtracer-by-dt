@@ -312,4 +312,37 @@ async function validateAlchemyApiKey(apiKey: string): Promise<boolean> {
     }
 }
 
+// Increment daily usage counter
+router.post('/usage/increment', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const db = getFirestore();
+        const userRef = db.collection('users').doc(req.user.uid);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+
+        const today = new Date().toISOString().split('T')[0];
+        const currentUsage = userData?.dailyUsage?.[today] || 0;
+        
+        // Increment usage
+        await userRef.set({
+            dailyUsage: {
+                [today]: currentUsage + 1
+            }
+        }, { merge: true });
+
+        res.json({
+            success: true,
+            today,
+            usage: currentUsage + 1
+        });
+    } catch (error) {
+        console.error('Usage increment error:', error);
+        res.status(500).json({ error: 'Failed to increment usage' });
+    }
+});
+
 export { router as userRoutes };

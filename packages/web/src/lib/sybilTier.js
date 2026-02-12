@@ -119,14 +119,31 @@ export function getSybilUsage() {
   }
 }
 
-// Increment usage counter
-export function incrementSybilUsage() {
+// Increment usage counter (both local and server)
+export async function incrementSybilUsage() {
   const usage = getSybilUsage();
   const updated = {
     operations: usage.operations + 1,
     windowStart: usage.windowStart,
   };
   localStorage.setItem(SYBIL_USAGE_KEY, JSON.stringify(updated));
+  
+  // Also increment on server
+  try {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      await fetch('/api/user/usage/increment', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+  } catch (error) {
+    console.warn('Failed to sync usage to server:', error);
+  }
+  
   return updated.operations;
 }
 

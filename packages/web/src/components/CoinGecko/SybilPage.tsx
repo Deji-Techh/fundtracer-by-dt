@@ -193,7 +193,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
         });
 
         // Track usage
-        recordUsage();
+        await recordUsage();
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
@@ -291,7 +291,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
         }, 'compare');
 
         // Track usage
-        recordUsage();
+        await recordUsage();
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
@@ -344,7 +344,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
         }, 'contract');
 
         // Track usage
-        recordUsage();
+        await recordUsage();
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });

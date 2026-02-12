@@ -102,9 +102,43 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
         setMessage({ type: 'error', text: 'Image must be less than 5MB' });
         return;
       }
+      
+      // Compress image before saving
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        // Resize to max 200x200 to keep file size small
+        const maxSize = 200;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height *= maxSize / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width *= maxSize / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to JPEG with 80% quality for smaller size
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setProfilePicture(compressedDataUrl);
+      };
+      
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProfilePicture(reader.result as string);
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -227,9 +261,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
                 </div>
               </div>
             </div>
-            <motion.div 
-              animate={isDark ? { x: 24 } : { x: 0 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            <div
               style={{
                 width: 52,
                 height: 28,
@@ -241,7 +273,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
               }}
             >
               <motion.div 
-                layout
+                animate={{ x: isDark ? 26 : 2 }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 style={{
                   width: 24,
@@ -249,9 +281,12 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
                   borderRadius: 12,
                   background: '#ffffff',
                   boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                  position: 'absolute',
+                  top: 2,
+                  left: 0,
                 }}
               />
-            </motion.div>
+            </div>
           </div>
         </motion.div>
 
@@ -583,9 +618,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
             </div>
           </div>
         </div>
-        <motion.div 
-          animate={{ x: isDark ? 26 : 0 }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        <div
           style={{
             width: 52,
             height: 28,
@@ -596,16 +629,20 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
           }}
         >
           <motion.div 
-            layout
+            animate={{ x: isDark ? 26 : 2 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
             style={{
               width: 24,
               height: 24,
               borderRadius: 12,
               background: '#ffffff',
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+              position: 'absolute',
+              top: 2,
+              left: 0,
             }}
           />
-        </motion.div>
+        </div>
       </motion.div>
 
       {/* Sign Out */}

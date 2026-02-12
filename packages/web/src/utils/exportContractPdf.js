@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export async function exportContractPDF(scanResult) {
   const { contract, stats, wallets, scannedAt } = scanResult;
@@ -47,7 +47,7 @@ export async function exportContractPDF(scanResult) {
     ['ETH Balance:', `${contract.balanceETH} ETH`],
   ];
   
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     body: contractInfo,
     theme: 'plain',
@@ -83,7 +83,7 @@ export async function exportContractPDF(scanResult) {
     statsData.push([`${category}:`, count.toLocaleString()]);
   });
   
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     body: statsData,
     theme: 'plain',
@@ -131,7 +131,7 @@ export async function exportContractPDF(scanResult) {
   ]);
   
   // Add wallet table
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     head: [walletHeaders],
     body: walletData,
