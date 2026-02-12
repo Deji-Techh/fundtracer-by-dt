@@ -15,11 +15,11 @@ interface MobileFooterProps {
 
 export function MobileFooter({ activeTab, onTabChange }: MobileFooterProps) {
   const navItems = [
-    { id: 'home', label: 'Home', icon: Home01Icon },
-    { id: 'portfolio', label: 'Portfolio', icon: Wallet01Icon },
-    { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
-    { id: 'history', label: 'History', icon: Clock01Icon },
-    { id: 'settings', label: 'Settings', icon: Settings01Icon },
+    { id: 'home', icon: Home01Icon },
+    { id: 'portfolio', icon: Wallet01Icon },
+    { id: 'sybil', icon: Shield01Icon },
+    { id: 'history', icon: Clock01Icon },
+    { id: 'settings', icon: Settings01Icon },
   ];
 
   return (
@@ -33,10 +33,9 @@ export function MobileFooter({ activeTab, onTabChange }: MobileFooterProps) {
           >
             <HugeiconsIcon
               icon={item.icon}
-              size={18}
-              strokeWidth={2}
+              size={20}
+              strokeWidth={1.5}
             />
-            <span>{item.label}</span>
           </button>
         ))}
       </div>
