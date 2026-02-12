@@ -47,8 +47,12 @@ const cardVariants = {
   }
 };
 
-export default function ContractScanner() {
-  const [address, setAddress] = useState('');
+interface ContractScannerProps {
+  prefilledAddress?: string;
+}
+
+export default function ContractScanner({ prefilledAddress }: ContractScannerProps) {
+  const [address, setAddress] = useState(prefilledAddress || '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -63,6 +67,13 @@ export default function ContractScanner() {
   const isMobile = useIsMobile();
   const notify = useNotify();
   const itemsPerPage = 25;
+
+  // Update address when prefilledAddress changes
+  useEffect(() => {
+    if (prefilledAddress) {
+      setAddress(prefilledAddress);
+    }
+  }, [prefilledAddress]);
 
   const handleScan = async () => {
     if (!address.trim()) {

@@ -387,28 +387,64 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
   return (
     <div className="main-content">
-      <div style={{ padding: isMobile ? '16px' : '24px', maxWidth: isMobile ? 'none' : 1200, margin: '0 auto' }}>
+      <div style={{ 
+        padding: isMobile ? '20px 20px 32px' : '24px', 
+        maxWidth: isMobile ? '100%' : 1200, 
+        margin: '0 auto'
+      }}>
         {/* Header */}
-        <div style={{ marginBottom: isMobile ? 20 : 32, marginTop: isMobile ? 8 : 16 }}>
-          <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>
+        <div style={{ 
+          marginBottom: isMobile ? 24 : 32, 
+          marginTop: isMobile ? 0 : 16 
+        }}>
+          <h1 style={{ 
+            fontSize: isMobile ? '1.5rem' : '1.75rem', 
+            fontWeight: 700, 
+            color: 'var(--color-text-primary)', 
+            marginBottom: isMobile ? 12 : 8,
+            lineHeight: 1.2
+          }}>
             Wallet & Contract Analysis
           </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: isMobile ? '0.875rem' : '1rem' }}>
+          <p style={{ 
+            color: 'var(--color-text-secondary)', 
+            fontSize: isMobile ? '0.9375rem' : '1rem',
+            lineHeight: 1.5
+          }}>
             Analyze wallets, contracts, and detect Sybil patterns across multiple chains
           </p>
         </div>
 
         {/* Auth Panel - Only show if not connected */}
         {!isWalletConnected && (
-          <div className="card" style={{ marginBottom: isMobile ? 16 : 24, textAlign: 'center', padding: isMobile ? 16 : 32 }}>
-            <HugeiconsIcon icon={Wallet01Icon} size={48} strokeWidth={1.5} color="var(--color-accent)" />
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text-primary)', marginTop: 16, marginBottom: 8 }}>
+          <div className="card" style={{ 
+            marginBottom: isMobile ? 24 : 24, 
+            textAlign: 'center', 
+            padding: isMobile ? '32px 24px' : 32,
+            borderRadius: isMobile ? 16 : 12
+          }}>
+            <HugeiconsIcon icon={Wallet01Icon} size={isMobile ? 56 : 48} strokeWidth={1.5} color="var(--color-accent)" />
+            <h3 style={{ 
+              fontSize: isMobile ? '1.125rem' : '1.25rem', 
+              fontWeight: 600, 
+              color: 'var(--color-text-primary)', 
+              marginTop: isMobile ? 20 : 16, 
+              marginBottom: isMobile ? 12 : 8 
+            }}>
               Connect Your Wallet
             </h3>
-            <p style={{ color: 'var(--color-text-secondary)', marginBottom: 24 }}>
+            <p style={{ 
+              color: 'var(--color-text-secondary)', 
+              marginBottom: isMobile ? 28 : 24,
+              fontSize: isMobile ? '0.9375rem' : '1rem',
+              lineHeight: 1.5,
+              maxWidth: 320,
+              margin: '0 auto',
+              padding: isMobile ? '0 0 28px' : '0 0 24px'
+            }}>
               Connect your wallet to analyze addresses, contracts, and detect Sybil patterns
             </p>
-            <button className="btn btn-primary" onClick={onConnectWallet}>
+            <button className="btn btn-primary" onClick={onConnectWallet} style={{ width: isMobile ? '100%' : 'auto' }}>
               <HugeiconsIcon icon={Wallet01Icon} size={18} strokeWidth={1.5} />
               Connect Wallet
             </button>
@@ -438,14 +474,15 @@ const SybilPage: React.FC<SybilPageProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            padding: '8px 16px',
+            padding: isMobile ? '10px 16px' : '8px 16px',
             borderRadius: 8,
             border: '1px solid var(--color-border)',
             background: 'transparent',
             color: 'var(--color-text-secondary)',
             cursor: 'pointer',
-            marginBottom: 16,
-            fontSize: '0.875rem'
+            marginBottom: isMobile ? 20 : 16,
+            marginTop: isMobile ? 4 : 0,
+            fontSize: isMobile ? '0.9375rem' : '0.875rem'
           }}
         >
           {showHowToUse ? 'Hide' : 'Show'} Guide
@@ -460,10 +497,21 @@ const SybilPage: React.FC<SybilPageProps> = ({
         {showHowToUse && <HowToUse isOpen={true} onToggle={() => setShowHowToUse(false)} />}
 
         {/* Analysis Panel - Mobile Optimized */}
-        <div className="card analysis-card">
+        <div className="card analysis-card" style={{ 
+          padding: isMobile ? '24px 20px' : '24px',
+          borderRadius: isMobile ? 16 : 12,
+          marginBottom: isMobile ? 24 : 24
+        }}>
           {/* Chain Selector */}
-          <div className="analysis-section">
-            <div className="analysis-label">Chain</div>
+          <div className="analysis-section" style={{ marginBottom: isMobile ? 24 : 20 }}>
+            <div className="analysis-label" style={{ 
+              fontSize: isMobile ? '11px' : '12px', 
+              fontWeight: 600, 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.5px',
+              color: 'var(--color-text-muted)', 
+              marginBottom: isMobile ? 10 : 8 
+            }}>Chain</div>
             <ChainSelector
               selectedChain={selectedChain}
               onSelect={handleChainSelect}
@@ -473,8 +521,15 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
           {/* Input Fields based on mode */}
           {viewMode === 'wallet' && (
-            <div className="analysis-section">
-              <div className="analysis-label">Wallet Address</div>
+            <div className="analysis-section" style={{ marginBottom: isMobile ? 24 : 20 }}>
+              <div className="analysis-label" style={{ 
+                fontSize: isMobile ? '11px' : '12px', 
+                fontWeight: 600, 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px',
+                color: 'var(--color-text-muted)', 
+                marginBottom: isMobile ? 10 : 8 
+              }}>Wallet Address</div>
               <WalletInput
                 value={walletAddresses[0] || ''}
                 onChange={(value) => handleWalletChange(0, value)}
@@ -484,14 +539,21 @@ const SybilPage: React.FC<SybilPageProps> = ({
           )}
 
           {viewMode === 'contract' && (
-            <ContractScanner />
+            <ContractScanner prefilledAddress={contractAddress} />
           )}
 
           {viewMode === 'compare' && (
-            <div className="analysis-section">
-              <div className="analysis-label">Wallet Addresses</div>
+            <div className="analysis-section" style={{ marginBottom: isMobile ? 24 : 20 }}>
+              <div className="analysis-label" style={{ 
+                fontSize: isMobile ? '11px' : '12px', 
+                fontWeight: 600, 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px',
+                color: 'var(--color-text-muted)', 
+                marginBottom: isMobile ? 10 : 8 
+              }}>Wallet Addresses</div>
               {walletAddresses.map((address, index) => (
-                <div key={index} className="wallet-input-wrapper">
+                <div key={index} className="wallet-input-wrapper" style={{ marginBottom: isMobile ? 12 : 10 }}>
                   <WalletInput
                     value={address}
                     onChange={(value) => handleWalletChange(index, value)}
@@ -500,7 +562,15 @@ const SybilPage: React.FC<SybilPageProps> = ({
                   />
                 </div>
               ))}
-              <button className="btn btn-secondary btn-add-wallet" onClick={handleAddWallet}>
+              <button 
+                className="btn btn-secondary btn-add-wallet" 
+                onClick={handleAddWallet}
+                style={{ 
+                  marginTop: isMobile ? 12 : 10,
+                  width: isMobile ? '100%' : 'auto',
+                  minHeight: isMobile ? 44 : 36
+                }}
+              >
                 + Add Wallet
               </button>
             </div>
@@ -520,6 +590,11 @@ const SybilPage: React.FC<SybilPageProps> = ({
                 viewMode === 'wallet' ? handleAnalyzeWallet : handleCompareWallets
               }
               disabled={loading}
+              style={{ 
+                width: isMobile ? '100%' : 'auto',
+                minHeight: isMobile ? 48 : 40,
+                marginTop: isMobile ? 4 : 0
+              }}
             >
               {loading ? (
                 <span className="btn-content">

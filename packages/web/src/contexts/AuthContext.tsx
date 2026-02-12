@@ -213,7 +213,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     walletAddress: walletAddress,
                     isVerified: response.user.isVerified,
                     tier: userTier,
-                    authProvider: 'wallet'
+                    authProvider: 'wallet',
+                    profilePicture: response.user.profilePicture || null,
+                    photoURL: response.user.photoURL || null
                 });
                 setIsAuthenticated(true);
 
