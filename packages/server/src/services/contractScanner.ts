@@ -108,13 +108,13 @@ export class ContractScanner {
       this.fetchTransfersWithProgress({
         toBlock: "latest",
         toAddress: contractAddress,
-        category: ["external", "erc20", "erc721", "erc1155", "internal"],
+        category: ["external", "erc20", "erc721", "erc1155"],
         withMetadata: true
       }),
       this.fetchTransfersWithProgress({
         toBlock: "latest",
         fromAddress: contractAddress,
-        category: ["external", "erc20", "erc721", "erc1155", "internal"],
+        category: ["external", "erc20", "erc721", "erc1155"],
         withMetadata: true
       })
     ]);
@@ -208,8 +208,8 @@ export class ContractScanner {
         
         if (response.data?.result?.[0]) {
           const info = response.data.result[0];
-          result.creator = info.contractCreator?.toLowerCase();
-          result.txHash = info.txHash?.toLowerCase();
+          result.creator = info.contractCreator?.toLowerCase() || null;
+          result.txHash = info.txHash?.toLowerCase() || null;
           
           // Get block timestamp from transaction
           if (result.txHash) {
@@ -288,8 +288,7 @@ export class ContractScanner {
       external: 0,
       erc20: 0,
       erc721: 0,
-      erc1155: 0,
-      internal: 0
+      erc1155: 0
     };
     
     // Process incoming transfers (wallets sending TO contract)
@@ -401,8 +400,7 @@ export class ContractScanner {
         external: 0,
         erc20: 0,
         erc721: 0,
-        erc1155: 0,
-        internal: 0
+        erc1155: 0
       },
       uniqueAssets: new Set()
     };
