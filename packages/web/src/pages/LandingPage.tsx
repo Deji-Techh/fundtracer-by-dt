@@ -7,6 +7,9 @@ import { CliShowcase } from '../components/landing/CliShowcase';
 import { ScreenshotShowcase } from '../components/landing/ScreenshotShowcase';
 import { Pricing } from '../components/landing/Pricing';
 import { Footer } from '../components/landing/Footer';
+import { ParticleBackground } from '../components/landing/ParticleBackground';
+import { CustomCursor } from '../components/landing/CustomCursor';
+import './LandingPage.css';
 
 interface LandingPageProps {
   onLaunchApp?: () => void;
@@ -14,11 +17,9 @@ interface LandingPageProps {
 
 export function LandingPage({ onLaunchApp }: LandingPageProps) {
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      backgroundColor: '#000000',
-      color: '#ffffff'
-    }}>
+    <div className="landing-page-v2">
+      <ParticleBackground />
+      <CustomCursor />
       <LandingNav onLaunchApp={onLaunchApp} />
       <Hero onLaunchApp={onLaunchApp} />
       <ApiProvidersShowcase />

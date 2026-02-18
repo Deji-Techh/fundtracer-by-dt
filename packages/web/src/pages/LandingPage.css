@@ -1,31 +1,169 @@
-.landing-page {
+/* Landing Page V2 - Global Styles */
+
+.landing-page-v2 {
   min-height: 100vh;
-  background: var(--color-bg-secondary);
+  background-color: #000000;
+  color: #ffffff;
   position: relative;
-  z-index: 1;
+  overflow-x: hidden;
 }
 
-/* Ensure content is visible */
-.landing-page * {
-  visibility: visible;
-  opacity: 1;
+.custom-cursor-outer,
+.custom-cursor-inner {
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  mix-blend-mode: difference;
 }
 
-.landing-main {
-  padding-top: 72px; /* Account for fixed nav */
+.custom-cursor-outer {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  transition: width 0.3s ease, height 0.3s ease, border 0.3s ease;
 }
 
-/* Smooth scroll behavior */
-html {
+.custom-cursor-inner {
+  width: 8px;
+  height: 8px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: width 0.15s ease, height 0.15s ease, background 0.15s ease;
+}
+
+body.cursor-hover .custom-cursor-outer {
+  width: 60px;
+  height: 60px;
+  border-color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+body.cursor-hover .custom-cursor-inner {
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+body.cursor-clicking .custom-cursor-outer {
+  width: 30px;
+  height: 30px;
+  border-width: 2px;
+}
+
+body.cursor-clicking .custom-cursor-inner {
+  width: 12px;
+  height: 12px;
+}
+
+.cursor-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  color: #ffffff;
+  mix-blend-mode: normal;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .landing-page-v2,
+  .landing-page-v2 * {
+    cursor: none !important;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .custom-cursor-outer,
+  .custom-cursor-inner {
+    display: none;
+  }
+}
+
+.landing-page-v2 {
   scroll-behavior: smooth;
 }
 
-/* Section spacing consistency */
+.landing-page-v2 ::selection {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.landing-page-v2 ::-moz-selection {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.landing-page-v2::-webkit-scrollbar {
+  width: 8px;
+}
+
+.landing-page-v2::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+.landing-page-v2::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.landing-page-v2::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.landing-page-v2 button:focus-visible,
+.landing-page-v2 a:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.landing-main {
+  padding-top: 72px;
+}
+
 section {
   position: relative;
 }
 
-/* Animation utilities */
+.animate-fade-in {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -37,11 +175,6 @@ section {
   }
 }
 
-.animate-fade-in {
-  animation: fadeInUp 0.6s ease-out forwards;
-}
-
-/* Button styles for landing page */
 .btn-lg {
   padding: 16px 32px;
   font-size: 1rem;
