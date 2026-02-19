@@ -1,4 +1,20 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Download02Icon,
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+  ArrowAllDirectionIcon,
+  CheckmarkCircle02Icon,
+  Alert02Icon,
+  AlertDiamondIcon,
+  InformationDiamondIcon,
+  WorkflowSquare01Icon,
+  Clock01Icon,
+  Link01Icon,
+  FolderIcon,
+} from '@hugeicons/core-free-icons';
 import { AnalysisResult, SuspiciousIndicator, FundingNode } from '@fundtracer/core';
 import FundingTree from './FundingTree';
 import TransactionList from './TransactionList';
@@ -57,10 +73,31 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
         result.riskLevel === 'critical' || result.riskLevel === 'high' ? 'negative' :
             result.riskLevel === 'medium' ? '' : 'positive';
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.05 }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] as const } }
+    };
+
     return (
-        <div className="stagger-children">
-            {/* Wallet Summary Card */}
-            <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
+            {/* Wallet Summary - Flat Section */}
+            <motion.div
+                variants={itemVariants}
+                className="section-flat"
+                style={{ marginBottom: 'var(--space-4)' }}
+            >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: isMobile ? 'var(--space-3)' : 'var(--space-4)' }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ marginBottom: 'var(--space-2)' }}>
@@ -103,25 +140,22 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                     </div>
                 </div>
 
-                {/* Actions Bar */}
-                <div style={{ padding: '0 var(--space-4) var(--space-4)', display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-4)' }}>
-                    <button
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         className="btn btn-secondary btn-sm"
                         onClick={() => import('../utils/exportReport').then(mod => mod.generatePDFReport(result))}
                         title="Download PDF Report"
                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8 }}>
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        Export Report
-                    </button>
+                        <HugeiconsIcon icon={Download02Icon} size={16} strokeWidth={2} />
+                        <span>Export Report</span>
+                    </motion.button>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Stats Grid */}
-            <div className="stats-grid" style={{ marginBottom: 'var(--space-4)' }}>
+            <motion.div variants={itemVariants} className="stats-grid" style={{ marginBottom: 'var(--space-4)' }}>
                 <div className="stat-card">
                     <div className="stat-label">Total Transactions</div>
                     <div className="stat-value">{result.summary.totalTransactions}</div>
@@ -156,266 +190,64 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                     <div className="stat-label">Unique Addresses</div>
                     <div className="stat-value">{result.summary.uniqueInteractedAddresses}</div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Tabs */}
-            <div className="card">
-                <div className="tabs">
+            <motion.div variants={itemVariants} className="section-flat">
+                <div className="tabs-flat">
                     <button
-                        className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
+                        className={`tab-flat ${activeTab === 'overview' ? 'active' : ''}`}
                         onClick={() => setActiveTab('overview')}
                     >
-                        Overview
+                        <HugeiconsIcon icon={InformationDiamondIcon} size={16} strokeWidth={2} />
+                        <span>Overview</span>
                     </button>
                     <button
-                        className={`tab ${activeTab === 'funding' ? 'active' : ''}`}
+                        className={`tab-flat ${activeTab === 'funding' ? 'active' : ''}`}
                         onClick={() => setActiveTab('funding')}
                     >
-                        Funding Tree
+                        <HugeiconsIcon icon={WorkflowSquare01Icon} size={16} strokeWidth={2} />
+                        <span>Funding Tree</span>
                     </button>
                     <button
-                        className={`tab ${activeTab === 'transactions' ? 'active' : ''}`}
+                        className={`tab-flat ${activeTab === 'transactions' ? 'active' : ''}`}
                         onClick={() => setActiveTab('transactions')}
                     >
-                        Transactions ({result.transactions.length})
+                        <HugeiconsIcon icon={ArrowAllDirectionIcon} size={16} strokeWidth={2} />
+                        <span>Transactions ({result.transactions.length})</span>
                     </button>
                     <button
-                        className={`tab ${activeTab === 'suspicious' ? 'active' : ''}`}
+                        className={`tab-flat ${activeTab === 'suspicious' ? 'active' : ''}`}
                         onClick={() => setActiveTab('suspicious')}
                     >
-                        Suspicious ({result.suspiciousIndicators.length})
+                        <HugeiconsIcon icon={AlertDiamondIcon} size={16} strokeWidth={2} />
+                        <span>Suspicious ({result.suspiciousIndicators.length})</span>
                     </button>
                 </div>
 
                 {/* Tab Content */}
-                <div className="animate-fade-in">
+                <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                >
                     {activeTab === 'overview' && (
                         <OverviewTab result={result} formatAddress={formatAddress} isMobile={isMobile} />
                     )}
 
                     {activeTab === 'funding' && (
-                        <div>
-                            {!treeGenerated ? (
-                                /* Show "Generate" button when tree hasn't been loaded yet */
-                                <div style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: 'var(--space-8)',
-                                    gap: 'var(--space-4)',
-                                }}>
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-muted)' }}>
-                                        <path d="M12 2v6m0 0l3-3m-3 3L9 5" />
-                                        <path d="M2 12h6m0 0L5 9m3 3l-3 3" />
-                                        <path d="M12 22v-6m0 0l3 3m-3-3l-3 3" />
-                                        <path d="M22 12h-6m0 0l3-3m-3 3l3 3" />
-                                    </svg>
-                                    <h3 style={{
-                                        fontSize: 'var(--text-lg)',
-                                        fontWeight: 600,
-                                        color: 'var(--color-text-primary)',
-                                        margin: 0,
-                                    }}>
-                                        Funding Tree
-                                    </h3>
-                                    <p style={{
-                                        color: 'var(--color-text-muted)',
-                                        fontSize: 'var(--text-sm)',
-                                        textAlign: 'center',
-                                        maxWidth: 400,
-                                        margin: 0,
-                                    }}>
-                                        Trace where this wallet's funds came from and where they went.
-                                        This requires additional API calls and may take a few seconds.
-                                    </p>
-
-                                    {/* Depth Selector */}
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 'var(--space-3)',
-                                        padding: 'var(--space-3) var(--space-4)',
-                                        background: 'var(--color-bg-tertiary)',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid var(--color-surface-border)',
-                                    }}>
-                                        <span style={{
-                                            fontSize: 'var(--text-xs)',
-                                            color: 'var(--color-text-secondary)',
-                                            fontWeight: 500,
-                                            whiteSpace: 'nowrap' as const,
-                                        }}>
-                                            Trace Depth
-                                        </span>
-                                        <div style={{ display: 'flex', gap: 4 }}>
-                                            {[1, 2, 3, 4, 5].map((d) => (
-                                                <button
-                                                    key={d}
-                                                    onClick={() => setTreeDepth(d)}
-                                                    style={{
-                                                        width: 32,
-                                                        height: 32,
-                                                        borderRadius: 'var(--radius-sm)',
-                                                        border: treeDepth === d
-                                                            ? '1px solid var(--color-accent, #3b82f6)'
-                                                            : '1px solid var(--color-surface-border)',
-                                                        background: treeDepth === d
-                                                            ? 'var(--color-accent, #3b82f6)'
-                                                            : 'var(--color-bg-elevated)',
-                                                        color: treeDepth === d
-                                                            ? '#ffffff'
-                                                            : 'var(--color-text-secondary)',
-                                                        fontSize: 'var(--text-sm)',
-                                                        fontWeight: 600,
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.15s ease',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                    }}
-                                                >
-                                                    {d}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <span style={{
-                                            fontSize: 'var(--text-xs)',
-                                            color: 'var(--color-text-muted)',
-                                        }}>
-                                            {treeDepth <= 2 ? 'Fast' : treeDepth <= 3 ? 'Moderate' : 'Deep'}
-                                        </span>
-                                    </div>
-                                    {treeDepth > 3 && (
-                                        <div style={{
-                                            fontSize: 'var(--text-xs)',
-                                            color: 'var(--color-warning-text)',
-                                            background: 'var(--color-warning-bg)',
-                                            padding: 'var(--space-2) var(--space-3)',
-                                            borderRadius: 'var(--radius-sm)',
-                                            maxWidth: 400,
-                                            textAlign: 'center',
-                                        }}>
-                                            Higher depths use more API calls and may take longer or hit rate limits.
-                                        </div>
-                                    )}
-
-                                    {treeError && (
-                                        <div style={{
-                                            padding: 'var(--space-3)',
-                                            background: 'var(--color-danger-bg)',
-                                            color: 'var(--color-danger-text)',
-                                            borderRadius: 'var(--radius-md)',
-                                            fontSize: 'var(--text-sm)',
-                                            maxWidth: 400,
-                                            width: '100%',
-                                            textAlign: 'center',
-                                        }}>
-                                            {treeError}
-                                        </div>
-                                    )}
-
-                                    <button
-                                        className="btn btn-primary"
-                                        onClick={handleGenerateTree}
-                                        disabled={treeLoading}
-                                        style={{
-                                            padding: 'var(--space-3) var(--space-6)',
-                                            fontSize: 'var(--text-sm)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 'var(--space-2)',
-                                        }}
-                                    >
-                                        {treeLoading ? (
-                                            <>
-                                                <div className="loading-spinner" style={{ width: 16, height: 16 }} />
-                                                Generating...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M12 2v6m0 0l3-3m-3 3L9 5" />
-                                                    <circle cx="12" cy="12" r="10" />
-                                                </svg>
-                                                Generate Funding Tree
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            ) : (
-                                /* Show tree visualization once generated */
-                                <div>
-                                    {/* Tree Controls */}
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        flexWrap: 'wrap',
-                                        gap: 'var(--space-3)',
-                                        marginBottom: 'var(--space-4)',
-                                        padding: 'var(--space-3) var(--space-4)',
-                                        background: 'var(--color-bg-tertiary)',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: '1px solid var(--color-surface-border)',
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Depth</span>
-                                            <div style={{ display: 'flex', gap: 3 }}>
-                                                {[1, 2, 3, 4, 5].map((d) => (
-                                                    <button
-                                                        key={d}
-                                                        onClick={() => setTreeDepth(d)}
-                                                        style={{
-                                                            width: 28,
-                                                            height: 28,
-                                                            borderRadius: 'var(--radius-sm)',
-                                                            border: treeDepth === d
-                                                                ? '1px solid var(--color-accent, #3b82f6)'
-                                                                : '1px solid var(--color-surface-border)',
-                                                            background: treeDepth === d
-                                                                ? 'var(--color-accent, #3b82f6)'
-                                                                : 'var(--color-bg-elevated)',
-                                                            color: treeDepth === d ? '#ffffff' : 'var(--color-text-secondary)',
-                                                            fontSize: 'var(--text-xs)',
-                                                            fontWeight: 600,
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.15s ease',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                        }}
-                                                    >
-                                                        {d}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <button
-                                            className="btn btn-secondary btn-sm"
-                                            onClick={handleGenerateTree}
-                                            disabled={treeLoading}
-                                            style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-2) var(--space-3)' }}
-                                        >
-                                            {treeLoading ? (
-                                                <>
-                                                    <div className="loading-spinner" style={{ width: 12, height: 12 }} />
-                                                    Regenerating...
-                                                </>
-                                            ) : (
-                                                'Regenerate'
-                                            )}
-                                        </button>
-                                    </div>
-
-                                    <h3 style={{ marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Funding Sources</h3>
-                                    <FundingTree node={displaySources} direction="source" />
-
-                                    <h3 style={{ margin: 'var(--space-6) 0 var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Funding Destinations</h3>
-                                    <FundingTree node={displayDestinations} direction="destination" />
-                                </div>
-                            )}
-                        </div>
+                        <FundingTab
+                            result={result}
+                            treeGenerated={treeGenerated}
+                            treeLoading={treeLoading}
+                            treeError={treeError}
+                            treeDepth={treeDepth}
+                            setTreeDepth={setTreeDepth}
+                            handleGenerateTree={handleGenerateTree}
+                            displaySources={displaySources}
+                            displayDestinations={displayDestinations}
+                        />
                     )}
 
                     {activeTab === 'transactions' && (
@@ -431,8 +263,250 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                     {activeTab === 'suspicious' && (
                         <SuspiciousTab indicators={result.suspiciousIndicators} />
                     )}
+                </motion.div>
+            </motion.div>
+        </motion.div>
+    );
+}
+
+// Funding Tab Component
+function FundingTab({
+    result,
+    treeGenerated,
+    treeLoading,
+    treeError,
+    treeDepth,
+    setTreeDepth,
+    handleGenerateTree,
+    displaySources,
+    displayDestinations,
+}: {
+    result: AnalysisResult;
+    treeGenerated: boolean;
+    treeLoading: boolean;
+    treeError: string | null;
+    treeDepth: number;
+    setTreeDepth: (depth: number) => void;
+    handleGenerateTree: () => void;
+    displaySources: FundingNode | null | undefined;
+    displayDestinations: FundingNode | null | undefined;
+}) {
+    return (
+        <div>
+            {!treeGenerated ? (
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 'var(--space-8)',
+                    gap: 'var(--space-4)',
+                }}>
+                    <HugeiconsIcon icon={WorkflowSquare01Icon} size={48} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
+                    <h3 style={{
+                        fontSize: 'var(--text-lg)',
+                        fontWeight: 600,
+                        color: 'var(--color-text-primary)',
+                        margin: 0,
+                    }}>
+                        Funding Tree
+                    </h3>
+                    <p style={{
+                        color: 'var(--color-text-muted)',
+                        fontSize: 'var(--text-sm)',
+                        textAlign: 'center',
+                        maxWidth: 400,
+                        margin: 0,
+                    }}>
+                        Trace where this wallet's funds came from and where they went.
+                        This requires additional API calls and may take a few seconds.
+                    </p>
+
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-3)',
+                        padding: 'var(--space-3) var(--space-4)',
+                        background: 'var(--color-bg-tertiary)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                    }}>
+                        <span style={{
+                            fontSize: 'var(--text-xs)',
+                            color: 'var(--color-text-secondary)',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap' as const,
+                        }}>
+                            Trace Depth
+                        </span>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                            {[1, 2, 3, 4, 5].map((d) => (
+                                <motion.button
+                                    key={d}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setTreeDepth(d)}
+                                    style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 'var(--radius-sm)',
+                                        border: treeDepth === d
+                                            ? '1px solid var(--color-accent)'
+                                            : '1px solid var(--color-border)',
+                                        background: treeDepth === d
+                                            ? 'var(--color-accent)'
+                                            : 'var(--color-bg-elevated)',
+                                        color: treeDepth === d
+                                            ? '#ffffff'
+                                            : 'var(--color-text-secondary)',
+                                        fontSize: 'var(--text-sm)',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    {d}
+                                </motion.button>
+                            ))}
+                        </div>
+                        <span style={{
+                            fontSize: 'var(--text-xs)',
+                            color: 'var(--color-text-muted)',
+                        }}>
+                            {treeDepth <= 2 ? 'Fast' : treeDepth <= 3 ? 'Moderate' : 'Deep'}
+                        </span>
+                    </div>
+                    {treeDepth > 3 && (
+                        <div style={{
+                            fontSize: 'var(--text-xs)',
+                            color: 'var(--color-warning-text)',
+                            background: 'var(--color-warning-bg)',
+                            padding: 'var(--space-2) var(--space-3)',
+                            borderRadius: 'var(--radius-sm)',
+                            maxWidth: 400,
+                            textAlign: 'center',
+                        }}>
+                            Higher depths use more API calls and may take longer or hit rate limits.
+                        </div>
+                    )}
+
+                    {treeError && (
+                        <div style={{
+                            padding: 'var(--space-3)',
+                            background: 'var(--color-danger-bg)',
+                            color: 'var(--color-danger-text)',
+                            borderRadius: 'var(--radius-md)',
+                            fontSize: 'var(--text-sm)',
+                            maxWidth: 400,
+                            width: '100%',
+                            textAlign: 'center',
+                        }}>
+                            {treeError}
+                        </div>
+                    )}
+
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="btn btn-primary"
+                        onClick={handleGenerateTree}
+                        disabled={treeLoading}
+                        style={{
+                            padding: 'var(--space-3) var(--space-6)',
+                            fontSize: 'var(--text-sm)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--space-2)',
+                        }}
+                    >
+                        {treeLoading ? (
+                            <>
+                                <div className="loading-spinner" style={{ width: 16, height: 16 }} />
+                                Generating...
+                            </>
+                        ) : (
+                            <>
+                                <HugeiconsIcon icon={WorkflowSquare01Icon} size={16} strokeWidth={2} />
+                                Generate Funding Tree
+                            </>
+                        )}
+                    </motion.button>
                 </div>
-            </div>
+            ) : (
+                <div>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 'var(--space-3)',
+                        marginBottom: 'var(--space-4)',
+                        padding: 'var(--space-3) var(--space-4)',
+                        background: 'var(--color-bg-tertiary)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Depth</span>
+                            <div style={{ display: 'flex', gap: 3 }}>
+                                {[1, 2, 3, 4, 5].map((d) => (
+                                    <motion.button
+                                        key={d}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setTreeDepth(d)}
+                                        style={{
+                                            width: 28,
+                                            height: 28,
+                                            borderRadius: 'var(--radius-sm)',
+                                            border: treeDepth === d
+                                                ? '1px solid var(--color-accent)'
+                                                : '1px solid var(--color-border)',
+                                            background: treeDepth === d
+                                                ? 'var(--color-accent)'
+                                                : 'var(--color-bg-elevated)',
+                                            color: treeDepth === d ? '#ffffff' : 'var(--color-text-secondary)',
+                                            fontSize: 'var(--text-xs)',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        {d}
+                                    </motion.button>
+                                ))}
+                            </div>
+                        </div>
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="btn btn-secondary btn-sm"
+                            onClick={handleGenerateTree}
+                            disabled={treeLoading}
+                            style={{ fontSize: 'var(--text-xs)', padding: 'var(--space-2) var(--space-3)' }}
+                        >
+                            {treeLoading ? (
+                                <>
+                                    <div className="loading-spinner" style={{ width: 12, height: 12 }} />
+                                    Regenerating...
+                                </>
+                            ) : (
+                                'Regenerate'
+                            )}
+                        </motion.button>
+                    </div>
+
+                    <h3 style={{ marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Funding Sources</h3>
+                    {displaySources && <FundingTree node={displaySources} direction="source" />}
+
+                    <h3 style={{ margin: 'var(--space-6) 0 var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>Funding Destinations</h3>
+                    {displayDestinations && <FundingTree node={displayDestinations} direction="destination" />}
+                </div>
+            )}
         </div>
     );
 }
@@ -595,25 +669,35 @@ function OverviewTab({
 function SuspiciousTab({ indicators }: { indicators: SuspiciousIndicator[] }) {
     if (indicators.length === 0) {
         return (
-            <div className="empty-state" style={{ padding: 'var(--space-8)' }}>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="empty-state"
+                style={{ padding: 'var(--space-8)' }}
+            >
                 <div className="empty-state-icon" style={{ color: 'var(--color-success-text)' }}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 6L9 17l-5-5" />
-                    </svg>
+                    <HugeiconsIcon icon={CheckmarkCircle02Icon} size={32} strokeWidth={2} />
                 </div>
                 <h3 className="empty-state-title">No Suspicious Activity Detected</h3>
                 <p className="empty-state-text">
                     This wallet shows no obvious signs of suspicious behavior.
                 </p>
-            </div>
+            </motion.div>
         );
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
+        >
             {indicators.map((indicator, i) => (
-                <div
+                <motion.div
                     key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
                     style={{
                         padding: 'var(--space-4)',
                         background:
@@ -667,9 +751,9 @@ function SuspiciousTab({ indicators }: { indicators: SuspiciousIndicator[] }) {
                             </ul>
                         </div>
                     )}
-                </div>
+                </motion.div>
             ))}
-        </div>
+        </motion.div>
     );
 }
 

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { 
   Wallet01Icon, 
   File02Icon, 
   GitCompareIcon, 
   Shield01Icon,
-  ArrowLeft01Icon
+  ArrowDown01Icon
 } from '@hugeicons/core-free-icons';
 import AuthPanel from '../AuthPanel';
 import HowToUse from '../HowToUse';
@@ -25,11 +26,8 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { useGasPayment } from '../../hooks/useGasPayment';
 import { PoHVerificationModal } from '../PoHVerificationModal';
 import { PoHGuard } from '../PoHGuard';
-// @ts-ignore - JSX modules without type declarations
 import { PaymentGate } from '../sybil/PaymentGate.jsx';
-// @ts-ignore - JSX modules without type declarations
 import { UpgradeModal } from '../sybil/UpgradeModal.jsx';
-// @ts-ignore - JS modules without type declarations
 import { SYBIL_TIERS } from '../../lib/sybilTier.js';
 
 interface SybilPageProps {
@@ -45,6 +43,19 @@ interface SybilPageProps {
 }
 
 type ViewMode = 'wallet' | 'contract' | 'compare' | 'sybil';
+
+const modeButtons = [
+  { id: 'wallet', label: 'Wallet', icon: Wallet01Icon },
+  { id: 'contract', label: 'Scanner', icon: File02Icon },
+  { id: 'compare', label: 'Compare', icon: GitCompareIcon },
+  { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
+];
+
+const pageVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.3 } },
+  exit: { opacity: 0, transition: { duration: 0.2 } }
+};
 
 const SybilPage: React.FC<SybilPageProps> = ({
   user,
@@ -63,7 +74,6 @@ const SybilPage: React.FC<SybilPageProps> = ({
   const [contractAddress, setContractAddress] = useState<string>('');
   const [showHowToUse, setShowHowToUse] = useState(false);
   
-  // Analysis state
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<{ message: string; hint?: string } | null>(null);
@@ -74,7 +84,6 @@ const SybilPage: React.FC<SybilPageProps> = ({
   const [currentAnalysisAddress, setCurrentAnalysisAddress] = useState<string>('');
   const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
 
-  // Pending analysis state for gas payment flow
   const [pendingAnalysis, setPendingAnalysis] = useState<{
     type: 'wallet' | 'compare' | 'contract' | null;
     txHash: string | null;
@@ -94,37 +103,30 @@ const SybilPage: React.FC<SybilPageProps> = ({
     handleGasPaymentSuccess,
   } = useGasPayment();
 
-  // PoH verification gate
   const [showPoHModal, setShowPoHModal] = useState(false);
   const isPoHVerified = profile?.isVerified || false;
 
-  // Handle prefill from history page navigation
   useEffect(() => {
     if (prefillAddress) {
       if (prefillChain) {
         setSelectedChain(prefillChain as ChainId);
       }
       
-      // Route to the correct sub-tab based on history item type
       const targetMode = (prefillType === 'sybil' || prefillType === 'contract' || prefillType === 'compare')
         ? prefillType as ViewMode
         : 'wallet';
       setViewMode(targetMode);
       
-      // Handle different prefill types
       if (prefillType === 'compare') {
-        // Split comma-separated addresses for compare type
         const addresses = prefillAddress.split(',').map(a => a.trim()).filter(a => a);
         setWalletAddresses(addresses);
       } else if (prefillType === 'contract') {
         setContractAddress(prefillAddress);
         setWalletAddresses(['']);
       } else {
-        // For 'sybil' and 'wallet' types
         setWalletAddresses([prefillAddress]);
       }
       
-      // Clear any previous results so user sees the input
       setWalletResult(null);
       setContractResult(null);
       setMultiWalletResult(null);
@@ -181,7 +183,6 @@ const SybilPage: React.FC<SybilPageProps> = ({
           setPagination(response.result.pagination);
         }
 
-        // Update history with analysis summary
         addToHistory(address, selectedChain, undefined, {
           riskScore: response.result.overallRiskScore,
           riskLevel: response.result.riskLevel,
@@ -192,7 +193,6 @@ const SybilPage: React.FC<SybilPageProps> = ({
           balanceInEth: response.result.wallet?.balanceInEth,
         });
 
-        // Track usage
         await recordUsage();
       }
     } catch (err: any) {
@@ -215,24 +215,13 @@ const SybilPage: React.FC<SybilPageProps> = ({
     const address = walletAddresses[0]?.trim();
     if (!address) return;
 
-    // For free tier, skip gas payment (temporarily disabled)
-    // if (currentTier === 'free') {
-    //   setPendingAnalysis({ type: 'wallet', txHash: null });
-    //   openGasModal();
-    //   return;
-    // }
-
-    // For all tiers, use the gate operation
     if (!gateOperation()) return;
-
     _executeAnalyzeWallet();
   };
 
   const handleGasPaymentSuccessWithAnalysis = (txHash: string) => {
-    // Close the gas modal
     closeGasModal();
 
-    // Proceed with the pending analysis
     if (pendingAnalysis.type === 'wallet') {
       _executeAnalyzeWallet(txHash);
     } else if (pendingAnalysis.type === 'compare') {
@@ -241,7 +230,6 @@ const SybilPage: React.FC<SybilPageProps> = ({
       _executeAnalyzeContract(txHash);
     }
 
-    // Clear pending analysis
     setPendingAnalysis({ type: null, txHash: null });
   };
 
@@ -282,7 +270,6 @@ const SybilPage: React.FC<SybilPageProps> = ({
       if (response.result) {
         setMultiWalletResult(response.result);
 
-        // Save to history
         const compareLabel = `Compare: ${addresses.length} wallets`;
         addToHistory(addresses.join(','), selectedChain, compareLabel, {
           riskScore: response.result.correlationScore,
@@ -290,7 +277,6 @@ const SybilPage: React.FC<SybilPageProps> = ({
           totalTransactions: response.result.directTransfers?.length,
         }, 'compare');
 
-        // Track usage
         await recordUsage();
       }
     } catch (err: any) {
@@ -313,16 +299,7 @@ const SybilPage: React.FC<SybilPageProps> = ({
     const addresses = walletAddresses.filter(a => a.trim());
     if (addresses.length < 2) return;
 
-    // For free tier, skip gas payment (temporarily disabled)
-    // if (currentTier === 'free') {
-    //   setPendingAnalysis({ type: 'compare', txHash: null });
-    //   openGasModal();
-    //   return;
-    // }
-
-    // For all tiers, use the gate operation
     if (!gateOperation()) return;
-
     _executeCompareWallets();
   };
 
@@ -337,13 +314,11 @@ const SybilPage: React.FC<SybilPageProps> = ({
       if (response.result) {
         setContractResult(response.result);
 
-        // Save to history
         const contractLabel = response.result.contractName ? `Contract: ${response.result.contractName}` : 'Contract Analysis';
         addToHistory(contractAddress.trim(), selectedChain, contractLabel, {
           totalTransactions: response.result.interactors?.length,
         }, 'contract');
 
-        // Track usage
         await recordUsage();
       }
     } catch (err: any) {
@@ -365,339 +340,401 @@ const SybilPage: React.FC<SybilPageProps> = ({
 
     if (!contractAddress.trim()) return;
 
-    // For free tier, skip gas payment (temporarily disabled)
-    // if (currentTier === 'free') {
-    //   setPendingAnalysis({ type: 'contract', txHash: null });
-    //   openGasModal();
-    //   return;
-    // }
-
-    // For all tiers, use the gate operation
     if (!gateOperation()) return;
-
     _executeAnalyzeContract();
   };
 
-  const modeButtons = [
-    { id: 'wallet', label: 'Wallet', icon: Wallet01Icon },
-    { id: 'contract', label: 'Scanner', icon: File02Icon },
-    { id: 'compare', label: 'Compare', icon: GitCompareIcon },
-    { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
-  ];
-
   return (
-    <div className="main-content">
-      <div style={{ 
-        padding: isMobile ? '0' : '24px', 
-        maxWidth: isMobile ? '100%' : 1200, 
-        margin: '0 auto'
-      }}>
-        {/* Header */}
-        <div style={{ 
-          marginBottom: isMobile ? 16 : 32, 
-          marginTop: isMobile ? 0 : 16,
-          padding: isMobile ? '16px 16px 0' : '0'
-        }}>
-          <h1 style={{ 
-            fontSize: isMobile ? '1.25rem' : '1.75rem', 
-            fontWeight: 700, 
-            color: 'var(--color-text-primary)', 
-            marginBottom: isMobile ? 8 : 8,
-            lineHeight: 1.2
-          }}>
-            Wallet & Contract Analysis
-          </h1>
-          <p style={{ 
-            color: 'var(--color-text-secondary)', 
-            fontSize: isMobile ? '0.8125rem' : '1rem',
-            lineHeight: 1.5
-          }}>
-            Analyze wallets, contracts, and detect Sybil patterns across multiple chains
-          </p>
-        </div>
+    <motion.div 
+      className="page-container page-animate-enter"
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+    >
+      {/* Page Header */}
+      <motion.div 
+        className="page-header-flat"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <h1>Wallet & Contract Analysis</h1>
+        <p>Analyze wallets, contracts, and detect Sybil patterns across multiple chains</p>
+      </motion.div>
 
-        {/* Auth Panel - Only show if not connected */}
+      {/* Auth Panel */}
+      <AnimatePresence>
         {!isWalletConnected && (
-          <div style={{ 
-            marginBottom: isMobile ? 16 : 24, 
-            textAlign: 'center', 
-            padding: isMobile ? '24px 16px' : 32,
-            background: 'var(--color-surface)',
-            borderBottom: isMobile ? '1px solid var(--color-border)' : 'none'
-          }}>
-            <HugeiconsIcon icon={Wallet01Icon} size={isMobile ? 40 : 48} strokeWidth={1.5} color="var(--color-accent)" />
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="section-flat"
+            style={{ textAlign: 'center', padding: isMobile ? '32px 16px' : '48px 32px' }}
+          >
+            <HugeiconsIcon icon={Wallet01Icon} size={48} strokeWidth={1.5} color="var(--color-accent)" />
             <h3 style={{ 
-              fontSize: isMobile ? '1rem' : '1.25rem', 
+              fontSize: '1.25rem', 
               fontWeight: 600, 
               color: 'var(--color-text-primary)', 
-              marginTop: isMobile ? 16 : 16, 
-              marginBottom: isMobile ? 8 : 8 
+              marginTop: 20, 
+              marginBottom: 8 
             }}>
               Connect Your Wallet
             </h3>
             <p style={{ 
               color: 'var(--color-text-secondary)', 
-              marginBottom: isMobile ? 20 : 24,
-              fontSize: isMobile ? '0.8125rem' : '1rem',
-              lineHeight: 1.5,
-              maxWidth: 320,
-              margin: '0 auto',
-              padding: isMobile ? '0 0 20px' : '0 0 24px'
+              marginBottom: 24,
+              maxWidth: 360,
+              margin: '0 auto 24px',
+              lineHeight: 1.6,
             }}>
               Connect your wallet to analyze addresses, contracts, and detect Sybil patterns
             </p>
-            <button className="btn btn-primary" onClick={onConnectWallet} style={{ width: isMobile ? '100%' : 'auto' }}>
-              <HugeiconsIcon icon={Wallet01Icon} size={16} strokeWidth={1.5} />
-              Connect Wallet
-            </button>
-          </div>
-        )}
-
-        {/* Mode Selector - Full Width Edge to Edge */}
-        <div style={{
-          display: 'flex',
-          borderBottom: '1px solid var(--color-border)',
-          background: 'var(--color-bg)',
-          marginBottom: isMobile ? 16 : 20
-        }}>
-          {modeButtons.map((mode) => (
-            <button
-              key={mode.id}
-              onClick={() => setViewMode(mode.id as ViewMode)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: isMobile ? 4 : 8,
-                padding: isMobile ? '12px 4px' : '16px 12px',
-                background: 'transparent',
-                border: 'none',
-                borderBottom: viewMode === mode.id ? '2px solid var(--color-accent)' : '2px solid transparent',
-                color: viewMode === mode.id ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-                fontSize: isMobile ? '0.6875rem' : '0.875rem',
-                fontWeight: viewMode === mode.id ? 600 : 400,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
+            <motion.button 
+              className="btn-flat btn-flat-primary" 
+              onClick={onConnectWallet}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <HugeiconsIcon icon={mode.icon} size={isMobile ? 14 : 18} strokeWidth={1.5} />
-              {!isMobile && <span>{mode.label}</span>}
-            </button>
-          ))}
-        </div>
+              <HugeiconsIcon icon={Wallet01Icon} size={18} strokeWidth={2} />
+              Connect Wallet
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        {/* How To Use Toggle */}
-        <button
+      {/* Tab Bar */}
+      <motion.div 
+        className="tab-bar-flat"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        {modeButtons.map((mode, index) => (
+          <motion.button
+            key={mode.id}
+            className={`tab-item ${viewMode === mode.id ? 'active' : ''}`}
+            onClick={() => setViewMode(mode.id as ViewMode)}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            whileHover={{ backgroundColor: 'var(--color-bg-hover)' }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <HugeiconsIcon icon={mode.icon} size={20} strokeWidth={1.5} />
+            <span>{mode.label}</span>
+          </motion.button>
+        ))}
+      </motion.div>
+
+      {/* Guide Toggle */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        style={{ 
+          padding: isMobile ? '12px 16px' : '12px 32px',
+          borderBottom: '1px solid var(--color-border)',
+        }}
+      >
+        <motion.button
           onClick={() => setShowHowToUse(!showHowToUse)}
+          whileHover={{ backgroundColor: 'var(--color-bg-hover)' }}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            padding: isMobile ? '8px 16px' : '8px 16px',
+            gap: 8,
+            padding: '8px 16px',
             background: 'transparent',
-            border: 'none',
-            borderBottom: '1px solid var(--color-border)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 8,
             color: 'var(--color-text-secondary)',
             cursor: 'pointer',
-            marginBottom: isMobile ? 16 : 16,
-            marginTop: isMobile ? 0 : 0,
-            fontSize: isMobile ? '0.75rem' : '0.875rem',
-            width: isMobile ? '100%' : 'auto',
-            justifyContent: isMobile ? 'center' : 'flex-start'
+            fontSize: '0.875rem',
+            fontWeight: 500,
           }}
         >
           {showHowToUse ? 'Hide' : 'Show'} Guide
-          <HugeiconsIcon 
-            icon={ArrowLeft01Icon} 
-            size={14} 
-            strokeWidth={1.5}
-            style={{ transform: showHowToUse ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 0.2s' }}
+          <motion.div
+            animate={{ rotate: showHowToUse ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={2} />
+          </motion.div>
+        </motion.button>
+      </motion.div>
+
+      <AnimatePresence>
+        {showHowToUse && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <HowToUse isOpen={true} onToggle={() => setShowHowToUse(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Input Section */}
+      <motion.div 
+        className="section-flat"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <div style={{ marginBottom: 24 }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            color: 'var(--color-text-muted)',
+            marginBottom: 10,
+          }}>
+            Select Chain
+          </label>
+          <ChainSelector
+            selectedChain={selectedChain}
+            onSelect={handleChainSelect}
+            onUpgrade={() => {}}
           />
-        </button>
+        </div>
 
-        {showHowToUse && <HowToUse isOpen={true} onToggle={() => setShowHowToUse(false)} />}
-
-        {/* Analysis Panel - Edge to Edge */}
-        <div style={{ 
-          padding: isMobile ? '0 16px 16px' : '24px',
-          background: isMobile ? 'transparent' : 'var(--color-surface)',
-          borderRadius: isMobile ? 0 : 12,
-          marginBottom: isMobile ? 16 : 24
-        }}>
-          {/* Chain Selector */}
-          <div style={{ marginBottom: isMobile ? 20 : 20 }}>
-            <div style={{ 
-              fontSize: isMobile ? '10px' : '12px', 
-              fontWeight: 600, 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.5px',
-              color: 'var(--color-text-muted)', 
-              marginBottom: isMobile ? 8 : 8 
-            }}>Chain</div>
-            <ChainSelector
-              selectedChain={selectedChain}
-              onSelect={handleChainSelect}
-              onUpgrade={() => {}}
-            />
-          </div>
-
-          {/* Input Fields based on mode */}
+        <AnimatePresence mode="wait">
           {viewMode === 'wallet' && (
-            <div style={{ marginBottom: isMobile ? 20 : 20 }}>
-              <div style={{ 
-                fontSize: isMobile ? '10px' : '12px', 
-                fontWeight: 600, 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.5px',
-                color: 'var(--color-text-muted)', 
-                marginBottom: isMobile ? 8 : 8 
-              }}>Wallet Address</div>
+            <motion.div
+              key="wallet-input"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <label style={{
+                display: 'block',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--color-text-muted)',
+                marginBottom: 10,
+              }}>
+                Wallet Address
+              </label>
               <WalletInput
                 value={walletAddresses[0] || ''}
                 onChange={(value) => handleWalletChange(0, value)}
                 placeholder="Enter wallet address (0x...)"
               />
-            </div>
+            </motion.div>
           )}
 
           {viewMode === 'contract' && (
-            <ContractScanner prefilledAddress={contractAddress} />
+            <motion.div
+              key="contract-input"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ContractScanner prefilledAddress={contractAddress} />
+            </motion.div>
           )}
 
           {viewMode === 'compare' && (
-            <div style={{ marginBottom: isMobile ? 20 : 20 }}>
-              <div style={{ 
-                fontSize: isMobile ? '10px' : '12px', 
-                fontWeight: 600, 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.5px',
-                color: 'var(--color-text-muted)', 
-                marginBottom: isMobile ? 8 : 8 
-              }}>Wallet Addresses</div>
+            <motion.div
+              key="compare-input"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <label style={{
+                display: 'block',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: 'var(--color-text-muted)',
+                marginBottom: 10,
+              }}>
+                Wallet Addresses
+              </label>
               {walletAddresses.map((address, index) => (
-                <div key={index} style={{ marginBottom: isMobile ? 10 : 10 }}>
+                <motion.div 
+                  key={index} 
+                  style={{ marginBottom: 12 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
                   <WalletInput
                     value={address}
                     onChange={(value) => handleWalletChange(index, value)}
                     placeholder={`Wallet #${index + 1} (0x...)`}
                     onRemove={walletAddresses.length > 1 ? () => handleRemoveWallet(index) : undefined}
                   />
-                </div>
+                </motion.div>
               ))}
-              <button 
-                className="btn btn-secondary" 
+              <motion.button 
+                className="btn-flat btn-flat-secondary"
                 onClick={handleAddWallet}
-                style={{ 
-                  marginTop: isMobile ? 10 : 10,
-                  width: isMobile ? '100%' : 'auto',
-                  minHeight: isMobile ? 40 : 36,
-                  fontSize: isMobile ? '0.8125rem' : '0.875rem'
-                }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                style={{ marginTop: 8 }}
               >
                 + Add Wallet
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           )}
 
           {viewMode === 'sybil' && (
-            <PoHGuard>
-              <SybilDetector />
-            </PoHGuard>
+            <motion.div
+              key="sybil-input"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PoHGuard>
+                <SybilDetector />
+              </PoHGuard>
+            </motion.div>
           )}
+        </AnimatePresence>
 
-          {/* Analyze Button - Only for Wallet and Compare tabs */}
-          {(viewMode === 'wallet' || viewMode === 'compare') && (
-            <button
-              className="btn btn-primary"
-              onClick={
-                viewMode === 'wallet' ? handleAnalyzeWallet : handleCompareWallets
-              }
+        {/* Analyze Buttons */}
+        {(viewMode === 'wallet' || viewMode === 'compare') && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            style={{ marginTop: 24 }}
+          >
+            <motion.button
+              className="btn-flat btn-flat-primary"
+              onClick={viewMode === 'wallet' ? handleAnalyzeWallet : handleCompareWallets}
               disabled={loading}
+              whileHover={{ scale: loading ? 1 : 1.02 }}
+              whileTap={{ scale: loading ? 1 : 0.98 }}
               style={{ 
-                width: isMobile ? '100%' : 'auto',
-                minHeight: isMobile ? 44 : 40,
-                marginTop: isMobile ? 8 : 0,
-                fontSize: isMobile ? '0.875rem' : '1rem'
+                minWidth: 160,
+                opacity: loading ? 0.7 : 1,
               }}
             >
               {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div className="loading-spinner" style={{ width: 14, height: 14 }} />
+                <>
+                  <div className="loading-spinner" style={{ width: 16, height: 16 }} />
                   Analyzing...
-                </span>
+                </>
               ) : (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <HugeiconsIcon icon={viewMode === 'wallet' ? Wallet01Icon : GitCompareIcon} size={16} strokeWidth={1.5} />
+                <>
+                  <HugeiconsIcon icon={viewMode === 'wallet' ? Wallet01Icon : GitCompareIcon} size={18} strokeWidth={2} />
                   {viewMode === 'wallet' ? 'Analyze Wallet' : 'Compare Wallets'}
-                </span>
+                </>
               )}
-            </button>
-          )}
+            </motion.button>
+          </motion.div>
+        )}
 
-          {/* Error Display */}
+        {/* Error Display */}
+        <AnimatePresence>
           {error && (
-            <div style={{ 
-              marginTop: 16, 
-              padding: 16, 
-              background: 'var(--color-bg-elevated)', 
-              border: '1px solid var(--color-danger, #ef4444)',
-              color: 'var(--color-text-primary)', 
-              borderRadius: 12,
-              fontSize: '0.875rem'
-            }}>
-              <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--color-danger, #ef4444)' }}>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              style={{ 
+                marginTop: 24, 
+                padding: 20, 
+                background: 'var(--color-bg-elevated)', 
+                border: '1px solid var(--color-danger)',
+                borderRadius: 12,
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 8, color: 'var(--color-danger)' }}>
                 Analysis Error
               </div>
-              <div style={{ color: 'var(--color-text-secondary)', marginBottom: error.hint ? 8 : 0 }}>
+              <div style={{ color: 'var(--color-text-secondary)', marginBottom: error.hint ? 12 : 0 }}>
                 {error.message}
               </div>
               {error.hint && (
                 <div style={{
-                  padding: '8px 12px',
-                  background: 'var(--color-bg-tertiary)',
+                  padding: '12px 16px',
+                  background: 'var(--color-bg)',
                   borderRadius: 8,
-                  fontSize: '0.8125rem',
+                  fontSize: '0.875rem',
                   color: 'var(--color-text-muted)',
-                  borderLeft: '2px solid var(--color-text-muted)',
+                  borderLeft: '3px solid var(--color-text-muted)',
                 }}>
                   {error.hint}
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
+      </motion.div>
 
-        {/* Recent History */}
-        {viewMode === 'wallet' && !walletResult && !loading && (
+      {/* Recent History */}
+      {viewMode === 'wallet' && !walletResult && !loading && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
           <SearchHistory
             onSelect={(addr, chain) => {
               setWalletAddresses([addr]);
               if (chain) setSelectedChain(chain as ChainId);
             }}
           />
-        )}
+        </motion.div>
+      )}
 
-        {/* Results */}
+      {/* Results */}
+      <AnimatePresence mode="wait">
         {viewMode === 'wallet' && walletResult && (
-          <AnalysisView
-            result={walletResult}
-            pagination={pagination}
-            loadingMore={loadingMore}
-            onLoadMore={handleLoadMoreTransactions}
-          />
+          <motion.div
+            key="wallet-result"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <AnalysisView
+              result={walletResult}
+              pagination={pagination}
+              loadingMore={loadingMore}
+              onLoadMore={handleLoadMoreTransactions}
+            />
+          </motion.div>
         )}
 
         {viewMode === 'contract' && contractResult && (
-          <ContractAnalysisView result={contractResult} />
+          <motion.div
+            key="contract-result"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ContractAnalysisView result={contractResult} />
+          </motion.div>
         )}
 
         {viewMode === 'compare' && multiWalletResult && (
-          <MultiWalletView result={multiWalletResult} chain={selectedChain} />
+          <motion.div
+            key="compare-result"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <MultiWalletView result={multiWalletResult} chain={selectedChain} />
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
-      {/* Gas Payment Modal */}
+      {/* Modals */}
       <PaymentGate
         isOpen={showGasPaymentModal}
         onClose={closeGasModal}
@@ -705,7 +742,6 @@ const SybilPage: React.FC<SybilPageProps> = ({
         onCancel={closeGasModal}
       />
 
-      {/* Upgrade Modal */}
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={closeUpgradeModal}
@@ -717,13 +753,12 @@ const SybilPage: React.FC<SybilPageProps> = ({
         }}
       />
 
-      {/* PoH Verification Modal */}
       <PoHVerificationModal
         isOpen={showPoHModal}
         onClose={() => setShowPoHModal(false)}
         walletAddress={walletAddress}
       />
-    </div>
+    </motion.div>
   );
 };
 

@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Clock01Icon,
+  Delete01Icon,
+  Wallet01Icon,
+  Cancel01Icon,
+} from '@hugeicons/core-free-icons';
 import { HistoryItem, getHistory, removeFromHistory, clearHistory, syncHistoryWithServer } from '../utils/history';
 import { getLabel } from '../utils/addressBook';
 import { CHAINS, ChainId } from '@fundtracer/core';
@@ -22,9 +30,9 @@ const CHAIN_COLORS: Record<string, string> = {
 function getRiskColor(level?: string): string {
   if (!level) return 'var(--color-text-muted)';
   switch (level.toLowerCase()) {
-    case 'low': return 'var(--color-success-text)';
-    case 'medium': return 'var(--color-warning-text)';
-    case 'high': return 'var(--color-danger-text)';
+    case 'low': return 'var(--color-positive)';
+    case 'medium': return 'var(--color-warning)';
+    case 'high': return 'var(--color-danger)';
     case 'critical': return '#ff4444';
     default: return 'var(--color-text-muted)';
   }
@@ -33,9 +41,9 @@ function getRiskColor(level?: string): string {
 function getRiskBg(level?: string): string {
   if (!level) return 'var(--color-bg-elevated)';
   switch (level.toLowerCase()) {
-    case 'low': return 'var(--color-success-bg)';
-    case 'medium': return 'var(--color-warning-bg)';
-    case 'high': return 'var(--color-danger-bg)';
+    case 'low': return 'rgba(16, 185, 129, 0.12)';
+    case 'medium': return 'rgba(245, 158, 11, 0.12)';
+    case 'high': return 'rgba(239, 68, 68, 0.12)';
     case 'critical': return 'rgba(255, 68, 68, 0.15)';
     default: return 'var(--color-bg-elevated)';
   }
@@ -98,7 +106,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
     };
   }, [refreshHistory]);
 
-  // Sync with server on mount when authenticated
   useEffect(() => {
     if (isAuthenticated && !hasSynced.current) {
       hasSynced.current = true;
@@ -116,7 +123,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
   const handleDelete = (e: React.MouseEvent, address: string) => {
     e.stopPropagation();
     removeFromHistory(address);
-    // State updates via historyChanged event
   };
 
   const handleClearAll = () => {
@@ -139,358 +145,267 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
     return CHAIN_COLORS[chainId || ''] || 'var(--color-text-muted)';
   };
 
-  // Not authenticated — show connect wallet prompt
   if (!isAuthenticated) {
     return (
-      <div style={{ padding: isMobile ? 16 : 24, maxWidth: isMobile ? 'none' : 900, margin: '0 auto' }}>
-        <div style={{ marginBottom: isMobile ? 20 : 32, marginTop: isMobile ? 8 : 16 }}>
-          <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>
-            Scan History
-          </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: isMobile ? '0.875rem' : '1rem' }}>
-            Your recent wallet analysis scans
-          </p>
+      <motion.div 
+        className="page-container page-animate-enter"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <div className="page-header-flat">
+          <h1>Scan History</h1>
+          <p>Your recent wallet analysis scans</p>
         </div>
 
-        <div style={{
-          textAlign: 'center',
-          padding: isMobile ? '48px 24px' : '80px 48px',
-          background: 'var(--color-bg-tertiary)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--color-surface-border)',
-        }}>
+        <motion.div 
+          className="section-flat"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          style={{ textAlign: 'center', padding: isMobile ? '48px 16px' : '80px 32px' }}
+        >
           <div style={{
-            width: 56,
-            height: 56,
+            width: 64,
+            height: 64,
             borderRadius: '50%',
             background: 'var(--color-bg-elevated)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 16px',
-            fontSize: 24,
-            color: 'var(--color-text-muted)',
+            margin: '0 auto 20px',
           }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="6" width="20" height="12" rx="2" />
-              <path d="M16 12h.01" />
-              <path d="M2 10h20" />
-            </svg>
+            <HugeiconsIcon icon={Wallet01Icon} size={28} strokeWidth={1.5} color="var(--color-text-muted)" />
           </div>
           <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
             Connect Your Wallet
           </h3>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', maxWidth: 360, margin: '0 auto 24px' }}>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9375rem', maxWidth: 360, margin: '0 auto 24px' }}>
             Connect your wallet to view and track your scan history across sessions.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <WalletButton />
-          </div>
-        </div>
-      </div>
+          <WalletButton />
+        </motion.div>
+      </motion.div>
     );
   }
 
-  // Empty state
   if (history.length === 0) {
     return (
-      <div style={{ padding: isMobile ? 16 : 24, maxWidth: isMobile ? 'none' : 900, margin: '0 auto' }}>
-        <div style={{ marginBottom: isMobile ? 20 : 32, marginTop: isMobile ? 8 : 16 }}>
-          <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>
-            Scan History
-          </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: isMobile ? '0.875rem' : '1rem' }}>
-            Your recent wallet analysis scans
-          </p>
+      <motion.div 
+        className="page-container page-animate-enter"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <div className="page-header-flat">
+          <h1>Scan History</h1>
+          <p>Your recent wallet analysis scans</p>
         </div>
 
-        <div style={{
-          textAlign: 'center',
-          padding: isMobile ? '48px 24px' : '80px 48px',
-          background: 'var(--color-bg-tertiary)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--color-surface-border)',
-        }}>
+        <motion.div 
+          className="section-flat"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          style={{ textAlign: 'center', padding: isMobile ? '48px 16px' : '80px 32px' }}
+        >
           <div style={{
-            width: 56,
-            height: 56,
+            width: 64,
+            height: 64,
             borderRadius: '50%',
             background: 'var(--color-bg-elevated)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 16px',
-            fontSize: 24,
-            color: 'var(--color-text-muted)',
+            margin: '0 auto 20px',
           }}>
-            {/* Clock icon as text */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
+            <HugeiconsIcon icon={Clock01Icon} size={28} strokeWidth={1.5} color="var(--color-text-muted)" />
           </div>
           <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
             No scan history yet
           </h3>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', maxWidth: 360, margin: '0 auto' }}>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9375rem', maxWidth: 360, margin: '0 auto' }}>
             Analyze a wallet address on the Sybil tab to start building your scan history.
           </p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     );
   }
 
   return (
-    <div style={{ padding: isMobile ? 16 : 24, maxWidth: isMobile ? 'none' : 900, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: isMobile ? 'flex-start' : 'center',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 12 : 0,
-        marginBottom: isMobile ? 20 : 32,
-        marginTop: isMobile ? 8 : 16,
-      }}>
+    <motion.div 
+      className="page-container page-animate-enter"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+    >
+      <motion.div 
+        className="page-header-flat"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: isMobile ? '1.25rem' : '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 4 }}>
-            Scan History
-          </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: isMobile ? '0.8125rem' : '0.9375rem' }}>
+          <h1>Scan History</h1>
+          <p>
             {history.length} scan{history.length !== 1 ? 's' : ''} recorded
             {syncing && (
-              <span style={{ marginLeft: 8, fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+              <span style={{ marginLeft: 8, fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
                 Syncing...
               </span>
             )}
           </p>
         </div>
-        <button
+        <motion.button
           onClick={handleClearAll}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           style={{
             padding: '8px 16px',
-            borderRadius: 'var(--radius-md)',
-            border: `1px solid ${confirmClear ? 'var(--color-danger-text)' : 'var(--color-surface-border)'}`,
-            background: confirmClear ? 'var(--color-danger-bg)' : 'transparent',
-            color: confirmClear ? 'var(--color-danger-text)' : 'var(--color-text-secondary)',
-            fontSize: '0.8125rem',
+            borderRadius: 8,
+            border: `1px solid ${confirmClear ? 'var(--color-danger)' : 'var(--color-border)'}`,
+            background: confirmClear ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+            color: confirmClear ? 'var(--color-danger)' : 'var(--color-text-secondary)',
+            fontSize: '0.875rem',
             fontWeight: 500,
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap' as const,
           }}
         >
           {confirmClear ? 'Confirm Clear All' : 'Clear All'}
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
-      {/* History List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 10 }}>
-        {history.map((item) => {
-          const label = getLabel(item.address);
-          const hasSummary = item.riskScore !== undefined;
+      <div className="card-list-flat">
+        <AnimatePresence>
+          {history.map((item, index) => {
+            const label = getLabel(item.address);
+            const hasSummary = item.riskScore !== undefined;
+            const typeInfo = getTypeLabel(item.type);
 
-          return (
-            <div
-              key={`${item.address}-${item.timestamp}`}
-              onClick={() => onSelectScan(item.address, item.chain || 'ethereum', item.type)}
-              className="animate-fade-in"
-              style={{
-                padding: isMobile ? 14 : 18,
-                background: 'var(--color-bg-tertiary)',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--color-surface-border)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--color-accent-highlight)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--color-surface-border)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              {/* Top Row: Address + Risk + Delete */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                marginBottom: hasSummary ? 12 : 0,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-                  {/* Chain Indicator Dot */}
+            return (
+              <motion.div
+                key={`${item.address}-${item.timestamp}`}
+                className="card-list-item"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ delay: index * 0.03 }}
+                onClick={() => onSelectScan(item.address, item.chain || 'ethereum', item.type)}
+                whileHover={{ backgroundColor: 'var(--color-bg-hover)' }}
+              >
+                <div className="card-list-item-icon">
                   <div style={{
-                    width: 8,
-                    height: 8,
+                    width: 10,
+                    height: 10,
                     borderRadius: '50%',
                     background: getChainColor(item.chain),
-                    flexShrink: 0,
-                    boxShadow: `0 0 6px ${getChainColor(item.chain)}40`,
+                    boxShadow: `0 0 8px ${getChainColor(item.chain)}40`,
                   }} />
-
-                  {/* Address + Label */}
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {label && (
-                        <span style={{
-                          fontWeight: 600,
-                          fontSize: 'var(--text-sm)',
-                          color: 'var(--color-text-primary)',
-                        }}>
-                          {label}
-                        </span>
-                      )}
-                      <span style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: label ? 'var(--text-xs)' : 'var(--text-sm)',
-                        color: label ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap' as const,
-                      }}>
-                        {item.type === 'compare'
-                          ? (isMobile
-                            ? `${item.address.split(',').length} wallets`
-                            : item.address.split(',').map(a => `${a.slice(0, 6)}...${a.slice(-4)}`).join(', '))
-                          : (isMobile
-                            ? `${item.address.slice(0, 8)}...${item.address.slice(-6)}`
-                            : item.address)
-                        }
-                      </span>
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      marginTop: 3,
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--color-text-muted)',
-                    }}>
-                      <span>{getChainName(item.chain)}</span>
-                      <span style={{ opacity: 0.4 }}>|</span>
-                      <span>{formatRelativeTime(item.timestamp)}</span>
-                      {item.type && item.type !== 'wallet' && (() => {
-                        const typeInfo = getTypeLabel(item.type);
-                        return (
-                          <>
-                            <span style={{ opacity: 0.4 }}>|</span>
-                            <span style={{
-                              padding: '1px 6px',
-                              borderRadius: 4,
-                              background: typeInfo.bg,
-                              color: typeInfo.color,
-                              fontSize: '0.6875rem',
-                              fontWeight: 600,
-                              letterSpacing: '0.02em',
-                            }}>
-                              {typeInfo.label}
-                            </span>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
                 </div>
 
-                {/* Right side: Risk Badge + Delete */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <div className="card-list-item-content">
+                  <div className="card-list-item-title">
+                    {label || (isMobile 
+                      ? `${item.address.slice(0, 8)}...${item.address.slice(-6)}`
+                      : item.type === 'compare'
+                        ? `${item.address.split(',').length} wallets`
+                        : item.address
+                    )}
+                  </div>
+                  <div className="card-list-item-subtitle" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span>{getChainName(item.chain)}</span>
+                    <span style={{ opacity: 0.4 }}>•</span>
+                    <span>{formatRelativeTime(item.timestamp)}</span>
+                    {item.type && item.type !== 'wallet' && (
+                      <>
+                        <span style={{ opacity: 0.4 }}>•</span>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                          background: typeInfo.bg,
+                          color: typeInfo.color,
+                          fontSize: '0.6875rem',
+                          fontWeight: 600,
+                        }}>
+                          {typeInfo.label}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {hasSummary && (
+                    <div style={{
+                      display: 'flex',
+                      gap: isMobile ? 12 : 24,
+                      marginTop: 12,
+                      flexWrap: 'wrap',
+                    }}>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>TXs: </span>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          {item.totalTransactions?.toLocaleString() ?? '--'}
+                        </span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Sent: </span>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          {formatEth(item.totalValueSentEth)} ETH
+                        </span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Recv: </span>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          {formatEth(item.totalValueReceivedEth)} ETH
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="card-list-item-meta">
                   {hasSummary && item.riskLevel && (
                     <span style={{
-                      padding: '3px 10px',
-                      borderRadius: 'var(--radius-sm)',
+                      padding: '4px 12px',
+                      borderRadius: 6,
                       background: getRiskBg(item.riskLevel),
                       color: getRiskColor(item.riskLevel),
-                      fontSize: 'var(--text-xs)',
+                      fontSize: '0.75rem',
                       fontWeight: 600,
+                      textTransform: 'uppercase',
                       letterSpacing: '0.03em',
-                      textTransform: 'uppercase' as const,
-                      whiteSpace: 'nowrap' as const,
                     }}>
                       {item.riskLevel} {item.riskScore !== undefined ? `(${item.riskScore})` : ''}
                     </span>
                   )}
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={(e) => handleDelete(e, item.address)}
                     style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
                       color: 'var(--color-text-muted)',
                       background: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      flexShrink: 0,
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--color-danger-text)';
-                      e.currentTarget.style.background = 'var(--color-danger-bg)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--color-text-muted)';
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                    title="Remove from history"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
+                    <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={2} />
+                  </motion.button>
                 </div>
-              </div>
-
-              {/* Summary Stats Row */}
-              {hasSummary && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-                  gap: isMobile ? 8 : 12,
-                  padding: '10px 12px',
-                  background: 'var(--color-bg-secondary)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--color-surface-border)',
-                }}>
-                  <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 2 }}>Transactions</div>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {item.totalTransactions?.toLocaleString() ?? '--'}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 2 }}>Sent</div>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {formatEth(item.totalValueSentEth)} ETH
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 2 }}>Received</div>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {formatEth(item.totalValueReceivedEth)} ETH
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginBottom: 2 }}>Active</div>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {item.activityPeriodDays !== undefined ? `${item.activityPeriodDays}d` : '--'}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -13,6 +13,9 @@ import SybilPage from './components/CoinGecko/SybilPage';
 // Import Landing Page
 import LandingPage from './pages/LandingPage';
 
+// Import AppLayout for desktop sidebar
+import { AppLayout } from './components/common/AppLayout';
+
 // Static Pages
 import { AboutPage } from './pages/AboutPage';
 import { FeaturesPage } from './pages/FeaturesPage';
@@ -297,16 +300,8 @@ function App() {
     );
   };
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
-      {/* Show TopNav except on landing page (home tab) */}
-      {activeTab !== 'home' && (
-        <TopNav
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as TabType)}
-        />
-      )}
-
+  const mainContent = (
+    <>
       {renderMainContent()}
 
       {/* Footer - Hidden on landing page and sybil page */}
@@ -331,6 +326,27 @@ function App() {
             Privacy Policy
           </a>
         </footer>
+      )}
+    </>
+  );
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
+      {/* Show TopNav except on landing page (home tab) */}
+      {activeTab !== 'home' && (
+        <TopNav
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as TabType)}
+        />
+      )}
+
+      {/* Wrap content in AppLayout for desktop sidebar (not on landing page) */}
+      {activeTab !== 'home' ? (
+        <AppLayout activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as TabType)}>
+          {mainContent}
+        </AppLayout>
+      ) : (
+        mainContent
       )}
 
       {/* Modals */}
