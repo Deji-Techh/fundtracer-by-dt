@@ -199,29 +199,33 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                         className={`tab-flat ${activeTab === 'overview' ? 'active' : ''}`}
                         onClick={() => setActiveTab('overview')}
                     >
-                        <HugeiconsIcon icon={InformationDiamondIcon} size={16} strokeWidth={2} />
+                        <HugeiconsIcon icon={InformationDiamondIcon} size={18} strokeWidth={2} />
                         <span>Overview</span>
                     </button>
                     <button
                         className={`tab-flat ${activeTab === 'funding' ? 'active' : ''}`}
                         onClick={() => setActiveTab('funding')}
                     >
-                        <HugeiconsIcon icon={WorkflowSquare01Icon} size={16} strokeWidth={2} />
+                        <HugeiconsIcon icon={WorkflowSquare01Icon} size={18} strokeWidth={2} />
                         <span>Funding Tree</span>
                     </button>
                     <button
                         className={`tab-flat ${activeTab === 'transactions' ? 'active' : ''}`}
                         onClick={() => setActiveTab('transactions')}
                     >
-                        <HugeiconsIcon icon={ArrowAllDirectionIcon} size={16} strokeWidth={2} />
-                        <span>Transactions ({result.transactions.length})</span>
+                        <HugeiconsIcon icon={ArrowAllDirectionIcon} size={18} strokeWidth={2} />
+                        <span>Transactions</span>
+                        <span className="tab-badge">{result.transactions.length}</span>
                     </button>
                     <button
                         className={`tab-flat ${activeTab === 'suspicious' ? 'active' : ''}`}
                         onClick={() => setActiveTab('suspicious')}
                     >
-                        <HugeiconsIcon icon={AlertDiamondIcon} size={16} strokeWidth={2} />
-                        <span>Suspicious ({result.suspiciousIndicators.length})</span>
+                        <HugeiconsIcon icon={AlertDiamondIcon} size={18} strokeWidth={2} />
+                        <span>Suspicious</span>
+                        {result.suspiciousIndicators.length > 0 && (
+                            <span className="tab-badge">{result.suspiciousIndicators.length}</span>
+                        )}
                     </button>
                 </div>
 
@@ -522,29 +526,26 @@ function OverviewTab({
     isMobile: boolean;
 }) {
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${isMobile ? '100%' : '280px'}, 1fr))`, gap: 'var(--space-6)' }}>
+        <div className="overview-grid">
             {/* Top Funding Sources */}
-            <div>
-                <h4 style={{ marginBottom: 'var(--space-3)', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div className="overview-section">
+                <h4 className="overview-section-title">
+                    <HugeiconsIcon icon={ArrowDown01Icon} size={16} strokeWidth={2} style={{ marginRight: 8, verticalAlign: 'middle' }} />
                     Top Funding Sources
                 </h4>
                 {result.summary.topFundingSources.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                        {result.summary.topFundingSources.map((source) => (
-                            <div
+                        {result.summary.topFundingSources.map((source, i) => (
+                            <motion.div
                                 key={source.address}
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    padding: 'var(--space-3)',
-                                    background: 'var(--color-bg-tertiary)',
-                                    borderRadius: 'var(--radius-sm)',
-                                    border: '1px solid var(--color-surface-border)',
-                                }}
+                                className="overview-item"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.05 }}
                             >
                                 <span className="tx-address">{formatAddress(source.address)}</span>
                                 <span className="tx-value incoming">+{source.valueEth.toFixed(4)} ETH</span>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 ) : (
@@ -553,27 +554,24 @@ function OverviewTab({
             </div>
 
             {/* Top Destinations */}
-            <div>
-                <h4 style={{ marginBottom: 'var(--space-3)', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div className="overview-section">
+                <h4 className="overview-section-title">
+                    <HugeiconsIcon icon={ArrowUp01Icon} size={16} strokeWidth={2} style={{ marginRight: 8, verticalAlign: 'middle' }} />
                     Top Destinations
                 </h4>
                 {result.summary.topFundingDestinations.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                        {result.summary.topFundingDestinations.map((dest) => (
-                            <div
+                        {result.summary.topFundingDestinations.map((dest, i) => (
+                            <motion.div
                                 key={dest.address}
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    padding: 'var(--space-3)',
-                                    background: 'var(--color-bg-tertiary)',
-                                    borderRadius: 'var(--radius-sm)',
-                                    border: '1px solid var(--color-surface-border)',
-                                }}
+                                className="overview-item"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.05 }}
                             >
                                 <span className="tx-address">{formatAddress(dest.address)}</span>
                                 <span className="tx-value outgoing">-{dest.valueEth.toFixed(4)} ETH</span>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 ) : (
@@ -582,23 +580,18 @@ function OverviewTab({
             </div>
 
             {/* Projects Interacted */}
-            <div>
-                <h4 style={{ marginBottom: 'var(--space-3)', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div className="overview-section">
+                <h4 className="overview-section-title">
+                    <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={2} style={{ marginRight: 8, verticalAlign: 'middle' }} />
                     Contracts Interacted
                 </h4>
-                {result.projectsInteracted.slice(0, 5).map((project) => (
-                    <div
+                {result.projectsInteracted.slice(0, 5).map((project, i) => (
+                    <motion.div
                         key={project.contractAddress}
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: 'var(--space-3)',
-                            background: 'var(--color-bg-tertiary)',
-                            borderRadius: 'var(--radius-sm)',
-                            marginBottom: 'var(--space-2)',
-                            border: '1px solid var(--color-surface-border)',
-                        }}
+                        className="overview-item"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
                     >
                         <div>
                             <div style={{ fontWeight: 500, fontSize: 'var(--text-sm)' }}>
@@ -608,56 +601,42 @@ function OverviewTab({
                                 {project.interactionCount} interactions
                             </div>
                         </div>
-                        <span
-                            style={{
-                                padding: 'var(--space-1) var(--space-2)',
-                                background: 'var(--color-bg-elevated)',
-                                borderRadius: 'var(--radius-sm)',
-                                fontSize: 'var(--text-xs)',
-                                color: 'var(--color-text-muted)',
-                            }}
-                        >
-                            {project.category}
-                        </span>
-                    </div>
+                        <span className="risk-badge low">{project.category}</span>
+                    </motion.div>
                 ))}
             </div>
 
             {/* Same Block Activity */}
             {result.sameBlockTransactions.length > 0 && (
-                <div>
-                    <h4 style={{ marginBottom: 'var(--space-3)', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div className="overview-section">
+                    <h4 className="overview-section-title">
+                        <HugeiconsIcon icon={Clock01Icon} size={16} strokeWidth={2} style={{ marginRight: 8, verticalAlign: 'middle' }} />
                         Same Block Activity
                     </h4>
-                    {result.sameBlockTransactions.slice(0, 3).map((group) => (
-                        <div
+                    {result.sameBlockTransactions.slice(0, 3).map((group, i) => (
+                        <motion.div
                             key={group.blockNumber}
-                            className={group.isSuspicious ? 'alert warning' : ''}
+                            className={`overview-item ${group.isSuspicious ? 'alert warning' : ''}`}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
                             style={{
-                                padding: 'var(--space-3)',
-                                background: group.isSuspicious ? 'var(--color-warning-bg)' : 'var(--color-bg-tertiary)',
-                                borderRadius: 'var(--radius-sm)',
-                                marginBottom: 'var(--space-2)',
-                                border: group.isSuspicious ? 'none' : '1px solid var(--color-surface-border)',
+                                background: group.isSuspicious ? 'var(--color-warning-bg)' : undefined,
+                                borderLeft: group.isSuspicious ? '3px solid var(--color-warning-text)' : undefined,
                             }}
                         >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-1)' }}>
-                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', fontWeight: 600 }}>
                                     Block #{group.blockNumber}
                                 </span>
-                                <span style={{
-                                    fontSize: 'var(--text-xs)',
-                                    color: group.isSuspicious ? 'var(--color-warning-text)' : 'var(--color-text-muted)'
-                                }}>
-                                    {group.transactions.length} txs
-                                </span>
+                                {group.isSuspicious && (
+                                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warning-text)' }}>
+                                        {group.reason}
+                                    </span>
+                                )}
                             </div>
-                            {group.isSuspicious && (
-                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warning-text)' }}>
-                                    {group.reason}
-                                </div>
-                            )}
-                        </div>
+                            <span className="risk-badge medium">{group.transactions.length} txs</span>
+                        </motion.div>
                     ))}
                 </div>
             )}

@@ -67,7 +67,7 @@ export function Hero({ onLaunchApp }: HeroProps) {
             transition={{ duration: 0.8, delay: 0.6 }}
           >
             <SplitText
-              text="Forensics & Intelligence"
+              text="Analyzer & Intelligence"
               animation="wave"
               delay={0.7}
               staggerDuration={0.03}
