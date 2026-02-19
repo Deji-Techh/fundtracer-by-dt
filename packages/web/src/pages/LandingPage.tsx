@@ -7,7 +7,6 @@ import { CliShowcase } from '../components/landing/CliShowcase';
 import { ScreenshotShowcase } from '../components/landing/ScreenshotShowcase';
 import { Pricing } from '../components/landing/Pricing';
 import { Footer } from '../components/landing/Footer';
-import { CustomCursor } from '../components/landing/CustomCursor';
 import './LandingPage.css';
 
 interface LandingPageProps {
@@ -17,7 +16,6 @@ interface LandingPageProps {
 export function LandingPage({ onLaunchApp }: LandingPageProps) {
   return (
     <div className="landing-page-v2">
-      <CustomCursor />
       <LandingNav onLaunchApp={onLaunchApp} />
       <Hero onLaunchApp={onLaunchApp} />
       <ApiProvidersShowcase />
