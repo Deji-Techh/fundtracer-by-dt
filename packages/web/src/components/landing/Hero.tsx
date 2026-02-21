@@ -52,13 +52,31 @@ export function Hero({ onLaunchApp }: HeroProps) {
         </motion.div>
 
         <motion.h1 className="hero-title-v2">
-          <SplitText
-            text="Advanced Blockchain Analyzer"
-            animation="fadeUp"
-            delay={0.3}
-            staggerDuration={0.04}
-            charClassName="hero-char"
-          />
+          <span style={{ display: 'block' }}>
+            <SplitText
+              text="Advanced Blockchain"
+              animation="fadeUp"
+              delay={0.3}
+              staggerDuration={0.04}
+              charClassName="hero-char"
+            />
+          </span>
+          <span style={{ display: 'block', marginTop: 8 }}>
+            <motion.span
+              className="hero-title-gradient-v2"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+            >
+              <SplitText
+                text="ANALYSER"
+                animation="wave"
+                delay={0.7}
+                staggerDuration={0.03}
+                charClassName="hero-char-gradient"
+              />
+            </motion.span>
+          </span>
         </motion.h1>
 
         <motion.div
