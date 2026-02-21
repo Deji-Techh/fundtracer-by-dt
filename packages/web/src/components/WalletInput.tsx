@@ -13,7 +13,7 @@ function WalletInput({ value, onChange, onRemove, placeholder, style }: WalletIn
 
     return (
         <div className="input-group" style={style}>
-            <span className="input-icon">
+            <span className="input-icon" style={{ zIndex: 1 }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="2" y="4" width="20" height="16" rx="2" />
                     <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
@@ -40,6 +40,7 @@ function WalletInput({ value, onChange, onRemove, placeholder, style }: WalletIn
                         right: 'var(--space-2)',
                         top: '50%',
                         transform: 'translateY(-50%)',
+                        zIndex: 2,
                     }}
                     title="Remove"
                 >

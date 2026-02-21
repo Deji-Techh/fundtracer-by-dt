@@ -295,7 +295,33 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
                 transition={{ delay: index * 0.03 }}
                 onClick={() => onSelectScan(item.address, item.chain || 'ethereum', item.type)}
                 whileHover={{ backgroundColor: 'var(--color-bg-hover)' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  padding: '16px 20px',
+                  borderBottom: '1px solid var(--color-border)',
+                }}
               >
+                {/* Row Number */}
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 8,
+                  background: 'var(--color-bg-subtle)',
+                  border: '1px solid var(--color-border)',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  color: 'var(--color-text-muted)',
+                  fontFamily: 'var(--font-mono)',
+                  flexShrink: 0,
+                }}>
+                  {index + 1}
+                </div>
+
                 <div className="card-list-item-icon">
                   <div style={{
                     width: 10,
@@ -306,7 +332,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
                   }} />
                 </div>
 
-                <div className="card-list-item-content">
+                <div className="card-list-item-content" style={{ flex: 1, minWidth: 0 }}>
                   <div className="card-list-item-title">
                     {label || (isMobile 
                       ? `${item.address.slice(0, 8)}...${item.address.slice(-6)}`
@@ -395,6 +421,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
                       background: 'transparent',
                       border: 'none',
                       cursor: 'pointer',
+                      flexShrink: 0,
                     }}
                   >
                     <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={2} />

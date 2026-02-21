@@ -48,6 +48,7 @@ import SettingsPage from './components/SettingsPage';
 // Import HistoryPage
 import HistoryPage from './components/HistoryPage';
 import { PageLoading } from './components/common/PageLoading';
+import { KeyboardShortcuts } from './components/KeyboardShortcuts';
 
 type TabType = 'home' | 'portfolio' | 'sybil' | 'history' | 'settings';
 
@@ -128,6 +129,34 @@ function App() {
   // Wallet state - synced with AppKit
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string>('');
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modKey = isMac ? e.metaKey : e.ctrlKey;
+
+      if (modKey && e.key === 'k') {
+        e.preventDefault();
+        if (activeTab !== 'home') {
+          setActiveTab('sybil');
+        }
+      }
+
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        setShowKeyboardShortcuts(true);
+      }
+
+      if (e.key === 'Escape') {
+        setShowKeyboardShortcuts(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab]);
 
   // Sync AppKit modal theme with app theme
   useEffect(() => {
@@ -362,6 +391,7 @@ function App() {
         onClose={() => setShowPoHModal(false)}
         walletAddress={walletAddress}
       />
+      <KeyboardShortcuts isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
     </div>
   );
 }

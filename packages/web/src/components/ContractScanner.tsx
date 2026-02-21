@@ -224,9 +224,6 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
           fontWeight: 800,
           color: 'var(--color-text-primary)',
           marginBottom: isMobile ? 12 : 8,
-          background: 'linear-gradient(135deg, var(--color-text-primary) 0%, #8b5cf6 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
         }}>
           Contract Scanner
         </h1>
@@ -299,10 +296,10 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
               padding: '16px 32px',
               fontSize: '1rem',
               fontWeight: 600,
-              border: 'none',
+              border: '1px solid var(--color-border)',
               borderRadius: 12,
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-              color: 'white',
+              background: 'var(--color-bg-elevated)',
+              color: 'var(--color-text-primary)',
               cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.7 : 1,
               display: 'flex',
@@ -396,12 +393,11 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
             <motion.div
               variants={cardVariants}
               style={{
-                background: 'linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg-elevated) 100%)',
+                background: 'var(--color-bg-elevated)',
                 border: '1px solid var(--color-border)',
                 borderRadius: 24,
                 padding: isMobile ? '24px 20px' : '32px',
                 marginBottom: 24,
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
                 position: 'relative',
                 overflow: 'hidden',
               }}
@@ -413,7 +409,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                 right: -50,
                 width: 200,
                 height: 200,
-                background: `radial-gradient(circle, ${getTypeColor(result.contract.type)}20 0%, transparent 70%)`,
+                background: `radial-gradient(circle, ${getTypeColor(result.contract.type)}15 0%, transparent 70%)`,
                 borderRadius: '50%',
               }} />
 
@@ -478,9 +474,9 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                     style={{
                       padding: '10px 20px',
                       borderRadius: 10,
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      color: 'white',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-bg-elevated)',
+                      color: 'var(--color-text-primary)',
                       fontWeight: 600,
                       fontSize: '0.875rem',
                       cursor: exporting ? 'not-allowed' : 'pointer',

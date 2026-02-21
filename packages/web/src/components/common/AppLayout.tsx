@@ -66,7 +66,7 @@ export function AppLayout({ children, activeTab, onTabChange }: AppLayoutProps) 
           display: 'flex',
           flexDirection: 'column',
           zIndex: 100,
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {/* Main Navigation */}
@@ -96,7 +96,10 @@ export function AppLayout({ children, activeTab, onTabChange }: AppLayoutProps) 
                 item={item}
                 isActive={activeTab === item.id}
                 isExpanded={isExpanded}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => {
+                  console.log('Nav clicked:', item.id, 'current activeTab:', activeTab);
+                  onTabChange(item.id);
+                }}
               />
             ))}
           </div>
@@ -218,6 +221,7 @@ function NavItem({ item, isActive, isExpanded, onClick, disabled }: NavItemProps
         gap: 12,
         width: '100%',
         padding: '10px 12px',
+        paddingLeft: isActive ? 9 : 12,
         borderRadius: 8,
         border: 'none',
         background: isActive ? 'var(--color-bg-elevated)' : 'transparent',
@@ -227,7 +231,7 @@ function NavItem({ item, isActive, isExpanded, onClick, disabled }: NavItemProps
         opacity: disabled ? 0.5 : 1,
         transition: 'all 0.2s',
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'visible',
       }}
     >
       {isActive && (

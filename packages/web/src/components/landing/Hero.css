@@ -7,10 +7,14 @@
   justify-content: center;
   align-items: center;
   padding: 120px 24px 100px;
-  background: #000000;
+  background: var(--color-bg, #000000);
   position: relative;
   overflow: hidden;
   transform-style: preserve-3d;
+}
+
+[data-theme="light"] .hero-section-v2 {
+  background: #fafafa;
 }
 
 .hero-mesh-gradient {
@@ -25,6 +29,13 @@
     radial-gradient(ellipse at 50% 80%, rgba(50, 50, 50, 0.12) 0%, transparent 50%);
   animation: meshMove 20s ease-in-out infinite;
   pointer-events: none;
+}
+
+[data-theme="light"] .hero-mesh-gradient {
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.06) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
 }
 
 .hero-noise {
@@ -64,10 +75,10 @@
   align-items: center;
   gap: 10px;
   padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
   border-radius: 100px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
   font-size: 0.8125rem;
   font-weight: 500;
   margin-bottom: 40px;
@@ -80,9 +91,9 @@
 .badge-pulse {
   width: 8px;
   height: 8px;
-  background: linear-gradient(135deg, #888888, #cccccc);
+  background: var(--color-accent);
   border-radius: 50%;
-  box-shadow: 0 0 12px rgba(200, 200, 200, 0.5);
+  box-shadow: 0 0 12px var(--color-accent);
 }
 
 /* Title V2 */
@@ -90,14 +101,17 @@
   font-size: clamp(3rem, 8vw, 5rem);
   font-weight: 700;
   line-height: 1.05;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 32px;
   letter-spacing: -0.03em;
 }
 
 .hero-char {
   display: inline-block;
-  text-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .hero-char {
+  text-shadow: none;
 }
 
 .hero-char-gradient {
@@ -136,11 +150,7 @@
   margin: 0 auto 48px;
   padding: 2px;
   border-radius: 12px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.1),
-    rgba(255, 255, 255, 0.02)
-  );
+  background: var(--color-border);
 }
 
 .tagline-border {
@@ -153,7 +163,7 @@
   background: conic-gradient(
     from 0deg,
     transparent 0deg,
-    rgba(255, 255, 255, 0.15) 60deg,
+    var(--color-accent-muted) 60deg,
     transparent 120deg
   );
   opacity: 0.5;
@@ -164,13 +174,13 @@
   align-items: center;
   gap: 16px;
   padding: 14px 28px;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--color-bg);
   backdrop-filter: blur(20px);
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
   font-size: 0.9375rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -178,7 +188,7 @@
 /* Description V2 */
 .hero-description-v2 {
   font-size: 1.0625rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
   line-height: 1.75;
   max-width: 580px;
   margin: 0 auto 48px;
@@ -209,17 +219,12 @@
 }
 
 .hero-btn-primary-v2 {
-  background: #ffffff;
-  color: #000000;
-  box-shadow: 
-    0 4px 20px rgba(255, 255, 255, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
+  background: var(--color-text-primary);
+  color: var(--color-bg);
 }
 
 .hero-btn-primary-v2:hover {
-  box-shadow: 
-    0 8px 40px rgba(255, 255, 255, 0.15),
-    0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
 }
 
 .btn-content {
@@ -247,14 +252,13 @@
 
 .hero-btn-secondary-v2 {
   background: transparent;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
 }
 
 .hero-btn-secondary-v2:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-hover);
 }
 
 .btn-icon-wrapper {
@@ -281,15 +285,15 @@
   position: relative;
   padding: 12px 20px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
 }
 
 .hero-stat-v2:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-hover);
 }
 
 .stat-glow {
@@ -299,7 +303,7 @@
   transform: translate(-50%, -50%);
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 70%);
+  background: radial-gradient(circle, var(--color-accent-muted) 0%, transparent 70%);
   border-radius: 12px;
   pointer-events: none;
 }
@@ -307,14 +311,14 @@
 .stat-number-v2 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin-bottom: 4px;
   letter-spacing: -0.02em;
 }
 
 .stat-label-v2 {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }

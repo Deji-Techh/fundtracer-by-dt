@@ -48,39 +48,45 @@ const TopNav: React.FC<TopNavProps> = ({
   const searchRef = useRef<HTMLDivElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const [selectedToken, setSelectedToken] = useState<SearchResult | null>(null);
+  const lastSearchRef = useRef<string>('');
 
   useEffect(() => {
+    const trimmedQuery = searchQuery.trim();
+    
+    if (trimmedQuery.length < 2 || trimmedQuery === lastSearchRef.current) {
+      return;
+    }
+    
+    lastSearchRef.current = trimmedQuery;
+    
     const timer = setTimeout(async () => {
-      if (searchQuery.trim().length >= 2) {
-        setIsSearching(true);
-        try {
-          const response = await searchDEXScreenerPairs(searchQuery);
-          const pairs = response.pairs || [];
-          const mappedResults: SearchResult[] = pairs.map((pair: any) => ({
-            id: `${pair.chainId}-${pair.pairAddress}`,
-            name: pair.baseToken?.name || pair.baseToken?.symbol || 'Unknown',
-            symbol: pair.baseToken?.symbol || '',
-            thumb: pair.info?.imageUrl || pair.baseToken?.icon || '',
-            chainId: pair.chainId || '',
-            tokenAddress: pair.baseToken?.address || '',
-            priceUsd: pair.priceUsd,
-            priceChange: pair.priceChange?.h24
-          }));
-          setSearchResults(mappedResults);
-          setShowResults(true);
-        } catch (error) {
-          console.error('Search error:', error);
-          setSearchResults([]);
-        } finally {
-          setIsSearching(false);
-        }
-      } else {
+      setIsSearching(true);
+      try {
+        const response = await searchDEXScreenerPairs(trimmedQuery);
+        const pairs = response.pairs || [];
+        const mappedResults: SearchResult[] = pairs.slice(0, 10).map((pair: any) => ({
+          id: `${pair.chainId}-${pair.pairAddress}`,
+          name: pair.baseToken?.name || pair.baseToken?.symbol || 'Unknown',
+          symbol: pair.baseToken?.symbol || '',
+          thumb: pair.info?.imageUrl || pair.baseToken?.icon || '',
+          chainId: pair.chainId || '',
+          tokenAddress: pair.baseToken?.address || '',
+          priceUsd: pair.priceUsd,
+          priceChange: pair.priceChange?.h24
+        }));
+        setSearchResults(mappedResults);
+        setShowResults(true);
+      } catch (error) {
+        console.error('Search error:', error);
         setSearchResults([]);
-        setShowResults(false);
+      } finally {
+        setIsSearching(false);
       }
-    }, 300);
+    }, 400);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [searchQuery]);
 
   useEffect(() => {
