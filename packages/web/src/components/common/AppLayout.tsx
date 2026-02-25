@@ -236,7 +236,6 @@ function NavItem({ item, isActive, isExpanded, onClick, disabled }: NavItemProps
     >
       {isActive && (
         <motion.div
-          layoutId="activeIndicator"
           style={{
             position: 'absolute',
             left: 0,
