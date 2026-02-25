@@ -303,8 +303,8 @@ const TopNav: React.FC<TopNavProps> = ({
               fontWeight: 700,
               letterSpacing: '0.05em',
               lineHeight: 1,
-              background: tier === 'MAX' ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
-                : tier === 'PRO' ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+              background: tier === 'MAX' ? '#8b5cf6'
+                : tier === 'PRO' ? '#3b82f6'
                 : 'var(--color-bg-elevated)',
               color: tier === 'FREE' ? 'var(--color-text-muted)' : '#ffffff',
               border: tier === 'FREE' ? '1px solid var(--color-border)' : 'none',

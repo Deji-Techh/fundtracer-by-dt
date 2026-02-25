@@ -248,7 +248,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
               borderRadius: '50%',
               background: profilePicture 
                 ? `url(${profilePicture}) center/cover`
-                : 'linear-gradient(135deg, var(--color-accent) 0%, #8b5cf6 100%)',
+                : 'var(--color-accent)',
               border: '4px solid var(--color-bg)',
               boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
               display: 'flex',
@@ -396,7 +396,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
                 transition={{ duration: 1, ease: 'easeOut' }}
                 style={{
                   height: '100%',
-                  background: 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 100%)',
+                  background: '#8b5cf6',
                   borderRadius: 4,
                 }}
               />

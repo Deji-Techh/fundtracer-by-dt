@@ -64,17 +64,11 @@ export function Hero({ onLaunchApp }: HeroProps) {
           <span style={{ display: 'block', marginTop: 8 }}>
             <motion.span
               className="hero-title-gradient-v2"
-              initial={{ opacity: 0, y: 50 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
             >
-              <SplitText
-                text="ANALYSER"
-                animation="wave"
-                delay={0.7}
-                staggerDuration={0.03}
-                charClassName="hero-char-gradient"
-              />
+              ANALYSER
             </motion.span>
           </span>
         </motion.h1>

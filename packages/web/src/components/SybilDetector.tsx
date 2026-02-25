@@ -91,7 +91,7 @@ const Skeleton: React.FC<{ width?: string; height?: string; className?: string }
       width,
       height,
       borderRadius: '4px',
-      background: 'linear-gradient(90deg, var(--color-bg-elevated) 0%, var(--color-bg-tertiary) 50%, var(--color-bg-elevated) 100%)',
+      background: 'var(--color-bg-elevated)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.5s ease-in-out infinite',
     }}
@@ -380,7 +380,6 @@ const NetworkGraph: React.FC<{
             selector: 'node',
             style: {
               'background-color': 'data(color)',
-              'background-gradient': 'linear-gradient(to bottom, rgba(255,255,255,0.2), transparent)',
               'label': 'data(label)',
               'width': 'data(size)',
               'height': 'data(size)',

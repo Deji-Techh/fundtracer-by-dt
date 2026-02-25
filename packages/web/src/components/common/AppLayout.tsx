@@ -211,10 +211,12 @@ interface NavItemProps {
 function NavItem({ item, isActive, isExpanded, onClick, disabled }: NavItemProps) {
   return (
     <motion.button
+      key={item.id}
       whileHover={{ backgroundColor: disabled ? 'transparent' : 'var(--color-bg-hover)' }}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
+      className={isActive ? 'nav-item-active' : ''}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -235,7 +237,7 @@ function NavItem({ item, isActive, isExpanded, onClick, disabled }: NavItemProps
       }}
     >
       {isActive && (
-        <motion.div
+        <div
           style={{
             position: 'absolute',
             left: 0,
@@ -247,7 +249,7 @@ function NavItem({ item, isActive, isExpanded, onClick, disabled }: NavItemProps
           }}
         />
       )}
-      <HugeiconsIcon icon={item.icon} size={20} strokeWidth={1.5} />
+      <HugeiconsIcon icon={item.icon} size={20} strokeWidth={1.5} color={isActive ? 'var(--color-accent)' : 'currentColor'} />
       <motion.span
         animate={{ opacity: isExpanded ? 1 : 0 }}
         transition={{ duration: 0.15 }}
