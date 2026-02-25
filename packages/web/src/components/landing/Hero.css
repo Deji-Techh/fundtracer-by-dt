@@ -121,17 +121,22 @@
 .hero-title-gradient-v2 {
   background: linear-gradient(
     90deg,
-    #ffffff 0%,
-    #888888 25%,
-    #ffffff 50%,
-    #aaaaaa 75%,
-    #ffffff 100%
+    var(--color-text-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-text-primary) 100%
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: gradientShift 8s linear infinite;
+}
+
+[data-theme="light"] .hero-title-gradient-v2 {
+  background: var(--color-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: none;
 }
 
 @keyframes gradientShift {

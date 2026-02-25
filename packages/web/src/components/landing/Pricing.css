@@ -2,7 +2,7 @@
 
 .pricing-section {
   padding: 100px 24px;
-  background: linear-gradient(180deg, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
+  background: var(--color-bg);
   position: relative;
 }
 
@@ -13,7 +13,11 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+}
+
+[data-theme="light"] .pricing-section::before {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
 }
 
 .pricing-container {
@@ -31,8 +35,8 @@
 .pricing-label {
   display: inline-block;
   padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
   border-radius: 20px;
   color: var(--color-text-secondary);
   font-size: 0.75rem;
@@ -65,8 +69,8 @@
 
 /* Card */
 .pricing-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
   border-radius: 16px;
   padding: 32px;
   position: relative;
@@ -75,17 +79,17 @@
 
 .pricing-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border-color: var(--color-accent);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 .pricing-card-popular {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--color-accent);
+  background: var(--color-bg-subtle);
 }
 
 .pricing-card-popular:hover {
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: var(--color-accent-hover);
 }
 
 .pricing-popular-badge {
@@ -93,7 +97,7 @@
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(135deg, #ffffff 0%, #aaaaaa 100%);
+  background: var(--color-accent);
   color: #000000;
   padding: 6px 16px;
   border-radius: 20px;
@@ -146,7 +150,7 @@
 }
 
 .pricing-check-icon {
-  color: var(--color-text-secondary);
+  color: var(--color-accent);
   flex-shrink: 0;
 }
 
@@ -157,7 +161,7 @@
   padding: 14px;
   background: transparent;
   color: var(--color-text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   text-align: center;
   font-weight: 600;
@@ -166,20 +170,20 @@
 }
 
 .pricing-cta:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
   transform: translateY(-2px);
 }
 
 .pricing-cta-primary {
-  background: linear-gradient(135deg, #ffffff 0%, #cccccc 100%);
+  background: var(--color-accent);
   color: #000000;
   border: none;
 }
 
 .pricing-cta-primary:hover {
-  background: linear-gradient(135deg, #ffffff 0%, #dddddd 100%);
-  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+  background: var(--color-accent-hover);
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
 }
 
 /* Animations */

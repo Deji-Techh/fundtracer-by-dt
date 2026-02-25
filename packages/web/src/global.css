@@ -1980,11 +1980,27 @@ select:disabled {
     z-index: 1001;
     justify-content: center;
     padding-bottom: env(safe-area-inset-bottom, 0);
+    height: 64px;
+    min-height: 64px;
   }
   
-  /* Add bottom padding to prevent content overlap */
+  /* Add bottom padding to prevent content overlap with mobile footer */
   .main-content {
     padding-bottom: 80px;
+    padding-top: 70px;
+  }
+  
+  /* Ensure all pages have proper mobile padding */
+  .page-container {
+    padding-top: 70px !important;
+    padding-bottom: 80px !important;
+  }
+  
+  /* Fix for inline styles */
+  div[style*="display: block"],
+  div[style*="minHeight"] {
+    padding-top: 70px !important;
+    padding-bottom: 80px !important;
   }
 }
 
