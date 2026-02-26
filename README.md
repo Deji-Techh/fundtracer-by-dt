@@ -102,8 +102,8 @@ FundTracer works out of the box with default keys, but for production or heavy u
 - ✅ **Linea** (Optimized for Airdrop farmers detection)
 - ✅ **Arbitrum**
 - ✅ **Base**
-- ⏳ **Optimism** (Coming Soon)
-- ⏳ **Polygon** (Coming Soon)
+- ✅ **Optimism** 
+- ✅ **Polygon** 
 
 ---
 
