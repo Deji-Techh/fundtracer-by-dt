@@ -20,6 +20,13 @@ import {
   TxQueryOpts,
 } from '../types.js';
 import { HeliusKeyManager, CACHE_TTL } from './heliusManager.js';
+import { 
+  SOLANA_KNOWN_ENTITIES, 
+  SOLANA_PROGRAMS,
+  getEntityInfo,
+  isKnownExchange,
+  isSuspicious,
+} from './entities.js';
 
 const HELIUS_KEYS = [
   '77de5802-5beb-4647-bfbb-0ba215d47c81',
@@ -40,14 +47,6 @@ const SYSTEM_PROGRAMS = [
   'ComputeBudget111111111111111111111111111111',
   'SysvarRent111111111111111111111111111111111',
 ];
-
-const KNOWN_ENTITIES: Record<string, string> = {
-  '5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9': 'Binance',
-  '2ojv9BAiHUrvsm9gxDe7fJSzbNZSJcxZvf8dqmWGHG8S': 'Binance',
-  'H8sMJSCQxfKiFTCfDR3DUg2jKzSzasGgFnN7GqMPQHER': 'Coinbase',
-  '3yFwqXBfZY4jBVUafQ1YEXw189y2dN3V5KQq9uzBDy1E': 'OKX',
-  'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4': 'Jupiter Aggregator',
-};
 
 export class SolanaAdapter implements ChainAdapter {
   chainType: 'solana' = 'solana';
@@ -276,7 +275,8 @@ export class SolanaAdapter implements ChainAdapter {
       const fundingSources = await this.findEarliestFunding(current.address);
 
       for (const source of fundingSources) {
-        const sourceLabel = KNOWN_ENTITIES[source.from] || null;
+        const entity = getEntityInfo(source.from);
+        const sourceLabel = entity?.name || null;
 
         if (!nodes.has(source.from)) {
           nodes.set(source.from, {
@@ -416,28 +416,33 @@ export class SolanaAdapter implements ChainAdapter {
 
     const [walletInfo, txs, funding] = await Promise.all([
       this.getWalletInfo(address),
-      this.getTransactions(address, { limit: 100 }),
+      this.getTransactions(address, { limit: 200 }),
       this.getFundingSources(address, 3),
     ]);
 
+    // Signal 1: New wallet
+    const walletAge = walletInfo.firstSeen ? Date.now() - walletInfo.firstSeen : null;
+    const isNewWallet = walletAge !== null && walletAge < 30 * 24 * 60 * 60 * 1000;
     signals.push({
       id: 'sol_new_wallet',
       name: 'Wallet Created Recently',
       weight: 10,
-      detected: walletInfo.firstSeen ? (Date.now() - walletInfo.firstSeen < 30 * 24 * 60 * 60 * 1000) : false,
-      details: '',
+      detected: isNewWallet,
+      details: isNewWallet ? `Wallet is ${Math.round(walletAge! / (24 * 60 * 60 * 1000))} days old` : '',
       severity: 'medium',
     });
 
+    // Signal 2: Low balance
     signals.push({
       id: 'sol_low_balance',
       name: 'Near-Zero SOL Balance',
       weight: 5,
       detected: parseFloat(walletInfo.balance) < 0.01,
-      details: '',
+      details: `Balance: ${walletInfo.balance} SOL`,
       severity: 'low',
     });
 
+    // Signal 3: External fee payer
     const externalFeePayers = txs.filter(tx => tx.feePayer && tx.feePayer !== address);
     signals.push({
       id: 'sol_external_fee_payer',
@@ -448,6 +453,7 @@ export class SolanaAdapter implements ChainAdapter {
       severity: 'high',
     });
 
+    // Signal 4: CEX withdrawal (reduces risk)
     const hasKnownSource = !!(funding.ultimateSource?.label && funding.ultimateSource.label !== 'Unknown');
     signals.push({
       id: 'sol_cex_withdrawal',
@@ -457,6 +463,98 @@ export class SolanaAdapter implements ChainAdapter {
       details: funding.ultimateSource?.label || '',
       severity: 'low',
     });
+
+    // Signal 5: Rapid token consolidation
+    const tokenTransfers = txs.flatMap(tx => tx.tokenTransfers || []);
+    const outgoingTransfers = tokenTransfers.filter(t => t.from === address);
+    const uniqueDestinations = new Set(outgoingTransfers.map(t => t.to));
+    if (outgoingTransfers.length >= 5 && uniqueDestinations.size === 1) {
+      signals.push({
+        id: 'sol_token_consolidation',
+        name: 'Immediate Token Consolidation',
+        weight: 20,
+        detected: true,
+        details: `Sent ${outgoingTransfers.length} tokens to single address`,
+        severity: 'high',
+      });
+    }
+
+    // Signal 6: High transaction count for new wallet
+    if (isNewWallet && txs.length > 100) {
+      signals.push({
+        id: 'sol_high_activity_new_wallet',
+        name: 'High Activity New Wallet',
+        weight: 15,
+        detected: true,
+        details: `${txs.length} transactions in first 30 days`,
+        severity: 'high',
+      });
+    }
+
+    // Signal 7: Scripted timing (bot-like behavior)
+    if (txs.length >= 10) {
+      const timestamps = txs.map(tx => tx.timestamp).sort((a, b) => a - b);
+      const intervals: number[] = [];
+      for (let i = 1; i < timestamps.length; i++) {
+        intervals.push(timestamps[i] - timestamps[i - 1]);
+      }
+      const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const variance = intervals.reduce((sum, i) => sum + Math.pow(i - mean, 2), 0) / intervals.length;
+      const cv = Math.sqrt(variance) / mean;
+      if (cv < 0.1) {
+        signals.push({
+          id: 'sol_scripted_timing',
+          name: 'Scripted Transaction Timing',
+          weight: 15,
+          detected: true,
+          details: 'Transactions show bot-like regular timing',
+          severity: 'medium',
+        });
+      }
+    }
+
+    // Signal 8: NFT interactions
+    const nftMints = txs.filter(tx => tx.type === 'NFT_MINT' || tx.programInteractions?.some(p => p.includes('nft')));
+    if (nftMints.length >= 3) {
+      signals.push({
+        id: 'sol_nft_farming',
+        name: 'Multiple NFT Mints',
+        weight: 10,
+        detected: true,
+        details: `${nftMints.length} NFT mints detected`,
+        severity: 'medium',
+      });
+    }
+
+    // Signal 9: DEX spam (many small swaps)
+    const dexInteractions = txs.filter(tx => tx.source === 'JUPITER' || tx.source === 'RAYDIUM' || tx.source === 'ORCA');
+    if (dexInteractions.length > 50) {
+      signals.push({
+        id: 'sol_dex_spam',
+        name: 'High DEX Activity',
+        weight: 5,
+        detected: true,
+        details: `${dexInteractions.length} DEX interactions`,
+        severity: 'low',
+      });
+    }
+
+    // Signal 10: Interacts with suspicious addresses
+    const suspiciousCounterparties = new Set<string>();
+    for (const tx of txs) {
+      if (tx.from !== address && isSuspicious(tx.from)) suspiciousCounterparties.add(tx.from);
+      if (tx.to && isSuspicious(tx.to)) suspiciousCounterparties.add(tx.to!);
+    }
+    if (suspiciousCounterparties.size > 0) {
+      signals.push({
+        id: 'sol_suspicious_interaction',
+        name: 'Interacts with Suspicious Addresses',
+        weight: 25,
+        detected: true,
+        details: `${suspiciousCounterparties.size} suspicious interactions`,
+        severity: 'critical',
+      });
+    }
 
     for (const signal of signals) {
       if (signal.detected) totalScore += signal.weight;
@@ -530,8 +628,9 @@ export class SolanaAdapter implements ChainAdapter {
   private async getLabels(address: string): Promise<string[]> {
     const labels: string[] = [];
     
-    if (KNOWN_ENTITIES[address]) {
-      labels.push(KNOWN_ENTITIES[address]);
+    const entity = getEntityInfo(address);
+    if (entity) {
+      labels.push(entity.name);
     }
 
     return labels;
