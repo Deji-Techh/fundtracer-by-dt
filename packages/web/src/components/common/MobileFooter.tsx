@@ -6,7 +6,6 @@ import {
   Clock01Icon,
   Shield01Icon,
   Settings01Icon,
-  Globe02Icon,
 } from '@hugeicons/core-free-icons';
 
 interface MobileFooterProps {
@@ -19,7 +18,6 @@ export function MobileFooter({ activeTab, onTabChange }: MobileFooterProps) {
     { id: 'home', icon: Home01Icon },
     { id: 'portfolio', icon: Wallet01Icon },
     { id: 'sybil', icon: Shield01Icon },
-    { id: 'solana', icon: Globe02Icon },
     { id: 'history', icon: Clock01Icon },
     { id: 'settings', icon: Settings01Icon },
   ];

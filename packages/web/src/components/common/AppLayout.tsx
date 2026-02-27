@@ -23,8 +23,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { id: 'home', label: 'Home', icon: Home01Icon },
   { id: 'portfolio', label: 'Portfolio', icon: Wallet01Icon },
-  { id: 'sybil', label: 'Sybil (EVM)', icon: Shield01Icon },
-  { id: 'solana', label: 'Solana', icon: Globe02Icon },
+  { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
   { id: 'history', label: 'History', icon: Clock01Icon },
 ];
 

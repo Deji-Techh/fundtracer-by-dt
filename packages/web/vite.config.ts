@@ -16,6 +16,30 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    headers: {
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' https://api.helius-rpc.com https://api.coingecko.com https://api.alchemy.com https://*.alchemy.com https://mainnet.base.org https://*.public.blob.vercel-storage.com",
+        "font-src 'self' data:",
+        "frame-src 'self' https://www.reown.com",
+      ].join('; '),
+    },
+  },
+  preview: {
+    headers: {
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' https://api.helius-rpc.com https://api.coingecko.com https://api.alchemy.com https://*.alchemy.com https://mainnet.base.org https://*.public.blob.vercel-storage.com",
+        "font-src 'self' data:",
+        "frame-src 'self' https://www.reown.com",
+      ].join('; '),
+    },
   },
   build: {
     outDir: 'dist',

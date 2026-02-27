@@ -3,11 +3,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { ContactModal } from '../ContactModal';
 import './Footer.css';
 
-interface FooterProps {
-  onLaunchApp?: () => void;
-}
-
-export function Footer({ onLaunchApp }: FooterProps) {
+export function Footer() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const footerRef = useRef<HTMLElement>(null);
 

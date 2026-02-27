@@ -4,11 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowRight01Icon, Menu01Icon, Cancel01Icon } from '@hugeicons/core-free-icons';
 import './LandingNav.css';
 
-interface LandingNavProps {
-  onLaunchApp?: () => void;
-}
-
-export function LandingNav({ onLaunchApp }: LandingNavProps) {
+export function LandingNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -80,7 +76,7 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
         </div>
 
         <motion.button
-          onClick={onLaunchApp}
+          onClick={() => window.location.href = '/evm'}
           className="landing-nav-cta-v2 desktop-only"
           whileHover={{ scale: 1.02, y: -1 }}
           whileTap={{ scale: 0.98 }}
@@ -159,7 +155,7 @@ export function LandingNav({ onLaunchApp }: LandingNavProps) {
               <motion.button
                 onClick={() => {
                   handleLinkClick();
-                  onLaunchApp?.();
+                  window.location.href = '/evm';
                 }}
                 className="mobile-menu-cta-v2"
                 initial={{ opacity: 0, y: 10 }}

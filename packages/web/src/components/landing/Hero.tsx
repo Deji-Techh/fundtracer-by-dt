@@ -6,12 +6,7 @@ import { VideoModal } from '../VideoModal';
 import { SplitText, ScrambleText } from './SplitText';
 import './Hero.css';
 
-interface HeroProps {
-  onLaunchApp?: () => void;
-  onLaunchSolana?: () => void;
-}
-
-export function Hero({ onLaunchApp, onLaunchSolana }: HeroProps) {
+export function Hero() {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   const { scrollYProgress } = useScroll({
@@ -110,7 +105,7 @@ export function Hero({ onLaunchApp, onLaunchSolana }: HeroProps) {
           transition={{ duration: 0.8, delay: 1.6 }}
         >
           <motion.button
-            onClick={onLaunchApp}
+            onClick={() => window.location.href = '/evm'}
             className="hero-btn-v2 hero-btn-primary-v2"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -122,7 +117,7 @@ export function Hero({ onLaunchApp, onLaunchSolana }: HeroProps) {
           </motion.button>
 
           <motion.button
-            onClick={onLaunchSolana}
+            onClick={() => window.location.href = '/solana'}
             className="hero-btn-v2 solana-btn"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

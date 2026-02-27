@@ -9,21 +9,17 @@ import { Pricing } from '../components/landing/Pricing';
 import { Footer } from '../components/landing/Footer';
 import './LandingPage.css';
 
-interface LandingPageProps {
-  onLaunchApp?: () => void;
-}
-
-export function LandingPage({ onLaunchApp }: LandingPageProps) {
+export function LandingPage() {
   return (
     <div className="landing-page-v2">
-      <LandingNav onLaunchApp={onLaunchApp} />
-      <Hero onLaunchApp={onLaunchApp} onLaunchSolana={() => window.location.href = '/?tab=solana'} />
+      <LandingNav />
+      <Hero />
       <ApiProvidersShowcase />
       <Features />
       <CliShowcase />
       <ScreenshotShowcase />
-      <Pricing onLaunchApp={onLaunchApp} />
-      <Footer onLaunchApp={onLaunchApp} />
+      <Pricing />
+      <Footer />
     </div>
   );
 }

@@ -5,10 +5,6 @@ import { Wallet01Icon, File02Icon, GitCompareIcon, Shield01Icon, ArrowRight01Ico
 import { SplitText } from './SplitText';
 import './Features.css';
 
-interface FeaturesProps {
-  onLaunchApp?: () => void;
-}
-
 const features = [
   {
     icon: Wallet01Icon,
@@ -36,7 +32,7 @@ const features = [
   },
 ];
 
-export function Features({ onLaunchApp }: FeaturesProps) {
+export function Features() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -115,7 +111,7 @@ export function Features({ onLaunchApp }: FeaturesProps) {
           transition={{ duration: 0.8, delay: 0.6 }}
         >
           <motion.button
-            onClick={onLaunchApp}
+            onClick={() => window.location.href = '/evm'}
             className="features-btn-v2"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

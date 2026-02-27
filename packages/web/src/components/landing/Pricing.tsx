@@ -3,10 +3,6 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
 import './Pricing.css';
 
-interface PricingProps {
-  onLaunchApp?: () => void;
-}
-
 const tiers = [
   {
     name: 'Free',
@@ -53,7 +49,7 @@ const tiers = [
   },
 ];
 
-export function Pricing({ onLaunchApp }: PricingProps) {
+export function Pricing() {
   return (
     <section className="pricing-section">
       <div className="pricing-container">
@@ -90,7 +86,7 @@ export function Pricing({ onLaunchApp }: PricingProps) {
               </ul>
 
               <button 
-                onClick={onLaunchApp}
+                onClick={() => window.location.href = '/evm'}
                 className={`pricing-cta ${tier.popular ? 'pricing-cta-primary' : ''}`}
               >
                 {tier.popular ? 'Upgrade to Pro' : tier.name === 'Max' ? 'Go Unlimited' : 'Get Started'}
