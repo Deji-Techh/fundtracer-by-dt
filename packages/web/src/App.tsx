@@ -279,7 +279,6 @@ function App() {
         }}>
           <LandingPage 
             onLaunchApp={() => setActiveTab('sybil')} 
-            onLaunchSolana={() => setActiveTab('solana')} 
           />
         </div>
         

@@ -6,10 +6,9 @@ import './LandingNav.css';
 
 interface LandingNavProps {
   onLaunchApp?: () => void;
-  onLaunchSolana?: () => void;
 }
 
-export function LandingNav({ onLaunchApp, onLaunchSolana }: LandingNavProps) {
+export function LandingNav({ onLaunchApp }: LandingNavProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -91,27 +90,7 @@ export function LandingNav({ onLaunchApp, onLaunchSolana }: LandingNavProps) {
           data-cursor="pointer"
           data-cursor-text="Launch"
         >
-          <span>Launch on EVM</span>
-          <motion.span
-            animate={{ x: [0, 3, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />
-          </motion.span>
-        </motion.button>
-
-        <motion.button
-          onClick={onLaunchSolana}
-          className="landing-nav-cta-v2 landing-nav-cta-solana desktop-only"
-          whileHover={{ scale: 1.02, y: -1 }}
-          whileTap={{ scale: 0.98 }}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, delay: 0.35 }}
-          data-cursor="pointer"
-          data-cursor-text="Launch"
-        >
-          <span>Solana</span>
+          <span>Launch App</span>
           <motion.span
             animate={{ x: [0, 3, 0] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -188,21 +167,7 @@ export function LandingNav({ onLaunchApp, onLaunchSolana }: LandingNavProps) {
                 transition={{ duration: 0.3, delay: 0.3 }}
                 data-cursor="pointer"
               >
-                Launch on EVM
-                <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />
-              </motion.button>
-              <motion.button
-                onClick={() => {
-                  handleLinkClick();
-                  onLaunchSolana?.();
-                }}
-                className="mobile-menu-cta-v2 mobile-menu-cta-solana"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.35 }}
-                data-cursor="pointer"
-              >
-                Launch on Solana
+                Launch App
                 <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />
               </motion.button>
             </div>

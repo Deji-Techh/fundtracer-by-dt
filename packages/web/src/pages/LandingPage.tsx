@@ -11,16 +11,15 @@ import './LandingPage.css';
 
 interface LandingPageProps {
   onLaunchApp?: () => void;
-  onLaunchSolana?: () => void;
 }
 
-export function LandingPage({ onLaunchApp, onLaunchSolana }: LandingPageProps) {
+export function LandingPage({ onLaunchApp }: LandingPageProps) {
   return (
     <div className="landing-page-v2">
-      <LandingNav onLaunchApp={onLaunchApp} onLaunchSolana={onLaunchSolana} />
-      <Hero onLaunchApp={onLaunchApp} onLaunchSolana={onLaunchSolana} />
+      <LandingNav onLaunchApp={onLaunchApp} />
+      <Hero onLaunchApp={onLaunchApp} onLaunchSolana={() => window.location.href = '/?tab=solana'} />
       <ApiProvidersShowcase />
-      <Features onLaunchApp={onLaunchApp} />
+      <Features />
       <CliShowcase />
       <ScreenshotShowcase />
       <Pricing onLaunchApp={onLaunchApp} />

@@ -18,7 +18,10 @@ dotenv.config();
 const requiredEnvVars = [
     'JWT_SECRET',
     'DEFAULT_ALCHEMY_API_KEY',
-    'FIREBASE_SERVICE_ACCOUNT'
+    'FIREBASE_SERVICE_ACCOUNT',
+    'HELIUS_KEY_1',
+    'HELIUS_KEY_2',
+    'HELIUS_KEY_3',
 ];
 
 const missing = requiredEnvVars.filter(varName => !process.env[varName]);
