@@ -9,6 +9,7 @@ import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions, t
 import TopNav from './components/CoinGecko/TopNav';
 import HomePage from './components/CoinGecko/HomePage';
 import SybilPage from './components/CoinGecko/SybilPage';
+import SolanaPage from './components/SolanaPage';
 
 // Import Landing Page
 import LandingPage from './pages/LandingPage';
@@ -50,7 +51,7 @@ import HistoryPage from './components/HistoryPage';
 import { PageLoading } from './components/common/PageLoading';
 import { KeyboardShortcuts } from './components/KeyboardShortcuts';
 
-type TabType = 'home' | 'portfolio' | 'sybil' | 'history' | 'settings';
+type TabType = 'home' | 'portfolio' | 'sybil' | 'history' | 'settings' | 'solana';
 
 function App() {
   // Simple routing for standalone pages
@@ -276,7 +277,10 @@ function App() {
           backgroundColor: 'var(--color-bg)', 
           minHeight: '100vh' 
         }}>
-          <LandingPage onLaunchApp={() => setActiveTab('sybil')} />
+          <LandingPage 
+            onLaunchApp={() => setActiveTab('sybil')} 
+            onLaunchSolana={() => setActiveTab('solana')} 
+          />
         </div>
         
         {/* Portfolio Tab */}
@@ -325,6 +329,13 @@ function App() {
         }} className="main-content">
           <SettingsPage onConnectWallet={handleConnectWallet} isWalletConnected={isWalletConnected} walletAddress={walletAddress} onUpgrade={() => setShowPayment(true)} />
         </div>
+
+        {/* Solana Tab - Coming Soon */}
+        <div style={{ 
+          display: activeTab === 'solana' ? 'block' : 'none' 
+        }} className="main-content">
+          <SolanaPage />
+        </div>
       </>
     );
   };
@@ -334,7 +345,7 @@ function App() {
       {renderMainContent()}
 
       {/* Footer - Hidden on landing page and sybil page */}
-      {activeTab !== 'home' && activeTab !== 'sybil' && (
+      {activeTab !== 'home' && activeTab !== 'sybil' && activeTab !== 'solana' && (
         <footer style={{
           padding: 24,
           textAlign: 'center',

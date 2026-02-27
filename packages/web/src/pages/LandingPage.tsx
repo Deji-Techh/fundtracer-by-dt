@@ -11,13 +11,14 @@ import './LandingPage.css';
 
 interface LandingPageProps {
   onLaunchApp?: () => void;
+  onLaunchSolana?: () => void;
 }
 
-export function LandingPage({ onLaunchApp }: LandingPageProps) {
+export function LandingPage({ onLaunchApp, onLaunchSolana }: LandingPageProps) {
   return (
     <div className="landing-page-v2">
-      <LandingNav onLaunchApp={onLaunchApp} />
-      <Hero onLaunchApp={onLaunchApp} />
+      <LandingNav onLaunchApp={onLaunchApp} onLaunchSolana={onLaunchSolana} />
+      <Hero onLaunchApp={onLaunchApp} onLaunchSolana={onLaunchSolana} />
       <ApiProvidersShowcase />
       <Features onLaunchApp={onLaunchApp} />
       <CliShowcase />

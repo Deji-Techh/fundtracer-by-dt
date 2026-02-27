@@ -33,6 +33,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
 }
 
 .landing-logo-v2 {
@@ -103,6 +104,14 @@
   background: var(--color-accent-hover);
 }
 
+.landing-nav-cta-solana {
+  background: linear-gradient(135deg, #9945FF 0%, #14F195 100%);
+}
+
+.landing-nav-cta-solana:hover {
+  box-shadow: 0 4px 20px rgba(153, 69, 255, 0.4);
+}
+
 .mobile-menu-btn-v2 {
   display: none;
   background: none;
@@ -171,6 +180,11 @@
   font-weight: 600;
   cursor: pointer;
   margin-top: 12px;
+}
+
+.mobile-menu-cta-solana {
+  background: linear-gradient(135deg, #9945FF 0%, #14F195 100%);
+  color: white;
 }
 
 .desktop-only {

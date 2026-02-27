@@ -8,9 +8,10 @@ import './Hero.css';
 
 interface HeroProps {
   onLaunchApp?: () => void;
+  onLaunchSolana?: () => void;
 }
 
-export function Hero({ onLaunchApp }: HeroProps) {
+export function Hero({ onLaunchApp, onLaunchSolana }: HeroProps) {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
   const { scrollYProgress } = useScroll({
@@ -48,7 +49,7 @@ export function Hero({ onLaunchApp }: HeroProps) {
               ease: 'easeInOut',
             }}
           />
-          <ScrambleText text="Now supporting 7+ blockchains" delay={500} speed={40} />
+          <ScrambleText text="Now supporting Solana + 7+ EVM chains" delay={500} speed={40} />
         </motion.div>
 
         <motion.h1 className="hero-title-v2">
@@ -98,7 +99,7 @@ export function Hero({ onLaunchApp }: HeroProps) {
           transition={{ duration: 0.8, delay: 1.4 }}
         >
           Analyze wallets, detect Sybil patterns, and trace funding sources across Ethereum, 
-          Linea, Arbitrum, and more. Professional-grade tools for researchers, investors, 
+          Solana, Linea, Arbitrum, and more. Professional-grade tools for researchers, investors, 
           and compliance teams.
         </motion.p>
 
@@ -115,7 +116,19 @@ export function Hero({ onLaunchApp }: HeroProps) {
             whileTap={{ scale: 0.98 }}
           >
             <span className="btn-content">
-              <span>Launch App</span>
+              <span>Launch on EVM</span>
+              <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} />
+            </span>
+          </motion.button>
+
+          <motion.button
+            onClick={onLaunchSolana}
+            className="hero-btn-v2 solana-btn"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span className="btn-content">
+              <span>Launch on Solana</span>
               <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} />
             </span>
           </motion.button>
@@ -143,8 +156,8 @@ export function Hero({ onLaunchApp }: HeroProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 1.8 }}
         >
-          {[
-            { number: '7+', label: 'Blockchains' },
+            {[
+            { number: '8+', label: 'Blockchains' },
             { number: '10K+', label: 'Wallets Analyzed' },
             { number: 'Real-time', label: 'Data' },
             { number: 'Enterprise', label: 'Security' },

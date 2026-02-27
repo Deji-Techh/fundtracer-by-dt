@@ -218,6 +218,16 @@
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
 }
 
+.solana-btn {
+  background: linear-gradient(135deg, #9945FF 0%, #14F195 100%);
+  color: white;
+  font-weight: 600;
+}
+
+.solana-btn:hover {
+  box-shadow: 0 8px 40px rgba(153, 69, 255, 0.4);
+}
+
 .btn-content {
   display: flex;
   align-items: center;
