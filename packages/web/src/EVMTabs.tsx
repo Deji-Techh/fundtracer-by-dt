@@ -40,27 +40,27 @@ type TabType = 'home' | 'portfolio' | 'sybil' | 'history' | 'settings';
 export default function EVMTabs() {
   const pathname = window.location.pathname;
   
-  // Static pages for /evm
-  if (pathname === '/evm/about') {
+  // Static pages for /app-evm
+  if (pathname === '/app-evm/about') {
     return <AboutPage />;
   }
-  if (pathname === '/evm/features') {
+  if (pathname === '/app-evm/features') {
     return <FeaturesPage />;
   }
-  if (pathname === '/evm/pricing') {
+  if (pathname === '/app-evm/pricing') {
     return <PricingPage />;
   }
-  if (pathname === '/evm/how-it-works') {
+  if (pathname === '/app-evm/how-it-works') {
     return <HowItWorksPage />;
   }
-  if (pathname === '/evm/faq') {
+  if (pathname === '/app-evm/faq') {
     return <FaqPage />;
   }
-  if (pathname === '/evm/terms') {
+  if (pathname === '/app-evm/terms') {
     return <TermsPage />;
   }
-  if (pathname === '/evm/privacy' || pathname === '/evm/privacypolicy') {
-    return pathname === '/evm/privacypolicy' ? <PrivacyPolicyPage /> : <PrivacyPage />;
+  if (pathname === '/app-evm/privacy' || pathname === '/app-evm/privacypolicy') {
+    return pathname === '/app-evm/privacypolicy' ? <PrivacyPolicyPage /> : <PrivacyPage />;
   }
   
   // EVM tabs
@@ -184,7 +184,7 @@ function EVMMainApp() {
         <footer style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', fontSize: '0.875rem', display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' as const }}>
           <span>&copy; {new Date().getFullYear()} FundTracer by DT</span>
           <span style={{ color: 'var(--color-border)' }}>|</span>
-          <a href="/evm/privacypolicy" style={{ color: 'var(--color-text-muted)', textDecoration: 'underline' }}>Privacy Policy</a>
+          <a href="/app-evm/privacypolicy" style={{ color: 'var(--color-text-muted)', textDecoration: 'underline' }}>Privacy Policy</a>
         </footer>
       )}
     </>

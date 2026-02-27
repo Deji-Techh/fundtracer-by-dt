@@ -86,7 +86,7 @@ export function Pricing() {
               </ul>
 
               <button 
-                onClick={() => window.location.href = '/evm'}
+                onClick={() => window.location.href = '/app-evm'}
                 className={`pricing-cta ${tier.popular ? 'pricing-cta-primary' : ''}`}
               >
                 {tier.popular ? 'Upgrade to Pro' : tier.name === 'Max' ? 'Go Unlimited' : 'Get Started'}

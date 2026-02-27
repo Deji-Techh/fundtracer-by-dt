@@ -105,7 +105,7 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 1.6 }}
         >
           <motion.button
-            onClick={() => window.location.href = '/evm'}
+            onClick={() => window.location.href = '/app-evm'}
             className="hero-btn-v2 hero-btn-primary-v2"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -117,7 +117,7 @@ export function Hero() {
           </motion.button>
 
           <motion.button
-            onClick={() => window.location.href = '/solana'}
+            onClick={() => window.location.href = '/app-solana'}
             className="hero-btn-v2 solana-btn"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

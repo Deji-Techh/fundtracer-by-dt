@@ -8,12 +8,12 @@ function App() {
   const pathname = window.location.pathname;
   
   // Solana app routes
-  if (pathname.startsWith('/solana')) {
+  if (pathname.startsWith('/app-solana')) {
     return <SolanaPage />;
   }
   
   // EVM app routes
-  if (pathname.startsWith('/evm')) {
+  if (pathname.startsWith('/app-evm')) {
     return <EVMTabs />;
   }
   

@@ -111,7 +111,7 @@ export function Features() {
           transition={{ duration: 0.8, delay: 0.6 }}
         >
           <motion.button
-            onClick={() => window.location.href = '/evm'}
+            onClick={() => window.location.href = '/app-evm'}
             className="features-btn-v2"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}

@@ -76,7 +76,7 @@ export function LandingNav() {
         </div>
 
         <motion.button
-          onClick={() => window.location.href = '/evm'}
+          onClick={() => window.location.href = '/app-evm'}
           className="landing-nav-cta-v2 desktop-only"
           whileHover={{ scale: 1.02, y: -1 }}
           whileTap={{ scale: 0.98 }}
@@ -155,7 +155,7 @@ export function LandingNav() {
               <motion.button
                 onClick={() => {
                   handleLinkClick();
-                  window.location.href = '/evm';
+                  window.location.href = '/app-evm';
                 }}
                 className="mobile-menu-cta-v2"
                 initial={{ opacity: 0, y: 10 }}
