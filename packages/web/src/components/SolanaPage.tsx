@@ -1,13 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWallet } from '../providers/SolanaWalletProvider';
 import { isValidSolanaAddress } from '../utils/addressDetection';
 import { analyzeSolanaWallet, getSolanaFundingTree, detectSolanaSybil } from '../api/solana';
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 export function SolanaPage() {
+  const { publicKey, connected } = useWallet();
   const [address, setAddress] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState<any>(null);
+
+  useEffect(() => {
+    if (connected && publicKey) {
+      setAddress(publicKey.toString());
+    }
+  }, [connected, publicKey]);
 
   const handleAnalyze = async () => {
     if (!address.trim()) return;
@@ -69,12 +79,29 @@ export function SolanaPage() {
         <p style={{
           fontSize: '1.125rem',
           color: 'var(--color-text-secondary)',
-          marginBottom: '40px',
+          marginBottom: '24px',
           lineHeight: 1.6,
         }}>
           Analyze Solana wallets, detect Sybil patterns, and trace funding sources 
           using our advanced fee payer analysis and program interaction fingerprinting.
         </p>
+
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: '32px',
+        }}>
+          <WalletMultiButton style={{
+            background: 'linear-gradient(135deg, #9945FF 0%, #14F195 100%)',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '12px 24px',
+            fontSize: '0.9375rem',
+            fontWeight: 600,
+            color: 'white',
+            cursor: 'pointer',
+          }} />
+        </div>
 
         <div style={{
           display: 'flex',
