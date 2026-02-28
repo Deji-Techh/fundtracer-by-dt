@@ -268,39 +268,44 @@ app.use((req, res, next) => {
 });
 
 // Rate limiting configuration
+// Skip rate limiting for health checks
+const skipHealthCheck = (req: any) => req.path === '/health';
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 500, // Limit each IP to 500 requests per windowMs (increased from 100)
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipHealthCheck,
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Stricter limit for auth endpoints
+  max: 50, // Stricter limit for auth endpoints (increased from 20)
   message: { error: 'Too many authentication attempts, please try again later' },
-  skipSuccessfulRequests: true, // Don't count successful requests
+  skipSuccessfulRequests: true,
 });
 
 const analyzeLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 30, // 30 analysis requests per minute
+  max: 100, // 100 analysis requests per minute (increased from 30)
   message: { error: 'Analysis rate limit exceeded, please slow down' },
 });
 
 const scanHistoryLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 20, // 20 scan history requests per minute
+  max: 50, // 50 scan history requests per minute (increased from 20)
   message: { error: 'Scan history sync rate limit exceeded, please slow down' },
-  skipSuccessfulRequests: true, // Don't count successful requests
+  skipSuccessfulRequests: true,
 });
 
-// Public endpoint rate limiter - stricter limits for unauthenticated endpoints
+// Public endpoint rate limiter - more permissive for unauthenticated endpoints
 const publicLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // 50 requests per 15 minutes for public endpoints
+  max: 200, // 200 requests per 15 minutes for public endpoints (increased from 50)
   message: { error: 'Rate limit exceeded for public endpoints, please try again later' },
+  skip: skipHealthCheck,
 });
 
 // Apply general rate limiting to all API routes
