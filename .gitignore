@@ -59,6 +59,7 @@ ngrok.log
 # IDE and AI agent specific (DO NOT commit these)
 .agent/
 .agents/
+.claude/
 .cursor/
 .gemini/
 .opencode/
