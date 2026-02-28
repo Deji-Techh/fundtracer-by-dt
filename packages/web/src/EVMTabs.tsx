@@ -74,7 +74,7 @@ function EVMMainApp() {
   const { address, isConnected } = useAppKitAccount();
   const { theme } = useTheme();
 
-  const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [activeTab, setActiveTab] = useState<TabType>('sybil');
   
   const [prefillAddress, setPrefillAddress] = useState<string>('');
   const [prefillChain, setPrefillChain] = useState<string>('');
