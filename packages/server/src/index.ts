@@ -135,6 +135,7 @@ app.use(helmet({
                 "'self'",
                 "https://rpc.linea.build",
                 "wss://relay.walletconnect.org",
+                "wss://relay.walletconnect.com",
                 "https://api.web3modal.org",
                 "https://secure.walletconnect.org",
                 "https://*.walletconnect.com",
@@ -151,7 +152,11 @@ app.use(helmet({
                 "https://api.dexscreener.com",
                 "https://*.g.alchemy.com",
                 "https://*.alchemy.com",
-                "https://api.coingecko.com"
+                "https://api.coingecko.com",
+                "https://mainnet.helius-rpc.com",
+                "https://api.helius.xyz",
+                "https://pulse.walletconnect.org",
+                "https://pulse.reown.com"
             ],
             "frame-src": [
                 "'self'",
