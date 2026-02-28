@@ -161,15 +161,14 @@ async function getWalletInfo(address: string): Promise<WalletInfo> {
 
   const isProgram = accountRes.result?.value?.executable ?? false;
   const sigs = sigsRes.result || [];
-  const history = Array.isArray(historyRes) ? historyRes : [];
 
   return {
     address,
     chain: { type: 'solana', id: 'mainnet-beta', name: 'Solana' },
     balance: ((balanceRes.result?.value || 0) / 1e9).toFixed(4),
-    balanceUSD: null, // Will be calculated in portfolio
+    balanceUSD: null,
     nativeSymbol: 'SOL',
-    isContract,
+    isContract: isProgram,
     firstSeen: sigs.length > 0 ? (sigs[sigs.length - 1]?.blockTime ? sigs[sigs.length - 1].blockTime * 1000 : null) : null,
     lastActive: sigs.length > 0 ? (sigs[0]?.blockTime ? sigs[0].blockTime * 1000 : null) : null,
     txCount: sigs.length,
