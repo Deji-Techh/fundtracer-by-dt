@@ -1,190 +1,185 @@
-/* Landing Nav V2 - Futuristic Design */
+/* iOS Glass Navigation */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
-.landing-nav-v2 {
+.ios-nav {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  transition: all 0.3s ease;
+  z-index: 1000;
+  padding: 0 var(--space-6);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border);
+  transition: all var(--transition-base);
 }
 
-[data-theme="light"] .landing-nav-v2 {
-  background: rgba(250, 250, 250, 0.8);
+.ios-nav.scrolled {
+  background: var(--glass-bg-hover);
+  box-shadow: var(--shadow-lg);
 }
 
-.landing-nav-v2.scrolled {
-  background: rgba(0, 0, 0, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+[data-theme="light"] .ios-nav.scrolled {
+  background: rgba(255, 255, 255, 0.85);
 }
 
-[data-theme="light"] .landing-nav-v2.scrolled {
-  background: rgba(250, 250, 250, 0.95);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.landing-nav-container-v2 {
+.ios-nav-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 18px 24px;
+  padding: 14px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-6);
 }
 
-.landing-logo-v2 {
+.ios-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
+  color: var(--color-text-primary);
 }
 
-.landing-logo-img-v2 {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+.ios-logo-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.landing-logo-text-v2 {
+.ios-logo-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ios-logo-text {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-text-primary);
   letter-spacing: -0.02em;
+  background: var(--gradient-green);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.landing-nav-links-v2 {
+.ios-nav-links {
   display: flex;
   align-items: center;
-  gap: 36px;
+  gap: var(--space-2);
 }
 
-.landing-nav-link-v2 {
+.ios-nav-link {
+  position: relative;
+  padding: 8px 16px;
+  font-size: 0.9375rem;
+  font-weight: 500;
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 500;
-  position: relative;
-  transition: color 0.2s ease;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
 }
 
-.landing-nav-link-v2:hover {
+.ios-nav-link:hover {
   color: var(--color-text-primary);
-}
-
-.nav-link-underline {
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, var(--color-accent), transparent);
-  transform-origin: left;
-}
-
-.landing-nav-cta-v2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: var(--color-accent);
-  color: #000000;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.landing-nav-cta-v2:hover {
-  background: var(--color-accent-hover);
-}
-
-.landing-nav-cta-solana {
-  background: linear-gradient(135deg, #9945FF 0%, #14F195 100%);
-}
-
-.landing-nav-cta-solana:hover {
-  box-shadow: 0 4px 20px rgba(153, 69, 255, 0.4);
-}
-
-.mobile-menu-btn-v2 {
-  display: none;
-  background: none;
-  border: none;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  transition: background 0.2s ease;
-}
-
-.mobile-menu-btn-v2:hover {
   background: var(--color-bg-hover);
 }
 
-.mobile-menu-v2 {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+.ios-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ios-cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #000;
+  background: var(--gradient-green);
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  box-shadow: var(--shadow-green);
+  transition: all var(--transition-base);
+}
+
+.ios-cta-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(34, 197, 94, 0.35);
+}
+
+.ios-mobile-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.ios-mobile-menu {
   overflow: hidden;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--glass-border);
 }
 
-[data-theme="light"] .mobile-menu-v2 {
-  background: rgba(250, 250, 250, 0.98);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+[data-theme="light"] .ios-mobile-menu {
+  background: rgba(255, 255, 255, 0.95);
 }
 
-.mobile-menu-content-v2 {
-  padding: 24px;
+.ios-mobile-menu-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.mobile-menu-link-v2 {
-  color: var(--color-text-secondary);
-  text-decoration: none;
+.ios-mobile-menu-link {
+  padding: 14px 16px;
   font-size: 1rem;
   font-weight: 500;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--color-border);
-  transition: all 0.2s ease;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
 }
 
-.mobile-menu-link-v2:hover {
+.ios-mobile-menu-link:hover {
   color: var(--color-text-primary);
-  padding-left: 8px;
+  background: var(--color-bg-hover);
 }
 
-.mobile-menu-cta-v2 {
-  display: flex;
+.ios-mobile-menu-cta {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 16px;
-  background: var(--color-accent);
-  color: #000000;
-  border: none;
-  border-radius: 8px;
+  margin-top: 8px;
+  padding: 14px 20px;
   font-size: 1rem;
   font-weight: 600;
+  color: #000;
+  background: var(--gradient-green);
+  border: none;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  margin-top: 12px;
-}
-
-.mobile-menu-cta-solana {
-  background: linear-gradient(135deg, #9945FF 0%, #14F195 100%);
-  color: white;
+  box-shadow: var(--shadow-green);
 }
 
 .desktop-only {
@@ -196,24 +191,28 @@
 }
 
 @media (max-width: 768px) {
-  .landing-nav-container-v2 {
-    padding: 14px 16px;
-  }
-
   .desktop-only {
     display: none !important;
   }
-
+  
   .mobile-only {
     display: flex !important;
   }
-
-  .landing-logo-text-v2 {
-    font-size: 1.125rem;
+  
+  .ios-nav {
+    padding: 0 var(--space-4);
   }
-
-  .landing-logo-img-v2 {
-    width: 28px;
-    height: 28px;
+  
+  .ios-nav-container {
+    padding: 12px 0;
+  }
+  
+  .ios-logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .ios-logo-text {
+    font-size: 1.125rem;
   }
 }

@@ -4,7 +4,7 @@ import LandingPage from './pages/LandingPage';
 import EVMTabs from './EVMTabs';
 import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
-import './global.css';
+import './styles/ios-glass.css';
 
 function App() {
   return (

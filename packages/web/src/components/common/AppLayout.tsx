@@ -1,35 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { HugeiconsIcon } from '@hugeicons/react';
-import {
-  Home01Icon,
-  Wallet01Icon,
-  Clock01Icon,
-  Shield01Icon,
-  Settings01Icon,
-  FavouriteIcon,
-  SidebarLeft01Icon,
-  SidebarRight01Icon,
-  Globe02Icon,
-} from '@hugeicons/core-free-icons';
+import { ThemeToggle } from '../common/ThemeToggle';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface NavItem {
   id: string;
   label: string;
-  icon: any;
+  icon: React.ReactNode;
 }
 
 const navItems: NavItem[] = [
-  { id: 'home', label: 'Home', icon: Home01Icon },
-  { id: 'portfolio', label: 'Portfolio', icon: Wallet01Icon },
-  { id: 'sybil', label: 'Sybil', icon: Shield01Icon },
-  { id: 'history', label: 'History', icon: Clock01Icon },
+  { 
+    id: 'home', 
+    label: 'Home', 
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    )
+  },
+  { 
+    id: 'portfolio', 
+    label: 'Portfolio', 
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="18" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+    )
+  },
+  { 
+    id: 'sybil', 
+    label: 'Sybil', 
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    )
+  },
+  { 
+    id: 'history', 
+    label: 'History', 
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    )
+  },
 ];
 
 const bottomNavItems: NavItem[] = [
-  { id: 'settings', label: 'Settings', icon: Settings01Icon },
+  { 
+    id: 'settings', 
+    label: 'Settings', 
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    )
+  },
 ];
 
 interface AppLayoutProps {
@@ -59,106 +93,89 @@ export function AppLayout({ children, activeTab, onTabChange }: AppLayoutProps) 
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
+    <div style={{ display: 'flex', minHeight: '100vh', paddingTop: 64 }}>
       <motion.aside
-        initial={false}
-        animate={{ width: isExpanded ? 240 : 72 }}
-        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        initial={{ x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="ios-sidebar"
         style={{
           position: 'fixed',
-          left: 0,
-          top: 64,
-          bottom: 0,
-          background: 'var(--color-bg)',
-          borderRight: '1px solid var(--color-border)',
+          left: 16,
+          top: 80,
+          bottom: 16,
+          width: isExpanded ? 240 : 72,
+          background: 'var(--glass-bg)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-lg)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 100,
-          overflow: 'visible',
+          overflow: 'hidden',
         }}
       >
-        {/* Main Navigation */}
         <nav style={{ flex: 1, padding: '16px 12px', overflow: 'hidden' }}>
-          <div style={{ marginBottom: 24 }}>
-            <motion.div
-              animate={{ opacity: isExpanded ? 1 : 0 }}
-              transition={{ duration: 0.15 }}
-              style={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: 'var(--color-text-muted)',
-                padding: '0 12px',
-                marginBottom: 8,
-                whiteSpace: 'nowrap',
-                height: isExpanded ? 'auto' : 0,
-                overflow: 'hidden',
-              }}
-            >
-              Navigation
-            </motion.div>
-            {navItems.map((item) => (
-              <NavItem
-                key={item.id}
-                item={item}
-                isActive={activeTab === item.id}
-                isExpanded={isExpanded}
-                onClick={() => {
-                  console.log('Nav clicked:', item.id, 'current activeTab:', activeTab);
-                  handleNavClick(item.id);
-                }}
-              />
-            ))}
-          </div>
-
-          <div>
-            <motion.div
-              animate={{ opacity: isExpanded ? 1 : 0 }}
-              transition={{ duration: 0.15 }}
-              style={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: 'var(--color-text-muted)',
-                padding: '0 12px',
-                marginBottom: 8,
-                whiteSpace: 'nowrap',
-                height: isExpanded ? 'auto' : 0,
-                overflow: 'hidden',
-              }}
-            >
-              Quick Access
-            </motion.div>
-            <NavItem
-              item={{ id: 'watchlist', label: 'Watchlist', icon: FavouriteIcon }}
-              isActive={false}
-              isExpanded={isExpanded}
-              onClick={() => {}}
-              disabled
-            />
-          </div>
-        </nav>
-
-        {/* Bottom Section */}
-        <div style={{ padding: '12px', borderTop: '1px solid var(--color-border)' }}>
-          {bottomNavItems.map((item) => (
+          <motion.div
+            animate={{ opacity: isExpanded ? 1 : 0, height: isExpanded ? 'auto' : 0 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              fontSize: '0.6875rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: 'var(--color-text-muted)',
+              padding: '0 12px',
+              marginBottom: 8,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+            }}
+          >
+            Navigation
+          </motion.div>
+          {navItems.map((item) => (
             <NavItem
               key={item.id}
               item={item}
               isActive={activeTab === item.id}
               isExpanded={isExpanded}
-              onClick={() => onTabChange(item.id)}
+              onClick={() => handleNavClick(item.id)}
             />
           ))}
 
-          {/* Collapse Toggle */}
+          <motion.div
+            animate={{ opacity: isExpanded ? 1 : 0, height: isExpanded ? 'auto' : 0 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              fontSize: '0.6875rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: 'var(--color-text-muted)',
+              padding: '0 12px',
+              marginTop: 24,
+              marginBottom: 8,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+            }}
+          >
+            Quick Access
+          </motion.div>
+        </nav>
+
+        <div style={{ padding: '12px', borderTop: '1px solid var(--color-border)' }}>
+          <NavItem
+            item={bottomNavItems[0]}
+            isActive={activeTab === bottomNavItems[0].id}
+            isExpanded={isExpanded}
+            onClick={() => onTabChange(bottomNavItems[0].id)}
+          />
+
           <motion.button
-            whileHover={{ backgroundColor: 'var(--color-bg-hover)' }}
+            whileHover={{ scale: 1.02, backgroundColor: 'var(--color-bg-hover)' }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setIsCollapsed(!isCollapsed)}
             style={{
               display: 'flex',
@@ -166,20 +183,24 @@ export function AppLayout({ children, activeTab, onTabChange }: AppLayoutProps) 
               gap: 12,
               width: '100%',
               padding: '10px 12px',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-lg)',
               border: 'none',
               background: 'transparent',
               color: 'var(--color-text-muted)',
               cursor: 'pointer',
               marginTop: 8,
-              transition: 'color 0.2s',
+              transition: 'all 0.2s',
             }}
           >
-            <HugeiconsIcon
-              icon={isCollapsed ? SidebarRight01Icon : SidebarLeft01Icon}
-              size={20}
-              strokeWidth={1.5}
-            />
+            {isCollapsed ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            )}
             <motion.span
               animate={{ opacity: isExpanded ? 1 : 0 }}
               style={{
@@ -194,15 +215,14 @@ export function AppLayout({ children, activeTab, onTabChange }: AppLayoutProps) 
         </div>
       </motion.aside>
 
-      {/* Main Content */}
       <motion.main
         initial={false}
-        animate={{ marginLeft: isExpanded ? 240 : 72 }}
+        animate={{ marginLeft: isExpanded ? 264 : 96 }}
         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
         style={{
           flex: 1,
-          marginTop: 64,
           minHeight: 'calc(100vh - 64px)',
+          padding: 16,
         }}
       >
         {children}
@@ -216,32 +236,26 @@ interface NavItemProps {
   isActive: boolean;
   isExpanded: boolean;
   onClick: () => void;
-  disabled?: boolean;
 }
 
-function NavItem({ item, isActive, isExpanded, onClick, disabled }: NavItemProps) {
+function NavItem({ item, isActive, isExpanded, onClick }: NavItemProps) {
   return (
     <motion.button
-      key={item.id}
-      whileHover={{ backgroundColor: disabled ? 'transparent' : 'var(--color-bg-hover)' }}
-      whileTap={{ scale: disabled ? 1 : 0.98 }}
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
-      className={isActive ? 'nav-item-active' : ''}
+      whileHover={{ scale: 1.02, backgroundColor: 'var(--color-bg-hover)' }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 12,
         width: '100%',
         padding: '10px 12px',
-        paddingLeft: isActive ? 9 : 12,
-        borderRadius: 8,
+        borderRadius: 'var(--radius-lg)',
         border: 'none',
-        background: isActive ? 'var(--color-bg-elevated)' : 'transparent',
-        color: isActive ? 'var(--color-text-primary)' : disabled ? 'var(--color-text-muted)' : 'var(--color-text-secondary)',
-        cursor: disabled ? 'not-allowed' : 'pointer',
+        background: isActive ? 'var(--color-accent-muted)' : 'transparent',
+        color: isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+        cursor: 'pointer',
         marginBottom: 4,
-        opacity: disabled ? 0.5 : 1,
         transition: 'all 0.2s',
         position: 'relative',
         overflow: 'visible',
@@ -256,11 +270,13 @@ function NavItem({ item, isActive, isExpanded, onClick, disabled }: NavItemProps
             bottom: 4,
             width: 3,
             background: 'var(--color-accent)',
-            borderRadius: '0 2px 2px 0',
+            borderRadius: 'var(--radius-full)',
           }}
         />
       )}
-      <HugeiconsIcon icon={item.icon} size={20} strokeWidth={1.5} color={isActive ? 'var(--color-accent)' : 'currentColor'} />
+      <span style={{ color: isActive ? 'var(--color-accent)' : 'currentColor' }}>
+        {item.icon}
+      </span>
       <motion.span
         animate={{ opacity: isExpanded ? 1 : 0 }}
         transition={{ duration: 0.15 }}
