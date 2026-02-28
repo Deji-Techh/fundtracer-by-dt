@@ -2,8 +2,8 @@
 
 .landing-page-v2 {
   min-height: 100vh;
-  background-color: #000000;
-  color: #ffffff;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
   position: relative;
   overflow-x: hidden;
 }
@@ -13,8 +13,8 @@
 }
 
 .landing-page-v2 ::selection {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background: var(--color-accent-muted);
+  color: var(--color-text-primary);
 }
 
 .landing-page-v2 ::-moz-selection {

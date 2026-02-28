@@ -42,17 +42,10 @@
   color: var(--color-text-primary);
 }
 
-.ios-logo-icon {
+.ios-logo-img {
   width: 36px;
   height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ios-logo-icon svg {
-  width: 100%;
-  height: 100%;
+  border-radius: 10px;
 }
 
 .ios-logo-text {

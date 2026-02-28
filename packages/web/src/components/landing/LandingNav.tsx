@@ -37,19 +37,14 @@ export function LandingNav() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <div className="ios-logo-icon">
-            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="url(#logoGrad)"/>
-              <path d="M8 16L14 10L20 16L14 22L8 16Z" fill="white" fillOpacity="0.9"/>
-              <path d="M14 16L20 10L26 16L20 22L14 16Z" fill="white" fillOpacity="0.6"/>
-              <defs>
-                <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
-                  <stop stopColor="#22c55e"/>
-                  <stop offset="1" stopColor="#14b8a6"/>
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="FundTracer" 
+            className="ios-logo-img"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
           <span className="ios-logo-text">FundTracer</span>
         </motion.a>
 

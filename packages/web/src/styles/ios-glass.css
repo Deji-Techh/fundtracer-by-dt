@@ -720,7 +720,26 @@ select {
   }
   
   .top-nav {
-    padding: 0 12px;
+    padding: 0 8px;
+    height: 56px;
+  }
+  
+  .top-nav-left {
+    gap: 8px;
+  }
+  
+  .top-nav-logo {
+    font-size: 1rem;
+  }
+  
+  .top-nav-logo img {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+  }
+  
+  .top-nav-right {
+    gap: 6px;
   }
   
   .top-nav-center {

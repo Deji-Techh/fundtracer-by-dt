@@ -8,7 +8,6 @@ import { trackVisit } from './api';
 import TopNav from './components/CoinGecko/TopNav';
 import HomePage from './components/CoinGecko/HomePage';
 import SybilPage from './components/CoinGecko/SybilPage';
-import { AppLayout } from './components/common/AppLayout';
 
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage').then(m => ({ default: m.FeaturesPage })));
@@ -195,7 +194,9 @@ function EVMMainApp() {
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       {activeTab !== 'home' && <TopNav activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as TabType)} />}
       {activeTab !== 'home' ? (
-        <AppLayout activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as TabType)}>{mainContent}</AppLayout>
+        <div style={{ paddingTop: '56px', paddingBottom: '80px' }}>
+          {mainContent}
+        </div>
       ) : mainContent}
       {showComingSoon && <ComingSoonModal onClose={() => setShowComingSoon(false)} />}
       <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
