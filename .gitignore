@@ -55,3 +55,17 @@ packages/*/build
 .env.vercel
 .env.railway
 ngrok.log
+
+# IDE and AI agent specific (DO NOT commit these)
+.agent/
+.agents/
+.cursor/
+.gemini/
+.opencode/
+.vscode-oss/
+
+# Documentation files that shouldn't be in repo
+DEPLOYMENT*.md
+LINEA_REVIEW_INFO.md
+SECRETS.md
+README_CLI.md
