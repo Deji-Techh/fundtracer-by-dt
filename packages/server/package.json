@@ -2,7 +2,6 @@
     "name": "@fundtracer/server",
     "version": "1.0.0",
     "description": "FundTracer API Server - Handles auth, rate limiting, and secure API key management",
-    "type": "module",
     "main": "dist/index.js",
     "scripts": {
         "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/index.js && esbuild src/functions/api.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/functions/api.js",
