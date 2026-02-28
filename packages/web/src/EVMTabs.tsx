@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
-import { useLocation, Routes, Route } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
@@ -8,7 +8,6 @@ import { trackVisit } from './api';
 import TopNav from './components/CoinGecko/TopNav';
 import HomePage from './components/CoinGecko/HomePage';
 import SybilPage from './components/CoinGecko/SybilPage';
-import LandingPage from './pages/LandingPage';
 import { AppLayout } from './components/common/AppLayout';
 
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));

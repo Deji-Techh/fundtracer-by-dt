@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Home01Icon,
@@ -14,6 +15,8 @@ interface MobileFooterProps {
 }
 
 export function MobileFooter({ activeTab, onTabChange }: MobileFooterProps) {
+  const navigate = useNavigate();
+  
   const navItems = [
     { id: 'home', icon: Home01Icon },
     { id: 'portfolio', icon: Wallet01Icon },
@@ -22,13 +25,21 @@ export function MobileFooter({ activeTab, onTabChange }: MobileFooterProps) {
     { id: 'settings', icon: Settings01Icon },
   ];
 
+  const handleNavClick = (itemId: string) => {
+    if (itemId === 'home') {
+      navigate('/');
+    } else {
+      onTabChange(itemId);
+    }
+  };
+
   return (
     <nav className="mobile-footer">
       <div className="mobile-footer-container">
         {navItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => onTabChange(item.id)}
+            onClick={() => handleNavClick(item.id)}
             className={`mobile-footer-item ${activeTab === item.id ? 'active' : ''}`}
           >
             <HugeiconsIcon

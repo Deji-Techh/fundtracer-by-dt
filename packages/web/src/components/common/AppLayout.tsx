@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Home01Icon,
@@ -41,8 +42,17 @@ export function AppLayout({ children, activeTab, onTabChange }: AppLayoutProps) 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const isExpanded = !isCollapsed || isHovered;
+
+  const handleNavClick = (itemId: string) => {
+    if (itemId === 'home') {
+      navigate('/');
+    } else {
+      onTabChange(itemId);
+    }
+  };
 
   if (isMobile) {
     return <>{children}</>;
@@ -99,7 +109,7 @@ export function AppLayout({ children, activeTab, onTabChange }: AppLayoutProps) 
                 isExpanded={isExpanded}
                 onClick={() => {
                   console.log('Nav clicked:', item.id, 'current activeTab:', activeTab);
-                  onTabChange(item.id);
+                  handleNavClick(item.id);
                 }}
               />
             ))}

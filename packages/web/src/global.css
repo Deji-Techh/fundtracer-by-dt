@@ -3389,3 +3389,17 @@ select:disabled {
     gap: 16px;
   }
 }
+
+/* Skeleton Loading Animation */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  opacity: 0.7;
+}
