@@ -1,29 +1,21 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import EVMTabs from './EVMTabs';
 import SolanaPage from './components/SolanaPage';
 import './global.css';
 
 function App() {
-  const pathname = window.location.pathname;
-  
-  // Solana app routes
-  if (pathname.startsWith('/app-solana')) {
-    return <SolanaPage />;
-  }
-  
-  // EVM app routes
-  if (pathname.startsWith('/app-evm')) {
-    return <EVMTabs />;
-  }
-  
-  // Landing page
-  if (pathname === '/') {
-    return <LandingPage />;
-  }
-  
-  // Redirect unknown routes to landing
-  return <LandingPage />;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/app-evm/*" element={<EVMTabs />} />
+        <Route path="/app-solana/*" element={<SolanaPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

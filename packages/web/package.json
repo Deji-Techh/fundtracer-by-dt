@@ -40,6 +40,7 @@
         "react": "^18.2.0",
         "react-chartjs-2": "^5.3.1",
         "react-dom": "^18.2.0",
+        "react-router-dom": "^6.30.3",
         "viem": "^2.44.2",
         "vite": "^5.0.10",
         "wagmi": "^2.19.5"

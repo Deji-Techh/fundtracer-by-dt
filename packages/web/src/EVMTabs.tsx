@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
+import { useLocation, Routes, Route } from 'react-router-dom';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
@@ -10,13 +11,13 @@ import SybilPage from './components/CoinGecko/SybilPage';
 import LandingPage from './pages/LandingPage';
 import { AppLayout } from './components/common/AppLayout';
 
-import { AboutPage } from './pages/AboutPage';
-import { FeaturesPage } from './pages/FeaturesPage';
-import { PricingPage } from './pages/PricingPage';
-import { HowItWorksPage } from './pages/HowItWorksPage';
-import { FaqPage } from './pages/FaqPage';
-import { TermsPage } from './pages/TermsPage';
-import { PrivacyPage } from './pages/PrivacyPage';
+const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
+const FeaturesPage = lazy(() => import('./pages/FeaturesPage').then(m => ({ default: m.FeaturesPage })));
+const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
+const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage').then(m => ({ default: m.HowItWorksPage })));
+const FaqPage = lazy(() => import('./pages/FaqPage').then(m => ({ default: m.FaqPage })));
+const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 
 import ComingSoonModal from './components/ComingSoonModal';
 import OnboardingModal from './components/OnboardingModal';
@@ -38,29 +39,30 @@ import { KeyboardShortcuts } from './components/KeyboardShortcuts';
 type TabType = 'home' | 'portfolio' | 'sybil' | 'history' | 'settings';
 
 export default function EVMTabs() {
-  const pathname = window.location.pathname;
+  const location = useLocation();
+  const pathname = location.pathname;
   
   // Static pages for /app-evm
-  if (pathname === '/app-evm/about') {
+  if (pathname === '/app-evm/about' || pathname === '/about') {
     return <AboutPage />;
   }
-  if (pathname === '/app-evm/features') {
+  if (pathname === '/app-evm/features' || pathname === '/features') {
     return <FeaturesPage />;
   }
-  if (pathname === '/app-evm/pricing') {
+  if (pathname === '/app-evm/pricing' || pathname === '/pricing') {
     return <PricingPage />;
   }
-  if (pathname === '/app-evm/how-it-works') {
+  if (pathname === '/app-evm/how-it-works' || pathname === '/how-it-works') {
     return <HowItWorksPage />;
   }
-  if (pathname === '/app-evm/faq') {
+  if (pathname === '/app-evm/faq' || pathname === '/faq') {
     return <FaqPage />;
   }
-  if (pathname === '/app-evm/terms') {
+  if (pathname === '/app-evm/terms' || pathname === '/terms') {
     return <TermsPage />;
   }
-  if (pathname === '/app-evm/privacy' || pathname === '/app-evm/privacypolicy') {
-    return pathname === '/app-evm/privacypolicy' ? <PrivacyPolicyPage /> : <PrivacyPage />;
+  if (pathname === '/app-evm/privacy' || pathname === '/app-evm/privacypolicy' || pathname === '/privacy' || pathname === '/privacypolicy') {
+    return pathname === '/app-evm/privacypolicy' || pathname === '/privacypolicy' ? <PrivacyPolicyPage /> : <PrivacyPage />;
   }
   
   // EVM tabs
