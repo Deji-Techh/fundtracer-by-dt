@@ -101,13 +101,8 @@ export function Hero() {
           </div>
           <div className="ios-stat-divider" />
           <div className="ios-stat">
-            <span className="ios-stat-value">10+</span>
+            <span className="ios-stat-value">7+</span>
             <span className="ios-stat-label">Chains Supported</span>
-          </div>
-          <div className="ios-stat-divider" />
-          <div className="ios-stat">
-            <span className="ios-stat-value">99.9%</span>
-            <span className="ios-stat-label">Uptime</span>
           </div>
         </motion.div>
       </motion.div>
