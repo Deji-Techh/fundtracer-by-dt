@@ -3,14 +3,46 @@ import { motion } from 'framer-motion';
 import './ApiProvidersShowcase.css';
 
 const providers = [
-  { name: 'Dune', category: 'Analytics', icon: '🔍' },
-  { name: 'Alchemy', category: 'Infrastructure', icon: '⚡' },
-  { name: 'Etherscan', category: 'Explorer', icon: '🔗' },
-  { name: 'CoinGecko', category: 'Market Data', icon: '📊' },
-  { name: 'DefiLlama', category: 'DeFi', icon: '🦙' },
-  { name: 'The Graph', category: 'Indexing', icon: '📈' },
-  { name: 'QuickNode', category: 'Nodes', icon: '🚀' },
-  { name: 'Solana', category: 'Blockchain', icon: '☀️' },
+  { 
+    name: 'Dune', 
+    category: 'Analytics', 
+    logo: 'https://cryptologos.cc/logos/dune-dn-logo.png?v=035'
+  },
+  { 
+    name: 'Alchemy', 
+    category: 'Infrastructure', 
+    logo: 'https://cryptologos.cc/logos/alchemy-eth-logo.png?v=035'
+  },
+  { 
+    name: 'Etherscan', 
+    category: 'Explorer', 
+    logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=035'
+  },
+  { 
+    name: 'CoinGecko', 
+    category: 'Market Data', 
+    logo: 'https://cryptologos.cc/logos/coingecko-gecko-logo.png?v=035'
+  },
+  { 
+    name: 'DefiLlama', 
+    category: 'DeFi', 
+    logo: 'https://cryptologos.cc/logos/defillama-llama-logo.png?v=035'
+  },
+  { 
+    name: 'The Graph', 
+    category: 'Indexing', 
+    logo: 'https://cryptologos.cc/logos/the-graph-grt-logo.png?v=035'
+  },
+  { 
+    name: 'QuickNode', 
+    category: 'Nodes', 
+    logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=035'
+  },
+  { 
+    name: 'Solana', 
+    category: 'Blockchain', 
+    logo: 'https://cryptologos.cc/logos/solana-sol-logo.png?v=035'
+  },
 ];
 
 export function ApiProvidersShowcase() {
@@ -42,7 +74,15 @@ export function ApiProvidersShowcase() {
               transition={{ duration: 0.4, delay: index * 0.05 }}
               whileHover={{ scale: 1.02, y: -4 }}
             >
-              <div className="ios-api-card-icon">{provider.icon}</div>
+              <div className="ios-api-card-icon">
+                <img 
+                  src={provider.logo} 
+                  alt={provider.name}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
               <div className="ios-api-card-content">
                 <h3 className="ios-api-card-name">{provider.name}</h3>
                 <span className="ios-api-card-category">{provider.category}</span>

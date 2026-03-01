@@ -539,21 +539,23 @@ select {
 .ios-mobile-footer {
   position: fixed;
   bottom: 16px;
-  left: 16px;
-  right: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 1000;
+  width: calc(100% - 48px);
+  max-width: 400px;
 }
 
 .ios-mobile-footer-container {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 12px 8px;
+  padding: 10px 12px;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-2xl);
+  border-radius: var(--radius-full);
   box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
 }
 
@@ -565,9 +567,9 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-xl);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
   background: transparent;
   border: none;
   color: var(--color-text-muted);

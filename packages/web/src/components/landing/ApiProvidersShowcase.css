@@ -91,6 +91,13 @@
   justify-content: center;
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.ios-api-card-icon img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .ios-api-card-content {
