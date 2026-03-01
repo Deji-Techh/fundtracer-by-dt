@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import './Hero.css';
 
 export function Hero() {
@@ -9,6 +9,7 @@ export function Hero() {
 
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const y = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
+  const [showVideo, setShowVideo] = useState(false);
 
   return (
     <motion.section
@@ -88,10 +89,8 @@ export function Hero() {
             </svg>
           </motion.button>
 
-          <motion.a
-            href="/videos/demo.mp4"
-            target="_blank"
-            rel="noopener noreferrer"
+          <motion.button
+            onClick={() => setShowVideo(true)}
             className="ios-btn-ghost"
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -100,7 +99,7 @@ export function Hero() {
               <polygon points="5 3 19 12 5 21 5 3"/>
             </svg>
             <span>View Demo</span>
-          </motion.a>
+          </motion.button>
         </motion.div>
 
         <motion.div
@@ -120,6 +119,44 @@ export function Hero() {
           </div>
         </motion.div>
       </motion.div>
+
+      <AnimatePresence>
+        {showVideo && (
+          <motion.div
+            className="video-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowVideo(false)}
+          >
+            <motion.div
+              className="video-modal-content"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                className="video-modal-close"
+                onClick={() => setShowVideo(false)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+              <video 
+                src="/videos/demo.mp4" 
+                controls 
+                autoPlay 
+                className="video-modal-player"
+              >
+                Your browser does not support the video tag.
+              </video>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.section>
   );
 }
