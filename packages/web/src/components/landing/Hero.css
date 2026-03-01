@@ -181,6 +181,27 @@
   transform: translateY(-2px);
 }
 
+.ios-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.ios-btn-ghost:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
 .ios-hero-stats {
   display: flex;
   align-items: center;

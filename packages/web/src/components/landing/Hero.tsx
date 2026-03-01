@@ -87,6 +87,20 @@ export function Hero() {
               <polyline points="12 5 19 12 12 19"/>
             </svg>
           </motion.button>
+
+          <motion.a
+            href="/videos/demo.mp4"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ios-btn-ghost"
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span>View Demo</span>
+          </motion.a>
         </motion.div>
 
         <motion.div
