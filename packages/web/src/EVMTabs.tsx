@@ -9,11 +9,6 @@ import TopNav from './components/CoinGecko/TopNav';
 import HomePage from './components/CoinGecko/HomePage';
 import SybilPage from './components/CoinGecko/SybilPage';
 
-const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
-const FeaturesPage = lazy(() => import('./pages/FeaturesPage').then(m => ({ default: m.FeaturesPage })));
-const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
-const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage').then(m => ({ default: m.HowItWorksPage })));
-const FaqPage = lazy(() => import('./pages/FaqPage').then(m => ({ default: m.FaqPage })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 
@@ -41,21 +36,6 @@ export default function EVMTabs() {
   const pathname = location.pathname;
   
   // Static pages for /app-evm
-  if (pathname === '/app-evm/about' || pathname === '/about') {
-    return <AboutPage />;
-  }
-  if (pathname === '/app-evm/features' || pathname === '/features') {
-    return <FeaturesPage />;
-  }
-  if (pathname === '/app-evm/pricing' || pathname === '/pricing') {
-    return <PricingPage />;
-  }
-  if (pathname === '/app-evm/how-it-works' || pathname === '/how-it-works') {
-    return <HowItWorksPage />;
-  }
-  if (pathname === '/app-evm/faq' || pathname === '/faq') {
-    return <FaqPage />;
-  }
   if (pathname === '/app-evm/terms' || pathname === '/terms') {
     return <TermsPage />;
   }

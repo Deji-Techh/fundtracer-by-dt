@@ -3,46 +3,14 @@ import { motion } from 'framer-motion';
 import './ApiProvidersShowcase.css';
 
 const providers = [
-  { 
-    name: 'Dune', 
-    category: 'Analytics', 
-    logo: 'https://cryptologos.cc/logos/dune-dn-logo.png?v=035'
-  },
-  { 
-    name: 'Alchemy', 
-    category: 'Infrastructure', 
-    logo: 'https://cryptologos.cc/logos/alchemy-eth-logo.png?v=035'
-  },
-  { 
-    name: 'Etherscan', 
-    category: 'Explorer', 
-    logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png?v=035'
-  },
-  { 
-    name: 'CoinGecko', 
-    category: 'Market Data', 
-    logo: 'https://cryptologos.cc/logos/coingecko-gecko-logo.png?v=035'
-  },
-  { 
-    name: 'DefiLlama', 
-    category: 'DeFi', 
-    logo: 'https://cryptologos.cc/logos/defillama-llama-logo.png?v=035'
-  },
-  { 
-    name: 'The Graph', 
-    category: 'Indexing', 
-    logo: 'https://cryptologos.cc/logos/the-graph-grt-logo.png?v=035'
-  },
-  { 
-    name: 'QuickNode', 
-    category: 'Nodes', 
-    logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png?v=035'
-  },
-  { 
-    name: 'Solana', 
-    category: 'Blockchain', 
-    logo: 'https://cryptologos.cc/logos/solana-sol-logo.png?v=035'
-  },
+  { name: 'Dune', category: 'Analytics', color: '#4D61E7' },
+  { name: 'Alchemy', category: 'Infrastructure', color: '#2B3139' },
+  { name: 'Etherscan', category: 'Explorer', color: '#1E4CB3' },
+  { name: 'CoinGecko', category: 'Market Data', color: '#80E042' },
+  { name: 'DefiLlama', category: 'DeFi', color: '#D63031' },
+  { name: 'The Graph', category: 'Indexing', color: '#6747ED' },
+  { name: 'QuickNode', category: 'Nodes', color: '#100F0F' },
+  { name: 'Solana', category: 'Blockchain', color: '#9945FF' },
 ];
 
 export function ApiProvidersShowcase() {
@@ -74,14 +42,11 @@ export function ApiProvidersShowcase() {
               transition={{ duration: 0.4, delay: index * 0.05 }}
               whileHover={{ scale: 1.02, y: -4 }}
             >
-              <div className="ios-api-card-icon">
-                <img 
-                  src={provider.logo} 
-                  alt={provider.name}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
+              <div 
+                className="ios-api-card-icon"
+                style={{ backgroundColor: provider.color }}
+              >
+                <span className="ios-api-card-initial">{provider.name.charAt(0)}</span>
               </div>
               <div className="ios-api-card-content">
                 <h3 className="ios-api-card-name">{provider.name}</h3>
@@ -104,8 +69,8 @@ export function ApiProvidersShowcase() {
           </div>
           <div className="ios-api-stat-divider" />
           <div className="ios-api-stat">
-            <span className="ios-api-stat-value">10+</span>
-            <span className="ios-api-stat-label">Chains</span>
+            <span className="ios-api-stat-value">7</span>
+            <span className="ios-api-stat-label">Chains Supported</span>
           </div>
           <div className="ios-api-stat-divider" />
           <div className="ios-api-stat">

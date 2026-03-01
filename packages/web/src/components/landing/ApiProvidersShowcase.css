@@ -83,21 +83,20 @@
 }
 
 .ios-api-card-icon {
-  font-size: 1.5rem;
   width: 44px;
   height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
-.ios-api-card-icon img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
+.ios-api-card-initial {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
 }
 
 .ios-api-card-content {

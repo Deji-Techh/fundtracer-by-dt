@@ -153,9 +153,6 @@ const TopNav: React.FC<TopNavProps> = ({
         {!isMobile && (
           <div className="top-nav-center" ref={searchRef}>
             <div className="search-container" style={{ position: 'relative' }}>
-              <span className="search-icon">
-                <HugeiconsIcon icon={Search01Icon} size={18} strokeWidth={1.5} />
-              </span>
               <input
                 type="text"
                 className="search-input"
