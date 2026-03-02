@@ -45,17 +45,33 @@ export class ProviderFactory {
         }
     }
 
+    /** Map chain IDs from new registry format to legacy format */
+    private mapToLegacyChainId(chainId: ChainId): string {
+        const chainIdMap: Record<string, string> = {
+            '1': 'ethereum',
+            '59144': 'linea',
+            '42161': 'arbitrum',
+            '8453': 'base',
+            '10': 'optimism',
+            '137': 'polygon',
+        };
+        return chainIdMap[chainId] || chainId;
+    }
+
     /** Get provider for a specific chain */
     getProvider(chainId: ChainId): ITransactionProvider {
         // Return cached provider if exists
         const cached = this.providers.get(chainId);
         if (cached) return cached;
 
+        // Convert chain ID to legacy format if needed
+        const legacyChainId = this.mapToLegacyChainId(chainId);
+
         // Try Alchemy first (fastest, most reliable)
         if (this.apiKeys.alchemy) {
             console.log(`[ProviderFactory] Using Alchemy for ${chainId}`);
             const provider = new AlchemyProvider(
-                chainId,
+                legacyChainId as any,
                 this.apiKeys.alchemy,
                 this.apiKeys.moralis,
                 this.getExplorerKeyForChain(chainId)
