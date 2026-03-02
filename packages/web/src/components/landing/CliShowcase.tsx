@@ -76,12 +76,12 @@ export const CliShowcase: React.FC = () => {
           <div className="cli-cta">
             <code className="cli-install">npm install -g @fundtracer/cli</code>
             <a 
-              href="https://github.com/Deji-Tech/fundtracer-by-dt/tree/master/packages/cli" 
+              href="https://github.com/Deji-Tech/fundtracer-by-dt/blob/master/packages/cli/README.md" 
               target="_blank" 
               rel="noopener noreferrer"
               className="cli-docs-link"
             >
-              View Documentation
+              Read Documentation
               <ArrowRight size={16} />
             </a>
           </div>
