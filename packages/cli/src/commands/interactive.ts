@@ -5,7 +5,7 @@
 
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import { ChainId, getEnabledChains } from '@fundtracer/core';
+import { ChainId, getEnabledChainList } from '@fundtracer/core';
 import { analyzeCommand } from './analyze.js';
 import { compareCommand } from './compare.js';
 import { portfolioCommand } from './portfolio.js';
@@ -394,7 +394,7 @@ async function interactiveWatch() {
     }
     
     // Get chain
-    const chains = getEnabledChains();
+    const chains = getEnabledChainList();
     let chain: string;
     try {
         const result = await inquirer.prompt([{
@@ -533,7 +533,7 @@ async function interactiveAnalyze() {
 }
 
 async function interactiveAnalyzeWithAddress(address: string, defaultChain?: string) {
-    const chains = getEnabledChains();
+    const chains = getEnabledChainList();
     
     // Select chain
     let chain: string;
@@ -643,7 +643,7 @@ async function interactiveAnalyzeWithAddress(address: string, defaultChain?: str
 }
 
 async function interactivePortfolio() {
-    const chains = getEnabledChains();
+    const chains = getEnabledChainList();
 
     // Get address
     let address: string;
@@ -735,7 +735,7 @@ async function interactivePortfolio() {
 }
 
 async function interactiveCompare() {
-    const chains = getEnabledChains();
+    const chains = getEnabledChainList();
     const addresses: string[] = [];
 
     console.log(colors.muted('\nEnter wallet addresses for Sybil detection\n'));
@@ -826,7 +826,7 @@ async function interactiveCompare() {
 }
 
 async function interactiveBatch() {
-    const chains = getEnabledChains();
+    const chains = getEnabledChainList();
 
     // Get file path
     let filepath: string;

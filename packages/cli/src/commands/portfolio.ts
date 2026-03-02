@@ -7,7 +7,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import Table from 'cli-table3';
 import axios, { AxiosError } from 'axios';
-import { ChainId, getChainConfig } from '@fundtracer/core';
+import { ChainId, getLegacyChainConfig } from '@fundtracer/core';
 import { getApiKeys, formatAddress, formatEth } from '../utils.js';
 import fs from 'fs';
 
@@ -118,7 +118,7 @@ export async function portfolioCommand(address: string, options: PortfolioOption
     
     // Validate chain
     try {
-        getChainConfig(chainId);
+        getLegacyChainConfig(chainId as any);
     } catch {
         console.error(colors.error(`Error: Unsupported chain: ${chainId}`));
         console.log(colors.muted('Supported chains: ethereum, linea, arbitrum, base, optimism, polygon'));

@@ -10,7 +10,7 @@ import {
     ChainId,
     AnalysisResult,
     FundingNode,
-    getChainConfig,
+    getLegacyChainConfig,
 } from '@fundtracer/core';
 import { getApiKeys, formatAddress, formatEth, exportToCSV } from '../utils.js';
 import fs from 'fs';
@@ -48,7 +48,7 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
 
     // Validate chain
     try {
-        getChainConfig(chainId);
+        getLegacyChainConfig(chainId as any);
     } catch {
         console.error(colors.error(`Error: Unsupported chain: ${chainId}`));
         console.log(colors.muted('Supported chains: ethereum, linea, arbitrum, base'));
@@ -272,24 +272,24 @@ function outputTable(result: AnalysisResult) {
 function outputTree(result: AnalysisResult) {
     console.log(colors.primary.bold('\nFunding Sources Tree'));
     console.log(colors.border('─'.repeat(60)));
-    printTreeNode(result.fundingSources, '', true);
+    printTreeNode(result.fundingSources as any, '', true);
 
     console.log(colors.primary.bold('\nFunding Destinations Tree'));
     console.log(colors.border('─'.repeat(60)));
-    printTreeNode(result.fundingDestinations, '', true);
+    printTreeNode(result.fundingDestinations as any, '', true);
 }
 
-function printTreeNode(node: FundingNode, prefix: string, isLast: boolean) {
+function printTreeNode(node: FundingNode | any, prefix: string, isLast: boolean) {
     const connector = isLast ? '└── ' : '├── ';
     const extension = isLast ? '    ' : '│   ';
 
     const riskColor =
-        node.suspiciousScore > 50 ? colors.error :
-            node.suspiciousScore > 25 ? colors.warning :
+        (node as any).suspiciousScore > 50 ? colors.error :
+            (node as any).suspiciousScore > 25 ? colors.warning :
                 colors.success;
 
-    const valueStr = node.totalValueInEth > 0
-        ? colors.muted(` (${formatEth(node.totalValueInEth)} ETH)`)
+    const valueStr = (node as any).totalValueInEth > 0
+        ? colors.muted(` (${formatEth((node as any).totalValueInEth)} ETH)`)
         : '';
 
     console.log(
@@ -299,9 +299,9 @@ function printTreeNode(node: FundingNode, prefix: string, isLast: boolean) {
         valueStr
     );
 
-    node.children.forEach((child, index) => {
+    (node as any).children?.forEach((child: any, index: number) => {
         const newPrefix = prefix + (prefix ? extension : '');
-        printTreeNode(child, newPrefix, index === node.children.length - 1);
+        printTreeNode(child, newPrefix, index === (node as any).children?.length - 1);
     });
 }
 
