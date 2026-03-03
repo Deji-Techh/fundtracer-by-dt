@@ -13,6 +13,7 @@ const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage').then(m => ({ 
 const FaqPage = lazy(() => import('./pages/FaqPage').then(m => ({ default: m.FaqPage })));
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
+const InstallPage = lazy(() => import('./pages/InstallPage').then(m => ({ default: m.InstallPage })));
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/faq" element={<Suspense fallback={null}><FaqPage /></Suspense>} />
         <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
         <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
+        <Route path="/ext-install" element={<Suspense fallback={null}><InstallPage /></Suspense>} />
         <Route path="/app-evm/*" element={<EVMTabs />} />
         <Route path="/app-solana/*" element={
           <SolanaWalletProvider>

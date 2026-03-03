@@ -3,6 +3,7 @@ import { LandingNav } from '../components/landing/LandingNav';
 import { Hero } from '../components/landing/Hero';
 import { ApiProvidersShowcase } from '../components/landing/ApiProvidersShowcase';
 import { Features } from '../components/landing/Features';
+import { ChromeExtensionPromo } from '../components/landing/ChromeExtensionPromo';
 import { CliShowcase } from '../components/landing/CliShowcase';
 import { ScreenshotShowcase } from '../components/landing/ScreenshotShowcase';
 import { Pricing } from '../components/landing/Pricing';
@@ -16,6 +17,7 @@ export function LandingPage() {
       <Hero />
       <ApiProvidersShowcase />
       <Features />
+      <ChromeExtensionPromo />
       <CliShowcase />
       <ScreenshotShowcase />
       <Pricing />
