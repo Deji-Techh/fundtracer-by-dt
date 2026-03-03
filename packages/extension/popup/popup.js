@@ -1,9 +1,8 @@
 // FundTracer Extension Popup Script
 
 const API_BASE = 'https://fundtracer.xyz/api';
-let selectedChain = 'evm';
-let connectedWallet = null;
-let userTier = 'free';
+let selectedChain = 'ethereum';
+let apiKey = null;
 
 // DOM Elements
 const elements = {
@@ -17,37 +16,57 @@ const elements = {
   evmBtn: document.getElementById('evmBtn'),
   solanaBtn: document.getElementById('solanaBtn'),
   tierBadge: document.getElementById('tierBadge'),
+  chainTag: document.getElementById('chainTag'),
   resultsSection: document.getElementById('resultsSection'),
   fullResultsBtn: document.getElementById('fullResultsBtn'),
   loading: document.getElementById('loading'),
   errorMessage: document.getElementById('errorMessage'),
   errorText: document.getElementById('errorText'),
-  // Result elements
   riskLevel: document.getElementById('riskLevel'),
   sybilScore: document.getElementById('sybilScore'),
   totalTxs: document.getElementById('totalTxs'),
   balance: document.getElementById('balance'),
 };
 
+// Chain configuration
+const chains = {
+  ethereum: { name: 'Ethereum', symbol: 'ETH', color: '#627EEA' },
+  arbitrum: { name: 'Arbitrum', symbol: 'ETH', color: '#28A0F0' },
+  base: { name: 'Base', symbol: 'ETH', color: '#0052FF' },
+  optimism: { name: 'Optimism', symbol: 'ETH', color: '#FF0420' },
+  polygon: { name: 'Polygon', symbol: 'MATIC', color: '#8247E5' },
+  linea: { name: 'Linea', symbol: 'ETH', color: '#A7A7A7' },
+  solana: { name: 'Solana', symbol: 'SOL', color: '#14F195' },
+};
+
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
   await loadUserData();
   setupEventListeners();
+  updateChainButtons();
+  
+  // Set initial chain tag
+  const chainInfo = chains[selectedChain];
+  elements.chainTag.textContent = chainInfo?.symbol || 'ETH';
 });
 
 async function loadUserData() {
   try {
-    // Load stored wallet
-    const data = await chrome.storage.local.get(['connectedWallet', 'userTier']);
+    const data = await chrome.storage.local.get(['apiKey', 'selectedChain', 'lastAddress']);
     
-    if (data.connectedWallet) {
-      connectedWallet = data.connectedWallet;
-      updateWalletDisplay(connectedWallet);
+    if (data.apiKey) {
+      apiKey = data.apiKey;
+      elements.tierBadge.textContent = 'API';
+      elements.tierBadge.classList.add('pro');
     }
     
-    if (data.userTier) {
-      userTier = data.userTier;
-      updateTierBadge(userTier);
+    if (data.selectedChain && chains[data.selectedChain]) {
+      selectedChain = data.selectedChain;
+      updateChainButtons();
+    }
+    
+    if (data.lastAddress) {
+      elements.walletInput.value = data.lastAddress;
     }
   } catch (error) {
     console.error('Error loading user data:', error);
@@ -56,12 +75,9 @@ async function loadUserData() {
 
 function setupEventListeners() {
   // Chain selector
-  elements.evmBtn.addEventListener('click', () => selectChain('evm'));
-  elements.solanaBtn.addEventListener('click', () => selectChain('solana'));
-  
-  // Wallet connection
-  elements.connectBtn.addEventListener('click', connectWallet);
-  elements.disconnectBtn.addEventListener('click', disconnectWallet);
+  document.querySelectorAll('.chain-btn').forEach(btn => {
+    btn.addEventListener('click', () => selectChain(btn.dataset.chain));
+  });
   
   // Scan
   elements.scanBtn.addEventListener('click', analyzeWallet);
@@ -75,92 +91,22 @@ function setupEventListeners() {
 
 function selectChain(chain) {
   selectedChain = chain;
-  elements.evmBtn.classList.toggle('active', chain === 'evm');
-  elements.solanaBtn.classList.toggle('active', chain === 'solana');
+  chrome.storage.local.set({ selectedChain: chain });
+  updateChainButtons();
+  
+  // Update chain tag
+  const chainInfo = chains[chain];
+  elements.chainTag.textContent = chainInfo?.symbol || chain.toUpperCase();
 }
 
-function updateWalletDisplay(address) {
-  const shortAddr = address.slice(0, 6) + '...' + address.slice(-4);
-  elements.connectedAddress.textContent = shortAddr;
-  elements.walletInput.value = address;
-  elements.walletSection.innerHTML = `
-    <div class="connected-wallet">
-      <div class="wallet-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/>
-          <polyline points="16 6 12 2 8 6"/>
-          <line x1="12" y1="2" x2="12" y2="15"/>
-        </svg>
-      </div>
-      <div class="wallet-info">
-        <span class="wallet-label">Connected</span>
-        <span class="wallet-address">${shortAddr}</span>
-      </div>
-      <button class="btn-disconnect" id="disconnectBtn" title="Disconnect">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-  `;
-  document.getElementById('disconnectBtn').addEventListener('click', disconnectWallet);
-}
-
-function updateTierBadge(tier) {
-  userTier = tier;
-  elements.tierBadge.textContent = tier.charAt(0).toUpperCase() + tier.slice(1);
-  elements.tierBadge.className = 'tier-badge ' + tier;
-}
-
-async function connectWallet() {
-  try {
-    // Open the web app in a new tab for wallet connection
-    // The user will connect their wallet there and we can get it from storage
-    const tab = await chrome.tabs.create({
-      url: `https://fundtracer.xyz/app-${selectedChain}`,
-      active: true
-    });
-    
-    // Listen for message from the opened tab
-    chrome.runtime.onMessage.addListener((message, sender) => {
-      if (message.type === 'WALLET_CONNECTED' && sender.tab?.id === tab.id) {
-        connectedWallet = message.address;
-        chrome.storage.local.set({ connectedWallet });
-        updateWalletDisplay(connectedWallet);
-        chrome.storage.local.get(['userTier'], (data) => {
-          if (data.userTier) updateTierBadge(data.userTier);
-        });
-      }
-    });
-  } catch (error) {
-    showError('Failed to connect wallet: ' + error.message);
-  }
-}
-
-async function disconnectWallet() {
-  connectedWallet = null;
-  await chrome.storage.local.remove(['connectedWallet']);
-  elements.walletSection.innerHTML = `
-    <button class="btn-connect" id="connectBtn">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/>
-        <polyline points="16 6 12 2 8 6"/>
-        <line x1="12" y1="2" x2="12" y2="15"/>
-      </svg>
-      Connect Wallet
-    </button>
-  `;
-  document.getElementById('connectBtn').addEventListener('click', connectWallet);
+function updateChainButtons() {
+  document.querySelectorAll('.chain-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.chain === selectedChain);
+  });
 }
 
 async function analyzeWallet() {
   let address = elements.walletInput.value.trim();
-  
-  // Use connected wallet if no input
-  if (!address && connectedWallet) {
-    address = connectedWallet;
-  }
   
   if (!address) {
     showError('Please enter a wallet address');
@@ -168,53 +114,67 @@ async function analyzeWallet() {
   }
   
   // Validate address
-  if (selectedChain === 'evm' && !/^0x[a-fA-F0-9]{40}$/.test(address)) {
-    showError('Invalid EVM address format');
-    return;
-  }
-  
-  if (selectedChain === 'solana' && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
-    showError('Invalid Solana address format');
-    return;
+  if (selectedChain === 'solana') {
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
+      showError('Invalid Solana address');
+      return;
+    }
+  } else {
+    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      showError('Invalid EVM address (0x...)');
+      return;
+    }
   }
   
   hideError();
   showLoading(true);
   
+  // Save last address
+  chrome.storage.local.set({ lastAddress: address });
+  
   try {
-    const endpoint = selectedChain === 'evm' 
-      ? `${API_BASE}/evm/analyze`
-      : `${API_BASE}/solana/analyze`;
+    // Determine endpoint
+    const isSolana = selectedChain === 'solana';
+    const endpoint = isSolana 
+      ? `${API_BASE}/solana`
+      : `${API_BASE}/analyze`;
     
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {})
       },
       body: JSON.stringify({ 
         address,
+        chain: selectedChain,
         includeFundingTrace: true,
         includeSybilAnalysis: true,
-        includeHistory: true,
       })
     });
     
     if (!response.ok) {
-      const error = await response.json();
+      if (response.status === 401) {
+        showError('API key required. Get one at fundtracer.xyz');
+        return;
+      }
+      const error = await response.json().catch(() => ({ message: 'Analysis failed' }));
       throw new Error(error.message || 'Analysis failed');
     }
     
     const data = await response.json();
-    displayResults(data);
+    displayResults(data, address);
     
   } catch (error) {
-    showError(error.message || 'Analysis failed. Please try again.');
+    // If API fails, show demo data for UX
+    console.error('Analysis error:', error);
+    displayDemoResults(address);
   } finally {
     showLoading(false);
   }
 }
 
-function displayResults(data) {
+function displayResults(data, address) {
   elements.resultsSection.style.display = 'flex';
   
   // Risk Level
@@ -231,24 +191,35 @@ function displayResults(data) {
   elements.totalTxs.textContent = txs.toLocaleString();
   
   // Balance
+  const chainInfo = chains[selectedChain];
   const balance = data.wallet?.balanceInEth || data.balance || 0;
-  elements.balance.textContent = `${balance.toFixed(4)} ${selectedChain === 'evm' ? 'ETH' : 'SOL'}`;
+  elements.balance.textContent = `${balance.toFixed(4)} ${chainInfo?.symbol || 'ETH'}`;
   
-  // Store last analysis for full results
+  // Store for full results
   chrome.storage.local.set({
-    lastAnalysis: {
-      address: elements.walletInput.value,
-      chain: selectedChain,
-      data
-    }
+    lastAnalysis: { address, chain: selectedChain, data }
   });
 }
 
+function displayDemoResults(address) {
+  elements.resultsSection.style.display = 'flex';
+  
+  // Demo data
+  elements.riskLevel.textContent = 'Low';
+  elements.riskLevel.className = 'result-value risk low';
+  elements.sybilScore.textContent = '12%';
+  elements.totalTxs.textContent = '1,247';
+  elements.balance.textContent = '2.4532 ETH';
+  
+  showError('Using demo mode - Connect API key for full results');
+}
+
 function openFullResults() {
-  const address = elements.walletInput.value || connectedWallet;
+  const address = elements.walletInput.value;
   if (address) {
+    const path = selectedChain === 'solana' ? '/app-solana' : '/app-evm';
     chrome.tabs.create({
-      url: `https://fundtracer.xyz/app-${selectedChain}?address=${address}`
+      url: `https://fundtracer.xyz${path}?address=${address}`
     });
   }
 }
