@@ -8,7 +8,7 @@ services:
     buildCommand: |
       npm install && \
       rm -rf packages/server/dist packages/web/dist && \
-      npm run build --workspace=@fundtracer/core && \
+      npm run build --workspace=fundtracer-core && \
       npm run build --workspace=@fundtracer/web && \
       npm run build --workspace=@fundtracer/server && \
       echo "Build complete. Checking dist folders:" && \
