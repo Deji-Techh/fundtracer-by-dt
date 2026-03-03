@@ -421,10 +421,26 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Only listen if run directly (development or standalone server)
 // Always listen on port (required for container deployments like Pxxl)
 // Start server
-server = app.listen(PORT, () => {
+server = app.listen(PORT, async () => {
     console.log(`✅ FundTracer API Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Health check: http://localhost:${PORT}/api/health`);
+
+    // Initialize Telegram Bot
+    try {
+        const { createTelegramBot } = await import('./services/TelegramBot.js');
+        await createTelegramBot();
+    } catch (error) {
+        console.error('[Server] Failed to initialize Telegram bot:', error);
+    }
+
+    // Start Alert Worker
+    try {
+        const { startAlertWorker } = await import('./services/AlertWorker.js');
+        startAlertWorker();
+    } catch (error) {
+        console.error('[Server] Failed to start alert worker:', error);
+    }
 });
 
 export const handler = app;
