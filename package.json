@@ -9,8 +9,8 @@
   "scripts": {
     "dev": "npm run dev --workspace=@fundtracer/web",
     "dev:server": "npm run dev --workspace=@fundtracer/server",
-    "build": "npm run build --workspace=@fundtracer/core && npm run build --workspace=@fundtracer/server && npm run build --workspace=@fundtracer/web",
-    "cli": "npm run start --workspace=@fundtracer/cli",
+    "build": "npm run build --workspace=fundtracer-core && npm run build --workspace=@fundtracer/server && npm run build --workspace=@fundtracer/web",
+    "cli": "npm run start --workspace=fundtracer-cli",
     "video": "npm run start --workspace=@fundtracer/video",
     "test": "npm run test --workspaces --if-present",
     "publish:cli": "cd packages/cli && npm publish"
