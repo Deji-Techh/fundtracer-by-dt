@@ -5,7 +5,7 @@
 
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import { ChainId, getEnabledChainList } from '@fundtracer/core';
+import { ChainId, getEnabledChainList } from 'fundtracer-core';
 import { analyzeCommand } from './analyze.js';
 import { compareCommand } from './compare.js';
 import { portfolioCommand } from './portfolio.js';

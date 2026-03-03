@@ -11,7 +11,7 @@ import {
     SybilAnalysisResult,
     SybilCluster,
     AnalysisProgress,
-} from '@fundtracer/core';
+} from 'fundtracer-core';
 import { 
     getApiKeys, 
     getSybilApiKeys, 

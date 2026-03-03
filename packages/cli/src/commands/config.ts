@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { ChainId, ApiKeyConfig } from '@fundtracer/core';
+import { ChainId, ApiKeyConfig } from 'fundtracer-core';
 
 const CONFIG_DIR = path.join(os.homedir(), '.fundtracer');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');

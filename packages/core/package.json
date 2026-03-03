@@ -1,5 +1,5 @@
 {
-    "name": "@fundtracer/core",
+    "name": "fundtracer-core",
     "version": "1.0.0",
     "description": "FundTracer core analysis engine",
     "main": "dist/index.js",
@@ -15,6 +15,9 @@
     "scripts": {
         "build": "tsc",
         "dev": "tsc --watch"
+    },
+    "publishConfig": {
+        "access": "public"
     },
     "dependencies": {
         "axios": "^1.6.0",

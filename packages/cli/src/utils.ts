@@ -5,7 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { ApiKeyConfig, ChainId } from '@fundtracer/core';
+import { ApiKeyConfig, ChainId } from 'fundtracer-core';
 
 const CONFIG_FILE = path.join(os.homedir(), '.fundtracer', 'config.json');
 

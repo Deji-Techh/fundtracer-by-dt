@@ -7,7 +7,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import Table from 'cli-table3';
 import axios, { AxiosError } from 'axios';
-import { ChainId, getLegacyChainConfig } from '@fundtracer/core';
+import { ChainId, getLegacyChainConfig } from 'fundtracer-core';
 import { getApiKeys, formatAddress, formatEth } from '../utils.js';
 import fs from 'fs';
 

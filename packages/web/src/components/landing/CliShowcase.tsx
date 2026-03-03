@@ -15,7 +15,7 @@ export const CliShowcase: React.FC = () => {
     {
       icon: Download,
       title: 'Cross-Platform Install',
-      description: 'npm install -g @fundtracer/cli'
+      description: 'npm install -g fundtracer-cli'
     },
     {
       icon: Zap,
@@ -74,7 +74,7 @@ export const CliShowcase: React.FC = () => {
           </div>
           
           <div className="cli-cta">
-            <code className="cli-install">npm install -g @fundtracer/cli</code>
+            <code className="cli-install">npm install -g fundtracer-cli</code>
             <a 
               href="https://github.com/Deji-Tech/fundtracer-by-dt/blob/master/packages/cli/README.md" 
               target="_blank" 
@@ -103,7 +103,7 @@ const CliTerminal: React.FC = () => {
   const [isTyping, setIsTyping] = React.useState(true);
 
   const commands = [
-    { text: '$ npm install -g @fundtracer/cli', output: '' },
+    { text: '$ npm install -g fundtracer-cli', output: '' },
     { text: '', output: 'added 42 packages in 3s' },
     { text: '$ fundtracer analyze 0x742d...35Cc --chain linea', output: '' },
     { text: '', output: 'Analyzing wallet on Linea...' },

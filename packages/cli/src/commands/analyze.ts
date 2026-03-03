@@ -11,7 +11,7 @@ import {
     AnalysisResult,
     FundingNode,
     getLegacyChainConfig,
-} from '@fundtracer/core';
+} from 'fundtracer-core';
 import { getApiKeys, formatAddress, formatEth, exportToCSV } from '../utils.js';
 import fs from 'fs';
 

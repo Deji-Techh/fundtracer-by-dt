@@ -10,7 +10,7 @@ import {
     WalletAnalyzer,
     ChainId,
     AnalysisResult,
-} from '@fundtracer/core';
+} from 'fundtracer-core';
 import { 
     getApiKeys, 
     formatAddress, 
