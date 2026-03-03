@@ -7,132 +7,164 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="extension-container">
-    
+  <div class="app">
     <!-- Header -->
     <header class="header">
       <div class="logo">
-        <img src="logo.png" alt="FundTracer" onerror="this.style.display='none'">
+        <div class="logo-icon">F</div>
         <span>FundTracer</span>
       </div>
-      <div class="tier-badge" id="tierBadge">Free</div>
+      <button class="settings-btn" id="settingsBtn" title="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </header>
 
-    <!-- Chain Selector -->
-    <section class="chain-section">
-      <label class="section-label">Blockchain</label>
-      <div class="chain-grid">
-        <button class="chain-btn active" data-chain="ethereum" id="evmBtn">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel" style="display: none;">
+      <div class="settings-header">
+        <span>Settings</span>
+        <button class="close-settings" id="closeSettings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
+        </button>
+      </div>
+      <div class="settings-content">
+        <div class="setting-group">
+          <label>API Key</label>
+          <div class="api-key-input">
+            <input type="password" id="apiKeyInput" placeholder="Enter your API key">
+            <button class="save-key-btn" id="saveKeyBtn">Save</button>
+          </div>
+          <p class="api-hint">Get free key at <a href="#" id="getApiLink">fundtracer.xyz</a></p>
+        </div>
+        <div class="setting-group">
+          <label>Default Chain</label>
+          <select id="defaultChain">
+            <option value="ethereum">Ethereum</option>
+            <option value="linea">Linea</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="base">Base</option>
+            <option value="optimism">Optimism</option>
+            <option value="polygon">Polygon</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Chain Tabs -->
+      <div class="chain-tabs">
+        <button class="chain-tab active" data-chain="ethereum">
+          <span class="chain-icon eth"></span>
           Ethereum
         </button>
-        <button class="chain-btn" data-chain="arbitrum" id="arbBtn">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="10"/>
-          </svg>
-          Arbitrum
+        <button class="chain-tab" data-chain="linea">
+          <span class="chain-icon linea"></span>
+          Linea
         </button>
-        <button class="chain-btn" data-chain="base" id="baseBtn">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <rect x="3" y="3" width="18" height="18" rx="4"/>
-          </svg>
+        <button class="chain-tab" data-chain="arbitrum">
+          <span class="chain-icon arb"></span>
+          Arb
+        </button>
+        <button class="chain-tab" data-chain="base">
+          <span class="chain-icon base"></span>
           Base
         </button>
-        <button class="chain-btn" data-chain="optimism" id="optBtn">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="10"/>
-          </svg>
-          Optimism
+        <button class="chain-tab" data-chain="optimism">
+          <span class="chain-icon opt"></span>
+          Opt
         </button>
-        <button class="chain-btn" data-chain="polygon" id="polyBtn">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/>
-          </svg>
-          Polygon
-        </button>
-        <button class="chain-btn" data-chain="solana" id="solanaBtn">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="10"/>
-          </svg>
-          Solana
+        <button class="chain-tab" data-chain="polygon">
+          <span class="chain-icon poly"></span>
+          Poly
         </button>
       </div>
-    </section>
 
-    <!-- Wallet Input -->
-    <section class="wallet-section">
-      <div class="wallet-input-wrapper">
-        <input 
-          type="text" 
-          id="walletInput" 
-          placeholder="Enter wallet address..."
-          class="wallet-input"
-        >
-        <span class="chain-tag" id="chainTag">ETH</span>
+      <!-- Search -->
+      <div class="search-section">
+        <div class="search-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="addressInput" placeholder="0x..." autocomplete="off" spellcheck="false">
+          <button class="clear-btn" id="clearBtn" style="display: none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <button class="analyze-btn" id="analyzeBtn">
+          Analyze
+        </button>
       </div>
-      <button class="btn-primary" id="scanBtn">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          <line x1="11" y1="8" x2="11" y2="14"/>
-          <line x1="8" y1="11" x2="14" y2="11"/>
+
+      <!-- Loading -->
+      <div class="loading-state" id="loadingState" style="display: none;">
+        <div class="spinner"></div>
+        <span>Analyzing...</span>
+      </div>
+
+      <!-- Error -->
+      <div class="error-state" id="errorState" style="display: none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
-        Analyze Wallet
-      </button>
-    </section>
-
-    <!-- Loading -->
-    <div class="loading" id="loading" style="display: none;">
-      <div class="spinner"></div>
-      <span>Analyzing wallet...</span>
-    </div>
-
-    <!-- Error -->
-    <div class="error-message" id="errorMessage" style="display: none;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      <span id="errorText">Error occurred</span>
-    </div>
-
-    <!-- Results Preview -->
-    <section class="results-section glass-card" id="resultsSection" style="display: none;">
-      <div class="results-header">
-        <span class="results-title">Quick Results</span>
-        <button class="btn-full" id="fullResultsBtn">View Full →</button>
+        <span id="errorText">Error</span>
       </div>
-      
-      <div class="result-card">
-        <div class="result-row">
-          <span class="result-label">Risk Level</span>
-          <span class="result-value risk" id="riskLevel">Low</span>
+
+      <!-- Results -->
+      <div class="results" id="results" style="display: none;">
+        <div class="result-header">
+          <div class="result-title">Analysis Result</div>
+          <button class="view-full-btn" id="viewFullBtn">Full Report →</button>
         </div>
-        <div class="result-row">
-          <span class="result-label">Sybil Score</span>
-          <span class="result-value" id="sybilScore">0%</span>
+
+        <div class="risk-card" id="riskCard">
+          <div class="risk-label">Risk Level</div>
+          <div class="risk-value" id="riskValue">-</div>
         </div>
-        <div class="result-row">
-          <span class="result-label">Transactions</span>
-          <span class="result-value" id="totalTxs">0</span>
-        </div>
-        <div class="result-row">
-          <span class="result-label">Balance</span>
-          <span class="result-value" id="balance">0 ETH</span>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Sybil Score</div>
+            <div class="stat-value" id="sybilScore">-</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Transactions</div>
+            <div class="stat-value" id="txCount">-</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Balance</div>
+            <div class="stat-value" id="balance">-</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">First Active</div>
+            <div class="stat-value" id="firstTx">-</div>
+          </div>
         </div>
       </div>
-    </section>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+          </svg>
+        </div>
+        <p>Enter a wallet address to analyze</p>
+      </div>
+    </main>
 
     <!-- Footer -->
     <footer class="footer">
       <a href="https://fundtracer.xyz/app-evm" target="_blank">Open App</a>
-      <span class="divider">•</span>
-      <a href="https://fundtracer.xyz/pricing" target="_blank">Get API Key</a>
-      <span class="divider">•</span>
-      <span id="version">v1.0</span>
+      <span class="dot">•</span>
+      <a href="https://fundtracer.xyz/pricing" target="_blank">Get API</a>
     </footer>
   </div>
 

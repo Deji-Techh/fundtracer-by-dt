@@ -1,243 +1,242 @@
-// FundTracer Extension Popup Script
-
+// FundTracer Extension Popup
 const API_BASE = 'https://fundtracer.xyz/api';
-let selectedChain = 'ethereum';
-let apiKey = null;
+
+const chains = {
+  ethereum: { name: 'Ethereum', symbol: 'ETH', id: 1 },
+  linea: { name: 'Linea', symbol: 'ETH', id: 59144 },
+  arbitrum: { name: 'Arbitrum', symbol: 'ETH', id: 42161 },
+  base: { name: 'Base', symbol: 'ETH', id: 8453 },
+  optimism: { name: 'Optimism', symbol: 'ETH', id: 10 },
+  polygon: { name: 'Polygon', symbol: 'MATIC', id: 137 },
+};
+
+// State
+let state = {
+  chain: 'ethereum',
+  apiKey: '',
+  address: '',
+};
 
 // DOM Elements
-const elements = {
-  connectBtn: document.getElementById('connectBtn'),
-  disconnectBtn: document.getElementById('disconnectBtn'),
-  connectedWallet: document.getElementById('connectedWallet'),
-  connectedAddress: document.getElementById('connectedAddress'),
-  walletSection: document.getElementById('walletSection'),
-  walletInput: document.getElementById('walletInput'),
-  scanBtn: document.getElementById('scanBtn'),
-  evmBtn: document.getElementById('evmBtn'),
-  solanaBtn: document.getElementById('solanaBtn'),
-  tierBadge: document.getElementById('tierBadge'),
-  chainTag: document.getElementById('chainTag'),
-  resultsSection: document.getElementById('resultsSection'),
-  fullResultsBtn: document.getElementById('fullResultsBtn'),
-  loading: document.getElementById('loading'),
-  errorMessage: document.getElementById('errorMessage'),
-  errorText: document.getElementById('errorText'),
-  riskLevel: document.getElementById('riskLevel'),
-  sybilScore: document.getElementById('sybilScore'),
-  totalTxs: document.getElementById('totalTxs'),
-  balance: document.getElementById('balance'),
-};
-
-// Chain configuration
-const chains = {
-  ethereum: { name: 'Ethereum', symbol: 'ETH', color: '#627EEA' },
-  arbitrum: { name: 'Arbitrum', symbol: 'ETH', color: '#28A0F0' },
-  base: { name: 'Base', symbol: 'ETH', color: '#0052FF' },
-  optimism: { name: 'Optimism', symbol: 'ETH', color: '#FF0420' },
-  polygon: { name: 'Polygon', symbol: 'MATIC', color: '#8247E5' },
-  linea: { name: 'Linea', symbol: 'ETH', color: '#A7A7A7' },
-  solana: { name: 'Solana', symbol: 'SOL', color: '#14F195' },
-};
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
 
 // Initialize
-document.addEventListener('DOMContentLoaded', async () => {
-  await loadUserData();
+document.addEventListener('DOMContentLoaded', () => {
+  loadState();
   setupEventListeners();
-  updateChainButtons();
-  
-  // Set initial chain tag
-  const chainInfo = chains[selectedChain];
-  elements.chainTag.textContent = chainInfo?.symbol || 'ETH';
+  updateUI();
 });
 
-async function loadUserData() {
-  try {
-    const data = await chrome.storage.local.get(['apiKey', 'selectedChain', 'lastAddress']);
-    
-    if (data.apiKey) {
-      apiKey = data.apiKey;
-      elements.tierBadge.textContent = 'API';
-      elements.tierBadge.classList.add('pro');
-    }
-    
+function loadState() {
+  chrome.storage.local.get(['selectedChain', 'apiKey', 'lastAddress'], (data) => {
     if (data.selectedChain && chains[data.selectedChain]) {
-      selectedChain = data.selectedChain;
-      updateChainButtons();
+      state.chain = data.selectedChain;
     }
-    
+    if (data.apiKey) {
+      state.apiKey = data.apiKey;
+    }
     if (data.lastAddress) {
-      elements.walletInput.value = data.lastAddress;
+      state.address = data.lastAddress;
+      $('#addressInput').value = data.lastAddress;
+      $('#clearBtn').style.display = data.lastAddress ? 'block' : 'none';
     }
-  } catch (error) {
-    console.error('Error loading user data:', error);
-  }
+    updateChainTabs();
+    updateSettingsUI();
+  });
 }
 
 function setupEventListeners() {
-  // Chain selector
-  document.querySelectorAll('.chain-btn').forEach(btn => {
-    btn.addEventListener('click', () => selectChain(btn.dataset.chain));
+  // Chain tabs
+  $$('.chain-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      state.chain = tab.dataset.chain;
+      chrome.storage.local.set({ selectedChain: state.chain });
+      updateChainTabs();
+    });
   });
-  
-  // Scan
-  elements.scanBtn.addEventListener('click', analyzeWallet);
-  elements.walletInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') analyzeWallet();
+
+  // Search
+  $('#addressInput').addEventListener('input', (e) => {
+    state.address = e.target.value;
+    $('#clearBtn').style.display = state.address ? 'block' : 'none';
   });
+
+  $('#addressInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') analyze();
+  });
+
+  $('#analyzeBtn').addEventListener('click', analyze);
+  $('#clearBtn').addEventListener('click', () => {
+    state.address = '';
+    $('#addressInput').value = '';
+    $('#clearBtn').style.display = 'none';
+    $('#addressInput').focus();
+  });
+
+  // Settings
+  $('#settingsBtn').addEventListener('click', toggleSettings);
+  $('#closeSettings').addEventListener('click', toggleSettings);
   
-  // Full results
-  elements.fullResultsBtn.addEventListener('click', openFullResults);
+  $('#saveKeyBtn').addEventListener('click', () => {
+    const key = $('#apiKeyInput').value.trim();
+    if (key) {
+      state.apiKey = key;
+      chrome.storage.local.set({ apiKey: key });
+      showMessage('API key saved', 'success');
+      toggleSettings();
+    }
+  });
+
+  $('#defaultChain').addEventListener('change', (e) => {
+    state.chain = e.target.value;
+    chrome.storage.local.set({ selectedChain: state.chain });
+    updateChainTabs();
+    toggleSettings();
+  });
+
+  // View full
+  $('#viewFullBtn').addEventListener('click', () => {
+    if (state.address) {
+      const url = state.chain === 'ethereum' || chains[state.chain]?.id === 1
+        ? `https://fundtracer.xyz/app-evm?address=${state.address}`
+        : `https://fundtracer.xyz/app-evm?chain=${state.chain}&address=${state.address}`;
+      chrome.tabs.create({ url });
+    }
+  });
+
+  // API link
+  $('#getApiLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ url: 'https://fundtracer.xyz/pricing' });
+  });
 }
 
-function selectChain(chain) {
-  selectedChain = chain;
-  chrome.storage.local.set({ selectedChain: chain });
-  updateChainButtons();
-  
-  // Update chain tag
-  const chainInfo = chains[chain];
-  elements.chainTag.textContent = chainInfo?.symbol || chain.toUpperCase();
+function updateUI() {
+  updateChainTabs();
+  updateSettingsUI();
 }
 
-function updateChainButtons() {
-  document.querySelectorAll('.chain-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.chain === selectedChain);
+function updateChainTabs() {
+  $$('.chain-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.chain === state.chain);
   });
+  $('#defaultChain').value = state.chain;
 }
 
-async function analyzeWallet() {
-  let address = elements.walletInput.value.trim();
+function updateSettingsUI() {
+  $('#apiKeyInput').value = state.apiKey ? '••••••••••••••••' : '';
+  $('#defaultChain').value = state.chain;
+}
+
+function toggleSettings() {
+  const panel = $('#settingsPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function showMessage(text, type = 'error') {
+  const el = $('#errorState');
+  $('#errorText').textContent = text;
+  el.style.display = 'flex';
+  if (type === 'success') {
+    el.style.background = 'rgba(16, 185, 129, 0.1)';
+    el.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+    el.style.color = 'var(--success)';
+  }
+  setTimeout(() => {
+    el.style.display = 'none';
+    el.style.background = '';
+    el.style.borderColor = '';
+    el.style.color = '';
+  }, 3000);
+}
+
+async function analyze() {
+  const address = state.address.trim();
   
   if (!address) {
-    showError('Please enter a wallet address');
+    showMessage('Enter a wallet address');
     return;
   }
-  
+
   // Validate address
-  if (selectedChain === 'solana') {
-    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
-      showError('Invalid Solana address');
-      return;
-    }
-  } else {
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      showError('Invalid EVM address (0x...)');
-      return;
-    }
+  if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    showMessage('Invalid EVM address');
+    return;
   }
-  
-  hideError();
-  showLoading(true);
-  
-  // Save last address
+
+  // Save address
   chrome.storage.local.set({ lastAddress: address });
-  
+
+  // Show loading
+  $('#loadingState').style.display = 'flex';
+  $('#errorState').style.display = 'none';
+  $('#results').style.display = 'none';
+  $('#emptyState').style.display = 'none';
+  $('#analyzeBtn').disabled = true;
+
   try {
-    // Determine endpoint
-    const isSolana = selectedChain === 'solana';
-    const endpoint = isSolana 
-      ? `${API_BASE}/solana`
-      : `${API_BASE}/analyze`;
-    
-    const response = await fetch(endpoint, {
+    const response = await fetch(`${API_BASE}/analyze`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {})
+        ...(state.apiKey ? { 'Authorization': `Bearer ${state.apiKey}` } : {})
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         address,
-        chain: selectedChain,
+        chain: state.chain,
         includeFundingTrace: true,
         includeSybilAnalysis: true,
       })
     });
-    
+
     if (!response.ok) {
       if (response.status === 401) {
-        showError('API key required. Get one at fundtracer.xyz');
-        return;
+        throw new Error('API key required');
       }
-      const error = await response.json().catch(() => ({ message: 'Analysis failed' }));
-      throw new Error(error.message || 'Analysis failed');
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Analysis failed');
     }
-    
+
     const data = await response.json();
-    displayResults(data, address);
-    
+    displayResults(data);
+
   } catch (error) {
-    // If API fails, show demo data for UX
     console.error('Analysis error:', error);
-    displayDemoResults(address);
+    $('#errorText').textContent = error.message;
+    $('#errorState').style.display = 'flex';
+    $('#emptyState').style.display = 'none';
   } finally {
-    showLoading(false);
+    $('#loadingState').style.display = 'none';
+    $('#analyzeBtn').disabled = false;
   }
 }
 
-function displayResults(data, address) {
-  elements.resultsSection.style.display = 'flex';
+function displayResults(data) {
+  const chainInfo = chains[state.chain];
   
-  // Risk Level
+  // Risk
   const risk = data.riskLevel || data.risk?.level || 'low';
-  elements.riskLevel.textContent = risk.charAt(0).toUpperCase() + risk.slice(1);
-  elements.riskLevel.className = 'result-value risk ' + risk;
+  const riskEl = $('#riskValue');
+  riskEl.textContent = risk.charAt(0).toUpperCase() + risk.slice(1);
+  riskEl.className = 'risk-value ' + risk;
+
+  // Stats
+  $('#sybilScore').textContent = (data.sybilScore || data.sybil?.score || 0) + '%';
+  $('#txCount').textContent = (data.totalTransactions || data.summary?.totalTransactions || 0).toLocaleString();
   
-  // Sybil Score
-  const sybilScore = data.sybilScore || data.sybil?.score || 0;
-  elements.sybilScore.textContent = `${sybilScore}%`;
-  
-  // Total Transactions
-  const txs = data.totalTransactions || data.summary?.totalTransactions || 0;
-  elements.totalTxs.textContent = txs.toLocaleString();
-  
-  // Balance
-  const chainInfo = chains[selectedChain];
   const balance = data.wallet?.balanceInEth || data.balance || 0;
-  elements.balance.textContent = `${balance.toFixed(4)} ${chainInfo?.symbol || 'ETH'}`;
-  
-  // Store for full results
-  chrome.storage.local.set({
-    lastAnalysis: { address, chain: selectedChain, data }
-  });
-}
+  $('#balance').textContent = balance.toFixed(4) + ' ' + (chainInfo?.symbol || 'ETH');
 
-function displayDemoResults(address) {
-  elements.resultsSection.style.display = 'flex';
-  
-  // Demo data
-  elements.riskLevel.textContent = 'Low';
-  elements.riskLevel.className = 'result-value risk low';
-  elements.sybilScore.textContent = '12%';
-  elements.totalTxs.textContent = '1,247';
-  elements.balance.textContent = '2.4532 ETH';
-  
-  showError('Using demo mode - Connect API key for full results');
-}
-
-function openFullResults() {
-  const address = elements.walletInput.value;
-  if (address) {
-    const path = selectedChain === 'solana' ? '/app-solana' : '/app-evm';
-    chrome.tabs.create({
-      url: `https://fundtracer.xyz${path}?address=${address}`
-    });
+  const firstTx = data.wallet?.firstTxTimestamp || data.firstTxTimestamp;
+  if (firstTx) {
+    const date = new Date(firstTx * 1000);
+    $('#firstTx').textContent = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  } else {
+    $('#firstTx').textContent = '-';
   }
-}
 
-function showLoading(show) {
-  elements.loading.style.display = show ? 'flex' : 'none';
-  elements.scanBtn.disabled = show;
-  if (show) {
-    elements.resultsSection.style.display = 'none';
-    hideError();
-  }
-}
-
-function showError(message) {
-  elements.errorText.textContent = message;
-  elements.errorMessage.style.display = 'flex';
-}
-
-function hideError() {
-  elements.errorMessage.style.display = 'none';
+  $('#results').style.display = 'flex';
+  $('#emptyState').style.display = 'none';
+  $('#errorState').style.display = 'none';
 }
