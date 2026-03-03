@@ -6,14 +6,10 @@ services:
     region: oregon
     plan: starter
     buildCommand: |
-      npm install && \
-      rm -rf packages/server/dist packages/web/dist && \
-      npm run build --workspace=fundtracer-core && \
-      npm run build --workspace=@fundtracer/web && \
-      npm run build --workspace=@fundtracer/server && \
-      echo "Build complete. Checking dist folders:" && \
-      ls -la packages/server/dist/routes/ && \
-      ls -la packages/web/dist/ | head -10
+      cd packages/core && npm install && npm run build && cd ../.. && \
+      cd packages/web && npm install && npm run build && cd ../.. && \
+      cd packages/server && npm install && npm run build && cd ../.. && \
+      echo "Build complete"
     startCommand: npm start --workspace=@fundtracer/server
     envVars:
       - key: NODE_ENV
