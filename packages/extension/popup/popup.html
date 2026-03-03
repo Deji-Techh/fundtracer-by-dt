@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FundTracer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="extension-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <img src="logo.png" alt="FundTracer" onerror="this.style.display='none'">
+        <span>FundTracer</span>
+      </div>
+      <div class="tier-badge" id="tierBadge">Free</div>
+    </header>
+
+    <!-- Connected Wallet -->
+    <section class="wallet-section" id="walletSection">
+      <div class="connected-wallet" id="connectedWallet">
+        <div class="wallet-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </div>
+        <div class="wallet-info">
+          <span class="wallet-label">Connected</span>
+          <span class="wallet-address" id="connectedAddress">Not connected</span>
+        </div>
+        <button class="btn-disconnect" id="disconnectBtn" title="Disconnect">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <button class="btn-connect" id="connectBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/>
+          <polyline points="16 6 12 2 8 6"/>
+          <line x1="12" y1="2" x2="12" y2="15"/>
+        </svg>
+        Connect Wallet
+      </button>
+    </section>
+
+    <!-- Chain Selector -->
+    <section class="chain-section">
+      <label class="section-label">Select Chain</label>
+      <div class="chain-selector">
+        <button class="chain-btn active" data-chain="evm" id="evmBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+          </svg>
+          EVM
+        </button>
+        <button class="chain-btn" data-chain="solana" id="solanaBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+          Solana
+        </button>
+      </div>
+    </section>
+
+    <!-- Wallet Input -->
+    <section class="input-section">
+      <label class="section-label">Wallet Address</label>
+      <div class="input-group">
+        <input 
+          type="text" 
+          id="walletInput" 
+          placeholder="0x... or SOL address"
+          class="wallet-input"
+        >
+        <button class="btn-scan" id="scanBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          Analyze
+        </button>
+      </div>
+    </section>
+
+    <!-- Results Preview -->
+    <section class="results-section" id="resultsSection" style="display: none;">
+      <div class="results-header">
+        <span class="results-title">Quick Results</span>
+        <button class="btn-full" id="fullResultsBtn">View Full →</button>
+      </div>
+      
+      <div class="result-card">
+        <div class="result-row">
+          <span class="result-label">Risk Level</span>
+          <span class="result-value risk" id="riskLevel">-</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Sybil Score</span>
+          <span class="result-value" id="sybilScore">-</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Total Transactions</span>
+          <span class="result-value" id="totalTxs">-</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Balance</span>
+          <span class="result-value" id="balance">-</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <div class="loading" id="loading" style="display: none;">
+      <div class="spinner"></div>
+      <span>Analyzing wallet...</span>
+    </div>
+
+    <!-- Error -->
+    <div class="error-message" id="errorMessage" style="display: none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span id="errorText">Error occurred</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <a href="https://fundtracer.xyz/app-evm" target="_blank">Open Full App</a>
+      <span class="divider">•</span>
+      <span id="version">v1.0.0</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
