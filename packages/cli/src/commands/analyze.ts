@@ -1,18 +1,13 @@
-// ============================================================
 // FundTracer CLI - Analyze Command
-// ============================================================
 
 import chalk from 'chalk';
-import ora from 'ora';
 import Table from 'cli-table3';
 import {
     WalletAnalyzer,
     ChainId,
     AnalysisResult,
-    FundingNode,
-    getLegacyChainConfig,
 } from 'fundtracer-core';
-import { getApiKeys, formatAddress, formatEth, exportToCSV } from '../utils.js';
+import { getApiKeys, formatEth } from '../utils.js';
 import fs from 'fs';
 
 interface AnalyzeOptions {
@@ -23,322 +18,176 @@ interface AnalyzeOptions {
     export?: string;
 }
 
-// Professional color scheme
-const colors = {
-    primary: chalk.hex('#888888'),
-    secondary: chalk.hex('#666666'),
-    accent: chalk.hex('#60a5fa'),
-    success: chalk.hex('#4ade80'),
-    warning: chalk.hex('#fbbf24'),
-    error: chalk.hex('#ef4444'),
-    muted: chalk.hex('#555555'),
-    border: chalk.hex('#333333'),
+const c = {
+    bold: chalk.bold,
+    green: chalk.green,
+    red: chalk.red,
+    yellow: chalk.yellow,
+    gray: chalk.gray,
 };
 
 export async function analyzeCommand(address: string, options: AnalyzeOptions) {
     const chainId = options.chain as ChainId;
-    const depth = parseInt(options.depth, 10);
-    const minValue = options.minValue ? parseFloat(options.minValue) : undefined;
 
-    // Validate address
     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-        console.error(colors.error('Error: Invalid wallet address format'));
+        console.error(c.red('Invalid address'));
         process.exit(1);
     }
-
-    // Validate chain
-    try {
-        getLegacyChainConfig(chainId as any);
-    } catch {
-        console.error(colors.error(`Error: Unsupported chain: ${chainId}`));
-        console.log(colors.muted('Supported chains: ethereum, linea, arbitrum, base'));
-        process.exit(1);
-    }
-
-    const spinner = ora({
-        text: colors.secondary('Initializing analyzer...'),
-        color: 'gray',
-    }).start();
 
     try {
         const apiKeys = getApiKeys();
-        const analyzer = new WalletAnalyzer(apiKeys, (progress) => {
-            spinner.text = colors.secondary(`${progress.stage}: ${progress.message}`);
-        });
+        const analyzer = new WalletAnalyzer(apiKeys);
+        const result = await analyzer.analyze(address, chainId, {});
 
-        const result = await analyzer.analyze(address, chainId, {
-            treeConfig: {
-                maxDepth: depth,
-                minValueEth: minValue,
-            },
-        });
-
-        spinner.succeed(colors.success('Analysis complete'));
-        console.log();
-
-        // Output based on format
         switch (options.output) {
             case 'json':
                 outputJson(result, options.export);
                 break;
-            case 'tree':
-                outputTree(result);
-                break;
             case 'csv':
                 outputCSV(result, options.export);
+                break;
+            case 'tree':
+                outputTree(result);
                 break;
             default:
                 outputTable(result);
         }
 
-        // Export if requested and not already handled
-        if (options.export && options.output !== 'json' && options.output !== 'csv') {
-            fs.writeFileSync(options.export, JSON.stringify(result, null, 2));
-            console.log(colors.success(`\nResults exported to ${options.export}`));
-        }
-
     } catch (error) {
-        spinner.fail(colors.error('Analysis failed'));
-        console.error(colors.error(error instanceof Error ? error.message : 'Unknown error'));
+        console.error(c.red('Error: ' + (error instanceof Error ? error.message : 'Unknown')));
         process.exit(1);
     }
 }
 
 function outputTable(result: AnalysisResult) {
-    // Wallet Info
-    console.log(colors.primary.bold('Wallet Information'));
-    console.log(colors.border('─'.repeat(60)));
-    const infoTable = new Table({
-        style: { head: ['gray'] },
-        chars: {
-            'top': '', 'top-mid': '', 'top-left': '', 'top-right': '',
-            'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '',
-            'left': '', 'left-mid': '', 'mid': '', 'mid-mid': '',
-            'right': '', 'right-mid': '', 'middle': ' ',
-        },
+    const riskColor = result.riskLevel === 'low' ? c.green : 
+                      result.riskLevel === 'medium' ? c.yellow : c.red;
+    const riskEmoji = result.riskLevel === 'low' ? '✓' : 
+                      result.riskLevel === 'medium' ? '!' : '✗';
+
+    console.log(c.bold('\n📊 FundTracer Analysis\n'));
+
+    const table = new Table({
+        style: { compact: true },
+        colWidths: [20, 45],
     });
 
-    infoTable.push(
-        { [colors.secondary('Address')]: result.wallet.address },
-        { [colors.secondary('Chain')]: result.wallet.chain.toUpperCase() },
-        { [colors.secondary('Balance')]: `${formatEth(result.wallet.balanceInEth)} ETH` },
-        { [colors.secondary('Total Transactions')]: result.summary.totalTransactions.toString() },
-        { [colors.secondary('Is Contract')]: result.wallet.isContract ? 'Yes' : 'No' },
+    table.push(
+        ['Address', result.wallet?.address || 'N/A'],
+        ['Chain', (result.wallet?.chain || 'N/A').toUpperCase()],
+        ['Balance', result.wallet?.balanceInEth ? formatEth(result.wallet.balanceInEth) + ' ETH' : 'N/A'],
+        ['Transactions', result.summary?.totalTransactions?.toLocaleString() || '0'],
     );
-    console.log(infoTable.toString());
-    console.log();
 
-    // Risk Score
-    const riskColor =
-        result.riskLevel === 'critical' ? colors.error.bold :
-            result.riskLevel === 'high' ? colors.error :
-                result.riskLevel === 'medium' ? colors.warning :
-                    colors.success;
+    console.log(table.toString());
 
-    console.log(colors.primary.bold('Risk Assessment'));
-    console.log(colors.border('─'.repeat(60)));
-    console.log(`Risk Score: ${riskColor(`${result.overallRiskScore}/100`)} (${riskColor(result.riskLevel.toUpperCase())})`);
-    console.log();
+    console.log('\n' + c.bold('Risk'));
+    console.log('─'.repeat(25));
+    console.log(`  ${riskEmoji} ${riskColor(result.riskLevel?.toUpperCase() || 'UNKNOWN')}  Score: ${result.overallRiskScore || 0}/100`);
 
-    // Suspicious indicators
-    if (result.suspiciousIndicators.length > 0) {
-        console.log(colors.warning.bold('Suspicious Activity Detected:'));
-        const suspTable = new Table({
-            head: [colors.secondary('Type'), colors.secondary('Severity'), colors.secondary('Description')],
-            style: { head: ['yellow'] },
-            chars: {
-                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
-                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
-                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
-                'right': '│', 'right-mid': '┤', 'middle': '│',
-            },
-        });
-
-        result.suspiciousIndicators.forEach(ind => {
-            const sevColor =
-                ind.severity === 'critical' || ind.severity === 'high' ? colors.error :
-                    ind.severity === 'medium' ? colors.warning : colors.muted;
-
-            suspTable.push([
-                ind.type.replace(/_/g, ' '),
-                sevColor(ind.severity),
-                ind.description.slice(0, 50),
-            ]);
-        });
-        console.log(suspTable.toString());
-        console.log();
+    if (result.summary) {
+        const sent = result.summary.totalValueSentEth || 0;
+        const received = result.summary.totalValueReceivedEth || 0;
+        console.log(`  Sent: ${formatEth(sent)} ETH`);
+        console.log(`  Received: ${formatEth(received)} ETH`);
     }
 
-    // Summary stats
-    console.log(colors.primary.bold('Transaction Summary'));
-    console.log(colors.border('─'.repeat(60)));
-    const statsTable = new Table({
-        style: { head: ['gray'] },
-        chars: {
-            'top': '', 'top-mid': '', 'top-left': '', 'top-right': '',
-            'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '',
-            'left': '', 'left-mid': '', 'mid': '', 'mid-mid': '',
-            'right': '', 'right-mid': '', 'middle': ' ',
-        },
-    });
-
-    statsTable.push(
-        { [colors.secondary('Successful')]: colors.success(result.summary.successfulTxs.toString()) },
-        { [colors.secondary('Failed')]: colors.error(result.summary.failedTxs.toString()) },
-        { [colors.secondary('Total Received')]: colors.success(`+${formatEth(result.summary.totalValueReceivedEth)} ETH`) },
-        { [colors.secondary('Total Sent')]: colors.error(`-${formatEth(result.summary.totalValueSentEth)} ETH`) },
-        { [colors.secondary('Unique Addresses')]: result.summary.uniqueInteractedAddresses.toString() },
-        { [colors.secondary('Activity Period')]: `${result.summary.activityPeriodDays} days` },
-    );
-    console.log(statsTable.toString());
-    console.log();
-
-    // Top funding sources
-    if (result.summary.topFundingSources.length > 0) {
-        console.log(colors.primary.bold('Top Funding Sources'));
-        console.log(colors.border('─'.repeat(60)));
-        const sourcesTable = new Table({
-            head: [colors.secondary('Address'), colors.secondary('Value')],
-            style: { head: ['gray'] },
-            chars: {
-                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
-                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
-                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
-                'right': '│', 'right-mid': '┤', 'middle': '│',
-            },
+    if (result.summary?.topFundingSources?.length > 0) {
+        console.log('\n' + c.bold('Top Funders'));
+        console.log('─'.repeat(25));
+        result.summary.topFundingSources.slice(0, 3).forEach((f: any) => {
+            console.log(`  + ${formatEth(f.valueEth)} ETH - ${f.address?.slice(0, 10)}...`);
         });
-
-        result.summary.topFundingSources.forEach(source => {
-            sourcesTable.push([
-                formatAddress(source.address),
-                colors.success(`+${formatEth(source.valueEth)} ETH`),
-            ]);
-        });
-        console.log(sourcesTable.toString());
-        console.log();
     }
 
-    // Top destinations
-    if (result.summary.topFundingDestinations.length > 0) {
-        console.log(colors.primary.bold('Top Destinations'));
-        console.log(colors.border('─'.repeat(60)));
-        const destsTable = new Table({
-            head: [colors.secondary('Address'), colors.secondary('Value')],
-            style: { head: ['gray'] },
-            chars: {
-                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
-                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
-                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
-                'right': '│', 'right-mid': '┤', 'middle': '│',
-            },
+    if (result.summary?.topFundingDestinations?.length > 0) {
+        console.log('\n' + c.bold('Top Destinations'));
+        console.log('─'.repeat(25));
+        result.summary.topFundingDestinations.slice(0, 3).forEach((d: any) => {
+            console.log(`  - ${formatEth(d.valueEth)} ETH - ${d.address?.slice(0, 10)}...`);
         });
-
-        result.summary.topFundingDestinations.forEach(dest => {
-            destsTable.push([
-                formatAddress(dest.address),
-                colors.error(`-${formatEth(dest.valueEth)} ETH`),
-            ]);
-        });
-        console.log(destsTable.toString());
-        console.log();
     }
 
-    // Projects
-    if (result.projectsInteracted.length > 0) {
-        console.log(colors.primary.bold('Projects Interacted'));
-        console.log(colors.border('─'.repeat(60)));
-        const projectsTable = new Table({
-            head: [colors.secondary('Project'), colors.secondary('Category'), colors.secondary('Interactions')],
-            style: { head: ['gray'] },
-            chars: {
-                'top': '─', 'top-mid': '┬', 'top-left': '┌', 'top-right': '┐',
-                'bottom': '─', 'bottom-mid': '┴', 'bottom-left': '└', 'bottom-right': '┘',
-                'left': '│', 'left-mid': '├', 'mid': '─', 'mid-mid': '┼',
-                'right': '│', 'right-mid': '┤', 'middle': '│',
-            },
-        });
-
-        result.projectsInteracted.slice(0, 5).forEach(proj => {
-            projectsTable.push([
-                proj.projectName || formatAddress(proj.contractAddress),
-                proj.category,
-                proj.interactionCount.toString(),
-            ]);
-        });
-        console.log(projectsTable.toString());
-    }
+    console.log('');
 }
 
 function outputTree(result: AnalysisResult) {
-    console.log(colors.primary.bold('\nFunding Sources Tree'));
-    console.log(colors.border('─'.repeat(60)));
-    printTreeNode(result.fundingSources as any, '', true);
+    console.log(c.bold('\n📊 FundTracer Tree\n'));
 
-    console.log(colors.primary.bold('\nFunding Destinations Tree'));
-    console.log(colors.border('─'.repeat(60)));
-    printTreeNode(result.fundingDestinations as any, '', true);
-}
+    console.log(c.bold('Funding Sources'));
+    console.log('─'.repeat(25));
+    const sources = result.fundingSources as any;
+    if (sources && sources.length > 0) {
+        sources.slice(0, 10).forEach((node: any, i: number) => {
+            const prefix = i === sources.length - 1 ? '└─ ' : '├─ ';
+            console.log(`  ${prefix}${node.address?.slice(0, 14)}... ${node.totalValueInEth ? c.green(formatEth(node.totalValueInEth) + ' ETH') : ''}`);
+        });
+    } else {
+        console.log(c.gray('  No funding sources'));
+    }
 
-function printTreeNode(node: FundingNode | any, prefix: string, isLast: boolean) {
-    const connector = isLast ? '└── ' : '├── ';
-    const extension = isLast ? '    ' : '│   ';
+    console.log('');
 
-    const riskColor =
-        (node as any).suspiciousScore > 50 ? colors.error :
-            (node as any).suspiciousScore > 25 ? colors.warning :
-                colors.success;
+    console.log(c.bold('Funding Destinations'));
+    console.log('─'.repeat(25));
+    const destinations = result.fundingDestinations as any;
+    if (destinations && destinations.length > 0) {
+        destinations.slice(0, 10).forEach((node: any, i: number) => {
+            const prefix = i === destinations.length - 1 ? '└─ ' : '├─ ';
+            console.log(`  ${prefix}${node.address?.slice(0, 14)}... ${node.totalValueInEth ? c.red(formatEth(node.totalValueInEth) + ' ETH') : ''}`);
+        });
+    } else {
+        console.log(c.gray('  No funding destinations'));
+    }
 
-    const valueStr = (node as any).totalValueInEth > 0
-        ? colors.muted(` (${formatEth((node as any).totalValueInEth)} ETH)`)
-        : '';
-
-    console.log(
-        prefix +
-        (prefix ? connector : '') +
-        riskColor(formatAddress(node.address)) +
-        valueStr
-    );
-
-    (node as any).children?.forEach((child: any, index: number) => {
-        const newPrefix = prefix + (prefix ? extension : '');
-        printTreeNode(child, newPrefix, index === (node as any).children?.length - 1);
-    });
+    console.log('');
 }
 
 function outputJson(result: AnalysisResult, exportPath?: string) {
-    const jsonStr = JSON.stringify(result, null, 2);
+    const data = {
+        address: result.wallet?.address,
+        chain: result.wallet?.chain,
+        balance: result.wallet?.balanceInEth,
+        riskLevel: result.riskLevel,
+        riskScore: result.overallRiskScore,
+        totalTransactions: result.summary?.totalTransactions,
+        topFunders: result.summary?.topFundingSources?.slice(0, 10),
+        topDestinations: result.summary?.topFundingDestinations?.slice(0, 10),
+    };
+
+    const jsonStr = JSON.stringify(data, null, 2);
 
     if (exportPath) {
         fs.writeFileSync(exportPath, jsonStr);
-        console.log(colors.success(`Results exported to ${exportPath}`));
+        console.log(c.green('✓ Saved to ' + exportPath));
     } else {
         console.log(jsonStr);
     }
 }
 
 function outputCSV(result: AnalysisResult, exportPath?: string) {
-    const filename = exportPath || `analysis-${result.wallet.address.slice(0, 8)}-${Date.now()}.csv`;
-    
-    // Create rows for transactions
-    const rows = result.transactions.map(tx => ({
-        hash: tx.hash,
-        timestamp: new Date(tx.timestamp * 1000).toISOString(),
-        from: tx.from,
-        to: tx.to || '',
-        value_eth: tx.valueInEth,
-        gas_cost_eth: tx.gasCostInEth,
-        status: tx.status,
-        category: tx.category,
-        method: tx.methodName || tx.methodId || '',
-        direction: tx.isIncoming ? 'incoming' : 'outgoing',
-    }));
+    const filename = exportPath || 'analysis-' + (result.wallet?.address?.slice(2, 10) || 'wallet') + '-' + Date.now() + '.csv';
 
-    if (rows.length === 0) {
-        console.log(colors.warning('No transactions to export'));
+    if (!result.transactions || result.transactions.length === 0) {
+        console.log(c.yellow('No transactions to export'));
         return;
     }
 
-    exportToCSV(rows, filename);
-    console.log(colors.success(`Results exported to ${filename}`));
-    console.log(colors.muted(`  ${rows.length} transactions exported`));
+    const headers = ['Hash', 'Timestamp', 'From', 'To', 'Value (ETH)', 'Direction'];
+    const rows = result.transactions.map((tx: any) => [
+        tx.hash || '',
+        tx.timestamp ? new Date(tx.timestamp * 1000).toISOString() : '',
+        tx.from || '',
+        tx.to || '',
+        tx.valueInEth?.toString() || '0',
+        tx.isIncoming ? 'in' : 'out',
+    ]);
+
+    let csv = headers.join(',') + '\n';
+    rows.forEach(row => {
+        csv += row.map(cell => '"' + cell + '"').join(',') + '\n';
+    });
+
+    fs.writeFileSync(filename, csv);
+    console.log(c.green('✓ Saved ' + result.transactions.length + ' transactions to ' + filename));
 }

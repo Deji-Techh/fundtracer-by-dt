@@ -11,7 +11,7 @@ import { compareCommand } from './commands/compare.js';
 import { portfolioCommand } from './commands/portfolio.js';
 import { batchCommand } from './commands/batch.js';
 import { configCommand } from './commands/config.js';
-import { interactiveCommand } from './commands/interactive.js';
+import { interactiveMode } from './commands/interactive.js';
 import { getApiKeys, getSybilApiKeys } from './utils.js';
 
 // Professional ASCII Art Banner - Dark/Glassy theme
@@ -110,7 +110,7 @@ if (isInteractive && args.length === 0) {
     console.log();
 
     // Start interactive mode automatically
-    interactiveCommand();
+    interactiveMode();
 } else {
     // Show smaller banner for commands
     if (args[0] !== '--help' && args[0] !== '-h' && args[0] !== '--version' && args[0] !== '-V') {
@@ -193,7 +193,7 @@ if (isInteractive && args.length === 0) {
             showProviderStatus();
             showTips();
             console.log();
-            interactiveCommand();
+            interactiveMode();
         });
 
     program.parse();
