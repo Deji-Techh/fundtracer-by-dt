@@ -10,7 +10,7 @@ services:
       cd packages/web && npm install && npm run build && cd ../.. && \
       cd packages/server && npm install && npm run build && cd ../.. && \
       echo "Build complete"
-    startCommand: npm start --workspace=@fundtracer/server
+    startCommand: cd packages/server && npm start
     envVars:
       - key: NODE_ENV
         value: production
