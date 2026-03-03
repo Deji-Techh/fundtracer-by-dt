@@ -66,7 +66,7 @@ export function InstallPage() {
               <h3>Download Extension</h3>
               <p>Download the extension file:</p>
               <a 
-                href="/downloads/fundtracer-extension.zip" 
+                href="/downloads/fundtracer-extension.tar.gz" 
                 className="download-btn"
                 download
               >
@@ -75,7 +75,7 @@ export function InstallPage() {
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                Download .zip
+                Download .tar.gz
               </a>
             </div>
           </div>
@@ -84,7 +84,11 @@ export function InstallPage() {
             <div className="step-number">4</div>
             <div className="step-content">
               <h3>Extract & Load</h3>
-              <p>Extract the downloaded .zip file, then drag the extracted folder onto the Chrome extensions page.</p>
+              <p>Extract the .tar.gz file, then:</p>
+              <ol style={{ marginLeft: '20px', marginTop: '8px' }}>
+                <li>Click "Load unpacked" button in Chrome extensions page</li>
+                <li>Select the extracted <code>dist</code> folder</li>
+              </ol>
             </div>
           </div>
 

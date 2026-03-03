@@ -179,11 +179,15 @@ export class AlchemyProvider {
 
             return response.data.result;
         } catch (error: any) {
-            // Catch axios 429s
+            // Catch axios 429s (rate limits)
             if (error.response?.status === 429 && retries > 0) {
                 if (DEBUG) console.warn(`[Alchemy] 429 on ${method}. Retrying in ${1000 * (4 - retries)}ms...`);
                 await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
                 return this.rpcRequest<T>(method, params, retries - 1);
+            }
+            // Handle 401 errors (invalid API key) - throw a more helpful message
+            if (error.response?.status === 401) {
+                throw new Error(`Invalid Alchemy API key. Please check your configuration.`);
             }
             throw error;
         }
@@ -320,9 +324,14 @@ export class AlchemyProvider {
 
             console.warn(`[Explorer] API error: ${response.data.message}`);
             return null;
-        } catch (e) {
-            console.error(`[Explorer] Request failed:`, e);
-            throw e;
+        } catch (e: any) {
+            // Handle 401 errors gracefully (API key required but not provided)
+            if (e.response?.status === 401) {
+                console.warn(`[Explorer] Etherscan API key required for chain ${chainIdNum}`);
+            } else {
+                console.warn(`[Explorer] Request failed: ${e.message}`);
+            }
+            return null;
         }
     }
 

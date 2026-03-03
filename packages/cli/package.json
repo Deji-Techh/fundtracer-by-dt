@@ -1,6 +1,6 @@
 {
     "name": "fundtracer-cli",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "FundTracer CLI - Terminal-based blockchain wallet analyzer",
     "type": "module",
     "main": "dist/index.js",
