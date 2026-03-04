@@ -5,14 +5,14 @@ import './TelegramAlerts.css';
 const chatMessages = [
   {
     type: 'user',
-    text: 'Is this wallet suspicious? 0x742d...3f9e',
+    text: 'What does this whale wallet do? 0x8f2...a1b4',
   },
   {
     type: 'ai',
-    text: 'This wallet has a LOW risk score (12/100). It received funds from a known exchange and has no interaction with flagged contracts.',
-    delay: 800,
+    text: 'This is a HIGH RISK wallet (78/100). It received $2.4M from a mixer and has multiple interactions with phishing addresses. 3 suspicious outbound transfers detected in the last 24h.',
+    delay: 1200,
     isRisk: true,
-    riskLevel: 'low',
+    riskLevel: 'high',
   },
 ];
 
@@ -140,7 +140,6 @@ export function TelegramAlerts() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <div className="feature-icon">💬</div>
             <h3>Ask Anything</h3>
             <p>Chat naturally with AI about any wallet. Get instant insights on transactions, contracts, and risks.</p>
           </motion.div>
@@ -152,7 +151,6 @@ export function TelegramAlerts() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <div className="feature-icon">🔔</div>
             <h3>Real-Time Alerts</h3>
             <p>Instant notifications when watched wallets move. Choose realtime, 20min, 30min, or hourly digests.</p>
           </motion.div>
@@ -164,7 +162,6 @@ export function TelegramAlerts() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.5 }}
           >
-            <div className="feature-icon">📊</div>
             <h3>Scan History</h3>
             <p>Track all your wallet scans. Ask the bot to show your recent activity and analysis.</p>
           </motion.div>
