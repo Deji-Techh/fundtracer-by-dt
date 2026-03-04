@@ -121,6 +121,12 @@ export async function createTelegramBot() {
     try {
         bot = new Telegraf(BOT_TOKEN);
 
+        await bot.launch({
+            dropPendingUpdates: true
+        });
+        
+        console.log('[Telegram] Bot started with long polling');
+
         // === COMMANDS ===
 
         // /start - Show welcome

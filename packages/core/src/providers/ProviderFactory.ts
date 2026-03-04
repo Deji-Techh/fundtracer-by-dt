@@ -69,7 +69,6 @@ export class ProviderFactory {
 
         // Try Alchemy first (fastest, most reliable)
         if (this.apiKeys.alchemy) {
-            console.log(`[ProviderFactory] Using Alchemy for ${chainId}`);
             const provider = new AlchemyProvider(
                 legacyChainId as any,
                 this.apiKeys.alchemy,
@@ -83,7 +82,6 @@ export class ProviderFactory {
         // Fallback to chain-specific explorer API
         const explorerKey = this.getExplorerKeyForChain(chainId);
         if (explorerKey) {
-            console.log(`[ProviderFactory] Using explorer API for ${chainId}`);
             // For now, create a limited AlchemyProvider - EtherscanProvider will be added
             throw new Error(
                 `Etherscan provider not yet implemented. Please configure Alchemy.\n` +

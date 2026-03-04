@@ -309,28 +309,14 @@ export class AlchemyProvider {
         const url = `https://api.etherscan.io/v2/api?chainid=${chainIdNum}&module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=1&sort=asc${apiKeyParam}`;
 
         try {
-            console.log(`[Explorer] Fetching first tx from Etherscan V2 (chain ${chainIdNum})...`);
-            const response = await axios.get(url, { timeout: 5000 }); // 5s timeout (racing with Alchemy)
+            const response = await axios.get(url, { timeout: 5000 });
 
             if (response.data.status === '1' && response.data.result.length > 0) {
                 const firstTx = response.data.result[0];
-                const timestamp = parseInt(firstTx.timeStamp);
-                console.log(`[Explorer] Found first tx timestamp: ${timestamp} (${new Date(timestamp * 1000).toISOString()})`);
-                return timestamp;
-            } else if (response.data.message === 'No transactions found') {
-                console.log(`[Explorer] No transactions found for ${address}`);
-                return null;
+                return parseInt(firstTx.timeStamp);
             }
-
-            console.warn(`[Explorer] API error: ${response.data.message}`);
             return null;
         } catch (e: any) {
-            // Handle 401 errors gracefully (API key required but not provided)
-            if (e.response?.status === 401) {
-                console.warn(`[Explorer] Etherscan API key required for chain ${chainIdNum}`);
-            } else {
-                console.warn(`[Explorer] Request failed: ${e.message}`);
-            }
             return null;
         }
     }
@@ -595,8 +581,6 @@ export class AlchemyProvider {
             }
             return null;
         } catch (error) {
-            // Moralis failure shouldn't stop flow, just return null to trigger fallback
-            console.error(`Moralis API error for ${address} on ${this.chainConfig.id}:`, error);
             return null;
         }
     }
