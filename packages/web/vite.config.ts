@@ -72,6 +72,7 @@ export default defineConfig({
       'ethers',
       'firebase/app',
       'firebase/auth',
+      'uuid',
     ],
     esbuildOptions: {
       target: 'es2020',

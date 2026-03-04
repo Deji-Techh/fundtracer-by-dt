@@ -30,6 +30,7 @@
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.0",
     "typescript": "^5.3.0",
+    "uuid": "^9.0.0",
     "viem": "^2.0.0",
     "wagmi": "^2.5.0"
   }
