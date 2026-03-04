@@ -402,8 +402,18 @@ apiRouter.use('/telegram', telegramRoutes);
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
 
+// Initialize Telegram Bot webhook route BEFORE catch-all (must be registered before *)
+import { createTelegramBot } from './services/TelegramBot.js';
+createTelegramBot(app).catch(err => {
+    console.error('[Server] Failed to initialize Telegram bot:', err);
+});
+
 // Fallback for SPA routing - MUST BE LAST
 app.get('*', (req, res) => {
+    // Skip telegram webhook path
+    if (req.path === '/telegram-webhook') {
+        return res.status(404).json({ error: 'Webhook not ready' });
+    }
     if (req.path.startsWith('/api')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
@@ -433,14 +443,6 @@ server = app.listen(PORT, async () => {
     console.log(`✅ FundTracer API Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Health check: http://localhost:${PORT}/api/health`);
-
-    // Initialize Telegram Bot (pass Express app for webhook support)
-    try {
-        const { createTelegramBot } = await import('./services/TelegramBot.js');
-        await createTelegramBot(app);
-    } catch (error) {
-        console.error('[Server] Failed to initialize Telegram bot:', error);
-    }
 
     // Start Alert Worker
     try {
