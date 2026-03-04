@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { useAppKit } from '@reown/appkit/react';
+import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import './TelegramPage.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function TelegramPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, wallet } = useAuth();
   const { open } = useAppKit();
+  const { address: appKitAddress, isConnected: appKitConnected } = useAppKitAccount();
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get wallet address from multiple sources (AppKit is most reliable for connection status)
+  const walletAddress = appKitAddress || wallet?.address || user?.walletAddress;
+  const isWalletConnected = appKitConnected || !!wallet?.isConnected || !!user?.walletAddress;
 
   useEffect(() => {
     checkConnectionStatus();
@@ -38,7 +43,7 @@ export function TelegramPage() {
   };
 
   const generateCode = async () => {
-    if (!user?.uid || !profile?.tier || !user?.walletAddress) {
+    if (!walletAddress) {
       setError('Please connect your wallet first');
       return;
     }
@@ -46,14 +51,16 @@ export function TelegramPage() {
     setIsGenerating(true);
     setError(null);
     try {
-      const tier = profile.tier || 'free';
+      // Use wallet address as userId if user not fully authenticated yet
+      const userId = user?.uid || walletAddress;
+      const tier = profile?.tier || 'free';
       const res = await fetch(`${API_BASE}/api/telegram/link-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          userId: user.uid, 
+          userId, 
           tier,
-          walletAddress: user.walletAddress 
+          walletAddress 
         })
       });
       const data = await res.json();
@@ -110,14 +117,14 @@ export function TelegramPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             {/* Step 1: Connect Wallet */}
-            <div className={`step-card ${user?.walletAddress ? 'completed' : ''}`}>
-              <div className="step-number">{user?.walletAddress ? '✓' : '1'}</div>
+            <div className={`step-card ${isWalletConnected ? 'completed' : ''}`}>
+              <div className="step-number">{isWalletConnected ? '✓' : '1'}</div>
               <div className="step-content">
                 <h3>Connect Your Wallet</h3>
-                {user?.walletAddress ? (
+                {isWalletConnected && walletAddress ? (
                   <div className="wallet-connected">
                     <span className="wallet-address">
-                      {user.walletAddress.slice(0, 8)}...{user.walletAddress.slice(-6)}
+                      {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
                     </span>
                     <span className="connected-badge">Connected</span>
                   </div>
@@ -152,7 +159,7 @@ export function TelegramPage() {
               <div className="step-number">3</div>
               <div className="step-content">
                 <h3>Generate Link Code</h3>
-                {!user?.walletAddress ? (
+                {!isWalletConnected ? (
                   <p className="disabled-text">Connect your wallet first to generate a link code.</p>
                 ) : (
                   <>
@@ -160,7 +167,7 @@ export function TelegramPage() {
                     <button 
                       className="generate-code-btn" 
                       onClick={generateCode}
-                      disabled={isGenerating || !user?.walletAddress}
+                      disabled={isGenerating || !isWalletConnected}
                     >
                       {isGenerating ? 'Generating...' : 'Generate Link Code'}
                     </button>
