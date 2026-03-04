@@ -3,7 +3,10 @@
  * Wallet alerts, scanning, and contract analysis via Telegram
  */
 
+import fetch from 'node-fetch';
 import { Telegraf, Markup } from 'telegraf';
+
+(globalThis as any).fetch = fetch;
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -118,14 +121,24 @@ export async function createTelegramBot() {
         return null;
     }
 
+    const WEBHOOK_URL = process.env.TELEGRAM_WEBHOOK_URL;
+
     try {
         bot = new Telegraf(BOT_TOKEN);
 
-        await bot.launch({
-            dropPendingUpdates: true
-        });
-        
-        console.log('[Telegram] Bot started with long polling');
+        if (WEBHOOK_URL) {
+            await bot.launch({
+                webhook: {
+                    domain: WEBHOOK_URL,
+                    path: '/telegram-webhook',
+                    hookPath: '/telegram-webhook'
+                }
+            });
+            console.log(`[Telegram] Bot started with webhook`);
+        } else {
+            await bot.launch();
+            console.log('[Telegram] Bot started');
+        }
 
         // === COMMANDS ===
 

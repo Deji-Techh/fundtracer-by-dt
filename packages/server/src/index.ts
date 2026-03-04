@@ -3,6 +3,10 @@
  * Handles authentication, secure API key management, and anti-abuse limits.
  */
 
+// Fix fetch compatibility - must be first
+import fetch from 'node-fetch';
+(globalThis as any).fetch = fetch;
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
