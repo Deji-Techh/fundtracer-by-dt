@@ -247,55 +247,73 @@ function registerBotCommands() {
 
             const args = ctx.message.text.split(' ').slice(1);
             const address = args[0];
+            const chain = args[1]?.toLowerCase();
 
             if (!address) {
                 await ctx.reply(
-                    '🔍 /scan <address> - Analyze a wallet instantly\n\n' +
-                    'Example: /scan 0x742d35Cc6634C0532925a3b844Bc9e7595f0eB1e',
+                    '🔍 */scan* - Analyze a wallet\n\n' +
+                    '*Usage:* `/scan <address> [chain]`\n\n' +
+                    '*Chains:* ethereum, linea, arbitrum, base, optimism, polygon\n\n' +
+                    '*Examples:*\n' +
+                    '`/scan 0x742d...eB1e`\n' +
+                    '`/scan 0x742d...eB1e linea`',
                     { parse_mode: 'Markdown' }
                 );
                 return;
             }
 
-            const chain = 'ethereum';
-
             if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-                await ctx.reply('❌ Invalid address format');
+                await ctx.reply('❌ Invalid address format. Must be 0x followed by 40 hex characters.');
                 return;
             }
 
-            await ctx.reply('🔍 *Scanning wallet...*\n\nThis will take ~10 seconds.', { parse_mode: 'Markdown' });
+            // If no chain specified, show chain selection buttons
+            if (!chain) {
+                linkedUser.pendingAddress = address.toLowerCase();
+                linkedUser.step = 'select_scan_chain';
 
-            try {
-                const wa = await getAnalyzer();
-                const result = await wa.analyze(address.toLowerCase(), 'ethereum', {});
-
-                const risk = result.riskLevel || 'unknown';
-                const riskEmoji = risk === 'low' ? '✅' : risk === 'medium' ? '⚠️' : '❌';
-
-                let msg = `📊 *Scan Result*\n\n`;
-                msg += `Address: \`${address.slice(0, 10)}...${address.slice(-4)}\`\n`;
-                msg += `Chain: ETHEREUM\n\n`;
-                msg += `${riskEmoji} *Risk Level:* ${risk.toUpperCase()} (${result.overallRiskScore || 0}/100)\n`;
-                msg += `💰 Balance: ${result.wallet?.balanceInEth?.toFixed(4) || '0'} ETH\n`;
-                msg += `📝 Transactions: ${result.summary?.totalTransactions || 0}\n`;
-
-                if (result.summary?.topFundingSources?.length > 0) {
-                    msg += `\n📥 *Top Funder:*\n`;
-                    const top = result.summary.topFundingSources[0];
-                    msg += `\`${top.address.slice(0, 12)}...\`\n`;
-                    msg += `+${top.valueEth?.toFixed(4)} ETH\n`;
+                const buttons = chains.map(c => 
+                    Markup.button.callback(`${chainEmojis[c] || '🔗'} ${c.charAt(0).toUpperCase() + c.slice(1)}`, `scan_chain_${c}`)
+                );
+                
+                // Arrange buttons in 2 columns
+                const buttonRows = [];
+                for (let i = 0; i < buttons.length; i += 2) {
+                    buttonRows.push(buttons.slice(i, i + 2));
                 }
 
-                msg += `\n🔗 [View Full Report](https://fundtracer.xyz/app-evm?address=${address}&chain=${chain})`;
-
-                await ctx.reply(msg, { parse_mode: 'Markdown' });
-
-                saveScanHistory(linkedUser.userId, address.toLowerCase(), chain, result.overallRiskScore || 0);
-
-            } catch (e: any) {
-                await ctx.reply(`❌ Scan failed: ${e.message}`);
+                await ctx.reply(
+                    `🔍 *Select Chain*\n\nAddress: \`${address.slice(0, 10)}...${address.slice(-4)}\`\n\nWhich chain do you want to scan on?`,
+                    { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttonRows) }
+                );
+                return;
             }
+
+            // Validate chain
+            if (!chains.includes(chain)) {
+                await ctx.reply(`❌ Unknown chain: ${chain}\n\nSupported: ${chains.join(', ')}`);
+                return;
+            }
+
+            await performScan(ctx, linkedUser, address.toLowerCase(), chain);
+        });
+
+        // Handle scan chain selection
+        bot.action(/scan_chain_(.+)/, async (ctx: any) => {
+            const linkedUser = linkedUsers.get(ctx.from.id);
+            if (!linkedUser || !linkedUser.pendingAddress || linkedUser.step !== 'select_scan_chain') {
+                await ctx.answerCbQuery('Session expired. Use /scan again.');
+                return;
+            }
+
+            const chain = ctx.match![1];
+            const address = linkedUser.pendingAddress;
+            
+            linkedUser.step = '';
+            linkedUser.pendingAddress = undefined;
+
+            await ctx.editMessageText(`🔍 *Scanning wallet on ${chain.toUpperCase()}...*\n\nThis will take ~10 seconds.`, { parse_mode: 'Markdown' });
+            await performScan(ctx, linkedUser, address, chain);
         });
 
         // /contract - Contract analysis (requires linked account)
@@ -717,6 +735,42 @@ function saveScanHistory(userId: string, address: string, chain: string, riskSco
         fs.writeFileSync(historyFile, JSON.stringify(history, null, 2));
     } catch (e) {
         console.error('[Telegram] Failed to save scan history:', e);
+    }
+}
+
+// Perform wallet scan on specified chain
+async function performScan(ctx: any, linkedUser: LinkedUser, address: string, chain: string) {
+    try {
+        const wa = await getAnalyzer();
+        const result = await wa.analyze(address, chain, {});
+
+        const risk = result.riskLevel || 'unknown';
+        const riskEmoji = risk === 'low' ? '✅' : risk === 'medium' ? '⚠️' : '❌';
+        const chainEmoji = chainEmojis[chain] || '🔗';
+        const nativeToken = chain === 'ethereum' ? 'ETH' : chain === 'polygon' ? 'MATIC' : 'ETH';
+
+        let msg = `📊 *Scan Result*\n\n`;
+        msg += `Address: \`${address.slice(0, 10)}...${address.slice(-4)}\`\n`;
+        msg += `${chainEmoji} Chain: ${chain.toUpperCase()}\n\n`;
+        msg += `${riskEmoji} *Risk Level:* ${risk.toUpperCase()} (${result.overallRiskScore || 0}/100)\n`;
+        msg += `💰 Balance: ${result.wallet?.balanceInEth?.toFixed(4) || '0'} ${nativeToken}\n`;
+        msg += `📝 Transactions: ${result.summary?.totalTransactions || 0}\n`;
+
+        if (result.summary?.topFundingSources?.length > 0) {
+            msg += `\n📥 *Top Funder:*\n`;
+            const top = result.summary.topFundingSources[0];
+            msg += `\`${top.address.slice(0, 12)}...\`\n`;
+            msg += `+${top.valueEth?.toFixed(4)} ${nativeToken}\n`;
+        }
+
+        msg += `\n🔗 [View Full Report](https://fundtracer.xyz/app-evm?address=${address}&chain=${chain})`;
+
+        await ctx.reply(msg, { parse_mode: 'Markdown' });
+
+        saveScanHistory(linkedUser.userId, address, chain, result.overallRiskScore || 0);
+
+    } catch (e: any) {
+        await ctx.reply(`❌ Scan failed: ${e.message}`);
     }
 }
 
