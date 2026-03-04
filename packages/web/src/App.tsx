@@ -14,6 +14,7 @@ const FaqPage = lazy(() => import('./pages/FaqPage').then(m => ({ default: m.Faq
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 const InstallPage = lazy(() => import('./pages/InstallPage').then(m => ({ default: m.InstallPage })));
+const TelegramPage = lazy(() => import('./pages/TelegramPage').then(m => ({ default: m.TelegramPage })));
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
         <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
         <Route path="/ext-install" element={<Suspense fallback={null}><InstallPage /></Suspense>} />
+        <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
         <Route path="/app-evm/*" element={<EVMTabs />} />
         <Route path="/app-solana/*" element={
           <SolanaWalletProvider>

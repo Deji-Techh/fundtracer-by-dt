@@ -4,6 +4,7 @@ import { Hero } from '../components/landing/Hero';
 import { ApiProvidersShowcase } from '../components/landing/ApiProvidersShowcase';
 import { Features } from '../components/landing/Features';
 import { ChromeExtensionPromo } from '../components/landing/ChromeExtensionPromo';
+import { TelegramAlerts } from '../components/landing/TelegramAlerts';
 import { CliShowcase } from '../components/landing/CliShowcase';
 import { ScreenshotShowcase } from '../components/landing/ScreenshotShowcase';
 import { Pricing } from '../components/landing/Pricing';
@@ -18,6 +19,7 @@ export function LandingPage() {
       <ApiProvidersShowcase />
       <Features />
       <ChromeExtensionPromo />
+      <TelegramAlerts />
       <CliShowcase />
       <ScreenshotShowcase />
       <Pricing />

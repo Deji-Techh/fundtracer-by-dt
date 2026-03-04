@@ -1,0 +1,370 @@
+.telegram-page {
+  min-height: 100vh;
+  background: #030303;
+  padding: 80px 20px;
+}
+
+.telegram-page-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.header-icon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.05));
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  color: #00d4ff;
+}
+
+.page-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.page-header p {
+  font-size: 1.125rem;
+  color: #a1a1aa;
+  line-height: 1.6;
+}
+
+.setup-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.step-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  gap: 20px;
+  transition: all 0.3s ease;
+}
+
+.step-card:hover {
+  border-color: rgba(0, 212, 255, 0.2);
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00d4ff;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-number.success {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.step-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.step-content p {
+  color: #a1a1aa;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.open-bot-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #00d4ff, #00a3cc);
+  border-radius: 8px;
+  color: #000;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  margin-top: 12px;
+}
+
+.generate-code-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+.generate-code-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.generate-code-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.code-display {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.code {
+  display: inline-block;
+  padding: 12px 24px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #00d4ff;
+  letter-spacing: 0.2em;
+}
+
+.code-note {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: #71717a;
+}
+
+.command-box {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+}
+
+.command-box code {
+  font-family: monospace;
+  color: #00d4ff;
+}
+
+.connected-section {
+  text-align: center;
+  padding: 40px;
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  border-radius: 20px;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  background: rgba(16, 185, 129, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 2rem;
+  color: #10b981;
+}
+
+.connected-section h2 {
+  font-size: 1.75rem;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.connected-section > p {
+  color: #a1a1aa;
+  margin-bottom: 32px;
+}
+
+.bot-commands {
+  text-align: left;
+  margin-bottom: 32px;
+}
+
+.bot-commands h3 {
+  font-size: 1rem;
+  color: #71717a;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.commands-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.command-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.command-item code {
+  font-family: monospace;
+  color: #00d4ff;
+  font-weight: 600;
+}
+
+.command-item span {
+  color: #a1a1aa;
+  font-size: 0.875rem;
+}
+
+.done-btn {
+  padding: 12px 32px;
+  background: #10b981;
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.open-bot-btn-large {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #00d4ff, #00a3cc);
+  border-radius: 10px;
+  color: #000;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.features-section {
+  margin-top: 80px;
+}
+
+.features-section h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.feature-item {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.feature-emoji {
+  font-size: 1.5rem;
+}
+
+.feature-item h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.feature-item p {
+  font-size: 0.875rem;
+  color: #71717a;
+}
+
+.plans-section {
+  margin-top: 60px;
+}
+
+.plans-section h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.plan-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  position: relative;
+}
+
+.plan-card.featured {
+  background: rgba(0, 212, 255, 0.05);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.plan-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  background: #00d4ff;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #000;
+}
+
+.plan-name {
+  font-size: 1rem;
+  color: #a1a1aa;
+  margin-bottom: 8px;
+}
+
+.plan-wallets {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.plan-label {
+  font-size: 0.875rem;
+  color: #71717a;
+}
+
+@media (max-width: 640px) {
+  .commands-grid,
+  .features-grid,
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+}
