@@ -390,6 +390,10 @@ apiRouter.use('/solana', authMiddleware, solanaRoutes); // Solana wallet analysi
 import contractScannerRoutes from './routes/contractRoutes.js';
 apiRouter.use('/contract', authMiddleware, contractScannerRoutes);
 
+// NEW: Telegram Routes
+import { telegramRoutes } from './routes/telegram.js';
+apiRouter.use('/telegram', telegramRoutes);
+
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
 app.use('/', apiRouter);

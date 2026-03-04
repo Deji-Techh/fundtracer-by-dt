@@ -1,20 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
 import './TelegramPage.css';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export function TelegramPage() {
-  const [linkCode, setLinkCode] = useState('XXXXXX');
+  const { user, profile } = useAuth();
+  const [linkCode, setLinkCode] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const generateCode = () => {
-    setIsGenerating(true);
-    setTimeout(() => {
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      setLinkCode(code);
-      setIsGenerating(false);
-    }, 1000);
+  useEffect(() => {
+    checkConnectionStatus();
+  }, [user]);
+
+  const checkConnectionStatus = async () => {
+    if (!user?.uid) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/telegram/status/${user.uid}`);
+      const data = await res.json();
+      if (data.linked) {
+        setConnected(true);
+      }
+    } catch (e) {
+      console.error('Failed to check telegram status:', e);
+    }
+    setLoading(false);
   };
+
+  const generateCode = async () => {
+    if (!user?.uid || !profile?.tier) {
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const tier = profile.tier || 'free';
+      const res = await fetch(`${API_BASE}/api/telegram/link-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, tier })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setLinkCode(data.code);
+      }
+    } catch (e) {
+      console.error('Failed to generate code:', e);
+    }
+    setIsGenerating(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="telegram-page">
+        <div className="telegram-page-container">
+          <div className="loading">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="telegram-page">
@@ -66,48 +118,47 @@ export function TelegramPage() {
               </div>
             </div>
 
-            <div className="step-card">
-              <div className="step-number">3</div>
-              <div className="step-content">
-                <h3>Link Your Account</h3>
-                <p>Click the button below to generate a link code, then send it to the bot.</p>
-                <button 
-                  className="generate-code-btn" 
-                  onClick={generateCode}
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? 'Generating...' : 'Generate Link Code'}
-                </button>
-                {linkCode && (
-                  <div className="code-display">
-                    <span className="code">{linkCode}</span>
-                    <span className="code-note">Expires in 10 minutes</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="step-card">
-              <div className="step-number">4</div>
-              <div className="step-content">
-                <h3>Send Code to Bot</h3>
-                <p>Send the code to the bot on Telegram:</p>
-                <div className="command-box">
-                  <code>/link {linkCode}</code>
+            {!user ? (
+              <div className="step-card">
+                <div className="step-number">3</div>
+                <div className="step-content">
+                  <h3>Sign In Required</h3>
+                  <p>Please sign in to your FundTracer account to generate a link code.</p>
+                  <a href="/login" className="open-bot-btn">Sign In</a>
                 </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="step-card">
+                  <div className="step-number">3</div>
+                  <div className="step-content">
+                    <h3>Generate Link Code</h3>
+                    <p>Click the button below to generate a unique code that links your account to Telegram.</p>
+                    <button 
+                      className="generate-code-btn" 
+                      onClick={generateCode}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? 'Generating...' : 'Generate Link Code'}
+                    </button>
+                    {linkCode && (
+                      <div className="code-display">
+                        <span className="code">{linkCode}</span>
+                        <span className="code-note">Expires in 10 minutes</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-            <div className="step-card connected-card">
-              <div className="step-number success">✓</div>
-              <div className="step-content">
-                <h3>Connected!</h3>
-                <p>Your Telegram is now linked. Use the bot to add wallets to your watchlist.</p>
-                <button className="done-btn" onClick={() => setConnected(true)}>
-                  Done
-                </button>
-              </div>
-            </div>
+                <div className="step-card">
+                  <div className="step-number">4</div>
+                  <div className="step-content">
+                    <h3>Send Code to Bot</h3>
+                    <p>After starting the bot, it will automatically detect your code and link your account.</p>
+                  </div>
+                </div>
+              </>
+            )}
           </motion.div>
         ) : (
           <motion.div 
