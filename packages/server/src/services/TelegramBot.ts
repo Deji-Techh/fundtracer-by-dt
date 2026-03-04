@@ -52,6 +52,11 @@ const chainExplorers: Record<string, string> = {
 
 let bot: any = null;
 let analyzer: any = null;
+let webhookHandler: any = null;
+
+export function getTelegramWebhookHandler() {
+    return webhookHandler;
+}
 
 const DATA_FILE = process.env.DATA_FILE || './data/telegram-bot.json';
 
@@ -113,7 +118,7 @@ async function getAnalyzer() {
     return analyzer;
 }
 
-export async function createTelegramBot(expressApp?: any) {
+export async function createTelegramBot() {
     initializeData();
     
     if (!BOT_TOKEN) {
@@ -129,13 +134,14 @@ export async function createTelegramBot(expressApp?: any) {
         // Register commands FIRST before starting
         registerBotCommands();
 
-        if (WEBHOOK_URL && expressApp) {
+        if (WEBHOOK_URL) {
             // Use webhook mode
             const webhookPath = '/telegram-webhook';
             
             await bot.telegram.setWebhook(`${WEBHOOK_URL}${webhookPath}`);
             
-            expressApp.use(webhookPath, bot.webhookCallback(webhookPath));
+            // Store the webhook handler - will be called by index.ts route
+            webhookHandler = bot.webhookCallback(webhookPath);
             
             console.log(`[Telegram] Bot started with webhook: ${WEBHOOK_URL}${webhookPath}`);
         } else {

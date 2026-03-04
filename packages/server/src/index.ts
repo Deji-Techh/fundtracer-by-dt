@@ -402,18 +402,26 @@ apiRouter.use('/telegram', telegramRoutes);
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
 
-// Initialize Telegram Bot webhook route BEFORE catch-all (must be registered before *)
-import { createTelegramBot } from './services/TelegramBot.js';
-createTelegramBot(app).catch(err => {
+// Telegram webhook route - must be registered BEFORE catch-all
+// We create a router that will be populated once the bot initializes
+import { createTelegramBot, getTelegramWebhookHandler } from './services/TelegramBot.js';
+
+// Register webhook route synchronously - handler will be set by createTelegramBot
+app.post('/telegram-webhook', (req, res, next) => {
+    const handler = getTelegramWebhookHandler();
+    if (handler) {
+        return handler(req, res, next);
+    }
+    res.status(503).json({ error: 'Bot not ready' });
+});
+
+// Initialize bot (will set the webhook handler)
+createTelegramBot().catch(err => {
     console.error('[Server] Failed to initialize Telegram bot:', err);
 });
 
 // Fallback for SPA routing - MUST BE LAST
 app.get('*', (req, res) => {
-    // Skip telegram webhook path
-    if (req.path === '/telegram-webhook') {
-        return res.status(404).json({ error: 'Webhook not ready' });
-    }
     if (req.path.startsWith('/api')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
