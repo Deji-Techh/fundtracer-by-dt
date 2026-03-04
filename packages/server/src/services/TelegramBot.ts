@@ -113,7 +113,7 @@ async function getAnalyzer() {
     return analyzer;
 }
 
-export async function createTelegramBot() {
+export async function createTelegramBot(expressApp?: any) {
     initializeData();
     
     if (!BOT_TOKEN) {
@@ -126,56 +126,74 @@ export async function createTelegramBot() {
     try {
         bot = new Telegraf(BOT_TOKEN);
 
-        if (WEBHOOK_URL) {
-            await bot.launch({
-                webhook: {
-                    domain: WEBHOOK_URL,
-                    path: '/telegram-webhook',
-                    hookPath: '/telegram-webhook'
-                }
-            });
-            console.log(`[Telegram] Bot started with webhook`);
+        // Register commands FIRST before starting
+        registerBotCommands();
+
+        if (WEBHOOK_URL && expressApp) {
+            // Use webhook mode
+            const webhookPath = '/telegram-webhook';
+            
+            await bot.telegram.setWebhook(`${WEBHOOK_URL}${webhookPath}`);
+            
+            expressApp.use(webhookPath, bot.webhookCallback(webhookPath));
+            
+            console.log(`[Telegram] Bot started with webhook: ${WEBHOOK_URL}${webhookPath}`);
         } else {
+            // Fallback to polling (will fail on Node 22 but logs error)
             await bot.launch();
-            console.log('[Telegram] Bot started');
+            console.log('[Telegram] Bot started with polling');
         }
 
-        // === COMMANDS ===
+        return bot;
+    } catch (error) {
+        console.error('[Telegram] Failed to start:', error);
+        return null;
+    }
+}
 
-        // /start - Show welcome
-        bot.command('start', async (ctx: any) => {
-            const linkedUser = linkedUsers.get(ctx.from.id);
-            if (linkedUser) {
-                await showDashboard(ctx, linkedUser);
-            } else {
-                await showLinkAccount(ctx);
-            }
-        });
-
-        // /help - Show all commands
-        bot.command('help', async (ctx: any) => {
+function registerBotCommands() {
+    // /start - Welcome message
+    bot.start(async (ctx: any) => {
+        const linkedUser = linkedUsers.get(ctx.from.id);
+        if (linkedUser) {
+            await showDashboard(ctx, linkedUser);
+        } else {
             await ctx.reply(
-                '📖 *FundTracer Commands*\n\n' +
-                '🔗 *Account*\n' +
-                '/start - Start bot\n' +
-                '/link - Connect account\n' +
-                '/unlink - Disconnect\n\n' +
-                '👀 *Watchlist*\n' +
-                '/add - Add wallet to watch\n' +
-                '/list - View watched wallets\n' +
-                '/remove - Remove wallet\n\n' +
-                '🔍 *Analysis*\n' +
-                '/scan &lt;address&gt; - Quick wallet scan\n' +
-                '/contract &lt;address&gt; [chain] - Scan contract\n\n' +
-                '🤖 *AI Assistant*\n' +
-                '/ask &lt;question&gt; - Ask anything\n' +
-                '/history - View scan history\n\n' +
-                '⚙️ *Settings*\n' +
-                '/frequency - Set alert frequency\n' +
-                '/status - View status',
+                '👋 *Welcome to FundTracer!*\n\n' +
+                'Get wallet alerts and AI analysis on Telegram.\n\n' +
+                '🔗 *Setup:*\n' +
+                '1. Go to fundtracer.xyz → Profile\n' +
+                '2. Click "Connect Telegram"\n' +
+                '3. Enter the code here\n\n' +
+                'Or use /scan to try a quick wallet analysis!',
                 { parse_mode: 'Markdown' }
             );
-        });
+        }
+    });
+
+    // /help - Show commands
+    bot.command('help', async (ctx: any) => {
+        await ctx.reply(
+            '📚 *Commands*\n\n' +
+            '🔗 *Account*\n' +
+            '/link - Connect FundTracer account\n' +
+            '/unlink - Disconnect account\n\n' +
+            '👀 *Watchlist*\n' +
+            '/add - Add wallet to watch\n' +
+            '/list - View watched wallets\n' +
+            '/remove - Remove wallet\n\n' +
+            '🔍 *Analysis*\n' +
+            '/scan <address> - Quick wallet scan\n' +
+            '/contract <address> [chain] - Scan contract\n\n' +
+            '🤖 *AI Assistant*\n' +
+            '/ask <question> - Ask anything\n' +
+            '/history - View scan history\n\n' +
+            '⚙️ *Settings*\n' +
+            '/frequency - Set alert frequency\n' +
+            '/status - View status',
+            { parse_mode: 'Markdown' }
+        );
+    });
 
         // /link - Connect account
         bot.command('link', async (ctx: any) => {
@@ -607,38 +625,29 @@ export async function createTelegramBot() {
             }
         });
 
-        // Handle natural language messages when user is in AI mode
-        bot.on('message', async (ctx: any, next: () => Promise<void>) => {
-            if (!ctx.message || !('text' in ctx.message)) return next();
-            const text = ctx.message.text;
-            if (text.startsWith('/')) return next();
+    // Handle natural language messages when user is in AI mode
+    bot.on('message', async (ctx: any, next: () => Promise<void>) => {
+        if (!ctx.message || !('text' in ctx.message)) return next();
+        const text = ctx.message.text;
+        if (text.startsWith('/')) return next();
 
-            const linkedUser = linkedUsers.get(ctx.from.id);
-            if (!linkedUser || linkedUser.step !== 'ai_mode') return next();
+        const linkedUser = linkedUsers.get(ctx.from.id);
+        if (!linkedUser || linkedUser.step !== 'ai_mode') return next();
 
-            linkedUser.step = '';
-            await ctx.reply('🤖 *Thinking...*', { parse_mode: 'Markdown' });
+        linkedUser.step = '';
+        await ctx.reply('🤖 *Thinking...*', { parse_mode: 'Markdown' });
 
-            let context = '';
-            if (linkedUser.watches.length > 0) {
-                const wallets = linkedUser.watches.map(w => 
-                    `${w.address.slice(0, 10)}...${w.address.slice(-4)} (${w.chain})`
-                ).join(', ');
-                context = `User is watching: ${wallets}`;
-            }
+        let context = '';
+        if (linkedUser.watches.length > 0) {
+            const wallets = linkedUser.watches.map(w => 
+                `${w.address.slice(0, 10)}...${w.address.slice(-4)} (${w.chain})`
+            ).join(', ');
+            context = `User is watching: ${wallets}`;
+        }
 
-            const answer = await askAI(text, context);
-            await ctx.reply(answer);
-        });
-
-        await bot.launch();
-        console.log('[Telegram] Bot started');
-
-        return bot;
-    } catch (error) {
-        console.error('[Telegram] Failed to start:', error);
-        return null;
-    }
+        const answer = await askAI(text, context);
+        await ctx.reply(answer);
+    });
 }
 
 // === HELPER FUNCTIONS ===

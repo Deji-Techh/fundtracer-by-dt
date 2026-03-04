@@ -434,10 +434,10 @@ server = app.listen(PORT, async () => {
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Health check: http://localhost:${PORT}/api/health`);
 
-    // Initialize Telegram Bot
+    // Initialize Telegram Bot (pass Express app for webhook support)
     try {
         const { createTelegramBot } = await import('./services/TelegramBot.js');
-        await createTelegramBot();
+        await createTelegramBot(app);
     } catch (error) {
         console.error('[Server] Failed to initialize Telegram bot:', error);
     }
