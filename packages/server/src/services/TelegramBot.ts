@@ -22,6 +22,7 @@ interface LinkedUser {
     userId: string;
     telegramId: number;
     tier: 'free' | 'pro' | 'max';
+    walletAddress: string; // Connected wallet address
     watches: WatchedWallet[];
     alertFrequency: 'realtime' | '20min' | '30min' | '1hr';
     linkedAt: number;
@@ -34,8 +35,12 @@ interface PendingCode {
     code: string;
     userId: string;
     tier: string;
+    walletAddress: string; // Wallet address from site
     expiresAt: number;
 }
+
+// Track users waiting to enter link code (before they're linked)
+const pendingLinkUsers: Map<number, { step: string }> = new Map();
 
 const chains = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon'];
 const chainEmojis: Record<string, string> = {
@@ -203,50 +208,49 @@ function registerBotCommands() {
 
         // /link - Connect account
         bot.command('link', async (ctx: any) => {
-            await showLinkAccount(ctx);
-        });
-
-        // Handle link callback
-        bot.action(/link_(.+)/, async (ctx: any) => {
-            const code = ctx.match![1];
-            const pending = pendingCodes.get(code);
-            const telegramId = ctx.from.id;
-
-            if (!pending || pending.expiresAt < Date.now()) {
-                await ctx.editMessageText(
-                    '❌ Link code expired or invalid.\n\nGo to fundtracer.xyz → Profile → Connect Telegram to generate a new code.',
+            const linkedUser = linkedUsers.get(ctx.from.id);
+            if (linkedUser) {
+                await ctx.reply(
+                    '✅ *Already Linked!*\n\n' +
+                    `Wallet: \`${linkedUser.walletAddress.slice(0, 8)}...${linkedUser.walletAddress.slice(-4)}\`\n` +
+                    `Plan: ${linkedUser.tier.toUpperCase()}\n\n` +
+                    'Use /unlink to disconnect first if you want to link a different account.',
                     { parse_mode: 'Markdown' }
                 );
                 return;
             }
-
-            linkedUsers.set(telegramId, {
-                userId: pending.userId,
-                telegramId: telegramId,
-                tier: pending.tier as any,
-                watches: [],
-                alertFrequency: 'realtime',
-                linkedAt: Date.now()
-            });
-
-            pendingCodes.delete(code);
-
-            await ctx.editMessageText(
-                '✅ *Account Linked!*\n\n' +
-                `Plan: ${pending.tier.toUpperCase()}\n\n` +
-                'Use /add to watch wallets, or /scan to analyze instantly.',
+            
+            // Set user step to awaiting link code
+            pendingLinkUsers.set(ctx.from.id, { step: 'awaiting_link_code' });
+            
+            await ctx.reply(
+                '🔗 *Connect Your Account*\n\n' +
+                '*Step 1:* Go to fundtracer.xyz/telegram\n' +
+                '*Step 2:* Connect your wallet\n' +
+                '*Step 3:* Generate a link code\n' +
+                '*Step 4:* Paste the code here\n\n' +
+                '⏳ Waiting for your code...',
                 { parse_mode: 'Markdown' }
             );
         });
 
-        // /scan - Quick wallet analysis
+        // Handle link callback (for button clicks - legacy)
+        bot.action(/link_(.+)/, async (ctx: any) => {
+            const code = ctx.match![1];
+            await processLinkCode(ctx, code, true);
+        });
+
+        // /scan - Quick wallet analysis (requires linked account)
         bot.command('scan', async (ctx: any) => {
+            const linkedUser = await requireLinkedAccount(ctx);
+            if (!linkedUser) return;
+
             const args = ctx.message.text.split(' ').slice(1);
             const address = args[0];
 
             if (!address) {
                 await ctx.reply(
-                    '🔍 /scan &lt;address&gt; - Analyze a wallet instantly\n\n' +
+                    '🔍 /scan <address> - Analyze a wallet instantly\n\n' +
                     'Example: /scan 0x742d35Cc6634C0532925a3b844Bc9e7595f0eB1e',
                     { parse_mode: 'Markdown' }
                 );
@@ -287,25 +291,25 @@ function registerBotCommands() {
 
                 await ctx.reply(msg, { parse_mode: 'Markdown' });
 
-                const linkedUser = linkedUsers.get(ctx.from.id);
-                if (linkedUser) {
-                    saveScanHistory(linkedUser.userId, address.toLowerCase(), chain, result.overallRiskScore || 0);
-                }
+                saveScanHistory(linkedUser.userId, address.toLowerCase(), chain, result.overallRiskScore || 0);
 
             } catch (e: any) {
                 await ctx.reply(`❌ Scan failed: ${e.message}`);
             }
         });
 
-        // /contract - Contract analysis
+        // /contract - Contract analysis (requires linked account)
         bot.command('contract', async (ctx: any) => {
+            const linkedUser = await requireLinkedAccount(ctx);
+            if (!linkedUser) return;
+
             const args = ctx.message.text.split(' ').slice(1);
             const address = args[0];
             const chain = args[1] || 'ethereum';
 
             if (!address) {
                 await ctx.reply(
-                    '📄 /contract &lt;address&gt; [chain] - Analyze a smart contract\n\n' +
+                    '📄 /contract <address> [chain] - Analyze a smart contract\n\n' +
                     'Chains: ethereum, polygon, arbitrum, optimism, base, linea\n' +
                     'Example: /contract 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D ethereum',
                     { parse_mode: 'Markdown' }
@@ -386,18 +390,39 @@ function registerBotCommands() {
             );
         });
 
-        // Handle address input
+        // Handle text input (link codes and wallet addresses)
         bot.on('message', async (ctx: any, next: () => Promise<void>) => {
             if (!ctx.message || !('text' in ctx.message)) return next();
-            const text = ctx.message.text;
+            const text = ctx.message.text.trim();
             if (text.startsWith('/')) return next();
 
-            const linkedUser = linkedUsers.get(ctx.from.id);
+            const telegramId = ctx.from.id;
+            
+            // Check if user is waiting to enter a link code
+            const pendingLink = pendingLinkUsers.get(telegramId);
+            if (pendingLink && pendingLink.step === 'awaiting_link_code') {
+                // Try to process as link code (codes are 6 chars uppercase alphanumeric)
+                if (/^[A-Z0-9]{6}$/.test(text.toUpperCase())) {
+                    await processLinkCode(ctx, text.toUpperCase(), false);
+                    return;
+                } else {
+                    await ctx.reply(
+                        '❌ Invalid code format.\n\n' +
+                        'Link codes are 6 characters (e.g., ABC123).\n' +
+                        'Get your code at fundtracer.xyz/telegram',
+                        { parse_mode: 'Markdown' }
+                    );
+                    return;
+                }
+            }
+
+            // Check if linked user is in a step
+            const linkedUser = linkedUsers.get(telegramId);
             if (!linkedUser || !linkedUser.step) return next();
 
             if (linkedUser.step === 'awaiting_address') {
                 if (!/^0x[a-fA-F0-9]{40}$/.test(text)) {
-                    await ctx.reply('❌ Invalid address');
+                    await ctx.reply('❌ Invalid address format. Must start with 0x followed by 40 hex characters.');
                     return;
                 }
 
@@ -547,9 +572,11 @@ function registerBotCommands() {
             }
         });
 
-        // /ask - Ask AI about wallets, transactions, crypto
+        // /ask - Ask AI about wallets, transactions, crypto (requires linked account)
         bot.command(['ask', 'ai'], async (ctx: any) => {
-            const linkedUser = linkedUsers.get(ctx.from.id);
+            const linkedUser = await requireLinkedAccount(ctx);
+            if (!linkedUser) return;
+
             const args = ctx.message.text.split(' ').slice(1);
             const question = args.join(' ');
 
@@ -569,7 +596,7 @@ function registerBotCommands() {
             await ctx.reply('🤖 *Thinking...*', { parse_mode: 'Markdown' });
 
             let context = '';
-            if (linkedUser && linkedUser.watches.length > 0) {
+            if (linkedUser.watches.length > 0) {
                 const wallets = linkedUser.watches.map(w => 
                     `${w.address.slice(0, 10)}...${w.address.slice(-4)} (${w.chain})`
                 ).join(', ');
@@ -584,13 +611,10 @@ function registerBotCommands() {
             );
         });
 
-        // /history - Get recent scan history
+        // /history - Get recent scan history (requires linked account)
         bot.command('history', async (ctx: any) => {
-            const linkedUser = linkedUsers.get(ctx.from.id);
-            if (!linkedUser) {
-                await ctx.reply('Use /link first');
-                return;
-            }
+            const linkedUser = await requireLinkedAccount(ctx);
+            if (!linkedUser) return;
 
             const fs = require('fs');
             const historyFile = process.env.DATA_FILE 
@@ -696,6 +720,67 @@ function saveScanHistory(userId: string, address: string, chain: string, riskSco
     }
 }
 
+// Process link code - used by both text input and button callback
+async function processLinkCode(ctx: any, code: string, isButtonCallback: boolean) {
+    const pending = pendingCodes.get(code.toUpperCase());
+    const telegramId = ctx.from.id;
+
+    if (!pending || pending.expiresAt < Date.now()) {
+        const msg = '❌ Link code expired or invalid.\n\nGo to fundtracer.xyz/telegram to generate a new code.';
+        if (isButtonCallback) {
+            await ctx.editMessageText(msg, { parse_mode: 'Markdown' });
+        } else {
+            await ctx.reply(msg, { parse_mode: 'Markdown' });
+        }
+        return;
+    }
+
+    // Link the user
+    linkedUsers.set(telegramId, {
+        userId: pending.userId,
+        telegramId: telegramId,
+        tier: pending.tier as any,
+        walletAddress: pending.walletAddress,
+        watches: [],
+        alertFrequency: 'realtime',
+        linkedAt: Date.now()
+    });
+
+    pendingCodes.delete(code.toUpperCase());
+    pendingLinkUsers.delete(telegramId);
+
+    const successMsg = 
+        '✅ *Account Linked!*\n\n' +
+        `Wallet: \`${pending.walletAddress.slice(0, 8)}...${pending.walletAddress.slice(-4)}\`\n` +
+        `Plan: ${pending.tier.toUpperCase()}\n\n` +
+        'You now have access to all bot features!\n\n' +
+        'Try /scan to analyze a wallet or /add to watch one.';
+
+    if (isButtonCallback) {
+        await ctx.editMessageText(successMsg, { parse_mode: 'Markdown' });
+    } else {
+        await ctx.reply(successMsg, { parse_mode: 'Markdown' });
+    }
+}
+
+// Helper to check if user needs to link account first
+async function requireLinkedAccount(ctx: any): Promise<LinkedUser | null> {
+    const linkedUser = linkedUsers.get(ctx.from.id);
+    if (!linkedUser) {
+        await ctx.reply(
+            '🔒 *Account Required*\n\n' +
+            'You need to link your FundTracer account to use this feature.\n\n' +
+            '1. Go to fundtracer.xyz/telegram\n' +
+            '2. Connect your wallet\n' +
+            '3. Generate a link code\n' +
+            '4. Send /link here and enter the code',
+            { parse_mode: 'Markdown' }
+        );
+        return null;
+    }
+    return linkedUser;
+}
+
 async function showLinkAccount(ctx: any) {
     await ctx.reply(
         '🔗 *Connect Your Account*\n\n' +
@@ -728,10 +813,10 @@ async function showDashboard(ctx: any, user: LinkedUser) {
 
 // === EXPORTS FOR API ===
 
-export function generateLinkCode(userId: string, tier: string): string {
+export function generateLinkCode(userId: string, tier: string, walletAddress: string): string {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     pendingCodes.set(code, {
-        code, userId, tier,
+        code, userId, tier, walletAddress,
         expiresAt: Date.now() + 10 * 60 * 1000
     });
     return code;

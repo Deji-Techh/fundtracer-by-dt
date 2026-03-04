@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useAppKit } from '@reown/appkit/react';
 import './TelegramPage.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function TelegramPage() {
   const { user, profile } = useAuth();
+  const { open } = useAppKit();
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     checkConnectionStatus();
@@ -35,27 +38,40 @@ export function TelegramPage() {
   };
 
   const generateCode = async () => {
-    if (!user?.uid || !profile?.tier) {
+    if (!user?.uid || !profile?.tier || !user?.walletAddress) {
+      setError('Please connect your wallet first');
       return;
     }
 
     setIsGenerating(true);
+    setError(null);
     try {
       const tier = profile.tier || 'free';
       const res = await fetch(`${API_BASE}/api/telegram/link-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid, tier })
+        body: JSON.stringify({ 
+          userId: user.uid, 
+          tier,
+          walletAddress: user.walletAddress 
+        })
       });
       const data = await res.json();
       
       if (data.success) {
         setLinkCode(data.code);
+      } else {
+        setError(data.error || 'Failed to generate code');
       }
     } catch (e) {
       console.error('Failed to generate code:', e);
+      setError('Failed to generate code. Please try again.');
     }
     setIsGenerating(false);
+  };
+
+  const handleConnectWallet = () => {
+    open();
   };
 
   if (loading) {
@@ -93,11 +109,35 @@ export function TelegramPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <div className="step-card">
-              <div className="step-number">1</div>
+            {/* Step 1: Connect Wallet */}
+            <div className={`step-card ${user?.walletAddress ? 'completed' : ''}`}>
+              <div className="step-number">{user?.walletAddress ? '✓' : '1'}</div>
               <div className="step-content">
-                <h3>Open Telegram</h3>
-                <p>Search for <strong>@fundtracer_bot</strong> or click the button below to open the bot.</p>
+                <h3>Connect Your Wallet</h3>
+                {user?.walletAddress ? (
+                  <div className="wallet-connected">
+                    <span className="wallet-address">
+                      {user.walletAddress.slice(0, 8)}...{user.walletAddress.slice(-6)}
+                    </span>
+                    <span className="connected-badge">Connected</span>
+                  </div>
+                ) : (
+                  <>
+                    <p>Connect your wallet to link your account. This wallet will be synced across Telegram and the web app.</p>
+                    <button onClick={handleConnectWallet} className="open-bot-btn">
+                      Connect Wallet
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Step 2: Open Telegram */}
+            <div className="step-card">
+              <div className="step-number">2</div>
+              <div className="step-content">
+                <h3>Open Telegram Bot</h3>
+                <p>Search for <strong>@fundtracer_bot</strong> or click the button below.</p>
                 <a href="https://t.me/fundtracer_bot" target="_blank" rel="noopener noreferrer" className="open-bot-btn">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
@@ -107,58 +147,43 @@ export function TelegramPage() {
               </div>
             </div>
 
+            {/* Step 3: Generate Code */}
             <div className="step-card">
-              <div className="step-number">2</div>
+              <div className="step-number">3</div>
               <div className="step-content">
-                <h3>Start the Bot</h3>
-                <p>Send <strong>/start</strong> to the bot to begin setup.</p>
-                <div className="command-box">
-                  <code>/start</code>
-                </div>
-              </div>
-            </div>
-
-            {!user ? (
-              <div className="step-card">
-                <div className="step-number">3</div>
-                <div className="step-content">
-                  <h3>Sign In Required</h3>
-                  <p>Please sign in to your FundTracer account to generate a link code.</p>
-                  <a href="/login" className="open-bot-btn">Sign In</a>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="step-card">
-                  <div className="step-number">3</div>
-                  <div className="step-content">
-                    <h3>Generate Link Code</h3>
-                    <p>Click the button below to generate a unique code that links your account to Telegram.</p>
+                <h3>Generate Link Code</h3>
+                {!user?.walletAddress ? (
+                  <p className="disabled-text">Connect your wallet first to generate a link code.</p>
+                ) : (
+                  <>
+                    <p>Generate a code and send it to the bot using /link command.</p>
                     <button 
                       className="generate-code-btn" 
                       onClick={generateCode}
-                      disabled={isGenerating}
+                      disabled={isGenerating || !user?.walletAddress}
                     >
                       {isGenerating ? 'Generating...' : 'Generate Link Code'}
                     </button>
+                    {error && <div className="error-message">{error}</div>}
                     {linkCode && (
                       <div className="code-display">
                         <span className="code">{linkCode}</span>
-                        <span className="code-note">Expires in 10 minutes</span>
+                        <span className="code-note">Send /link in the bot, then paste this code</span>
                       </div>
                     )}
-                  </div>
-                </div>
+                  </>
+                )}
+              </div>
+            </div>
 
-                <div className="step-card">
-                  <div className="step-number">4</div>
-                  <div className="step-content">
-                    <h3>Send Code to Bot</h3>
-                    <p>After starting the bot, it will automatically detect your code and link your account.</p>
-                  </div>
-                </div>
-              </>
-            )}
+            {/* Step 4: Enter Code in Bot */}
+            <div className="step-card">
+              <div className="step-number">4</div>
+              <div className="step-content">
+                <h3>Link Your Account</h3>
+                <p>In the Telegram bot, type <code>/link</code> and then paste your code when prompted.</p>
+              </div>
+            </div>
           </motion.div>
         ) : (
           <motion.div 

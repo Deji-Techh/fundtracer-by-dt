@@ -5,17 +5,22 @@ const router = Router();
 
 router.post('/link-code', async (req, res) => {
     try {
-        const { userId, tier } = req.body;
+        const { userId, tier, walletAddress } = req.body;
         
-        if (!userId || !tier) {
-            return res.status(400).json({ error: 'userId and tier are required' });
+        if (!userId || !tier || !walletAddress) {
+            return res.status(400).json({ error: 'userId, tier, and walletAddress are required' });
+        }
+
+        // Validate wallet address format
+        if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+            return res.status(400).json({ error: 'Invalid wallet address format' });
         }
 
         if (isUserLinked(userId)) {
             return res.status(400).json({ error: 'Account already linked to Telegram' });
         }
 
-        const code = generateLinkCode(userId, tier);
+        const code = generateLinkCode(userId, tier, walletAddress.toLowerCase());
         
         res.json({ 
             success: true, 
