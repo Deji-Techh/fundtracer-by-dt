@@ -1,9 +1,15 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './PrivacyPage.css';
 
 export function PrivacyPage() {
+  const navigate = useNavigate();
   return (
     <div className="privacy-page">
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+      
       <section className="privacy-hero">
         <span className="privacy-label">Legal</span>
         <h1 className="privacy-title">Privacy Policy</h1>
@@ -99,6 +105,12 @@ export function PrivacyPage() {
           </p>
         </div>
       </section>
+
+      <footer className="page-footer">
+        <a href="/terms">Terms of Service</a>
+        <span>•</span>
+        <a href="/privacy">Privacy Policy</a>
+      </footer>
     </div>
   );
 }

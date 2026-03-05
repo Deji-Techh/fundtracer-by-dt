@@ -83,10 +83,14 @@ export function HowItWorksPage() {
       <section className="how-video">
         <h2 className="how-section-title">See It In Action</h2>
         <div className="how-video-placeholder">
-          <div className="how-video-content">
-            <span className="how-video-icon">▶</span>
-            <p>Demo video coming soon</p>
-          </div>
+          <video 
+            src="/videos/demo.mp4" 
+            controls 
+            playsInline
+            className="how-video-player"
+          >
+            Your browser does not support the video tag.
+          </video>
         </div>
       </section>
 

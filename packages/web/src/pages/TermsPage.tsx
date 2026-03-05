@@ -1,9 +1,15 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './TermsPage.css';
 
 export function TermsPage() {
+  const navigate = useNavigate();
   return (
     <div className="terms-page">
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+      
       <section className="terms-hero">
         <span className="terms-label">Legal</span>
         <h1 className="terms-title">Terms of Service</h1>
@@ -81,6 +87,12 @@ export function TermsPage() {
           </p>
         </div>
       </section>
+
+      <footer className="page-footer">
+        <a href="/terms">Terms of Service</a>
+        <span>•</span>
+        <a href="/privacy">Privacy Policy</a>
+      </footer>
     </div>
   );
 }
