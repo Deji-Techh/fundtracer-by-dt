@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './HowItWorksPage.css';
 
 const steps = [
@@ -48,8 +49,13 @@ const useCases = [
 ];
 
 export function HowItWorksPage() {
+  const navigate = useNavigate();
   return (
     <div className="how-it-works-page">
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+      
       <section className="how-hero">
         <span className="how-label">How It Works</span>
         <h1 className="how-title">Simple, Powerful Analysis</h1>
@@ -100,6 +106,12 @@ export function HowItWorksPage() {
         <h2>Ready to start analyzing?</h2>
         <button className="how-cta-button">Launch App</button>
       </section>
+
+      <footer className="page-footer">
+        <a href="/terms">Terms of Service</a>
+        <span>•</span>
+        <a href="/privacy">Privacy Policy</a>
+      </footer>
     </div>
   );
 }

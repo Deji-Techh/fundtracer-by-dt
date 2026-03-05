@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import './TelegramPage.css';
@@ -7,6 +8,7 @@ import './TelegramPage.css';
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export function TelegramPage() {
+  const navigate = useNavigate();
   const { user, profile, wallet } = useAuth();
   const { open } = useAppKit();
   const { address: appKitAddress, isConnected: appKitConnected } = useAppKitAccount();
@@ -93,6 +95,10 @@ export function TelegramPage() {
 
   return (
     <div className="telegram-page">
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+      
       <div className="telegram-page-container">
         <motion.div 
           className="page-header"

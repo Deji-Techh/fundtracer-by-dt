@@ -1,9 +1,15 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './AboutPage.css';
 
 export function AboutPage() {
+  const navigate = useNavigate();
   return (
     <div className="about-page">
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+      
       {/* Hero Section */}
       <section className="about-hero">
         <div className="about-hero-content">
@@ -127,6 +133,12 @@ export function AboutPage() {
           </button>
         </div>
       </section>
+
+      <footer className="page-footer">
+        <a href="/terms">Terms of Service</a>
+        <span>•</span>
+        <a href="/privacy">Privacy Policy</a>
+      </footer>
     </div>
   );
 }

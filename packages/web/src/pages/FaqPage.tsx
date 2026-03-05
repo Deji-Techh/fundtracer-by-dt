@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './FaqPage.css';
 
 const faqs = [
@@ -77,8 +78,14 @@ const faqs = [
 ];
 
 export function FaqPage() {
+  const navigate = useNavigate();
+  
   return (
     <div className="faq-page">
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+      
       <section className="faq-hero">
         <span className="faq-label">FAQ</span>
         <h1 className="faq-title">Frequently Asked Questions</h1>
@@ -107,6 +114,12 @@ export function FaqPage() {
         <h2>Still have questions?</h2>
         <p>We're here to help. Contact us at fundtracerbydt@gmail.com</p>
       </section>
+
+      <footer className="page-footer">
+        <a href="/terms">Terms of Service</a>
+        <span>•</span>
+        <a href="/privacy">Privacy Policy</a>
+      </footer>
     </div>
   );
 }

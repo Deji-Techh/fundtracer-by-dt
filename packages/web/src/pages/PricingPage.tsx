@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
 import './PricingPage.css';
@@ -75,8 +76,13 @@ const faqs = [
 ];
 
 export function PricingPage() {
+  const navigate = useNavigate();
   return (
     <div className="pricing-page">
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+      
       {/* Hero */}
       <section className="pricing-hero">
         <span className="pricing-label">Pricing</span>
@@ -174,6 +180,12 @@ export function PricingPage() {
         <h2>Still have questions?</h2>
         <p>Contact us at fundtracerbydt@gmail.com</p>
       </section>
+
+      <footer className="page-footer">
+        <a href="/terms">Terms of Service</a>
+        <span>•</span>
+        <a href="/privacy">Privacy Policy</a>
+      </footer>
     </div>
   );
 }

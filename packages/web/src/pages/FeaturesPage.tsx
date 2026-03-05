@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { 
   Wallet01Icon, 
@@ -87,8 +88,13 @@ const additionalFeatures = [
 ];
 
 export function FeaturesPage() {
+  const navigate = useNavigate();
   return (
     <div className="features-page">
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← Back
+      </button>
+      
       <section className="features-hero">
         <span className="features-label">Features</span>
         <h1 className="features-title">Everything You Need</h1>
@@ -138,6 +144,12 @@ export function FeaturesPage() {
         <h2>Ready to explore?</h2>
         <button className="features-cta-button">Launch App</button>
       </section>
+
+      <footer className="page-footer">
+        <a href="/terms">Terms of Service</a>
+        <span>•</span>
+        <a href="/privacy">Privacy Policy</a>
+      </footer>
     </div>
   );
 }
