@@ -1,0 +1,56 @@
+# FundTracer by DT - LLM/AI Full Text Search
+
+## Site Overview
+FundTracer is a professional blockchain forensics and intelligence platform for analyzing wallet addresses, detecting Sybil patterns, comparing multiple wallets, and tracing funding sources across multiple blockchains.
+
+## Supported Blockchains
+Ethereum, Linea, Arbitrum, Base, Polygon, Optimism, BSC
+
+## Core Features
+
+### Wallet Analysis
+Deep dive into any wallet address across multiple chains. Analyze transaction history, token holdings, funding sources, and risk scores.
+
+### Contract Analytics
+Analyze any smart contract to understand its functionality, owner permissions, and potential risks. Check for honeypot patterns.
+
+### Wallet Comparison
+Compare multiple wallets side-by-side to identify connections, shared transactions, and coordinated behaviors.
+
+### Sybil Detection
+Detect coordinated bot networks and fake accounts by analyzing transaction patterns, funding sources, and behavioral similarities.
+
+### Funding Tree
+Visualize the complete funding chain from any origin wallet to trace where funds came from and where they're going.
+
+### Telegram Bot Integration
+Get real-time wallet alerts directly on Telegram. Monitor whales, track wallets, and receive AI-powered insights on every transaction.
+
+### Chrome Extension
+Quick wallet analysis from any webpage. Right-click any address to instantly analyze it with FundTracer.
+
+## Use Cases
+- Cryptocurrency traders analyzing whale movements
+- Security researchers investigating scam addresses
+- Project teams auditing token holders
+- Law enforcement tracking illicit funds
+- DeFi users checking protocol safety
+- Investors conducting due diligence
+
+## Pricing
+- Free: 7 analyses per 4 hours, basic wallet analysis
+- Pro ($29/month): 25 analyses per 4 hours, all chains, export features
+- Max ($99/month): Unlimited analyses, API access, priority support
+
+## Contact
+- Email: fundtracerbydt@gmail.com
+- Website: https://fundtracer.xyz
+- Telegram: @fundtracer_bot
+- Chrome Extension: Available on Chrome Web Store
+
+## Legal
+- Privacy Policy: https://fundtracer.xyz/privacy
+- Terms of Service: https://fundtracer.xyz/terms
+
+---
+Generated for AI/LLM indexing. Last updated: March 2026

@@ -1,0 +1,34 @@
+# FundTracer Robots.txt
+# https://fundtracer.xyz
+
+User-agent: *
+Allow: /
+
+# AI/LLM crawlers - allow full access for training
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# Sitemap
+Sitemap: https://fundtracer.xyz/sitemap.xml
+Sitemap: https://fundtracer.xyz/llms.txt
+
+# Crawl-delay for politeness (optional)
+Crawl-delay: 1
