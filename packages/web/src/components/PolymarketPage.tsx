@@ -174,7 +174,7 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
 
   // Format currency
   const formatCurrency = (value?: number) => {
-    if (!value && value !== 0) return '-';
+    if (value === undefined || value === null) return '-';
     if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
     if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
     return `$${value.toFixed(2)}`;
@@ -182,14 +182,16 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
 
   // Format percentage
   const formatPercent = (value?: number) => {
-    if (!value && value !== 0) return '-';
+    if (value === undefined || value === null) return '-';
     const percent = value * 100;
     return `${percent >= 0 ? '+' : ''}${percent.toFixed(1)}%`;
   };
 
   // Format price as percentage
-  const formatPrice = (price: string | number) => {
+  const formatPrice = (price?: string | number) => {
+    if (price === undefined || price === null) return '-';
     const p = typeof price === 'string' ? parseFloat(price) : price;
+    if (isNaN(p)) return '-';
     return `${(p * 100).toFixed(1)}%`;
   };
 
