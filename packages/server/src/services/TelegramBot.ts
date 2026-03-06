@@ -139,6 +139,34 @@ export async function createTelegramBot() {
         // Register commands FIRST before starting
         registerBotCommands();
 
+        // Register commands with Telegram's command menu (the "/" autocomplete)
+        await bot.telegram.setMyCommands([
+            // Account
+            { command: 'start', description: 'Start the bot / Dashboard' },
+            { command: 'help', description: 'Show all commands' },
+            { command: 'link', description: 'Connect FundTracer account' },
+            { command: 'unlink', description: 'Disconnect account' },
+            { command: 'status', description: 'View account status' },
+            // Watchlist
+            { command: 'add', description: 'Add wallet to watchlist' },
+            { command: 'list', description: 'View watched wallets' },
+            { command: 'remove', description: 'Remove wallet from watchlist' },
+            // Analysis
+            { command: 'scan', description: 'Quick wallet scan' },
+            { command: 'contract', description: 'Scan a contract' },
+            { command: 'ask', description: 'Ask AI anything' },
+            { command: 'history', description: 'View scan history' },
+            // Polymarket
+            { command: 'pmarkets', description: 'Browse prediction markets' },
+            { command: 'ptrending', description: 'Trending & volume spikes' },
+            { command: 'ptraders', description: 'Top Polymarket traders' },
+            { command: 'ptrader', description: 'Lookup specific trader' },
+            { command: 'pask', description: 'AI analysis of markets' },
+            // Settings
+            { command: 'frequency', description: 'Set alert frequency' },
+        ]);
+        console.log('[Telegram] Commands registered with menu');
+
         if (WEBHOOK_URL) {
             // Use webhook mode
             const webhookPath = '/telegram-webhook';

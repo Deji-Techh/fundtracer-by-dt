@@ -207,7 +207,11 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
   };
 
   // Render market card
-  const renderMarketCard = (market: PolymarketMarket, extra?: React.ReactNode) => (
+  const renderMarketCard = (market: PolymarketMarket | undefined | null, extra?: React.ReactNode) => {
+    // Guard against undefined/null market
+    if (!market) return null;
+    
+    return (
     <motion.div
       key={market.id}
       className="section-flat"
@@ -298,7 +302,8 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
         </div>
       )}
     </motion.div>
-  );
+    );
+  };
 
   // Render market detail modal
   const renderMarketDetail = () => {
@@ -747,7 +752,9 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
               }}>
                 Unusual Volume Activity
               </div>
-              {volumeSpikes.map(spike => renderMarketCard(spike.market, (
+              {volumeSpikes
+                .filter(spike => spike?.market)
+                .map(spike => renderMarketCard(spike.market, (
                 <div style={{
                   marginTop: 12,
                   padding: 10,
@@ -777,7 +784,9 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
               }}>
                 Biggest Price Movements
               </div>
-              {priceMovers.map(mover => renderMarketCard(mover.market, (
+              {priceMovers
+                .filter(mover => mover?.market)
+                .map(mover => renderMarketCard(mover.market, (
                 <div style={{
                   marginTop: 12,
                   display: 'flex',
@@ -788,8 +797,8 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
                   <span style={{
                     padding: '4px 10px',
                     borderRadius: 4,
-                    background: mover.priceChange >= 0 ? 'rgba(0, 200, 100, 0.1)' : 'rgba(255, 100, 100, 0.1)',
-                    color: mover.priceChange >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
+                    background: (mover.priceChange ?? 0) >= 0 ? 'rgba(0, 200, 100, 0.1)' : 'rgba(255, 100, 100, 0.1)',
+                    color: (mover.priceChange ?? 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
                     fontWeight: 600,
                   }}>
                     {formatPercent(mover.priceChange)}
