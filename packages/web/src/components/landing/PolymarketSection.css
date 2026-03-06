@@ -1,0 +1,290 @@
+.polymarket-section {
+  padding: 100px 20px;
+  background: linear-gradient(180deg, #0f0f1a 0%, #0a0a0f 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.polymarket-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse at 20% 30%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.polymarket-container {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.polymarket-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.polymarket-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 100px;
+  color: #10b981;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.polymarket-header h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.polymarket-header p {
+  font-size: 1.125rem;
+  color: #a1a1aa;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.polymarket-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.market-card {
+  background: rgba(20, 20, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 20px 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.market-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.market-question {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.market-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.market-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yes-label {
+  font-size: 0.875rem;
+  color: #a1a1aa;
+}
+
+.price {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.market-volume {
+  font-size: 0.875rem;
+  color: #71717a;
+}
+
+.market-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.market-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.polymarket-cta {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 50px;
+}
+
+.cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+}
+
+.cta-web {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+}
+
+.cta-web:hover {
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+}
+
+.cta-telegram {
+  background: linear-gradient(135deg, #229ED9 0%, #1a86bc 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(34, 158, 217, 0.3);
+}
+
+.cta-telegram:hover {
+  box-shadow: 0 8px 30px rgba(34, 158, 217, 0.4);
+}
+
+.polymarket-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(20, 20, 30, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 12px;
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+.feature-text h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.feature-text p {
+  font-size: 0.875rem;
+  color: #71717a;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .polymarket-header h2 {
+    font-size: 1.75rem;
+  }
+  
+  .polymarket-cta {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .cta-button {
+    width: 100%;
+    max-width: 280px;
+    justify-content: center;
+  }
+  
+  .polymarket-features {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+[data-theme="light"] .polymarket-section {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+[data-theme="light"] .polymarket-section::before {
+  background: 
+    radial-gradient(ellipse at 20% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+}
+
+[data-theme="light"] .polymarket-badge {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="light"] .polymarket-header h2 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .polymarket-header p {
+  color: #475569;
+}
+
+[data-theme="light"] .market-card {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .market-question {
+  color: #0f172a;
+}
+
+[data-theme="light"] .market-volume {
+  color: #64748b;
+}
+
+[data-theme="light"] .market-bar {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .feature {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .feature-text h4 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .feature-text p {
+  color: #64748b;
+}

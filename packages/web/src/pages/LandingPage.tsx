@@ -5,6 +5,7 @@ import { ApiProvidersShowcase } from '../components/landing/ApiProvidersShowcase
 import { Features } from '../components/landing/Features';
 import { ChromeExtensionPromo } from '../components/landing/ChromeExtensionPromo';
 import { TelegramAlerts } from '../components/landing/TelegramAlerts';
+import { PolymarketSection } from '../components/landing/PolymarketSection';
 import { CliShowcase } from '../components/landing/CliShowcase';
 import { ScreenshotShowcase } from '../components/landing/ScreenshotShowcase';
 import { Pricing } from '../components/landing/Pricing';
@@ -20,6 +21,7 @@ export function LandingPage() {
       <Features />
       <ChromeExtensionPromo />
       <TelegramAlerts />
+      <PolymarketSection />
       <CliShowcase />
       <ScreenshotShowcase />
       <Pricing />
