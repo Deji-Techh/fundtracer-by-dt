@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>FundTracer</ShortName>
+  <Description>Professional blockchain wallet analyzer and forensics platform</Description>
+  <Url type="text/html" template="https://fundtracer.xyz/app-evm?address={searchTerms}"/>
+  <Url type="application/x-suggestions+json" template="https://api.fundtracer.xyz/suggest?q={searchTerms}"/>
+  <Image width="16" height="16">https://fundtracer.xyz/favicon.png</Image>
+  <Image width="64" height="64">https://fundtracer.xyz/logo.png</Image>
+  <Tags>blockchain ethereum wallet analyzer crypto forensics sybil</Tags>
+  <Developer>FundTracer by DT</Developer>
+  <Contact>fundtracerbydt@gmail.com</Contact>
+  <Attribution>FundTracer - Blockchain Forensics Platform</Attribution>
+  <AdultContent>false</AdultContent>
+  <Language>en-us</Language>
+  <InputEncoding>UTF-8</InputEncoding>
+  <OutputEncoding>UTF-8</OutputEncoding>
+</OpenSearchDescription>

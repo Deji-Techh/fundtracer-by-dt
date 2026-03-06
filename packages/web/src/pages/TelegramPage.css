@@ -451,3 +451,14 @@
     0 6px 12px rgba(0, 0, 0, 0.15),
     0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
+/* Light mode */
+[data-theme="light"] .back-button {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1e293b;
+}
+
+[data-theme="light"] .back-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+}

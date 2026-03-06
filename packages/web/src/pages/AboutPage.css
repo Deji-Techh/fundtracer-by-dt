@@ -467,3 +467,14 @@
   color: rgba(255, 255, 255, 0.3);
   font-size: 0.75rem;
 }
+
+/* Light mode */
+[data-theme="light"] .back-button {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1e293b;
+}
+
+[data-theme="light"] .back-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
