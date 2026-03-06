@@ -27,8 +27,8 @@ User-agent: OAI-SearchBot
 Allow: /
 
 # Sitemap
-Sitemap: https://fundtracer.xyz/sitemap.xml
-Sitemap: https://fundtracer.xyz/llms.txt
+Sitemap: https://www.fundtracer.xyz/sitemap.xml
+Sitemap: https://www.fundtracer.xyz/llms.txt
 
 # Crawl-delay for politeness (optional)
 Crawl-delay: 1
