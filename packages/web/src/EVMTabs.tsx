@@ -164,7 +164,7 @@ function EVMMainApp() {
   const mainContent = (
     <>
       {renderMainContent()}
-      {activeTab !== 'home' && activeTab !== 'sybil' && activeTab !== 'polymarket' && (
+      {activeTab !== 'home' && activeTab !== 'sybil' && activeTab !== 'polymarket' && activeTab !== 'portfolio' && (
         <footer style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', fontSize: '0.875rem', display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' as const }}>
           <span>&copy; {new Date().getFullYear()} FundTracer by DT</span>
           <span style={{ color: 'var(--color-border)' }}>|</span>
