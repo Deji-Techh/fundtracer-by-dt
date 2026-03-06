@@ -813,11 +813,12 @@ function registerBotCommands() {
 
             let msg = '🚨 *Volume Spikes & Trending*\n\n';
 
-            for (const market of spikes.slice(0, 5)) {
+            for (const spike of spikes.slice(0, 5)) {
+                const market = spike.market;
                 const change = market.oneDayPriceChange || 0;
                 const changeEmoji = change > 0 ? '📈' : change < 0 ? '📉' : '➖';
 
-                msg += `⚡ *${market.volumeSpike.toFixed(1)}x* volume spike\n`;
+                msg += `⚡ *${spike.spikeRatio.toFixed(1)}x* volume spike\n`;
                 msg += `📊 ${escapeMarkdown(market.question.slice(0, 50))}\n`;
                 msg += `${changeEmoji} ${(change * 100).toFixed(1)}% • $${polymarketService.formatNumber(market.volume24hr)}\n\n`;
             }
@@ -847,11 +848,11 @@ function registerBotCommands() {
 
             for (const trader of traders) {
                 const name = trader.username || `${trader.address.slice(0, 8)}...${trader.address.slice(-4)}`;
-                const pnlEmoji = trader.totalPnl >= 0 ? '📈' : '📉';
+                const pnlEmoji = (trader.profit || 0) >= 0 ? '📈' : '📉';
 
                 msg += `*${trader.rank}.* ${escapeMarkdown(name)}\n`;
-                msg += `   ${pnlEmoji} PnL: $${polymarketService.formatNumber(trader.totalPnl)}\n`;
-                msg += `   💰 Vol: $${polymarketService.formatNumber(trader.totalVolume)}\n\n`;
+                msg += `   ${pnlEmoji} PnL: $${polymarketService.formatNumber(trader.profit || 0)}\n`;
+                msg += `   💰 Vol: $${polymarketService.formatNumber(trader.volume || 0)}\n\n`;
             }
 
             await ctx.reply(msg, { parse_mode: 'Markdown' });
@@ -890,8 +891,8 @@ function registerBotCommands() {
 
             let msg = `👤 *Trader Profile*\n\n`;
             msg += `📍 \`${address.slice(0, 10)}...${address.slice(-6)}\`\n`;
-            msg += `📊 Positions: ${trader.totalPositions}\n`;
-            msg += `💰 Total PnL: $${polymarketService.formatNumber(trader.totalPnl)}\n\n`;
+            msg += `📊 Positions: ${trader.positions || 0}\n`;
+            msg += `💰 Total PnL: $${polymarketService.formatNumber(trader.profit || 0)}\n\n`;
 
             if (positions.length > 0) {
                 msg += '*Top Positions:*\n';

@@ -63,9 +63,9 @@ export interface PolymarketTrader {
   address: string;
   username?: string;
   profileImage?: string;
-  totalVolume: number;
-  totalPnl: number;
-  totalPositions: number;
+  volume: number;
+  profit: number;
+  positions: number;
   winRate?: number;
   rank?: number;
 }
@@ -355,7 +355,7 @@ export class PolymarketService {
   async detectVolumeSpikes(
     thresholdMultiplier: number = 2.0,
     minVolume24h: number = 10000
-  ): Promise<Array<PolymarketMarket & { volumeSpike: number }>> {
+  ): Promise<Array<{ market: PolymarketMarket; spikeRatio: number; currentVolume: number; avgVolume: number }>> {
     const markets = await this.getMarkets({
       active: true,
       closed: false,
@@ -364,7 +364,7 @@ export class PolymarketService {
       ascending: false
     });
 
-    const spikes: Array<PolymarketMarket & { volumeSpike: number }> = [];
+    const spikes: Array<{ market: PolymarketMarket; spikeRatio: number; currentVolume: number; avgVolume: number }> = [];
 
     for (const market of markets) {
       if (market.volume24hr < minVolume24h) continue;
@@ -380,21 +380,23 @@ export class PolymarketService {
         const spike = volume24hr / avgDailyVolume;
         if (spike >= thresholdMultiplier) {
           spikes.push({
-            ...market,
-            volumeSpike: Math.round(spike * 100) / 100
+            market,
+            spikeRatio: Math.round(spike * 100) / 100,
+            currentVolume: volume24hr,
+            avgVolume: Math.round(avgDailyVolume * 100) / 100
           });
         }
       }
     }
 
     // Sort by spike magnitude
-    return spikes.sort((a, b) => b.volumeSpike - a.volumeSpike);
+    return spikes.sort((a, b) => b.spikeRatio - a.spikeRatio);
   }
 
   /**
    * Get markets with significant price movement
    */
-  async getPriceMovers(minChange: number = 0.05): Promise<PolymarketMarket[]> {
+  async getPriceMovers(minChange: number = 0.05): Promise<Array<{ market: PolymarketMarket; priceChange: number; previousPrice: number; currentPrice: number }>> {
     const markets = await this.getMarkets({
       active: true,
       closed: false,
@@ -404,7 +406,18 @@ export class PolymarketService {
 
     return markets
       .filter(m => Math.abs(m.oneDayPriceChange || 0) >= minChange)
-      .sort((a, b) => Math.abs(b.oneDayPriceChange || 0) - Math.abs(a.oneDayPriceChange || 0));
+      .map(market => {
+        const priceChange = market.oneDayPriceChange || 0;
+        const currentPrice = market.lastTradePrice || (market.outcomePrices?.[0] ? parseFloat(market.outcomePrices[0]) : 0);
+        const previousPrice = currentPrice - priceChange;
+        return {
+          market,
+          priceChange,
+          previousPrice: Math.max(0, previousPrice),
+          currentPrice
+        };
+      })
+      .sort((a, b) => Math.abs(b.priceChange) - Math.abs(a.priceChange));
   }
 
   // ==========================================
@@ -520,9 +533,9 @@ export class PolymarketService {
           address: t.address || t.user || 'Unknown',
           username: t.username || t.name,
           profileImage: t.profileImage || t.avatar,
-          totalVolume: t.volume || t.totalVolume || 0,
-          totalPnl: t.pnl || t.profit || 0,
-          totalPositions: t.positions || 0,
+          volume: t.volume || t.totalVolume || 0,
+          profit: t.pnl || t.profit || 0,
+          positions: t.positions || 0,
           winRate: t.winRate,
           rank: index + 1
         }));
@@ -588,9 +601,9 @@ export class PolymarketService {
 
       const trader: PolymarketTrader = {
         address,
-        totalVolume,
-        totalPnl,
-        totalPositions: positions.length
+        volume: totalVolume,
+        profit: totalPnl,
+        positions: positions.length
       };
 
       const result = { trader, positions };

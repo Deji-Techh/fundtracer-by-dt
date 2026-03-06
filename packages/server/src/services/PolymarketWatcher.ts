@@ -179,7 +179,9 @@ async function checkVolumeSpikes(): Promise<void> {
     // Get users who have spike notifications enabled
     const db = getFirestore();
     
-    for (const market of spikes.slice(0, 5)) { // Top 5 spikes
+    for (const spike of spikes.slice(0, 5)) { // Top 5 spikes
+      const market = spike.market;
+      
       // Check if we already notified about this spike recently
       // Use simple query and filter in memory to avoid composite index
       const recentSpikes = await db.collection('polymarket_spikes')
@@ -205,9 +207,9 @@ async function checkVolumeSpikes(): Promise<void> {
         marketSlug: market.slug,
         marketQuestion: market.question,
         volume24hr: market.volume24hr,
-        volumeSpike: market.volumeSpike,
+        volumeSpike: spike.spikeRatio,
         priceChange: market.oneDayPriceChange || 0,
-        currentPrice: parseFloat(market.outcomePrices[0]) || 0,
+        currentPrice: parseFloat(market.outcomePrices?.[0] || '0') || 0,
         detectedAt: Date.now(),
         notifiedUsers: []
       };
@@ -218,7 +220,7 @@ async function checkVolumeSpikes(): Promise<void> {
       await updateMarketSnapshot(market);
 
       // Send notifications to subscribed users
-      await notifyVolumeSpikeSubscribers(market);
+      await notifyVolumeSpikeSubscribers(spike);
     }
   } catch (error) {
     console.error('[PolymarketWatcher] Error checking volume spikes:', error);
@@ -373,7 +375,7 @@ async function updateMarketSnapshot(market: PolymarketMarket): Promise<void> {
 /**
  * Notify users subscribed to volume spike alerts
  */
-async function notifyVolumeSpikeSubscribers(market: PolymarketMarket & { volumeSpike: number }): Promise<void> {
+async function notifyVolumeSpikeSubscribers(spike: { market: PolymarketMarket; spikeRatio: number; currentVolume: number; avgVolume: number }): Promise<void> {
   try {
     const db = getFirestore();
     
@@ -387,7 +389,7 @@ async function notifyVolumeSpikeSubscribers(market: PolymarketMarket & { volumeS
 
     if (subscribers.empty) return;
 
-    const message = formatVolumeSpikeMessage(market);
+    const message = formatVolumeSpikeMessage(spike);
 
     for (const doc of subscribers.docs) {
       const user = doc.data();
@@ -436,7 +438,8 @@ async function sendPriceAlertNotification(
 /**
  * Format volume spike message
  */
-function formatVolumeSpikeMessage(market: PolymarketMarket & { volumeSpike: number }): string {
+function formatVolumeSpikeMessage(spike: { market: PolymarketMarket; spikeRatio: number; currentVolume: number; avgVolume: number }): string {
+  const market = spike.market;
   const priceChange = market.oneDayPriceChange || 0;
   const changeEmoji = priceChange > 0 ? '📈' : priceChange < 0 ? '📉' : '➖';
 
@@ -445,7 +448,7 @@ function formatVolumeSpikeMessage(market: PolymarketMarket & { volumeSpike: numb
     '',
     `📊 ${polymarketService.escapeMarkdown(market.question)}`,
     '',
-    `⚡ Volume: ${market.volumeSpike}x normal`,
+    `⚡ Volume: ${spike.spikeRatio}x normal`,
     `💰 24h Volume: $${polymarketService.formatNumber(market.volume24hr)}`,
     `${changeEmoji} Price Change: ${priceChange > 0 ? '+' : ''}${(priceChange * 100).toFixed(1)}%`,
     '',
