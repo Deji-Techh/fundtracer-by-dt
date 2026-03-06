@@ -23,13 +23,14 @@ import { PoHVerificationModal } from './components/PoHVerificationModal';
 import './global.css';
 
 const PortfolioAnalytics = lazy(() => import('./components/PortfolioAnalytics').then(m => ({ default: m.PortfolioAnalytics })));
+const PolymarketPage = lazy(() => import('./components/PolymarketPage'));
 
 import SettingsPage from './components/SettingsPage';
 import HistoryPage from './components/HistoryPage';
 import { PageLoading } from './components/common/PageLoading';
 import { KeyboardShortcuts } from './components/KeyboardShortcuts';
 
-type TabType = 'home' | 'portfolio' | 'sybil' | 'history' | 'settings';
+type TabType = 'home' | 'portfolio' | 'sybil' | 'polymarket' | 'history' | 'settings';
 
 export default function EVMTabs() {
   const location = useLocation();
@@ -150,6 +151,9 @@ function EVMMainApp() {
         <div style={{ display: activeTab === 'sybil' ? 'block' : 'none' }} className="main-content">
           <SybilPage user={user} profile={profile} onConnectWallet={handleConnectWallet} isWalletConnected={isWalletConnected} walletAddress={walletAddress} prefillAddress={prefillAddress} prefillChain={prefillChain} prefillType={prefillType} onPrefillConsumed={() => { setPrefillAddress(''); setPrefillChain(''); setPrefillType(''); }} />
         </div>
+        <div style={{ display: activeTab === 'polymarket' ? 'block' : 'none' }} className="main-content">
+          <Suspense fallback={<PageLoading />}><PolymarketPage /></Suspense>
+        </div>
         <div style={{ display: activeTab === 'settings' ? 'block' : 'none' }} className="main-content">
           <SettingsPage onConnectWallet={handleConnectWallet} isWalletConnected={isWalletConnected} walletAddress={walletAddress} onUpgrade={() => setShowPayment(true)} />
         </div>
@@ -160,7 +164,7 @@ function EVMMainApp() {
   const mainContent = (
     <>
       {renderMainContent()}
-      {activeTab !== 'home' && activeTab !== 'sybil' && (
+      {activeTab !== 'home' && activeTab !== 'sybil' && activeTab !== 'polymarket' && (
         <footer style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border)', fontSize: '0.875rem', display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' as const }}>
           <span>&copy; {new Date().getFullYear()} FundTracer by DT</span>
           <span style={{ color: 'var(--color-border)' }}>|</span>

@@ -199,8 +199,15 @@ function registerBotCommands() {
             '🤖 *AI Assistant*\n' +
             '/ask <question> - Ask anything\n' +
             '/history - View scan history\n\n' +
+            '📊 *Polymarket*\n' +
+            '/pmarkets [search] - Browse markets\n' +
+            '/ptrending - Volume spikes & hot\n' +
+            '/ptraders - Top traders\n' +
+            '/palerts - Your price alerts\n' +
+            '/pask <query> - AI analysis\n\n' +
             '⚙️ *Settings*\n' +
             '/frequency - Set alert frequency\n' +
+            '/psettings - Polymarket alerts\n' +
             '/status - View status',
             { parse_mode: 'Markdown' }
         );
@@ -673,32 +680,623 @@ function registerBotCommands() {
             }
         });
 
+    // ==========================================
+    // POLYMARKET COMMANDS
+    // ==========================================
+
+    // /pmarkets - Browse markets
+    bot.command(['pmarkets', 'polymarket', 'pm'], async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        const args = ctx.message.text.split(' ').slice(1);
+        const query = args.join(' ');
+
+        await ctx.reply('🔍 *Loading Polymarket markets...*', { parse_mode: 'Markdown' });
+
+        try {
+            const { polymarketService } = await import('./PolymarketService.js');
+            
+            let markets;
+            if (query) {
+                markets = await polymarketService.searchMarkets(query, 5);
+            } else {
+                markets = await polymarketService.getTrendingMarkets(5);
+            }
+
+            if (markets.length === 0) {
+                await ctx.reply('❌ No markets found. Try a different search term.');
+                return;
+            }
+
+            let msg = query 
+                ? `🔍 *Markets matching "${query}"*\n\n`
+                : '🔥 *Trending Markets*\n\n';
+
+            for (const market of markets) {
+                const prices = market.outcomePrices.map(p => parseFloat(p));
+                const yesPrice = (prices[0] * 100).toFixed(0);
+                const change = market.oneDayPriceChange || 0;
+                const changeStr = change !== 0 ? ` (${change > 0 ? '+' : ''}${(change * 100).toFixed(1)}%)` : '';
+
+                msg += `📊 *${escapeMarkdown(market.question.slice(0, 60))}*\n`;
+                msg += `✅ Yes: ${yesPrice}¢${changeStr}\n`;
+                msg += `💰 Vol: $${polymarketService.formatNumber(market.volume24hr)}\n`;
+                msg += `🔗 /pmarket\\_${market.slug.slice(0, 30)}\n\n`;
+            }
+
+            msg += '_Powered by Polymarket_';
+
+            await ctx.reply(msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
+        } catch (error) {
+            console.error('[Telegram] Polymarket error:', error);
+            await ctx.reply('❌ Failed to load markets. Please try again.');
+        }
+    });
+
+    // /pmarket_<slug> - Get market details
+    bot.command(/pmarket_(.+)/, async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        const slug = ctx.match![1];
+
+        try {
+            const { polymarketService } = await import('./PolymarketService.js');
+            const market = await polymarketService.getMarket(slug);
+
+            if (!market) {
+                await ctx.reply('❌ Market not found.');
+                return;
+            }
+
+            const msg = polymarketService.formatMarketSummary(market);
+
+            const buttons = [
+                [
+                    Markup.button.callback('📈 Set Yes Alert', `palert_yes_${market.slug.slice(0, 20)}`),
+                    Markup.button.callback('📉 Set No Alert', `palert_no_${market.slug.slice(0, 20)}`)
+                ],
+                [
+                    Markup.button.url('🔗 View on Polymarket', polymarketService.getMarketUrl(market))
+                ]
+            ];
+
+            await ctx.reply(msg, { 
+                parse_mode: 'Markdown', 
+                disable_web_page_preview: true,
+                ...Markup.inlineKeyboard(buttons)
+            });
+        } catch (error) {
+            console.error('[Telegram] Market detail error:', error);
+            await ctx.reply('❌ Failed to load market details.');
+        }
+    });
+
+    // /ptrending - Volume spikes and trending
+    bot.command(['ptrending', 'pspikes', 'phot'], async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        await ctx.reply('📈 *Finding trending markets...*', { parse_mode: 'Markdown' });
+
+        try {
+            const { polymarketService } = await import('./PolymarketService.js');
+            const spikes = await polymarketService.detectVolumeSpikes(1.5, 5000);
+
+            if (spikes.length === 0) {
+                await ctx.reply('📊 No significant volume spikes detected right now.');
+                return;
+            }
+
+            let msg = '🚨 *Volume Spikes & Trending*\n\n';
+
+            for (const market of spikes.slice(0, 5)) {
+                const change = market.oneDayPriceChange || 0;
+                const changeEmoji = change > 0 ? '📈' : change < 0 ? '📉' : '➖';
+
+                msg += `⚡ *${market.volumeSpike.toFixed(1)}x* volume spike\n`;
+                msg += `📊 ${escapeMarkdown(market.question.slice(0, 50))}\n`;
+                msg += `${changeEmoji} ${(change * 100).toFixed(1)}% • $${polymarketService.formatNumber(market.volume24hr)}\n\n`;
+            }
+
+            await ctx.reply(msg, { parse_mode: 'Markdown' });
+        } catch (error) {
+            console.error('[Telegram] Trending error:', error);
+            await ctx.reply('❌ Failed to load trending markets.');
+        }
+    });
+
+    // /ptraders - Top traders leaderboard
+    bot.command(['ptraders', 'pleaderboard', 'ptop'], async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        await ctx.reply('🏆 *Loading leaderboard...*', { parse_mode: 'Markdown' });
+
+        try {
+            const { polymarketService } = await import('./PolymarketService.js');
+            const traders = await polymarketService.getLeaderboard(10);
+
+            if (traders.length === 0) {
+                await ctx.reply('📊 Leaderboard data not available.');
+                return;
+            }
+
+            let msg = '🏆 *Top Polymarket Traders*\n\n';
+
+            for (const trader of traders) {
+                const name = trader.username || `${trader.address.slice(0, 8)}...${trader.address.slice(-4)}`;
+                const pnlEmoji = trader.totalPnl >= 0 ? '📈' : '📉';
+
+                msg += `*${trader.rank}.* ${escapeMarkdown(name)}\n`;
+                msg += `   ${pnlEmoji} PnL: $${polymarketService.formatNumber(trader.totalPnl)}\n`;
+                msg += `   💰 Vol: $${polymarketService.formatNumber(trader.totalVolume)}\n\n`;
+            }
+
+            await ctx.reply(msg, { parse_mode: 'Markdown' });
+        } catch (error) {
+            console.error('[Telegram] Leaderboard error:', error);
+            await ctx.reply('❌ Failed to load leaderboard.');
+        }
+    });
+
+    // /ptrader <address> - Get trader profile
+    bot.command('ptrader', async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        const args = ctx.message.text.split(' ').slice(1);
+        const address = args[0];
+
+        if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+            await ctx.reply(
+                '👤 */ptrader* - View trader profile\n\n' +
+                '*Usage:* `/ptrader <address>`\n\n' +
+                '*Example:*\n`/ptrader 0x742d...eB1e`',
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
+
+        await ctx.reply('👤 *Loading trader profile...*', { parse_mode: 'Markdown' });
+
+        try {
+            const { polymarketService } = await import('./PolymarketService.js');
+            const { trader, positions } = await polymarketService.getTraderProfile(address);
+
+            if (!trader) {
+                await ctx.reply('❌ Trader not found or no positions.');
+                return;
+            }
+
+            let msg = `👤 *Trader Profile*\n\n`;
+            msg += `📍 \`${address.slice(0, 10)}...${address.slice(-6)}\`\n`;
+            msg += `📊 Positions: ${trader.totalPositions}\n`;
+            msg += `💰 Total PnL: $${polymarketService.formatNumber(trader.totalPnl)}\n\n`;
+
+            if (positions.length > 0) {
+                msg += '*Top Positions:*\n';
+                for (const pos of positions.slice(0, 3)) {
+                    const pnlEmoji = pos.pnl >= 0 ? '📈' : '📉';
+                    msg += `• ${escapeMarkdown(pos.marketQuestion.slice(0, 40))}...\n`;
+                    msg += `  ${pnlEmoji} ${pos.outcome}: $${polymarketService.formatNumber(pos.pnl)}\n`;
+                }
+            }
+
+            const buttons = [
+                [Markup.button.callback('➕ Follow Trader', `pfollow_${address.slice(0, 30)}`)]
+            ];
+
+            await ctx.reply(msg, { 
+                parse_mode: 'Markdown',
+                ...Markup.inlineKeyboard(buttons)
+            });
+        } catch (error) {
+            console.error('[Telegram] Trader profile error:', error);
+            await ctx.reply('❌ Failed to load trader profile.');
+        }
+    });
+
+    // /palerts - View/manage price alerts
+    bot.command(['palerts', 'pmyalerts'], async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        try {
+            const { getUserAlerts } = await import('./PolymarketWatcher.js');
+            const alerts = await getUserAlerts(ctx.from.id);
+
+            if (alerts.length === 0) {
+                await ctx.reply(
+                    '🔔 *Price Alerts*\n\n' +
+                    'No active alerts.\n\n' +
+                    'To create an alert:\n' +
+                    '1. Use `/pmarkets` to find a market\n' +
+                    '2. Click on a market to view details\n' +
+                    '3. Use the alert buttons',
+                    { parse_mode: 'Markdown' }
+                );
+                return;
+            }
+
+            let msg = '🔔 *Your Price Alerts*\n\n';
+
+            for (const alert of alerts) {
+                const outcomeEmoji = alert.outcome === 'yes' ? '✅' : '❌';
+                const condEmoji = alert.condition === 'above' ? '📈' : '📉';
+
+                msg += `${outcomeEmoji} *${escapeMarkdown(alert.marketQuestion.slice(0, 40))}*\n`;
+                msg += `${condEmoji} ${alert.outcome.toUpperCase()} ${alert.condition} ${(alert.targetPrice * 100).toFixed(0)}¢\n`;
+                msg += `🗑 /pdelalert\\_${alert.id}\n\n`;
+            }
+
+            await ctx.reply(msg, { parse_mode: 'Markdown' });
+        } catch (error) {
+            console.error('[Telegram] Alerts error:', error);
+            await ctx.reply('❌ Failed to load alerts.');
+        }
+    });
+
+    // /pdelalert_<id> - Delete an alert
+    bot.command(/pdelalert_(.+)/, async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        const alertId = ctx.match![1];
+
+        try {
+            const { deleteAlert } = await import('./PolymarketWatcher.js');
+            const success = await deleteAlert(ctx.from.id, alertId);
+
+            if (success) {
+                await ctx.reply('✅ Alert deleted.');
+            } else {
+                await ctx.reply('❌ Alert not found.');
+            }
+        } catch (error) {
+            await ctx.reply('❌ Failed to delete alert.');
+        }
+    });
+
+    // /pfollowing - View followed traders
+    bot.command(['pfollowing', 'pmyfollows'], async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        try {
+            const { getFollowedTraders } = await import('./PolymarketWatcher.js');
+            const follows = await getFollowedTraders(ctx.from.id);
+
+            if (follows.length === 0) {
+                await ctx.reply(
+                    '👥 *Followed Traders*\n\n' +
+                    'You\'re not following any traders.\n\n' +
+                    'Use `/ptrader <address>` to view and follow traders.',
+                    { parse_mode: 'Markdown' }
+                );
+                return;
+            }
+
+            let msg = '👥 *Followed Traders*\n\n';
+
+            for (const follow of follows) {
+                const name = follow.traderUsername || `${follow.traderAddress.slice(0, 10)}...${follow.traderAddress.slice(-4)}`;
+                msg += `👤 ${escapeMarkdown(name)}\n`;
+                msg += `🗑 /punfollow\\_${follow.traderAddress.slice(0, 30)}\n\n`;
+            }
+
+            await ctx.reply(msg, { parse_mode: 'Markdown' });
+        } catch (error) {
+            await ctx.reply('❌ Failed to load followed traders.');
+        }
+    });
+
+    // /punfollow_<address> - Unfollow a trader
+    bot.command(/punfollow_(.+)/, async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        const address = ctx.match![1];
+
+        try {
+            const { unfollowTrader } = await import('./PolymarketWatcher.js');
+            const success = await unfollowTrader(ctx.from.id, address);
+
+            if (success) {
+                await ctx.reply('✅ Unfollowed trader.');
+            } else {
+                await ctx.reply('❌ Trader not found in your follows.');
+            }
+        } catch (error) {
+            await ctx.reply('❌ Failed to unfollow trader.');
+        }
+    });
+
+    // /pask <question> - AI analysis of a market
+    bot.command(['pask', 'pai', 'panalyze'], async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        const args = ctx.message.text.split(' ').slice(1);
+        const query = args.join(' ');
+
+        if (!query) {
+            await ctx.reply(
+                '🤖 */pask* - AI Market Analysis\n\n' +
+                '*Usage:* `/pask <market name or question>`\n\n' +
+                '*Examples:*\n' +
+                '`/pask Trump 2028`\n' +
+                '`/pask Will Bitcoin hit 100k?`\n' +
+                '`/pask What are the odds for the election?`',
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
+
+        await ctx.reply('🤖 *Analyzing...*', { parse_mode: 'Markdown' });
+
+        try {
+            const { polymarketService } = await import('./PolymarketService.js');
+            
+            // Find relevant markets
+            const markets = await polymarketService.searchMarkets(query, 3);
+
+            if (markets.length === 0) {
+                await ctx.reply('❌ No relevant markets found for your query.');
+                return;
+            }
+
+            // Build context for AI
+            let marketContext = 'Polymarket prediction markets data:\n\n';
+            for (const market of markets) {
+                const prices = market.outcomePrices.map(p => parseFloat(p));
+                marketContext += `Market: ${market.question}\n`;
+                marketContext += `Yes probability: ${(prices[0] * 100).toFixed(1)}%\n`;
+                marketContext += `No probability: ${(prices[1] * 100).toFixed(1)}%\n`;
+                marketContext += `24h volume: $${market.volume24hr.toLocaleString()}\n`;
+                marketContext += `24h price change: ${((market.oneDayPriceChange || 0) * 100).toFixed(1)}%\n`;
+                marketContext += `Description: ${market.description?.slice(0, 200) || 'N/A'}\n\n`;
+            }
+
+            const prompt = `Based on the following Polymarket prediction markets data, provide a brief analysis answering: "${query}"\n\n${marketContext}\n\nProvide:\n1. Current market sentiment (based on prices)\n2. Key factors to consider\n3. Brief analysis (2-3 sentences)`;
+
+            const answer = await askAI(prompt, 'User is asking about Polymarket prediction markets');
+
+            let msg = `🤖 *AI Analysis*\n\n`;
+            msg += `📊 *Query:* ${escapeMarkdown(query)}\n\n`;
+            msg += answer;
+
+            await ctx.reply(msg, { parse_mode: 'Markdown' });
+        } catch (error) {
+            console.error('[Telegram] AI analysis error:', error);
+            await ctx.reply('❌ Failed to analyze. Please try again.');
+        }
+    });
+
+    // /psettings - Polymarket notification settings
+    bot.command(['psettings', 'pnotify'], async (ctx: any) => {
+        const linkedUser = await requireLinkedAccount(ctx);
+        if (!linkedUser) return;
+
+        try {
+            const { getUserPolymarketPrefs } = await import('./PolymarketWatcher.js');
+            const prefs = await getUserPolymarketPrefs(ctx.from.id);
+
+            const spikeStatus = prefs.notifySpikes ? '✅' : '❌';
+            const alertStatus = prefs.notifyPriceAlerts ? '✅' : '❌';
+            const traderStatus = prefs.notifyTraderActivity ? '✅' : '❌';
+
+            const buttons = [
+                [Markup.button.callback(`${spikeStatus} Volume Spikes`, 'ptoggle_spikes')],
+                [Markup.button.callback(`${alertStatus} Price Alerts`, 'ptoggle_alerts')],
+                [Markup.button.callback(`${traderStatus} Trader Activity`, 'ptoggle_traders')]
+            ];
+
+            await ctx.reply(
+                '⚙️ *Polymarket Notifications*\n\n' +
+                'Toggle notifications on/off:',
+                { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+            );
+        } catch (error) {
+            await ctx.reply('❌ Failed to load settings.');
+        }
+    });
+
+    // Callback handlers for Polymarket
+    bot.action(/ptoggle_(.+)/, async (ctx: any) => {
+        const linkedUser = linkedUsers.get(ctx.from.id);
+        if (!linkedUser) {
+            await ctx.answerCbQuery('Please link your account first');
+            return;
+        }
+
+        const setting = ctx.match![1];
+
+        try {
+            const { getUserPolymarketPrefs, updateUserPolymarketPrefs } = await import('./PolymarketWatcher.js');
+            const prefs = await getUserPolymarketPrefs(ctx.from.id);
+
+            const updates: any = {};
+            if (setting === 'spikes') {
+                updates.notifySpikes = !prefs.notifySpikes;
+            } else if (setting === 'alerts') {
+                updates.notifyPriceAlerts = !prefs.notifyPriceAlerts;
+            } else if (setting === 'traders') {
+                updates.notifyTraderActivity = !prefs.notifyTraderActivity;
+            }
+
+            await updateUserPolymarketPrefs(ctx.from.id, updates);
+
+            // Refresh the settings display
+            const newPrefs = await getUserPolymarketPrefs(ctx.from.id);
+            const spikeStatus = newPrefs.notifySpikes ? '✅' : '❌';
+            const alertStatus = newPrefs.notifyPriceAlerts ? '✅' : '❌';
+            const traderStatus = newPrefs.notifyTraderActivity ? '✅' : '❌';
+
+            const buttons = [
+                [Markup.button.callback(`${spikeStatus} Volume Spikes`, 'ptoggle_spikes')],
+                [Markup.button.callback(`${alertStatus} Price Alerts`, 'ptoggle_alerts')],
+                [Markup.button.callback(`${traderStatus} Trader Activity`, 'ptoggle_traders')]
+            ];
+
+            await ctx.editMessageReplyMarkup(Markup.inlineKeyboard(buttons).reply_markup);
+            await ctx.answerCbQuery('Setting updated!');
+        } catch (error) {
+            await ctx.answerCbQuery('Failed to update');
+        }
+    });
+
+    // Follow trader callback
+    bot.action(/pfollow_(.+)/, async (ctx: any) => {
+        const linkedUser = linkedUsers.get(ctx.from.id);
+        if (!linkedUser) {
+            await ctx.answerCbQuery('Please link your account first');
+            return;
+        }
+
+        const address = ctx.match![1];
+
+        try {
+            const { followTrader } = await import('./PolymarketWatcher.js');
+            const result = await followTrader(ctx.from.id, linkedUser.userId, address);
+
+            if (result.success) {
+                await ctx.answerCbQuery('✅ Now following this trader!');
+            } else {
+                await ctx.answerCbQuery(result.error || 'Failed to follow');
+            }
+        } catch (error) {
+            await ctx.answerCbQuery('Failed to follow trader');
+        }
+    });
+
+    // Price alert callbacks
+    bot.action(/palert_(yes|no)_(.+)/, async (ctx: any) => {
+        const linkedUser = linkedUsers.get(ctx.from.id);
+        if (!linkedUser) {
+            await ctx.answerCbQuery('Please link your account first');
+            return;
+        }
+
+        const outcome = ctx.match![1] as 'yes' | 'no';
+        const slug = ctx.match![2];
+
+        // Set user step to await price input
+        linkedUser.step = `palert_${outcome}_${slug}`;
+
+        await ctx.answerCbQuery();
+        await ctx.reply(
+            `📊 *Set ${outcome.toUpperCase()} Alert*\n\n` +
+            `Enter your target price (0-100):\n` +
+            `Example: \`45\` for 45¢\n\n` +
+            `Format: \`above 60\` or \`below 30\``,
+            { parse_mode: 'Markdown' }
+        );
+    });
+
+    // ==========================================
+    // END POLYMARKET COMMANDS
+    // ==========================================
+
     // Handle natural language messages when user is in AI mode
     bot.on('message', async (ctx: any, next: () => Promise<void>) => {
         if (!ctx.message || !('text' in ctx.message)) return next();
-        const text = ctx.message.text;
+        const text = ctx.message.text.trim();
         if (text.startsWith('/')) return next();
 
         const linkedUser = linkedUsers.get(ctx.from.id);
-        if (!linkedUser || linkedUser.step !== 'ai_mode') return next();
+        if (!linkedUser) return next();
 
-        linkedUser.step = '';
-        await ctx.reply('🤖 *Thinking...*', { parse_mode: 'Markdown' });
+        // Handle Polymarket price alert input
+        if (linkedUser.step?.startsWith('palert_')) {
+            const parts = linkedUser.step.split('_');
+            const outcome = parts[1] as 'yes' | 'no';
+            const slug = parts.slice(2).join('_');
 
-        let context = '';
-        if (linkedUser.watches.length > 0) {
-            const wallets = linkedUser.watches.map(w => 
-                `${w.address.slice(0, 10)}...${w.address.slice(-4)} (${w.chain})`
-            ).join(', ');
-            context = `User is watching: ${wallets}`;
+            linkedUser.step = '';
+
+            // Parse input like "above 60" or "below 30" or just "50"
+            const match = text.match(/^(above|below)?\s*(\d+(?:\.\d+)?)$/i);
+            if (!match) {
+                await ctx.reply(
+                    '❌ Invalid format.\n\n' +
+                    'Examples:\n' +
+                    '`above 60` - Alert when price goes above 60¢\n' +
+                    '`below 30` - Alert when price drops below 30¢\n' +
+                    '`50` - Alert when price reaches 50¢',
+                    { parse_mode: 'Markdown' }
+                );
+                return;
+            }
+
+            const condition = (match[1]?.toLowerCase() || 'above') as 'above' | 'below';
+            const targetPrice = parseFloat(match[2]) / 100; // Convert cents to decimal
+
+            if (targetPrice < 0 || targetPrice > 1) {
+                await ctx.reply('❌ Price must be between 0 and 100.');
+                return;
+            }
+
+            try {
+                const { createPriceAlert } = await import('./PolymarketWatcher.js');
+                const result = await createPriceAlert(
+                    ctx.from.id,
+                    linkedUser.userId,
+                    slug,
+                    outcome,
+                    condition,
+                    targetPrice
+                );
+
+                if (result.success) {
+                    await ctx.reply(
+                        '✅ *Alert Created!*\n\n' +
+                        `📊 ${escapeMarkdown(result.alert?.marketQuestion || slug)}\n` +
+                        `${outcome === 'yes' ? '✅' : '❌'} ${outcome.toUpperCase()} ${condition} ${(targetPrice * 100).toFixed(0)}¢\n\n` +
+                        `You'll be notified when triggered.`,
+                        { parse_mode: 'Markdown' }
+                    );
+                } else {
+                    await ctx.reply(`❌ ${result.error || 'Failed to create alert'}`);
+                }
+            } catch (error) {
+                console.error('[Telegram] Create alert error:', error);
+                await ctx.reply('❌ Failed to create alert. Please try again.');
+            }
+            return;
         }
 
-        const answer = await askAI(text, context);
-        await ctx.reply(answer);
+        // Handle AI mode
+        if (linkedUser.step === 'ai_mode') {
+            linkedUser.step = '';
+            await ctx.reply('🤖 *Thinking...*', { parse_mode: 'Markdown' });
+
+            let context = '';
+            if (linkedUser.watches.length > 0) {
+                const wallets = linkedUser.watches.map(w => 
+                    `${w.address.slice(0, 10)}...${w.address.slice(-4)} (${w.chain})`
+                ).join(', ');
+                context = `User is watching: ${wallets}`;
+            }
+
+            const answer = await askAI(text, context);
+            await ctx.reply(answer);
+            return;
+        }
+
+        return next();
     });
 }
 
 // === HELPER FUNCTIONS ===
+
+/**
+ * Escape markdown special characters for Telegram
+ */
+function escapeMarkdown(text: string): string {
+    return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+}
 
 function saveScanHistory(userId: string, address: string, chain: string, riskScore: number) {
     const fs = require('fs');
@@ -1003,4 +1601,32 @@ export function unlinkUser(userId: string): boolean {
         }
     }
     return false;
+}
+
+/**
+ * Send a Polymarket alert message to a user
+ */
+export async function sendPolymarketAlert(telegramId: number, message: string): Promise<boolean> {
+    if (!bot) {
+        console.error('[Telegram] Bot not initialized');
+        return false;
+    }
+    
+    try {
+        await bot.telegram.sendMessage(telegramId, message, { 
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true
+        });
+        return true;
+    } catch (error) {
+        console.error(`[Telegram] Failed to send Polymarket alert to ${telegramId}:`, error);
+        return false;
+    }
+}
+
+/**
+ * Get the bot instance for external use
+ */
+export function getBotInstance() {
+    return bot;
 }

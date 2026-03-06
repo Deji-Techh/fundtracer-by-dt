@@ -398,6 +398,10 @@ apiRouter.use('/contract', authMiddleware, contractScannerRoutes);
 import { telegramRoutes } from './routes/telegram.js';
 apiRouter.use('/telegram', telegramRoutes);
 
+// NEW: Polymarket Routes
+import polymarketRoutes from './routes/polymarket.js';
+apiRouter.use('/polymarket', publicLimiter, polymarketRoutes);
+
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
 app.use('/api', apiRouter);
 app.use('/', apiRouter);
@@ -458,6 +462,14 @@ server = app.listen(PORT, async () => {
         startAlertWorker();
     } catch (error) {
         console.error('[Server] Failed to start alert worker:', error);
+    }
+
+    // Start Polymarket Watcher
+    try {
+        const { startPolymarketWatcher } = await import('./services/PolymarketWatcher.js');
+        startPolymarketWatcher();
+    } catch (error) {
+        console.error('[Server] Failed to start Polymarket watcher:', error);
     }
 });
 

@@ -394,3 +394,148 @@ export async function deleteScanHistoryItem(address: string): Promise<{ success:
 export async function clearScanHistory(): Promise<{ success: boolean }> {
     return apiRequest('/api/scan-history', 'DELETE');
 }
+
+// ============================================================
+// Polymarket API - Prediction Markets
+// ============================================================
+
+export interface PolymarketMarket {
+    id: string;
+    question: string;
+    slug: string;
+    conditionId: string;
+    description?: string;
+    image?: string;
+    outcomes: string[];
+    outcomePrices: string[];
+    volume?: number;
+    volume24hr?: number;
+    volume1wk?: number;
+    liquidity?: number;
+    endDate?: string;
+    active: boolean;
+    closed: boolean;
+    tags?: string[];
+}
+
+export interface PolymarketTrader {
+    address: string;
+    volume?: number;
+    profit?: number;
+    positions?: number;
+    winRate?: number;
+    rank?: number;
+}
+
+export interface VolumeSpike {
+    market: PolymarketMarket;
+    spikeRatio: number;
+    currentVolume: number;
+    avgVolume: number;
+}
+
+export interface PriceMover {
+    market: PolymarketMarket;
+    priceChange: number;
+    previousPrice: number;
+    currentPrice: number;
+}
+
+// Get markets with optional search/filter
+export async function getPolymarketMarkets(options?: {
+    q?: string;
+    active?: boolean;
+    closed?: boolean;
+    limit?: number;
+    offset?: number;
+    order?: 'volume24hr' | 'liquidity' | 'endDate' | 'startDate';
+}): Promise<{ success: boolean; data: PolymarketMarket[]; count: number }> {
+    const params = new URLSearchParams();
+    if (options?.q) params.append('q', options.q);
+    if (options?.active !== undefined) params.append('active', String(options.active));
+    if (options?.closed !== undefined) params.append('closed', String(options.closed));
+    if (options?.limit) params.append('limit', String(options.limit));
+    if (options?.offset) params.append('offset', String(options.offset));
+    if (options?.order) params.append('order', options.order);
+    
+    const url = `/api/polymarket/markets${params.toString() ? '?' + params.toString() : ''}`;
+    return apiRequest(url);
+}
+
+// Get single market by slug
+export async function getPolymarketMarket(slug: string): Promise<{ success: boolean; data: PolymarketMarket }> {
+    return apiRequest(`/api/polymarket/markets/${encodeURIComponent(slug)}`);
+}
+
+// Get trending markets (high 24h volume)
+export async function getPolymarketTrending(limit?: number): Promise<{ success: boolean; data: PolymarketMarket[]; count: number }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return apiRequest(`/api/polymarket/trending${params}`);
+}
+
+// Get volume spikes
+export async function getPolymarketSpikes(threshold?: number, minVolume?: number): Promise<{ success: boolean; data: VolumeSpike[]; count: number }> {
+    const params = new URLSearchParams();
+    if (threshold) params.append('threshold', String(threshold));
+    if (minVolume) params.append('minVolume', String(minVolume));
+    
+    const url = `/api/polymarket/spikes${params.toString() ? '?' + params.toString() : ''}`;
+    return apiRequest(url);
+}
+
+// Get price movers
+export async function getPolymarketMovers(minChange?: number): Promise<{ success: boolean; data: PriceMover[]; count: number }> {
+    const params = minChange ? `?minChange=${minChange}` : '';
+    return apiRequest(`/api/polymarket/movers${params}`);
+}
+
+// Get events (market groups)
+export async function getPolymarketEvents(options?: {
+    active?: boolean;
+    limit?: number;
+    offset?: number;
+}): Promise<{ success: boolean; data: any[]; count: number }> {
+    const params = new URLSearchParams();
+    if (options?.active !== undefined) params.append('active', String(options.active));
+    if (options?.limit) params.append('limit', String(options.limit));
+    if (options?.offset) params.append('offset', String(options.offset));
+    
+    const url = `/api/polymarket/events${params.toString() ? '?' + params.toString() : ''}`;
+    return apiRequest(url);
+}
+
+// Get leaderboard
+export async function getPolymarketLeaderboard(limit?: number): Promise<{ success: boolean; data: PolymarketTrader[]; count: number }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return apiRequest(`/api/polymarket/leaderboard${params}`);
+}
+
+// Get trader profile
+export async function getPolymarketTrader(address: string): Promise<{ success: boolean; data: PolymarketTrader }> {
+    return apiRequest(`/api/polymarket/trader/${address}`);
+}
+
+// Get order book for a token
+export async function getPolymarketOrderBook(tokenId: string): Promise<{ success: boolean; data: any }> {
+    return apiRequest(`/api/polymarket/orderbook/${tokenId}`);
+}
+
+// Get trades for a market
+export async function getPolymarketTrades(conditionId: string, limit?: number): Promise<{ success: boolean; data: any[]; count: number }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return apiRequest(`/api/polymarket/trades/${conditionId}${params}`);
+}
+
+// Get price history for a market
+export async function getPolymarketHistory(
+    conditionId: string,
+    interval?: 'hour' | 'day',
+    limit?: number
+): Promise<{ success: boolean; data: any[]; count: number }> {
+    const params = new URLSearchParams();
+    if (interval) params.append('interval', interval);
+    if (limit) params.append('limit', String(limit));
+    
+    const url = `/api/polymarket/history/${conditionId}${params.toString() ? '?' + params.toString() : ''}`;
+    return apiRequest(url);
+}
