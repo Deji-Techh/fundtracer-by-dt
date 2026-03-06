@@ -66,7 +66,8 @@ async function apiRequestWithRetry<T>(
         endpoint.startsWith('/api/analytics/') ||
         endpoint.startsWith('/api/dexscreener/') ||
         endpoint.startsWith('/api/market/') ||
-        endpoint.startsWith('/api/tokens/');
+        endpoint.startsWith('/api/tokens/') ||
+        endpoint.startsWith('/api/polymarket/');
     
     if (!token && !isPublicEndpoint) {
         throw new Error('Not authenticated');
