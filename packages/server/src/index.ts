@@ -242,6 +242,26 @@ webDistPath = possiblePaths.find(p => {
 // Static files serving configured
 app.use(express.static(webDistPath));
 
+// Explicitly handle sitemap and robots to avoid SPA fallback
+app.get('/sitemap.xml', (req, res) => {
+    const sitemapPath = path.join(webDistPath, 'sitemap.xml');
+    res.setHeader('Content-Type', 'application/xml');
+    res.sendFile(sitemapPath, (err) => {
+        if (err) {
+            res.status(404).send('Sitemap not found');
+        }
+    });
+});
+
+app.get('/robots.txt', (req, res) => {
+    const robotsPath = path.join(webDistPath, 'robots.txt');
+    res.sendFile(robotsPath, (err) => {
+        if (err) {
+            res.status(404).send('Not found');
+        }
+    });
+});
+
 
 
 app.use(cors({
