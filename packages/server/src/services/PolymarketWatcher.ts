@@ -181,13 +181,21 @@ async function checkVolumeSpikes(): Promise<void> {
     
     for (const market of spikes.slice(0, 5)) { // Top 5 spikes
       // Check if we already notified about this spike recently
-      const existingSpike = await db.collection('polymarket_spikes')
+      // Use simple query and filter in memory to avoid composite index
+      const recentSpikes = await db.collection('polymarket_spikes')
         .where('marketId', '==', market.id)
-        .where('detectedAt', '>', Date.now() - 6 * 60 * 60 * 1000) // Last 6 hours
-        .limit(1)
+        .limit(10)
         .get();
 
-      if (!existingSpike.empty) {
+      let alreadyNotified = false;
+      recentSpikes.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.detectedAt > Date.now() - 6 * 60 * 60 * 1000) {
+          alreadyNotified = true;
+        }
+      });
+
+      if (alreadyNotified) {
         continue; // Already notified
       }
 
