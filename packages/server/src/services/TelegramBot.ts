@@ -684,11 +684,9 @@ function registerBotCommands() {
     // POLYMARKET COMMANDS
     // ==========================================
 
-    // /pmarkets - Browse markets
+    // /pmarkets - Browse markets (public - no auth required)
     bot.command(['pmarkets', 'polymarket', 'pm'], async (ctx: any) => {
-        const linkedUser = await requireLinkedAccount(ctx);
-        if (!linkedUser) return;
-
+        // No auth required for Polymarket
         const args = ctx.message.text.split(' ').slice(1);
         const query = args.join(' ');
 
@@ -734,11 +732,9 @@ function registerBotCommands() {
         }
     });
 
-    // /pmarket_<slug> - Get market details
+    // /pmarket_<slug> - Get market details (public - no auth required)
     bot.command(/pmarket_(.+)/, async (ctx: any) => {
-        const linkedUser = await requireLinkedAccount(ctx);
-        if (!linkedUser) return;
-
+        // No auth required for Polymarket
         const slug = ctx.match![1];
 
         try {
@@ -773,11 +769,9 @@ function registerBotCommands() {
         }
     });
 
-    // /ptrending - Volume spikes and trending
+    // /ptrending - Volume spikes and trending (public - no auth required)
     bot.command(['ptrending', 'pspikes', 'phot'], async (ctx: any) => {
-        const linkedUser = await requireLinkedAccount(ctx);
-        if (!linkedUser) return;
-
+        // No auth required for Polymarket
         await ctx.reply('📈 *Finding trending markets...*', { parse_mode: 'Markdown' });
 
         try {
@@ -807,11 +801,9 @@ function registerBotCommands() {
         }
     });
 
-    // /ptraders - Top traders leaderboard
+    // /ptraders - Top traders leaderboard (public - no auth required)
     bot.command(['ptraders', 'pleaderboard', 'ptop'], async (ctx: any) => {
-        const linkedUser = await requireLinkedAccount(ctx);
-        if (!linkedUser) return;
-
+        // No auth required for Polymarket
         await ctx.reply('🏆 *Loading leaderboard...*', { parse_mode: 'Markdown' });
 
         try {
@@ -841,11 +833,9 @@ function registerBotCommands() {
         }
     });
 
-    // /ptrader <address> - Get trader profile
+    // /ptrader <address> - Get trader profile (public - no auth required)
     bot.command('ptrader', async (ctx: any) => {
-        const linkedUser = await requireLinkedAccount(ctx);
-        if (!linkedUser) return;
-
+        // No auth required for Polymarket
         const args = ctx.message.text.split(' ').slice(1);
         const address = args[0];
 
@@ -1013,11 +1003,9 @@ function registerBotCommands() {
         }
     });
 
-    // /pask <question> - AI analysis of a market
+    // /pask <question> - AI analysis of a market (public - no auth required)
     bot.command(['pask', 'pai', 'panalyze'], async (ctx: any) => {
-        const linkedUser = await requireLinkedAccount(ctx);
-        if (!linkedUser) return;
-
+        // No auth required for Polymarket
         const args = ctx.message.text.split(' ').slice(1);
         const query = args.join(' ');
 
