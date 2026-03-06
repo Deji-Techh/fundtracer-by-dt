@@ -195,6 +195,12 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
     return `${(p * 100).toFixed(1)}%`;
   };
 
+  // Safe toFixed
+  const safeToFixed = (value: number | undefined | null, decimals: number = 1): string => {
+    if (value === undefined || value === null || isNaN(value)) return '-';
+    return value.toFixed(decimals);
+  };
+
   // Open market on Polymarket
   const openOnPolymarket = (slug: string) => {
     window.open(`https://polymarket.com/event/${slug}`, '_blank');
@@ -529,7 +535,7 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
           <span>{trader.positions || 0} positions</span>
           {trader.winRate !== undefined && (
             <span style={{ color: trader.winRate > 0.5 ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
-              {(trader.winRate * 100).toFixed(1)}% win rate
+              {safeToFixed((trader.winRate || 0) * 100)}% win rate
             </span>
           )}
         </div>
@@ -750,7 +756,7 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
                   fontSize: '0.875rem',
                 }}>
                   <span style={{ color: 'var(--color-accent)', fontWeight: 600 }}>
-                    {spike.spikeRatio.toFixed(1)}x
+                    {safeToFixed(spike.spikeRatio)}x
                   </span>
                   <span style={{ color: 'var(--color-text-muted)' }}> above average volume</span>
                 </div>
