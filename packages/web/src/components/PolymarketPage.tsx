@@ -4,27 +4,35 @@ import {
   getPolymarketTrending,
   getPolymarketSpikes,
   getPolymarketMovers,
-  getPolymarketLeaderboard,
   getPolymarketMarkets,
-  getPolymarketMarket,
   PolymarketMarket,
-  PolymarketTrader,
   VolumeSpike,
   PriceMover,
 } from '../api';
 import { useIsMobile } from '../hooks/useIsMobile';
 
-type ViewMode = 'trending' | 'spikes' | 'movers' | 'leaderboard' | 'search';
+type ViewMode = 'all' | 'trending' | 'spikes' | 'movers' | 'search';
 
 const modeButtons = [
+  { id: 'all', label: 'All', icon: GridIcon },
   { id: 'trending', label: 'Trending', icon: TrendingIcon },
   { id: 'spikes', label: 'Spikes', icon: SpikeIcon },
   { id: 'movers', label: 'Movers', icon: MoversIcon },
-  { id: 'leaderboard', label: 'Leaders', icon: TrophyIcon },
   { id: 'search', label: 'Search', icon: SearchIcon },
 ];
 
 // Simple inline SVG icons
+function GridIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7"/>
+      <rect x="14" y="3" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/>
+    </svg>
+  );
+}
+
 function TrendingIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -46,19 +54,6 @@ function MoversIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 19V5M5 12l7-7 7 7"/>
-    </svg>
-  );
-}
-
-function TrophyIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-      <path d="M4 22h16"/>
-      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
     </svg>
   );
 }
@@ -96,10 +91,10 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Data states
+  const [allMarkets, setAllMarkets] = useState<PolymarketMarket[]>([]);
   const [trendingMarkets, setTrendingMarkets] = useState<PolymarketMarket[]>([]);
   const [volumeSpikes, setVolumeSpikes] = useState<VolumeSpike[]>([]);
   const [priceMovers, setPriceMovers] = useState<PriceMover[]>([]);
-  const [leaderboard, setLeaderboard] = useState<PolymarketTrader[]>([]);
   const [searchResults, setSearchResults] = useState<PolymarketMarket[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -115,6 +110,12 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
     
     try {
       switch (viewMode) {
+        case 'all':
+          const allRes = await getPolymarketMarkets({ limit: 50 });
+          if (allRes.success) {
+            setAllMarkets(allRes.data);
+          }
+          break;
         case 'trending':
           const trendingRes = await getPolymarketTrending(20);
           if (trendingRes.success) {
@@ -131,12 +132,6 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
           const moversRes = await getPolymarketMovers(0.05);
           if (moversRes.success) {
             setPriceMovers(moversRes.data);
-          }
-          break;
-        case 'leaderboard':
-          const leaderboardRes = await getPolymarketLeaderboard(20);
-          if (leaderboardRes.success) {
-            setLeaderboard(leaderboardRes.data);
           }
           break;
       }
@@ -494,79 +489,6 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
     );
   };
 
-  // Render trader card
-  const renderTraderCard = (trader: PolymarketTrader, index: number) => (
-    <motion.div
-      key={trader.address}
-      className="section-flat"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      style={{
-        padding: isMobile ? 16 : 20,
-        marginBottom: 12,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-      }}
-    >
-      {/* Rank */}
-      <div style={{
-        width: 40,
-        height: 40,
-        borderRadius: '50%',
-        background: index < 3 ? 'var(--color-accent)' : 'var(--color-bg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 700,
-        color: index < 3 ? 'white' : 'var(--color-text-primary)',
-        fontSize: '0.875rem',
-      }}>
-        #{trader.rank || index + 1}
-      </div>
-      
-      {/* Address */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontFamily: 'monospace',
-          fontSize: '0.875rem',
-          color: 'var(--color-text-primary)',
-          marginBottom: 4,
-        }}>
-          {trader.address.slice(0, 6)}...{trader.address.slice(-4)}
-        </div>
-        <div style={{ display: 'flex', gap: 16, fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-          <span>{trader.positions || 0} positions</span>
-          {trader.winRate !== undefined && (
-            <span style={{ color: trader.winRate > 0.5 ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
-              {safeToFixed((trader.winRate || 0) * 100)}% win rate
-            </span>
-          )}
-        </div>
-      </div>
-      
-      {/* Stats */}
-      <div style={{ textAlign: 'right' }}>
-        <div style={{
-          fontSize: '1rem',
-          fontWeight: 600,
-          color: 'var(--color-text-primary)',
-        }}>
-          {formatCurrency(trader.volume)}
-        </div>
-        {trader.profit !== undefined && (
-          <div style={{
-            fontSize: '0.875rem',
-            color: trader.profit >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
-          }}>
-            {trader.profit >= 0 ? '+' : ''}{formatCurrency(trader.profit)} profit
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-
   return (
     <motion.div
       className="page-container page-animate-enter"
@@ -582,7 +504,7 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
         transition={{ duration: 0.4 }}
       >
         <h1>Prediction Markets</h1>
-        <p>Explore trending markets, volume spikes, and top traders on Polymarket</p>
+        <p>Explore prediction markets, volume spikes, and price movers on Polymarket</p>
       </motion.div>
 
       {/* Tab Bar */}
@@ -811,8 +733,8 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
             </>
           )}
 
-          {/* Leaderboard */}
-          {viewMode === 'leaderboard' && leaderboard.length > 0 && (
+          {/* All Markets */}
+          {viewMode === 'all' && allMarkets.length > 0 && (
             <>
               <div style={{
                 padding: isMobile ? '16px 16px 8px' : '16px 20px 8px',
@@ -822,9 +744,9 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
                 letterSpacing: '0.05em',
                 color: 'var(--color-text-muted)',
               }}>
-                Top Traders
+                All Markets ({allMarkets.length})
               </div>
-              {leaderboard.map((trader, i) => renderTraderCard(trader, i))}
+              {allMarkets.map(market => renderMarketCard(market))}
             </>
           )}
 
@@ -846,6 +768,9 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
           )}
 
           {/* Empty States */}
+          {viewMode === 'all' && allMarkets.length === 0 && !loading && (
+            <EmptyState message="No markets found" />
+          )}
           {viewMode === 'trending' && trendingMarkets.length === 0 && !loading && (
             <EmptyState message="No trending markets found" />
           )}
@@ -854,9 +779,6 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
           )}
           {viewMode === 'movers' && priceMovers.length === 0 && !loading && (
             <EmptyState message="No significant price movements" />
-          )}
-          {viewMode === 'leaderboard' && leaderboard.length === 0 && !loading && (
-            <EmptyState message="Leaderboard unavailable" />
           )}
           {viewMode === 'search' && searchQuery && searchResults.length === 0 && !loading && (
             <EmptyState message={`No markets found for "${searchQuery}"`} />
