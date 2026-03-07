@@ -646,8 +646,6 @@ function registerBotCommands() {
                 return;
             }
 
-            await ctx.reply('🤖 *Thinking...*', { parse_mode: 'Markdown' });
-
             let context = '';
             if (linkedUser.watches.length > 0) {
                 const wallets = linkedUser.watches.map(w => 
@@ -658,10 +656,7 @@ function registerBotCommands() {
 
             const answer = await askAI(question, context);
             
-            await ctx.reply(
-                `🤖 *Answer*\n\n${answer}`,
-                { parse_mode: 'Markdown' }
-            );
+            await streamReply(ctx, `🤖 *Answer*\n\n${answer}`);
         });
 
         // /history - Get recent scan history (requires linked account)
@@ -1080,11 +1075,7 @@ function registerBotCommands() {
 
             const answer = await askAI(prompt, 'User is asking about Polymarket prediction markets');
 
-            let msg = `🤖 *AI Analysis*\n\n`;
-            msg += `📊 *Query:* ${escapeMarkdown(query)}\n\n`;
-            msg += answer;
-
-            await ctx.reply(msg, { parse_mode: 'Markdown' });
+            await streamReply(ctx, `🤖 *AI Analysis*\n\n📊 *Query:* ${escapeMarkdown(query)}\n\n${answer}`);
         } catch (error) {
             console.error('[Telegram] AI analysis error:', error);
             await ctx.reply('❌ Failed to analyze. Please try again.');
@@ -1287,7 +1278,6 @@ function registerBotCommands() {
         // Handle AI mode
         if (linkedUser.step === 'ai_mode') {
             linkedUser.step = '';
-            await ctx.reply('🤖 *Thinking...*', { parse_mode: 'Markdown' });
 
             let context = '';
             if (linkedUser.watches.length > 0) {
@@ -1298,7 +1288,7 @@ function registerBotCommands() {
             }
 
             const answer = await askAI(text, context);
-            await ctx.reply(answer);
+            await streamReply(ctx, answer);
             return;
         }
 
@@ -1562,6 +1552,57 @@ export async function analyzeTransaction(tx: {
 }
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+interface StreamOptions {
+    chatId: number;
+    parseMode?: 'Markdown' | 'HTML';
+    onChunk?: (chunk: string) => void;
+}
+
+async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | 'HTML' = 'Markdown') {
+    const CHUNK_SIZE = 100;
+    const EDIT_DELAY_MS = 400;
+    
+    if (fullText.length <= CHUNK_SIZE) {
+        await ctx.reply(fullText, { parse_mode: parseMode });
+        return;
+    }
+    
+    try {
+        const sent = await ctx.reply('🤖 *Thinking...*', { parse_mode: parseMode });
+        const messageId = sent.message_id;
+        
+        let currentText = '';
+        const words = fullText.split(' ');
+        
+        for (let i = 0; i < words.length; i++) {
+            currentText += (currentText ? ' ' : '') + words[i];
+            
+            if ((i + 1) % 5 === 0 || i === words.length - 1) {
+                await bot.telegram.editMessageText(
+                    ctx.from.id,
+                    messageId,
+                    undefined,
+                    `🤖 *Thinking...*\n\n${currentText}`,
+                    { parse_mode: parseMode }
+                );
+                await new Promise(r => setTimeout(r, EDIT_DELAY_MS));
+            }
+        }
+        
+        await bot.telegram.editMessageText(
+            ctx.from.id,
+            messageId,
+            undefined,
+            fullText,
+            { parse_mode: parseMode }
+        );
+        
+    } catch (error) {
+        console.error('[Telegram] Stream error, falling back to regular reply:', error);
+        await ctx.reply(fullText, { parse_mode: parseMode });
+    }
+}
 
 async function askAI(prompt: string, context?: string): Promise<string> {
     if (!GROQ_API_KEY) return 'AI unavailable. Please configure GROQ_API_KEY.';
