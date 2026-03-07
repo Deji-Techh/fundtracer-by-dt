@@ -1587,14 +1587,28 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
     
     const parseMode = opts.parse_mode || 'Markdown';
     try {
-        await bot.telegram.callApi('sendMessageDraft', {
-            chat_id: ctx.from.id,
-            text: text,
-            parse_mode: parseMode === 'Markdown' ? 'Markdown' : 'HTML',
-            stream: true,
-            ...opts
+        console.log('[Telegram] Sending with stream:', { chat_id: ctx.from.id, textLength: text?.length });
+        
+        // Use Telegram Bot API directly for streaming
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessageDraft`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: ctx.from.id,
+                text: text,
+                parse_mode: parseMode,
+                stream: true
+            })
         });
-    } catch (error) {
+        
+        const result = await response.json();
+        if (!result.ok) {
+            console.error('[Telegram] Stream API error:', result);
+            throw new Error(result.description);
+        }
+    } catch (error: any) {
+        console.error('[Telegram] Stream error:', error.message);
+        // Fall back to regular reply
         if (text) {
             await ctx.reply(text, opts);
         } else {
