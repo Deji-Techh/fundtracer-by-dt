@@ -1604,8 +1604,11 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
         return ctx.reply(text || textOrOptions, opts);
     }
     
-    // For short messages, just send instantly
-    if (text.length < STREAM_CONFIG.minTextLength) {
+    // Check if message has inline keyboard - skip streaming for these
+    const hasReplyMarkup = opts.reply_markup || opts.inline_keyboard;
+    
+    // For short messages or messages with buttons, send instantly (no streaming)
+    if (text.length < STREAM_CONFIG.minTextLength || hasReplyMarkup) {
         return ctx.reply(text, { parse_mode: parseMode, ...opts });
     }
     
