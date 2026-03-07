@@ -1589,6 +1589,9 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
     try {
         console.log('[Telegram] Sending with stream:', { chat_id: ctx.from.id, textLength: text?.length });
         
+        // Generate a unique random_id for the draft
+        const randomId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        
         // Use Telegram Bot API directly for streaming
         const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessageDraft`, {
             method: 'POST',
@@ -1597,7 +1600,7 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
                 chat_id: ctx.from.id,
                 text: text,
                 parse_mode: parseMode,
-                stream: true
+                random_id: randomId
             })
         });
         
