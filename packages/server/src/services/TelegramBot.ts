@@ -197,7 +197,7 @@ function registerBotCommands() {
         if (linkedUser) {
             await showDashboard(ctx, linkedUser);
         } else {
-            await ctx.reply(
+            await sendReply(ctx, 
                 '👋 *Welcome to FundTracer!*\n\n' +
                 'Get wallet alerts and AI analysis on Telegram.\n\n' +
                 '🔗 *Setup:*\n' +
@@ -212,7 +212,7 @@ function registerBotCommands() {
 
     // /help - Show commands
     bot.command('help', async (ctx: any) => {
-        await ctx.reply(
+        await sendReply(ctx, 
             '📚 *Commands*\n\n' +
             '🔗 *Account*\n' +
             '/link - Connect FundTracer account\n' +
@@ -245,7 +245,7 @@ function registerBotCommands() {
         bot.command('link', async (ctx: any) => {
             const linkedUser = linkedUsers.get(ctx.from.id);
             if (linkedUser) {
-                await ctx.reply(
+                await sendReply(ctx, 
                     '✅ *Already Linked!*\n\n' +
                     `Wallet: \`${linkedUser.walletAddress.slice(0, 8)}...${linkedUser.walletAddress.slice(-4)}\`\n` +
                     `Plan: ${linkedUser.tier.toUpperCase()}\n\n` +
@@ -258,7 +258,7 @@ function registerBotCommands() {
             // Set user step to awaiting link code
             pendingLinkUsers.set(ctx.from.id, { step: 'awaiting_link_code' });
             
-            await ctx.reply(
+            await sendReply(ctx, 
                 '🔗 *Connect Your Account*\n\n' +
                 '*Step 1:* Go to fundtracer.xyz/telegram\n' +
                 '*Step 2:* Connect your wallet\n' +
@@ -285,7 +285,7 @@ function registerBotCommands() {
             const chain = args[1]?.toLowerCase();
 
             if (!address) {
-                await ctx.reply(
+                await sendReply(ctx, 
                     '🔍 */scan* - Analyze a wallet\n\n' +
                     '*Usage:* `/scan <address> [chain]`\n\n' +
                     '*Chains:* ethereum, linea, arbitrum, base, optimism, polygon\n\n' +
@@ -298,7 +298,7 @@ function registerBotCommands() {
             }
 
             if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-                await ctx.reply('❌ Invalid address format. Must be 0x followed by 40 hex characters.');
+                await sendReply(ctx, '❌ Invalid address format. Must be 0x followed by 40 hex characters.');
                 return;
             }
 
@@ -317,7 +317,7 @@ function registerBotCommands() {
                     buttonRows.push(buttons.slice(i, i + 2));
                 }
 
-                await ctx.reply(
+                await sendReply(ctx, 
                     `🔍 *Select Chain*\n\nAddress: \`${address.slice(0, 10)}...${address.slice(-4)}\`\n\nWhich chain do you want to scan on?`,
                     { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttonRows) }
                 );
@@ -326,7 +326,7 @@ function registerBotCommands() {
 
             // Validate chain
             if (!chains.includes(chain)) {
-                await ctx.reply(`❌ Unknown chain: ${chain}\n\nSupported: ${chains.join(', ')}`);
+                await sendReply(ctx, `❌ Unknown chain: ${chain}\n\nSupported: ${chains.join(', ')}`);
                 return;
             }
 
@@ -361,7 +361,7 @@ function registerBotCommands() {
             const chain = args[1] || 'ethereum';
 
             if (!address) {
-                await ctx.reply(
+                await sendReply(ctx, 
                     '📄 /contract <address> [chain] - Analyze a smart contract\n\n' +
                     'Chains: ethereum, polygon, arbitrum, optimism, base, linea\n' +
                     'Example: /contract 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D ethereum',
@@ -371,23 +371,23 @@ function registerBotCommands() {
             }
 
             if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-                await ctx.reply('❌ Invalid contract address');
+                await sendReply(ctx, '❌ Invalid contract address');
                 return;
             }
 
             if (!chains.includes(chain.toLowerCase())) {
-                await ctx.reply(`❌ Unknown chain. Use: ${chains.join(', ')}`);
+                await sendReply(ctx, `❌ Unknown chain. Use: ${chains.join(', ')}`);
                 return;
             }
 
-            await ctx.reply('📄 *Analyzing contract...*', { parse_mode: 'Markdown' });
+            await sendReply(ctx, '📄 *Analyzing contract...*', { parse_mode: 'Markdown' });
 
             try {
                 const wa = await getAnalyzer();
                 const code = await wa.getProvider(chain.toLowerCase()).getCode(address.toLowerCase());
 
                 if (code === '0x' || !code) {
-                    await ctx.reply('❌ Not a contract (no code found)');
+                    await sendReply(ctx, '❌ Not a contract (no code found)');
                     return;
                 }
 
@@ -408,10 +408,10 @@ function registerBotCommands() {
                     msg += `\n⚠️ *Warning:* This contract has potentially dangerous functions. Do your own research!`;
                 }
 
-                await ctx.reply(msg, { parse_mode: 'Markdown' });
+                await sendReply(ctx, msg, { parse_mode: 'Markdown' });
 
             } catch (e: any) {
-                await ctx.reply(`❌ Analysis failed: ${e.message}`);
+                await sendReply(ctx, `❌ Analysis failed: ${e.message}`);
             }
         });
 
@@ -420,7 +420,7 @@ function registerBotCommands() {
             const linkedUser = linkedUsers.get(ctx.from.id);
 
             if (!linkedUser) {
-                await ctx.reply(
+                await sendReply(ctx, 
                     '⚠️ *Account Not Linked*\n\n' +
                     '1. Go to fundtracer.xyz → Profile\n' +
                     '2. Click "Connect Telegram"\n' +
@@ -432,12 +432,12 @@ function registerBotCommands() {
 
             const maxWallets = linkedUser.tier === 'free' ? 10 : linkedUser.tier === 'pro' ? 100 : 1000;
             if (linkedUser.watches.length >= maxWallets) {
-                await ctx.reply(`❌ Wallet limit reached (${maxWallets})\n\nUpgrade your plan for more.`);
+                await sendReply(ctx, `❌ Wallet limit reached (${maxWallets})\n\nUpgrade your plan for more.`);
                 return;
             }
 
             linkedUser.step = 'awaiting_address';
-            await ctx.reply(
+            await sendReply(ctx, 
                 '📝 *Add Wallet*\n\nEnter wallet address (0x...)',
                 { parse_mode: 'Markdown', ...Markup.removeKeyboard() }
             );
@@ -459,7 +459,7 @@ function registerBotCommands() {
                     await processLinkCode(ctx, text.toUpperCase(), false);
                     return;
                 } else {
-                    await ctx.reply(
+                    await sendReply(ctx, 
                         '❌ Invalid code format.\n\n' +
                         'Link codes are 6 characters (e.g., ABC123).\n' +
                         'Get your code at fundtracer.xyz/telegram',
@@ -475,7 +475,7 @@ function registerBotCommands() {
 
             if (linkedUser.step === 'awaiting_address') {
                 if (!/^0x[a-fA-F0-9]{40}$/.test(text)) {
-                    await ctx.reply('❌ Invalid address format. Must start with 0x followed by 40 hex characters.');
+                    await sendReply(ctx, '❌ Invalid address format. Must start with 0x followed by 40 hex characters.');
                     return;
                 }
 
@@ -486,7 +486,7 @@ function registerBotCommands() {
                     Markup.button.callback(c.charAt(0).toUpperCase() + c.slice(1), `chain_${c}`)
                 );
 
-                await ctx.reply('Select blockchain:', Markup.inlineKeyboard(buttons));
+                await sendReply(ctx, 'Select blockchain:', Markup.inlineKeyboard(buttons));
             }
         });
 
@@ -516,12 +516,12 @@ function registerBotCommands() {
         bot.command('list', async (ctx: any) => {
             const linkedUser = linkedUsers.get(ctx.from.id);
             if (!linkedUser) {
-                await ctx.reply('Use /link first');
+                await sendReply(ctx, 'Use /link first');
                 return;
             }
 
             if (linkedUser.watches.length === 0) {
-                await ctx.reply('No wallets. Use /add to add one.');
+                await sendReply(ctx, 'No wallets. Use /add to add one.');
                 return;
             }
 
@@ -534,14 +534,14 @@ function registerBotCommands() {
             const limit = linkedUser.tier === 'free' ? 10 : linkedUser.tier === 'pro' ? 100 : '∞';
             msg += `Limit: ${linkedUser.watches.length}/${limit}`;
 
-            await ctx.reply(msg, { parse_mode: 'Markdown' });
+            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
         });
 
         // /remove - Remove wallet
         bot.command('remove', async (ctx: any) => {
             const linkedUser = linkedUsers.get(ctx.from.id);
             if (!linkedUser || linkedUser.watches.length === 0) {
-                await ctx.reply('No wallets to remove.');
+                await sendReply(ctx, 'No wallets to remove.');
                 return;
             }
 
@@ -552,7 +552,7 @@ function registerBotCommands() {
                 )]
             );
 
-            await ctx.reply('❌ *Remove Wallet*\n\nSelect:',
+            await sendReply(ctx, '❌ *Remove Wallet*\n\nSelect:',
                 { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
             );
         });
@@ -571,11 +571,11 @@ function registerBotCommands() {
         bot.command('frequency', async (ctx: any) => {
             const linkedUser = linkedUsers.get(ctx.from.id);
             if (!linkedUser) {
-                await ctx.reply('Use /link first');
+                await sendReply(ctx, 'Use /link first');
                 return;
             }
 
-            await ctx.reply('⏰ *Alert Frequency*',
+            await sendReply(ctx, '⏰ *Alert Frequency*',
                 { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
                     [
                         Markup.button.callback('⚡ Real-time', 'freq_realtime'),
@@ -601,11 +601,11 @@ function registerBotCommands() {
         bot.command('status', async (ctx: any) => {
             const linkedUser = linkedUsers.get(ctx.from.id);
             if (!linkedUser) {
-                await ctx.reply('Use /link first');
+                await sendReply(ctx, 'Use /link first');
                 return;
             }
 
-            await ctx.reply(
+            await sendReply(ctx, 
                 '📊 *Status*\n\n' +
                 `Plan: ${linkedUser.tier.toUpperCase()}\n` +
                 `Wallets: ${linkedUser.watches.length}\n` +
@@ -619,9 +619,9 @@ function registerBotCommands() {
             const linkedUser = linkedUsers.get(ctx.from.id);
             if (linkedUser) {
                 linkedUsers.delete(ctx.from.id);
-                await ctx.reply('✅ Account unlinked. Use /link to connect again.');
+                await sendReply(ctx, '✅ Account unlinked. Use /link to connect again.');
             } else {
-                await ctx.reply('No account linked.');
+                await sendReply(ctx, 'No account linked.');
             }
         });
 
@@ -634,7 +634,7 @@ function registerBotCommands() {
             const question = args.join(' ');
 
             if (!question) {
-                await ctx.reply(
+                await sendReply(ctx, 
                     '🤖 *Ask AI*\n\nAsk me anything about wallets, transactions, or crypto.\n\n' +
                     'Examples:\n' +
                     '• "What is this wallet doing?"\n' +
@@ -675,7 +675,7 @@ function registerBotCommands() {
                     const userHistory = history[linkedUser.userId] || [];
                     
                     if (userHistory.length === 0) {
-                        await ctx.reply('📊 *Scan History*\n\nNo scan history yet. Use /scan to analyze wallets!',
+                        await sendReply(ctx, '📊 *Scan History*\n\nNo scan history yet. Use /scan to analyze wallets!',
                             { parse_mode: 'Markdown' }
                         );
                         return;
@@ -690,14 +690,14 @@ function registerBotCommands() {
                         msg += `  ${scan.chain} • ${date}\n\n`;
                     }
 
-                    await ctx.reply(msg, { parse_mode: 'Markdown' });
+                    await sendReply(ctx, msg, { parse_mode: 'Markdown' });
                 } else {
-                    await ctx.reply('📊 *Scan History*\n\nNo scan history yet. Use /scan to analyze wallets!',
+                    await sendReply(ctx, '📊 *Scan History*\n\nNo scan history yet. Use /scan to analyze wallets!',
                         { parse_mode: 'Markdown' }
                     );
                 }
             } catch (e) {
-                await ctx.reply('📊 *Scan History*\n\nNo scan history available.',
+                await sendReply(ctx, '📊 *Scan History*\n\nNo scan history available.',
                     { parse_mode: 'Markdown' }
                 );
             }
@@ -713,7 +713,7 @@ function registerBotCommands() {
         const args = ctx.message.text.split(' ').slice(1);
         const query = args.join(' ');
 
-        await ctx.reply('🔍 *Loading Polymarket markets...*', { parse_mode: 'Markdown' });
+        await sendReply(ctx, '🔍 *Loading Polymarket markets...*', { parse_mode: 'Markdown' });
 
         try {
             const { polymarketService } = await import('./PolymarketService.js');
@@ -726,7 +726,7 @@ function registerBotCommands() {
             }
 
             if (markets.length === 0) {
-                await ctx.reply('❌ No markets found. Try a different search term.');
+                await sendReply(ctx, '❌ No markets found. Try a different search term.');
                 return;
             }
 
@@ -748,10 +748,10 @@ function registerBotCommands() {
 
             msg += '_Powered by Polymarket_';
 
-            await ctx.reply(msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
+            await sendReply(ctx, msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
         } catch (error) {
             console.error('[Telegram] Polymarket error:', error);
-            await ctx.reply('❌ Failed to load markets. Please try again.');
+            await sendReply(ctx, '❌ Failed to load markets. Please try again.');
         }
     });
 
@@ -765,7 +765,7 @@ function registerBotCommands() {
             const market = await polymarketService.getMarket(slug);
 
             if (!market) {
-                await ctx.reply('❌ Market not found.');
+                await sendReply(ctx, '❌ Market not found.');
                 return;
             }
 
@@ -781,28 +781,28 @@ function registerBotCommands() {
                 ]
             ];
 
-            await ctx.reply(msg, { 
+            await sendReply(ctx, msg, { 
                 parse_mode: 'Markdown', 
                 disable_web_page_preview: true,
                 ...Markup.inlineKeyboard(buttons)
             });
         } catch (error) {
             console.error('[Telegram] Market detail error:', error);
-            await ctx.reply('❌ Failed to load market details.');
+            await sendReply(ctx, '❌ Failed to load market details.');
         }
     });
 
     // /ptrending - Volume spikes and trending (public - no auth required)
     bot.command(['ptrending', 'pspikes', 'phot'], async (ctx: any) => {
         // No auth required for Polymarket
-        await ctx.reply('📈 *Finding trending markets...*', { parse_mode: 'Markdown' });
+        await sendReply(ctx, '📈 *Finding trending markets...*', { parse_mode: 'Markdown' });
 
         try {
             const { polymarketService } = await import('./PolymarketService.js');
             const spikes = await polymarketService.detectVolumeSpikes(1.5, 5000);
 
             if (spikes.length === 0) {
-                await ctx.reply('📊 No significant volume spikes detected right now.');
+                await sendReply(ctx, '📊 No significant volume spikes detected right now.');
                 return;
             }
 
@@ -818,24 +818,24 @@ function registerBotCommands() {
                 msg += `${changeEmoji} ${(change * 100).toFixed(1)}% • $${polymarketService.formatNumber(market.volume24hr)}\n\n`;
             }
 
-            await ctx.reply(msg, { parse_mode: 'Markdown' });
+            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
         } catch (error) {
             console.error('[Telegram] Trending error:', error);
-            await ctx.reply('❌ Failed to load trending markets.');
+            await sendReply(ctx, '❌ Failed to load trending markets.');
         }
     });
 
     // /ptraders - Top traders leaderboard (public - no auth required)
     bot.command(['ptraders', 'pleaderboard', 'ptop'], async (ctx: any) => {
         // No auth required for Polymarket
-        await ctx.reply('🏆 *Loading leaderboard...*', { parse_mode: 'Markdown' });
+        await sendReply(ctx, '🏆 *Loading leaderboard...*', { parse_mode: 'Markdown' });
 
         try {
             const { polymarketService } = await import('./PolymarketService.js');
             const traders = await polymarketService.getLeaderboard(10);
 
             if (traders.length === 0) {
-                await ctx.reply('📊 Leaderboard data not available.');
+                await sendReply(ctx, '📊 Leaderboard data not available.');
                 return;
             }
 
@@ -850,10 +850,10 @@ function registerBotCommands() {
                 msg += `   💰 Vol: $${polymarketService.formatNumber(trader.volume || 0)}\n\n`;
             }
 
-            await ctx.reply(msg, { parse_mode: 'Markdown' });
+            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
         } catch (error) {
             console.error('[Telegram] Leaderboard error:', error);
-            await ctx.reply('❌ Failed to load leaderboard.');
+            await sendReply(ctx, '❌ Failed to load leaderboard.');
         }
     });
 
@@ -864,7 +864,7 @@ function registerBotCommands() {
         const address = args[0];
 
         if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
-            await ctx.reply(
+            await sendReply(ctx, 
                 '👤 */ptrader* - View trader profile\n\n' +
                 '*Usage:* `/ptrader <address>`\n\n' +
                 '*Example:*\n`/ptrader 0x742d...eB1e`',
@@ -873,14 +873,14 @@ function registerBotCommands() {
             return;
         }
 
-        await ctx.reply('👤 *Loading trader profile...*', { parse_mode: 'Markdown' });
+        await sendReply(ctx, '👤 *Loading trader profile...*', { parse_mode: 'Markdown' });
 
         try {
             const { polymarketService } = await import('./PolymarketService.js');
             const { trader, positions } = await polymarketService.getTraderProfile(address);
 
             if (!trader) {
-                await ctx.reply('❌ Trader not found or no positions.');
+                await sendReply(ctx, '❌ Trader not found or no positions.');
                 return;
             }
 
@@ -902,13 +902,13 @@ function registerBotCommands() {
                 [Markup.button.callback('➕ Follow Trader', `pfollow_${address.slice(0, 30)}`)]
             ];
 
-            await ctx.reply(msg, { 
+            await sendReply(ctx, msg, { 
                 parse_mode: 'Markdown',
                 ...Markup.inlineKeyboard(buttons)
             });
         } catch (error) {
             console.error('[Telegram] Trader profile error:', error);
-            await ctx.reply('❌ Failed to load trader profile.');
+            await sendReply(ctx, '❌ Failed to load trader profile.');
         }
     });
 
@@ -922,7 +922,7 @@ function registerBotCommands() {
             const alerts = await getUserAlerts(ctx.from.id);
 
             if (alerts.length === 0) {
-                await ctx.reply(
+                await sendReply(ctx, 
                     '🔔 *Price Alerts*\n\n' +
                     'No active alerts.\n\n' +
                     'To create an alert:\n' +
@@ -945,10 +945,10 @@ function registerBotCommands() {
                 msg += `🗑 /pdelalert\\_${alert.id}\n\n`;
             }
 
-            await ctx.reply(msg, { parse_mode: 'Markdown' });
+            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
         } catch (error) {
             console.error('[Telegram] Alerts error:', error);
-            await ctx.reply('❌ Failed to load alerts.');
+            await sendReply(ctx, '❌ Failed to load alerts.');
         }
     });
 
@@ -964,12 +964,12 @@ function registerBotCommands() {
             const success = await deleteAlert(ctx.from.id, alertId);
 
             if (success) {
-                await ctx.reply('✅ Alert deleted.');
+                await sendReply(ctx, '✅ Alert deleted.');
             } else {
-                await ctx.reply('❌ Alert not found.');
+                await sendReply(ctx, '❌ Alert not found.');
             }
         } catch (error) {
-            await ctx.reply('❌ Failed to delete alert.');
+            await sendReply(ctx, '❌ Failed to delete alert.');
         }
     });
 
@@ -983,7 +983,7 @@ function registerBotCommands() {
             const follows = await getFollowedTraders(ctx.from.id);
 
             if (follows.length === 0) {
-                await ctx.reply(
+                await sendReply(ctx, 
                     '👥 *Followed Traders*\n\n' +
                     'You\'re not following any traders.\n\n' +
                     'Use `/ptrader <address>` to view and follow traders.',
@@ -1000,9 +1000,9 @@ function registerBotCommands() {
                 msg += `🗑 /punfollow\\_${follow.traderAddress.slice(0, 30)}\n\n`;
             }
 
-            await ctx.reply(msg, { parse_mode: 'Markdown' });
+            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
         } catch (error) {
-            await ctx.reply('❌ Failed to load followed traders.');
+            await sendReply(ctx, '❌ Failed to load followed traders.');
         }
     });
 
@@ -1018,12 +1018,12 @@ function registerBotCommands() {
             const success = await unfollowTrader(ctx.from.id, address);
 
             if (success) {
-                await ctx.reply('✅ Unfollowed trader.');
+                await sendReply(ctx, '✅ Unfollowed trader.');
             } else {
-                await ctx.reply('❌ Trader not found in your follows.');
+                await sendReply(ctx, '❌ Trader not found in your follows.');
             }
         } catch (error) {
-            await ctx.reply('❌ Failed to unfollow trader.');
+            await sendReply(ctx, '❌ Failed to unfollow trader.');
         }
     });
 
@@ -1034,7 +1034,7 @@ function registerBotCommands() {
         const query = args.join(' ');
 
         if (!query) {
-            await ctx.reply(
+            await sendReply(ctx, 
                 '🤖 */pask* - AI Market Analysis\n\n' +
                 '*Usage:* `/pask <market name or question>`\n\n' +
                 '*Examples:*\n' +
@@ -1046,7 +1046,7 @@ function registerBotCommands() {
             return;
         }
 
-        await ctx.reply('🤖 *Analyzing...*', { parse_mode: 'Markdown' });
+        await sendReply(ctx, '🤖 *Analyzing...*', { parse_mode: 'Markdown' });
 
         try {
             const { polymarketService } = await import('./PolymarketService.js');
@@ -1055,7 +1055,7 @@ function registerBotCommands() {
             const markets = await polymarketService.searchMarkets(query, 3);
 
             if (markets.length === 0) {
-                await ctx.reply('❌ No relevant markets found for your query.');
+                await sendReply(ctx, '❌ No relevant markets found for your query.');
                 return;
             }
 
@@ -1078,7 +1078,7 @@ function registerBotCommands() {
             await streamReply(ctx, `🤖 *AI Analysis*\n\n📊 *Query:* ${escapeMarkdown(query)}\n\n${answer}`);
         } catch (error) {
             console.error('[Telegram] AI analysis error:', error);
-            await ctx.reply('❌ Failed to analyze. Please try again.');
+            await sendReply(ctx, '❌ Failed to analyze. Please try again.');
         }
     });
 
@@ -1101,13 +1101,13 @@ function registerBotCommands() {
                 [Markup.button.callback(`${traderStatus} Trader Activity`, 'ptoggle_traders')]
             ];
 
-            await ctx.reply(
+            await sendReply(ctx, 
                 '⚙️ *Polymarket Notifications*\n\n' +
                 'Toggle notifications on/off:',
                 { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
             );
         } catch (error) {
-            await ctx.reply('❌ Failed to load settings.');
+            await sendReply(ctx, '❌ Failed to load settings.');
         }
     });
 
@@ -1194,7 +1194,7 @@ function registerBotCommands() {
         linkedUser.step = `palert_${outcome}_${slug}`;
 
         await ctx.answerCbQuery();
-        await ctx.reply(
+        await sendReply(ctx, 
             `📊 *Set ${outcome.toUpperCase()} Alert*\n\n` +
             `Enter your target price (0-100):\n` +
             `Example: \`45\` for 45¢\n\n` +
@@ -1227,7 +1227,7 @@ function registerBotCommands() {
             // Parse input like "above 60" or "below 30" or just "50"
             const match = text.match(/^(above|below)?\s*(\d+(?:\.\d+)?)$/i);
             if (!match) {
-                await ctx.reply(
+                await sendReply(ctx, 
                     '❌ Invalid format.\n\n' +
                     'Examples:\n' +
                     '`above 60` - Alert when price goes above 60¢\n' +
@@ -1242,7 +1242,7 @@ function registerBotCommands() {
             const targetPrice = parseFloat(match[2]) / 100; // Convert cents to decimal
 
             if (targetPrice < 0 || targetPrice > 1) {
-                await ctx.reply('❌ Price must be between 0 and 100.');
+                await sendReply(ctx, '❌ Price must be between 0 and 100.');
                 return;
             }
 
@@ -1258,7 +1258,7 @@ function registerBotCommands() {
                 );
 
                 if (result.success) {
-                    await ctx.reply(
+                    await sendReply(ctx, 
                         '✅ *Alert Created!*\n\n' +
                         `📊 ${escapeMarkdown(result.alert?.marketQuestion || slug)}\n` +
                         `${outcome === 'yes' ? '✅' : '❌'} ${outcome.toUpperCase()} ${condition} ${(targetPrice * 100).toFixed(0)}¢\n\n` +
@@ -1266,11 +1266,11 @@ function registerBotCommands() {
                         { parse_mode: 'Markdown' }
                     );
                 } else {
-                    await ctx.reply(`❌ ${result.error || 'Failed to create alert'}`);
+                    await sendReply(ctx, `❌ ${result.error || 'Failed to create alert'}`);
                 }
             } catch (error) {
                 console.error('[Telegram] Create alert error:', error);
-                await ctx.reply('❌ Failed to create alert. Please try again.');
+                await sendReply(ctx, '❌ Failed to create alert. Please try again.');
             }
             return;
         }
@@ -1370,12 +1370,12 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
 
         msg += `\n🔗 [View Full Report](https://fundtracer.xyz/app-evm?address=${address}&chain=${chain})`;
 
-        await ctx.reply(msg, { parse_mode: 'Markdown' });
+        await sendReply(ctx, msg, { parse_mode: 'Markdown' });
 
         saveScanHistory(linkedUser.userId, address, chain, result.overallRiskScore || 0);
 
     } catch (e: any) {
-        await ctx.reply(`❌ Scan failed: ${e.message}`);
+        await sendReply(ctx, `❌ Scan failed: ${e.message}`);
     }
 }
 
@@ -1389,7 +1389,7 @@ async function processLinkCode(ctx: any, code: string, isButtonCallback: boolean
         if (isButtonCallback) {
             await ctx.editMessageText(msg, { parse_mode: 'Markdown' });
         } else {
-            await ctx.reply(msg, { parse_mode: 'Markdown' });
+            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
         }
         return;
     }
@@ -1418,7 +1418,7 @@ async function processLinkCode(ctx: any, code: string, isButtonCallback: boolean
     if (isButtonCallback) {
         await ctx.editMessageText(successMsg, { parse_mode: 'Markdown' });
     } else {
-        await ctx.reply(successMsg, { parse_mode: 'Markdown' });
+        await sendReply(ctx, successMsg, { parse_mode: 'Markdown' });
     }
 }
 
@@ -1426,7 +1426,7 @@ async function processLinkCode(ctx: any, code: string, isButtonCallback: boolean
 async function requireLinkedAccount(ctx: any): Promise<LinkedUser | null> {
     const linkedUser = linkedUsers.get(ctx.from.id);
     if (!linkedUser) {
-        await ctx.reply(
+        await sendReply(ctx, 
             '🔒 *Account Required*\n\n' +
             'You need to link your FundTracer account to use this feature.\n\n' +
             '1. Go to fundtracer.xyz/telegram\n' +
@@ -1441,7 +1441,7 @@ async function requireLinkedAccount(ctx: any): Promise<LinkedUser | null> {
 }
 
 async function showLinkAccount(ctx: any) {
-    await ctx.reply(
+    await sendReply(ctx, 
         '🔗 *Connect Your Account*\n\n' +
         '1. Go to fundtracer.xyz → Profile\n' +
         '2. Click "Connect Telegram"\n' +
@@ -1452,7 +1452,7 @@ async function showLinkAccount(ctx: any) {
 }
 
 async function showDashboard(ctx: any, user: LinkedUser) {
-    await ctx.reply(
+    await sendReply(ctx, 
         `🔍 *FundTracer*\n\n` +
         `Plan: ${user.tier.toUpperCase()}\n` +
         `Watching: ${user.watches.length} wallets\n` +
@@ -1569,22 +1569,37 @@ async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | '
         });
     } catch (error) {
         console.error('[Telegram] sendMessageDraft error, falling back to regular reply:', error);
-        await ctx.reply(fullText, { parse_mode: parseMode });
+        await sendReply(ctx, fullText, { parse_mode: parseMode });
     }
 }
 
-async function sendReply(ctx: any, text: string, options: any = {}) {
-    const parseMode = options.parse_mode || 'Markdown';
+async function sendReply(ctx: any, textOrOptions: string | any, options: any = {}) {
+    let text: string;
+    let opts: any;
+    
+    if (typeof textOrOptions === 'string') {
+        text = textOrOptions;
+        opts = options;
+    } else {
+        text = '';
+        opts = textOrOptions;
+    }
+    
+    const parseMode = opts.parse_mode || 'Markdown';
     try {
         await bot.telegram.callApi('sendMessageDraft', {
             chat_id: ctx.from.id,
             text: text,
             parse_mode: parseMode === 'Markdown' ? 'Markdown' : 'HTML',
             stream: true,
-            ...options
+            ...opts
         });
     } catch (error) {
-        await ctx.reply(text, options);
+        if (text) {
+            await ctx.reply(text, opts);
+        } else {
+            await ctx.reply(opts);
+        }
     }
 }
 
