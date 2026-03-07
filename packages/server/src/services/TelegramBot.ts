@@ -1573,6 +1573,17 @@ async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | '
     }
 }
 
+// Streaming configuration
+const STREAM_CONFIG = {
+    wordsPerChunk: 4,      // Words to add per update
+    delayMs: 40,           // Delay between updates (ms)
+    maxUpdates: 80,        // Max number of streaming updates
+    minTextLength: 50      // Minimum text length to stream (shorter = instant)
+};
+
+// Helper to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function sendReply(ctx: any, textOrOptions: string | any, options: any = {}) {
     let text: string;
     let opts: any;
@@ -1586,38 +1597,92 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
     }
     
     const parseMode = opts.parse_mode || 'Markdown';
+    const chatId = ctx.from?.id || ctx.chat?.id;
+    
+    if (!chatId || !text) {
+        // Fallback for edge cases
+        return ctx.reply(text || textOrOptions, opts);
+    }
+    
+    // For short messages, just send instantly
+    if (text.length < STREAM_CONFIG.minTextLength) {
+        return ctx.reply(text, { parse_mode: parseMode, ...opts });
+    }
+    
     try {
-        console.log('[Telegram] Sending with stream:', { chat_id: ctx.from.id, textLength: text?.length });
+        // Split text into words (keeping whitespace)
+        const words = text.split(/(\s+)/);
         
-        // Generate a unique draft_id (must be non-zero integer)
-        // Use timestamp + random number to ensure uniqueness
-        const draftId = Math.floor(Date.now() % 2147483647) + Math.floor(Math.random() * 1000000);
+        // Send initial message with first few words
+        let currentText = '';
+        let wordIndex = 0;
         
-        // Use Telegram Bot API directly for streaming
-        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessageDraft`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: ctx.from.id,
-                text: text,
-                parse_mode: parseMode,
-                draft_id: draftId
-            })
-        });
-        
-        const result = await response.json();
-        if (!result.ok) {
-            console.error('[Telegram] Stream API error:', result);
-            throw new Error(result.description);
+        // Start with first chunk
+        for (let i = 0; i < STREAM_CONFIG.wordsPerChunk * 2 && wordIndex < words.length; i++) {
+            currentText += words[wordIndex];
+            wordIndex++;
         }
+        currentText += ' ▌'; // Typing cursor
+        
+        // Send initial message (no markdown to avoid parsing issues during streaming)
+        const sentMessage = await ctx.reply(currentText);
+        const messageId = sentMessage.message_id;
+        
+        let updateCount = 0;
+        
+        // Stream remaining words by editing the message
+        while (wordIndex < words.length && updateCount < STREAM_CONFIG.maxUpdates) {
+            await delay(STREAM_CONFIG.delayMs);
+            
+            // Add next chunk of words
+            // Remove cursor first
+            currentText = currentText.replace(' ▌', '');
+            
+            for (let i = 0; i < STREAM_CONFIG.wordsPerChunk * 2 && wordIndex < words.length; i++) {
+                currentText += words[wordIndex];
+                wordIndex++;
+            }
+            
+            // Add cursor if not done
+            const displayText = wordIndex < words.length ? currentText + ' ▌' : currentText;
+            
+            try {
+                await ctx.telegram.editMessageText(
+                    chatId,
+                    messageId,
+                    undefined,
+                    displayText
+                );
+            } catch (editError: any) {
+                // Ignore "message not modified" errors
+                if (!editError.message?.includes('not modified')) {
+                    console.error('[Telegram] Edit error:', editError.message);
+                }
+            }
+            
+            updateCount++;
+        }
+        
+        // Final update with proper markdown formatting
+        try {
+            await ctx.telegram.editMessageText(
+                chatId,
+                messageId,
+                undefined,
+                text,
+                { parse_mode: parseMode }
+            );
+        } catch (finalError: any) {
+            // If markdown fails, send as plain text
+            if (finalError.message?.includes("can't parse")) {
+                await ctx.telegram.editMessageText(chatId, messageId, undefined, text);
+            }
+        }
+        
     } catch (error: any) {
         console.error('[Telegram] Stream error:', error.message);
         // Fall back to regular reply
-        if (text) {
-            await ctx.reply(text, opts);
-        } else {
-            await ctx.reply(opts);
-        }
+        await ctx.reply(text, { parse_mode: parseMode, ...opts });
     }
 }
 
