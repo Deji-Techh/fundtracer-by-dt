@@ -25,7 +25,7 @@
         "jsonwebtoken": "^9.0.3",
         "node-fetch": "^2.7.0",
         "serverless-http": "^4.0.0",
-        "telegraf": "^4.15.3"
+        "telegraf": "^4.16.3"
     },
     "devDependencies": {
         "@types/bcryptjs": "^2.4.6",

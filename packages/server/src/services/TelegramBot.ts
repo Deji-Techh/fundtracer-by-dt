@@ -1560,47 +1560,31 @@ interface StreamOptions {
 }
 
 async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | 'HTML' = 'Markdown') {
-    const CHUNK_SIZE = 100;
-    const EDIT_DELAY_MS = 400;
-    
-    if (fullText.length <= CHUNK_SIZE) {
-        await ctx.reply(fullText, { parse_mode: parseMode });
-        return;
-    }
-    
     try {
-        const sent = await ctx.reply('🤖 *Thinking...*', { parse_mode: parseMode });
-        const messageId = sent.message_id;
-        
-        let currentText = '';
-        const words = fullText.split(' ');
-        
-        for (let i = 0; i < words.length; i++) {
-            currentText += (currentText ? ' ' : '') + words[i];
-            
-            if ((i + 1) % 5 === 0 || i === words.length - 1) {
-                await bot.telegram.editMessageText(
-                    ctx.from.id,
-                    messageId,
-                    undefined,
-                    `🤖 *Thinking...*\n\n${currentText}`,
-                    { parse_mode: parseMode }
-                );
-                await new Promise(r => setTimeout(r, EDIT_DELAY_MS));
-            }
-        }
-        
-        await bot.telegram.editMessageText(
-            ctx.from.id,
-            messageId,
-            undefined,
-            fullText,
-            { parse_mode: parseMode }
-        );
-        
+        await bot.telegram.callApi('sendMessageDraft', {
+            chat_id: ctx.from.id,
+            text: fullText,
+            parse_mode: parseMode === 'Markdown' ? 'Markdown' : 'HTML',
+            stream: true
+        });
     } catch (error) {
-        console.error('[Telegram] Stream error, falling back to regular reply:', error);
+        console.error('[Telegram] sendMessageDraft error, falling back to regular reply:', error);
         await ctx.reply(fullText, { parse_mode: parseMode });
+    }
+}
+
+async function sendReply(ctx: any, text: string, options: any = {}) {
+    const parseMode = options.parse_mode || 'Markdown';
+    try {
+        await bot.telegram.callApi('sendMessageDraft', {
+            chat_id: ctx.from.id,
+            text: text,
+            parse_mode: parseMode === 'Markdown' ? 'Markdown' : 'HTML',
+            stream: true,
+            ...options
+        });
+    } catch (error) {
+        await ctx.reply(text, options);
     }
 }
 
