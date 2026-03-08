@@ -1232,12 +1232,12 @@ function registerBotCommands() {
                 '🪙 */token* - Token price & stats\n\n' +
                 '*Usage:*\n' +
                 '`/token <address> [chain]`\n' +
-                '`/token <symbol>`\n\n' +
+                '`/token <symbol> [chain]`\n\n' +
                 '*Examples:*\n' +
-                '`/token 0x6982...` - By address\n' +
-                '`/token PEPE` - By symbol\n' +
-                '`/token 0x69... solana`\n\n' +
-                '*Chains:* ethereum, solana, base, arbitrum, bsc',
+                '`/token 0x6982508145454Ce325dDbE47a25d4ec3d2311933`\n' +
+                '`/token PEPE ethereum`\n' +
+                '`/token EPjFWdd5AufqSSqeM2qN1xzybapC8G4DXEGpbh4R8mC solana`\n\n' +
+                '*Chains:* ethereum, solana, base, arbitrum, bsc, polygon, avax',
                 { parse_mode: 'Markdown' }
             );
             return;
@@ -1251,21 +1251,70 @@ function registerBotCommands() {
             let pairs: any[] = [];
             
             // Check if input is an address or symbol
-            const isAddress = /^0x[a-fA-F0-9]{40}$/i.test(addressOrSymbol) || 
-                              (addressOrSymbol.length >= 32 && addressOrSymbol.length <= 44); // Solana addresses
+            const isEthAddress = /^0x[a-fA-F0-9]{40}$/i.test(addressOrSymbol);
+            const isSolAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addressOrSymbol);
+            const isAddress = isEthAddress || isSolAddress;
             
-            if (isAddress && chainArg) {
-                // Direct lookup by chain + address
-                const result = await dexScreenerService.getTokenPairs(chainArg, addressOrSymbol);
-                pairs = Array.isArray(result) ? result : (result?.pairs || []);
+            if (isAddress) {
+                // It's an address - determine chain from format
+                const chain = isSolAddress ? 'solana' : (chainArg || 'ethereum');
+                
+                if (chainArg) {
+                    // User specified chain
+                    const result = await dexScreenerService.getTokenPairs(chainArg, addressOrSymbol);
+                    pairs = Array.isArray(result) ? result : (result?.pairs || []);
+                } else {
+                    // Try to find on the specified chain, or try multiple chains
+                    const chains = isSolAddress ? ['solana'] : ['ethereum', 'base', 'arbitrum', 'bsc', 'polygon'];
+                    
+                    for (const c of chains) {
+                        try {
+                            const result = await dexScreenerService.getTokenPairs(c, addressOrSymbol);
+                            const found = Array.isArray(result) ? result : (result?.pairs || []);
+                            if (found.length > 0) {
+                                pairs = found;
+                                break;
+                            }
+                        } catch (e) {
+                            // Continue to next chain
+                        }
+                    }
+                }
             } else {
-                // Search by symbol or address
+                // Search by symbol - search first, then optionally filter by chain
                 const result = await dexScreenerService.searchPairs(addressOrSymbol);
                 pairs = result?.pairs || [];
+                
+                // If chain specified, filter results
+                if (chainArg) {
+                    pairs = pairs.filter((p: any) => p.chainId === chainArg);
+                }
             }
 
             if (!pairs || pairs.length === 0) {
-                await sendReply(ctx, '❌ Token not found. Try a different address or symbol.');
+                await sendReply(ctx, `❌ Token "${escapeMarkdown(addressOrSymbol)}" not found.\n\nMake sure to specify the chain:\n\`/token ${addressOrSymbol} ethereum\``, { parse_mode: 'Markdown' });
+                return;
+            }
+
+            // If multiple pairs from different chains, show selection
+            const chainIds = pairs.map((p: any) => p.chainId);
+            const uniqueChains = Array.from(new Set(chainIds));
+            if (uniqueChains.length > 1 && !chainArg) {
+                // Show chain selection buttons
+                const buttons = uniqueChains.slice(0, 6).map((chain: string) => 
+                    Markup.button.callback(`⛓️ ${chain.toUpperCase()}`, `token_chain_${chain}_${encodeURIComponent(addressOrSymbol)}`)
+                );
+                
+                // Arrange in 2 columns
+                const buttonRows = [];
+                for (let i = 0; i < buttons.length; i += 2) {
+                    buttonRows.push(buttons.slice(i, i + 2));
+                }
+
+                await sendReply(ctx, 
+                    `🔗 *Select Chain*\n\nFound "${escapeMarkdown(addressOrSymbol)}" on multiple chains:\n\nSelect the chain you want to view:`,
+                    { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttonRows) }
+                );
                 return;
             }
 
@@ -1296,13 +1345,78 @@ function registerBotCommands() {
             msg += `⛓️ *Chain:* ${pair.chainId}\n`;
             msg += `🏦 *DEX:* ${pair.dexId}\n`;
             msg += `📅 *Created:* ${pairCreated}\n\n`;
-            msg += `🔗 [DEXScreener](https://dexscreener.com/${pair.chainId}/${pair.pairAddress}) • `;
-            msg += `[Chart](https://dexscreener.com/${pair.chainId}/${pair.pairAddress})`;
+            msg += `🔗 [View on DEX Screener](https://dexscreener.com/${pair.chainId}/${pair.pairAddress})`;
 
             await sendReply(ctx, msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
         } catch (error) {
             console.error('[Telegram] Token lookup error:', error);
             await sendReply(ctx, '❌ Failed to fetch token data. Please try again.');
+        }
+    });
+
+    // Handle token chain selection
+    bot.action(/token_chain_(.+)_(.+)/, async (ctx: any) => {
+        const chain = ctx.match![1];
+        const searchTerm = decodeURIComponent(ctx.match![2]);
+        
+        await ctx.answerCbQuery();
+        
+        // Re-run the token command with the chain specified
+        // Set up a temporary context to re-use the logic
+        const linkedUser = linkedUsers.get(ctx.from.id);
+        
+        // Fetch token data directly
+        try {
+            const { dexScreenerService } = await import('./DEXScreenerService.js');
+            
+            let pairs: any[] = [];
+            
+            const isEthAddress = /^0x[a-fA-F0-9]{40}$/i.test(searchTerm);
+            const isSolAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(searchTerm);
+            
+            if (isEthAddress || isSolAddress) {
+                const result = await dexScreenerService.getTokenPairs(chain, searchTerm);
+                pairs = Array.isArray(result) ? result : (result?.pairs || []);
+            } else {
+                const result = await dexScreenerService.searchPairs(searchTerm);
+                pairs = (result?.pairs || []).filter((p: any) => p.chainId === chain);
+            }
+
+            if (!pairs || pairs.length === 0) {
+                await ctx.editMessageText(`❌ No results found on ${chain.toUpperCase()}`);
+                return;
+            }
+
+            const pair = pairs.sort((a: any, b: any) => 
+                (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0)
+            )[0];
+
+            const token = pair.baseToken;
+            const priceUsd = parseFloat(pair.priceUsd || '0');
+            const priceChange24h = pair.priceChange?.h24 || 0;
+            const volume24h = pair.volume?.h24 || 0;
+            const liquidity = pair.liquidity?.usd || 0;
+            const fdv = pair.fdv || 0;
+            const marketCap = pair.marketCap || fdv;
+
+            const changeEmoji = priceChange24h > 0 ? '📈' : priceChange24h < 0 ? '📉' : '➖';
+            const changeColor = priceChange24h > 0 ? '+' : '';
+
+            const tokenName = token.name || 'Unknown';
+            const tokenSymbol = token.symbol || '???';
+            const chainName = chain.toUpperCase();
+            
+            let msg = '🪙 *' + escapeMarkdown(tokenName) + '* (' + escapeMarkdown(tokenSymbol) + ') on ' + chainName + '\n\n';
+            msg += '💰 *Price:* $' + (priceUsd < 0.0001 ? priceUsd.toExponential(2) : priceUsd.toLocaleString(undefined, { maximumFractionDigits: 6 })) + '\n';
+            msg += changeEmoji + ' *24h:* ' + changeColor + priceChange24h.toFixed(2) + '%\n\n';
+            msg += '📊 Vol: $' + formatNumber(volume24h) + ' | 💧 Liq: $' + formatNumber(liquidity) + '\n';
+            msg += '📈 MC: $' + formatNumber(marketCap) + ' | FDV: $' + formatNumber(fdv) + '\n\n';
+            msg += '[DEXScreener](https://dexscreener.com/' + pair.chainId + '/' + pair.pairAddress + ')';
+
+            await ctx.editMessageText(msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
+        } catch (error) {
+            console.error('[Telegram] Token chain selection error:', error);
+            await ctx.editMessageText('❌ Failed to fetch token data.');
         }
     });
 
