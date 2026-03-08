@@ -44,6 +44,13 @@
   gap: var(--space-2);
 }
 
+.intel-sidebar__logo-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .intel-sidebar__logo-icon {
   font-size: var(--text-xl);
   color: var(--intel-cyan);
@@ -79,10 +86,14 @@
 .intel-layout--collapsed .intel-sidebar__header {
   padding: var(--space-3);
   justify-content: center;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
+/* Keep toggle button visible when collapsed - users need to expand */
 .intel-layout--collapsed .intel-sidebar__toggle {
-  display: none;
+  position: relative;
+  margin-top: var(--space-1);
 }
 
 /* Sidebar navigation */
@@ -241,6 +252,12 @@
   font-weight: var(--weight-bold);
   color: var(--intel-text-primary);
   letter-spacing: var(--tracking-wide);
+}
+
+.intel-header__logo-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
 }
 
 .intel-header__search {

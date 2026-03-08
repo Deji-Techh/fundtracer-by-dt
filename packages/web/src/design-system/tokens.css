@@ -31,15 +31,15 @@
   --intel-text-disabled: #404050;
   
   /* ─────────────────────────────────────────────────────────────
-     ACCENT COLORS - Cyan Primary
+     ACCENT COLORS - Green Primary (FundTracer Brand)
      ───────────────────────────────────────────────────────────── */
   
-  /* Primary Cyan */
-  --intel-cyan: #00d4ff;
-  --intel-cyan-dim: #00a8cc;
-  --intel-cyan-bright: #40e0ff;
-  --intel-cyan-glow: rgba(0, 212, 255, 0.15);
-  --intel-cyan-bg: rgba(0, 212, 255, 0.08);
+  /* Primary Green (Brand Color) */
+  --intel-cyan: #00ff88;
+  --intel-cyan-dim: #00cc6a;
+  --intel-cyan-bright: #33ffaa;
+  --intel-cyan-glow: rgba(0, 255, 136, 0.15);
+  --intel-cyan-bg: rgba(0, 255, 136, 0.08);
   
   /* Status Colors */
   --intel-green: #00ff88;

@@ -85,6 +85,17 @@ const SettingsIcon = () => (
   </svg>
 );
 
+const SolanaIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M3 14.5L6 11.5H17L14 14.5H3Z" fill="currentColor" fillOpacity="0.2"/>
+    <path d="M3 5.5L6 8.5H17L14 5.5H3Z" fill="currentColor" fillOpacity="0.2"/>
+    <path d="M3 10L6 13H17L14 10H3Z" fill="currentColor" fillOpacity="0.2"/>
+    <path d="M3 14.5L6 11.5H17L14 14.5H3Z"/>
+    <path d="M3 5.5L6 8.5H17L14 5.5H3Z"/>
+    <path d="M3 10L6 13H17L14 10H3Z"/>
+  </svg>
+);
+
 export default function InvestigatePage() {
   const location = useLocation();
   const pathname = location.pathname;
@@ -270,6 +281,7 @@ function InvestigateMainApp() {
     { id: 'investigate', label: 'Investigate', icon: <InvestigateIcon /> },
     { id: 'portfolio', label: 'Portfolio', icon: <PortfolioIcon /> },
     { id: 'polymarket', label: 'Polymarket', icon: <PolymarketIcon /> },
+    { id: 'solana', label: 'Solana', icon: <SolanaIcon />, onClick: () => navigate('/app-solana') },
     { id: 'history', label: 'History', icon: <HistoryIcon /> },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ];

@@ -5,6 +5,8 @@
   display: flex;
   flex-direction: column;
   background: var(--intel-bg-deep);
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -49,6 +51,12 @@
   gap: var(--space-2);
   text-decoration: none;
   flex-shrink: 0;
+}
+
+.landing-header__logo-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .landing-header__logo-icon {
@@ -155,6 +163,8 @@
 .landing-content {
   flex: 1;
   padding-top: 60px; /* Header height */
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -164,17 +174,21 @@
 .landing-footer {
   background: var(--intel-bg-base);
   border-top: 1px solid var(--intel-border-subtle);
-  padding: var(--space-8) var(--space-6);
+  padding: var(--space-12) var(--space-6) var(--space-6);
 }
 
 .landing-footer__container {
   max-width: 1400px;
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr repeat(4, 1fr);
+  gap: var(--space-8);
+}
+
+.landing-footer__brand-section {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-6);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .landing-footer__brand {
@@ -187,26 +201,63 @@
   letter-spacing: var(--tracking-wide);
 }
 
-.landing-footer__links {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
+.landing-footer__logo-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
-.landing-footer__links a {
+.landing-footer__tagline {
+  font-size: var(--text-sm);
+  color: var(--intel-text-muted);
+  line-height: 1.6;
+  max-width: 280px;
+  margin: 0;
+}
+
+.landing-footer__column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.landing-footer__column-title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--intel-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.landing-footer__column-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.landing-footer__column-links a {
   font-size: var(--text-sm);
   color: var(--intel-text-muted);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
-.landing-footer__links a:hover {
+.landing-footer__column-links a:hover {
   color: var(--intel-cyan);
+}
+
+.landing-footer__bottom {
+  max-width: 1400px;
+  margin: var(--space-8) auto 0;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--intel-border-subtle);
 }
 
 .landing-footer__copy {
   font-size: var(--text-xs);
   color: var(--intel-text-muted);
+  text-align: center;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -216,10 +267,19 @@
 @media (max-width: 767px) {
   .landing-header__container {
     padding: var(--space-2-5) var(--space-4);
+    max-width: 100%;
   }
   
   .landing-header__menu-btn {
     display: flex;
+  }
+  
+  .landing-header__nav {
+    display: none;
+  }
+  
+  .landing-header__search {
+    display: none;
   }
   
   .landing-content {
@@ -227,23 +287,54 @@
   }
   
   .landing-footer {
-    padding: var(--space-6) var(--space-4);
+    padding: var(--space-8) var(--space-4) var(--space-4);
   }
   
   .landing-footer__container {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-4);
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-6);
   }
   
-  .landing-footer__links {
-    flex-wrap: wrap;
-    gap: var(--space-3);
+  .landing-footer__brand-section {
+    grid-column: 1 / -1;
+  }
+  
+  .landing-footer__tagline {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .landing-header__container {
+    padding: var(--space-2) var(--space-3);
+  }
+  
+  .landing-header__logo-text {
+    font-size: var(--text-xs);
+  }
+  
+  .landing-footer__container {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+  
+  .landing-footer__column {
+    text-align: left;
   }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
   .landing-header__search {
     max-width: 240px;
+  }
+  
+  .landing-footer__container {
+    grid-template-columns: 1.5fr repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+  
+  .landing-footer__column:nth-child(4),
+  .landing-footer__column:nth-child(5) {
+    grid-column: span 1;
   }
 }

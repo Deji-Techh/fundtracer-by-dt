@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CommandBar, SearchResult } from '../primitives';
+import logoImg from '../../assets/logo.png';
 import './LandingLayout.css';
 
 interface LandingLayoutProps {
@@ -54,7 +55,7 @@ export function LandingLayout({
           <a href="/" className="landing-header__logo">
             {logo || (
               <>
-                <span className="landing-header__logo-icon">◈</span>
+                <img src={logoImg} alt="FundTracer" className="landing-header__logo-img" />
                 <span className="landing-header__logo-text">FUNDTRACER</span>
               </>
             )}
@@ -133,16 +134,61 @@ export function LandingLayout({
       {/* Footer */}
       <footer className="landing-footer">
         <div className="landing-footer__container">
-          <div className="landing-footer__brand">
-            <span className="landing-header__logo-icon">◈</span>
-            <span>FUNDTRACER</span>
+          {/* Brand */}
+          <div className="landing-footer__brand-section">
+            <div className="landing-footer__brand">
+              <img src={logoImg} alt="FundTracer" className="landing-footer__logo-img" />
+              <span>FUNDTRACER</span>
+            </div>
+            <p className="landing-footer__tagline">
+              Blockchain intelligence platform for investigating on-chain activity.
+            </p>
           </div>
-          <div className="landing-footer__links">
-            <a href="/terms">Terms</a>
-            <a href="/privacy">Privacy</a>
-            <a href="https://twitter.com/fundtracer" target="_blank" rel="noopener">Twitter</a>
-            <a href="https://t.me/fundtracer" target="_blank" rel="noopener">Telegram</a>
+
+          {/* Product Links */}
+          <div className="landing-footer__column">
+            <h4 className="landing-footer__column-title">Product</h4>
+            <div className="landing-footer__column-links">
+              <a href="/features">Features</a>
+              <a href="/pricing">Pricing</a>
+              <a href="/how-it-works">How It Works</a>
+              <a href="/api">API</a>
+            </div>
           </div>
+
+          {/* Resources Links */}
+          <div className="landing-footer__column">
+            <h4 className="landing-footer__column-title">Resources</h4>
+            <div className="landing-footer__column-links">
+              <a href="/about">About</a>
+              <a href="/faq">FAQ</a>
+              <a href="/ext-install">Browser Extension</a>
+              <a href="/telegram">Telegram Bot</a>
+            </div>
+          </div>
+
+          {/* Legal Links */}
+          <div className="landing-footer__column">
+            <h4 className="landing-footer__column-title">Legal</h4>
+            <div className="landing-footer__column-links">
+              <a href="/terms">Terms of Service</a>
+              <a href="/privacy">Privacy Policy</a>
+            </div>
+          </div>
+
+          {/* Social Links */}
+          <div className="landing-footer__column">
+            <h4 className="landing-footer__column-title">Connect</h4>
+            <div className="landing-footer__column-links">
+              <a href="https://twitter.com/fundtracer" target="_blank" rel="noopener">Twitter</a>
+              <a href="https://t.me/fundtracer" target="_blank" rel="noopener">Telegram</a>
+              <a href="https://github.com/fundtracer" target="_blank" rel="noopener">GitHub</a>
+            </div>
+          </div>
+        </div>
+        
+        {/* Copyright */}
+        <div className="landing-footer__bottom">
           <div className="landing-footer__copy">
             © {new Date().getFullYear()} FundTracer. All rights reserved.
           </div>

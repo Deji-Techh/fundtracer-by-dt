@@ -1,11 +1,25 @@
+/**
+ * TelegramPage - Telegram bot integration page
+ * Uses LandingLayout and design system for Arkham-style presentation
+ */
+
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { LandingLayout } from '../design-system/layouts/LandingLayout';
+import { Badge, Panel } from '../design-system/primitives';
 import './TelegramPage.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+
+const navItems = [
+  { label: 'About', href: '/about' },
+  { label: 'Features', href: '/features' },
+  { label: 'How It Works', href: '/how-it-works' },
+  { label: 'Pricing', href: '/pricing' },
+  { label: 'FAQ', href: '/faq' },
+];
 
 export function TelegramPage() {
   const navigate = useNavigate();
@@ -18,7 +32,7 @@ export function TelegramPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Get wallet address from multiple sources (AppKit is most reliable for connection status)
+  // Get wallet address from multiple sources
   const walletAddress = appKitAddress || wallet?.address || user?.walletAddress;
   const isWalletConnected = appKitConnected || !!wallet?.isConnected || !!user?.walletAddress;
 
@@ -53,17 +67,12 @@ export function TelegramPage() {
     setIsGenerating(true);
     setError(null);
     try {
-      // Use wallet address as userId if user not fully authenticated yet
       const userId = user?.uid || walletAddress;
       const tier = profile?.tier || 'free';
       const res = await fetch(`${API_BASE}/api/telegram/link-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId, 
-          tier,
-          walletAddress 
-        })
+        body: JSON.stringify({ userId, tier, walletAddress })
       });
       const data = await res.json();
       
@@ -85,233 +94,209 @@ export function TelegramPage() {
 
   if (loading) {
     return (
-      <div className="telegram-page">
-        <div className="telegram-page-container">
-          <div className="loading">Loading...</div>
+      <LandingLayout navItems={navItems} showSearch={false}>
+        <div className="telegram-page">
+          <div className="telegram-loading">
+            <div className="telegram-loading__spinner"></div>
+            <span>Loading...</span>
+          </div>
         </div>
-      </div>
+      </LandingLayout>
     );
   }
 
   return (
-    <div className="telegram-page">
-      <button className="back-button" onClick={() => navigate(-1)}>
-        ← Back
-      </button>
-      
-      <div className="telegram-page-container">
-        <motion.div 
-          className="page-header"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="header-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-            </svg>
-          </div>
-          <h1>Connect Telegram Bot</h1>
-          <p>Get real-time wallet alerts directly on Telegram. Monitor whales, track wallets, and receive AI-powered insights on every transaction.</p>
-        </motion.div>
-
-        {!connected ? (
-          <motion.div 
-            className="setup-section"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            {/* Step 1: Connect Wallet */}
-            <div className={`step-card ${isWalletConnected ? 'completed' : ''}`}>
-              <div className="step-number">{isWalletConnected ? '✓' : '1'}</div>
-              <div className="step-content">
-                <h3>Connect Your Wallet</h3>
-                {isWalletConnected && walletAddress ? (
-                  <div className="wallet-connected">
-                    <span className="wallet-address">
-                      {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
-                    </span>
-                    <span className="connected-badge">Connected</span>
-                  </div>
-                ) : (
-                  <>
-                    <p>Connect your wallet to link your account. This wallet will be synced across Telegram and the web app.</p>
-                    <button onClick={handleConnectWallet} className="open-bot-btn">
-                      Connect Wallet
-                    </button>
-                  </>
-                )}
-              </div>
+    <LandingLayout navItems={navItems} showSearch={false}>
+      <div className="telegram-page">
+        {/* Hero Section */}
+        <section className="telegram-hero">
+          <div className="telegram-hero__grid"></div>
+          <div className="telegram-hero__content">
+            <div className="telegram-hero__icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+              </svg>
             </div>
+            <Badge variant="info" size="sm">Telegram Integration</Badge>
+            <h1 className="telegram-hero__title">
+              Connect <span className="telegram-hero__title-accent">Telegram Bot</span>
+            </h1>
+            <p className="telegram-hero__subtitle">
+              Get real-time wallet alerts directly on Telegram. Monitor whales, track wallets, 
+              and receive AI-powered insights on every transaction.
+            </p>
+          </div>
+        </section>
 
-            {/* Step 2: Open Telegram */}
-            <div className="step-card">
-              <div className="step-number">2</div>
-              <div className="step-content">
-                <h3>Open Telegram Bot</h3>
-                <p>Search for <strong>@fundtracer_bot</strong> or click the button below.</p>
-                <a href="https://t.me/fundtracer_bot" target="_blank" rel="noopener noreferrer" className="open-bot-btn">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                  </svg>
-                  Open @fundtracer_bot
+        {/* Setup / Connected Section */}
+        <section className="telegram-section">
+          <div className="telegram-section__container">
+            {!connected ? (
+              <div className="telegram-setup">
+                {/* Step 1: Connect Wallet */}
+                <Panel variant="bordered" className={`telegram-step ${isWalletConnected ? 'telegram-step--completed' : ''}`}>
+                  <div className="telegram-step__number">{isWalletConnected ? '✓' : '1'}</div>
+                  <div className="telegram-step__content">
+                    <h3>Connect Your Wallet</h3>
+                    {isWalletConnected && walletAddress ? (
+                      <div className="telegram-wallet-connected">
+                        <span className="telegram-wallet-address">
+                          {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
+                        </span>
+                        <Badge variant="success" size="xs">Connected</Badge>
+                      </div>
+                    ) : (
+                      <>
+                        <p>Connect your wallet to link your account. This wallet will be synced across Telegram and the web app.</p>
+                        <button onClick={handleConnectWallet} className="telegram-btn telegram-btn--primary">
+                          Connect Wallet
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </Panel>
+
+                {/* Step 2: Open Telegram */}
+                <Panel variant="bordered" className="telegram-step">
+                  <div className="telegram-step__number">2</div>
+                  <div className="telegram-step__content">
+                    <h3>Open Telegram Bot</h3>
+                    <p>Search for <strong>@fundtracer_bot</strong> or click the button below.</p>
+                    <a href="https://t.me/fundtracer_bot" target="_blank" rel="noopener noreferrer" className="telegram-btn telegram-btn--primary">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                      </svg>
+                      Open @fundtracer_bot
+                    </a>
+                  </div>
+                </Panel>
+
+                {/* Step 3: Generate Code */}
+                <Panel variant="bordered" className="telegram-step">
+                  <div className="telegram-step__number">3</div>
+                  <div className="telegram-step__content">
+                    <h3>Generate Link Code</h3>
+                    {!isWalletConnected ? (
+                      <p className="telegram-disabled">Connect your wallet first to generate a link code.</p>
+                    ) : (
+                      <>
+                        <p>Generate a code and send it to the bot using /link command.</p>
+                        <button 
+                          className="telegram-btn telegram-btn--secondary" 
+                          onClick={generateCode}
+                          disabled={isGenerating || !isWalletConnected}
+                        >
+                          {isGenerating ? 'Generating...' : 'Generate Link Code'}
+                        </button>
+                        {error && <div className="telegram-error">{error}</div>}
+                        {linkCode && (
+                          <div className="telegram-code">
+                            <span className="telegram-code__value">{linkCode}</span>
+                            <span className="telegram-code__note">Send /link in the bot, then paste this code</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </Panel>
+
+                {/* Step 4: Link Account */}
+                <Panel variant="bordered" className="telegram-step">
+                  <div className="telegram-step__number">4</div>
+                  <div className="telegram-step__content">
+                    <h3>Link Your Account</h3>
+                    <p>In the Telegram bot, type <code>/link</code> and then paste your code when prompted.</p>
+                  </div>
+                </Panel>
+              </div>
+            ) : (
+              <div className="telegram-connected">
+                <div className="telegram-connected__icon">✓</div>
+                <h2>Telegram Connected!</h2>
+                <p>Your Telegram is now linked to your FundTracer account.</p>
+
+                <div className="telegram-commands">
+                  <h3>Bot Commands</h3>
+                  <div className="telegram-commands__grid">
+                    {[
+                      { cmd: '/add', desc: 'Add wallet to watchlist' },
+                      { cmd: '/list', desc: 'View watched wallets' },
+                      { cmd: '/remove', desc: 'Remove a wallet' },
+                      { cmd: '/frequency', desc: 'Set alert frequency' },
+                      { cmd: '/status', desc: 'View alert status' },
+                      { cmd: '/unlink', desc: 'Disconnect Telegram' },
+                    ].map((item, i) => (
+                      <div key={i} className="telegram-command">
+                        <code>{item.cmd}</code>
+                        <span>{item.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <a href="https://t.me/fundtracer_bot" target="_blank" rel="noopener noreferrer" className="telegram-btn telegram-btn--primary telegram-btn--lg">
+                  Open Telegram Bot
                 </a>
               </div>
-            </div>
+            )}
+          </div>
+        </section>
 
-            {/* Step 3: Generate Code */}
-            <div className="step-card">
-              <div className="step-number">3</div>
-              <div className="step-content">
-                <h3>Generate Link Code</h3>
-                {!isWalletConnected ? (
-                  <p className="disabled-text">Connect your wallet first to generate a link code.</p>
-                ) : (
-                  <>
-                    <p>Generate a code and send it to the bot using /link command.</p>
-                    <button 
-                      className="generate-code-btn" 
-                      onClick={generateCode}
-                      disabled={isGenerating || !isWalletConnected}
-                    >
-                      {isGenerating ? 'Generating...' : 'Generate Link Code'}
-                    </button>
-                    {error && <div className="error-message">{error}</div>}
-                    {linkCode && (
-                      <div className="code-display">
-                        <span className="code">{linkCode}</span>
-                        <span className="code-note">Send /link in the bot, then paste this code</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+        {/* Features Section */}
+        <section className="telegram-section telegram-section--alt">
+          <div className="telegram-section__container">
+            <div className="telegram-features__header">
+              <Badge variant="success" size="sm">Features</Badge>
+              <h2>What's Included</h2>
             </div>
-
-            {/* Step 4: Enter Code in Bot */}
-            <div className="step-card">
-              <div className="step-number">4</div>
-              <div className="step-content">
-                <h3>Link Your Account</h3>
-                <p>In the Telegram bot, type <code>/link</code> and then paste your code when prompted.</p>
-              </div>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div 
-            className="connected-section"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="success-icon">✓</div>
-            <h2>Telegram Connected!</h2>
-            <p>Your Telegram is now linked to your FundTracer account.</p>
-
-            <div className="bot-commands">
-              <h3>Bot Commands</h3>
-              <div className="commands-grid">
-                <div className="command-item">
-                  <code>/add</code>
-                  <span>Add wallet to watchlist</span>
-                </div>
-                <div className="command-item">
-                  <code>/list</code>
-                  <span>View watched wallets</span>
-                </div>
-                <div className="command-item">
-                  <code>/remove</code>
-                  <span>Remove a wallet</span>
-                </div>
-                <div className="command-item">
-                  <code>/frequency</code>
-                  <span>Set alert frequency</span>
-                </div>
-                <div className="command-item">
-                  <code>/status</code>
-                  <span>View alert status</span>
-                </div>
-                <div className="command-item">
-                  <code>/unlink</code>
-                  <span>Disconnect Telegram</span>
-                </div>
-              </div>
-            </div>
-
-            <a href="https://t.me/fundtracer_bot" target="_blank" rel="noopener noreferrer" className="open-bot-btn-large">
-              Open Telegram Bot
-            </a>
-          </motion.div>
-        )}
-
-        <motion.div 
-          className="features-section"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <h2>What's Included</h2>
-          <div className="features-grid">
-            <div className="feature-item">
-              <span className="feature-emoji">🔔</span>
-              <div>
-                <h4>Real-Time Alerts</h4>
-                <p>Instant notifications when watched wallets move funds</p>
-              </div>
-            </div>
-            <div className="feature-item">
-              <span className="feature-emoji">🤖</span>
-              <div>
-                <h4>AI Analysis</h4>
-                <p>Every alert includes smart insights on what's happening</p>
-              </div>
-            </div>
-            <div className="feature-item">
-              <span className="feature-emoji">📊</span>
-              <div>
-                <h4>Flexible Frequency</h4>
-                <p>Real-time, 20min, 30min, or hourly digests</p>
-              </div>
-            </div>
-            <div className="feature-item">
-              <span className="feature-emoji">🔒</span>
-              <div>
-                <h4>Secure Linking</h4>
-                <p>Account-linked for personalized alerts</p>
-              </div>
+            <div className="telegram-features__grid">
+              {[
+                { icon: '🔔', title: 'Real-Time Alerts', desc: 'Instant notifications when watched wallets move funds' },
+                { icon: '🤖', title: 'AI Analysis', desc: 'Every alert includes smart insights on what\'s happening' },
+                { icon: '📊', title: 'Flexible Frequency', desc: 'Real-time, 20min, 30min, or hourly digests' },
+                { icon: '🔒', title: 'Secure Linking', desc: 'Account-linked for personalized alerts' },
+              ].map((feature, i) => (
+                <Panel key={i} variant="bordered" className="telegram-feature">
+                  <span className="telegram-feature__icon">{feature.icon}</span>
+                  <div>
+                    <h4>{feature.title}</h4>
+                    <p>{feature.desc}</p>
+                  </div>
+                </Panel>
+              ))}
             </div>
           </div>
-        </motion.div>
+        </section>
 
-        <motion.div 
-          className="plans-section"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <h2>Alert Limits by Plan</h2>
-          <div className="plans-grid">
-            <div className="plan-card">
-              <div className="plan-name">Free</div>
-              <div className="plan-wallets">10</div>
-              <div className="plan-label">wallets</div>
+        {/* Plans Section */}
+        <section className="telegram-section">
+          <div className="telegram-section__container">
+            <div className="telegram-plans__header">
+              <Badge variant="warning" size="sm">Plans</Badge>
+              <h2>Alert Limits by Plan</h2>
             </div>
-            <div className="plan-card featured">
-              <div className="plan-badge">Popular</div>
-              <div className="plan-name">Pro</div>
-              <div className="plan-wallets">100</div>
-              <div className="plan-label">wallets</div>
-            </div>
-            <div className="plan-card">
-              <div className="plan-name">Max</div>
-              <div className="plan-wallets">∞</div>
-              <div className="plan-label">wallets</div>
+            <div className="telegram-plans__grid">
+              <Panel variant="bordered" className="telegram-plan">
+                <div className="telegram-plan__name">Free</div>
+                <div className="telegram-plan__count">10</div>
+                <div className="telegram-plan__label">wallets</div>
+              </Panel>
+              <Panel variant="bordered" className="telegram-plan telegram-plan--featured">
+                <Badge variant="info" size="xs" className="telegram-plan__badge">Popular</Badge>
+                <div className="telegram-plan__name">Pro</div>
+                <div className="telegram-plan__count">100</div>
+                <div className="telegram-plan__label">wallets</div>
+              </Panel>
+              <Panel variant="bordered" className="telegram-plan">
+                <div className="telegram-plan__name">Max</div>
+                <div className="telegram-plan__count">∞</div>
+                <div className="telegram-plan__label">wallets</div>
+              </Panel>
             </div>
           </div>
-        </motion.div>
+        </section>
       </div>
-    </div>
+    </LandingLayout>
   );
 }
 

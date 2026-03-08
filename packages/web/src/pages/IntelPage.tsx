@@ -223,9 +223,11 @@ export function IntelPage() {
 
   const navItems = [
     { label: 'Intel', href: '/', active: true },
-    { label: 'App', href: '/app-evm' },
-    { label: 'API', href: '/api' },
-    { label: 'Pricing', href: '/pricing' }
+    { label: 'Features', href: '/features' },
+    { label: 'Pricing', href: '/pricing' },
+    { label: 'How It Works', href: '/how-it-works' },
+    { label: 'FAQ', href: '/faq' },
+    { label: 'About', href: '/about' },
   ];
 
   const handleLaunchApp = () => {

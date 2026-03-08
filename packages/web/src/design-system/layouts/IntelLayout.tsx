@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CommandBar, SearchResult } from '../primitives';
+import logoImg from '../../assets/logo.png';
 import './IntelLayout.css';
 
 interface NavItem {
@@ -71,7 +72,7 @@ export function IntelLayout({
         <div className="intel-sidebar__header">
           {logo || (
             <div className="intel-sidebar__logo">
-              <span className="intel-sidebar__logo-icon">◈</span>
+              <img src={logoImg} alt="FundTracer" className="intel-sidebar__logo-img" />
               {!sidebarCollapsed && <span className="intel-sidebar__logo-text">FUNDTRACER</span>}
             </div>
           )}
@@ -139,7 +140,7 @@ export function IntelLayout({
 
           {/* Mobile logo */}
           <div className="intel-header__logo mobile-only">
-            <span className="intel-sidebar__logo-icon">◈</span>
+            <img src={logoImg} alt="FundTracer" className="intel-header__logo-img" />
             <span>FUNDTRACER</span>
           </div>
 
@@ -174,7 +175,7 @@ export function IntelLayout({
           <div className="intel-mobile-nav">
             <div className="intel-mobile-nav__header">
               <div className="intel-sidebar__logo">
-                <span className="intel-sidebar__logo-icon">◈</span>
+                <img src={logoImg} alt="FundTracer" className="intel-sidebar__logo-img" />
                 <span className="intel-sidebar__logo-text">FUNDTRACER</span>
               </div>
               <button 
