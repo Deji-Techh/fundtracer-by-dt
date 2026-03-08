@@ -2146,10 +2146,10 @@ async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | '
 
 // Streaming configuration
 const STREAM_CONFIG = {
-    wordsPerChunk: 4,      // Words to add per update
-    delayMs: 40,           // Delay between updates (ms)
-    maxUpdates: 80,        // Max number of streaming updates
-    minTextLength: 50      // Minimum text length to stream (shorter = instant)
+    charsPerChunk: 2,       // Characters to add per update (more = faster but less smooth)
+    delayMs: 25,            // Delay between updates (ms) - lower = smoother
+    maxUpdates: 500,        // Max number of streaming updates
+    minTextLength: 30       // Minimum text length to stream (shorter = instant)
 };
 
 // Helper to delay execution
@@ -2184,19 +2184,16 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
     }
     
     try {
-        // Split text into words (keeping whitespace)
-        const words = text.split(/(\s+)/);
-        
-        // Send initial message with first few words
+        // Stream character by character for smooth effect
         let currentText = '';
-        let wordIndex = 0;
+        let charIndex = 0;
         
-        // Start with first chunk
-        for (let i = 0; i < STREAM_CONFIG.wordsPerChunk * 2 && wordIndex < words.length; i++) {
-            currentText += words[wordIndex];
-            wordIndex++;
+        // Send initial message with first few characters
+        for (let i = 0; i < 3 && charIndex < text.length; i++) {
+            currentText += text[charIndex];
+            charIndex++;
         }
-        currentText += ' ▌'; // Typing cursor
+        currentText += '▌'; // Typing cursor
         
         // Send initial message (no markdown to avoid parsing issues during streaming)
         const sentMessage = await ctx.reply(currentText);
@@ -2204,21 +2201,21 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
         
         let updateCount = 0;
         
-        // Stream remaining words by editing the message
-        while (wordIndex < words.length && updateCount < STREAM_CONFIG.maxUpdates) {
+        // Stream remaining characters
+        while (charIndex < text.length && updateCount < STREAM_CONFIG.maxUpdates) {
             await delay(STREAM_CONFIG.delayMs);
             
-            // Add next chunk of words
             // Remove cursor first
-            currentText = currentText.replace(' ▌', '');
+            currentText = currentText.replace('▌', '');
             
-            for (let i = 0; i < STREAM_CONFIG.wordsPerChunk * 2 && wordIndex < words.length; i++) {
-                currentText += words[wordIndex];
-                wordIndex++;
+            // Add next chunk of characters
+            for (let i = 0; i < STREAM_CONFIG.charsPerChunk && charIndex < text.length; i++) {
+                currentText += text[charIndex];
+                charIndex++;
             }
             
             // Add cursor if not done
-            const displayText = wordIndex < words.length ? currentText + ' ▌' : currentText;
+            const displayText = charIndex < text.length ? currentText + '▌' : currentText;
             
             try {
                 await ctx.telegram.editMessageText(
