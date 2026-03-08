@@ -209,23 +209,6 @@ export function IntelLayout({
           </div>
         </>
       )}
-
-      {/* Mobile bottom navigation */}
-      <nav className="intel-bottom-nav mobile-only">
-        {navItems.slice(0, 5).map((item) => (
-          <button
-            key={item.id}
-            className={`intel-bottom-nav__item ${activeNav === item.id ? 'intel-bottom-nav__item--active' : ''}`}
-            onClick={() => {
-              onNavChange?.(item.id);
-              item.onClick?.();
-            }}
-          >
-            <span className="intel-bottom-nav__icon">{item.icon}</span>
-            <span className="intel-bottom-nav__label">{item.label}</span>
-          </button>
-        ))}
-      </nav>
     </div>
   );
 }

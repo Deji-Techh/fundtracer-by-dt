@@ -470,11 +470,6 @@
     max-width: 100% !important;
     margin-left: 0 !important;
   }
-  
-  /* Hide bottom nav since hamburger menu is available */
-  .intel-bottom-nav {
-    display: none !important;
-  }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
