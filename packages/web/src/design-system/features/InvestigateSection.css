@@ -101,9 +101,11 @@
 }
 
 .investigate-chain__btn--active {
-  background: var(--accent-cyan-dim);
+  background: var(--accent-cyan);
   border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
+  color: var(--bg-base);
+  font-weight: 600;
+  box-shadow: 0 0 12px var(--accent-cyan-dim);
 }
 
 .investigate-chain__btn--locked {

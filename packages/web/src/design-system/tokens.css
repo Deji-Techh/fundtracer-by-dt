@@ -217,9 +217,37 @@
   --z-max: 9999;
   
   /* ─────────────────────────────────────────────────────────────
-     LAYOUT
+     LEGACY ALIASES - For compatibility with older CSS
      ───────────────────────────────────────────────────────────── */
   
+  /* Background aliases */
+  --bg-deep: var(--intel-bg-deep);
+  --bg-base: var(--intel-bg-base);
+  --bg-elevated: var(--intel-bg-elevated);
+  --bg-surface: var(--intel-bg-surface);
+  --bg-hover: var(--intel-bg-hover);
+  --bg-active: var(--intel-bg-active);
+  
+  /* Border aliases */
+  --border-subtle: var(--intel-border-subtle);
+  --border-default: var(--intel-border-default);
+  --border-strong: var(--intel-border-strong);
+  --border-focus: var(--intel-border-focus);
+  
+  /* Text aliases */
+  --text-primary: var(--intel-text-primary);
+  --text-secondary: var(--intel-text-secondary);
+  --text-muted: var(--intel-text-muted);
+  --text-disabled: var(--intel-text-disabled);
+  
+  /* Accent aliases */
+  --accent-cyan: var(--intel-cyan);
+  --accent-cyan-dim: var(--intel-cyan-dim);
+  --accent-cyan-bright: var(--intel-cyan-bright);
+  --accent-red: var(--intel-red);
+  --accent-green: var(--intel-green);
+  
+  /* Layout */
   --sidebar-width: 220px;
   --sidebar-collapsed: 56px;
   --header-height: 48px;
@@ -335,6 +363,27 @@
   --glow-cyan: 0 0 20px rgba(0, 179, 104, 0.25);
   --glow-green: 0 0 20px rgba(0, 179, 104, 0.25);
   --glow-red: 0 0 20px rgba(220, 38, 38, 0.25);
+  
+  /* Legacy aliases - Light mode */
+  --bg-deep: var(--intel-bg-deep);
+  --bg-base: var(--intel-bg-base);
+  --bg-elevated: var(--intel-bg-elevated);
+  --bg-surface: var(--intel-bg-surface);
+  --bg-hover: var(--intel-bg-hover);
+  --bg-active: var(--intel-bg-active);
+  --border-subtle: var(--intel-border-subtle);
+  --border-default: var(--intel-border-default);
+  --border-strong: var(--intel-border-strong);
+  --border-focus: var(--intel-border-focus);
+  --text-primary: var(--intel-text-primary);
+  --text-secondary: var(--intel-text-secondary);
+  --text-muted: var(--intel-text-muted);
+  --text-disabled: var(--intel-text-disabled);
+  --accent-cyan: var(--intel-cyan);
+  --accent-cyan-dim: var(--intel-cyan-dim);
+  --accent-cyan-bright: var(--intel-cyan-bright);
+  --accent-red: var(--intel-red);
+  --accent-green: var(--intel-green);
 }
 
 /* ─────────────────────────────────────────────────────────────
