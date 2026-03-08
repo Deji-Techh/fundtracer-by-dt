@@ -439,12 +439,19 @@
 
 @media (max-width: 767px) {
   .intel-sidebar {
-    display: none;
+    display: none !important;
   }
   
   .intel-main {
-    margin-left: 0;
-    width: 100%;
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .intel-header {
+    margin-left: 0 !important;
+    padding-left: var(--space-3) !important;
+    width: 100% !important;
   }
   
   .intel-header__menu-btn,
@@ -456,22 +463,17 @@
     display: none;
   }
   
-  .intel-header {
-    justify-content: space-between;
-  }
-  
   .intel-content {
-    padding: var(--space-3);
-    padding-left: var(--space-3);
-    padding-right: var(--space-3);
-    padding-bottom: var(--space-4);
-    width: 100%;
-    max-width: 100%;
+    padding: var(--space-3) !important;
+    padding-right: var(--space-3) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
   }
   
   /* Hide bottom nav since hamburger menu is available */
   .intel-bottom-nav {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -482,5 +484,32 @@
   
   .intel-content {
     padding: var(--space-4);
+  }
+  
+  /* Hide sidebar on tablet too, show hamburger */
+  .intel-sidebar {
+    display: none !important;
+  }
+  
+  .intel-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  .intel-header {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  .intel-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: var(--space-4) !important;
+  }
+  
+  .intel-header__menu-btn,
+  .intel-header__logo {
+    display: flex;
   }
 }
