@@ -2167,10 +2167,10 @@ async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | '
     }
 }
 
-// Streaming configuration - ENABLED with optimized settings
+// Streaming configuration - ENABLED with optimized settings (3x faster)
 const STREAM_CONFIG = {
-    charsPerChunk: 2,       // Characters per update (smaller = smoother)
-    delayMs: 8,             // Delay between updates (faster)
+    charsPerChunk: 6,       // Characters per update (3x more)
+    delayMs: 3,             // Delay between updates (3x faster)
     maxUpdates: 800,        // Max edits before stopping
     minTextLength: 50       // Minimum text length to enable streaming
 };
