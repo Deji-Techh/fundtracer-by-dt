@@ -1,0 +1,211 @@
+/* Badge - Arkham-style entity labels */
+
+.intel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+/* Sizes */
+.intel-badge--xs {
+  padding: 2px var(--space-1);
+  font-size: 9px;
+}
+
+.intel-badge--sm {
+  padding: var(--space-0-5) var(--space-1-5);
+  font-size: var(--text-2xs);
+}
+
+.intel-badge--md {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.intel-badge--lg {
+  padding: var(--space-1-5) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* Dot indicator */
+.intel-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.intel-badge__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.intel-badge__icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Clickable */
+.intel-badge--clickable {
+  cursor: pointer;
+}
+
+.intel-badge--clickable:hover {
+  filter: brightness(1.2);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   VARIANTS
+   ───────────────────────────────────────────────────────────── */
+
+/* Default */
+.intel-badge--default {
+  background: var(--intel-bg-surface);
+  color: var(--intel-text-secondary);
+  border: 1px solid var(--intel-border-subtle);
+}
+
+.intel-badge--default .intel-badge__dot {
+  background: var(--intel-text-muted);
+}
+
+/* Whale - Cyan */
+.intel-badge--whale {
+  background: var(--label-whale-bg);
+  color: var(--label-whale);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.intel-badge--whale .intel-badge__dot {
+  background: var(--label-whale);
+  box-shadow: 0 0 6px var(--label-whale);
+}
+
+/* Exchange - Orange */
+.intel-badge--exchange {
+  background: var(--label-exchange-bg);
+  color: var(--label-exchange);
+  border: 1px solid rgba(255, 153, 0, 0.3);
+}
+
+.intel-badge--exchange .intel-badge__dot {
+  background: var(--label-exchange);
+}
+
+/* DeFi - Purple */
+.intel-badge--defi {
+  background: var(--label-defi-bg);
+  color: var(--label-defi);
+  border: 1px solid rgba(153, 102, 255, 0.3);
+}
+
+.intel-badge--defi .intel-badge__dot {
+  background: var(--label-defi);
+}
+
+/* NFT - Pink */
+.intel-badge--nft {
+  background: var(--label-nft-bg);
+  color: var(--label-nft);
+  border: 1px solid rgba(255, 102, 204, 0.3);
+}
+
+.intel-badge--nft .intel-badge__dot {
+  background: var(--label-nft);
+}
+
+/* Bridge - Light Blue */
+.intel-badge--bridge {
+  background: var(--label-bridge-bg);
+  color: var(--label-bridge);
+  border: 1px solid rgba(102, 204, 255, 0.3);
+}
+
+.intel-badge--bridge .intel-badge__dot {
+  background: var(--label-bridge);
+}
+
+/* Scam - Red */
+.intel-badge--scam {
+  background: var(--label-scam-bg);
+  color: var(--label-scam);
+  border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+.intel-badge--scam .intel-badge__dot {
+  background: var(--label-scam);
+  box-shadow: 0 0 6px var(--label-scam);
+  animation: pulse-cyan 1s ease-in-out infinite;
+}
+
+/* Fund - Green */
+.intel-badge--fund {
+  background: var(--label-fund-bg);
+  color: var(--label-fund);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.intel-badge--fund .intel-badge__dot {
+  background: var(--label-fund);
+}
+
+/* DAO - Yellow */
+.intel-badge--dao {
+  background: var(--label-dao-bg);
+  color: var(--label-dao);
+  border: 1px solid rgba(255, 204, 0, 0.3);
+}
+
+.intel-badge--dao .intel-badge__dot {
+  background: var(--label-dao);
+}
+
+/* Status variants */
+.intel-badge--success {
+  background: var(--intel-green-bg);
+  color: var(--intel-green);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.intel-badge--success .intel-badge__dot {
+  background: var(--intel-green);
+}
+
+.intel-badge--warning {
+  background: var(--intel-yellow-bg);
+  color: var(--intel-yellow);
+  border: 1px solid rgba(255, 204, 0, 0.3);
+}
+
+.intel-badge--warning .intel-badge__dot {
+  background: var(--intel-yellow);
+}
+
+.intel-badge--danger {
+  background: var(--intel-red-bg);
+  color: var(--intel-red);
+  border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+.intel-badge--danger .intel-badge__dot {
+  background: var(--intel-red);
+  animation: pulse-cyan 1s ease-in-out infinite;
+}
+
+.intel-badge--info {
+  background: var(--intel-cyan-bg);
+  color: var(--intel-cyan);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.intel-badge--info .intel-badge__dot {
+  background: var(--intel-cyan);
+}

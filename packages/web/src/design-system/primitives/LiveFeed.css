@@ -1,0 +1,224 @@
+/* LiveFeed - Real-time transaction feed */
+
+.live-feed {
+  display: flex;
+  flex-direction: column;
+  background: var(--intel-bg-surface);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* Header */
+.live-feed__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2-5) var(--space-3);
+  background: var(--intel-bg-elevated);
+  border-bottom: 1px solid var(--intel-border-subtle);
+}
+
+.live-feed__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--intel-text-primary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.live-feed__count {
+  font-size: var(--text-2xs);
+  color: var(--intel-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Content */
+.live-feed__content {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+/* Item row */
+.live-feed__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--intel-border-subtle);
+  font-size: var(--text-sm);
+  transition: background var(--transition-fast);
+}
+
+.live-feed__item:last-child {
+  border-bottom: none;
+}
+
+.live-feed__item:hover {
+  background: var(--intel-bg-hover);
+}
+
+.live-feed__item--clickable {
+  cursor: pointer;
+}
+
+.live-feed__item--skeleton {
+  gap: var(--space-4);
+  padding: var(--space-2-5) var(--space-3);
+}
+
+/* Time */
+.live-feed__time {
+  flex-shrink: 0;
+  width: 70px;
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* From / To addresses */
+.live-feed__from,
+.live-feed__to {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--intel-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-feed__labeled {
+  color: var(--intel-cyan);
+  font-weight: var(--weight-medium);
+}
+
+/* Type icon */
+.live-feed__type {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  color: var(--intel-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Value */
+.live-feed__value {
+  flex-shrink: 0;
+  min-width: 100px;
+  text-align: right;
+  font-weight: var(--weight-medium);
+  color: var(--intel-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.live-feed__token {
+  margin-left: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+}
+
+/* Risk indicator */
+.live-feed__risk {
+  flex-shrink: 0;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.live-feed__risk--low {
+  color: var(--risk-low);
+}
+
+.live-feed__risk--medium {
+  color: var(--risk-medium);
+}
+
+.live-feed__risk--high {
+  color: var(--risk-high);
+}
+
+.live-feed__risk--critical {
+  color: var(--risk-critical);
+  animation: pulse-cyan 1s ease-in-out infinite;
+}
+
+/* Empty state */
+.live-feed__empty {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--intel-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   COMPACT VARIANT
+   ───────────────────────────────────────────────────────────── */
+
+.live-feed--compact .live-feed__item {
+  padding: var(--space-1-5) var(--space-2-5);
+  gap: var(--space-2);
+}
+
+.live-feed--compact .live-feed__time {
+  font-size: var(--text-2xs);
+  width: 55px;
+}
+
+.live-feed--compact .live-feed__from,
+.live-feed--compact .live-feed__to {
+  font-size: var(--text-2xs);
+}
+
+.live-feed--compact .live-feed__value {
+  font-size: var(--text-xs);
+  min-width: 80px;
+}
+
+/* Loading state */
+.live-feed--loading .live-feed__content {
+  padding: var(--space-2);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .live-feed__content {
+    max-height: 300px;
+  }
+  
+  .live-feed__item {
+    padding: var(--space-2) var(--space-2-5);
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+  
+  .live-feed__time {
+    font-size: var(--text-2xs);
+    width: auto;
+  }
+  
+  .live-feed__from,
+  .live-feed__to {
+    flex: none;
+    width: calc(50% - var(--space-3));
+    font-size: var(--text-2xs);
+  }
+  
+  .live-feed__type {
+    display: none;
+  }
+  
+  .live-feed__value {
+    width: 100%;
+    text-align: left;
+    margin-top: var(--space-1);
+    font-size: var(--text-xs);
+  }
+}

@@ -1,0 +1,266 @@
+/* EntityCard - Wallet/Contract display */
+
+.entity-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--intel-bg-surface);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+}
+
+.entity-card:hover {
+  border-color: var(--intel-border-default);
+  background: var(--intel-bg-hover);
+}
+
+.entity-card--clickable {
+  cursor: pointer;
+}
+
+.entity-card--selected {
+  border-color: var(--intel-cyan);
+  background: var(--intel-cyan-bg);
+}
+
+/* Header */
+.entity-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.entity-card__avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.entity-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.entity-card__avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--intel-cyan-bg) 0%, var(--intel-purple-bg) 100%);
+  border: 1px solid var(--intel-border-subtle);
+  font-weight: var(--weight-semibold);
+  color: var(--intel-cyan);
+  font-size: var(--text-md);
+}
+
+.entity-card__identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.entity-card__name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--intel-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-card__address {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-0-5);
+}
+
+.entity-card__address-text {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+}
+
+.entity-card__chain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-2xs);
+  color: var(--intel-text-muted);
+  text-transform: uppercase;
+}
+
+.entity-card__chain svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Labels */
+.entity-card__labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+/* Stats */
+.entity-card__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--intel-border-subtle);
+}
+
+.entity-card__stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.entity-card__stat-label {
+  font-size: var(--text-2xs);
+  color: var(--intel-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.entity-card__stat-value {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--intel-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.entity-card__stat-sub {
+  font-size: var(--text-xs);
+  color: var(--intel-text-secondary);
+}
+
+/* Risk Score */
+.entity-card__risk {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--intel-border-subtle);
+}
+
+.entity-card__risk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.entity-card__risk-label {
+  font-size: var(--text-2xs);
+  color: var(--intel-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+}
+
+.entity-card__risk-value {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.entity-card__risk-bar {
+  height: 4px;
+  background: var(--intel-bg-deep);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.entity-card__risk-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   COMPACT VARIANT
+   ───────────────────────────────────────────────────────────── */
+
+.entity-card--compact {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2-5);
+  padding: var(--space-2) var(--space-3);
+}
+
+.entity-card__avatar-mini {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.entity-card__avatar-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.entity-card--compact .entity-card__avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--intel-bg-elevated);
+  border: 1px solid var(--intel-border-subtle);
+}
+
+.entity-card__info-compact {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.entity-card__name-compact {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--intel-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-card__balance-compact {
+  font-size: var(--text-xs);
+  color: var(--intel-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ENTITY LIST
+   ───────────────────────────────────────────────────────────── */
+
+.entity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .entity-card {
+    padding: var(--space-3);
+    gap: var(--space-2-5);
+  }
+  
+  .entity-card__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .entity-card__avatar {
+    width: 36px;
+    height: 36px;
+  }
+}

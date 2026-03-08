@@ -1,10 +1,12 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
-import EVMTabs from './EVMTabs';
+import IntelPage from './pages/IntelPage';
+import InvestigatePage from './pages/InvestigatePage';
 import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
-import './styles/ios-glass.css';
+
+// Import new design system styles
+import './design-system/tokens.css';
 
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage').then(m => ({ default: m.FeaturesPage })));
@@ -20,7 +22,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<IntelPage />} />
         <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
         <Route path="/features" element={<Suspense fallback={null}><FeaturesPage /></Suspense>} />
         <Route path="/pricing" element={<Suspense fallback={null}><PricingPage /></Suspense>} />
@@ -30,7 +32,8 @@ function App() {
         <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
         <Route path="/ext-install" element={<Suspense fallback={null}><InstallPage /></Suspense>} />
         <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
-        <Route path="/app-evm/*" element={<EVMTabs />} />
+        {/* Main app dashboard - uses new InvestigatePage with Arkham-style design */}
+        <Route path="/app-evm/*" element={<InvestigatePage />} />
         <Route path="/app-solana/*" element={
           <SolanaWalletProvider>
             <SolanaPage />
