@@ -156,6 +156,11 @@ export async function createTelegramBot() {
             { command: 'contract', description: 'Scan a contract' },
             { command: 'ask', description: 'Ask AI anything' },
             { command: 'history', description: 'View scan history' },
+            // Memecoin / Token
+            { command: 'token', description: 'Token price & stats' },
+            { command: 'rugcheck', description: 'Token safety check' },
+            { command: 'trending', description: 'Top gainers & losers' },
+            { command: 'newtokens', description: 'New token launches' },
             // Polymarket
             { command: 'pmarkets', description: 'Browse prediction markets' },
             { command: 'ptrending', description: 'Trending & volume spikes' },
@@ -224,15 +229,20 @@ function registerBotCommands() {
             '🔍 *Analysis*\n' +
             '/scan <address> - Quick wallet scan\n' +
             '/contract <address> [chain] - Scan contract\n\n' +
-            '🤖 *AI Assistant*\n' +
-            '/ask <question> - Ask anything\n' +
-            '/history - View scan history\n\n' +
+            '🪙 *Memecoin/Tokens*\n' +
+            '/token <addr> - Token price & stats\n' +
+            '/rugcheck <addr> - Safety analysis\n' +
+            '/trending - Top gainers & losers\n' +
+            '/newtokens - New launches\n\n' +
             '📊 *Polymarket*\n' +
             '/pmarkets [search] - Browse markets\n' +
             '/ptrending - Volume spikes & hot\n' +
             '/ptraders - Top traders\n' +
             '/palerts - Your price alerts\n' +
             '/pask <query> - AI analysis\n\n' +
+            '🤖 *AI Assistant*\n' +
+            '/ask <question> - Ask anything\n' +
+            '/history - View scan history\n\n' +
             '⚙️ *Settings*\n' +
             '/frequency - Set alert frequency\n' +
             '/psettings - Polymarket alerts\n' +
@@ -1207,6 +1217,442 @@ function registerBotCommands() {
     // END POLYMARKET COMMANDS
     // ==========================================
 
+    // ==========================================
+    // MEMECOIN / TOKEN COMMANDS
+    // ==========================================
+
+    // /token <address> - Quick token stats (public - no auth required)
+    bot.command(['token', 't'], async (ctx: any) => {
+        const args = ctx.message.text.split(' ').slice(1);
+        const addressOrSymbol = args[0];
+        const chainArg = args[1]?.toLowerCase();
+
+        if (!addressOrSymbol) {
+            await sendReply(ctx, 
+                '🪙 */token* - Token price & stats\n\n' +
+                '*Usage:*\n' +
+                '`/token <address> [chain]`\n' +
+                '`/token <symbol>`\n\n' +
+                '*Examples:*\n' +
+                '`/token 0x6982...` - By address\n' +
+                '`/token PEPE` - By symbol\n' +
+                '`/token 0x69... solana`\n\n' +
+                '*Chains:* ethereum, solana, base, arbitrum, bsc',
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
+
+        await sendReply(ctx, '🔍 *Fetching token data...*', { parse_mode: 'Markdown' });
+
+        try {
+            const { dexScreenerService } = await import('./DEXScreenerService.js');
+            
+            let pairs: any[] = [];
+            
+            // Check if input is an address or symbol
+            const isAddress = /^0x[a-fA-F0-9]{40}$/i.test(addressOrSymbol) || 
+                              (addressOrSymbol.length >= 32 && addressOrSymbol.length <= 44); // Solana addresses
+            
+            if (isAddress && chainArg) {
+                // Direct lookup by chain + address
+                const result = await dexScreenerService.getTokenPairs(chainArg, addressOrSymbol);
+                pairs = Array.isArray(result) ? result : (result?.pairs || []);
+            } else {
+                // Search by symbol or address
+                const result = await dexScreenerService.searchPairs(addressOrSymbol);
+                pairs = result?.pairs || [];
+            }
+
+            if (!pairs || pairs.length === 0) {
+                await sendReply(ctx, '❌ Token not found. Try a different address or symbol.');
+                return;
+            }
+
+            // Get the most liquid pair
+            const pair = pairs.sort((a: any, b: any) => 
+                (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0)
+            )[0];
+
+            const token = pair.baseToken;
+            const priceUsd = parseFloat(pair.priceUsd || '0');
+            const priceChange24h = pair.priceChange?.h24 || 0;
+            const volume24h = pair.volume?.h24 || 0;
+            const liquidity = pair.liquidity?.usd || 0;
+            const fdv = pair.fdv || 0;
+            const marketCap = pair.marketCap || fdv;
+            const pairCreated = pair.pairCreatedAt ? new Date(pair.pairCreatedAt).toLocaleDateString() : 'Unknown';
+
+            const changeEmoji = priceChange24h > 0 ? '📈' : priceChange24h < 0 ? '📉' : '➖';
+            const changeColor = priceChange24h > 0 ? '+' : '';
+
+            let msg = `🪙 *${escapeMarkdown(token.name || 'Unknown')}* (${escapeMarkdown(token.symbol || '???')})\n\n`;
+            msg += `💰 *Price:* $${priceUsd < 0.0001 ? priceUsd.toExponential(2) : priceUsd.toLocaleString(undefined, { maximumFractionDigits: 6 })}\n`;
+            msg += `${changeEmoji} *24h:* ${changeColor}${priceChange24h.toFixed(2)}%\n\n`;
+            msg += `📊 *Volume 24h:* $${formatNumber(volume24h)}\n`;
+            msg += `💧 *Liquidity:* $${formatNumber(liquidity)}\n`;
+            msg += `📈 *Market Cap:* $${formatNumber(marketCap)}\n`;
+            msg += `🏷️ *FDV:* $${formatNumber(fdv)}\n\n`;
+            msg += `⛓️ *Chain:* ${pair.chainId}\n`;
+            msg += `🏦 *DEX:* ${pair.dexId}\n`;
+            msg += `📅 *Created:* ${pairCreated}\n\n`;
+            msg += `🔗 [DEXScreener](https://dexscreener.com/${pair.chainId}/${pair.pairAddress}) • `;
+            msg += `[Chart](https://dexscreener.com/${pair.chainId}/${pair.pairAddress})`;
+
+            await sendReply(ctx, msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
+        } catch (error) {
+            console.error('[Telegram] Token lookup error:', error);
+            await sendReply(ctx, '❌ Failed to fetch token data. Please try again.');
+        }
+    });
+
+    // /rugcheck <address> - Contract safety check (public - no auth required)
+    bot.command(['rugcheck', 'rug', 'safety'], async (ctx: any) => {
+        const args = ctx.message.text.split(' ').slice(1);
+        const address = args[0];
+        const chainArg = args[1]?.toLowerCase();
+
+        if (!address) {
+            await sendReply(ctx, 
+                '🛡️ */rugcheck* - Token safety analysis\n\n' +
+                '*Usage:* `/rugcheck <address> [chain]`\n\n' +
+                '*Examples:*\n' +
+                '`/rugcheck 0x6982...`\n' +
+                '`/rugcheck 0x69... solana`\n\n' +
+                '*Checks:*\n' +
+                '• Liquidity locked status\n' +
+                '• Contract age\n' +
+                '• Top holders concentration\n' +
+                '• Buy/Sell activity ratio',
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
+
+        await sendReply(ctx, '🔍 *Analyzing token safety...*', { parse_mode: 'Markdown' });
+
+        try {
+            const { dexScreenerService } = await import('./DEXScreenerService.js');
+            
+            let pairs: any[] = [];
+            
+            if (chainArg) {
+                const result = await dexScreenerService.getTokenPairs(chainArg, address);
+                pairs = Array.isArray(result) ? result : (result?.pairs || []);
+            } else {
+                const result = await dexScreenerService.searchPairs(address);
+                pairs = result?.pairs || [];
+            }
+
+            if (!pairs || pairs.length === 0) {
+                await sendReply(ctx, '❌ Token not found. Make sure the address is correct.');
+                return;
+            }
+
+            // Get the most liquid pair
+            const pair = pairs.sort((a: any, b: any) => 
+                (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0)
+            )[0];
+
+            const token = pair.baseToken;
+            const liquidity = pair.liquidity?.usd || 0;
+            const volume24h = pair.volume?.h24 || 0;
+            const txns24h = pair.txns?.h24 || { buys: 0, sells: 0 };
+            const pairCreatedAt = pair.pairCreatedAt;
+
+            // Calculate safety metrics
+            let safetyScore = 100;
+            const warnings: string[] = [];
+            const positives: string[] = [];
+
+            // 1. Liquidity check
+            if (liquidity < 1000) {
+                safetyScore -= 40;
+                warnings.push('🔴 Very low liquidity (<$1k)');
+            } else if (liquidity < 10000) {
+                safetyScore -= 20;
+                warnings.push('🟡 Low liquidity (<$10k)');
+            } else if (liquidity >= 100000) {
+                positives.push('🟢 Good liquidity (>$100k)');
+            } else {
+                positives.push('🟢 Moderate liquidity');
+            }
+
+            // 2. Age check
+            if (pairCreatedAt) {
+                const ageHours = (Date.now() - pairCreatedAt) / (1000 * 60 * 60);
+                if (ageHours < 1) {
+                    safetyScore -= 30;
+                    warnings.push('🔴 Very new (<1 hour old)');
+                } else if (ageHours < 24) {
+                    safetyScore -= 15;
+                    warnings.push('🟡 New token (<24 hours)');
+                } else if (ageHours >= 168) { // 7 days
+                    positives.push('🟢 Established (>7 days)');
+                }
+            } else {
+                warnings.push('🟡 Age unknown');
+            }
+
+            // 3. Volume/Liquidity ratio (potential wash trading)
+            if (liquidity > 0 && volume24h > 0) {
+                const vlRatio = volume24h / liquidity;
+                if (vlRatio > 10) {
+                    safetyScore -= 15;
+                    warnings.push('🟡 High volume/liquidity ratio');
+                }
+            }
+
+            // 4. Buy/Sell ratio
+            const totalTxns = txns24h.buys + txns24h.sells;
+            if (totalTxns > 10) {
+                const sellRatio = txns24h.sells / totalTxns;
+                if (sellRatio > 0.7) {
+                    safetyScore -= 20;
+                    warnings.push('🔴 Heavy selling pressure');
+                } else if (sellRatio < 0.3) {
+                    warnings.push('🟡 Mostly buys (potential pump)');
+                } else {
+                    positives.push('🟢 Balanced buy/sell ratio');
+                }
+            } else if (totalTxns < 5) {
+                safetyScore -= 10;
+                warnings.push('🟡 Very low trading activity');
+            }
+
+            // 5. Price info check
+            if (!pair.priceUsd || parseFloat(pair.priceUsd) === 0) {
+                safetyScore -= 20;
+                warnings.push('🔴 No price data available');
+            }
+
+            // Clamp score
+            safetyScore = Math.max(0, Math.min(100, safetyScore));
+
+            // Safety grade
+            let grade = '';
+            let gradeEmoji = '';
+            if (safetyScore >= 80) { grade = 'LOW RISK'; gradeEmoji = '🟢'; }
+            else if (safetyScore >= 60) { grade = 'MODERATE RISK'; gradeEmoji = '🟡'; }
+            else if (safetyScore >= 40) { grade = 'HIGH RISK'; gradeEmoji = '🟠'; }
+            else { grade = 'VERY HIGH RISK'; gradeEmoji = '🔴'; }
+
+            let msg = `🛡️ *Safety Report*\n\n`;
+            msg += `🪙 *${escapeMarkdown(token.name || 'Unknown')}* (${escapeMarkdown(token.symbol || '???')})\n`;
+            msg += `⛓️ ${pair.chainId}\n\n`;
+            msg += `${gradeEmoji} *Score:* ${safetyScore}/100 (${grade})\n\n`;
+
+            if (warnings.length > 0) {
+                msg += `*Warnings:*\n${warnings.join('\n')}\n\n`;
+            }
+
+            if (positives.length > 0) {
+                msg += `*Positives:*\n${positives.join('\n')}\n\n`;
+            }
+
+            msg += `*Stats:*\n`;
+            msg += `💧 Liquidity: $${formatNumber(liquidity)}\n`;
+            msg += `📊 Volume 24h: $${formatNumber(volume24h)}\n`;
+            msg += `🔄 Txns 24h: ${txns24h.buys} buys / ${txns24h.sells} sells\n`;
+
+            if (pairCreatedAt) {
+                const ageHours = (Date.now() - pairCreatedAt) / (1000 * 60 * 60);
+                if (ageHours < 24) {
+                    msg += `📅 Age: ${ageHours.toFixed(1)} hours\n`;
+                } else {
+                    msg += `📅 Age: ${(ageHours / 24).toFixed(1)} days\n`;
+                }
+            }
+
+            msg += `\n⚠️ *DYOR* - This is automated analysis, not financial advice.`;
+
+            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
+        } catch (error) {
+            console.error('[Telegram] Rugcheck error:', error);
+            await sendReply(ctx, '❌ Failed to analyze token. Please try again.');
+        }
+    });
+
+    // /trending - Top gainers/losers (public - no auth required)
+    bot.command(['trending', 'gainers', 'top'], async (ctx: any) => {
+        const args = ctx.message.text.split(' ').slice(1);
+        const filter = args[0]?.toLowerCase(); // optional: 'solana', 'eth', 'bsc', etc.
+
+        await sendReply(ctx, '📊 *Fetching trending tokens...*', { parse_mode: 'Markdown' });
+
+        try {
+            const { dexScreenerService } = await import('./DEXScreenerService.js');
+            
+            // Get top boosted tokens
+            const boostedTokens = await dexScreenerService.getTopBoostedTokens();
+            
+            // Get top pairs by volume
+            const topPairs = await dexScreenerService.getTopPairs(50);
+            
+            // Filter by chain if specified
+            let filteredPairs = topPairs;
+            if (filter) {
+                const chainMap: Record<string, string[]> = {
+                    'sol': ['solana'],
+                    'solana': ['solana'],
+                    'eth': ['ethereum'],
+                    'ethereum': ['ethereum'],
+                    'bsc': ['bsc'],
+                    'base': ['base'],
+                    'arb': ['arbitrum'],
+                    'arbitrum': ['arbitrum'],
+                };
+                const targetChains = chainMap[filter] || [filter];
+                filteredPairs = topPairs.filter((p: any) => targetChains.includes(p.chainId));
+            }
+
+            // Sort by 24h price change to get top gainers
+            const gainers = filteredPairs
+                .filter((p: any) => p.priceChange?.h24 && p.liquidity?.usd >= 5000)
+                .sort((a: any, b: any) => (b.priceChange?.h24 || 0) - (a.priceChange?.h24 || 0))
+                .slice(0, 5);
+
+            // Top losers
+            const losers = filteredPairs
+                .filter((p: any) => p.priceChange?.h24 && p.liquidity?.usd >= 5000)
+                .sort((a: any, b: any) => (a.priceChange?.h24 || 0) - (b.priceChange?.h24 || 0))
+                .slice(0, 5);
+
+            let msg = `🔥 *Trending Tokens*${filter ? ` (${filter.toUpperCase()})` : ''}\n\n`;
+
+            // Top Gainers
+            msg += `📈 *Top Gainers*\n`;
+            if (gainers.length > 0) {
+                for (const pair of gainers) {
+                    const symbol = pair.baseToken?.symbol || '???';
+                    const change = pair.priceChange?.h24 || 0;
+                    const vol = pair.volume?.h24 || 0;
+                    msg += `🟢 *${escapeMarkdown(symbol)}* +${change.toFixed(1)}% • $${formatNumber(vol)} vol\n`;
+                    msg += `   ⛓️ ${pair.chainId} • 💧 $${formatNumber(pair.liquidity?.usd || 0)}\n`;
+                }
+            } else {
+                msg += `No significant gainers found.\n`;
+            }
+
+            msg += `\n📉 *Top Losers*\n`;
+            if (losers.length > 0) {
+                for (const pair of losers) {
+                    const symbol = pair.baseToken?.symbol || '???';
+                    const change = pair.priceChange?.h24 || 0;
+                    const vol = pair.volume?.h24 || 0;
+                    msg += `🔴 *${escapeMarkdown(symbol)}* ${change.toFixed(1)}% • $${formatNumber(vol)} vol\n`;
+                    msg += `   ⛓️ ${pair.chainId} • 💧 $${formatNumber(pair.liquidity?.usd || 0)}\n`;
+                }
+            } else {
+                msg += `No significant losers found.\n`;
+            }
+
+            // Add boosted tokens section
+            if (boostedTokens && Array.isArray(boostedTokens) && boostedTokens.length > 0) {
+                msg += `\n🚀 *Boosted Tokens*\n`;
+                for (const token of boostedTokens.slice(0, 3)) {
+                    msg += `⚡ ${escapeMarkdown(token.tokenAddress?.slice(0, 8) || 'Unknown')}... on ${token.chainId}\n`;
+                }
+            }
+
+            msg += `\n💡 Use \`/token <symbol>\` for details`;
+
+            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
+        } catch (error) {
+            console.error('[Telegram] Trending error:', error);
+            await sendReply(ctx, '❌ Failed to fetch trending data. Please try again.');
+        }
+    });
+
+    // /newtokens - Recently launched tokens (public - no auth required)
+    bot.command(['newtokens', 'new', 'launches'], async (ctx: any) => {
+        const args = ctx.message.text.split(' ').slice(1);
+        const filter = args[0]?.toLowerCase(); // optional chain filter
+
+        await sendReply(ctx, '🆕 *Finding new token launches...*', { parse_mode: 'Markdown' });
+
+        try {
+            const { dexScreenerService } = await import('./DEXScreenerService.js');
+            
+            // Get latest token profiles
+            const profiles = await dexScreenerService.getLatestTokenProfiles();
+            
+            // Get recent pairs from search (common new token names)
+            const searchResult = await dexScreenerService.searchPairs('pump');
+            const allPairs = searchResult?.pairs || [];
+            
+            // Filter to recent pairs (created within last 24 hours)
+            const now = Date.now();
+            const oneDayAgo = now - (24 * 60 * 60 * 1000);
+            
+            let newPairs = allPairs.filter((p: any) => {
+                if (!p.pairCreatedAt) return false;
+                return p.pairCreatedAt >= oneDayAgo;
+            });
+
+            // Apply chain filter if specified
+            if (filter) {
+                const chainMap: Record<string, string[]> = {
+                    'sol': ['solana'],
+                    'solana': ['solana'],
+                    'eth': ['ethereum'],
+                    'ethereum': ['ethereum'],
+                    'bsc': ['bsc'],
+                    'base': ['base'],
+                    'arb': ['arbitrum'],
+                };
+                const targetChains = chainMap[filter] || [filter];
+                newPairs = newPairs.filter((p: any) => targetChains.includes(p.chainId));
+            }
+
+            // Filter by minimum liquidity ($1k) and sort by creation time
+            newPairs = newPairs
+                .filter((p: any) => (p.liquidity?.usd || 0) >= 1000)
+                .sort((a: any, b: any) => (b.pairCreatedAt || 0) - (a.pairCreatedAt || 0))
+                .slice(0, 10);
+
+            let msg = `🆕 *New Token Launches*${filter ? ` (${filter.toUpperCase()})` : ''}\n`;
+            msg += `_Last 24 hours with >$1k liquidity_\n\n`;
+
+            if (newPairs.length === 0) {
+                msg += `No new tokens found matching criteria.\n\n`;
+                msg += `💡 Try without chain filter or check back later.`;
+            } else {
+                for (const pair of newPairs) {
+                    const symbol = pair.baseToken?.symbol || '???';
+                    const name = pair.baseToken?.name || 'Unknown';
+                    const liq = pair.liquidity?.usd || 0;
+                    const vol = pair.volume?.h24 || 0;
+                    const change = pair.priceChange?.h24 || 0;
+                    const changeEmoji = change > 0 ? '📈' : change < 0 ? '📉' : '➖';
+
+                    // Calculate age
+                    const ageMs = now - pair.pairCreatedAt;
+                    const ageHours = ageMs / (1000 * 60 * 60);
+                    const ageStr = ageHours < 1 
+                        ? `${Math.floor(ageMs / 60000)}m ago`
+                        : `${ageHours.toFixed(1)}h ago`;
+
+                    msg += `🪙 *${escapeMarkdown(symbol)}* - ${escapeMarkdown(name.slice(0, 20))}\n`;
+                    msg += `   ⛓️ ${pair.chainId} • 🕐 ${ageStr}\n`;
+                    msg += `   💧 $${formatNumber(liq)} • ${changeEmoji} ${change > 0 ? '+' : ''}${change.toFixed(1)}%\n`;
+                    msg += `   📊 Vol: $${formatNumber(vol)}\n\n`;
+                }
+
+                msg += `⚠️ New tokens are high risk. DYOR!`;
+            }
+
+            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
+        } catch (error) {
+            console.error('[Telegram] New tokens error:', error);
+            await sendReply(ctx, '❌ Failed to fetch new tokens. Please try again.');
+        }
+    });
+
+    // ==========================================
+    // END MEMECOIN COMMANDS
+    // ==========================================
+
     // Handle natural language messages when user is in AI mode
     bot.on('message', async (ctx: any, next: () => Promise<void>) => {
         if (!ctx.message || !('text' in ctx.message)) return next();
@@ -1303,6 +1749,17 @@ function registerBotCommands() {
  */
 function escapeMarkdown(text: string): string {
     return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+}
+
+/**
+ * Format large numbers with K, M, B suffixes
+ */
+function formatNumber(num: number): string {
+    if (!num || isNaN(num)) return '0';
+    if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(2) + 'B';
+    if (num >= 1_000_000) return (num / 1_000_000).toFixed(2) + 'M';
+    if (num >= 1_000) return (num / 1_000).toFixed(2) + 'K';
+    return num.toFixed(2);
 }
 
 function saveScanHistory(userId: string, address: string, chain: string, riskScore: number) {
