@@ -2167,16 +2167,26 @@ async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | '
     }
 }
 
-// Streaming configuration - disabled for now to prevent duplicates
+// Streaming configuration - ENABLED with optimized settings
 const STREAM_CONFIG = {
-    charsPerChunk: 3,
-    delayMs: 15,
-    maxUpdates: 500,
-    minTextLength: 999999 // Disable streaming by requiring very long messages
+    charsPerChunk: 2,       // Characters per update (smaller = smoother)
+    delayMs: 8,             // Delay between updates (faster)
+    maxUpdates: 800,        // Max edits before stopping
+    minTextLength: 50       // Minimum text length to enable streaming
 };
 
 // Helper to delay execution
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Track active streaming operations to prevent duplicates
+const activeStreams: Map<string, boolean> = new Map();
+
+// Generate unique key for a message context
+function getStreamKey(ctx: any): string {
+    const chatId = ctx.chat?.id || ctx.from?.id || 'unknown';
+    const msgId = ctx.message?.message_id || ctx.callbackQuery?.message?.message_id || Date.now();
+    return `${chatId}-${msgId}`;
+}
 
 async function sendReply(ctx: any, textOrOptions: string | any, options: any = {}) {
     let text: string;
@@ -2191,10 +2201,9 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
     }
     
     const parseMode = opts.parse_mode || 'Markdown';
-    const chatId = ctx.from?.id || ctx.chat?.id;
+    const chatId = ctx.chat?.id || ctx.from?.id;
     
     if (!chatId || !text) {
-        // Fallback for edge cases
         return ctx.reply(text || textOrOptions, opts);
     }
     
@@ -2206,31 +2215,28 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
         return ctx.reply(text, { parse_mode: parseMode, ...opts });
     }
     
+    // Prevent duplicate streaming for same message
+    const streamKey = getStreamKey(ctx);
+    if (activeStreams.get(streamKey)) {
+        console.log('[Telegram] Duplicate stream blocked:', streamKey);
+        return null;
+    }
+    
+    activeStreams.set(streamKey, true);
+    let sentMessage: any = null;
+    
     try {
-        // Stream character by character for smooth effect
-        let currentText = '';
-        let charIndex = 0;
-        
-        // Send initial message with first few characters
-        for (let i = 0; i < 3 && charIndex < text.length; i++) {
-            currentText += text[charIndex];
-            charIndex++;
-        }
-        currentText += '▌'; // Typing cursor
-        
-        // Send initial message (no markdown to avoid parsing issues during streaming)
-        const sentMessage = await ctx.reply(currentText);
+        // Send initial message with typing indicator
+        sentMessage = await ctx.reply('▌');
         const messageId = sentMessage.message_id;
         
+        let currentText = '';
+        let charIndex = 0;
         let updateCount = 0;
+        let lastUpdateTime = Date.now();
         
-        // Stream remaining characters
+        // Stream character by character
         while (charIndex < text.length && updateCount < STREAM_CONFIG.maxUpdates) {
-            await delay(STREAM_CONFIG.delayMs);
-            
-            // Remove cursor first
-            currentText = currentText.replace('▌', '');
-            
             // Add next chunk of characters
             for (let i = 0; i < STREAM_CONFIG.charsPerChunk && charIndex < text.length; i++) {
                 currentText += text[charIndex];
@@ -2240,6 +2246,13 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
             // Add cursor if not done
             const displayText = charIndex < text.length ? currentText + '▌' : currentText;
             
+            // Throttle updates to avoid rate limiting (min 5ms between edits)
+            const now = Date.now();
+            const elapsed = now - lastUpdateTime;
+            if (elapsed < STREAM_CONFIG.delayMs) {
+                await delay(STREAM_CONFIG.delayMs - elapsed);
+            }
+            
             try {
                 await ctx.telegram.editMessageText(
                     chatId,
@@ -2247,11 +2260,16 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
                     undefined,
                     displayText
                 );
+                lastUpdateTime = Date.now();
             } catch (editError: any) {
-                // Ignore "message not modified" errors
-                if (!editError.message?.includes('not modified')) {
-                    console.error('[Telegram] Edit error:', editError.message);
+                // Ignore common errors, break on fatal ones
+                if (editError.message?.includes('not modified')) continue;
+                if (editError.message?.includes('Too Many Requests')) {
+                    // Rate limited - wait and continue
+                    await delay(100);
+                    continue;
                 }
+                if (editError.message?.includes('message to edit not found')) break;
             }
             
             updateCount++;
@@ -2267,16 +2285,30 @@ async function sendReply(ctx: any, textOrOptions: string | any, options: any = {
                 { parse_mode: parseMode }
             );
         } catch (finalError: any) {
-            // If markdown fails, send as plain text
+            // If markdown fails, try plain text
             if (finalError.message?.includes("can't parse")) {
-                await ctx.telegram.editMessageText(chatId, messageId, undefined, text);
+                try {
+                    await ctx.telegram.editMessageText(chatId, messageId, undefined, text);
+                } catch {}
             }
         }
         
+        return sentMessage;
+        
     } catch (error: any) {
         console.error('[Telegram] Stream error:', error.message);
-        // Fall back to regular reply
-        await ctx.reply(text, { parse_mode: parseMode, ...opts });
+        // Only send fallback if we didn't already send a message
+        if (!sentMessage) {
+            try {
+                return await ctx.reply(text, { parse_mode: parseMode, ...opts });
+            } catch (fallbackError: any) {
+                console.error('[Telegram] Fallback error:', fallbackError.message);
+            }
+        }
+        return sentMessage;
+    } finally {
+        // Clean up stream tracking
+        activeStreams.delete(streamKey);
     }
 }
 
