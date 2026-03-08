@@ -2169,8 +2169,8 @@ async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | '
 
 // Streaming configuration
 const STREAM_CONFIG = {
-    charsPerChunk: 2,       // Characters to add per update (more = faster but less smooth)
-    delayMs: 25,            // Delay between updates (ms) - lower = smoother
+    charsPerChunk: 3,       // Characters to add per update
+    delayMs: 15,            // Delay between updates (ms) - lower = faster
     maxUpdates: 500,        // Max number of streaming updates
     minTextLength: 30       // Minimum text length to stream (shorter = instant)
 };
