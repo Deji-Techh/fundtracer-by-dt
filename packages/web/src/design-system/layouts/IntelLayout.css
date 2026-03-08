@@ -444,6 +444,7 @@
   
   .intel-main {
     margin-left: 0;
+    width: 100%;
   }
   
   .intel-header__menu-btn,
@@ -461,11 +462,16 @@
   
   .intel-content {
     padding: var(--space-3);
-    padding-bottom: calc(var(--mobile-nav-height) + var(--space-4));
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+    padding-bottom: var(--space-4);
+    width: 100%;
+    max-width: 100%;
   }
   
+  /* Hide bottom nav since hamburger menu is available */
   .intel-bottom-nav {
-    display: flex;
+    display: none;
   }
 }
 
