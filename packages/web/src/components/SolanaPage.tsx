@@ -5,6 +5,7 @@ import { useWallet } from '../providers/SolanaWalletProvider';
 import { isValidSolanaAddress } from '../utils/addressDetection';
 import { analyzeSolanaWallet, SolanaAnalysisResult } from '../api/solana';
 import '@solana/wallet-adapter-react-ui/styles.css';
+import './SolanaPage.css';
 
 export function SolanaPage() {
   const { publicKey, connected } = useWallet();
@@ -44,116 +45,59 @@ export function SolanaPage() {
 
   const formatAddress = (addr: string) => addr.slice(0, 6) + '...' + addr.slice(-4);
   const formatDate = (ts: number | null) => ts ? new Date(ts).toLocaleDateString() : 'N/A';
-  const formatNumber = (num: number) => new Intl.NumberFormat().format(num);
+
+  const getRiskLevelClass = (level: string) => {
+    switch (level) {
+      case 'critical': return 'critical';
+      case 'high': return 'high';
+      case 'medium': return 'medium';
+      default: return 'low';
+    }
+  };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      padding: '100px 24px 40px',
-      background: 'var(--color-bg)',
-    }}>
+    <div className="solana-page">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{ maxWidth: '1200px', margin: '0 auto' }}
+        className="solana-page__container"
       >
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            background: 'linear-gradient(135deg, #9945FF 0%, #14F195 100%)',
-            borderRadius: '100px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            color: 'white',
-            marginBottom: '16px',
-          }}>
+        <div className="solana-page__header">
+          <div className="solana-page__badge">
             <span>BETA</span>
           </div>
 
-          <h1 style={{
-            fontSize: '2.5rem',
-            fontWeight: 700,
-            color: 'var(--color-text-primary)',
-            marginBottom: '12px',
-          }}>
-            Solana Wallet Analyzer
-          </h1>
+          <h1 className="solana-page__title">Solana Wallet Analyzer</h1>
 
-          <p style={{
-            fontSize: '1.125rem',
-            color: 'var(--color-text-secondary)',
-            marginBottom: '24px',
-          }}>
+          <p className="solana-page__subtitle">
             Comprehensive wallet analysis with Sybil detection, funding trace, and risk scoring
           </p>
 
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-            <WalletMultiButton style={{
-              background: 'linear-gradient(135deg, #9945FF 0%, #14F195 100%)',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '12px 24px',
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-              color: 'white',
-              cursor: 'pointer',
-            }} />
+          <div className="solana-page__wallet-btn-wrapper">
+            <WalletMultiButton />
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', maxWidth: '500px', margin: '0 auto' }}>
+          <div className="solana-page__search">
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Enter Solana address"
-              style={{
-                flex: 1,
-                padding: '14px 18px',
-                background: 'var(--color-bg-elevated)',
-                border: '1px solid var(--color-border)',
-                borderRadius: '12px',
-                color: 'var(--color-text-primary)',
-                fontSize: '0.9375rem',
-                outline: 'none',
-              }}
+              className="solana-page__input"
               onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
             />
             <button
               onClick={handleAnalyze}
               disabled={!address.trim() || isAnalyzing}
-              style={{
-                padding: '14px 28px',
-                background: 'linear-gradient(135deg, #9945FF 0%, #14F195 100%)',
-                border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '0.9375rem',
-                fontWeight: 600,
-                cursor: address.trim() && !isAnalyzing ? 'pointer' : 'not-allowed',
-                opacity: address.trim() && !isAnalyzing ? 1 : 0.6,
-              }}
+              className="solana-page__analyze-btn"
             >
               {isAnalyzing ? 'Analyzing...' : 'Analyze'}
             </button>
           </div>
 
           {error && (
-            <div style={{
-              padding: '12px 20px',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: '8px',
-              color: '#ef4444',
-              marginTop: '16px',
-              maxWidth: '500px',
-              margin: '16px auto 0',
-            }}>
-              {error}
-            </div>
+            <div className="solana-page__error">{error}</div>
           )}
         </div>
 
@@ -161,13 +105,7 @@ export function SolanaPage() {
         {results && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {/* Tab Navigation */}
-            <div style={{
-              display: 'flex',
-              gap: '8px',
-              marginBottom: '24px',
-              overflowX: 'auto',
-              paddingBottom: '8px',
-            }}>
+            <div className="solana-page__tabs">
               {[
                 { id: 'overview', label: 'Overview' },
                 { id: 'transactions', label: 'Transactions' },
@@ -180,17 +118,7 @@ export function SolanaPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  style={{
-                    padding: '10px 20px',
-                    background: activeTab === tab.id ? 'linear-gradient(135deg, #9945FF 0%, #14F195 100%)' : 'var(--color-bg-elevated)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '8px',
-                    color: activeTab === tab.id ? 'white' : 'var(--color-text-secondary)',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
+                  className={`solana-page__tab ${activeTab === tab.id ? 'solana-page__tab--active' : ''}`}
                 >
                   {tab.label}
                 </button>
@@ -201,12 +129,7 @@ export function SolanaPage() {
             {activeTab === 'overview' && (
               <div>
                 {/* Stats Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: '16px',
-                  marginBottom: '24px',
-                }}>
+                <div className="solana-page__stats-grid">
                   <StatCard label="Balance" value={`${results.wallet.balance} SOL`} />
                   <StatCard 
                     label="Portfolio Value" 
@@ -216,7 +139,7 @@ export function SolanaPage() {
                   <StatCard 
                     label="Risk Score" 
                     value={`${results.riskAnalysis.score}/100`}
-                    color={results.riskAnalysis.score > 50 ? '#ef4444' : results.riskAnalysis.score > 25 ? '#f59e0b' : '#22c55e'}
+                    colorClass={results.riskAnalysis.score > 50 ? 'negative' : results.riskAnalysis.score > 25 ? 'warning' : 'positive'}
                   />
                   <StatCard label="Transactions" value={results.transactions.summary.total.toString()} />
                   <StatCard label="NFTs" value={results.nfts.holdings.length.toString()} />
@@ -228,69 +151,26 @@ export function SolanaPage() {
 
                 {/* Risk Analysis Summary */}
                 <Section title="Risk Analysis">
-                  <div style={{
-                    padding: '16px',
-                    background: results.riskAnalysis.level === 'critical' ? 'rgba(239, 68, 68, 0.1)' :
-                               results.riskAnalysis.level === 'high' ? 'rgba(245, 158, 11, 0.1)' :
-                               results.riskAnalysis.level === 'medium' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                    border: `1px solid ${results.riskAnalysis.level === 'critical' ? 'rgba(239, 68, 68, 0.3)' :
-                                              results.riskAnalysis.level === 'high' ? 'rgba(245, 158, 11, 0.3)' :
-                                              results.riskAnalysis.level === 'medium' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
-                    borderRadius: '12px',
-                    marginBottom: '16px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                      <span style={{
-                        padding: '4px 12px',
-                        borderRadius: '100px',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        background: results.riskAnalysis.level === 'critical' ? '#ef4444' :
-                                   results.riskAnalysis.level === 'high' ? '#f59e0b' :
-                                   results.riskAnalysis.level === 'medium' ? '#3b82f6' : '#22c55e',
-                        color: 'white',
-                      }}>
+                  <div className={`solana-page__risk-box solana-page__risk-box--${getRiskLevelClass(results.riskAnalysis.level)}`}>
+                    <div className="solana-page__risk-header">
+                      <span className={`solana-page__risk-badge solana-page__risk-badge--${getRiskLevelClass(results.riskAnalysis.level)}`}>
                         {results.riskAnalysis.level}
                       </span>
-                      <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                      <span className="solana-page__risk-summary">
                         {results.riskAnalysis.summary}
                       </span>
                     </div>
                   </div>
 
                   {results.riskAnalysis.signals.filter((s: any) => s.detected).map((signal: any, i: number) => (
-                    <div key={i} style={{
-                      padding: '12px 16px',
-                      background: 'var(--color-bg-elevated)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '8px',
-                      marginBottom: '8px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}>
+                    <div key={i} className="solana-page__signal">
                       <div>
-                        <div style={{ color: 'var(--color-text-primary)', fontSize: '0.875rem', fontWeight: 500 }}>
-                          {signal.name}
-                        </div>
+                        <div className="solana-page__signal-name">{signal.name}</div>
                         {signal.details && (
-                          <div style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', marginTop: '2px' }}>
-                            {signal.details}
-                          </div>
+                          <div className="solana-page__signal-details">{signal.details}</div>
                         )}
                       </div>
-                      <span style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '0.625rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        background: signal.severity === 'critical' ? 'rgba(239, 68, 68, 0.2)' :
-                                   signal.severity === 'high' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-                        color: signal.severity === 'critical' ? '#ef4444' :
-                               signal.severity === 'high' ? '#f59e0b' : '#3b82f6',
-                      }}>
+                      <span className={`solana-page__signal-weight solana-page__signal-weight--${signal.severity}`}>
                         +{signal.weight}
                       </span>
                     </div>
@@ -299,11 +179,7 @@ export function SolanaPage() {
 
                 {/* Transaction Summary */}
                 <Section title="Transaction Summary">
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                    gap: '12px',
-                  }}>
+                  <div className="solana-page__stats-grid solana-page__grid--small">
                     <StatCard label="Total Sent" value={results.transactions.summary.sent.toString()} subValue={`${results.transactions.summary.totalSent.toFixed(2)} SOL`} />
                     <StatCard label="Total Received" value={results.transactions.summary.received.toString()} subValue={`${results.transactions.summary.totalReceived.toFixed(2)} SOL`} />
                     <StatCard label="Failed" value={results.transactions.summary.failed.toString()} />
@@ -314,30 +190,19 @@ export function SolanaPage() {
                 {/* Top Tokens */}
                 <Section title="Top Holdings">
                   {results.portfolio.tokens.slice(0, 5).map((token: any, i: number) => (
-                    <div key={i} style={{
-                      padding: '12px 16px',
-                      background: 'var(--color-bg-elevated)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '8px',
-                      marginBottom: '8px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}>
+                    <div key={i} className="solana-page__list-item">
                       <div>
-                        <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{token.symbol}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{token.name}</div>
+                        <div className="solana-page__list-item-title">{token.symbol}</div>
+                        <div className="solana-page__list-item-subtitle">{token.name}</div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>${token.valueUSD.toFixed(2)}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{token.balance.toFixed(4)} {token.symbol}</div>
+                      <div>
+                        <div className="solana-page__list-item-value">${token.valueUSD.toFixed(2)}</div>
+                        <div className="solana-page__list-item-subvalue">{token.balance.toFixed(4)} {token.symbol}</div>
                       </div>
                     </div>
                   ))}
                   {results.portfolio.tokens.length === 0 && (
-                    <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '20px' }}>
-                      No token holdings found
-                    </div>
+                    <div className="solana-page__empty">No token holdings found</div>
                   )}
                 </Section>
               </div>
@@ -346,37 +211,20 @@ export function SolanaPage() {
             {/* Transactions Tab */}
             {activeTab === 'transactions' && (
               <Section title="Transaction History">
-                <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                <div className="solana-page__tx-list">
                   {results.transactions.list.slice(0, 50).map((tx: any, i: number) => (
-                    <div key={i} style={{
-                      padding: '12px 16px',
-                      background: 'var(--color-bg-elevated)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '8px',
-                      marginBottom: '8px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}>
+                    <div key={i} className="solana-page__list-item">
                       <div>
-                        <div style={{ fontFamily: 'monospace', color: 'var(--color-text-primary)', fontSize: '0.875rem' }}>
-                          {formatAddress(tx.hash)}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                        <div className="solana-page__tx-hash">{formatAddress(tx.hash)}</div>
+                        <div className="solana-page__tx-meta">
                           {formatDate(tx.timestamp)} • Fee: {tx.fee.toFixed(6)} SOL
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ 
-                          color: tx.value > 0 ? '#22c55e' : 'var(--color-text-primary)',
-                          fontWeight: 500 
-                        }}>
+                      <div>
+                        <div className={`solana-page__tx-value ${tx.value > 0 ? 'solana-page__tx-value--positive' : ''}`}>
                           {tx.value > 0 ? '+' : ''}{tx.value.toFixed(4)} SOL
                         </div>
-                        <div style={{ 
-                          fontSize: '0.75rem',
-                          color: tx.status === 'failed' ? '#ef4444' : '#22c55e'
-                        }}>
+                        <div className={`solana-page__tx-status solana-page__tx-status--${tx.status === 'failed' ? 'failed' : 'success'}`}>
                           {tx.status}
                         </div>
                       </div>
@@ -389,35 +237,21 @@ export function SolanaPage() {
             {/* Tokens Tab */}
             {activeTab === 'tokens' && (
               <Section title="Token Holdings">
-                <div style={{ display: 'grid', gap: '8px' }}>
+                <div className="solana-page__grid">
                   {results.portfolio.tokens.map((token: any, i: number) => (
-                    <div key={i} style={{
-                      padding: '16px',
-                      background: 'var(--color-bg-elevated)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}>
+                    <div key={i} className="solana-page__list-item">
                       <div>
-                        <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{token.symbol}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{token.name}</div>
+                        <div className="solana-page__list-item-title">{token.symbol}</div>
+                        <div className="solana-page__list-item-subtitle">{token.name}</div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          ${token.valueUSD.toLocaleString()}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                          {token.balance.toFixed(4)} {token.symbol}
-                        </div>
+                      <div>
+                        <div className="solana-page__list-item-value">${token.valueUSD.toLocaleString()}</div>
+                        <div className="solana-page__list-item-subvalue">{token.balance.toFixed(4)} {token.symbol}</div>
                       </div>
                     </div>
                   ))}
                   {results.portfolio.tokens.length === 0 && (
-                    <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '40px' }}>
-                      No tokens found
-                    </div>
+                    <div className="solana-page__empty">No tokens found</div>
                   )}
                 </div>
               </Section>
@@ -426,35 +260,23 @@ export function SolanaPage() {
             {/* NFTs Tab */}
             {activeTab === 'nfts' && (
               <Section title="NFT Holdings">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px' }}>
+                <div className="solana-page__nft-grid">
                   {results.nfts.holdings.slice(0, 20).map((nft: any, i: number) => (
-                    <div key={i} style={{
-                      padding: '12px',
-                      background: 'var(--color-bg-elevated)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '8px',
-                      textAlign: 'center',
-                    }}>
-                      <div style={{
-                        width: '100%',
-                        height: '120px',
-                        background: 'var(--color-bg)',
-                        borderRadius: '8px',
-                        marginBottom: '8px',
-                        backgroundImage: nft.content?.links?.image ? `url(${nft.content.links.image})` : undefined,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }} />
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div key={i} className="solana-page__nft-card">
+                      <div 
+                        className="solana-page__nft-image"
+                        style={{
+                          backgroundImage: nft.content?.links?.image ? `url(${nft.content.links.image})` : undefined,
+                        }}
+                      />
+                      <div className="solana-page__nft-name">
                         {nft.content?.metadata?.name || 'Unnamed NFT'}
                       </div>
                     </div>
                   ))}
                 </div>
                 {results.nfts.holdings.length === 0 && (
-                  <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '40px' }}>
-                    No NFTs found
-                  </div>
+                  <div className="solana-page__empty">No NFTs found</div>
                 )}
               </Section>
             )}
@@ -462,39 +284,23 @@ export function SolanaPage() {
             {/* Programs Tab */}
             {activeTab === 'programs' && (
               <Section title="Program Interactions">
-                <div style={{ display: 'grid', gap: '8px' }}>
+                <div className="solana-page__grid">
                   {results.programInteractions.map((prog: any, i: number) => (
-                    <div key={i} style={{
-                      padding: '16px',
-                      background: 'var(--color-bg-elevated)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}>
+                    <div key={i} className="solana-page__list-item">
                       <div>
-                        <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          {prog.name}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                        <div className="solana-page__list-item-title">{prog.name}</div>
+                        <div className="solana-page__list-item-subtitle">
                           {formatAddress(prog.programId)} • {prog.category}
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          {prog.interactionCount}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                          {prog.percentage.toFixed(1)}%
-                        </div>
+                      <div>
+                        <div className="solana-page__list-item-value">{prog.interactionCount}</div>
+                        <div className="solana-page__list-item-subvalue">{prog.percentage.toFixed(1)}%</div>
                       </div>
                     </div>
                   ))}
                   {results.programInteractions.length === 0 && (
-                    <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '40px' }}>
-                      No program interactions found
-                    </div>
+                    <div className="solana-page__empty">No program interactions found</div>
                   )}
                 </div>
               </Section>
@@ -503,48 +309,25 @@ export function SolanaPage() {
             {/* Sybil Tab */}
             {activeTab === 'sybil' && (
               <Section title="Sybil Detection Analysis">
-                <div style={{
-                  padding: '20px',
-                  background: results.sybilDetection.detected ? 'rgba(239, 68, 68, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                  border: `1px solid ${results.sybilDetection.detected ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
-                  borderRadius: '12px',
-                  marginBottom: '20px',
-                  textAlign: 'center',
-                }}>
-                  <div style={{ 
-                    fontSize: '1.5rem', 
-                    fontWeight: 700,
-                    color: results.sybilDetection.detected ? '#ef4444' : '#22c55e',
-                    marginBottom: '8px',
-                  }}>
+                <div className={`solana-page__sybil-status solana-page__sybil-status--${results.sybilDetection.detected ? 'detected' : 'clean'}`}>
+                  <div className={`solana-page__sybil-title solana-page__sybil-title--${results.sybilDetection.detected ? 'detected' : 'clean'}`}>
                     {results.sybilDetection.detected ? 'Sybil Detected' : 'No Sybil Activity'}
                   </div>
-                  <div style={{ color: 'var(--color-text-secondary)' }}>
+                  <div className="solana-page__sybil-confidence">
                     Confidence: {results.sybilDetection.confidence}%
                   </div>
                 </div>
 
                 {results.sybilDetection.signals.map((signal: any, i: number) => (
-                  <div key={i} style={{
-                    padding: '12px 16px',
-                    background: signal.detected ? 'rgba(239, 68, 68, 0.1)' : 'var(--color-bg-elevated)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '8px',
-                    marginBottom: '8px',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>{signal.name}</span>
-                      <span style={{ 
-                        color: signal.detected ? '#ef4444' : '#22c55e',
-                        fontWeight: 600,
-                      }}>
+                  <div key={i} className={`solana-page__sybil-signal ${signal.detected ? 'solana-page__sybil-signal--detected' : ''}`}>
+                    <div className="solana-page__sybil-signal-header">
+                      <span className="solana-page__sybil-signal-name">{signal.name}</span>
+                      <span className={`solana-page__sybil-signal-status solana-page__sybil-signal-status--${signal.detected ? 'detected' : 'clean'}`}>
                         {signal.detected ? 'DETECTED' : 'Clean'}
                       </span>
                     </div>
                     {signal.details && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                        {signal.details}
-                      </div>
+                      <div className="solana-page__sybil-signal-details">{signal.details}</div>
                     )}
                   </div>
                 ))}
@@ -554,65 +337,38 @@ export function SolanaPage() {
             {/* Funding Tab */}
             {activeTab === 'funding' && (
               <Section title="Funding Trace">
-                <div style={{
-                  padding: '20px',
-                  background: results.fundingTrace.riskLevel === 'high' ? 'rgba(239, 68, 68, 0.1)' :
-                             results.fundingTrace.riskLevel === 'medium' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-                  border: `1px solid ${results.fundingTrace.riskLevel === 'high' ? 'rgba(239, 68, 68, 0.3)' :
-                                              results.fundingTrace.riskLevel === 'medium' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
-                  borderRadius: '12px',
-                  marginBottom: '20px',
-                }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-                    ULTIMATE SOURCE
-                  </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                <div className={`solana-page__funding-source solana-page__funding-source--${results.fundingTrace.riskLevel}`}>
+                  <div className="solana-page__funding-source-label">ULTIMATE SOURCE</div>
+                  <div className="solana-page__funding-source-address">
                     {results.fundingTrace.ultimateSource ? formatAddress(results.fundingTrace.ultimateSource) : 'Unknown'}
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                  <div className="solana-page__funding-source-type">
                     Type: {results.fundingTrace.sourceType || 'Unknown'}
                   </div>
                 </div>
 
-                <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
-                  Recent funding hops:
-                </div>
+                <div className="solana-page__funding-hops-label">Recent funding hops:</div>
 
                 {results.fundingTrace.hops.map((hop: any, i: number) => (
-                  <div key={i} style={{
-                    padding: '12px 16px',
-                    background: 'var(--color-bg-elevated)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '8px',
-                    marginBottom: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>From</div>
-                      <div style={{ fontFamily: 'monospace', color: 'var(--color-text-primary)' }}>
-                        {formatAddress(hop.from)}
-                      </div>
+                  <div key={i} className="solana-page__funding-hop">
+                    <div className="solana-page__funding-hop-addr">
+                      <div className="solana-page__funding-hop-label">From</div>
+                      <div className="solana-page__funding-hop-value">{formatAddress(hop.from)}</div>
                     </div>
-                    <div style={{ color: 'var(--color-text-muted)' }}>→</div>
-                    <div style={{ flex: 1, textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>To</div>
-                      <div style={{ fontFamily: 'monospace', color: 'var(--color-text-primary)' }}>
-                        {formatAddress(hop.to)}
-                      </div>
+                    <div className="solana-page__funding-hop-arrow">→</div>
+                    <div className="solana-page__funding-hop-addr solana-page__funding-hop-addr--to" style={{ textAlign: 'right' }}>
+                      <div className="solana-page__funding-hop-label">To</div>
+                      <div className="solana-page__funding-hop-value">{formatAddress(hop.to)}</div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Value</div>
-                      <div style={{ color: '#22c55e', fontWeight: 500 }}>{hop.value.toFixed(4)} SOL</div>
+                    <div className="solana-page__funding-hop-amount">
+                      <div className="solana-page__funding-hop-label">Value</div>
+                      <div className="solana-page__funding-hop-sol">{hop.value.toFixed(4)} SOL</div>
                     </div>
                   </div>
                 ))}
 
                 {results.fundingTrace.hops.length === 0 && (
-                  <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '40px' }}>
-                    No incoming transactions found
-                  </div>
+                  <div className="solana-page__empty">No incoming transactions found</div>
                 )}
               </Section>
             )}
@@ -621,12 +377,7 @@ export function SolanaPage() {
 
         {/* Features Grid (when no results) */}
         {!results && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '20px',
-            marginTop: '60px',
-          }}>
+          <div className="solana-page__features">
             {[
               { title: 'Fee Payer Analysis', desc: 'Detect sybils via shared fee payers' },
               { title: 'Funding Tracing', desc: 'Trace SOL origin from exchanges' },
@@ -640,28 +391,10 @@ export function SolanaPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                style={{
-                  padding: '24px',
-                  background: 'var(--color-bg-elevated)',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '16px',
-                  textAlign: 'left',
-                }}
+                className="solana-page__feature-card"
               >
-                <h3 style={{
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  color: 'var(--color-text-primary)',
-                  marginBottom: '8px',
-                }}>
-                  {feature.title}
-                </h3>
-                <p style={{
-                  fontSize: '0.875rem',
-                  color: 'var(--color-text-secondary)',
-                }}>
-                  {feature.desc}
-                </p>
+                <h3 className="solana-page__feature-title">{feature.title}</h3>
+                <p className="solana-page__feature-desc">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -671,24 +404,15 @@ export function SolanaPage() {
   );
 }
 
-function StatCard({ label, value, subValue, color }: { label: string; value: string; subValue?: string; color?: string }) {
+function StatCard({ label, value, subValue, colorClass }: { label: string; value: string; subValue?: string; colorClass?: string }) {
   return (
-    <div style={{
-      padding: '16px',
-      background: 'var(--color-bg-elevated)',
-      border: '1px solid var(--color-border)',
-      borderRadius: '12px',
-    }}>
-      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '1.125rem', fontWeight: 600, color: color || 'var(--color-text-primary)' }}>
+    <div className="solana-page__stat-card">
+      <div className="solana-page__stat-label">{label}</div>
+      <div className={`solana-page__stat-value ${colorClass ? `solana-page__stat-value--${colorClass}` : ''}`}>
         {value}
       </div>
       {subValue && (
-        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-          {subValue}
-        </div>
+        <div className="solana-page__stat-subvalue">{subValue}</div>
       )}
     </div>
   );
@@ -696,15 +420,8 @@ function StatCard({ label, value, subValue, color }: { label: string; value: str
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: '24px' }}>
-      <h3 style={{
-        fontSize: '1.125rem',
-        fontWeight: 600,
-        color: 'var(--color-text-primary)',
-        marginBottom: '16px',
-      }}>
-        {title}
-      </h3>
+    <div className="solana-page__section">
+      <h3 className="solana-page__section-title">{title}</h3>
       {children}
     </div>
   );

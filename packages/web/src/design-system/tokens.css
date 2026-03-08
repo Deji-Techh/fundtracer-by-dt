@@ -235,6 +235,109 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
+   LIGHT MODE THEME
+   Professional light interface with green accent
+   ───────────────────────────────────────────────────────────── */
+
+[data-theme="light"] {
+  /* Background Hierarchy - Light grays */
+  --intel-bg-deep: #ffffff;
+  --intel-bg-base: #fafafa;
+  --intel-bg-elevated: #ffffff;
+  --intel-bg-surface: #f5f5f5;
+  --intel-bg-hover: #ebebeb;
+  --intel-bg-active: #e0e0e0;
+  
+  /* Border Colors - Light mode */
+  --intel-border-subtle: #e5e5e5;
+  --intel-border-default: #d4d4d4;
+  --intel-border-strong: #b5b5b5;
+  --intel-border-focus: var(--intel-cyan);
+  
+  /* Text Hierarchy - Dark text on light bg */
+  --intel-text-primary: #0a0a0a;
+  --intel-text-secondary: #525252;
+  --intel-text-muted: #737373;
+  --intel-text-disabled: #a3a3a3;
+  
+  /* Primary Green (Brand Color) - Adjusted for light mode */
+  --intel-cyan: #00b368;
+  --intel-cyan-dim: #009957;
+  --intel-cyan-bright: #00cc77;
+  --intel-cyan-glow: rgba(0, 179, 104, 0.2);
+  --intel-cyan-bg: rgba(0, 179, 104, 0.1);
+  
+  /* Status Colors - Adjusted for readability on light */
+  --intel-green: #00b368;
+  --intel-green-dim: #009957;
+  --intel-green-bg: rgba(0, 179, 104, 0.1);
+  
+  --intel-red: #dc2626;
+  --intel-red-dim: #b91c1c;
+  --intel-red-bg: rgba(220, 38, 38, 0.1);
+  
+  --intel-yellow: #ca8a04;
+  --intel-yellow-dim: #a16207;
+  --intel-yellow-bg: rgba(202, 138, 4, 0.1);
+  
+  --intel-purple: #7c3aed;
+  --intel-purple-dim: #6d28d9;
+  --intel-purple-bg: rgba(124, 58, 237, 0.1);
+  
+  --intel-orange: #ea580c;
+  --intel-orange-dim: #c2410c;
+  --intel-orange-bg: rgba(234, 88, 12, 0.1);
+  
+  /* Entity Labels - Adjusted for light mode */
+  --label-whale: #0284c7;
+  --label-whale-bg: rgba(2, 132, 199, 0.12);
+  
+  --label-exchange: #ea580c;
+  --label-exchange-bg: rgba(234, 88, 12, 0.12);
+  
+  --label-defi: #7c3aed;
+  --label-defi-bg: rgba(124, 58, 237, 0.12);
+  
+  --label-nft: #db2777;
+  --label-nft-bg: rgba(219, 39, 119, 0.12);
+  
+  --label-bridge: #0891b2;
+  --label-bridge-bg: rgba(8, 145, 178, 0.12);
+  
+  --label-scam: #dc2626;
+  --label-scam-bg: rgba(220, 38, 38, 0.12);
+  
+  --label-fund: #00b368;
+  --label-fund-bg: rgba(0, 179, 104, 0.12);
+  
+  --label-dao: #ca8a04;
+  --label-dao-bg: rgba(202, 138, 4, 0.12);
+  
+  /* Risk Levels - Light mode */
+  --risk-low: #00b368;
+  --risk-low-bg: rgba(0, 179, 104, 0.12);
+  
+  --risk-medium: #ca8a04;
+  --risk-medium-bg: rgba(202, 138, 4, 0.12);
+  
+  --risk-high: #ea580c;
+  --risk-high-bg: rgba(234, 88, 12, 0.12);
+  
+  --risk-critical: #dc2626;
+  --risk-critical-bg: rgba(220, 38, 38, 0.12);
+  
+  /* Shadows - Light mode (subtle shadows) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.12);
+  
+  --glow-cyan: 0 0 20px rgba(0, 179, 104, 0.25);
+  --glow-green: 0 0 20px rgba(0, 179, 104, 0.25);
+  --glow-red: 0 0 20px rgba(220, 38, 38, 0.25);
+}
+
+/* ─────────────────────────────────────────────────────────────
    BASE RESET & DEFAULTS
    ───────────────────────────────────────────────────────────── */
 
@@ -296,6 +399,23 @@ body {
 ::selection {
   background: var(--intel-cyan);
   color: var(--intel-bg-deep);
+}
+
+/* Light mode scrollbar */
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: var(--intel-bg-base);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: var(--intel-border-default);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--intel-border-strong);
+}
+
+[data-theme="light"] * {
+  scrollbar-color: var(--intel-border-default) var(--intel-bg-base);
 }
 
 /* ─────────────────────────────────────────────────────────────

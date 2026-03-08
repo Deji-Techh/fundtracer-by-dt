@@ -24,22 +24,22 @@ interface FundingTreeProps {
 // --- Entity type color helpers ---
 
 const ENTITY_COLORS: Record<string, { bg: string; border: string; text: string; label: string }> = {
-    cex:        { bg: '#2d1f00', border: '#f59e0b', text: '#fbbf24', label: 'CEX' },
-    bridge:     { bg: '#0c1f3d', border: '#3b82f6', text: '#60a5fa', label: 'Bridge' },
-    mixer:      { bg: '#3d0c0c', border: '#ef4444', text: '#f87171', label: 'Mixer' },
-    dex:        { bg: '#1f0c3d', border: '#8b5cf6', text: '#a78bfa', label: 'DEX' },
-    contract:   { bg: '#1a1a2e', border: '#6366f1', text: '#818cf8', label: 'Contract' },
-    wallet:     { bg: '#0a1a0a', border: '#555555', text: '#8a8a8a', label: 'Wallet' },
+    cex:        { bg: '#1a1508', border: '#f59e0b', text: '#fbbf24', label: 'CEX' },
+    bridge:     { bg: '#08151a', border: '#00d4ff', text: '#66e0ff', label: 'Bridge' },
+    mixer:      { bg: '#1a0808', border: '#ff3366', text: '#ff6688', label: 'Mixer' },
+    dex:        { bg: '#140a1a', border: '#9966ff', text: '#b388ff', label: 'DEX' },
+    contract:   { bg: '#0a0a14', border: '#6366f1', text: '#818cf8', label: 'Contract' },
+    wallet:     { bg: '#0a0d0a', border: '#00ff88', text: '#66ffaa', label: 'Wallet' },
 };
 
 // Light mode variants
 const ENTITY_COLORS_LIGHT: Record<string, { bg: string; border: string; text: string; label: string }> = {
-    cex:        { bg: '#fef3c7', border: '#f59e0b', text: '#92400e', label: 'CEX' },
-    bridge:     { bg: '#dbeafe', border: '#3b82f6', text: '#1e40af', label: 'Bridge' },
-    mixer:      { bg: '#fee2e2', border: '#ef4444', text: '#991b1b', label: 'Mixer' },
-    dex:        { bg: '#ede9fe', border: '#8b5cf6', text: '#5b21b6', label: 'DEX' },
-    contract:   { bg: '#e0e7ff', border: '#6366f1', text: '#3730a3', label: 'Contract' },
-    wallet:     { bg: '#f3f4f6', border: '#9ca3af', text: '#4b5563', label: 'Wallet' },
+    cex:        { bg: '#fef7ed', border: '#f59e0b', text: '#92400e', label: 'CEX' },
+    bridge:     { bg: '#e6f9ff', border: '#00b3d9', text: '#0077b3', label: 'Bridge' },
+    mixer:      { bg: '#ffebef', border: '#dc2626', text: '#991b1b', label: 'Mixer' },
+    dex:        { bg: '#f3edff', border: '#7c3aed', text: '#5b21b6', label: 'DEX' },
+    contract:   { bg: '#eef2ff', border: '#4f46e5', text: '#3730a3', label: 'Contract' },
+    wallet:     { bg: '#e6fff2', border: '#00cc6e', text: '#008f4d', label: 'Wallet' },
 };
 
 function getEntityStyle(entityType?: string) {
@@ -473,7 +473,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 .attr('orient', 'auto')
                 .append('path')
                 .attr('d', 'M0,0 L10,3 L0,6 Z')
-                .attr('fill', direction === 'source' ? '#2d5a3d' : '#5a2d2d');
+                .attr('fill', direction === 'source' ? '#00ff88' : '#ff3366');
 
             const g = svg.append('g')
                 .attr('class', 'tree-container')
@@ -534,11 +534,11 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 .style('fill', 'none')
                 .style('stroke', (d: any) => {
                     if (highlightedAddress && (d.source.data.address === highlightedAddress || d.target.data.address === highlightedAddress)) {
-                        return direction === 'source' ? '#4ade80' : '#f87171';
+                        return direction === 'source' ? '#00ff88' : '#ff6688';
                     }
                     const targetVal = d.target.data.totalValueInEth || 0;
                     const ratio = maxValue > 0 ? targetVal / maxValue : 0;
-                    if (ratio > 0.5) return direction === 'source' ? '#2d5a3d' : '#5a2d2d';
+                    if (ratio > 0.5) return direction === 'source' ? '#00ff88' : '#ff3366';
                     return 'var(--color-surface-border)';
                 })
                 .style('stroke-width', (d: any) => {
@@ -567,14 +567,14 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 .attr('ry', 6)
                 .style('fill', (d: any) => {
                     const style = getEntityStyle(d.data.entityType);
-                    return d.depth === 0 ? (direction === 'source' ? '#0f2918' : '#290f0f') : style.bg;
+                    return d.depth === 0 ? (direction === 'source' ? '#051a0d' : '#1a0508') : style.bg;
                 })
                 .style('stroke', (d: any) => {
                     if (selectedNode?.address === d.data.address) return '#ffffff';
                     if (d.data.address === highlightedAddress) return '#ffffff';
                     const style = getEntityStyle(d.data.entityType);
                     return d.depth === 0
-                        ? (direction === 'source' ? '#22c55e' : '#ef4444')
+                        ? (direction === 'source' ? '#00ff88' : '#ff3366')
                         : style.border;
                 })
                 .style('stroke-width', (d: any) => {
@@ -613,7 +613,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 .style('font-size', '10px')
                 .style('font-weight', (d: any) => d.depth === 0 ? '600' : '500')
                 .style('fill', (d: any) => {
-                    if (d.depth === 0) return direction === 'source' ? '#4ade80' : '#f87171';
+                    if (d.depth === 0) return direction === 'source' ? '#00ff88' : '#ff6688';
                     const style = getEntityStyle(d.data.entityType);
                     return style.text;
                 })
@@ -738,7 +738,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                     <span style={{
                         background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 4,
                         fontSize: 12, fontWeight: 500,
-                        color: direction === 'source' ? '#4ade80' : '#f87171',
+                        color: direction === 'source' ? '#00ff88' : '#ff6688',
                     }}>
                         {direction === 'source' ? 'Funding Sources' : 'Destinations'}
                     </span>

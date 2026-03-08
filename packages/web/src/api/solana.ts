@@ -58,10 +58,27 @@ const KNOWN_PROTOCOLS: Record<string, { name: string; category: string }> = {
 // Main Analysis Function
 // ============================================================
 
+export interface TransactionSummary {
+  total: number;
+  sent: number;
+  received: number;
+  failed: number;
+  totalSent: number;
+  totalReceived: number;
+  netFlow: number;
+  medianAmount: number;
+  avgAmount: number;
+}
+
+export interface TransactionListData {
+  list: TransactionData[];
+  summary: TransactionSummary;
+}
+
 export interface SolanaAnalysisResult {
   wallet: WalletInfo;
   portfolio: PortfolioData;
-  transactions: TransactionData;
+  transactions: TransactionListData;
   programInteractions: ProgramInteraction[];
   nfts: NFTData;
   riskAnalysis: RiskAnalysis;

@@ -37,7 +37,7 @@ export function PortfolioView() {
       {!isConnected && (
         <Panel className="portfolio-view__connect">
           <div className="portfolio-view__connect-content">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" strokeWidth="1.5">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--intel-cyan)" strokeWidth="1.5">
               <rect x="2" y="5" width="20" height="14" rx="2"/>
               <path d="M2 10h20"/>
               <circle cx="17" cy="15" r="2"/>

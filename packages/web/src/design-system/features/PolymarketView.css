@@ -93,8 +93,8 @@
 }
 
 .polymarket-view__content .mode-tab.active {
-  background: var(--accent-cyan-dim);
-  color: var(--accent-cyan);
+  background: var(--intel-cyan-bg);
+  color: var(--intel-cyan);
 }
 
 .polymarket-view__content .markets-grid {
@@ -112,7 +112,7 @@
 }
 
 .polymarket-view__content .market-card:hover {
-  border-color: var(--accent-cyan);
+  border-color: var(--intel-cyan);
   transform: translateY(-2px);
 }
 
@@ -187,7 +187,7 @@
 
 .polymarket-view__content .market-probability-fill {
   height: 100%;
-  background: var(--accent-cyan);
+  background: var(--intel-cyan);
   border-radius: var(--radius-full);
   transition: width 0.3s ease;
 }
@@ -201,11 +201,11 @@
 }
 
 .polymarket-view__content .market-outcome-yes {
-  color: var(--accent-green);
+  color: var(--intel-green);
 }
 
 .polymarket-view__content .market-outcome-no {
-  color: var(--accent-red);
+  color: var(--intel-red);
 }
 
 .polymarket-view__content .market-link {
@@ -226,8 +226,8 @@
 
 .polymarket-view__content .market-link:hover {
   background: var(--bg-hover);
-  color: var(--accent-cyan);
-  border-color: var(--accent-cyan);
+  color: var(--intel-cyan);
+  border-color: var(--intel-cyan);
 }
 
 /* Search input */
@@ -252,8 +252,8 @@
 
 .polymarket-view__content .search-input:focus {
   outline: none;
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 3px var(--accent-cyan-dim);
+  border-color: var(--intel-cyan);
+  box-shadow: 0 0 0 3px var(--intel-cyan-glow);
 }
 
 /* Loading & Error states */
@@ -275,7 +275,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid var(--border-default);
-  border-top-color: var(--accent-cyan);
+  border-top-color: var(--intel-cyan);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
