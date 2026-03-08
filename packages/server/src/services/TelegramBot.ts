@@ -1449,22 +1449,41 @@ function registerBotCommands() {
             const { dexScreenerService } = await import('./DEXScreenerService.js');
             
             let pairs: any[] = [];
+            let selectedChain = chainArg;
             
-            if (chainArg) {
-                const result = await dexScreenerService.getTokenPairs(chainArg, address);
+            // Detect if it's a Solana address (pumpfun tokens are base58 encoded, longer)
+            const isSolAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
+            
+            if (isSolAddress && !chainArg) {
+                // For Solana addresses, try Solana first
+                try {
+                    const result = await dexScreenerService.getTokenPairs('solana', address);
+                    pairs = Array.isArray(result) ? result : (result?.pairs || []);
+                    if (pairs.length > 0) selectedChain = 'solana';
+                } catch (e) {
+                    // Fall through to search
+                }
+            }
+            
+            // If no results or chain specified, try direct lookup
+            if (pairs.length === 0 && selectedChain) {
+                const result = await dexScreenerService.getTokenPairs(selectedChain, address);
                 pairs = Array.isArray(result) ? result : (result?.pairs || []);
-            } else {
+            }
+            
+            // If still no results, search by address
+            if (pairs.length === 0) {
                 const result = await dexScreenerService.searchPairs(address);
                 pairs = result?.pairs || [];
             }
 
             if (!pairs || pairs.length === 0) {
-                await sendReply(ctx, '❌ Token not found. Make sure the address is correct.');
+                await sendReply(ctx, '❌ Token not found on DEX Screener.\n\nMake sure the address is correct, or try specifying the chain:\n`/rugcheck <address> solana`', { parse_mode: 'Markdown' });
                 return;
             }
 
-            // Get the most liquid pair
-            const pair = pairs.sort((a: any, b: any) => 
+            // Get the most liquid pair (or first one if only one)
+            const pair = pairs.length === 1 ? pairs[0] : pairs.sort((a: any, b: any) => 
                 (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0)
             )[0];
 
@@ -1473,6 +1492,9 @@ function registerBotCommands() {
             const volume24h = pair.volume?.h24 || 0;
             const txns24h = pair.txns?.h24 || { buys: 0, sells: 0 };
             const pairCreatedAt = pair.pairCreatedAt;
+            const pairAddress = pair.pairAddress;
+            const dexId = pair.dexId;
+            const chainId = pair.chainId;
 
             // Calculate safety metrics
             let safetyScore = 100;
@@ -1551,36 +1573,37 @@ function registerBotCommands() {
             else if (safetyScore >= 40) { grade = 'HIGH RISK'; gradeEmoji = '🟠'; }
             else { grade = 'VERY HIGH RISK'; gradeEmoji = '🔴'; }
 
-            let msg = `🛡️ *Safety Report*\n\n`;
-            msg += `🪙 *${escapeMarkdown(token.name || 'Unknown')}* (${escapeMarkdown(token.symbol || '???')})\n`;
-            msg += `⛓️ ${pair.chainId}\n\n`;
-            msg += `${gradeEmoji} *Score:* ${safetyScore}/100 (${grade})\n\n`;
+            let msg = '🛡️ *Safety Report*\n\n';
+            msg += '🪙 *' + escapeMarkdown(token.name || 'Unknown') + '* (' + escapeMarkdown(token.symbol || '???') + ')\n';
+            msg += '⛓️ ' + chainId + ' | 🏦 ' + dexId + '\n\n';
+            msg += gradeEmoji + ' *Score:* ' + safetyScore + '/100 (' + grade + ')\n\n';
 
             if (warnings.length > 0) {
-                msg += `*Warnings:*\n${warnings.join('\n')}\n\n`;
+                msg += '*Warnings:*\n' + warnings.join('\n') + '\n\n';
             }
 
             if (positives.length > 0) {
-                msg += `*Positives:*\n${positives.join('\n')}\n\n`;
+                msg += '*Positives:*\n' + positives.join('\n') + '\n\n';
             }
 
-            msg += `*Stats:*\n`;
-            msg += `💧 Liquidity: $${formatNumber(liquidity)}\n`;
-            msg += `📊 Volume 24h: $${formatNumber(volume24h)}\n`;
-            msg += `🔄 Txns 24h: ${txns24h.buys} buys / ${txns24h.sells} sells\n`;
+            msg += '*Stats:*\n';
+            msg += '💧 Liquidity: $' + formatNumber(liquidity) + '\n';
+            msg += '📊 Volume 24h: $' + formatNumber(volume24h) + '\n';
+            msg += '🔄 Txns 24h: ' + txns24h.buys + ' buys / ' + txns24h.sells + ' sells\n';
 
             if (pairCreatedAt) {
                 const ageHours = (Date.now() - pairCreatedAt) / (1000 * 60 * 60);
                 if (ageHours < 24) {
-                    msg += `📅 Age: ${ageHours.toFixed(1)} hours\n`;
+                    msg += '📅 Age: ' + ageHours.toFixed(1) + ' hours\n';
                 } else {
-                    msg += `📅 Age: ${(ageHours / 24).toFixed(1)} days\n`;
+                    msg += '📅 Age: ' + (ageHours / 24).toFixed(1) + ' days\n';
                 }
             }
 
-            msg += `\n⚠️ *DYOR* - This is automated analysis, not financial advice.`;
+            msg += '\n🔗 [View on DEX Screener](https://dexscreener.com/' + chainId + '/' + pairAddress + ')\n';
+            msg += '\n⚠️ *DYOR* - This is automated analysis, not financial advice.';
 
-            await sendReply(ctx, msg, { parse_mode: 'Markdown' });
+            await sendReply(ctx, msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
         } catch (error) {
             console.error('[Telegram] Rugcheck error:', error);
             await sendReply(ctx, '❌ Failed to analyze token. Please try again.');
