@@ -245,7 +245,71 @@ class PriceService {
   }
 }
 
-// 3D Pie Chart Component
+// Bar Chart Component for Asset Allocation
+const BarChartAllocation: React.FC<{ data: TokenBalance[]; totalValue: number }> = ({ data, totalValue }) => {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  
+  const chartData = useMemo(() => {
+    const sorted = [...data].sort((a, b) => b.usdValue - a.usdValue).slice(0, 5);
+    const colors = ['#00ff88', '#00d4ff', '#ffcc00', '#ff66cc', '#ff3366'];
+    
+    const displayedTotal = sorted.reduce((sum, t) => sum + t.usdValue, 0);
+    
+    return sorted.map((token, index) => ({
+      ...token,
+      color: colors[index % colors.length],
+      percentage: displayedTotal > 0 ? (token.usdValue / displayedTotal) * 100 : 0
+    }));
+  }, [data]);
+
+  return (
+    <div className="bar-chart-allocation">
+      <div className="bar-chart-bars">
+        {chartData.map((item, index) => (
+          <div 
+            key={item.contractAddress}
+            className={`bar-chart-item ${hoveredIndex === index ? 'hovered' : ''}`}
+            onMouseEnter={() => setHoveredIndex(index)}
+            onMouseLeave={() => setHoveredIndex(null)}
+          >
+            <div className="bar-chart-label">
+              <span className="bar-symbol">{item.symbol}</span>
+              <span className="bar-value">${item.usdValue.toLocaleString()}</span>
+            </div>
+            <div className="bar-chart-bar-container">
+              <div 
+                className="bar-chart-bar"
+                style={{ 
+                  width: `${item.percentage}%`,
+                  background: item.color,
+                  animationDelay: `${index * 0.1}s`
+                }}
+              >
+                <span className="bar-percentage">{item.percentage.toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="bar-chart-legend">
+        {chartData.map((item, index) => (
+          <div 
+            key={item.contractAddress}
+            className={`legend-item ${hoveredIndex === index ? 'active' : ''}`}
+            onMouseEnter={() => setHoveredIndex(index)}
+            onMouseLeave={() => setHoveredIndex(null)}
+          >
+            <div className="legend-color" style={{ background: item.color }} />
+            <span className="legend-symbol">{item.symbol}</span>
+            <span className="legend-value">${item.usdValue.toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// 3D Pie Chart Component (kept for backward compatibility)
 const PieChart3D: React.FC<{ data: TokenBalance[]; totalValue: number }> = ({ data, totalValue }) => {
   const [hoveredSlice, setHoveredSlice] = useState<number | null>(null);
   
@@ -1448,7 +1512,7 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
           {/* Left Column - Chart & Allocation */}
           <div className="analytics-left">
             <div className="chart-card">
-              <h3><PieChart size={18} /> Asset Allocation</h3>
+              <h3><BarChart3 size={18} /> Asset Allocation</h3>
               {loadingStages.tokens ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
                   <div className="skeleton skeleton-pie" />
@@ -1461,13 +1525,13 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
                   ))}
                 </div>
               ) : portfolio.tokens.length > 0 ? (
-                <PieChart3D 
+                <BarChartAllocation 
                   data={portfolio.tokens} 
                   totalValue={portfolio.totalUsdValue} 
                 />
               ) : (
                 <EmptyState
-                  icon={<PieChart size={36} />}
+                  icon={<BarChart3 size={36} />}
                   title="No Token Holdings"
                   description="This wallet has no ERC-20 tokens on Linea. Only the native ETH balance is shown."
                 />

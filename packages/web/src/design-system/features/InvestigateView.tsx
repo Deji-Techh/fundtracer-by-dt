@@ -75,6 +75,10 @@ export function InvestigateView({
   } = useGasPayment();
 
   // Handle prefill from history or external navigation
+  const prefillAddresses = prefillType === 'compare' && prefillAddress 
+    ? prefillAddress.split(',').filter(a => a.trim())
+    : [];
+
   useEffect(() => {
     if (prefillAddress) {
       if (prefillChain) {
@@ -413,6 +417,7 @@ export function InvestigateView({
         onAnalyze={handleAnalyze}
         loading={loading}
         disabled={!isConnected}
+        prefillAddresses={prefillAddresses}
       />
 
       {/* Results */}

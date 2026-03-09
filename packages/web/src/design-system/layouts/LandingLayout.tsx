@@ -152,7 +152,6 @@ export function LandingLayout({
               <a href="/features">Features</a>
               <a href="/pricing">Pricing</a>
               <a href="/how-it-works">How It Works</a>
-              <a href="/api">API</a>
             </div>
           </div>
 

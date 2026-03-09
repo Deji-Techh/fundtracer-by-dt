@@ -1455,3 +1455,131 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-light);
 }
+
+/* Bar Chart Allocation */
+.bar-chart-allocation {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 0;
+}
+
+.bar-chart-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bar-chart-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.bar-chart-item:hover {
+  transform: translateX(4px);
+}
+
+.bar-chart-item.hovered .bar-chart-bar {
+  filter: brightness(1.2);
+}
+
+.bar-chart-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bar-symbol {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.bar-value {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.bar-chart-bar-container {
+  width: 100%;
+  height: 24px;
+  background: var(--color-bg-elevated);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bar-chart-bar {
+  height: 100%;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  min-width: 40px;
+  animation: barGrow 0.8s ease-out forwards;
+  transform-origin: left;
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.bar-chart-bar:hover {
+  filter: brightness(1.15);
+}
+
+.bar-percentage {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.bar-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.bar-chart-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.bar-chart-legend .legend-item:hover,
+.bar-chart-legend .legend-item.active {
+  background: var(--color-bg-hover);
+}
+
+.bar-chart-legend .legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.bar-chart-legend .legend-symbol {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.bar-chart-legend .legend-value {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}

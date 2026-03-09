@@ -3,7 +3,7 @@
  * Main investigation interface with chain selector, input, and results
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Panel, Badge, StatGrid, StatBlock, DataGrid, Column, EntityCard } from '../primitives';
 import './InvestigateSection.css';
 
@@ -29,6 +29,7 @@ interface InvestigateSectionProps {
   disabled?: boolean;
   children?: React.ReactNode;
   className?: string;
+  prefillAddresses?: string[];
 }
 
 // Mode configuration
@@ -95,10 +96,18 @@ export function InvestigateSection({
   loading = false,
   disabled = false,
   children,
-  className = ''
+  className = '',
+  prefillAddresses = []
 }: InvestigateSectionProps) {
   const [addresses, setAddresses] = useState<string[]>(['']);
   const [showGuide, setShowGuide] = useState(false);
+
+  // Handle prefill addresses from history
+  useEffect(() => {
+    if (prefillAddresses.length > 0) {
+      setAddresses(prefillAddresses);
+    }
+  }, [prefillAddresses]);
 
   const handleAddAddress = () => {
     if (mode === 'compare' || mode === 'sybil') {

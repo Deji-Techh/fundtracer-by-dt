@@ -22,7 +22,30 @@ import {
 import { useNotify } from './ToastContext';
 
 const TOKEN_EXPIRY_KEY = 'fundtracer_token_expiry';
+const PROFILE_PICTURE_KEY = 'fundtracer_profile_picture';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Helper to get profile picture from localStorage
+const getStoredProfilePicture = (): string | null => {
+    try {
+        return localStorage.getItem(PROFILE_PICTURE_KEY);
+    } catch {
+        return null;
+    }
+};
+
+// Helper to save profile picture to localStorage
+const saveProfilePicture = (picture: string | null): void => {
+    try {
+        if (picture) {
+            localStorage.setItem(PROFILE_PICTURE_KEY, picture);
+        } else {
+            localStorage.removeItem(PROFILE_PICTURE_KEY);
+        }
+    } catch {
+        // Ignore storage errors
+    }
+};
 
 interface AuthUser {
     uid: string;
@@ -109,7 +132,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (token) {
                 try {
                     const userProfile = await getProfile();
-                    setProfile({ ...userProfile, isVerified: userProfile.isVerified ?? false });
+                    // Use server profile picture or fallback to localStorage
+                    const profilePic = userProfile.profilePicture || getStoredProfilePicture();
+                    setProfile({ ...userProfile, profilePicture: profilePic, isVerified: userProfile.isVerified ?? false });
                     
                     if (userProfile.uid) {
                         setUser({
@@ -206,6 +231,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 });
                 const userTier = response.user.tier || 'free';
                 const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
+                const profilePic = response.user.profilePicture || getStoredProfilePicture();
+                // Save profile picture to localStorage as backup
+                if (profilePic) {
+                    saveProfilePicture(profilePic);
+                }
                 setProfile({
                     uid: response.user.address,
                     hasCustomApiKey: false,
@@ -214,7 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     isVerified: response.user.isVerified,
                     tier: userTier,
                     authProvider: 'wallet',
-                    profilePicture: response.user.profilePicture || null,
+                    profilePicture: profilePic,
                     photoURL: response.user.photoURL || null
                 });
                 setIsAuthenticated(true);
@@ -338,6 +368,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         try {
             const userProfile = await getProfile();
+            // Save profile picture to localStorage as backup
+            if (userProfile.profilePicture) {
+                saveProfilePicture(userProfile.profilePicture);
+            }
             setProfile(userProfile);
             
             if (userProfile.walletAddress !== wallet?.address) {
