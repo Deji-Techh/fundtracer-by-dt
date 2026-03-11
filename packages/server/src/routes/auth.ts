@@ -241,8 +241,22 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
   try {
     // Verify the Firebase ID token
     const decodedToken = await firebaseAdminAuth.verifyIdToken(idToken);
-    const { uid, email, name, picture } = decodedToken;
-    console.log(`[AUTH] Twitter User: ${email || uid}`);
+    const { uid, email, name, picture, providerData } = decodedToken;
+    
+    // Extract Twitter username from providerData
+    let twitterDisplayName = name || decodedToken.name || '';
+    let twitterProfilePic = picture || decodedToken.picture || '';
+    
+    // Check providerData for Twitter-specific info
+    if (providerData && Array.isArray(providerData)) {
+      const twitterProvider = providerData.find((p: any) => p.providerId === 'twitter.com');
+      if (twitterProvider) {
+        twitterDisplayName = twitterProvider.displayName || twitterProvider.screenName || twitterDisplayName;
+        twitterProfilePic = twitterProvider.photoURL || twitterProfilePic;
+      }
+    }
+    
+    console.log(`[AUTH] Twitter User: ${twitterDisplayName || email || uid}`);
 
     const db = getFirestore();
     const userRef = db.collection('users').doc(uid);
@@ -267,8 +281,8 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
     await userRef.set({
       uid,
       email: email || null,
-      displayName: name || decodedToken.name || '',
-      profilePicture: picture || decodedToken.picture || '',
+      displayName: twitterDisplayName || '',
+      profilePicture: twitterProfilePic || '',
       tier,
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
@@ -279,8 +293,8 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
     const token = jwt.sign({
       uid,
       email,
-      displayName: name || decodedToken.name || '',
-      profilePicture: picture || decodedToken.picture || '',
+      displayName: twitterDisplayName || '',
+      profilePicture: twitterProfilePic || '',
       tier,
       walletAddress,
       authProvider: 'twitter'
@@ -292,8 +306,8 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
       user: {
         uid,
         email,
-        displayName: name || decodedToken.name || '',
-        profilePicture: picture || decodedToken.picture || '',
+        displayName: twitterDisplayName || '',
+        profilePicture: twitterProfilePic || '',
         tier,
         walletAddress,
         isVerified: false

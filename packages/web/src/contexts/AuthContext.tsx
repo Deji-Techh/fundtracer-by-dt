@@ -7,6 +7,7 @@ import React, {
     useCallback,
     useRef
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react';
 import { ethers } from 'ethers';
 import {
@@ -21,7 +22,7 @@ import {
     unlinkWalletFromAccount,
     UserProfile
 } from '../api';
-import { signInWithGoogle, signInWithTwitter } from '../firebase';
+import { signInWithGoogle, signInWithTwitter, auth as firebaseAuth } from '../firebase';
 import { useNotify } from './ToastContext';
 
 const TOKEN_EXPIRY_KEY = 'fundtracer_token_expiry';
@@ -68,6 +69,7 @@ interface AuthContextType {
     isWalletConnected: boolean;
     loading: boolean;
     signOut: () => Promise<void>;
+    signOutAccount: () => Promise<void>;
     connectWallet: () => Promise<void>;
     unlinkWallet: () => Promise<void>;
     refreshProfile: () => Promise<void>;
@@ -89,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const operationInProgress = useRef(false);
     const walletAuthAttempted = useRef(false);
     const notify = useNotify();
+    const navigate = useNavigate();
 
     const { address, isConnected } = useAppKitAccount();
     const { walletProvider } = useAppKitProvider('eip155');
@@ -280,6 +283,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('Sign out error:', error);
         }
     }, [disconnect, clearAuthData, notify]);
+
+    // Sign out account - signs out of Google/X and returns to landing page
+    const signOutAccount = useCallback(async () => {
+        try {
+            // Sign out from Firebase (Google/X)
+            if (firebaseAuth) {
+                await firebaseAuth.signOut();
+            }
+            // Clear all auth data
+            disconnect();
+            clearAuthData();
+            walletAuthAttempted.current = false;
+            notify.success('Signed out of account');
+            // Navigate to landing page
+            navigate('/');
+        } catch (error) {
+            console.error('Sign out account error:', error);
+            // Still clear local data even if Firebase signout fails
+            disconnect();
+            clearAuthData();
+            walletAuthAttempted.current = false;
+            navigate('/');
+        }
+    }, [disconnect, clearAuthData, notify, navigate]);
 
     // Connect wallet
     const connectWallet = useCallback(async () => {
@@ -547,6 +574,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isWalletConnected: wallet?.isConnected || false,
             loading,
             signOut,
+            signOutAccount,
             connectWallet,
             unlinkWallet,
             refreshProfile,

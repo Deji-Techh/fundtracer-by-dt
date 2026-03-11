@@ -36,7 +36,7 @@ interface SettingsPageProps {
 }
 
 export default function SettingsPage({ onConnectWallet, isWalletConnected, walletAddress, onUpgrade }: SettingsPageProps) {
-  const { user, profile, refreshProfile, signOut } = useAuth();
+  const { user, profile, refreshProfile, signOut, signOutAccount } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const isMobile = useIsMobile();
   const notify = useNotify();
@@ -472,13 +472,13 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
         </div>
       </motion.div>
 
-      {/* Sign Out */}
+      {/* Sign Out Account - for Google/X sign out */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
         className="section-flat"
-        onClick={signOut}
+        onClick={signOutAccount}
         style={{ cursor: 'pointer' }}
       >
         <motion.div 
@@ -504,10 +504,52 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444' }}>
-              Sign Out
+              Sign Out Account
             </div>
             <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-              Disconnect your wallet
+              Sign out of Google/X and return to home
+            </div>
+          </div>
+          <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} color="var(--color-text-muted)" />
+        </motion.div>
+      </motion.div>
+
+      {/* Sign Out Wallet */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+        className="section-flat"
+        onClick={signOut}
+        style={{ cursor: 'pointer' }}
+      >
+        <motion.div 
+          whileHover={{ backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
+          whileTap={{ scale: 0.99 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 16,
+            padding: isMobile ? '8px 0' : '12px 0',
+          }}
+        >
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: 'rgba(239, 68, 68, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <HugeiconsIcon icon={Wallet01Icon} size={22} strokeWidth={1.5} color="#ef4444" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444' }}>
+              Disconnect Wallet
+            </div>
+            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+              Unlink your wallet from this account
             </div>
           </div>
           <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} color="var(--color-text-muted)" />
