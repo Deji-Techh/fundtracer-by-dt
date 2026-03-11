@@ -316,3 +316,260 @@
 .investigate-tab .polymarket-container {
   padding: var(--space-6);
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   MOBILE OPTIMIZATIONS - Fix scrolling, layout, table controls
+   ═════════════════════════════════════════════════════════════════ */
+
+/* Mobile base fixes */
+@media (max-width: 768px) {
+  /* Prevent horizontal scroll on entire app */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Fix main content scrolling */
+  .intel-content {
+    padding: 0 !important;
+    overflow-x: hidden;
+  }
+
+  /* Content container - no overflow */
+  .investigate-content {
+    min-height: calc(100vh - 56px - 60px);
+    padding-bottom: 80px;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  /* Tab panels - full width, no overflow */
+  .investigate-tab {
+    display: none;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .investigate-tab--active {
+    display: block;
+    width: 100%;
+  }
+
+  /* Page header - compact mobile */
+  .investigate-tab .page-header-flat {
+    padding: var(--space-4) var(--space-3) !important;
+    margin-bottom: var(--space-2) !important;
+  }
+
+  .investigate-tab .page-header-flat h1 {
+    font-size: var(--text-lg) !important;
+    margin-bottom: var(--space-1) !important;
+  }
+
+  .investigate-tab .page-header-flat p {
+    font-size: var(--text-xs) !important;
+  }
+
+  /* Sections - full width, no horizontal overflow */
+  .investigate-tab .section-flat {
+    margin: var(--space-2) var(--space-3) !important;
+    padding: var(--space-3) !important;
+    border-radius: var(--radius-md) !important;
+    overflow-x: hidden;
+  }
+
+  /* Tables - horizontal scroll wrapper */
+  .investigate-tab .table-container,
+  .investigate-tab .data-grid-container,
+  .investigate-tab [class*="table"],
+  .investigate-tab [class*="DataGrid"],
+  .investigate-tab [class*="data-grid"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 calc(var(--space-3) * -1);
+    padding: 0 var(--space-3);
+    width: calc(100% + var(--space-6));
+  }
+
+  /* Force tables to be scrollable */
+  .investigate-tab table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Compact all inputs on mobile */
+  .investigate-tab input,
+  .investigate-tab select,
+  .investigate-tab textarea {
+    font-size: 16px !important; /* Prevent zoom on iOS */
+    padding: var(--space-2) var(--space-3) !important;
+  }
+
+  /* Buttons - full width on mobile */
+  .investigate-tab .btn-flat,
+  .investigate-tab button[class*="btn"],
+  .investigate-tab [class*="button"] {
+    min-height: 44px;
+    padding: var(--space-2) var(--space-3) !important;
+    font-size: var(--text-sm) !important;
+  }
+
+  /* Search input - full width */
+  .investigate-tab .search-container,
+  .investigate-tab [class*="search"] {
+    width: 100%;
+    margin-bottom: var(--space-2);
+  }
+
+  /* Stats grid - 2 columns max on mobile */
+  .investigate-tab .stats-grid,
+  .investigate-tab [class*="stats"],
+  .investigate-tab .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-2) !important;
+  }
+
+  /* Cards - stack vertically */
+  .investigate-tab .card-grid,
+  .investigate-tab [class*="card-grid"],
+  .investigate-tab [class*="grid"] {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3) !important;
+  }
+
+  /* Tab bars - scrollable horizontally */
+  .investigate-tab .tab-bar-flat {
+    display: flex !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--space-2) var(--space-3) !important;
+    gap: var(--space-1) !important;
+    scrollbar-width: none;
+  }
+
+  .investigate-tab .tab-bar-flat::-webkit-scrollbar {
+    display: none;
+  }
+
+  .investigate-tab .tab-bar-flat .tab-item {
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-3) !important;
+    font-size: var(--text-xs) !important;
+  }
+
+  /* Header actions - stack if needed */
+  .investigate-header-actions {
+    flex-wrap: wrap;
+    gap: var(--space-1) !important;
+  }
+
+  /* Wallet button - compact */
+  .investigate-wallet-btn,
+  .investigate-connect-btn {
+    padding: var(--space-1) var(--space-2) !important;
+    font-size: var(--text-xs) !important;
+  }
+
+  /* Hide non-essential elements on mobile */
+  .investigate-tab .hide-mobile,
+  .investigate-tab [class*="desktop-only"] {
+    display: none !important;
+  }
+
+  /* Modal - full screen on mobile */
+  .investigate-tab .modal,
+  .investigate-tab [class*="modal"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+  }
+
+  /* Form groups */
+  .investigate-tab .form-group {
+    margin-bottom: var(--space-3);
+  }
+
+  .investigate-tab .form-group label {
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-1);
+    display: block;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .investigate-content {
+    padding-bottom: 100px;
+  }
+
+  .investigate-tab .section-flat {
+    margin: var(--space-2) !important;
+    padding: var(--space-2) !important;
+  }
+
+  /* Single column stats */
+  .investigate-tab .stats-grid,
+  .investigate-tab .stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Very small text */
+  .investigate-tab .text-xs,
+  .investigate-tab [class*="text-xs"] {
+    font-size: 10px !important;
+  }
+}
+
+/* Touch-friendly table controls */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets */
+  .investigate-tab .table-container th,
+  .investigate-tab .table-container td {
+    padding: var(--space-3) var(--space-2) !important;
+    min-height: 44px;
+  }
+
+  /* Touch-friendly sort buttons */
+  .investigate-tab [class*="sort"],
+  .investigate-tab [class*="Sort"] {
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--space-2);
+  }
+
+  /* Scrollable table with sticky first column on mobile */
+  .investigate-tab .table-container {
+    position: relative;
+  }
+
+  /* Inline action buttons in tables */
+  .investigate-tab .table-container .actions,
+  .investigate-tab .table-container [class*="actions"] {
+    display: flex;
+    gap: var(--space-1);
+  }
+
+  .investigate-tab .table-container .actions button,
+  .investigate-tab .table-container [class*="actions"] button {
+    min-width: 36px;
+    min-height: 36px;
+    padding: var(--space-1);
+  }
+}
+
+/* Fix for iOS Safari - prevent bounce scroll */
+@supports (-webkit-touch-callout: none) {
+  .intel-content {
+    height: -webkit-fill-available;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .investigate-content {
+    height: -webkit-fill-available;
+  }
+}
