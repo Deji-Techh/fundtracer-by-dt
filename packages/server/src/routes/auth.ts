@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { getFirestore } from '../firebase.js';
+import { getAuth, verifyIdToken } from 'firebase-admin/auth';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
 
 const router = Router();
 
@@ -12,6 +14,28 @@ if (!JWT_SECRET) {
   console.error('Please set a strong random secret (min 256 bits)');
   console.error('Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
   process.exit(1);
+}
+
+// Initialize Firebase Admin for ID token verification
+let firebaseAdminAuth: ReturnType<typeof getAuth> | null = null;
+if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+  try {
+    if (getApps().length === 0) {
+      initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }),
+      });
+    }
+    firebaseAdminAuth = getAuth();
+    console.log('[AUTH] Firebase Admin initialized');
+  } catch (error) {
+    console.error('[AUTH] Firebase Admin init error:', error);
+  }
+} else {
+  console.warn('[AUTH] Firebase Admin credentials not found - OAuth login will not work');
 }
 
 // Simple UUID generator for user IDs
@@ -115,6 +139,170 @@ router.post('/login-wallet', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[AUTH] Login CRITICAL error:', error);
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// Google OAuth login
+router.post('/google-login', async (req: Request, res: Response) => {
+  const { idToken } = req.body;
+  console.log('[AUTH] Google Login Request');
+
+  if (!idToken) {
+    return res.status(400).json({ error: 'Missing ID token' });
+  }
+
+  if (!firebaseAdminAuth) {
+    console.error('[AUTH] Firebase Admin not initialized');
+    return res.status(500).json({ error: 'OAuth not configured' });
+  }
+
+  try {
+    // Verify the Firebase ID token
+    const decodedToken = await firebaseAdminAuth.verifyIdToken(idToken);
+    const { uid, email, name, picture } = decodedToken;
+    console.log(`[AUTH] Google User: ${email}`);
+
+    const db = getFirestore();
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+
+    let tier = 'free';
+    let expiry = 0;
+    let walletAddress = '';
+
+    if (userDoc.exists) {
+      const data = userDoc.data();
+      tier = data?.tier || 'free';
+      expiry = data?.subscriptionExpiry || 0;
+      walletAddress = data?.walletAddress || '';
+    }
+
+    // Check if subscription expired
+    if (expiry > 0 && Date.now() > expiry) {
+      tier = 'free';
+    }
+
+    await userRef.set({
+      uid,
+      email,
+      displayName: name,
+      profilePicture: picture,
+      tier,
+      subscriptionExpiry: expiry,
+      lastLogin: Date.now(),
+      authProvider: 'google'
+    }, { merge: true });
+
+    // Generate JWT
+    const token = jwt.sign({
+      uid,
+      email,
+      displayName: name,
+      profilePicture: picture,
+      tier,
+      walletAddress,
+      authProvider: 'google'
+    }, JWT_SECRET, { expiresIn: '30d' });
+
+    console.log('[AUTH] Google Login SUCCESS');
+    res.json({
+      token,
+      user: {
+        uid,
+        email,
+        displayName: name,
+        profilePicture: picture,
+        tier,
+        walletAddress,
+        isVerified: false
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[AUTH] Google Login CRITICAL error:', error);
+    res.status(500).json({ error: 'Google login failed' });
+  }
+});
+
+// Twitter OAuth login
+router.post('/twitter-login', async (req: Request, res: Response) => {
+  const { idToken } = req.body;
+  console.log('[AUTH] Twitter Login Request');
+
+  if (!idToken) {
+    return res.status(400).json({ error: 'Missing ID token' });
+  }
+
+  if (!firebaseAdminAuth) {
+    console.error('[AUTH] Firebase Admin not initialized');
+    return res.status(500).json({ error: 'OAuth not configured' });
+  }
+
+  try {
+    // Verify the Firebase ID token
+    const decodedToken = await firebaseAdminAuth.verifyIdToken(idToken);
+    const { uid, email, name, picture } = decodedToken;
+    console.log(`[AUTH] Twitter User: ${email || uid}`);
+
+    const db = getFirestore();
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+
+    let tier = 'free';
+    let expiry = 0;
+    let walletAddress = '';
+
+    if (userDoc.exists) {
+      const data = userDoc.data();
+      tier = data?.tier || 'free';
+      expiry = data?.subscriptionExpiry || 0;
+      walletAddress = data?.walletAddress || '';
+    }
+
+    // Check if subscription expired
+    if (expiry > 0 && Date.now() > expiry) {
+      tier = 'free';
+    }
+
+    await userRef.set({
+      uid,
+      email: email || null,
+      displayName: name || decodedToken.name || '',
+      profilePicture: picture || decodedToken.picture || '',
+      tier,
+      subscriptionExpiry: expiry,
+      lastLogin: Date.now(),
+      authProvider: 'twitter'
+    }, { merge: true });
+
+    // Generate JWT
+    const token = jwt.sign({
+      uid,
+      email,
+      displayName: name || decodedToken.name || '',
+      profilePicture: picture || decodedToken.picture || '',
+      tier,
+      walletAddress,
+      authProvider: 'twitter'
+    }, JWT_SECRET, { expiresIn: '30d' });
+
+    console.log('[AUTH] Twitter Login SUCCESS');
+    res.json({
+      token,
+      user: {
+        uid,
+        email,
+        displayName: name || decodedToken.name || '',
+        profilePicture: picture || decodedToken.picture || '',
+        tier,
+        walletAddress,
+        isVerified: false
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[AUTH] Twitter Login CRITICAL error:', error);
+    res.status(500).json({ error: 'Twitter login failed' });
   }
 });
 

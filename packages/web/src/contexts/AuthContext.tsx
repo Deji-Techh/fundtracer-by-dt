@@ -15,10 +15,13 @@ import {
     getAuthToken,
     setAuthToken,
     loginWithWallet as apiLoginWithWallet,
+    loginWithGoogle as apiLoginWithGoogle,
+    loginWithTwitter as apiLoginWithTwitter,
     linkWalletToAccount,
     unlinkWalletFromAccount,
     UserProfile
 } from '../api';
+import { signInWithGoogle, signInWithTwitter } from '../firebase';
 import { useNotify } from './ToastContext';
 
 const TOKEN_EXPIRY_KEY = 'fundtracer_token_expiry';
@@ -70,6 +73,8 @@ interface AuthContextType {
     refreshProfile: () => Promise<void>;
     getSigner: () => Promise<ethers.Signer>;
     loginWithWallet: () => Promise<void>;
+    loginWithGoogle: () => Promise<void>;
+    loginWithTwitter: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -451,6 +456,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
 
+    // OAuth login with Google
+    const loginWithGoogle = useCallback(async () => {
+        if (operationInProgress.current) return;
+        operationInProgress.current = true;
+        setLoading(true);
+
+        try {
+            const idToken = await signInWithGoogle();
+            const response = await apiLoginWithGoogle(idToken);
+
+            setTokenWithExpiry(response.token, true);
+            setUser({
+                uid: response.user.uid,
+                walletAddress: response.user.walletAddress || '',
+            });
+            const userTier = response.user.tier || 'free';
+            const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
+            setProfile({
+                uid: response.user.uid,
+                hasCustomApiKey: false,
+                usage: { today: 0, limit: tierLimit, remaining: tierLimit },
+                walletAddress: response.user.walletAddress || null,
+                isVerified: response.user.isVerified,
+                tier: userTier,
+                authProvider: 'google',
+                displayName: response.user.displayName || '',
+                profilePicture: response.user.profilePicture || null
+            });
+            setIsAuthenticated(true);
+
+            notify.success('Welcome to FundTracer!');
+        } catch (error: any) {
+            console.error('[AuthContext] Google login error:', error);
+            notify.error(error.message || 'Google sign in failed');
+            throw error;
+        } finally {
+            setLoading(false);
+            operationInProgress.current = false;
+        }
+    }, [notify, setTokenWithExpiry]);
+
+    // OAuth login with Twitter
+    const loginWithTwitter = useCallback(async () => {
+        if (operationInProgress.current) return;
+        operationInProgress.current = true;
+        setLoading(true);
+
+        try {
+            const idToken = await signInWithTwitter();
+            const response = await apiLoginWithTwitter(idToken);
+
+            setTokenWithExpiry(response.token, true);
+            setUser({
+                uid: response.user.uid,
+                walletAddress: response.user.walletAddress || '',
+            });
+            const userTier = response.user.tier || 'free';
+            const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
+            setProfile({
+                uid: response.user.uid,
+                hasCustomApiKey: false,
+                usage: { today: 0, limit: tierLimit, remaining: tierLimit },
+                walletAddress: response.user.walletAddress || null,
+                isVerified: response.user.isVerified,
+                tier: userTier,
+                authProvider: 'twitter',
+                displayName: response.user.displayName || '',
+                profilePicture: response.user.profilePicture || null
+            });
+            setIsAuthenticated(true);
+
+            notify.success('Welcome to FundTracer!');
+        } catch (error: any) {
+            console.error('[AuthContext] Twitter login error:', error);
+            notify.error(error.message || 'Twitter sign in failed');
+            throw error;
+        } finally {
+            setLoading(false);
+            operationInProgress.current = false;
+        }
+    }, [notify, setTokenWithExpiry]);
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -464,7 +551,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             unlinkWallet,
             refreshProfile,
             getSigner,
-            loginWithWallet
+            loginWithWallet,
+            loginWithGoogle,
+            loginWithTwitter
         }}>
             {children}
         </AuthContext.Provider>

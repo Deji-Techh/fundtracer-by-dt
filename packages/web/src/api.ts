@@ -37,7 +37,7 @@ export interface UserProfile {
     walletAddress?: string | null;
     profilePicture?: string | null;
     photoURL?: string | null;
-    authProvider?: 'wallet';
+    authProvider?: 'wallet' | 'google' | 'twitter';
 }
 
 // Token management
@@ -148,6 +148,14 @@ export async function loginWithWallet(address: string, signature: string, messag
 
 export async function loginWithGoogle(idToken: string): Promise<{ token: string, user: any }> {
     const data = await apiRequest<{ token: string, user: any }>('/api/auth/google-login', 'POST', {
+        idToken
+    });
+    setAuthToken(data.token);
+    return data;
+}
+
+export async function loginWithTwitter(idToken: string): Promise<{ token: string, user: any }> {
+    const data = await apiRequest<{ token: string, user: any }>('/api/auth/twitter-login', 'POST', {
         idToken
     });
     setAuthToken(data.token);

@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { useAuth } from '../contexts/AuthContext';
 import {
   LandingLayout,
   LiveFeed,
@@ -49,6 +50,7 @@ export function IntelPage() {
   const navigate = useNavigate();
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
+  const { isAuthenticated } = useAuth();
 
   const [marketStats, setMarketStats] = useState<MarketStats | null>(null);
   const [trendingTokens, setTrendingTokens] = useState<TrendingToken[]>([]);
@@ -231,10 +233,10 @@ export function IntelPage() {
   ];
 
   const handleLaunchApp = () => {
-    if (isConnected) {
+    if (isAuthenticated) {
       navigate('/app-evm');
     } else {
-      open();
+      navigate('/auth');
     }
   };
 
@@ -245,13 +247,13 @@ export function IntelPage() {
       transparent={true}
       headerRight={
         <div className="intel-header-actions">
-          {isConnected ? (
+          {isAuthenticated ? (
             <button className="intel-btn intel-btn--primary" onClick={() => navigate('/app-evm')}>
               Launch App
             </button>
           ) : (
-            <button className="intel-btn intel-btn--primary" onClick={() => open()}>
-              Connect Wallet
+            <button className="intel-btn intel-btn--primary" onClick={() => navigate('/auth')}>
+              Sign In
             </button>
           )}
         </div>
@@ -445,10 +447,10 @@ export function IntelPage() {
           <div className="intel-cta__content">
             <h2 className="intel-cta__title">Ready to investigate?</h2>
             <p className="intel-cta__subtitle">
-              Connect your wallet and start tracking on-chain activity in seconds.
+              Sign in with Google or X to start tracking on-chain activity in seconds.
             </p>
             <button className="intel-btn intel-btn--primary intel-btn--lg" onClick={handleLaunchApp}>
-              Launch FundTracer
+              Get Started
             </button>
           </div>
         </section>
