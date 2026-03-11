@@ -271,9 +271,10 @@ function registerBotCommands() {
             await sendReply(ctx, 
                 '🔗 *Connect Your Account*\n\n' +
                 '*Step 1:* Go to fundtracer.xyz/telegram\n' +
-                '*Step 2:* Connect your wallet\n' +
-                '*Step 3:* Generate a link code\n' +
-                '*Step 4:* Paste the code here\n\n' +
+                '*Step 2:* Sign in with Google or X\n' +
+                '*Step 3:* Connect your wallet (required for Telegram alerts)\n' +
+                '*Step 4:* Generate a link code\n' +
+                '*Step 5:* Paste the code here\n\n' +
                 '⏳ Waiting for your code...',
                 { parse_mode: 'Markdown' }
             );
