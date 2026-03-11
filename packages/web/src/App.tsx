@@ -17,6 +17,7 @@ const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 const InstallPage = lazy(() => import('./pages/InstallPage').then(m => ({ default: m.InstallPage })));
 const TelegramPage = lazy(() => import('./pages/TelegramPage').then(m => ({ default: m.TelegramPage })));
+const AuthPage = lazy(() => import('./pages/AuthPage').then(m => ({ default: m.AuthPage })));
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
         <Route path="/ext-install" element={<Suspense fallback={null}><InstallPage /></Suspense>} />
         <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
+        <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
         {/* Main app dashboard - uses new InvestigatePage with Arkham-style design */}
         <Route path="/app-evm/*" element={<InvestigatePage />} />
         <Route path="/app-solana/*" element={

@@ -68,7 +68,7 @@ export function LandingNav() {
           <ThemeToggle size="sm" />
           
           <motion.button
-            onClick={() => window.location.href = '/app-evm'}
+            onClick={() => window.location.href = '/auth'}
             className="ios-cta-button desktop-only"
             whileHover={{ scale: 1.02, y: -1 }}
             whileTap={{ scale: 0.98 }}
@@ -76,7 +76,7 @@ export function LandingNav() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: 0.3 }}
           >
-            <span>Launch App</span>
+            <span>Sign In</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"/>
               <polyline points="12 5 19 12 12 19"/>
@@ -147,14 +147,14 @@ export function LandingNav() {
               <motion.button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  window.location.href = '/app-evm';
+                  window.location.href = '/auth';
                 }}
                 className="ios-mobile-menu-cta"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.3 }}
               >
-                Launch App
+                Sign In
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"/>
                   <polyline points="12 5 19 12 12 19"/>
