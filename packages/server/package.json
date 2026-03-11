@@ -11,6 +11,7 @@
     "dependencies": {
         "@fundtracer/core": "*",
         "@types/jsonwebtoken": "^9.0.10",
+        "@types/nodemailer": "^7.0.11",
         "bcryptjs": "^2.4.3",
         "cheerio": "^1.1.2",
         "cors": "^2.8.5",
@@ -24,6 +25,7 @@
         "helmet": "^7.2.0",
         "jsonwebtoken": "^9.0.3",
         "node-fetch": "^2.7.0",
+        "nodemailer": "^6.10.1",
         "serverless-http": "^4.0.0",
         "telegraf": "^4.16.3"
     },

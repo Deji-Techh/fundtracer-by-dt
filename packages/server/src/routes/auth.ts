@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { getFirestore } from '../firebase.js';
 import { getAuth, verifyIdToken } from 'firebase-admin/auth';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import nodemailer from 'nodemailer';
 
 const router = Router();
 
@@ -36,6 +37,108 @@ if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && proc
   }
 } else {
   console.warn('[AUTH] Firebase Admin credentials not found - OAuth login will not work');
+}
+
+// Email transporter configuration
+const EMAIL_USER = process.env.EMAIL_USER || 'fundtracerbydt@gmail.com';
+const EMAIL_PASS = process.env.EMAIL_PASS || 'zgal bfmu dkul vztu';
+
+let emailTransporter: nodemailer.Transporter | null = null;
+
+function getEmailTransporter(): nodemailer.Transporter | null {
+  if (!emailTransporter && EMAIL_USER && EMAIL_PASS) {
+    try {
+      emailTransporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: EMAIL_USER,
+          pass: EMAIL_PASS.replace(/\s/g, ''), // Remove spaces from app password
+        },
+      });
+      console.log('[AUTH] Email transporter initialized');
+    } catch (error) {
+      console.error('[AUTH] Email transporter init error:', error);
+    }
+  }
+  return emailTransporter;
+}
+
+// Send welcome email function
+async function sendWelcomeEmail(email: string, name: string, authProvider: string) {
+  const transporter = getEmailTransporter();
+  if (!transporter) {
+    console.warn('[AUTH] Email transporter not available, skipping welcome email');
+    return;
+  }
+
+  const providerLabel = authProvider === 'google' ? 'Google' : authProvider === 'twitter' ? 'X (Twitter)' : 'wallet';
+  
+  const mailOptions = {
+    from: '"FundTracer" <fundtracerbydt@gmail.com>',
+    to: email,
+    subject: "Welcome to FundTracer - Blockchain Intelligence Reimagined",
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #22d3ee; margin: 0;">FundTracer</h1>
+        </div>
+        
+        <h2 style="color: #1e293b;">Welcome${name ? `, ${name}` : ''}!</h2>
+        
+        <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+          You're now part of the most powerful blockchain intelligence platform. Trace wallet funding sources, 
+          detect Sybil clusters, and uncover hidden relationships across the blockchain.
+        </p>
+
+        <h3 style="color: #1e293b; margin-top: 30px;">What you can do:</h3>
+        <ul style="color: #475569; line-height: 1.8;">
+          <li><strong>🔍 Investigate</strong> - Trace any wallet's funding sources and transaction history</li>
+          <li><strong>👥 Sybil Detection</strong> - Identify coordinated attack patterns and airdrop farmers</li>
+          <li><strong>🌳 Funding Trees</strong> - Visualize where funds originate from</li>
+          <li><strong>📊 Portfolio Tracking</strong> - Monitor all your wallets in one place</li>
+        </ul>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://www.fundtracer.xyz/app-evm" 
+             style="background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%); color: white; padding: 14px 28px; 
+                    text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; display: inline-block;">
+            🚀 Go to Dashboard
+          </a>
+        </div>
+
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 30px 0;">
+          <h4 style="color: #1e293b; margin: 0 0 15px;">Try our other products:</h4>
+          <p style="margin: 0;">
+            <a href="https://www.fundtracer.xyz/cli" style="color: #06b6d4; text-decoration: none;">
+              💻 FundTracer CLI
+            </a> - Command-line blockchain forensics
+          </p>
+          <p style="margin: 10px 0 0;">
+            <a href="https://fundtracer.xyz/telegram" style="color: #06b6d4; text-decoration: none;">
+              🤖 Telegram Bot
+            </a> - Get wallet alerts directly in Telegram
+          </p>
+        </div>
+
+        <p style="color: #94a3b8; font-size: 13px; margin-top: 30px;">
+          Need help? Reply to this email anytime — we're happy to assist.
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
+        <p style="color: #94a3b8; font-size: 12px;">
+          FundTracer - Blockchain Intelligence Reimagined<br/>
+          You're receiving this because you signed up with ${providerLabel}.
+        </p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`[AUTH] Welcome email sent to: ${email}`);
+  } catch (error) {
+    console.error('[AUTH] Error sending welcome email:', error);
+  }
 }
 
 // Simple UUID generator for user IDs
@@ -205,6 +308,12 @@ router.post('/google-login', async (req: Request, res: Response) => {
     }, JWT_SECRET, { expiresIn: '30d' });
 
     console.log('[AUTH] Google Login SUCCESS');
+    
+    // Send welcome email (async, don't wait)
+    if (email) {
+      sendWelcomeEmail(email, name || '', 'google').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
+    }
+    
     res.json({
       token,
       user: {
@@ -301,6 +410,16 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
     }, JWT_SECRET, { expiresIn: '30d' });
 
     console.log('[AUTH] Twitter Login SUCCESS');
+    
+    // Send welcome email for Twitter (async, don't wait)
+    // Twitter OAuth might not provide email, check if available
+    if (email) {
+      sendWelcomeEmail(email, twitterDisplayName || '', 'twitter').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
+    } else if (twitterDisplayName) {
+      // Try to get email from Firestore user record if not provided by Twitter
+      console.log('[AUTH] Twitter user email not available, skipping welcome email');
+    }
+    
     res.json({
       token,
       user: {

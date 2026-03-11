@@ -20,6 +20,8 @@ export function Footer() {
       { label: 'Features', href: '/features' },
       { label: 'Pricing', href: '/pricing' },
       { label: 'How It Works', href: '/how-it-works' },
+      { label: 'CLI', href: '/cli' },
+      { label: 'Telegram Bot', href: 'https://fundtracer.xyz/telegram' },
     ],
     company: [
       { label: 'About', href: '/about' },

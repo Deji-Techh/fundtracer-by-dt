@@ -1,0 +1,227 @@
+.cli-page {
+  min-height: 100vh;
+  background: var(--bg-base);
+  padding: var(--space-6) 0;
+}
+
+.cli-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.cli-header {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.cli-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.cli-logo svg {
+  color: var(--accent-cyan);
+}
+
+.cli-logo span {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cli-header h1 {
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.cli-header p {
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.cli-install,
+.cli-features,
+.cli-usage,
+.cli-config,
+.cli-cta {
+  margin-bottom: var(--space-8);
+}
+
+.cli-install h2,
+.cli-features h2,
+.cli-usage h2,
+.cli-config h2,
+.cli-cta h2 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+  text-align: center;
+}
+
+.cli-install > p,
+.cli-config > p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+  text-align: center;
+}
+
+.cli-code-block {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cli-code-block code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--accent-cyan);
+  word-break: break-all;
+}
+
+.cli-copy-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.cli-copy-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.cli-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-4);
+}
+
+.cli-feature {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.cli-feature .feature-icon {
+  font-size: 32px;
+  margin-bottom: var(--space-3);
+}
+
+.cli-feature h3 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.cli-feature p {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.cli-usage {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.cli-command-section {
+  margin-bottom: var(--space-4);
+}
+
+.cli-command-section:last-child {
+  margin-bottom: 0;
+}
+
+.cli-command-section h3 {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.cli-config-note {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+
+.cli-config-note a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+}
+
+.cli-config-note a:hover {
+  text-decoration: underline;
+}
+
+.cli-cta {
+  text-align: center;
+  padding: var(--space-6);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.cli-cta p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.cli-telegram-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: #0088cc;
+  color: white;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.cli-telegram-btn:hover {
+  background: #0099dd;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .cli-header h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .cli-header p {
+    font-size: var(--text-base);
+  }
+
+  .cli-code-block {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cli-copy-btn {
+    align-self: flex-end;
+  }
+}
