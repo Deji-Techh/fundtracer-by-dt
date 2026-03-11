@@ -252,13 +252,12 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ✅ FIXED: Security headers middleware
-// Cross-Origin-Opener-Policy set to 'same-origin-allow-popups' to allow Firebase auth popups
+// Security headers middleware
 app.use((req, res, next) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups'); // ✅ Fixes Google/Twitter popup auth
-    res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');            // ✅ Prevents iframe blocking
+    // NOTE: Cross-Origin-Embedder-Policy intentionally NOT set - setting it breaks wallet/iframe integrations
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');                          // ✅ Changed from DENY - allows Firebase auth frames
+    res.setHeader('X-Frame-Options', 'DENY');                                // Reverted - SAMEORIGIN was causing router crash
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
