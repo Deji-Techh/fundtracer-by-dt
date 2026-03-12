@@ -63,7 +63,9 @@ jobs:
                 {"key": "DEBANK_API_KEY", "value": "${{ secrets.DEBANK_API_KEY }}"},
                 {"key": "QUICKNODE_API_KEY", "value": "${{ secrets.QUICKNODE_API_KEY }}"},
                 {"key": "QUICKNODE_RPC_URL", "value": "${{ secrets.QUICKNODE_RPC_URL }}"},
-                {"key": "DUNE_API_KEY", "value": "${{ secrets.DUNE_API_KEY }}"}
+                {"key": "DUNE_API_KEY", "value": "${{ secrets.DUNE_API_KEY }}"},
+                {"key": "EMAIL_USER", "value": "${{ secrets.EMAIL_USER }}"},
+                {"key": "EMAIL_PASS", "value": "${{ secrets.EMAIL_PASS }}"}
               ]
             }'
 
