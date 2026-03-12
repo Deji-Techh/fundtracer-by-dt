@@ -662,7 +662,8 @@ body {
     box-shadow: 4px 0 24px rgba(0,0,0,0.5);
   }
   .ft-sidebar.open { transform: translateX(0); }
-  .ft-overlay { display: block; }
+  .ft-overlay { display: block; pointer-events: auto; }
+  .ft-overlay:not(.visible) { pointer-events: none; }
 
   .ft-topbar { padding: 0 14px; gap: 10px; }
   .ft-hamburger { display: flex; }

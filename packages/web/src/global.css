@@ -10,6 +10,12 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Improve touch interactions on mobile */
+button, a, [role="button"] {
+  touch-action: manipulation;
 }
 
 html, body, #root {

@@ -80,17 +80,24 @@ export function CommandBar({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [expanded]);
 
-  // Click outside to close
+  // Click outside to close (supports both mouse and touch events)
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (containerRef.current && !containerRef.current.contains(target)) {
         setExpanded(false);
+        setQuery('');
+        setSelectedIndex(-1);
       }
     };
 
     if (expanded) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('touchstart', handleClickOutside);
+      };
     }
   }, [expanded]);
 
