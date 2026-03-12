@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import IntelPage from './pages/IntelPage';
 import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
@@ -22,30 +22,32 @@ const CliPage = lazy(() => import('./pages/CliPage').then(m => ({ default: m.Cli
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<IntelPage />} />
-        <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
-        <Route path="/features" element={<Suspense fallback={null}><FeaturesPage /></Suspense>} />
-        <Route path="/pricing" element={<Suspense fallback={null}><PricingPage /></Suspense>} />
-        <Route path="/how-it-works" element={<Suspense fallback={null}><HowItWorksPage /></Suspense>} />
-        <Route path="/faq" element={<Suspense fallback={null}><FaqPage /></Suspense>} />
-        <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
-        <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
-        <Route path="/ext-install" element={<Suspense fallback={null}><InstallPage /></Suspense>} />
-        <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
-        <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
-        <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
+    <Routes>
+      <Route path="/" element={<IntelPage />} />
+      <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
+      <Route path="/features" element={<Suspense fallback={null}><FeaturesPage /></Suspense>} />
+      <Route path="/pricing" element={<Suspense fallback={null}><PricingPage /></Suspense>} />
+      <Route path="/how-it-works" element={<Suspense fallback={null}><HowItWorksPage /></Suspense>} />
+      <Route path="/faq" element={<Suspense fallback={null}><FaqPage /></Suspense>} />
+      <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
+      <Route path="/privacy" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
+      <Route path="/ext-install" element={<Suspense fallback={null}><InstallPage /></Suspense>} />
+      <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
+      <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
+      <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
         {/* Main app dashboard - uses new dark theme design */}
-        <Route path="/app-evm/*" element={<AppPage />} />
-        <Route path="/app-solana/*" element={
-          <SolanaWalletProvider>
-            <SolanaPage />
-          </SolanaWalletProvider>
+        <Route path="/app-evm/*" element={
+          <Suspense fallback={<div>Loading...</div>}>
+            <AppPage />
+          </Suspense>
         } />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+      <Route path="/app-solana/*" element={
+        <SolanaWalletProvider>
+          <SolanaPage />
+        </SolanaWalletProvider>
+      } />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

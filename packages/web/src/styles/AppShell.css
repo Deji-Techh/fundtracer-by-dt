@@ -21,9 +21,9 @@
   --red:      #ef4444;
 }
 
-html, body { height: 100%; overflow: hidden; }
-
-body {
+html { height: 100%; }
+body { 
+  height: 100%; 
   background: var(--bg);
   color: var(--body);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -272,8 +272,10 @@ body {
 .ft-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px;
   position: relative;
+  height: 100vh;
 }
 
 .ft-content::-webkit-scrollbar { width: 4px; }

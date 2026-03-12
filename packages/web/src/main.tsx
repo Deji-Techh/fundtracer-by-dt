@@ -1,6 +1,7 @@
 import './polyfills';
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { initializeAppKit } from './reown.config'
 import { ToastProvider } from './contexts/ToastContext'
@@ -46,14 +47,16 @@ const root = ReactDOM.createRoot(document.getElementById('root')!)
 
 root.render(
     <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-            <ThemeProvider>
-                <ToastProvider>
-                    <AuthProvider>
-                        <App />
-                    </AuthProvider>
-                </ToastProvider>
-            </ThemeProvider>
-        </QueryClientProvider>
+        <BrowserRouter>
+            <QueryClientProvider client={queryClient}>
+                <ThemeProvider>
+                    <ToastProvider>
+                        <AuthProvider>
+                            <App />
+                        </AuthProvider>
+                    </ToastProvider>
+                </ThemeProvider>
+            </QueryClientProvider>
+        </BrowserRouter>
     </ErrorBoundary>,
 )
