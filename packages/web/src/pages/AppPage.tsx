@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useAuth } from '../contexts/AuthContext';
 import AppShell from '../components/AppShell';
-import InvestigateView from '../components/InvestigateView';
+import Loader from '../components/Loader';
+import InvestigateView from '../design-system/features/InvestigateView';
 
 type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'solana' | 'history' | 'settings';
 
@@ -22,6 +23,7 @@ export function AppPage() {
   const [activeTab, setActiveTab] = useState<TabType>('investigate');
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
+  const [showLoader, setShowLoader] = useState(true);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -92,7 +94,7 @@ export function AppPage() {
   const renderContent = () => {
     switch (activeTab) {
       case 'investigate':
-        return <InvestigateView onAnalyze={handleAnalyze} onSearch={handleSearch} />;
+        return <InvestigateView />;
       case 'portfolio':
         return <Suspense fallback={<div className="ft-page-head"><div className="ft-page-title">Loading...</div></div>}><PortfolioView /></Suspense>;
       case 'polymarket':
@@ -102,29 +104,32 @@ export function AppPage() {
       case 'settings':
         return <Suspense fallback={<div className="ft-page-head"><div className="ft-page-title">Loading...</div></div>}><SettingsView onConnectWallet={handleConnectWallet} isWalletConnected={isWalletConnected} walletAddress={walletAddress} /></Suspense>;
       default:
-        return <InvestigateView onAnalyze={handleAnalyze} onSearch={handleSearch} />;
+        return <InvestigateView />;
     }
   };
 
   return (
-    <AppShell
-      activeNav={activeTab}
-      onNavChange={(id) => {
-        const item = navItems.find(n => n.id === id);
-        if (item && (item as any).onClick) {
-          (item as any).onClick();
-        } else {
-          setActiveTab(id as TabType);
-        }
-      }}
-      navItems={navItems}
-      walletConnected={isWalletConnected}
-      walletAddress={walletAddress}
-      onConnectWallet={handleConnectWallet}
-      onSearch={handleSearch}
-    >
-      {renderContent()}
-    </AppShell>
+    <>
+      {showLoader && <Loader onComplete={() => setShowLoader(false)} />}
+      <AppShell
+        activeNav={activeTab}
+        onNavChange={(id) => {
+          const item = navItems.find(n => n.id === id);
+          if (item && (item as any).onClick) {
+            (item as any).onClick();
+          } else {
+            setActiveTab(id as TabType);
+          }
+        }}
+        navItems={navItems}
+        walletConnected={isWalletConnected}
+        walletAddress={walletAddress}
+        onConnectWallet={handleConnectWallet}
+        onSearch={handleSearch}
+      >
+        {renderContent()}
+      </AppShell>
+    </>
   );
 }
 
