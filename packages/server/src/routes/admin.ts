@@ -8,12 +8,15 @@ console.log('[ADMIN] Loading admin routes module - TIMESTAMP: 2026-01-31-v3');
 
 const router = Router();
 
-// SECURITY: JWT_SECRET must be set in environment
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.error('CRITICAL: JWT_SECRET environment variable is not set');
-  process.exit(1);
-}
+// SECURITY: JWT_SECRET must be set in environment (checked at runtime, not module load)
+const getJwtSecret = () => {
+  const JWT_SECRET = process.env.JWT_SECRET;
+  if (!JWT_SECRET) {
+    console.error('CRITICAL: JWT_SECRET environment variable is not set');
+    process.exit(1);
+  }
+  return JWT_SECRET;
+};
 
 const SALT_ROUNDS = 12;
 
@@ -120,7 +123,7 @@ router.post('/auth/login', async (req: Request, res: Response) => {
       role: adminData.role,
       permissions: adminData.permissions,
       type: 'admin'
-    }, JWT_SECRET, { expiresIn: '24h' });
+    }, getJwtSecret(), { expiresIn: '24h' });
 
     console.log(`[ADMIN] Login successful: ${username} (${adminData.role})`);
 

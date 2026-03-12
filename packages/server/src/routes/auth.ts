@@ -8,14 +8,17 @@ import nodemailer from 'nodemailer';
 
 const router = Router();
 
-// SECURITY: JWT_SECRET must be set in environment
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.error('CRITICAL: JWT_SECRET environment variable is not set');
-  console.error('Please set a strong random secret (min 256 bits)');
-  console.error('Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
-  process.exit(1);
-}
+// SECURITY: JWT_SECRET must be set in environment (checked at runtime, not module load)
+const getJwtSecret = () => {
+  const JWT_SECRET = process.env.JWT_SECRET;
+  if (!JWT_SECRET || JWT_SECRET.length < 32) {
+    console.error('CRITICAL: JWT_SECRET environment variable is not set or too short');
+    console.error('Please set a strong random secret (min 256 bits)');
+    console.error('Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+    process.exit(1);
+  }
+  return JWT_SECRET;
+};
 
 // Initialize Firebase Admin for ID token verification
 let firebaseAdminAuth: ReturnType<typeof getAuth> | null = null;
@@ -227,7 +230,7 @@ router.post('/login-wallet', async (req: Request, res: Response) => {
       isVerified,
       displayName,
       authProvider: 'wallet'
-    }, JWT_SECRET, { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '30d' });
 
     console.log('[AUTH] Wallet Login SUCCESS');
     res.json({
@@ -307,7 +310,7 @@ router.post('/google-login', async (req: Request, res: Response) => {
       tier,
       walletAddress,
       authProvider: 'google'
-    }, JWT_SECRET, { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '30d' });
 
     console.log('[AUTH] Google Login SUCCESS');
     
@@ -409,7 +412,7 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
       tier,
       walletAddress,
       authProvider: 'twitter'
-    }, JWT_SECRET, { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '30d' });
 
     console.log('[AUTH] Twitter Login SUCCESS');
     
@@ -482,7 +485,7 @@ router.post('/link-wallet', async (req: Request, res: Response) => {
       isVerified,
       walletAddress: address.toLowerCase(),
       authProvider: 'wallet'
-    }, JWT_SECRET, { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '30d' });
 
     res.json({
       success: true,

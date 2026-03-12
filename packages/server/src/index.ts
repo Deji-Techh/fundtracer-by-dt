@@ -16,7 +16,14 @@ import path from 'path';
 import fs from 'fs';
 
 // Load environment variables FIRST
-dotenv.config();
+console.log('[DEBUG] Loading environment variables from:', process.cwd());
+const envResult = dotenv.config();
+if (envResult.error) {
+    console.error('[DEBUG] Failed to load .env file:', envResult.error);
+} else {
+    console.log('[DEBUG] .env file loaded successfully');
+}
+console.log('[DEBUG] JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
 
 // Simple environment validation
 const requiredEnvVars = [
@@ -72,8 +79,6 @@ import contractRoutes from './routes/contracts.js';
 import paymentRoutes from './routes/payment.js';
 import { PaymentListener } from './services/PaymentListener.js';
 import contractService from './services/ContractService.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
