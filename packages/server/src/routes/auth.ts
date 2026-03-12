@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import { getFirestore } from '../firebase.js';
-import { getAuth, verifyIdToken } from 'firebase-admin/auth';
+import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import nodemailer from 'nodemailer';
 
