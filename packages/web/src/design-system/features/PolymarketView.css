@@ -6,7 +6,7 @@
 .polymarket-view {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
   min-height: 100%;
 }
 
@@ -21,14 +21,14 @@
   margin: 0;
   font-size: var(--text-2xl);
   font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
+  color: var(--intel-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .polymarket-view__subtitle {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--text-base);
+  color: var(--intel-text-secondary);
   line-height: 1.5;
 }
 
@@ -265,8 +265,8 @@
   justify-content: center;
   gap: var(--space-4);
   padding: var(--space-12);
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  background: var(--intel-bg-deep);
+  border: 1px solid var(--intel-border-subtle);
   border-radius: var(--radius-lg);
   text-align: center;
 }
@@ -274,7 +274,7 @@
 .polymarket-view__content .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--border-default);
+  border: 3px solid var(--intel-border-default);
   border-top-color: var(--intel-cyan);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -296,9 +296,9 @@
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--bg-elevated) 25%,
-    var(--bg-hover) 50%,
-    var(--bg-elevated) 75%
+    var(--intel-bg-surface) 25%,
+    var(--intel-bg-hover) 50%,
+    var(--intel-bg-surface) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -313,9 +313,9 @@
 .polymarket-skeleton__tabs {
   display: flex;
   gap: var(--space-2);
-  padding: var(--space-1);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
+  padding: var(--space-2);
+  background: var(--intel-bg-surface);
+  border: 1px solid var(--intel-border-subtle);
   border-radius: var(--radius-lg);
 }
 
@@ -336,8 +336,8 @@
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
+  background: var(--intel-bg-surface);
+  border: 1px solid var(--intel-border-subtle);
   border-radius: var(--radius-lg);
 }
 

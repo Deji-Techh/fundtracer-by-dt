@@ -19,8 +19,6 @@ import MultiWalletView from '../../components/MultiWalletView';
 import ContractAnalysisView, { ContractAnalysisResult } from '../../components/ContractAnalysisView';
 import SybilDetector from '../../components/SybilDetector';
 import SearchHistory from '../../components/SearchHistory';
-import { PoHVerificationModal } from '../../components/PoHVerificationModal';
-import { PoHGuard } from '../../components/PoHGuard';
 
 interface InvestigateViewProps {
   prefillAddress?: string;
@@ -76,13 +74,8 @@ export function InvestigateView({
   const [currentAnalysisAddress, setCurrentAnalysisAddress] = useState<string>('');
   const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
 
-  // Modals
-  const [showPoHModal, setShowPoHModal] = useState(false);
-  const isPoHVerified = profile?.isVerified || false;
-
-  // Gas payment hook
+  // Gas payment hook (keep for now, just remove PoH requirement)
   const {
-    gateOperation,
     recordUsage,
   } = useGasPayment();
 
@@ -124,7 +117,7 @@ export function InvestigateView({
     }
   }, [isConnected, open]);
 
-  // Analyze wallet
+  // Analyze wallet (removed PoH verification)
   const handleAnalyzeWallet = async (address: string) => {
     if (!address.trim()) return;
 
@@ -132,11 +125,6 @@ export function InvestigateView({
       handleConnectWallet();
       return;
     }
-    if (!isPoHVerified) {
-      setShowPoHModal(true);
-      return;
-    }
-    if (!gateOperation()) return;
 
     setLoading(true);
     setError(null);
@@ -196,7 +184,7 @@ export function InvestigateView({
         break;
       case 'contract':
         // Handle contract analysis
-        handleAnalyzeWallet(address); // For now, reuse wallet analysis
+        handleAnalyzeContract(address);
         break;
       case 'compare':
         // Handle compare (multiple addresses)
@@ -211,6 +199,34 @@ export function InvestigateView({
     }
   };
 
+  // Handle contract analysis
+  const handleAnalyzeContract = async (address: string) => {
+    if (!address.trim()) return;
+
+    if (!isConnected) {
+      handleConnectWallet();
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await analyzeContract(address, selectedChain);
+      if (response.result) {
+        setContractResult(response.result);
+        addToHistory(address, selectedChain, 'Contract Analysis', {
+          totalTransactions: response.result.interactors?.length,
+        }, 'contract');
+        await recordUsage();
+      }
+    } catch (err: any) {
+      setError({ message: err.message, hint: err.hint });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Compare wallets
   const handleCompareWallets = async (addresses: string[]) => {
     if (addresses.length < 2) return;
@@ -219,11 +235,6 @@ export function InvestigateView({
       handleConnectWallet();
       return;
     }
-    if (!isPoHVerified) {
-      setShowPoHModal(true);
-      return;
-    }
-    if (!gateOperation()) return;
 
     setLoading(true);
     setError(null);
@@ -301,39 +312,65 @@ export function InvestigateView({
       );
     }
 
+    // Sybil tab - show only SybilDetector without PoH guard
     if (activeTab === 'sybil') {
-      return (
-        <PoHGuard>
-          <SybilDetector />
-        </PoHGuard>
-      );
+      return <SybilDetector />;
     }
 
-    if (activeTab === 'wallet' && walletResult) {
-      return (
-        <AnalysisView
-          result={walletResult}
-          pagination={pagination}
-          loadingMore={loadingMore}
-          onLoadMore={handleLoadMoreTransactions}
-        />
-      );
-    }
-
-    if (activeTab === 'contract' && contractResult) {
-      return <ContractAnalysisView result={contractResult} />;
-    }
-
-    if (activeTab === 'compare' && multiWalletResult) {
-      return <MultiWalletView result={multiWalletResult} chain={selectedChain} />;
-    }
-
-    // Show history when no results
-    if (activeTab === 'wallet' && !loading) {
+    // Wallet tab - show AnalysisView or SearchHistory
+    if (activeTab === 'wallet') {
+      if (walletResult) {
+        return (
+          <AnalysisView
+            result={walletResult}
+            pagination={pagination}
+            loadingMore={loadingMore}
+            onLoadMore={handleLoadMoreTransactions}
+          />
+        );
+      }
       return (
         <SearchHistory
           onSelect={handleSelectFromHistory}
         />
+      );
+    }
+
+    // Contract tab - show ContractAnalysisView
+    if (activeTab === 'contract') {
+      if (contractResult) {
+        return <ContractAnalysisView result={contractResult} />;
+      }
+      return (
+        <div className="investigate-empty">
+          <div className="investigate-empty__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </div>
+          <h3>Enter Contract Address</h3>
+          <p>Enter an EVM contract address to analyze its interactions and code.</p>
+        </div>
+      );
+    }
+
+    // Compare tab - show MultiWalletView
+    if (activeTab === 'compare') {
+      if (multiWalletResult) {
+        return <MultiWalletView result={multiWalletResult} chain={selectedChain} />;
+      }
+      return (
+        <div className="investigate-empty">
+          <div className="investigate-empty__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <h3>Compare Multiple Wallets</h3>
+          <p>Enter 2+ addresses separated by commas to compare their activity and connections.</p>
+        </div>
       );
     }
 
@@ -413,112 +450,141 @@ export function InvestigateView({
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M6 1l1.3 3H11l-2.7 2 1 3.3L6 7.5 3.7 9.3l1-3.3L2 4h3.7z"/>
             </svg>
-            Sybil
-            <span className="tab-alert">3 flags</span>
+            Sybil Detector
           </div>
         </div>
 
         <div className="panel-body">
-          {/* Network Selection */}
-          <div className="field-label">Network</div>
-          <div className="chains">
-            {chains.map(chain => (
-              <div 
-                key={chain.id}
-                className={`chain ${selectedChain === chain.id ? 'active' : ''}`}
-                onClick={() => setSelectedChain(chain.id as ChainId)}
-              >
-                <div className="chain-pip" style={{ background: chain.color }}></div>
-                {chain.name}
-                {chain.tier && <span className="chain-tier">{chain.tier}</span>}
+          {/* Network Selection - Only show for wallet/contract/compare tabs */}
+          {activeTab !== 'sybil' && (
+            <>
+              <div className="field-label">Network</div>
+              <div className="chains">
+                {chains.map(chain => (
+                  <div 
+                    key={chain.id}
+                    className={`chain ${selectedChain === chain.id ? 'active' : ''}`}
+                    onClick={() => setSelectedChain(chain.id as ChainId)}
+                  >
+                    <div className="chain-pip" style={{ background: chain.color }}></div>
+                    {chain.name}
+                    {chain.tier && <span className="chain-tier">{chain.tier}</span>}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
 
-          {/* Address Input */}
-          <div className="field-label">Wallet address</div>
-          <div className="addr-field">
-            <div className="addr-bar">
-              <span className="addr-label">EVM</span>
-              <div className="addr-tools">
-                <button className="addr-tool" onClick={() => navigator.clipboard.readText().then(text => {
-                  const input = document.querySelector('.ft-addr-input') as HTMLInputElement;
-                  if (input) input.value = text;
-                })}>
-                  <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4">
-                    <rect x="3" y="1" width="6" height="7" rx="0.5"/>
-                    <path d="M1 3v6h6"/>
-                  </svg>
-                  Paste
-                </button>
-                <button className="addr-tool">Recent</button>
-                <button className="addr-tool">Guide ↗</button>
+          {/* Address Input - Only show for wallet/contract/compare tabs */}
+          {activeTab !== 'sybil' && (
+            <>
+              <div className="field-label">
+                {activeTab === 'wallet' && 'Wallet address'}
+                {activeTab === 'contract' && 'Contract address'}
+                {activeTab === 'compare' && 'Wallet addresses (comma separated)'}
               </div>
-            </div>
-            <input 
-              className="ft-addr-input" 
-              type="text" 
-              placeholder="0x… wallet address, ENS name, or contract"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') handleAnalyze();
-              }}
-            />
-          </div>
-
-          <div className="hint">Supports EVM addresses, ENS names, and transaction hashes. Separate multiple addresses with commas.</div>
-
-          {/* Actions */}
-          <div className="actions">
-            <button className="btn-analyze" onClick={handleAnalyze} disabled={loading}>
-              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="6" cy="6" r="4.5"/><path d="M9.5 9.5l3 3"/>
-              </svg>
-              {loading ? 'Analyzing...' : 'Analyze Wallet'}
-            </button>
-            <button className="btn-ghost">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M1 6h10M7 2l4 4-4 4"/>
-              </svg>
-              Batch
-            </button>
-            <button className="btn-ghost">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M6 1v8M2 6l4 4 4-4M1 11h10"/>
-              </svg>
-              Export
-            </button>
-          </div>
-
-          {/* Recent */}
-          <div className="recent">
-            <div className="recent-header">Recent</div>
-            <div className="recent-list">
-              {recentHistory.length > 0 ? (
-                recentHistory.map((item: HistoryItem, index: number) => {
-                  const chainKey = item.chain as keyof typeof CHAIN_CONFIG;
-                  const chainName = chainKey && CHAIN_CONFIG[chainKey] 
-                    ? CHAIN_CONFIG[chainKey].name 
-                    : (item.chain || 'ETH');
-                  return (
-                    <div 
-                      key={index}
-                      className="recent-item" 
-                      onClick={() => handleAnalyzeWallet(item.address)}
-                    >
-                      <span className="recent-chain">{chainName.slice(0, 3).toUpperCase()}</span>
-                      {item.address.length > 10 
-                        ? `${item.address.slice(0, 6)}…${item.address.slice(-4)}`
-                        : item.address}
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="recent-item">
-                  <span className="recent-chain">NEW</span>No recent scans
+              <div className="addr-field">
+                <div className="addr-bar">
+                  <span className="addr-label">EVM</span>
+                  <div className="addr-tools">
+                    <button className="addr-tool" onClick={() => navigator.clipboard.readText().then(text => {
+                      const input = document.querySelector('.ft-addr-input') as HTMLInputElement;
+                      if (input) input.value = text;
+                    })}>
+                      <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4">
+                        <rect x="3" y="1" width="6" height="7" rx="0.5"/>
+                        <path d="M1 3v6h6"/>
+                      </svg>
+                      Paste
+                    </button>
+                    <button className="addr-tool">Recent</button>
+                    <button className="addr-tool">Guide ↗</button>
+                  </div>
                 </div>
-              )}
+                <input 
+                  className="ft-addr-input" 
+                  type="text" 
+                  placeholder={
+                    activeTab === 'wallet' 
+                      ? '0x… wallet address or ENS name' 
+                      : activeTab === 'contract'
+                      ? '0x… contract address'
+                      : '0x…, 0x… (comma separated)'
+                  }
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') handleAnalyze();
+                  }}
+                />
+              </div>
+              
+              <div className="hint">
+                {activeTab === 'wallet' && 'Supports EVM addresses and ENS names.'}
+                {activeTab === 'contract' && 'Enter a contract address to analyze its code and interactions.'}
+                {activeTab === 'compare' && 'Enter 2 or more addresses separated by commas to compare.'}
+              </div>
+
+              {/* Actions */}
+              <div className="actions">
+                <button className="btn-analyze" onClick={handleAnalyze} disabled={loading}>
+                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="6" cy="6" r="4.5"/><path d="M9.5 9.5l3 3"/>
+                  </svg>
+                  {loading 
+                    ? 'Analyzing...' 
+                    : activeTab === 'wallet' 
+                    ? 'Analyze Wallet'
+                    : activeTab === 'contract'
+                    ? 'Analyze Contract'
+                    : 'Compare Wallets'}
+                </button>
+                <button className="btn-ghost">
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M1 6h10M7 2l4 4-4 4"/>
+                  </svg>
+                  Batch
+                </button>
+                <button className="btn-ghost">
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M6 1v8M2 6l4 4 4-4M1 11h10"/>
+                  </svg>
+                  Export
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Recent - Only show for wallet tab */}
+          {activeTab === 'wallet' && (
+            <div className="recent">
+              <div className="recent-header">Recent</div>
+              <div className="recent-list">
+                {recentHistory.length > 0 ? (
+                  recentHistory.map((item: HistoryItem, index: number) => {
+                    const chainKey = item.chain as keyof typeof CHAIN_CONFIG;
+                    const chainName = chainKey && CHAIN_CONFIG[chainKey] 
+                      ? CHAIN_CONFIG[chainKey].name 
+                      : (item.chain || 'ETH');
+                    return (
+                      <div 
+                        key={index}
+                        className="recent-item" 
+                        onClick={() => handleAnalyzeWallet(item.address)}
+                      >
+                        <span className="recent-chain">{chainName.slice(0, 3).toUpperCase()}</span>
+                        {item.address.length > 10 
+                          ? `${item.address.slice(0, 6)}…${item.address.slice(-4)}`
+                          : item.address}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="recent-item">
+                    <span className="recent-chain">NEW</span>No recent scans
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -526,13 +592,6 @@ export function InvestigateView({
       <div className="investigate-results">
         {renderResults()}
       </div>
-
-      {/* PoH Modal */}
-      <PoHVerificationModal
-        isOpen={showPoHModal}
-        onClose={() => setShowPoHModal(false)}
-        walletAddress={address || ''}
-      />
     </div>
   );
 }
