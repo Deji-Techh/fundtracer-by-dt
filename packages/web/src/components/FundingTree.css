@@ -1,0 +1,395 @@
+/* FundingTree.css - Intel Theme Styling */
+
+/* Main Container */
+.funding-tree-container {
+  position: relative;
+  width: 100%;
+  height: 450px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-surface-border);
+  overflow: hidden;
+}
+
+.funding-tree-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  width: 100vw;
+  height: 100vh;
+  background: var(--color-bg);
+}
+
+/* Toolbar Overlay */
+.funding-tree-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.funding-tree-toolbar-left {
+  pointer-events: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.funding-tree-toolbar-right {
+  pointer-events: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.funding-tree-toolbar-badge {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.funding-tree-toolbar-badge.source {
+  color: var(--color-success-text);
+}
+
+.funding-tree-toolbar-badge.destination {
+  color: var(--color-danger-text);
+}
+
+.funding-tree-toolbar-hint {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+/* SVG Styles */
+.funding-tree-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Tree Link Styles */
+.tree-link {
+  fill: none;
+  opacity: 0.5;
+}
+
+.tree-link.highlighted-source {
+  stroke: var(--color-success-text);
+  opacity: 1;
+}
+
+.tree-link.highlighted-destination {
+  stroke: var(--color-danger-text);
+  opacity: 1;
+}
+
+/* Tree Node Styles */
+.tree-node {
+  cursor: pointer;
+}
+
+.tree-node-card {
+  fill: var(--color-surface);
+  stroke: var(--color-surface-border);
+  stroke-width: 1px;
+}
+
+.tree-node-card.selected {
+  stroke: #fff;
+  stroke-width: 2px;
+}
+
+.tree-node-card.source-root {
+  fill: #051a0d;
+  stroke: var(--color-success-text);
+  stroke-width: 1.5px;
+}
+
+.tree-node-card.destination-root {
+  fill: #1a0508;
+  stroke: var(--color-danger-text);
+  stroke-width: 1.5px;
+}
+
+/* Entity Type Indicator */
+.entity-indicator {
+  fill: var(--color-text-secondary);
+}
+
+/* Collapse Indicator */
+.collapse-indicator {
+  fill: var(--color-text-muted);
+  font-size: 8px;
+  pointer-events: none;
+}
+
+/* Node Text */
+.node-text-primary {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--color-text-primary);
+  pointer-events: none;
+}
+
+.node-text-secondary {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.node-text-source {
+  fill: var(--color-success-text);
+}
+
+.node-text-destination {
+  fill: var(--color-danger-text);
+}
+
+/* Node Detail Panel */
+.node-detail-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 280px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  z-index: 20;
+  box-shadow: var(--shadow-lg);
+}
+
+.node-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.entity-type-badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.node-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+
+.node-address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.node-address-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Stats Grid */
+.node-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-surface-border);
+  margin-bottom: 12px;
+}
+
+.node-stat {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.node-stat-value {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+}
+
+/* Suspicious Score */
+.suspicious-score {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-bg);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-size: 11px;
+  color: var(--color-danger-text);
+  margin-bottom: 12px;
+}
+
+/* Explorer Link */
+.explorer-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-surface-border);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.explorer-link:hover {
+  background: var(--color-bg-tertiary);
+}
+
+/* Mobile Tree View */
+.mobile-tree-view {
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid var(--color-surface-border);
+}
+
+.mobile-tree-header {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-tree-header.source {
+  color: var(--color-success-text);
+}
+
+.mobile-tree-header.destination {
+  color: var(--color-danger-text);
+}
+
+.mobile-tree-node {
+  margin-left: 0;
+  margin-bottom: 4px;
+}
+
+.mobile-tree-node-inner {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--color-bg-elevated);
+  border-radius: 8px;
+  border-left: 3px solid var(--color-surface-border);
+  cursor: pointer;
+  gap: 8px;
+}
+
+.mobile-tree-node-inner.source-root {
+  background: rgba(45, 90, 61, 0.2);
+}
+
+.mobile-tree-node-inner.destination-root {
+  background: rgba(90, 45, 45, 0.2);
+}
+
+/* Entity Type Legend */
+.entity-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+
+.entity-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 9px;
+}
+
+.entity-legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Fullscreen close button */
+.fullscreen-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+}
+
+/* Loading/Error States */
+.funding-tree-error {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-danger-text);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-surface-border);
+}
+
+.no-data {
+  padding: 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .funding-tree-container {
+    height: 300px;
+  }
+
+  .node-detail-panel {
+    width: calc(100% - 24px);
+    left: 12px;
+    right: 12px;
+  }
+
+  .funding-tree-toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .funding-tree-toolbar-left,
+  .funding-tree-toolbar-right {
+    flex-wrap: wrap;
+  }
+}

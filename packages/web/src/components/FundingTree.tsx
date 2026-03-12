@@ -1,6 +1,25 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { FundingNode, CHAINS, ChainId } from '@fundtracer/core';
+import { CHAINS, ChainId } from '@fundtracer/core';
 import * as d3 from 'd3';
+import './FundingTree.css';
+
+// Define FundingNode locally to match EVM structure
+// (The @fundtracer/core package exports the Solana version which has different properties)
+interface FundingNode {
+    address: string;
+    label?: string;
+    depth: number;
+    direction: 'source' | 'destination';
+    totalValue: string;
+    totalValueInEth: number;
+    txCount: number;
+    firstTx?: any;
+    children: FundingNode[];
+    suspiciousScore: number;
+    suspiciousReasons: string[];
+    isInfrastructure?: boolean;
+    entityType?: 'cex' | 'dex' | 'bridge' | 'wallet' | 'mixer' | 'contract' | 'other';
+}
 import { useIsMobile } from '../hooks/useIsMobile';
 import {
     Maximize2,
@@ -84,40 +103,24 @@ const NodeDetailPanel = ({
 
     return (
         <div
-            style={{
-                position: 'absolute',
-                top: 12,
-                right: 12,
-                width: 280,
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-surface-border)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 16,
-                zIndex: 20,
-                boxShadow: 'var(--shadow-lg)',
-            }}
+            className="node-detail-panel"
             onClick={(e) => e.stopPropagation()}
         >
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{
-                    padding: '2px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: entityStyle.bg,
-                    border: `1px solid ${entityStyle.border}`,
-                    color: entityStyle.text,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.03em',
-                }}>
+            <div className="node-detail-header">
+                <span 
+                    className="entity-type-badge"
+                    style={{
+                        background: entityStyle.bg,
+                        border: `1px solid ${entityStyle.border}`,
+                        color: entityStyle.text,
+                    }}
+                >
                     {detailNode.isInfrastructure ? entityStyle.label : (detailNode.entityType ? entityStyle.label : 'Wallet')}
                 </span>
                 <button
                     onClick={onClose}
-                    style={{
-                        width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer',
-                    }}
+                    className="btn-icon-close"
                 >
                     <X size={14} />
                 </button>
@@ -125,25 +128,19 @@ const NodeDetailPanel = ({
 
             {/* Label */}
             {detailNode.label && (
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-text-primary)', marginBottom: 4 }}>
+                <div className="node-label">
                     {detailNode.label}
                 </div>
             )}
 
             {/* Address */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text-secondary)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const,
-                }}>
+            <div className="node-address">
+                <span className="node-address-text">
                     {detailNode.address}
                 </span>
                 <button
                     onClick={handleCopy}
-                    style={{
-                        background: 'none', border: 'none', color: copied ? 'var(--color-success-text)' : 'var(--color-text-muted)',
-                        cursor: 'pointer', padding: 2, flexShrink: 0,
-                    }}
+                    className={`btn-icon-copy ${copied ? 'copied' : ''}`}
                     title="Copy address"
                 >
                     <Copy size={12} />
@@ -151,32 +148,28 @@ const NodeDetailPanel = ({
             </div>
 
             {/* Stats */}
-            <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
-                padding: 10, background: 'var(--color-bg-tertiary)', borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--color-surface-border)', marginBottom: 12,
-            }}>
+            <div className="node-stats-grid">
                 <div>
-                    <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 2 }}>Value</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--color-text-primary)' }}>
+                    <div className="node-stat">Value</div>
+                    <div className="node-stat-value">
                         {formatVal(detailNode.totalValueInEth || 0)} {chainConfig.symbol}
                     </div>
                 </div>
                 <div>
-                    <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 2 }}>Transactions</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--color-text-primary)' }}>
+                    <div className="node-stat">Transactions</div>
+                    <div className="node-stat-value">
                         {detailNode.txCount || 0}
                     </div>
                 </div>
                 <div>
-                    <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 2 }}>Depth</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--color-text-primary)' }}>
+                    <div className="node-stat">Depth</div>
+                    <div className="node-stat-value">
                         {detailNode.depth ?? 0}
                     </div>
                 </div>
                 <div>
-                    <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 2 }}>Children</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--color-text-primary)' }}>
+                    <div className="node-stat">Children</div>
+                    <div className="node-stat-value">
                         {detailNode.children?.length || 0}
                     </div>
                 </div>
@@ -184,14 +177,10 @@ const NodeDetailPanel = ({
 
             {/* Suspicious Score */}
             {(detailNode.suspiciousScore ?? 0) > 0 && (
-                <div style={{
-                    padding: '6px 10px', borderRadius: 'var(--radius-sm)',
-                    background: 'var(--color-danger-bg)', border: '1px solid rgba(239, 68, 68, 0.3)',
-                    fontSize: 11, color: 'var(--color-danger-text)', marginBottom: 12,
-                }}>
+                <div className="suspicious-score">
                     Suspicious Score: {detailNode.suspiciousScore}
                     {detailNode.suspiciousReasons?.length > 0 && (
-                        <div style={{ marginTop: 4, fontSize: 10, opacity: 0.8 }}>
+                        <div className="suspicious-reasons">
                             {detailNode.suspiciousReasons.join(', ')}
                         </div>
                     )}
@@ -203,13 +192,7 @@ const NodeDetailPanel = ({
                 href={`${chainConfig.explorer}/address/${detailNode.address}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    padding: '8px 12px', borderRadius: 'var(--radius-md)',
-                    background: 'var(--color-bg-elevated)', border: '1px solid var(--color-surface-border)',
-                    color: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 500,
-                    textDecoration: 'none', transition: 'all 0.15s ease',
-                }}
+                className="explorer-link"
             >
                 <ExternalLink size={12} />
                 View on {chainConfig.name} Explorer
