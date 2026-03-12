@@ -1,9 +1,9 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import IntelPage from './pages/IntelPage';
-import InvestigatePage from './pages/InvestigatePage';
 import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
+import AppPage from './pages/AppPage';
 
 // Import new design system styles
 import './design-system/tokens.css';
@@ -36,8 +36,8 @@ function App() {
         <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
         <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
         <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
-        {/* Main app dashboard - uses new InvestigatePage with Arkham-style design */}
-        <Route path="/app-evm/*" element={<InvestigatePage />} />
+        {/* Main app dashboard - uses new dark theme design */}
+        <Route path="/app-evm/*" element={<AppPage />} />
         <Route path="/app-solana/*" element={
           <SolanaWalletProvider>
             <SolanaPage />
