@@ -74,7 +74,7 @@ async function sendWelcomeEmail(email: string, name: string, authProvider: strin
   const providerLabel = authProvider === 'google' ? 'Google' : authProvider === 'twitter' ? 'X (Twitter)' : 'wallet';
   
   const mailOptions = {
-    from: '"Fundtracer" <fundtracerbydt@gmail.com>',
+    from: `"Fundtracer" <${EMAIL_USER}>`,
     to: email,
     subject: "Welcome to Fundtracer - Blockchain Intelligence Reimagined",
     html: `
