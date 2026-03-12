@@ -371,6 +371,65 @@
   color: var(--color-text-muted);
 }
 
+/* Mobile Tree Node */
+.mobile-tree-node {
+  margin-left: 0;
+  margin-bottom: 4px;
+}
+
+.mobile-tree-node-inner {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--color-bg-elevated);
+  border-radius: 8px;
+  cursor: pointer;
+  gap: 8px;
+}
+
+.mobile-tree-node-inner.source-root {
+  background: rgba(45, 90, 61, 0.2);
+}
+
+.mobile-tree-node-inner.destination-root {
+  background: rgba(90, 45, 45, 0.2);
+}
+
+.mobile-tree-node-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-tree-node-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobile-tree-node-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-tree-node-value {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.mobile-tree-node-details-btn {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  padding: 4px 8px;
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+  border: 1px solid var(--color-surface-border);
+  cursor: pointer;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .funding-tree-container {
@@ -386,10 +445,49 @@
   .funding-tree-toolbar {
     flex-direction: column;
     gap: 8px;
+    padding: 8px !important;
   }
 
   .funding-tree-toolbar-left,
   .funding-tree-toolbar-right {
     flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .funding-tree-back-btn {
+    width: 100% !important;
+    margin-bottom: 8px;
+  }
+
+  .funding-tree-toolbar-badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+  }
+
+  .funding-tree-toolbar-hint {
+    display: none;
+  }
+
+  .mobile-tree-node-inner {
+    padding: 8px 10px;
+  }
+
+  .mobile-tree-node-label {
+    font-size: 11px;
+  }
+
+  .mobile-tree-node-value {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .funding-tree-container {
+    height: 250px;
+  }
+  
+  .funding-tree-toolbar-right {
+    width: 100%;
+    justify-content: center;
   }
 }

@@ -686,6 +686,10 @@
     padding: 80px 16px 24px;
   }
 
+  .solana-page__header {
+    padding: 20px;
+  }
+
   .solana-page__title {
     font-size: var(--text-2xl);
   }
@@ -696,6 +700,11 @@
 
   .solana-page__search {
     flex-direction: column;
+    gap: 8px;
+  }
+
+  .solana-page__input {
+    width: 100%;
   }
 
   .solana-page__analyze-btn {
@@ -704,19 +713,30 @@
 
   .solana-page__stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .solana-page__stat-card {
+    padding: 12px;
   }
 
   .solana-page__tabs {
     gap: 4px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
 
   .solana-page__tab {
     padding: 8px 12px;
     font-size: var(--text-xs);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .solana-page__nft-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 
   .solana-page__funding-hop {
@@ -736,6 +756,10 @@
   .solana-page__funding-hop-arrow {
     display: none;
   }
+
+  .solana-page__section {
+    padding: 16px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -751,5 +775,23 @@
 
   .solana-page__list-item-value {
     text-align: left;
+  }
+
+  .solana-page__tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .solana-page__tab {
+    flex: 1 1 45%;
+    text-align: center;
+  }
+
+  .solana-page__nft-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .solana-page__feature-card {
+    padding: 16px;
   }
 }

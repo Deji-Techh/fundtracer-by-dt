@@ -221,35 +221,20 @@ const MobileTreeNode = ({
     const entityStyle = getEntityStyle(treeNode.entityType);
 
     return (
-        <div style={{ marginLeft: depth * 12 }}>
+        <div className="mobile-tree-node" style={{ marginLeft: depth * 12 }}>
             <div
                 onClick={() => hasChildren ? setExpanded(!expanded) : onSelectNode(treeNode)}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '10px 12px',
-                    marginBottom: 4,
-                    background: depth === 0
-                        ? `rgba(${direction === 'source' ? '45, 90, 61' : '90, 45, 45'}, 0.2)`
-                        : 'var(--color-bg-elevated)',
-                    borderRadius: 8,
-                    borderLeft: `3px solid ${entityStyle.border}`,
-                    cursor: 'pointer',
-                    gap: 8,
-                }}
+                className={`mobile-tree-node-inner ${depth === 0 ? (direction === 'source' ? 'source-root' : 'destination-root') : ''}`}
+                style={{ borderLeft: `3px solid ${entityStyle.border}` }}
             >
                 {hasChildren && (
                     <span style={{ color: 'var(--color-text-secondary)', fontSize: 12 }}>
                         {expanded ? '\u25BC' : '\u25B6'}
                     </span>
                 )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{
-                            fontFamily: 'var(--font-mono)', fontSize: 12,
-                            color: 'var(--color-text-primary)', fontWeight: 500,
-                            overflow: 'hidden', textOverflow: 'ellipsis',
-                        }}>
+                <div className="mobile-tree-node-content">
+                    <div className="mobile-tree-node-header">
+                        <span className="mobile-tree-node-label">
                             {treeNode.label || formatAddr(treeNode.address)}
                         </span>
                         {treeNode.entityType && treeNode.entityType !== 'wallet' && (
@@ -262,18 +247,14 @@ const MobileTreeNode = ({
                             </span>
                         )}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
+                    <div className="mobile-tree-node-value">
                         {formatVal(treeNode.totalValueInEth || 0)} {chainConfig.symbol}
                         {hasChildren && ` \u2022 ${treeNode.children.length} connection${treeNode.children.length > 1 ? 's' : ''}`}
                     </div>
                 </div>
                 <button
                     onClick={(e) => { e.stopPropagation(); onSelectNode(treeNode); }}
-                    style={{
-                        fontSize: 10, color: 'var(--color-text-muted)',
-                        padding: '4px 8px', background: 'var(--color-bg-tertiary)',
-                        borderRadius: 4, border: '1px solid var(--color-surface-border)', cursor: 'pointer',
-                    }}
+                    className="mobile-tree-node-details-btn"
                 >
                     Details
                 </button>
@@ -701,39 +682,27 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
     };
 
     return (
-        <div ref={containerRef} style={wrapperStyle}>
+        <div ref={containerRef} className={`funding-tree-container ${isFullscreen || (isMobile && showMobileGraph) ? 'fullscreen' : ''}`}>
             {/* Toolbar Overlay */}
-            <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, padding: 12,
-                display: 'flex', justifyContent: 'space-between',
-                pointerEvents: 'none', zIndex: 10,
-            }}>
-                <div style={{ pointerEvents: 'auto', display: 'flex', gap: 8 }}>
+            <div className="funding-tree-toolbar">
+                <div className="funding-tree-toolbar-left">
                     {isMobile && showMobileGraph && (
                         <button
                             onClick={() => setShowMobileGraph(false)}
-                            className="btn btn-secondary btn-icon"
-                            style={{ width: 'auto', padding: '0 12px' }}
+                            className="btn btn-secondary btn-icon funding-tree-back-btn"
                         >
                             <ArrowLeft size={16} /> Back
                         </button>
                     )}
-                    <span style={{
-                        background: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 4,
-                        fontSize: 12, fontWeight: 500,
-                        color: direction === 'source' ? '#00ff88' : '#ff6688',
-                    }}>
+                    <span className={`funding-tree-toolbar-badge ${direction === 'source' ? 'source' : 'destination'}`}>
                         {direction === 'source' ? 'Funding Sources' : 'Destinations'}
                     </span>
-                    <span style={{
-                        background: 'rgba(0,0,0,0.4)', padding: '4px 8px', borderRadius: 4,
-                        fontSize: 10, color: 'var(--color-text-muted)',
-                    }}>
+                    <span className="funding-tree-toolbar-hint">
                         Click node for details &middot; Double-click to collapse
                     </span>
                 </div>
 
-                <div style={{ pointerEvents: 'auto', display: 'flex', gap: 6 }}>
+                <div className="funding-tree-toolbar-right">
                     <button onClick={() => handleZoom(1.2)} className="btn btn-secondary btn-icon">
                         <ZoomIn size={16} />
                     </button>
@@ -751,7 +720,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 </div>
             </div>
 
-            <svg ref={svgRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+            <svg ref={svgRef} className="funding-tree-svg" />
 
             {/* Node Detail Panel */}
             {selectedNode && (
@@ -764,22 +733,10 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
             )}
 
             {/* Entity Type Legend */}
-            <div style={{
-                position: 'absolute', bottom: 12, left: 12,
-                display: 'flex', gap: 8, flexWrap: 'wrap',
-                pointerEvents: 'none',
-            }}>
+            <div className="entity-legend">
                 {Object.entries(ENTITY_COLORS).map(([key, val]) => (
-                    <span key={key} style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        padding: '2px 6px', borderRadius: 3,
-                        background: 'rgba(0,0,0,0.5)', fontSize: 9,
-                        color: val.text,
-                    }}>
-                        <span style={{
-                            width: 6, height: 6, borderRadius: '50%',
-                            background: val.border, display: 'inline-block',
-                        }} />
+                    <span key={key} className="entity-legend-item">
+                        <span className="entity-legend-dot" style={{ background: val.border }} />
                         {val.label}
                     </span>
                 ))}
