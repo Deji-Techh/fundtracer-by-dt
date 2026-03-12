@@ -166,14 +166,36 @@ export function AboutPage() {
               <p className="about-section__subtitle">A team passionate about blockchain technology</p>
             </div>
             <div className="about-team__grid">
-              <Panel variant="bordered" className="about-team__card">
-                <div className="about-team__avatar">DT</div>
-                <h3 className="about-team__name">Deji Tech</h3>
-                <p className="about-team__role">Founder & Lead Developer</p>
-                <p className="about-team__bio">
-                  Blockchain enthusiast with expertise in forensic analysis and Web3 development.
-                </p>
-              </Panel>
+              <a href="https://x.com/hayodejiii" target="_blank" rel="noopener noreferrer" className="about-team__card-link">
+                <Panel variant="bordered" className="about-team__card">
+                  <div className="about-team__avatar">H</div>
+                  <h3 className="about-team__name">Hayodeji</h3>
+                  <p className="about-team__role">Founder & Lead Developer</p>
+                  <p className="about-team__bio">
+                    Blockchain enthusiast with expertise in forensic analysis and Web3 development.
+                  </p>
+                </Panel>
+              </a>
+              <a href="https://x.com/haiconempire_01" target="_blank" rel="noopener noreferrer" className="about-team__card-link">
+                <Panel variant="bordered" className="about-team__card">
+                  <div className="about-team__avatar">H</div>
+                  <h3 className="about-team__name">Haicon</h3>
+                  <p className="about-team__role">Lead Marketer</p>
+                  <p className="about-team__bio">
+                    Marketing strategist driving growth and community engagement.
+                  </p>
+                </Panel>
+              </a>
+              <a href="https://x.com/devabraham123" target="_blank" rel="noopener noreferrer" className="about-team__card-link">
+                <Panel variant="bordered" className="about-team__card">
+                  <div className="about-team__avatar">DA</div>
+                  <h3 className="about-team__name">Dec Abraham</h3>
+                  <p className="about-team__role">Lead Designer</p>
+                  <p className="about-team__bio">
+                    Creative designer crafting beautiful user experiences.
+                  </p>
+                </Panel>
+              </a>
             </div>
           </div>
         </section>

@@ -251,12 +251,32 @@
 .about-team__grid {
   display: flex;
   justify-content: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.about-team__card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: transform var(--transition-fast);
+}
+
+.about-team__card-link:hover {
+  transform: translateY(-4px);
 }
 
 .about-team__card {
-  max-width: 360px;
+  max-width: 300px;
   padding: var(--space-8);
   text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.about-team__card:hover {
+  border-color: var(--intel-cyan);
+  box-shadow: 0 4px 20px rgba(0, 212, 255, 0.15);
 }
 
 .about-team__avatar {
