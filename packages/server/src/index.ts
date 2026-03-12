@@ -1,4 +1,5 @@
- * FundTracer Secure API Server
+/**
+* FundTracer Secure API Server
  * Handles authentication, secure API key management, and anti-abuse limits.
  */
 
