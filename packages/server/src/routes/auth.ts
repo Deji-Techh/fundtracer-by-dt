@@ -40,8 +40,8 @@ if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && proc
 }
 
 // Email transporter configuration
-const EMAIL_USER = process.env.EMAIL_USER || 'fundtracerbydt@gmail.com';
-const EMAIL_PASS = process.env.EMAIL_PASS || 'zgal bfmu dkul vztu';
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
 
 let emailTransporter: nodemailer.Transporter | null = null;
 
@@ -74,13 +74,15 @@ async function sendWelcomeEmail(email: string, name: string, authProvider: strin
   const providerLabel = authProvider === 'google' ? 'Google' : authProvider === 'twitter' ? 'X (Twitter)' : 'wallet';
   
   const mailOptions = {
-    from: '"FundTracer" <fundtracerbydt@gmail.com>',
+    from: '"Fundtracer" <fundtracerbydt@gmail.com>',
     to: email,
-    subject: "Welcome to FundTracer - Blockchain Intelligence Reimagined",
+    subject: "Welcome to Fundtracer - Blockchain Intelligence Reimagined",
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #22d3ee; margin: 0;">FundTracer</h1>
+          <!-- Banner Image - Replace with your hosted image URL -->
+          <img src="https://www.fundtracer.xyz/banner.png" alt="Fundtracer Banner" style="max-width: 100%; height: auto; border-radius: 8px;" />
+          <h1 style="color: #22d3ee; margin: 15px 0 0;">Fundtracer</h1>
         </div>
         
         <h2 style="color: #1e293b;">Welcome${name ? `, ${name}` : ''}!</h2>
@@ -110,7 +112,7 @@ async function sendWelcomeEmail(email: string, name: string, authProvider: strin
           <h4 style="color: #1e293b; margin: 0 0 15px;">Try our other products:</h4>
           <p style="margin: 0;">
             <a href="https://www.fundtracer.xyz/cli" style="color: #06b6d4; text-decoration: none;">
-              💻 FundTracer CLI
+              💻 Fundtracer CLI
             </a> - Command-line blockchain forensics
           </p>
           <p style="margin: 10px 0 0;">
@@ -126,7 +128,7 @@ async function sendWelcomeEmail(email: string, name: string, authProvider: strin
         
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
         <p style="color: #94a3b8; font-size: 12px;">
-          FundTracer - Blockchain Intelligence Reimagined<br/>
+          Fundtracer - Blockchain Intelligence Reimagined<br/>
           You're receiving this because you signed up with ${providerLabel}.
         </p>
       </div>
