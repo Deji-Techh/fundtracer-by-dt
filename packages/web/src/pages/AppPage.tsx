@@ -48,9 +48,11 @@ export function AppPage() {
   }, [navigate]);
 
   const handleSearch = useCallback((query: string) => {
+    if (!query.trim()) return;
     console.log('Searching:', query);
-    // Handle search - could navigate or trigger analysis
-  }, []);
+    // Navigate to investigate tab with the search query as address
+    navigate(`/app-evm?address=${encodeURIComponent(query.trim())}`);
+  }, [navigate]);
 
   const navItems = [
     { id: 'section-analyze', label: 'Analyze', icon: null },

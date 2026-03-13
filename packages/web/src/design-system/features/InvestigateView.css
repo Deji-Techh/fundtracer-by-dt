@@ -800,3 +800,25 @@
   color: var(--intel-text-secondary);
   line-height: 1.5;
 }
+
+/* Batch textarea */
+.batch-textarea {
+  width: 100%;
+  background: var(--intel-bg-deep);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  color: var(--intel-text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  resize: vertical;
+}
+
+.batch-textarea:focus {
+  outline: none;
+  border-color: var(--intel-cyan);
+}
+
+.batch-textarea::placeholder {
+  color: var(--intel-text-muted);
+}

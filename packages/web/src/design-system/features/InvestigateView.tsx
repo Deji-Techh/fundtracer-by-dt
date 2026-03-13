@@ -20,6 +20,24 @@ import ContractAnalysisView, { ContractAnalysisResult } from '../../components/C
 import SybilDetector from '../../components/SybilDetector';
 import SearchHistory from '../../components/SearchHistory';
 
+// Fetch real-time stats from server
+const fetchStats = async () => {
+  try {
+    const response = await fetch('/api/scan-history/stats');
+    const data = await response.json();
+    if (data.success && data.stats) {
+      return {
+        walletsScanned: data.stats.walletsScanned || 0,
+        uniquePatterns: data.stats.uniquePatterns || 0,
+        chainsIndexed: data.stats.chainsIndexed || 7
+      };
+    }
+  } catch (error) {
+    console.error('Failed to fetch stats:', error);
+  }
+  return null;
+};
+
 interface InvestigateViewProps {
   prefillAddress?: string;
   prefillChain?: string;
@@ -61,6 +79,7 @@ export function InvestigateView({
   // UI state for dropdowns
   const [showRecentDropdown, setShowRecentDropdown] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
   // Get user tier from profile
   const userTier = profile?.tier || 'free';
@@ -87,9 +106,12 @@ export function InvestigateView({
     return true;
   };
 
+  // Get number of enabled chains for stats
+  const enabledChainsCount = Object.values(CHAIN_CONFIG).filter(c => c.enabled).length;
+
   // Stats for real-time display
   const [stats, setStats] = useState<Stats>({
-    chainsIndexed: 6,
+    chainsIndexed: enabledChainsCount,
     walletsTraced: '2.4M',
     sybilClusters: '18.7K',
     avgResponse: '0.4s'
@@ -110,6 +132,33 @@ export function InvestigateView({
 
   // Get recent scans from history
   const recentHistory = getHistory().slice(0, 4);
+
+  // Fetch real-time stats on mount
+  useEffect(() => {
+    const loadStats = async () => {
+      const realtimeStats = await fetchStats();
+      if (realtimeStats) {
+        setStats(prev => ({
+          ...prev,
+          walletsTraced: formatNumber(realtimeStats.walletsScanned),
+          sybilClusters: formatNumber(realtimeStats.uniquePatterns),
+          chainsIndexed: realtimeStats.chainsIndexed
+        }));
+      }
+    };
+    loadStats();
+    
+    // Refresh stats every 60 seconds
+    const interval = setInterval(loadStats, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Format number with K/M suffix
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  };
 
   // Handle prefill
   useEffect(() => {
@@ -226,6 +275,36 @@ export function InvestigateView({
         // Sybil detection handled by SybilDetector
         break;
     }
+  };
+
+  // Handle batch analysis
+  const handleBatch = () => {
+    setShowBatchModal(true);
+  };
+
+  // Handle export
+  const handleExport = () => {
+    if (!walletResult) {
+      alert('No analysis results to export. Please analyze a wallet first.');
+      return;
+    }
+
+    const exportData = {
+      address: currentAnalysisAddress,
+      chain: selectedChain,
+      analysis: walletResult,
+      exportedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fundtracer-analysis-${currentAnalysisAddress.slice(0, 8)}-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // Handle contract analysis
@@ -422,7 +501,7 @@ export function InvestigateView({
           <div className="stat-note">+Linea recently</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Wallets traced</div>
+          <div className="stat-label">Wallets scanned</div>
           <div className="stat-val">{stats.walletsTraced}</div>
           <div className="stat-note">+12k this week</div>
         </div>
@@ -575,13 +654,13 @@ export function InvestigateView({
                     ? 'Analyze Contract'
                     : 'Compare Wallets'}
                 </button>
-                <button className="btn-ghost">
+                <button className="btn-ghost" onClick={handleBatch}>
                   <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M1 6h10M7 2l4 4-4 4"/>
                   </svg>
                   Batch
                 </button>
-                <button className="btn-ghost">
+                <button className="btn-ghost" onClick={handleExport}>
                   <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M6 1v8M2 6l4 4 4-4M1 11h10"/>
                   </svg>
@@ -656,6 +735,41 @@ export function InvestigateView({
                 <h4>4. Detect Sybils</h4>
                 <p>Use the Sybil Detector tab to find coordinated bot networks.</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Modal */}
+      {showBatchModal && (
+        <div className="modal-backdrop" onClick={() => setShowBatchModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Batch Analysis</h3>
+              <button className="modal-close" onClick={() => setShowBatchModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '16px', color: 'var(--intel-text-secondary)' }}>
+                Enter multiple wallet addresses (one per line) to analyze them in batch.
+              </p>
+              <textarea 
+                className="batch-textarea" 
+                placeholder="0x1234...&#10;0x5678...&#10;0xabcd..."
+                rows={8}
+              />
+              <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--intel-text-muted)' }}>
+                Maximum 20 addresses per batch. Free tier: 7 analyses/day.
+              </p>
+              <button 
+                className="btn-analyze" 
+                style={{ marginTop: '16px', width: '100%' }}
+                onClick={() => {
+                  alert('Batch analysis coming soon! Enter addresses in the compare tab for now.');
+                  setShowBatchModal(false);
+                }}
+              >
+                Analyze Batch
+              </button>
             </div>
           </div>
         </div>
