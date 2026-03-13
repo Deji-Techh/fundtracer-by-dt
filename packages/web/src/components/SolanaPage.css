@@ -5,13 +5,15 @@
 
 .solana-page {
   min-height: 100vh;
-  padding: 100px 24px 40px;
+  padding: 100px 24px 60px;
   background: var(--intel-bg-deep);
+  overflow-x: hidden;
 }
 
 .solana-page__container {
   max-width: 1200px;
   margin: 0 auto;
+  overflow: visible;
 }
 
 /* Header Section */
@@ -79,11 +81,12 @@
   background: var(--intel-cyan) !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
-  padding: 12px 24px !important;
+  padding: 14px 28px !important;
   font-size: var(--text-md) !important;
   font-weight: 600 !important;
   color: var(--intel-bg-deep) !important;
   cursor: pointer !important;
+  height: auto !important;
 }
 
 .solana-page__wallet-btn-wrapper .wallet-adapter-button:hover {
@@ -127,8 +130,10 @@
   color: var(--intel-bg-deep);
   font-size: var(--text-md);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: opacity 0.15s ease;
+  height: auto;
 }
 
 .solana-page__analyze-btn:hover:not(:disabled) {
