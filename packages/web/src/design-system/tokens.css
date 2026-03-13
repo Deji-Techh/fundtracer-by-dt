@@ -18,6 +18,10 @@
   --intel-bg-hover: #141419;
   --intel-bg-active: #1a1a22;
   
+  /* Card backgrounds (alias for surface) */
+  --bg-card: #0f0f14;
+  --bg-deep: #000000;
+  
   /* Border Colors */
   --intel-border-subtle: #1a1a22;
   --intel-border-default: #252530;
@@ -275,6 +279,10 @@
   --intel-bg-surface: #f5f5f5;
   --intel-bg-hover: #ebebeb;
   --intel-bg-active: #e0e0e0;
+  
+  /* Card backgrounds (alias for surface) */
+  --bg-card: #ffffff;
+  --bg-deep: #fafafa;
   
   /* Border Colors - Light mode */
   --intel-border-subtle: #e5e5e5;
