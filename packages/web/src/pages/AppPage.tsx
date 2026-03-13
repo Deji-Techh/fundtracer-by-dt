@@ -47,10 +47,33 @@ export function AppPage() {
     navigate(`/app-evm?address=${address}&chain=${chain}`);
   }, [navigate]);
 
-  const handleSearch = useCallback((query: string) => {
+  const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) return;
     console.log('Searching:', query);
-    // Navigate to investigate tab with the search query as address
+    
+    // Check if it's a coin/token search (Dexscreener API)
+    const isTokenSearch = query.length <= 20 && !query.startsWith('0x');
+    
+    if (isTokenSearch) {
+      try {
+        // Search Dexscreener for token
+        const response = await fetch(`https://api.dexscreener.com/search/?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0) {
+          // Show results in a modal/alert for now
+          const topResult = data.results[0];
+          alert(`Token Found!\n\n${topResult.name} (${topResult.symbol})\nPrice: $${topResult.priceUSD || 'N/A'}\nDex: ${topResult.dexId}\n\nAddress: ${topResult.address}`);
+          return;
+        } else {
+          alert('No tokens found. Searching as wallet address instead...');
+        }
+      } catch (error) {
+        console.error('Token search failed:', error);
+      }
+    }
+    
+    // Default: navigate to investigate with the search query as address
     navigate(`/app-evm?address=${encodeURIComponent(query.trim())}`);
   }, [navigate]);
 

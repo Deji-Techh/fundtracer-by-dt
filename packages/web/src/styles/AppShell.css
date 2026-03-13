@@ -699,3 +699,18 @@ body {
 
 /* Utility */
 .ft-hidden { display: none !important; }
+
+/* Light Mode */
+[data-theme="light"] {
+  --bg:       #f5f5f5;
+  --surface:  #ffffff;
+  --surface2: #fafafa;
+  --surface3: #f0f0f0;
+  --line:     #e5e5e5;
+  --line2:    #d4d4d4;
+  --muted:    #a3a3a3;
+  --sub:      #737373;
+  --body:     #525252;
+  --primary:  #171717;
+  --white:    #0a0a0a;
+}
