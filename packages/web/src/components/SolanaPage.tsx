@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useWallet } from '../providers/SolanaWalletProvider';
 import { isValidSolanaAddress } from '../utils/addressDetection';
@@ -8,6 +9,7 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 import './SolanaPage.css';
 
 export function SolanaPage() {
+  const navigate = useNavigate();
   const { publicKey, connected } = useWallet();
   const [address, setAddress] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -64,6 +66,10 @@ export function SolanaPage() {
       >
         {/* Header */}
         <div className="solana-page__header">
+          <button className="solana-page__back-btn" onClick={() => navigate('/')}>
+            ← Back
+          </button>
+          
           <div className="solana-page__badge">
             <span>BETA</span>
           </div>

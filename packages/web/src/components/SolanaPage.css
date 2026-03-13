@@ -18,6 +18,27 @@
 .solana-page__header {
   text-align: center;
   margin-bottom: 32px;
+  position: relative;
+}
+
+.solana-page__back-btn {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: var(--intel-bg-surface);
+  border: 1px solid var(--intel-border-subtle);
+  color: var(--intel-text-secondary);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: all var(--transition-fast);
+}
+
+.solana-page__back-btn:hover {
+  background: var(--intel-bg-elevated);
+  color: var(--intel-text-primary);
+  border-color: var(--intel-border-default);
 }
 
 .solana-page__badge {

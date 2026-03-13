@@ -514,7 +514,8 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
         </motion.div>
       </motion.div>
 
-      {/* Sign Out Wallet */}
+      {/* Sign Out Wallet - Only show when wallet is connected */}
+      {isWalletConnected && (
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -555,6 +556,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
           <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} color="var(--color-text-muted)" />
         </motion.div>
       </motion.div>
+      )}
 
       {/* Contact & Privacy */}
       <motion.div 

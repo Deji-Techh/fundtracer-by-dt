@@ -58,6 +58,35 @@ export function InvestigateView({
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<{ message: string; hint?: string } | null>(null);
 
+  // UI state for dropdowns
+  const [showRecentDropdown, setShowRecentDropdown] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+
+  // Get user tier from profile
+  const userTier = profile?.tier || 'free';
+
+  // Define chain tiers - which chains require which tier
+  const chainTiers: Record<string, 'free' | 'pro' | 'max'> = {
+    linea: 'free',
+    eth: 'max',
+    ethereum: 'max',
+    polygon_pos: 'max',
+    polygon: 'max',
+    optimism: 'max',
+    base: 'pro',
+    arbitrum: 'pro',
+    bsc: 'free',
+  };
+
+  // Check if user can access a chain
+  const canAccessChain = (chainId: string) => {
+    const requiredTier = chainTiers[chainId];
+    if (!requiredTier) return true;
+    if (requiredTier === 'max') return userTier === 'max';
+    if (requiredTier === 'pro') return userTier === 'pro' || userTier === 'max';
+    return true;
+  };
+
   // Stats for real-time display
   const [stats, setStats] = useState<Stats>({
     chainsIndexed: 6,
@@ -460,17 +489,26 @@ export function InvestigateView({
             <>
               <div className="field-label">Network</div>
               <div className="chains">
-                {chains.map(chain => (
-                  <div 
-                    key={chain.id}
-                    className={`chain ${selectedChain === chain.id ? 'active' : ''}`}
-                    onClick={() => setSelectedChain(chain.id as ChainId)}
-                  >
-                    <div className="chain-pip" style={{ background: chain.color }}></div>
-                    {chain.name}
-                    {chain.tier && <span className="chain-tier">{chain.tier}</span>}
-                  </div>
-                ))}
+                {chains.map(chain => {
+                  const requiredTier = chainTiers[chain.id];
+                  const isAccessible = canAccessChain(chain.id);
+                  return (
+                    <div 
+                      key={chain.id}
+                      className={`chain ${selectedChain === chain.id ? 'active' : ''} ${!isAccessible ? 'chain-disabled' : ''}`}
+                      onClick={() => {
+                        if (isAccessible) {
+                          setSelectedChain(chain.id as ChainId);
+                        }
+                      }}
+                      style={{ opacity: isAccessible ? 1 : 0.5, cursor: isAccessible ? 'pointer' : 'not-allowed' }}
+                    >
+                      <div className="chain-pip" style={{ background: chain.color }}></div>
+                      {chain.name}
+                      {requiredTier && <span className="chain-tier">{requiredTier}</span>}
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
@@ -497,8 +535,8 @@ export function InvestigateView({
                       </svg>
                       Paste
                     </button>
-                    <button className="addr-tool">Recent</button>
-                    <button className="addr-tool">Guide ↗</button>
+                    <button className="addr-tool" onClick={() => setShowRecentDropdown(!showRecentDropdown)}>Recent</button>
+                    <button className="addr-tool" onClick={() => setShowGuideModal(true)}>Guide ↗</button>
                   </div>
                 </div>
                 <input 
@@ -592,6 +630,36 @@ export function InvestigateView({
       <div className="investigate-results">
         {renderResults()}
       </div>
+
+      {/* Guide Modal */}
+      {showGuideModal && (
+        <div className="modal-backdrop" onClick={() => setShowGuideModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>How to Use Fundtracer</h3>
+              <button className="modal-close" onClick={() => setShowGuideModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="guide-section">
+                <h4>1. Enter a Wallet Address</h4>
+                <p>Paste any EVM wallet address (starts with 0x) or ENS name into the input field.</p>
+              </div>
+              <div className="guide-section">
+                <h4>2. Select a Network</h4>
+                <p>Choose which blockchain to analyze (Linea, Ethereum, Arbitrum, Base, etc.).</p>
+              </div>
+              <div className="guide-section">
+                <h4>3. View Analysis</h4>
+                <p>See the wallet's transaction history, risk score, funding sources, and more.</p>
+              </div>
+              <div className="guide-section">
+                <h4>4. Detect Sybils</h4>
+                <p>Use the Sybil Detector tab to find coordinated bot networks.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
