@@ -42,13 +42,13 @@ if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && proc
   console.warn('[AUTH] Firebase Admin credentials not found - OAuth login will not work');
 }
 
-// Email transporter configuration
-const EMAIL_USER = process.env.EMAIL_USER;
-const EMAIL_PASS = process.env.EMAIL_PASS;
-
+// Email transporter configuration - read inside function to ensure env vars are loaded
 let emailTransporter: nodemailer.Transporter | null = null;
 
 function getEmailTransporter(): nodemailer.Transporter | null {
+  const EMAIL_USER = process.env.EMAIL_USER;
+  const EMAIL_PASS = process.env.EMAIL_PASS;
+  
   if (!emailTransporter && EMAIL_USER && EMAIL_PASS) {
     try {
       emailTransporter = nodemailer.createTransport({
@@ -74,6 +74,7 @@ async function sendWelcomeEmail(email: string, name: string, authProvider: strin
     return;
   }
 
+  const EMAIL_USER = process.env.EMAIL_USER;
   const providerLabel = authProvider === 'google' ? 'Google' : authProvider === 'twitter' ? 'X (Twitter)' : 'wallet';
   
   const mailOptions = {
