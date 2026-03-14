@@ -62,12 +62,20 @@ router.get('/twitter/start', (req: Request, res: Response) => {
 router.get('/google/callback', async (req: Request, res: Response) => {
   const { code, state, error } = req.query;
   
+  console.log('[AUTH] Google callback received:', { 
+    hasCode: !!code, 
+    hasState: !!state, 
+    error,
+    redirectUri: GOOGLE_REDIRECT_URI 
+  });
+  
   if (error) {
     console.error('[AUTH] Google OAuth error:', error);
     return res.redirect(`${FRONTEND_URL}/auth?error=oauth_failed`);
   }
   
   if (!code || !state) {
+    console.error('[AUTH] Missing code or state');
     return res.redirect(`${FRONTEND_URL}/auth?error=missing_params`);
   }
   
@@ -102,7 +110,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     console.log('[AUTH] Token response status:', tokenResponse.status);
     
     if (!tokens.access_token) {
-      console.error('[AUTH] Google token exchange failed:', tokens);
+      console.error('[AUTH] Google token exchange failed:', JSON.stringify(tokens).slice(0, 500));
       return res.redirect(`${FRONTEND_URL}/auth?error=token_exchange_failed`);
     }
     
