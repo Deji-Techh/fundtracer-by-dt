@@ -21,7 +21,10 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'https://www.fundtracer.xyz';
 
 // OAuth Start endpoints - redirect to provider
 router.get('/google/start', (req: Request, res: Response) => {
+  console.log('[AUTH] Google start - GOOGLE_CLIENT_ID:', GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET', 'GOOGLE_CLIENT_SECRET:', GOOGLE_CLIENT_SECRET ? 'SET' : 'NOT SET');
+  
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    console.error('[AUTH] Google OAuth not configured');
     return res.status(500).json({ error: 'Google OAuth not configured' });
   }
   
@@ -37,11 +40,15 @@ router.get('/google/start', (req: Request, res: Response) => {
     `&access_type=offline` +
     `&prompt=consent`;
   
+  console.log('[AUTH] Redirecting to Google:', authUrl.slice(0, 100) + '...');
   res.redirect(authUrl);
 });
 
 router.get('/twitter/start', (req: Request, res: Response) => {
+  console.log('[AUTH] Twitter start - TWITTER_CLIENT_ID:', TWITTER_CLIENT_ID ? 'SET' : 'NOT SET');
+  
   if (!TWITTER_CLIENT_ID || !TWITTER_CLIENT_SECRET) {
+    console.error('[AUTH] Twitter OAuth not configured');
     return res.status(500).json({ error: 'Twitter OAuth not configured' });
   }
   
@@ -54,6 +61,7 @@ router.get('/twitter/start', (req: Request, res: Response) => {
     `&response_type=code` +
     `&scope=${encodeURIComponent(scopes)}` +
     `&state=${state}`;
+  console.log('[AUTH] Redirecting to Twitter');
   
   res.redirect(authUrl);
 });
