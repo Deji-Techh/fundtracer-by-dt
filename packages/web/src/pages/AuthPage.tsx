@@ -249,23 +249,6 @@ export function AuthPage() {
                   </motion.button>
                 </div>
 
-                <div className="auth-divider">
-                  <span>or</span>
-                </div>
-
-                <motion.button 
-                  className="auth-btn auth-btn--wallet-secondary"
-                  onClick={() => navigate('/app-evm')}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
-                    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
-                  </svg>
-                  Connect Wallet (Optional)
-                </motion.button>
-
                 <p className="auth-terms">
                   By continuing, you agree to our{' '}
                   <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>
