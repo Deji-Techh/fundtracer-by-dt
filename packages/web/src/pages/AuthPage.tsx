@@ -17,6 +17,16 @@ export function AuthPage() {
   const [searchParams] = useSearchParams();
   const { loginWithGoogle, loginWithTwitter, isAuthenticated, loading, setTokenFromExternal } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>(
+    searchParams.get('mode') === 'signup' ? 'signup' : 'signin'
+  );
+
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'signup' || mode === 'signin') {
+      setAuthMode(mode);
+    }
+  }, [searchParams]);
 
   // Handle OAuth callback - check for token in URL
   useEffect(() => {
@@ -191,8 +201,12 @@ export function AuthPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 }}
               >
-                <h2>Welcome Back</h2>
-                <p className="auth-form-desc">Sign in to access powerful blockchain analytics</p>
+                <h2>{authMode === 'signup' ? 'Create Account' : 'Welcome Back'}</h2>
+                <p className="auth-form-desc">
+                  {authMode === 'signup' 
+                    ? 'Sign up to access powerful blockchain analytics - it\'s free!' 
+                    : 'Sign in to access powerful blockchain analytics'}
+                </p>
 
                 {error && (
                   <motion.div 
@@ -218,7 +232,7 @@ export function AuthPage() {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
-                    Continue with Google
+                    {authMode === 'signup' ? 'Sign up with Google' : 'Continue with Google'}
                   </motion.button>
 
                   <motion.button
@@ -231,7 +245,7 @@ export function AuthPage() {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                     </svg>
-                    Continue with X
+                    {authMode === 'signup' ? 'Sign up with X' : 'Continue with X'}
                   </motion.button>
                 </div>
 
@@ -255,6 +269,14 @@ export function AuthPage() {
                 <p className="auth-terms">
                   By continuing, you agree to our{' '}
                   <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>
+                </p>
+
+                <p className="auth-switch-mode">
+                  {authMode === 'signup' ? (
+                    <>Already have an account? <a href="/auth?mode=signin">Sign In</a></>
+                  ) : (
+                    <>Don't have an account? <a href="/auth?mode=signup">Sign Up</a></>
+                  )}
                 </p>
               </motion.div>
             </div>

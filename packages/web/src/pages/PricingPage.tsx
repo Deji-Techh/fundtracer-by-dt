@@ -21,40 +21,44 @@ const tiers = [
   {
     name: 'Free',
     price: '$0',
+    originalPrice: '',
     period: 'forever',
-    description: 'Perfect for getting started',
-    badge: null,
+    description: 'Perfect for getting started - now with unlimited access!',
+    badge: 'Best Value',
     features: [
-      '7 analyses per 4 hours',
-      'Basic wallet analysis',
-      '3-day transaction history',
-      'Linea chain only',
-      'Community support',
+      'Unlimited analyses',
+      'Full wallet analysis',
+      'Full transaction history',
+      'All chains (7+)',
+      'Export to CSV/JSON',
+      'Priority support',
     ],
     cta: 'Get Started',
-    popular: false,
+    popular: true,
   },
   {
     name: 'Pro',
-    price: '$5',
+    price: '$0',
+    originalPrice: '$5',
     period: '/month',
     description: 'Most popular for researchers',
-    badge: 'Most Popular',
+    badge: null,
     features: [
-      '25 analyses per 4 hours',
+      'Unlimited analyses',
       'Advanced wallet analysis',
-      '30-day transaction history',
+      'Full transaction history',
       'All chains (7+)',
       'Export to CSV/JSON',
       'Priority support',
       'Sybil detection',
     ],
-    cta: 'Upgrade to Pro',
-    popular: true,
+    cta: 'Get Started',
+    popular: false,
   },
   {
     name: 'Max',
-    price: '$10',
+    price: '$0',
+    originalPrice: '$10',
     period: '/month',
     description: 'For unlimited power users',
     badge: null,
@@ -73,12 +77,12 @@ const tiers = [
 ];
 
 const comparisonData = [
-  { feature: 'Analyses per 4 hours', free: '7', pro: '25', max: 'Unlimited' },
-  { feature: 'Transaction History', free: '3 days', pro: '30 days', max: 'Full History' },
-  { feature: 'Supported Chains', free: '1', pro: '7+', max: 'All + Future' },
-  { feature: 'Export Formats', free: '-', pro: 'CSV, JSON', max: 'All Formats' },
+  { feature: 'Analyses', free: 'Unlimited', pro: 'Unlimited', max: 'Unlimited' },
+  { feature: 'Transaction History', free: 'Full', pro: 'Full', max: 'Full History' },
+  { feature: 'Supported Chains', free: '7+', pro: '7+', max: 'All + Future' },
+  { feature: 'Export Formats', free: 'CSV, JSON', pro: 'CSV, JSON', max: 'All Formats' },
   { feature: 'API Access', free: '-', pro: '-', max: '\u2713' },
-  { feature: 'Support', free: 'Community', pro: 'Priority', max: 'Dedicated' },
+  { feature: 'Support', free: 'Priority', pro: 'Priority', max: 'Dedicated' },
 ];
 
 const faqs = [
@@ -116,7 +120,7 @@ export function PricingPage() {
               <span className="pricing-hero__title-accent">Transparent Pricing</span>
             </h1>
             <p className="pricing-hero__subtitle">
-              Choose the plan that fits your needs. All plans include core features.
+              All plans are currently <span className="pricing-hero__free-badge">FREE</span> - No payment required!
             </p>
           </div>
         </section>
@@ -138,8 +142,12 @@ export function PricingPage() {
                 <div className="pricing-tier__header">
                   <h3 className="pricing-tier__name">{tier.name}</h3>
                   <div className="pricing-tier__price">
+                    {tier.originalPrice && (
+                      <span className="pricing-tier__original-price">{tier.originalPrice}</span>
+                    )}
                     <span className="pricing-tier__amount">{tier.price}</span>
                     <span className="pricing-tier__period">{tier.period}</span>
+                    <span className="pricing-tier__free-label">FREE</span>
                   </div>
                   <p className="pricing-tier__description">{tier.description}</p>
                 </div>

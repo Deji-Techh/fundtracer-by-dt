@@ -199,10 +199,11 @@ export function InvestigateView({
   const handleAnalyzeWallet = async (address: string) => {
     if (!address.trim()) return;
 
-    if (!isConnected) {
-      handleConnectWallet();
-      return;
-    }
+    // Allow scanning without wallet connection - only portfolio needs wallet
+    // if (!isConnected) {
+    //   handleConnectWallet();
+    //   return;
+    // }
 
     setLoading(true);
     setError(null);
@@ -311,10 +312,11 @@ export function InvestigateView({
   const handleAnalyzeContract = async (address: string) => {
     if (!address.trim()) return;
 
-    if (!isConnected) {
-      handleConnectWallet();
-      return;
-    }
+    // Allow scanning without wallet connection
+    // if (!isConnected) {
+    //   handleConnectWallet();
+    //   return;
+    // }
 
     setLoading(true);
     setError(null);
@@ -339,10 +341,11 @@ export function InvestigateView({
   const handleCompareWallets = async (addresses: string[]) => {
     if (addresses.length < 2) return;
 
-    if (!isConnected) {
-      handleConnectWallet();
-      return;
-    }
+    // Allow scanning without wallet connection
+    // if (!isConnected) {
+    //   handleConnectWallet();
+    //   return;
+    // }
 
     setLoading(true);
     setError(null);

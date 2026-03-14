@@ -252,8 +252,8 @@ export function IntelPage() {
               Launch App
             </button>
           ) : (
-            <button className="intel-btn intel-btn--primary" onClick={() => navigate('/auth')}>
-              Sign In
+            <button className="intel-btn intel-btn--primary" onClick={() => navigate('/auth?mode=signup')}>
+              Get Started
             </button>
           )}
         </div>

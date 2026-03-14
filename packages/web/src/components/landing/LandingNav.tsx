@@ -6,6 +6,7 @@ import './LandingNav.css';
 export function LandingNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -67,21 +68,44 @@ export function LandingNav() {
         <div className="ios-nav-actions">
           <ThemeToggle size="sm" />
           
-          <motion.button
-            onClick={() => window.location.href = '/auth'}
-            className="ios-cta-button desktop-only"
-            whileHover={{ scale: 1.02, y: -1 }}
-            whileTap={{ scale: 0.98 }}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.3 }}
+          <div 
+            className="ios-sign-dropdown desktop-only"
+            onMouseEnter={() => setDropdownOpen(true)}
+            onMouseLeave={() => setDropdownOpen(false)}
           >
-            <span>Sign In</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12"/>
-              <polyline points="12 5 19 12 12 19"/>
-            </svg>
-          </motion.button>
+            <motion.button
+              className="ios-cta-button"
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.98 }}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
+              <span>Sign</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </motion.button>
+            
+            <AnimatePresence>
+              {dropdownOpen && (
+                <motion.div
+                  className="ios-sign-dropdown-menu"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <a href="/auth?mode=signup" className="ios-sign-dropdown-item">
+                    Sign Up
+                  </a>
+                  <a href="/auth?mode=signin" className="ios-sign-dropdown-item">
+                    Sign In
+                  </a>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           <motion.button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

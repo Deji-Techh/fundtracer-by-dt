@@ -479,20 +479,20 @@ router.post('/login-wallet', async (req: Request, res: Response) => {
     const userRef = db.collection('users').doc(address.toLowerCase());
     const userDoc = await userRef.get();
 
-    let tier = 'free';
+    let tier = 'max';
     let expiry = 0;
     let displayName = '';
 
     if (userDoc.exists) {
       const data = userDoc.data();
-      tier = data?.tier || 'free';
+      tier = data?.tier || 'max';
       expiry = data?.subscriptionExpiry || 0;
       displayName = data?.displayName || '';
     }
 
     // Check if subscription expired
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'free';
+      tier = 'max';
     }
 
     await userRef.set({
@@ -556,20 +556,20 @@ router.post('/google-login', async (req: Request, res: Response) => {
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
-    let tier = 'free';
+    let tier = 'max';
     let expiry = 0;
     let walletAddress = '';
 
     if (userDoc.exists) {
       const data = userDoc.data();
-      tier = data?.tier || 'free';
+      tier = data?.tier || 'max';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
 
     // Check if subscription expired
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'free';
+      tier = 'max';
     }
 
     await userRef.set({
@@ -658,20 +658,20 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
-    let tier = 'free';
+    let tier = 'max';
     let expiry = 0;
     let walletAddress = '';
 
     if (userDoc.exists) {
       const data = userDoc.data();
-      tier = data?.tier || 'free';
+      tier = data?.tier || 'max';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
 
     // Check if subscription expired
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'free';
+      tier = 'max';
     }
 
     await userRef.set({

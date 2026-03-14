@@ -1970,12 +1970,12 @@
 }
 
 .auth-logo-icon {
-    font-size: 28px;
+    font-size: 20px;
     color: var(--intel-cyan);
 }
 
 .auth-logo-text {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--intel-text-primary);
     letter-spacing: 0.05em;
@@ -2178,6 +2178,23 @@
 }
 
 .auth-terms a:hover {
+    text-decoration: underline;
+}
+
+.auth-switch-mode {
+    font-size: 14px;
+    color: var(--intel-text-secondary);
+    text-align: center;
+    margin-top: var(--space-4);
+}
+
+.auth-switch-mode a {
+    color: var(--intel-cyan);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-switch-mode a:hover {
     text-decoration: underline;
 }
 
