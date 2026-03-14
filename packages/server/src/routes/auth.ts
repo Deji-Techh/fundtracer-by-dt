@@ -400,60 +400,103 @@ Provider: ${providerLabel}
       await transporter.sendMail({
         from: `Fundtracer <${EMAIL_USER}>`,
         to: email,
-        subject: "Welcome to Fundtracer - Blockchain Intelligence Reimagined",
+        subject: "Welcome to Fundtracer - Your Blockchain Intelligence Journey Starts Here",
         html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <img src="https://www.fundtracer.xyz/banner.png" alt="Fundtracer Banner" style="max-width: 100%; height: auto; border-radius: 8px;" />
-              <h1 style="color: #22d3ee; margin: 15px 0 0;">Fundtracer</h1>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 0;">
+            <!-- Header Banner -->
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #22d3ee; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">FUNDTRACER</h1>
+              <p style="color: #94a3b8; margin: 10px 0 0; font-size: 14px;">Blockchain Intelligence Reimagined</p>
             </div>
             
-            <h2 style="color: #1e293b;">Welcome${name ? `, ${name}` : ''}!</h2>
-            
-            <p style="color: #475569; font-size: 16px; line-height: 1.6;">
-              You're now part of the most powerful blockchain intelligence platform. Trace wallet funding sources, 
-              detect Sybil clusters, and uncover hidden relationships across the blockchain.
-            </p>
-
-            <h3 style="color: #1e293b; margin-top: 30px;">What you can do:</h3>
-            <ul style="color: #475569; line-height: 1.8;">
-              <li><strong>🔍 Investigate</strong> - Trace any wallet's funding sources and transaction history</li>
-              <li><strong>👥 Sybil Detection</strong> - Identify coordinated attack patterns and airdrop farmers</li>
-              <li><strong>🌳 Funding Trees</strong> - Visualize where funds originate from</li>
-              <li><strong>📊 Portfolio Tracking</strong> - Monitor all your wallets in one place</li>
-            </ul>
-
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="https://www.fundtracer.xyz/app-evm" 
-                 style="background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%); color: white; padding: 14px 28px; 
-                        text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; display: inline-block;">
-                🚀 Go to Dashboard
-              </a>
-            </div>
-
-            <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 30px 0;">
-              <h4 style="color: #1e293b; margin: 0 0 15px;">Try our other products:</h4>
-              <p style="margin: 0;">
-                <a href="https://www.fundtracer.xyz/cli" style="color: #06b6d4; text-decoration: none;">
-                  💻 Fundtracer CLI
-                </a> - Command-line blockchain forensics
+            <!-- Main Content -->
+            <div style="padding: 40px 30px; background: #ffffff;">
+              <h2 style="color: #1e293b; margin: 0 0 20px; font-size: 24px; font-weight: 600;">
+                Welcome${name ? `, ${name}` : ''}!
+              </h2>
+              
+              <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 20px;">
+                Thank you for joining Fundtracer - the most powerful blockchain intelligence platform designed for researchers, investors, and compliance professionals.
               </p>
-              <p style="margin: 10px 0 0;">
-                <a href="https://fundtracer.xyz/telegram" style="color: #06b6d4; text-decoration: none;">
-                  🤖 Telegram Bot
-                </a> - Get wallet alerts directly in Telegram
+              
+              <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 20px;">
+                Whether you're investigating crypto fraud, conducting due diligence on a project, tracking portfolio performance, or analyzing competitor wallets, Fundtracer gives you the tools you need to understand any wallet's complete on-chain history.
               </p>
+
+              <h3 style="color: #1e293b; margin: 35px 0 15px; font-size: 18px; font-weight: 600;">What You Can Do with Fundtracer</h3>
+              
+              <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Investigate Any Wallet</p>
+                <p style="color: #64748b; margin: 0 0 15px; font-size: 14px; line-height: 1.6;">Enter any wallet address and get a complete breakdown of their transaction history, token holdings, and on-chain behavior across 8+ blockchain networks.</p>
+                
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Trace Funding Sources</p>
+                <p style="color: #64748b; margin: 0 0 15px; font-size: 14px; line-height: 1.6;">Our funding tree visualization shows exactly where every token came from, helping you trace the origin of funds and identify potential risks.</p>
+                
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Detect Sybil & Bot Networks</p>
+                <p style="color: #64748b; margin: 0 0 15px; font-size: 14px; line-height: 1.6;">Identify coordinated attack patterns, airdrop farmers, and fake accounts using our advanced network analysis algorithms.</p>
+                
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Compare Wallets Side-by-Side</p>
+                <p style="color: #64748b; margin: 0 0 15px; font-size: 14px; line-height: 1.6;">Analyze multiple wallets simultaneously to uncover connections, shared interactions, and behavioral similarities.</p>
+                
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Monitor in Real-Time</p>
+                <p style="color: #64748b; margin: 0; font-size: 14px; line-height: 1.6;">Set up alerts via Telegram to get instant notifications when monitored wallets make transactions.</p>
+              </div>
+
+              <h3 style="color: #1e293b; margin: 35px 0 15px; font-size: 18px; font-weight: 600;">Supported Blockchains</h3>
+              <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 10px;">
+                Ethereum, Solana, Linea, Arbitrum, Base, Optimism, Polygon, and BNB Chain - all in one unified interface.
+              </p>
+
+              <div style="text-align: center; margin: 35px 0;">
+                <a href="https://www.fundtracer.xyz/app-evm" 
+                   style="background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%); color: white; padding: 16px 32px; 
+                          text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; display: inline-block;">
+                  Launch Fundtracer Now
+                </a>
+              </div>
+
+              <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                <h4 style="color: #0369a1; margin: 0 0 10px; font-size: 15px; font-weight: 600;">Pro Tip: Start with These</h4>
+                <p style="color: #075985; margin: 0; font-size: 14px; line-height: 1.6;">
+                  Try analyzing your own wallet to see your complete transaction history. Then try a popular DeFi protocol router (like Uniswap) to see how our contract analytics work.
+                </p>
+              </div>
             </div>
 
-            <p style="color: #94a3b8; font-size: 13px; margin-top: 30px;">
-              Need help? Reply to this email anytime — we're happy to assist.
-            </p>
-            
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
-            <p style="color: #94a3b8; font-size: 12px;">
-              Fundtracer - Blockchain Intelligence Reimagined<br/>
-              You're receiving this because you signed up with ${providerLabel}.
-            </p>
+            <!-- Other Products Section -->
+            <div style="background: #f8fafc; padding: 30px; border-top: 1px solid #e2e8f0;">
+              <h4 style="color: #1e293b; margin: 0 0 15px; font-size: 16px; font-weight: 600; text-align: center;">Explore Our Other Products</h4>
+              
+              <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <a href="https://www.fundtracer.xyz/cli" style="color: #06b6d4; text-decoration: none; font-size: 14px; padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; display: inline-block;">
+                  Fundtracer CLI
+                </a>
+                <a href="https://fundtracer.xyz/telegram" style="color: #06b6d4; text-decoration: none; font-size: 14px; padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; display: inline-block;">
+                  Telegram Bot
+                </a>
+                <a href="https://www.fundtracer.xyz" style="color: #06b6d4; text-decoration: none; font-size: 14px; padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; display: inline-block;">
+                  Homepage
+                </a>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 25px 30px; background: #0f172a; text-align: center;">
+              <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">
+                Questions or need help? Reply to this email - we're happy to assist.
+              </p>
+              <p style="color: #475569; font-size: 12px; margin: 0 0 8px;">
+                <a href="https://www.fundtracer.xyz/terms" style="color: #94a3b8; text-decoration: none;">Terms of Service</a> | 
+                <a href="https://www.fundtracer.xyz/privacy" style="color: #94a3b8; text-decoration: none;">Privacy Policy</a>
+              </p>
+              <p style="color: #475569; font-size: 11px; margin: 15px 0 0; opacity: 0.7;">
+                Fundtracer - Blockchain Intelligence Reimagined<br/>
+                You're receiving this because you signed up with ${providerLabel}.<br/>
+                <br/>
+                Our mailing address:<br/>
+                Fundtracer, Web3 Tools & Services
+              </p>
+            </div>
           </div>
         `,
       });
@@ -473,62 +516,105 @@ Provider: ${providerLabel}
         await resend.emails.send({
           from: 'Fundtracer <welcome@fundtracer.xyz>',
           to: email,
-          subject: "Welcome to Fundtracer - Blockchain Intelligence Reimagined",
+          subject: "Welcome to Fundtracer - Your Blockchain Intelligence Journey Starts Here",
           html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <img src="https://www.fundtracer.xyz/banner.png" alt="Fundtracer Banner" style="max-width: 100%; height: auto; border-radius: 8px;" />
-                <h1 style="color: #22d3ee; margin: 15px 0 0;">Fundtracer</h1>
-              </div>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 0;">
+            <!-- Header Banner -->
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #22d3ee; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">FUNDTRACER</h1>
+              <p style="color: #94a3b8; margin: 10px 0 0; font-size: 14px;">Blockchain Intelligence Reimagined</p>
+            </div>
+            
+            <!-- Main Content -->
+            <div style="padding: 40px 30px; background: #ffffff;">
+              <h2 style="color: #1e293b; margin: 0 0 20px; font-size: 24px; font-weight: 600;">
+                Welcome${name ? `, ${name}` : ''}!
+              </h2>
               
-              <h2 style="color: #1e293b;">Welcome${name ? `, ${name}` : ''}!</h2>
+              <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 20px;">
+                Thank you for joining Fundtracer - the most powerful blockchain intelligence platform designed for researchers, investors, and compliance professionals.
+              </p>
               
-              <p style="color: #475569; font-size: 16px; line-height: 1.6;">
-                You're now part of the most powerful blockchain intelligence platform. Trace wallet funding sources, 
-                detect Sybil clusters, and uncover hidden relationships across the blockchain.
+              <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 20px;">
+                Whether you're investigating crypto fraud, conducting due diligence on a project, tracking portfolio performance, or analyzing competitor wallets, Fundtracer gives you the tools you need to understand any wallet's complete on-chain history.
               </p>
 
-              <h3 style="color: #1e293b; margin-top: 30px;">What you can do:</h3>
-              <ul style="color: #475569; line-height: 1.8;">
-                <li><strong>🔍 Investigate</strong> - Trace any wallet's funding sources and transaction history</li>
-                <li><strong>👥 Sybil Detection</strong> - Identify coordinated attack patterns and airdrop farmers</li>
-                <li><strong>🌳 Funding Trees</strong> - Visualize where funds originate from</li>
-                <li><strong>📊 Portfolio Tracking</strong> - Monitor all your wallets in one place</li>
-              </ul>
+              <h3 style="color: #1e293b; margin: 35px 0 15px; font-size: 18px; font-weight: 600;">What You Can Do with Fundtracer</h3>
+              
+              <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Investigate Any Wallet</p>
+                <p style="color: #64748b; margin: 0 0 15px; font-size: 14px; line-height: 1.6;">Enter any wallet address and get a complete breakdown of their transaction history, token holdings, and on-chain behavior across 8+ blockchain networks.</p>
+                
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Trace Funding Sources</p>
+                <p style="color: #64748b; margin: 0 0 15px; font-size: 14px; line-height: 1.6;">Our funding tree visualization shows exactly where every token came from, helping you trace the origin of funds and identify potential risks.</p>
+                
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Detect Sybil and Bot Networks</p>
+                <p style="color: #64748b; margin: 0 0 15px; font-size: 14px; line-height: 1.6;">Identify coordinated attack patterns, airdrop farmers, and fake accounts using our advanced network analysis algorithms.</p>
+                
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Compare Wallets Side-by-Side</p>
+                <p style="color: #64748b; margin: 0 0 15px; font-size: 14px; line-height: 1.6;">Analyze multiple wallets simultaneously to uncover connections, shared interactions, and behavioral similarities.</p>
+                
+                <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">- Monitor in Real-Time</p>
+                <p style="color: #64748b; margin: 0; font-size: 14px; line-height: 1.6;">Set up alerts via Telegram to get instant notifications when monitored wallets make transactions.</p>
+              </div>
 
-              <div style="text-align: center; margin: 30px 0;">
+              <h3 style="color: #1e293b; margin: 35px 0 15px; font-size: 18px; font-weight: 600;">Supported Blockchains</h3>
+              <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 10px;">
+                Ethereum, Solana, Linea, Arbitrum, Base, Optimism, Polygon, and BNB Chain - all in one unified interface.
+              </p>
+
+              <div style="text-align: center; margin: 35px 0;">
                 <a href="https://www.fundtracer.xyz/app-evm" 
-                   style="background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%); color: white; padding: 14px 28px; 
+                   style="background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%); color: white; padding: 16px 32px; 
                           text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; display: inline-block;">
-                  🚀 Go to Dashboard
+                  Launch Fundtracer Now
                 </a>
               </div>
 
-              <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 30px 0;">
-                <h4 style="color: #1e293b; margin: 0 0 15px;">Try our other products:</h4>
-                <p style="margin: 0;">
-                  <a href="https://www.fundtracer.xyz/cli" style="color: #06b6d4; text-decoration: none;">
-                    💻 Fundtracer CLI
-                  </a> - Command-line blockchain forensics
-                </p>
-                <p style="margin: 10px 0 0;">
-                  <a href="https://fundtracer.xyz/telegram" style="color: #06b6d4; text-decoration: none;">
-                    🤖 Telegram Bot
-                  </a> - Get wallet alerts directly in Telegram
+              <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                <h4 style="color: #0369a1; margin: 0 0 10px; font-size: 15px; font-weight: 600;">Pro Tip: Start with These</h4>
+                <p style="color: #075985; margin: 0; font-size: 14px; line-height: 1.6;">
+                  Try analyzing your own wallet to see your complete transaction history. Then try a popular DeFi protocol router (like Uniswap) to see how our contract analytics work.
                 </p>
               </div>
+            </div>
 
-              <p style="color: #94a3b8; font-size: 13px; margin-top: 30px;">
-                Need help? Reply to this email anytime — we're happy to assist.
-              </p>
+            <!-- Other Products Section -->
+            <div style="background: #f8fafc; padding: 30px; border-top: 1px solid #e2e8f0;">
+              <h4 style="color: #1e293b; margin: 0 0 15px; font-size: 16px; font-weight: 600; text-align: center;">Explore Our Other Products</h4>
               
-              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
-              <p style="color: #94a3b8; font-size: 12px;">
+              <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <a href="https://www.fundtracer.xyz/cli" style="color: #06b6d4; text-decoration: none; font-size: 14px; padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; display: inline-block;">
+                  Fundtracer CLI
+                </a>
+                <a href="https://fundtracer.xyz/telegram" style="color: #06b6d4; text-decoration: none; font-size: 14px; padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; display: inline-block;">
+                  Telegram Bot
+                </a>
+                <a href="https://www.fundtracer.xyz" style="color: #06b6d4; text-decoration: none; font-size: 14px; padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px; display: inline-block;">
+                  Homepage
+                </a>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 25px 30px; background: #0f172a; text-align: center;">
+              <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">
+                Questions or need help? Reply to this email - we are happy to assist.
+              </p>
+              <p style="color: #475569; font-size: 12px; margin: 0 0 8px;">
+                <a href="https://www.fundtracer.xyz/terms" style="color: #94a3b8; text-decoration: none;">Terms of Service</a> | 
+                <a href="https://www.fundtracer.xyz/privacy" style="color: #94a3b8; text-decoration: none;">Privacy Policy</a>
+              </p>
+              <p style="color: #475569; font-size: 11px; margin: 15px 0 0; opacity: 0.7;">
                 Fundtracer - Blockchain Intelligence Reimagined<br/>
-                You're receiving this because you signed up with ${providerLabel}.
+                You are receiving this because you signed up with ${providerLabel}.<br/>
+                <br/>
+                Our mailing address:<br/>
+                Fundtracer, Web3 Tools and Services
               </p>
             </div>
-          `,
+          </div>
+        `,
         });
         console.log(`[AUTH] Welcome email sent via Resend to: ${email}`);
         return;
