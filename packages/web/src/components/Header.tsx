@@ -1,4 +1,5 @@
-import { Github, Mail, Zap, MessageSquare, User } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { GithubIcon, Mail01Icon, FlashIcon, MessageChat01Icon, UserIcon } from '@hugeicons/core-free-icons';
 import logo from '../assets/logo.png';
 import { WalletButton } from './WalletButton';
 import { useAuth } from '../contexts/AuthContext';
@@ -36,7 +37,7 @@ function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActi
                         onClick={onUpgradeClick}
                         className="header-upgrade-btn"
                     >
-                        <Zap size={16} />
+                        <HugeiconsIcon icon={FlashIcon} size={16} strokeWidth={2} />
                         <span>Upgrade</span>
                     </button>
                 )}
@@ -49,7 +50,7 @@ function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActi
                         className="header-action-btn"
                         title="Send Feedback"
                     >
-                        <MessageSquare size={20} />
+                        <HugeiconsIcon icon={MessageChat01Icon} size={20} strokeWidth={1.5} />
                     </button>
                 )}
                 
@@ -60,7 +61,7 @@ function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActi
                     className="header-action-btn"
                     title="GitHub"
                 >
-                    <Github size={20} />
+                    <HugeiconsIcon icon={GithubIcon} size={20} strokeWidth={1.5} />
                 </a>
                 
                 <a
@@ -68,7 +69,7 @@ function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActi
                     className="header-action-btn"
                     title="Contact us"
                 >
-                    <Mail size={20} />
+                    <HugeiconsIcon icon={Mail01Icon} size={20} strokeWidth={1.5} />
                 </a>
                 
                 {onProfileClick && (
@@ -77,7 +78,7 @@ function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActi
                         className="header-action-btn"
                         title="Your Profile"
                     >
-                        <User size={20} />
+                        <HugeiconsIcon icon={UserIcon} size={20} strokeWidth={1.5} />
                     </button>
                 )}
             </div>

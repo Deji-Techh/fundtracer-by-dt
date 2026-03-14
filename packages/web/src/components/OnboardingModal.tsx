@@ -1,6 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Wallet, Shield, GitBranch, Zap, BarChart3, Users, Check, X } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Search01Icon,
+  Wallet01Icon,
+  Shield01Icon,
+  GitBranchIcon,
+  FlashIcon,
+  BarChart01Icon,
+  UserGroupIcon,
+  CheckmarkCircle01Icon,
+  CloseIcon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  SecurityIcon,
+  EyeIcon,
+  FingerprintIcon,
+  Lock04Icon,
+  Home03Icon,
+  RefreshCw,
+  InformationCircleIcon,
+} from '@hugeicons/core-free-icons';
 
 interface OnboardingModalProps {
     isOpen: boolean;
@@ -65,22 +85,22 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
 
     const features = [
         {
-            icon: <Search size={22} />,
+            icon: Search01Icon,
             title: 'Analyze Wallets',
             desc: 'Trace funding sources and transaction history'
         },
         {
-            icon: <GitBranch size={22} />,
+            icon: GitBranchIcon,
             title: 'Funding Trees',
             desc: 'Visualize where funds originate from'
         },
         {
-            icon: <Users size={22} />,
+            icon: UserGroupIcon,
             title: 'Sybil Detection',
             desc: 'Identify coordinated attack patterns'
         },
         {
-            icon: <BarChart3 size={22} />,
+            icon: BarChart01Icon,
             title: 'Compare Wallets',
             desc: 'Side-by-side wallet analysis'
         }
@@ -98,7 +118,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                 >
                     <motion.div className="onboarding-hero-icon" variants={itemVariants}>
                         <div className="hero-icon-glow" />
-                        <Search size={48} strokeWidth={1.5} />
+                        <HugeiconsIcon icon={Search01Icon} size={48} strokeWidth={1.5} />
                     </motion.div>
                     
                     <motion.h1 variants={itemVariants} className="onboarding-title">
@@ -118,7 +138,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                                 variants={itemVariants}
                                 whileHover={{ scale: 1.02, y: -2 }}
                             >
-                                <div className="feature-card-icon">{feature.icon}</div>
+                                <div className="feature-card-icon">
+                                    <HugeiconsIcon icon={feature.icon} size={22} strokeWidth={1.5} />
+                                </div>
                                 <div className="feature-card-content">
                                     <h4>{feature.title}</h4>
                                     <p>{feature.desc}</p>
@@ -139,7 +161,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                     variants={staggerChildren}
                 >
                     <motion.div className="onboarding-section-icon" variants={itemVariants}>
-                        <Zap size={32} strokeWidth={1.5} />
+                        <HugeiconsIcon icon={FlashIcon} size={32} strokeWidth={1.5} />
                     </motion.div>
                     
                     <motion.h1 variants={itemVariants} className="onboarding-title">
@@ -186,7 +208,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                     variants={staggerChildren}
                 >
                     <motion.div className="onboarding-section-icon privacy-icon" variants={itemVariants}>
-                        <Shield size={32} strokeWidth={1.5} />
+                        <HugeiconsIcon icon={SecurityIcon} size={32} strokeWidth={1.5} />
                     </motion.div>
                     
                     <motion.h1 variants={itemVariants} className="onboarding-title">
@@ -199,10 +221,10 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
 
                     <motion.div variants={itemVariants} className="privacy-cards">
                         {[
-                            'Public blockchain data only',
-                            'Never access your private keys',
-                            'No tracking or data selling',
-                            'Wallet connection optional'
+                            { icon: EyeIcon, text: 'Public blockchain data only' },
+                            { icon: FingerprintIcon, text: 'Never access your private keys' },
+                            { icon: Lock04Icon, text: 'No tracking or data selling' },
+                            { icon: Wallet01Icon, text: 'Wallet connection optional' }
                         ].map((item, i) => (
                             <motion.div 
                                 key={i}
@@ -211,9 +233,10 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                                 whileHover={{ scale: 1.01 }}
                             >
                                 <div className="privacy-card-check">
-                                    <Check size={16} />
+                                    <HugeiconsIcon icon={CheckmarkCircle01Icon} size={16} strokeWidth={2} />
                                 </div>
-                                <span>{item}</span>
+                                <HugeiconsIcon icon={item.icon} size={18} strokeWidth={1.5} style={{ color: 'var(--color-text-muted)' }} />
+                                <span>{item.text}</span>
                             </motion.div>
                         ))}
                     </motion.div>
@@ -252,7 +275,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Close Button */}
                 <button className="onboarding-close" onClick={handleComplete}>
-                    <X size={20} />
+                    <HugeiconsIcon icon={CloseIcon} size={20} strokeWidth={2} />
                 </button>
 
                 {/* Slides */}
@@ -282,9 +305,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                         className={`nav-btn nav-btn--back ${step === 0 ? 'hidden' : ''}`}
                         onClick={() => goToStep(step - 1)}
                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M19 12H5M12 19l-7-7 7-7"/>
-                        </svg>
+                        <HugeiconsIcon icon={ArrowLeft01Icon} size={16} strokeWidth={2} />
                         Back
                     </button>
                     
@@ -304,9 +325,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                             onClick={() => goToStep(step + 1)}
                         >
                             Next
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M5 12h14M12 5l7 7-7 7"/>
-                            </svg>
+                            <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />
                         </button>
                     ) : (
                         <motion.button 
@@ -315,7 +334,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                         >
-                            <Zap size={18} />
+                            <HugeiconsIcon icon={FlashIcon} size={18} strokeWidth={2} />
                             Get Started
                         </motion.button>
                     )}

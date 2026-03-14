@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, AlertCircle, RefreshCw } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Wallet01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+import { LogOut01Icon, AlertCircleIcon, RefreshCw, Wallet01Icon, ArrowRight01Icon, CloseIcon } from '@hugeicons/core-free-icons';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 interface WalletButtonProps {
@@ -94,9 +93,9 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
             fontSize: '14px',
           }}
         >
-          <AlertCircle size={16} />
+          <HugeiconsIcon icon={AlertCircleIcon} size={16} strokeWidth={2} color="#ef4444" />
           <span>Retry</span>
-          <RefreshCw size={14} />
+          <HugeiconsIcon icon={RefreshCw} size={14} strokeWidth={2} />
         </button>
       ) : isWalletConnected && displayAddress ? (
         <button
@@ -115,7 +114,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
           title="Connect wallet"
         >
           {isConnecting ? (
-            <RefreshCw size={18} className="spin" />
+            <HugeiconsIcon icon={RefreshCw} size={18} strokeWidth={1.5} className="spin" />
           ) : (
             <HugeiconsIcon icon={Wallet01Icon} size={18} strokeWidth={1.5} />
           )}
@@ -140,7 +139,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-            <AlertCircle size={20} color="#ef4444" />
+            <HugeiconsIcon icon={AlertCircleIcon} size={20} strokeWidth={2} color="#ef4444" />
             <div style={{ flex: 1 }}>
               <h4 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                 Connection Failed
@@ -165,8 +164,8 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
                     cursor: 'pointer',
                   }}
                 >
-                  <RefreshCw size={14} />
-                  Try Again
+                <HugeiconsIcon icon={RefreshCw} size={14} strokeWidth={2} />
+                Try Again
                 </button>
                 <button
                   onClick={() => setConnectionError(null)}
@@ -232,7 +231,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
                   margin: '0 auto 16px',
                 }}
               >
-                <LogOut size={24} color="var(--color-danger, #ef4444)" />
+                <HugeiconsIcon icon={LogOut01Icon} size={24} strokeWidth={1.5} color="var(--color-danger, #ef4444)" />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--color-text-primary)' }}>
                 Sign Out?
