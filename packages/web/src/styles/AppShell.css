@@ -676,10 +676,21 @@ body {
   .ft-overlay { display: block; pointer-events: auto; }
   .ft-overlay:not(.visible) { pointer-events: none; }
 
-  .ft-topbar { padding: 0 14px; gap: 10px; }
+  .ft-topbar { 
+    padding: 0 14px; 
+    gap: 10px; 
+    height: 56px;
+  }
   .ft-hamburger { display: flex; }
   .ft-topbar-wordmark { display: flex; }
-  .ft-search { max-width: none; flex: 1; }
+  .ft-search { 
+    max-width: none; 
+    flex: 1; 
+    margin-left: 8px;
+  }
+  .ft-search input {
+    height: 32px;
+  }
   .ft-search-shortcut { display: none; }
   .ft-node-status { display: none; }
   .ft-topbar-divider { display: none; }
@@ -700,16 +711,145 @@ body {
   .ft-chains::-webkit-scrollbar { display: none; }
   .ft-chain { flex-shrink: 0; }
 
-  .ft-actions { flex-wrap: wrap; }
-  .ft-btn-analyze { flex: 1 1 100%; order: -1; min-width: 100%; }
+  .ft-actions { flex-wrap: wrap; gap: 8px; }
+  .ft-btn-analyze { flex: 1 1 100%; order: -1; min-width: 100%; height: 44px; }
+  .ft-btn-ghost { flex: 1; height: 40px; }
 
   .ft-page-title { font-size: 15px; }
   .ft-panel-body { padding: 16px; }
+
+  /* Mobile Input Field Fixes - 375px width */
+  .ft-addr-field {
+    margin-bottom: 12px;
+    border-radius: 4px;
+  }
+  
+  .ft-addr-bar {
+    padding: 0 10px;
+    height: 36px;
+  }
+  
+  .ft-addr-tools {
+    gap: 6px;
+  }
+  
+  .ft-addr-tool {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .ft-addr-tool svg {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .ft-addr-input {
+    height: 44px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  
+  .ft-hint {
+    margin-bottom: 14px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  
+  /* Fix action buttons alignment and sizing */
+  .ft-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  
+  .ft-btn-analyze {
+    width: 100%;
+    flex: none;
+    height: 46px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+  
+  .ft-btn-ghost {
+    flex: 1;
+    height: 40px;
+    font-size: 12px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  
+  .ft-btn-ghost svg {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 @media (max-width: 420px) {
   .ft-stat-val { font-size: 16px; }
   .ft-chains { grid-template-columns: repeat(2, 1fr); }
+  
+  /* Extra small screen fixes - iPhone SE/12 mini */
+  .ft-topbar {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  
+  .ft-search {
+    margin-left: 6px;
+  }
+  
+  .ft-search input {
+    height: 30px;
+    font-size: 12px;
+    padding: 0 28px 0 10px;
+  }
+  
+  .ft-content {
+    padding: 12px;
+  }
+  
+  .ft-addr-field {
+    margin-bottom: 10px;
+  }
+  
+  .ft-addr-bar {
+    padding: 0 8px;
+    height: 32px;
+  }
+  
+  .ft-addr-tool {
+    height: 22px;
+    padding: 0 6px;
+    font-size: 9px;
+  }
+  
+  .ft-addr-input {
+    height: 40px;
+    font-size: 12px;
+    padding: 0 10px;
+  }
+  
+  .ft-actions {
+    gap: 8px;
+  }
+  
+  .ft-btn-analyze {
+    height: 42px;
+    font-size: 13px;
+  }
+  
+  .ft-btn-ghost {
+    height: 38px;
+    font-size: 11px;
+  }
 }
 
 /* Utility */

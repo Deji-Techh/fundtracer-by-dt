@@ -703,6 +703,86 @@
   .investigate-view__empty {
     padding: var(--space-8);
   }
+
+  /* Mobile Input Field Fixes - 375px width */
+  .addr-field {
+    margin-bottom: var(--space-3);
+    border-radius: var(--radius-md);
+  }
+
+  .addr-bar {
+    padding: 0 var(--space-3);
+    height: 36px;
+  }
+
+  .addr-label {
+    font-size: 10px;
+  }
+
+  .addr-tools {
+    gap: var(--space-1);
+  }
+
+  .addr-tool {
+    height: 22px;
+    padding: 0 var(--space-2);
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .addr-tool svg {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+  }
+
+  .addr-input {
+    height: 44px;
+    padding: 0 var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  .hint {
+    margin-bottom: var(--space-3);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+  }
+
+  /* Mobile Action Buttons - Standardized Sizing */
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
+  }
+
+  .btn-analyze {
+    width: 100%;
+    flex: none;
+    height: 46px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-md);
+    order: -1;
+  }
+
+  .btn-ghost {
+    flex: 1;
+    height: 40px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+  }
+
+  .btn-ghost svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
 }
 
 @media (max-width: 480px) {
@@ -716,6 +796,47 @@
 
   .investigate-view__connect-btn {
     width: 100%;
+  }
+
+  /* Extra small screen fixes - iPhone SE/12 mini */
+  .addr-field {
+    margin-bottom: var(--space-2);
+  }
+
+  .addr-bar {
+    padding: 0 var(--space-2);
+    height: 32px;
+  }
+
+  .addr-tool {
+    height: 20px;
+    padding: 0 6px;
+    font-size: 9px;
+  }
+
+  .addr-tool svg {
+    width: 9px;
+    height: 9px;
+  }
+
+  .addr-input {
+    height: 40px;
+    font-size: var(--text-xs);
+    padding: 0 var(--space-2);
+  }
+
+  .actions {
+    gap: var(--space-2);
+  }
+
+  .btn-analyze {
+    height: 42px;
+    font-size: var(--text-xs);
+  }
+
+  .btn-ghost {
+    height: 38px;
+    font-size: 10px;
   }
 }
 
