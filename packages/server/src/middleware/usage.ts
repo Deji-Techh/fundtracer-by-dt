@@ -9,8 +9,29 @@ const { FieldValue } = admin.firestore;
 
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 
-// Allowed chains for validation
-const ALLOWED_CHAINS = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon', 'bsc'];
+// Chain configuration - support both frontend IDs and canonical names
+const ALLOWED_CHAINS = [
+    'ethereum', 'eth',
+    'linea',
+    'arbitrum', 'arb',
+    'base',
+    'optimism', 'opt',
+    'polygon', 'polygon_pos', 'matic',
+    'bsc', 'binance'
+];
+
+// Map frontend chain IDs to canonical names
+const normalizeChainId = (chain: string): string => {
+    const mapping: Record<string, string> = {
+        'eth': 'ethereum',
+        'arb': 'arbitrum',
+        'opt': 'optimism',
+        'polygon_pos': 'polygon',
+        'matic': 'polygon',
+        'binance': 'bsc',
+    };
+    return mapping[chain.toLowerCase()] || chain.toLowerCase();
+};
 
 export async function usageMiddleware(
     req: AuthenticatedRequest,
@@ -38,7 +59,7 @@ export async function usageMiddleware(
             const chain = req.body.chain;
             if (chain) {
                 // Normalize chain to lowercase for validation
-                const normalizedChain = chain.toLowerCase();
+                const normalizedChain = normalizeChainId(chain);
                 
                 // Validate chain is in allowed list
                 if (!ALLOWED_CHAINS.includes(normalizedChain)) {
