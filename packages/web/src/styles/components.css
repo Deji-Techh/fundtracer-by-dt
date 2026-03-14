@@ -1969,6 +1969,13 @@
     margin-bottom: var(--space-6);
 }
 
+.auth-logo-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    object-fit: contain;
+}
+
 .auth-logo-icon {
     font-size: 20px;
     color: var(--intel-cyan);
