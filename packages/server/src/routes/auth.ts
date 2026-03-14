@@ -406,9 +406,10 @@ Provider: ${providerLabel}
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 0;">
             <!-- Header Banner -->
-            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 40px 30px; text-align: center;">
-              <h1 style="color: #22d3ee; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">FUNDTRACER</h1>
-              <p style="color: #94a3b8; margin: 10px 0 0; font-size: 14px;">Blockchain Intelligence Reimagined</p>
+            <div style="text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+              <img src="https://www.fundtracer.xyz/banner.png" alt="Fundtracer Banner" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 150px;" />
+              <h1 style="color: #22d3ee; margin: 15px 0 0; font-size: 28px; font-weight: 700;">FUNDTRACER</h1>
+              <p style="color: #94a3b8; margin: 8px 0 0; font-size: 13px;">Blockchain Intelligence Reimagined</p>
             </div>
             
             <!-- Main Content -->
@@ -522,9 +523,10 @@ Provider: ${providerLabel}
           html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 0;">
             <!-- Header Banner -->
-            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 40px 30px; text-align: center;">
-              <h1 style="color: #22d3ee; margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">FUNDTRACER</h1>
-              <p style="color: #94a3b8; margin: 10px 0 0; font-size: 14px;">Blockchain Intelligence Reimagined</p>
+            <div style="text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+              <img src="https://www.fundtracer.xyz/banner.png" alt="Fundtracer Banner" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 150px;" />
+              <h1 style="color: #22d3ee; margin: 15px 0 0; font-size: 28px; font-weight: 700;">FUNDTRACER</h1>
+              <p style="color: #94a3b8; margin: 8px 0 0; font-size: 13px;">Blockchain Intelligence Reimagined</p>
             </div>
             
             <!-- Main Content -->
