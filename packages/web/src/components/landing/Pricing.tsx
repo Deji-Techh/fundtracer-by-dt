@@ -25,7 +25,7 @@ const tiers = [
     price: '$0',
     originalPrice: '$5',
     period: '/month',
-    description: 'Most popular for researchers',
+    description: 'For professional researchers',
     features: [
       'Unlimited analyses',
       'Advanced wallet analysis',
@@ -33,6 +33,7 @@ const tiers = [
       'All chains (7+)',
       'Export to CSV/JSON',
       'Priority support',
+      'API access',
     ],
     popular: false,
   },
@@ -41,7 +42,7 @@ const tiers = [
     price: '$0',
     originalPrice: '$10',
     period: '/month',
-    description: 'Unlimited power users',
+    description: 'For unlimited power users',
     features: [
       'Unlimited analyses',
       'Full historical data',
