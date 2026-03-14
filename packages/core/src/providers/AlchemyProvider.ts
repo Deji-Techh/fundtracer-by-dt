@@ -21,7 +21,7 @@ import { getChainConfig } from '../chains.js';
 /** Debug flag - set FUNDTRACER_DEBUG=true to see verbose logs */
 const DEBUG = process.env.FUNDTRACER_DEBUG === 'true';
 
-/** Alchemy RPC URLs per chain */
+/** Alchemy RPC URLs per chain - BSC not supported by Alchemy, use Moralis */
 const ALCHEMY_URLS: Partial<Record<ChainId, string>> = {
     ethereum: 'https://eth-mainnet.g.alchemy.com/v2/',
     linea: 'https://linea-mainnet.g.alchemy.com/v2/',
@@ -126,12 +126,19 @@ export class AlchemyProvider {
         this.apiKey = apiKey;
         this.moralisKey = moralisKey;
         this.explorerKey = explorerKey;
-        this.rpcUrl = `${ALCHEMY_URLS[chain]}${apiKey}`;
+        
+        // BSC doesn't have Alchemy support - use Moralis only
+        if (chain === 'bsc') {
+            this.rpcUrl = '';
+        } else {
+            this.rpcUrl = `${ALCHEMY_URLS[chain]}${apiKey}`;
+        }
+        
         this.rateLimiter = new AlchemyRateLimiter();
         this.moralisRateLimiter = new MoralisRateLimiter();
         this.cache = new ResponseCache();
 
-        if (!this.rpcUrl) {
+        if (!this.rpcUrl && chain !== 'bsc') {
             throw new Error(`Alchemy not supported for chain: ${chain}`);
         }
 
@@ -208,6 +215,11 @@ export class AlchemyProvider {
         const cached = this.cache.get<WalletInfo>(cacheKey);
         if (cached) return cached;
 
+        // BSC: Use Moralis for wallet info
+        if (this.chainConfig.id === 'bsc') {
+            return this.getWalletInfoMoralis(address);
+        }
+
         // OPTIMIZATION: Fire balance/txCount AND first-tx lookup all in parallel
         // Previously these ran sequentially — Etherscan first, then Alchemy fallback
         const balancePromise = this.rpcRequest<string>('eth_getBalance', [address, 'latest']);
@@ -238,6 +250,96 @@ export class AlchemyProvider {
 
         this.cache.set(cacheKey, walletInfo);
         return walletInfo;
+    }
+
+    /** Get wallet info using Moralis (for BSC) */
+    private async getWalletInfoMoralis(address: string): Promise<WalletInfo> {
+        const cacheKey = `walletInfo:${address}:moralis`;
+        const cached = this.cache.get<WalletInfo>(cacheKey);
+        if (cached) return cached;
+
+        try {
+            await this.moralisRateLimiter.throttle();
+
+            const chainMap: Record<string, string> = {
+                ethereum: '0x1',
+                polygon: '0x89',
+                arbitrum: '0xa4b1',
+                optimism: '0xa',
+                base: '0x2105',
+                linea: '0xe708',
+                bsc: '0x38',
+            };
+            const moralisChain = chainMap[this.chainConfig.id] || '0x1';
+
+            // Get ETH balance
+            const balanceResponse = await axios.get(
+                `https://deep-index.moralis.io/api/v2.2/${address}/balance?chain=${moralisChain}`,
+                {
+                    headers: {
+                        'accept': 'application/json',
+                        'X-API-Key': this.moralisKey
+                    }
+                }
+            );
+
+            const balanceWei = BigInt(balanceResponse.data.balance || '0');
+            const balanceInEth = Number(balanceWei) / 1e18;
+
+            // Get transaction count
+            const txsResponse = await axios.get(
+                `https://deep-index.moralis.io/api/v2.2/${address}?chain=${moralisChain}&limit=1&order=desc`,
+                {
+                    headers: {
+                        'accept': 'application/json',
+                        'X-API-Key': this.moralisKey
+                    }
+                }
+            );
+
+            const txCount = txsResponse.data.total || 0;
+            let firstTxTimestamp: number | undefined;
+
+            // Get first transaction for timestamp
+            const firstTxResponse = await axios.get(
+                `https://deep-index.moralis.io/api/v2.2/${address}?chain=${moralisChain}&limit=1&order=asc`,
+                {
+                    headers: {
+                        'accept': 'application/json',
+                        'X-API-Key': this.moralisKey
+                    }
+                }
+            );
+
+            if (firstTxResponse.data.result && firstTxResponse.data.result.length > 0) {
+                firstTxTimestamp = new Date(firstTxResponse.data.result[0].block_timestamp).getTime() / 1000;
+            }
+
+            const walletInfo: WalletInfo = {
+                address: address.toLowerCase(),
+                chain: this.chainConfig.id,
+                balance: balanceWei.toString(),
+                balanceInEth,
+                txCount,
+                firstTxTimestamp,
+                isContract: false,
+            };
+
+            this.cache.set(cacheKey, walletInfo);
+            return walletInfo;
+        } catch (error) {
+            console.error('[AlchemyProvider] Moralis wallet info error:', error);
+            // Return empty info on error
+            return {
+                address: address.toLowerCase(),
+                chain: this.chainConfig.id,
+                balance: '0',
+                balanceInEth: 0,
+                txCount: 0,
+                firstTxTimestamp: undefined,
+                isContract: false,
+            };
+        }
     }
 
     /** Fast first-tx timestamp: race Etherscan V2 vs Alchemy, take whichever wins */
@@ -299,6 +401,7 @@ export class AlchemyProvider {
             'arbitrum': '42161',
             'optimism': '10',
             'base': '8453',
+            'bsc': '56',
         };
 
         const chainIdNum = chainIdMap[this.chainId];
@@ -324,6 +427,15 @@ export class AlchemyProvider {
     /** Get all transactions using Asset Transfers API */
     async getTransactions(address: string, filters?: FilterOptions): Promise<Transaction[]> {
         const normalizedAddr = address.toLowerCase();
+        
+        // BSC: Use Moralis exclusively (Alchemy doesn't support BSC)
+        if (this.chainConfig.id === 'bsc') {
+            if (!this.moralisKey) {
+                throw new Error('BSC requires Moralis API key');
+            }
+            return this.getTransactionsMoralis(address, filters);
+        }
+        
         const cacheKey = `txs:${normalizedAddr}:${JSON.stringify(filters)}`;
         const cached = this.cache.get<Transaction[]>(cacheKey);
         if (cached) return cached;
@@ -459,6 +571,10 @@ export class AlchemyProvider {
 
     /** Get internal transactions (included in getTransactions for Alchemy) */
     async getInternalTransactions(address: string, filters?: FilterOptions): Promise<Transaction[]> {
+        // BSC: Use Moralis
+        if (this.chainConfig.id === 'bsc') {
+            return this.getTransactionsMoralis(address, filters);
+        }
         // Alchemy includes internal transactions in asset transfers
         // We already fetch them in getTransactions, so return empty here to avoid duplicates
         return [];
@@ -466,8 +582,69 @@ export class AlchemyProvider {
 
     /** Get token transfers (included in getTransactions for Alchemy) */
     async getTokenTransfers(address: string, filters?: FilterOptions): Promise<TokenTransfer[]> {
+        // BSC: Use Moralis
+        if (this.chainConfig.id === 'bsc') {
+            return this.getTokenTransfersMoralis(address, filters);
+        }
         // Already included in getTransactions via asset transfers
         return [];
+    }
+
+    /** Get token transfers using Moralis (for BSC) */
+    private async getTokenTransfersMoralis(address: string, filters?: FilterOptions): Promise<TokenTransfer[]> {
+        try {
+            await this.moralisRateLimiter.throttle();
+
+            const chainMap: Record<string, string> = {
+                ethereum: '0x1',
+                polygon: '0x89',
+                arbitrum: '0xa4b1',
+                optimism: '0xa',
+                base: '0x2105',
+                linea: '0xe708',
+                bsc: '0x38',
+            };
+            const moralisChain = chainMap[this.chainConfig.id] || '0x1';
+
+            const limit = filters?.limit || 100;
+            const response = await axios.get(
+                `https://deep-index.moralis.io/api/v2.2/${address}/verbose?chain=${moralisChain}&limit=${limit}&order=desc`,
+                {
+                    headers: {
+                        'accept': 'application/json',
+                        'X-API-Key': this.moralisKey
+                    }
+                }
+            );
+
+            const data = response.data;
+            const tokenTransfers: TokenTransfer[] = [];
+
+            if (data.result && Array.isArray(data.result)) {
+                for (const tx of data.result) {
+                    if (tx.token_transfers && tx.token_transfers.length > 0) {
+                        for (const tokenTx of tx.token_transfers) {
+                            const decimals = parseInt(tokenTx.token_decimals || '18');
+                            tokenTransfers.push({
+                                tokenAddress: tokenTx.address,
+                                tokenName: tokenTx.token_name || '',
+                                tokenSymbol: tokenTx.token_symbol || '',
+                                tokenDecimals: decimals,
+                                from: tokenTx.from_address || tx.from_address,
+                                to: tokenTx.to_address || tx.to_address,
+                                value: tokenTx.value || '0',
+                                valueFormatted: parseFloat(tokenTx.value || '0') / Math.pow(10, decimals),
+                            });
+                        }
+                    }
+                }
+            }
+
+            return tokenTransfers;
+        } catch (error) {
+            console.error('[AlchemyProvider] Moralis token transfers error:', error);
+            return [];
+        }
     }
 
     /** Get first funding source (optimized with Moralis) */
@@ -519,6 +696,7 @@ export class AlchemyProvider {
                 optimism: '0xa',
                 base: '0x2105',
                 linea: '0xe708',
+                bsc: '0x38',
             };
             const moralisChain = chainMap[this.chainConfig.id] || '0x1';
 
@@ -583,5 +761,78 @@ export class AlchemyProvider {
         } catch (error) {
             return null;
         }
+    }
+
+    /** Get all transactions using Moralis API (for BSC) */
+    private async getTransactionsMoralis(address: string, filters?: FilterOptions): Promise<Transaction[]> {
+        const cacheKey = `txs:${address.toLowerCase()}:moralis:${JSON.stringify(filters)}`;
+        const cached = this.cache.get<Transaction[]>(cacheKey);
+        if (cached) return cached;
+
+        try {
+            await this.moralisRateLimiter.throttle();
+
+            const chainMap: Record<string, string> = {
+                ethereum: '0x1',
+                polygon: '0x89',
+                arbitrum: '0xa4b1',
+                optimism: '0xa',
+                base: '0x2105',
+                linea: '0xe708',
+                bsc: '0x38',
+            };
+            const moralisChain = chainMap[this.chainConfig.id] || '0x1';
+
+            const limit = filters?.limit || 100;
+            const response = await axios.get(
+                `https://deep-index.moralis.io/api/v2.2/${address}/verbose?chain=${moralisChain}&limit=${limit}&order=desc`,
+                {
+                    headers: {
+                        'accept': 'application/json',
+                        'X-API-Key': this.moralisKey
+                    }
+                }
+            );
+
+            const data = response.data;
+            const transactions: Transaction[] = [];
+
+            if (data.result && Array.isArray(data.result)) {
+                for (const tx of data.result) {
+                    const txObj: Transaction = {
+                        hash: tx.hash,
+                        blockNumber: parseInt(tx.block_number),
+                        timestamp: new Date(tx.block_timestamp).getTime() / 1000,
+                        from: tx.from_address,
+                        to: tx.to_address,
+                        value: tx.value,
+                        valueInEth: parseFloat(tx.value || '0') / 1e18,
+                        gasUsed: tx.receipt_gas_used,
+                        gasPrice: tx.gas_price,
+                        gasCostInEth: tx.receipt_gas_used && tx.gas_price 
+                            ? (parseFloat(tx.receipt_gas_used) * parseFloat(tx.gas_price)) / 1e18 
+                            : 0,
+                        status: tx.receipt_status === '1' ? 'success' : 'failed',
+                        category: this.categorizeTransaction(tx),
+                        isIncoming: tx.to_address?.toLowerCase() === address.toLowerCase(),
+                    };
+                    transactions.push(txObj);
+                }
+            }
+
+            this.cache.set(cacheKey, transactions);
+            return transactions;
+        } catch (error) {
+            console.error('[AlchemyProvider] Moralis transaction fetch error:', error);
+            return [];
+        }
+    }
+
+    /** Categorize a transaction based on Moralis data */
+    private categorizeTransaction(tx: any): TxCategory {
+        if (tx.token_transfers && tx.token_transfers.length > 0) return 'token_transfer';
+        if (tx.nft_transfers && tx.nft_transfers.length > 0) return 'nft_transfer';
+        if (tx.value && parseFloat(tx.value) > 0) return 'transfer';
+        return 'contract_call';
     }
 }

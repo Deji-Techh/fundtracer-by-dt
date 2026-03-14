@@ -64,6 +64,24 @@ export class ProviderFactory {
         const cached = this.providers.get(chainId);
         if (cached) return cached;
 
+        // BSC is not supported by Alchemy - use Moralis as primary provider
+        if (chainId === 'bsc') {
+            if (!this.apiKeys.moralis) {
+                throw new Error(
+                    `BSC requires Moralis API key. Please configure MORALIS_API_KEY.\n` +
+                    `Moralis supports BSC natively.`
+                );
+            }
+            const provider = new AlchemyProvider(
+                chainId,
+                '', // No Alchemy key needed for BSC
+                this.apiKeys.moralis,
+                undefined // No explorer key needed when using Moralis
+            );
+            this.providers.set(chainId, provider);
+            return provider;
+        }
+
         // Convert chain ID to legacy format if needed
         const legacyChainId = this.mapToLegacyChainId(chainId);
 
