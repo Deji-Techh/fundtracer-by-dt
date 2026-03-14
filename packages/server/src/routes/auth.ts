@@ -370,6 +370,19 @@ async function sendWelcomeEmail(email: string, name: string, authProvider: strin
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const providerLabel = authProvider === 'google' ? 'Google' : authProvider === 'twitter' ? 'X (Twitter)' : 'wallet';
   
+  // Debug mode - print email to console if DEBUG_EMAIL=true
+  if (process.env.DEBUG_EMAIL === 'true') {
+    console.log(`
+========================================
+[WELCOME EMAIL - DEBUG MODE]
+To: ${email}
+Name: ${name}
+Provider: ${providerLabel}
+========================================
+    `);
+    return;
+  }
+  
   // Try Resend first (recommended - no SMTP setup needed)
   if (RESEND_API_KEY) {
     try {
