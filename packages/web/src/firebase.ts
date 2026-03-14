@@ -1,5 +1,5 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, TwitterAuthProvider, Auth } from 'firebase/auth';
+import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, TwitterAuthProvider, Auth, getRedirectResult } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -28,6 +28,33 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId) {
 const googleProvider = new GoogleAuthProvider();
 const twitterProvider = new TwitterAuthProvider();
 
+// Sign in with redirect (popup blocker safe)
+export const signInWithGoogleRedirect = async (): Promise<void> => {
+  if (!auth) throw new Error('Firebase not initialized');
+  await signInWithRedirect(auth, googleProvider);
+};
+
+export const signInWithTwitterRedirect = async (): Promise<void> => {
+  if (!auth) throw new Error('Firebase not initialized');
+  await signInWithRedirect(auth, twitterProvider);
+};
+
+// Get redirect result (call after redirect back)
+export const getAuthResult = async (): Promise<string | null> => {
+  if (!auth) throw new Error('Firebase not initialized');
+  try {
+    const result = await getRedirectResult(auth);
+    if (result?.user) {
+      return result.user.getIdToken();
+    }
+    return null;
+  } catch (error) {
+    console.error('[Firebase] Redirect result error:', error);
+    return null;
+  }
+};
+
+// Fallback to popup (for cases where redirect is not preferred)
 export const signInWithGoogle = async (): Promise<string> => {
   if (!auth) throw new Error('Firebase not initialized');
   const result = await signInWithPopup(auth, googleProvider);

@@ -22,7 +22,7 @@ import {
     unlinkWalletFromAccount,
     UserProfile
 } from '../api';
-import { signInWithGoogle, signInWithTwitter, auth as firebaseAuth } from '../firebase';
+import { signInWithGoogle, signInWithTwitter, signInWithGoogleRedirect, signInWithTwitterRedirect, getAuthResult, auth as firebaseAuth } from '../firebase';
 import { useNotify } from './ToastContext';
 
 const TOKEN_EXPIRY_KEY = 'fundtracer_token_expiry';
@@ -271,6 +271,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authenticateWallet();
     }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
 
+    // Handle OAuth redirect result (for Google/Twitter login)
+    useEffect(() => {
+        const handleRedirectResult = async () => {
+            const token = await getAuthResult();
+            if (token) {
+                try {
+                    // Determine which provider was used by checking Firebase user
+                    const auth = await import('../firebase').then(m => m.auth);
+                    const user = auth?.currentUser;
+                    
+                    // Get provider ID from user
+                    const providerId = user?.providerData?.[0]?.providerId;
+                    const isGoogle = providerId === 'google.com';
+                    const isTwitter = providerId === 'twitter.com';
+                    
+                    const response = isTwitter 
+                        ? await apiLoginWithTwitter(token)
+                        : await apiLoginWithGoogle(token);
+
+                    setTokenWithExpiry(response.token, true);
+                    setUser({
+                        uid: response.user.uid,
+                        walletAddress: response.user.walletAddress || '',
+                    });
+                    const userTier = response.user.tier || 'free';
+                    const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
+                    setProfile({
+                        uid: response.user.uid,
+                        hasCustomApiKey: false,
+                        usage: { today: 0, limit: tierLimit, remaining: tierLimit },
+                        walletAddress: response.user.walletAddress || null,
+                        isVerified: response.user.isVerified,
+                        tier: userTier,
+                        authProvider: isGoogle ? 'google' : 'twitter',
+                        displayName: response.user.displayName || '',
+                        profilePicture: response.user.profilePicture || null
+                    });
+                    setIsAuthenticated(true);
+                    notify.success('Welcome to FundTracer!');
+                } catch (error: any) {
+                    console.error('[AuthContext] OAuth redirect error:', error);
+                    notify.error(error.message || 'Sign in failed');
+                }
+            }
+        };
+
+        handleRedirectResult();
+    }, [notify, setTokenWithExpiry]);
+
     // Sign out - disconnects wallet and clears all local data
     const signOut = useCallback(async () => {
         try {
@@ -483,37 +532,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
 
-    // OAuth login with Google
+    // OAuth login with Google - uses redirect (popup blocker safe)
     const loginWithGoogle = useCallback(async () => {
         if (operationInProgress.current) return;
         operationInProgress.current = true;
         setLoading(true);
 
         try {
-            const idToken = await signInWithGoogle();
-            const response = await apiLoginWithGoogle(idToken);
-
-            setTokenWithExpiry(response.token, true);
-            setUser({
-                uid: response.user.uid,
-                walletAddress: response.user.walletAddress || '',
-            });
-            const userTier = response.user.tier || 'free';
-            const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
-            setProfile({
-                uid: response.user.uid,
-                hasCustomApiKey: false,
-                usage: { today: 0, limit: tierLimit, remaining: tierLimit },
-                walletAddress: response.user.walletAddress || null,
-                isVerified: response.user.isVerified,
-                tier: userTier,
-                authProvider: 'google',
-                displayName: response.user.displayName || '',
-                profilePicture: response.user.profilePicture || null
-            });
-            setIsAuthenticated(true);
-
-            notify.success('Welcome to FundTracer!');
+            // Use redirect instead of popup (popup blockers can block popups)
+            await signInWithGoogleRedirect();
+            // After redirect, the component will handle the result
         } catch (error: any) {
             console.error('[AuthContext] Google login error:', error);
             notify.error(error.message || 'Google sign in failed');
@@ -522,39 +550,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
             operationInProgress.current = false;
         }
-    }, [notify, setTokenWithExpiry]);
+    }, [notify]);
 
-    // OAuth login with Twitter
+    // OAuth login with Twitter - uses redirect (popup blocker safe)
     const loginWithTwitter = useCallback(async () => {
         if (operationInProgress.current) return;
         operationInProgress.current = true;
         setLoading(true);
 
         try {
-            const idToken = await signInWithTwitter();
-            const response = await apiLoginWithTwitter(idToken);
-
-            setTokenWithExpiry(response.token, true);
-            setUser({
-                uid: response.user.uid,
-                walletAddress: response.user.walletAddress || '',
-            });
-            const userTier = response.user.tier || 'free';
-            const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
-            setProfile({
-                uid: response.user.uid,
-                hasCustomApiKey: false,
-                usage: { today: 0, limit: tierLimit, remaining: tierLimit },
-                walletAddress: response.user.walletAddress || null,
-                isVerified: response.user.isVerified,
-                tier: userTier,
-                authProvider: 'twitter',
-                displayName: response.user.displayName || '',
-                profilePicture: response.user.profilePicture || null
-            });
-            setIsAuthenticated(true);
-
-            notify.success('Welcome to FundTracer!');
+            // Use redirect instead of popup (popup blockers can block popups)
+            await signInWithTwitterRedirect();
+            // After redirect, the component will handle the result
         } catch (error: any) {
             console.error('[AuthContext] Twitter login error:', error);
             notify.error(error.message || 'Twitter sign in failed');
@@ -563,7 +570,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
             operationInProgress.current = false;
         }
-    }, [notify, setTokenWithExpiry]);
+    }, [notify]);
 
     return (
         <AuthContext.Provider value={{
