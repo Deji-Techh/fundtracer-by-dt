@@ -74,9 +74,17 @@ router.get('/google/callback', async (req: Request, res: Response) => {
   try {
     try {
       jwt.verify(state as string, getJwtSecret());
-    } catch {
+    } catch (e) {
+      console.error('[AUTH] Invalid state:', e);
       return res.redirect(`${FRONTEND_URL}/auth?error=invalid_state`);
     }
+    
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      console.error('[AUTH] Google OAuth not configured');
+      return res.redirect(`${FRONTEND_URL}/auth?error=oauth_not_configured`);
+    }
+    
+    console.log('[AUTH] Exchanging code for tokens, redirect_uri:', GOOGLE_REDIRECT_URI);
     
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -91,6 +99,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     });
     
     const tokens = await tokenResponse.json();
+    console.log('[AUTH] Token response status:', tokenResponse.status);
     
     if (!tokens.access_token) {
       console.error('[AUTH] Google token exchange failed:', tokens);

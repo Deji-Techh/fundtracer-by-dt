@@ -129,7 +129,7 @@ export function AuthPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <span className="auth-logo-icon">◈</span>
+              <img src="/logo.png" alt="FundTracer" className="auth-logo-img" onError={(e: any) => { e.target.style.display = 'none'; }} />
               <span className="auth-logo-text">FundTracer</span>
             </motion.div>
 
