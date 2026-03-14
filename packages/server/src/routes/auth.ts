@@ -8,6 +8,252 @@ import nodemailer from 'nodemailer';
 
 const router = Router();
 
+// OAuth Configuration - these should be in environment variables
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://www.fundtracer.xyz/api/auth/google/callback';
+
+const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID;
+const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET;
+const TWITTER_REDIRECT_URI = process.env.TWITTER_REDIRECT_URI || 'https://www.fundtracer.xyz/api/auth/twitter/callback';
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://www.fundtracer.xyz';
+
+// OAuth Start endpoints - redirect to provider
+router.get('/google/start', (req: Request, res: Response) => {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return res.status(500).json({ error: 'Google OAuth not configured' });
+  }
+  
+  const state = jwt.sign({ timestamp: Date.now() }, getJwtSecret(), { expiresIn: '10m' });
+  
+  const scopes = ['openid', 'email', 'profile'].join(' ');
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${GOOGLE_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent(scopes)}` +
+    `&state=${state}` +
+    `&access_type=offline` +
+    `&prompt=consent`;
+  
+  res.redirect(authUrl);
+});
+
+router.get('/twitter/start', (req: Request, res: Response) => {
+  if (!TWITTER_CLIENT_ID || !TWITTER_CLIENT_SECRET) {
+    return res.status(500).json({ error: 'Twitter OAuth not configured' });
+  }
+  
+  const state = jwt.sign({ timestamp: Date.now() }, getJwtSecret(), { expiresIn: '10m' });
+  
+  const scopes = 'tweet.read users.read';
+  const authUrl = `https://twitter.com/i/oauth2/authorize?` +
+    `client_id=${TWITTER_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(TWITTER_REDIRECT_URI)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent(scopes)}` +
+    `&state=${state}`;
+  
+  res.redirect(authUrl);
+});
+
+// OAuth Callback endpoints - handle redirect from provider
+router.get('/google/callback', async (req: Request, res: Response) => {
+  const { code, state, error } = req.query;
+  
+  if (error) {
+    console.error('[AUTH] Google OAuth error:', error);
+    return res.redirect(`${FRONTEND_URL}/auth?error=oauth_failed`);
+  }
+  
+  if (!code || !state) {
+    return res.redirect(`${FRONTEND_URL}/auth?error=missing_params`);
+  }
+  
+  try {
+    try {
+      jwt.verify(state as string, getJwtSecret());
+    } catch {
+      return res.redirect(`${FRONTEND_URL}/auth?error=invalid_state`);
+    }
+    
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID!,
+        client_secret: GOOGLE_CLIENT_SECRET!,
+        code: code as string,
+        grant_type: 'authorization_code',
+        redirect_uri: GOOGLE_REDIRECT_URI,
+      }),
+    });
+    
+    const tokens = await tokenResponse.json();
+    
+    if (!tokens.access_token) {
+      console.error('[AUTH] Google token exchange failed:', tokens);
+      return res.redirect(`${FRONTEND_URL}/auth?error=token_exchange_failed`);
+    }
+    
+    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+    
+    const googleUser = await userResponse.json();
+    const { uid, email, name, picture } = googleUser;
+    
+    const db = getFirestore();
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+    
+    let tier = 'free';
+    let expiry = 0;
+    let walletAddress = '';
+    
+    if (userDoc.exists) {
+      const data = userDoc.data();
+      tier = data?.tier || 'free';
+      expiry = data?.subscriptionExpiry || 0;
+      walletAddress = data?.walletAddress || '';
+    }
+    
+    if (expiry > 0 && Date.now() > expiry) {
+      tier = 'free';
+    }
+    
+    await userRef.set({
+      uid,
+      email,
+      displayName: name,
+      profilePicture: picture,
+      tier,
+      subscriptionExpiry: expiry,
+      lastLogin: Date.now(),
+      authProvider: 'google'
+    }, { merge: true });
+    
+    const token = jwt.sign({
+      uid,
+      email,
+      displayName: name,
+      profilePicture: picture,
+      tier,
+      walletAddress,
+      authProvider: 'google'
+    }, getJwtSecret(), { expiresIn: '30d' });
+    
+    if (email) {
+      sendWelcomeEmail(email, name || '', 'google').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
+    }
+    
+    res.redirect(`${FRONTEND_URL}/auth?token=${token}`);
+    
+  } catch (err) {
+    console.error('[AUTH] Google callback error:', err);
+    res.redirect(`${FRONTEND_URL}/auth?error=callback_failed`);
+  }
+});
+
+router.get('/twitter/callback', async (req: Request, res: Response) => {
+  const { code, state, error } = req.query;
+  
+  if (error) {
+    console.error('[AUTH] Twitter OAuth error:', error);
+    return res.redirect(`${FRONTEND_URL}/auth?error=oauth_failed`);
+  }
+  
+  if (!code || !state) {
+    return res.redirect(`${FRONTEND_URL}/auth?error=missing_params`);
+  }
+  
+  try {
+    jwt.verify(state as string, getJwtSecret());
+    
+    const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(`${TWITTER_CLIENT_ID}:${TWITTER_CLIENT_SECRET}`).toString('base64')}`
+      },
+      body: new URLSearchParams({
+        code: code as string,
+        grant_type: 'authorization_code',
+        redirect_uri: TWITTER_REDIRECT_URI,
+        code_verifier: 'challenge',
+      }),
+    });
+    
+    const tokens = await tokenResponse.json();
+    
+    if (!tokens.access_token) {
+      console.error('[AUTH] Twitter token exchange failed:', tokens);
+      return res.redirect(`${FRONTEND_URL}/auth?error=token_exchange_failed`);
+    }
+    
+    const userResponse = await fetch('https://api.twitter.com/2/users/me', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+    
+    const userData = await userResponse.json();
+    const twitterUser = userData.data;
+    
+    const uid = `twitter:${twitterUser.id}`;
+    const email = `${twitterUser.username}@twitter.local`;
+    const name = twitterUser.name;
+    const picture = twitterUser.profile_image_url || '';
+    
+    const db = getFirestore();
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+    
+    let tier = 'free';
+    let expiry = 0;
+    let walletAddress = '';
+    
+    if (userDoc.exists) {
+      const data = userDoc.data();
+      tier = data?.tier || 'free';
+      expiry = data?.subscriptionExpiry || 0;
+      walletAddress = data?.walletAddress || '';
+    }
+    
+    if (expiry > 0 && Date.now() > expiry) {
+      tier = 'free';
+    }
+    
+    await userRef.set({
+      uid,
+      email,
+      displayName: name,
+      profilePicture: picture,
+      tier,
+      subscriptionExpiry: expiry,
+      lastLogin: Date.now(),
+      authProvider: 'twitter'
+    }, { merge: true });
+    
+    const token = jwt.sign({
+      uid,
+      email,
+      displayName: name,
+      profilePicture: picture,
+      tier,
+      walletAddress,
+      authProvider: 'twitter'
+    }, getJwtSecret(), { expiresIn: '30d' });
+    
+    sendWelcomeEmail(email, name || '', 'twitter').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
+    
+    res.redirect(`${FRONTEND_URL}/auth?token=${token}`);
+    
+  } catch (err) {
+    console.error('[AUTH] Twitter callback error:', err);
+    res.redirect(`${FRONTEND_URL}/auth?error=callback_failed`);
+  }
+});
+
 // SECURITY: JWT_SECRET must be set in environment (checked at runtime, not module load)
 const getJwtSecret = () => {
   const JWT_SECRET = process.env.JWT_SECRET;

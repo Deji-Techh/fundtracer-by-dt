@@ -77,6 +77,7 @@ interface AuthContextType {
     loginWithWallet: () => Promise<void>;
     loginWithGoogle: () => Promise<void>;
     loginWithTwitter: () => Promise<void>;
+    setTokenFromExternal: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -105,6 +106,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.removeItem(TOKEN_EXPIRY_KEY);
         }
     }, []);
+
+    // Set token from external OAuth (backend redirects with token in URL)
+    const setTokenFromExternal = useCallback((token: string) => {
+        setTokenWithExpiry(token, true);
+        // Fetch user profile with the new token
+        getProfile().then(userProfile => {
+            const profilePic = userProfile.profilePicture || getStoredProfilePicture();
+            setProfile({ ...userProfile, profilePicture: profilePic, isVerified: userProfile.isVerified ?? false });
+            if (userProfile.uid) {
+                setUser({
+                    uid: userProfile.uid,
+                    walletAddress: userProfile.walletAddress || '',
+                });
+                setIsAuthenticated(true);
+                if (userProfile.walletAddress) {
+                    setWallet({
+                        address: userProfile.walletAddress,
+                        isConnected: true
+                    });
+                }
+                notify.success('Welcome to FundTracer!');
+            }
+        }).catch(err => {
+            console.error('[AuthContext] Failed to fetch profile:', err);
+            notify.error('Failed to load profile');
+        });
+    }, [setTokenWithExpiry, notify]);
 
     const clearAuthData = useCallback(() => {
         // Clear ALL FundTracer localStorage data
@@ -532,43 +560,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
 
-    // OAuth login with Google - uses redirect (popup blocker safe)
+    // OAuth login with Google - uses backend redirect (hides API key)
     const loginWithGoogle = useCallback(async () => {
         if (operationInProgress.current) return;
         operationInProgress.current = true;
         setLoading(true);
 
         try {
-            // Use redirect instead of popup (popup blockers can block popups)
-            await signInWithGoogleRedirect();
-            // After redirect, the component will handle the result
+            // Redirect to backend OAuth (hides Firebase API key)
+            window.location.href = '/api/auth/google/start';
         } catch (error: any) {
             console.error('[AuthContext] Google login error:', error);
             notify.error(error.message || 'Google sign in failed');
-            throw error;
-        } finally {
             setLoading(false);
             operationInProgress.current = false;
+            throw error;
         }
     }, [notify]);
 
-    // OAuth login with Twitter - uses redirect (popup blocker safe)
+    // OAuth login with Twitter - uses backend redirect (hides API key)
     const loginWithTwitter = useCallback(async () => {
         if (operationInProgress.current) return;
         operationInProgress.current = true;
         setLoading(true);
 
         try {
-            // Use redirect instead of popup (popup blockers can block popups)
-            await signInWithTwitterRedirect();
-            // After redirect, the component will handle the result
+            // Redirect to backend OAuth (hides Firebase API key)
+            window.location.href = '/api/auth/twitter/start';
         } catch (error: any) {
             console.error('[AuthContext] Twitter login error:', error);
             notify.error(error.message || 'Twitter sign in failed');
-            throw error;
-        } finally {
             setLoading(false);
             operationInProgress.current = false;
+            throw error;
         }
     }, [notify]);
 
@@ -588,7 +612,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             getSigner,
             loginWithWallet,
             loginWithGoogle,
-            loginWithTwitter
+            loginWithTwitter,
+            setTokenFromExternal
         }}>
             {children}
         </AuthContext.Provider>

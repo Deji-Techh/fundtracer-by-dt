@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
@@ -14,8 +14,27 @@ const navItems = [
 
 export function AuthPage() {
   const navigate = useNavigate();
-  const { loginWithGoogle, loginWithTwitter, isAuthenticated, loading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { loginWithGoogle, loginWithTwitter, isAuthenticated, loading, setTokenFromExternal } = useAuth();
   const [error, setError] = useState<string | null>(null);
+
+  // Handle OAuth callback - check for token in URL
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const errorParam = searchParams.get('error');
+    
+    if (errorParam) {
+      setError(errorParam === 'oauth_failed' ? 'Authentication failed. Please try again.' : 
+               errorParam === 'token_exchange_failed' ? 'Failed to complete authentication.' :
+               'An error occurred during sign in.');
+      return;
+    }
+    
+    if (token && !isAuthenticated) {
+      // Set token from OAuth callback
+      setTokenFromExternal(token);
+    }
+  }, [searchParams, isAuthenticated, setTokenFromExternal]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -27,7 +46,7 @@ export function AuthPage() {
     try {
       setError(null);
       await loginWithGoogle();
-      navigate('/app-evm');
+      // Redirect happens via window.location.href in AuthContext
     } catch (err: any) {
       setError(err.message || 'Google sign in failed');
     }
@@ -37,7 +56,7 @@ export function AuthPage() {
     try {
       setError(null);
       await loginWithTwitter();
-      navigate('/app-evm');
+      // Redirect happens via window.location.href in AuthContext
     } catch (err: any) {
       setError(err.message || 'Twitter sign in failed');
     }
