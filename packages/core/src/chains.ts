@@ -59,6 +59,15 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
         apiUrl: 'https://api.etherscan.io/v2/api',
         enabled: true,
     },
+    bsc: {
+        id: 'bsc',
+        chainId: 56,
+        name: 'BNB Chain',
+        symbol: 'BNB',
+        explorer: 'https://bscscan.com',
+        apiUrl: 'https://api.bscscan.com/api',
+        enabled: true,
+    },
 };
 
 export const getEnabledChains = (): ChainConfig[] =>
