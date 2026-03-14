@@ -560,41 +560,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
 
-    // OAuth login with Google - uses backend redirect (hides API key)
+    // OAuth login with Google - use Firebase popup
     const loginWithGoogle = useCallback(async () => {
         if (operationInProgress.current) return;
         operationInProgress.current = true;
         setLoading(true);
 
         try {
-            // Redirect to backend OAuth (hides Firebase API key)
-            window.location.href = '/api/auth/google/start';
+            // Use Firebase popup OAuth
+            const { signInWithGooglePopup } = await import('../firebase');
+            const result = await signInWithGooglePopup();
+            
+            // Get the ID token
+            const idToken = await result.user.getIdToken();
+            
+            // Send to our backend to create session
+            const response = await fetch('/api/auth/google-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to authenticate');
+            }
+            
+            const { token } = await response.json();
+            
+            // Set the token
+            setTokenWithExpiry(token, '30d');
+            setIsAuthenticated(true);
+            notify.success('Signed in with Google!');
         } catch (error: any) {
             console.error('[AuthContext] Google login error:', error);
             notify.error(error.message || 'Google sign in failed');
+            throw error;
+        } finally {
             setLoading(false);
             operationInProgress.current = false;
-            throw error;
         }
-    }, [notify]);
+    }, [notify, setTokenWithExpiry]);
 
-    // OAuth login with Twitter - uses backend redirect (hides API key)
+    // OAuth login with Twitter - use Firebase popup
     const loginWithTwitter = useCallback(async () => {
         if (operationInProgress.current) return;
         operationInProgress.current = true;
         setLoading(true);
 
         try {
-            // Redirect to backend OAuth (hides Firebase API key)
-            window.location.href = '/api/auth/twitter/start';
+            // Use Firebase popup OAuth
+            const { signInWithTwitterPopup } = await import('../firebase');
+            const result = await signInWithTwitterPopup();
+            
+            // Get the ID token
+            const idToken = await result.user.getIdToken();
+            
+            // Send to our backend to create session
+            const response = await fetch('/api/auth/google-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to authenticate');
+            }
+            
+            const { token } = await response.json();
+            
+            // Set the token
+            setTokenWithExpiry(token, '30d');
+            setIsAuthenticated(true);
+            notify.success('Signed in with X!');
         } catch (error: any) {
             console.error('[AuthContext] Twitter login error:', error);
-            notify.error(error.message || 'Twitter sign in failed');
+            notify.error(error.message || 'X sign in failed');
+            throw error;
+        } finally {
             setLoading(false);
             operationInProgress.current = false;
-            throw error;
         }
-    }, [notify]);
+    }, [notify, setTokenWithExpiry]);
 
     return (
         <AuthContext.Provider value={{

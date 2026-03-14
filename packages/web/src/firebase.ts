@@ -67,5 +67,18 @@ export const signInWithTwitter = async (): Promise<string> => {
   return result.user.getIdToken();
 };
 
+// Popup variants with different names for clarity
+export const signInWithGooglePopup = async () => {
+  if (!auth) throw new Error('Firebase not initialized');
+  const result = await signInWithPopup(auth, googleProvider);
+  return result;
+};
+
+export const signInWithTwitterPopup = async () => {
+  if (!auth) throw new Error('Firebase not initialized');
+  const result = await signInWithPopup(auth, twitterProvider);
+  return result;
+};
+
 export { app, auth };
 export default app;
