@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, FileText, FileSpreadsheet, Scale, Check, Copy } from 'lucide-react';
+import { Download02Icon, FileTextIcon, FileSpreadsheetIcon, ScaleIcon, CheckmarkCircle01Icon, Copy01Icon } from '@hugeicons/core-free-icons';
 import { EvidenceExporter, ExportFormat } from '../../services/EvidenceExporter';
 import { AnalysisSnapshot } from '../../services/CaseManager';
 import { useNotify } from '../../contexts/ToastContext';
@@ -91,7 +91,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         alignItems: 'center',
         gap: '8px'
       }}>
-        <Download size={18} color="var(--color-accent)" />
+        <Download02Icon size={18} color="var(--color-accent)" />
         Export Evidence
       </h3>
 
@@ -115,14 +115,14 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             textAlign: 'left'
           }}
         >
-          <FileText size={20} color="var(--color-accent)" />
+          <FileTextIcon size={20} color="var(--color-accent)" />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 500, marginBottom: '2px' }}>JSON (Full Data)</div>
             <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
               Machine-readable with integrity hash
             </div>
           </div>
-          <Download size={16} color="var(--color-text-muted)" />
+          <Download02Icon size={16} color="var(--color-text-muted)" />
         </button>
 
         {/* CSV Export */}
@@ -144,14 +144,14 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             textAlign: 'left'
           }}
         >
-          <FileSpreadsheet size={20} color="var(--color-positive)" />
+          <FileSpreadsheetIcon size={20} color="var(--color-positive)" />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 500, marginBottom: '2px' }}>CSV (Summary)</div>
             <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
               Spreadsheet format for Excel/Google Sheets
             </div>
           </div>
-          <Download size={16} color="var(--color-text-muted)" />
+          <Download02Icon size={16} color="var(--color-text-muted)" />
         </button>
 
         {/* Legal Export */}
@@ -173,14 +173,14 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             textAlign: 'left'
           }}
         >
-          <Scale size={20} color="var(--color-warning)" />
+          <ScaleIcon size={20} color="var(--color-warning)" />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 500, marginBottom: '2px' }}>Legal Report</div>
             <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
               Court-admissible markdown with chain of custody
             </div>
           </div>
-          <Download size={16} color="var(--color-text-muted)" />
+          <Download02Icon size={16} color="var(--color-text-muted)" />
         </button>
       </div>
 
@@ -200,7 +200,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             alignItems: 'center',
             gap: '6px'
           }}>
-            <Check size={12} color="var(--color-positive)" />
+            <CheckmarkCircle01Icon size={12} color="var(--color-positive)" />
             Tamper-Evident SHA-256 Hash
           </div>
           <div style={{ 
@@ -238,7 +238,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               }}
               title="Copy full hash"
             >
-              <Copy size={14} />
+              <Copy01Icon size={14} />
             </button>
           </div>
           <div style={{ 

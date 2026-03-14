@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Folder, 
-  Plus, 
-  Search, 
-  MoreVertical, 
-  Trash2, 
-  Download, 
-  Upload,
-  Clock,
-  Shield,
-  AlertTriangle,
-  X
-} from 'lucide-react';
+  FolderIcon,
+  PlusIcon,
+  Search01Icon,
+  MoreVerticalIcon,
+  Trash2Icon,
+  Download02Icon,
+  Upload02Icon,
+  Clock01Icon,
+  Shield01Icon,
+  AlertCircleIcon,
+  CloseIcon
+} from '@hugeicons/core-free-icons';
 import { caseManager, InvestigationCase } from '../../services/CaseManager';
 import { useNotify } from '../../contexts/ToastContext';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -141,7 +141,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
         marginBottom: '16px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Folder size={20} color="var(--color-accent)" />
+          <FolderIcon size={20} color="var(--color-accent)" />
           <h3 style={{ margin: 0, color: 'var(--color-text-primary)', fontSize: isMobile ? '14px' : '16px' }}>
             Investigation Cases
           </h3>
@@ -170,7 +170,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
             alignItems: 'center',
             gap: '6px'
           }}>
-            <Upload size={14} />
+            <Upload02Icon size={14} />
             Import
             <input
               type="file"
@@ -196,7 +196,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
               gap: '6px'
             }}
           >
-            <Plus size={14} />
+            <PlusIcon size={14} />
             New Case
           </button>
         </div>
@@ -204,7 +204,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: '16px' }}>
-        <Search size={16} style={{ 
+        <Search01Icon size={16} style={{ 
           position: 'absolute', 
           left: '12px', 
           top: '50%', 
@@ -246,7 +246,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
             gap: '12px'
           }}
         >
-          <X size={16} color="var(--color-text-muted)" />
+          <CloseIcon size={16} color="var(--color-text-muted)" />
           <div style={{ flex: 1 }}>
             <div style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>
               No Case (Analysis only)
@@ -268,7 +268,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-              <Folder 
+              <FolderIcon 
                 size={18} 
                 color={currentCaseId === case_.id ? 'var(--color-accent)' : 'var(--color-text-muted)'} 
               />
@@ -319,7 +319,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   color: 'var(--color-text-muted)'
                 }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Clock size={11} />
+                    <Clock01Icon size={11} />
                     {new Date(case_.updatedAt).toLocaleDateString()}
                   </span>
                   <span>
@@ -357,7 +357,7 @@ export const CaseManagerPanel: React.FC<CaseManagerPanelProps> = ({
                   }}
                   title="Export case"
                 >
-                  <Download size={14} />
+                  <Download02Icon size={14} />
                 </button>
                 <button
                   onClick={(e) => handleDeleteCase(case_.id, e)}
