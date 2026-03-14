@@ -18,7 +18,30 @@ import { trackAnalysis } from '../utils/analytics.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-const ALLOWED_CHAINS = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon', 'bsc'];
+
+// Chain configuration - support both frontend IDs and canonical names
+const ALLOWED_CHAINS = [
+    'ethereum', 'eth',
+    'linea',
+    'arbitrum', 'arb',
+    'base',
+    'optimism', 'opt',
+    'polygon', 'polygon_pos', 'matic',
+    'bsc', 'binance'
+];
+
+// Map frontend chain IDs to canonical names
+const normalizeChainId = (chain: string): string => {
+    const mapping: Record<string, string> = {
+        'eth': 'ethereum',
+        'arb': 'arbitrum',
+        'opt': 'optimism',
+        'polygon_pos': 'polygon',
+        'matic': 'polygon',
+        'binance': 'bsc',
+    };
+    return mapping[chain.toLowerCase()] || chain.toLowerCase();
+};
 
 // Helper to parse API errors into user-friendly messages
 function getUserFriendlyError(error: any): { status: number; error: string; message: string; hint?: string } {
@@ -286,10 +309,9 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Normalize chain to lowercase for validation
-    const normalizedChain = chain.toLowerCase();
+    const normalizedChain = normalizeChainId(chain);
 
     // Validate chain parameter
-    const ALLOWED_CHAINS = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon', 'bsc'];
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
@@ -297,11 +319,6 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
     // ... existing logic
     if (!ETH_ADDRESS_REGEX.test(address)) {
         return res.status(400).json({ error: 'Invalid wallet address format' });
-    }
-
-    // Validate chain parameter (using normalized chain)
-    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-        return res.status(400).json({ error: 'Invalid chain parameter' });
     }
 
     try {
@@ -379,13 +396,16 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
         return res.status(400).json({ error: 'Address and chain are required' });
     }
 
+    // Normalize chain to lowercase
+    const normalizedChain = normalizeChainId(chain);
+
     if (!ETH_ADDRESS_REGEX.test(address)) {
         return res.status(400).json({ error: 'Invalid wallet address format' });
     }
 
     // Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(chain)) {
-        return res.status(400).json({ error: 'Invalid chain parameter' });
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
     try {
@@ -460,9 +480,12 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         }
     }
 
+    // Normalize chain to lowercase
+    const normalizedChain = chain?.toLowerCase();
+
     // Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(chain)) {
-        return res.status(400).json({ error: 'Invalid chain parameter' });
+    if (!normalizedChain || !ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
     try {
@@ -532,9 +555,12 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Invalid contract address format' });
     }
 
+    // Normalize chain to lowercase
+    const normalizedChain = normalizeChainId(chain);
+
     // Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(chain)) {
-        return res.status(400).json({ error: 'Invalid chain parameter' });
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
     try {
@@ -624,9 +650,12 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Invalid contract address format' });
     }
 
+    // Normalize chain to lowercase
+    const normalizedChain = normalizeChainId(chain);
+
     // Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(chain)) {
-        return res.status(400).json({ error: 'Invalid chain parameter' });
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
     try {
@@ -706,9 +735,12 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
         return res.status(400).json({ error: 'No valid addresses provided' });
     }
 
+    // Normalize chain to lowercase
+    const normalizedChain = chain?.toLowerCase() || 'ethereum';
+
     // Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(chain)) {
-        return res.status(400).json({ error: 'Invalid chain parameter' });
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
     try {
