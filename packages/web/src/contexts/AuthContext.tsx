@@ -17,12 +17,11 @@ import {
     setAuthToken,
     loginWithWallet as apiLoginWithWallet,
     loginWithGoogle as apiLoginWithGoogle,
-    loginWithTwitter as apiLoginWithTwitter,
     linkWalletToAccount,
     unlinkWalletFromAccount,
     UserProfile
 } from '../api';
-import { signInWithGoogle, signInWithTwitter, signInWithGoogleRedirect, signInWithTwitterRedirect, getAuthResult, auth as firebaseAuth } from '../firebase';
+import { auth as firebaseAuth } from '../firebase';
 import { useNotify } from './ToastContext';
 
 const TOKEN_EXPIRY_KEY = 'fundtracer_token_expiry';
@@ -76,8 +75,6 @@ interface AuthContextType {
     getSigner: () => Promise<ethers.Signer>;
     loginWithWallet: () => Promise<void>;
     loginWithGoogle: () => Promise<void>;
-    loginWithTwitter: () => Promise<void>;
-    setTokenFromExternal: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -295,58 +292,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setLoading(false);
             }
         };
-
+ 
         authenticateWallet();
     }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
-
-    // Handle OAuth redirect result (for Google/Twitter login)
-    useEffect(() => {
-        const handleRedirectResult = async () => {
-            const token = await getAuthResult();
-            if (token) {
-                try {
-                    // Determine which provider was used by checking Firebase user
-                    const auth = await import('../firebase').then(m => m.auth);
-                    const user = auth?.currentUser;
-                    
-                    // Get provider ID from user
-                    const providerId = user?.providerData?.[0]?.providerId;
-                    const isGoogle = providerId === 'google.com';
-                    const isTwitter = providerId === 'twitter.com';
-                    
-                    const response = isTwitter 
-                        ? await apiLoginWithTwitter(token)
-                        : await apiLoginWithGoogle(token);
-
-                    setTokenWithExpiry(response.token, true);
-                    setUser({
-                        uid: response.user.uid,
-                        walletAddress: response.user.walletAddress || '',
-                    });
-                    const userTier = response.user.tier || 'free';
-                    const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
-                    setProfile({
-                        uid: response.user.uid,
-                        hasCustomApiKey: false,
-                        usage: { today: 0, limit: tierLimit, remaining: tierLimit },
-                        walletAddress: response.user.walletAddress || null,
-                        isVerified: response.user.isVerified,
-                        tier: userTier,
-                        authProvider: isGoogle ? 'google' : 'twitter',
-                        displayName: response.user.displayName || '',
-                        profilePicture: response.user.profilePicture || null
-                    });
-                    setIsAuthenticated(true);
-                    notify.success('Welcome to FundTracer!');
-                } catch (error: any) {
-                    console.error('[AuthContext] OAuth redirect error:', error);
-                    notify.error(error.message || 'Sign in failed');
-                }
-            }
-        };
-
-        handleRedirectResult();
-    }, [notify, setTokenWithExpiry]);
 
     // Sign out - disconnects wallet and clears all local data
     const signOut = useCallback(async () => {
@@ -560,89 +508,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
 
-    // OAuth login with Google - use Firebase popup
+    // OAuth login with Google - uses backend redirect
     const loginWithGoogle = useCallback(async () => {
         if (operationInProgress.current) return;
         operationInProgress.current = true;
         setLoading(true);
 
         try {
-            // Use Firebase popup OAuth
-            const { signInWithGooglePopup } = await import('../firebase');
-            const result = await signInWithGooglePopup();
-            
-            // Get the ID token
-            const idToken = await result.user.getIdToken();
-            
-            // Send to our backend to create session
-            const response = await fetch('/api/auth/google-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken })
-            });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to authenticate');
-            }
-            
-            const { token } = await response.json();
-            
-            // Set the token
-            setTokenWithExpiry(token, '30d');
-            setIsAuthenticated(true);
-            notify.success('Signed in with Google!');
+            // Redirect to backend OAuth
+            window.location.href = '/api/auth/google/start';
         } catch (error: any) {
             console.error('[AuthContext] Google login error:', error);
             notify.error(error.message || 'Google sign in failed');
-            throw error;
-        } finally {
             setLoading(false);
             operationInProgress.current = false;
-        }
-    }, [notify, setTokenWithExpiry]);
-
-    // OAuth login with Twitter - use Firebase popup
-    const loginWithTwitter = useCallback(async () => {
-        if (operationInProgress.current) return;
-        operationInProgress.current = true;
-        setLoading(true);
-
-        try {
-            // Use Firebase popup OAuth
-            const { signInWithTwitterPopup } = await import('../firebase');
-            const result = await signInWithTwitterPopup();
-            
-            // Get the ID token
-            const idToken = await result.user.getIdToken();
-            
-            // Send to our backend to create session
-            const response = await fetch('/api/auth/google-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken })
-            });
-            
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to authenticate');
-            }
-            
-            const { token } = await response.json();
-            
-            // Set the token
-            setTokenWithExpiry(token, '30d');
-            setIsAuthenticated(true);
-            notify.success('Signed in with X!');
-        } catch (error: any) {
-            console.error('[AuthContext] Twitter login error:', error);
-            notify.error(error.message || 'X sign in failed');
             throw error;
-        } finally {
-            setLoading(false);
-            operationInProgress.current = false;
         }
-    }, [notify, setTokenWithExpiry]);
+    }, [notify]);
 
     return (
         <AuthContext.Provider value={{
@@ -660,7 +542,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             getSigner,
             loginWithWallet,
             loginWithGoogle,
-            loginWithTwitter,
             setTokenFromExternal
         }}>
             {children}
