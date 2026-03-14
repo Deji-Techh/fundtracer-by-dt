@@ -171,6 +171,8 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       authProvider: 'google'
     }, { merge: true });
     
+    console.log(`[AUTH] User saved to Firestore: ${email} (${uid})`);
+
     const token = jwt.sign({
       uid,
       email,
