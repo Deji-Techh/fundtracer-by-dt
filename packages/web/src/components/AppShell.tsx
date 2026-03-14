@@ -16,8 +16,6 @@ interface AppShellProps {
   walletConnected?: boolean;
   walletAddress?: string;
   onConnectWallet?: () => void;
-  onSearch?: (query: string) => void;
-  searchPlaceholder?: string;
 }
 
 export function AppShell({
@@ -27,21 +25,12 @@ export function AppShell({
   navItems,
   walletConnected = false,
   walletAddress = '',
-  onConnectWallet,
-  onSearch
+  onConnectWallet
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const closeSidebar = () => {
     setSidebarOpen(false);
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (onSearch && searchQuery.trim()) {
-      onSearch(searchQuery);
-    }
   };
 
   return (
@@ -132,21 +121,6 @@ export function AppShell({
             />
             FundTracer
           </div>
-
-          <form className="ft-search" onSubmit={handleSearch}>
-            <div className="ft-search-ico">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <circle cx="5" cy="5" r="3.5"/><path d="M8 8l2.5 2.5"/>
-              </svg>
-            </div>
-            <input 
-              type="text" 
-              placeholder="Search wallets, contracts, transactions, ENS…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <span className="ft-search-shortcut">⌘K</span>
-          </form>
 
           <div className="ft-topbar-gap"></div>
 

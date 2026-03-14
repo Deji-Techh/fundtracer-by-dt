@@ -150,7 +150,6 @@ export function AppPage() {
         walletConnected={isWalletConnected}
         walletAddress={walletAddress}
         onConnectWallet={handleConnectWallet}
-        onSearch={handleSearch}
       >
         {renderContent()}
       </AppShell>
