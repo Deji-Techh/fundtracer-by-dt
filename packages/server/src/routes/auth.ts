@@ -553,7 +553,24 @@ router.post('/google-login', async (req: Request, res: Response) => {
     // Verify the Firebase ID token
     const decodedToken = await firebaseAdminAuth.verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
-    console.log(`[AUTH] Google User: ${email}`);
+    console.log(`[AUTH] Google User: ${email} (${uid})`);
+
+    // Explicitly create/update user in Firebase Auth to ensure they appear in console
+    try {
+      await firebaseAdminAuth.getUser(uid);
+      console.log(`[AUTH] User already exists in Firebase Auth: ${uid}`);
+    } catch (userError: any) {
+      if (userError.code === 'auth/user-not-found') {
+        // Create user in Firebase Auth
+        await firebaseAdminAuth.createUser({
+          uid,
+          email: email || undefined,
+          displayName: name || undefined,
+          photoURL: picture || undefined,
+        });
+        console.log(`[AUTH] Created new user in Firebase Auth: ${uid}`);
+      }
+    }
 
     const db = getFirestore();
     const userRef = db.collection('users').doc(uid);
