@@ -1,4 +1,5 @@
-import { X, Wallet, ArrowRight } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { CloseIcon, Wallet01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { WalletButton } from './WalletButton';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -63,7 +64,7 @@ export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <Wallet size={20} color="white" />
+              <HugeiconsIcon icon={Wallet01Icon} size={20} strokeWidth={2} color="white" />
             </div>
             <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>
               Wallet Required
@@ -85,7 +86,7 @@ export function ConnectWalletModal({ isOpen, onClose, actionName = 'perform this
               justifyContent: 'center',
             }}
           >
-            <X size={24} />
+            <HugeiconsIcon icon={CloseIcon} size={24} strokeWidth={2} />
           </button>
         </div>
 

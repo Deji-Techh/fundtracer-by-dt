@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { AlertCircleIcon, RefreshCwIcon, Home03Icon } from '@hugeicons/core-free-icons';
 
 // ============================================
 // ERROR BOUNDARY - Catches React errors
@@ -67,7 +68,7 @@ export class ErrorBoundary extends Component<Props, State> {
             color: '#fff'
           }}>
             <div style={{ marginBottom: '24px', color: '#f87171' }}>
-              <AlertTriangle size={64} />
+              <HugeiconsIcon icon={AlertCircleIcon} size={64} strokeWidth={2} />
             </div>
             
             <h1 style={{ marginBottom: '16px', fontSize: '28px' }}>Something went wrong</h1>
@@ -112,7 +113,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <RefreshCw size={18} />
+                <HugeiconsIcon icon={RefreshCwIcon} size={18} strokeWidth={2} />
                 Reload Page
               </button>
               
@@ -127,7 +128,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <Home size={18} />
+                <HugeiconsIcon icon={Home03Icon} size={18} strokeWidth={2} />
                 Go Home
               </button>
               

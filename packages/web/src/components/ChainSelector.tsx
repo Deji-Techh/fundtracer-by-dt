@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ChainId, CHAINS } from '@fundtracer/core';
 import { useAuth } from '../contexts/AuthContext';
-import { Lock, ChevronDown } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Lock04Icon, ChevronDownIcon } from '@hugeicons/core-free-icons';
 import './ChainSelector.css';
 
 interface ChainSelectorProps {
@@ -51,7 +52,7 @@ function ChainSelector({ selectedChain, onSelect, onUpgrade }: ChainSelectorProp
                             {chain.name}
                             {!allowed && (
                                 <span className="chain-lock">
-                                    <Lock size={10} />
+                                    <HugeiconsIcon icon={Lock04Icon} size={10} strokeWidth={2} />
                                     {tier === 'free' ? 'PRO' : 'MAX'}
                                 </span>
                             )}
@@ -68,7 +69,7 @@ function ChainSelector({ selectedChain, onSelect, onUpgrade }: ChainSelectorProp
                 >
                     <span className="chain-dot chain-dot-active" />
                     <span className="chain-selected-name">{selectedChainData?.name}</span>
-                    <ChevronDown size={16} className={`chain-chevron ${isDropdownOpen ? 'chain-chevron-open' : ''}`} />
+                    <HugeiconsIcon icon={ChevronDownIcon} size={16} strokeWidth={2} className={`chain-chevron ${isDropdownOpen ? 'chain-chevron-open' : ''}`} />
                 </button>
 
                 {isDropdownOpen && (
@@ -85,7 +86,7 @@ function ChainSelector({ selectedChain, onSelect, onUpgrade }: ChainSelectorProp
                                     <span className="chain-item-name">{chain.name}</span>
                                     {!allowed && (
                                         <span className="chain-lock-mobile">
-                                            <Lock size={10} />
+                                            <HugeiconsIcon icon={Lock04Icon} size={10} strokeWidth={2} />
                                         </span>
                                     )}
                                 </button>

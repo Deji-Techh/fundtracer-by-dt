@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { HistoryItem, getHistory, removeFromHistory } from '../utils/history';
 import { getLabel } from '../utils/addressBook';
-import { Clock, X, ArrowRight } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Clock01Icon, CloseIcon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
 
 interface SearchHistoryProps {
     onSelect: (address: string, chain?: string) => void;
@@ -47,7 +48,7 @@ function SearchHistory({ onSelect, currentAddress }: SearchHistoryProps) {
                 alignItems: 'center',
                 gap: 'var(--space-2)'
             }}>
-                <Clock size={12} />
+                <HugeiconsIcon icon={Clock01Icon} size={12} strokeWidth={2} />
                 Recent Searches
             </div>
 
@@ -124,7 +125,7 @@ function SearchHistory({ onSelect, currentAddress }: SearchHistoryProps) {
                             >
                                 <X size={14} />
                             </button>
-                            <ArrowRight size={14} style={{ color: 'var(--color-text-muted)' }} />
+                            <HugeiconsIcon icon={ArrowRight01Icon} size={14} strokeWidth={2} style={{ color: 'var(--color-text-muted)' }} />
                         </div>
                     </div>
                 ))}

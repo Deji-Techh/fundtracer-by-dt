@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Shield, ShieldCheck, ShieldAlert, ExternalLink } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Shield01Icon, ShieldCheckIcon, ShieldAlertIcon, ExternalLinkIcon } from '@hugeicons/core-free-icons';
 
 interface ContractVerification {
   isVerified: boolean;
@@ -60,7 +61,7 @@ export function ContractVerifier() {
       border: '1px solid var(--color-border)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-        <Shield size={20} style={{ color: 'var(--color-primary)' }} />
+        <HugeiconsIcon icon={Shield01Icon} size={20} strokeWidth={2} style={{ color: 'var(--color-primary)' }} />
         <span style={{ fontWeight: 600, fontSize: '16px' }}>Contract Verification Checker</span>
       </div>
 
@@ -98,14 +99,14 @@ export function ContractVerifier() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             {verification.isVerified ? (
               <>
-                <ShieldCheck size={24} style={{ color: 'var(--color-success)' }} />
+                <HugeiconsIcon icon={ShieldCheckIcon} size={24} strokeWidth={2} style={{ color: 'var(--color-success)' }} />
                 <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>
                   Verified Contract
                 </span>
               </>
             ) : (
               <>
-                <ShieldAlert size={24} style={{ color: 'var(--color-danger)' }} />
+                <HugeiconsIcon icon={ShieldAlertIcon} size={24} strokeWidth={2} style={{ color: 'var(--color-danger)' }} />
                 <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>
                   Not Verified
                 </span>
@@ -140,7 +141,7 @@ export function ContractVerifier() {
               color: 'var(--color-primary)'
             }}
           >
-            View on LineaScan <ExternalLink size={14} />
+            View on LineaScan <HugeiconsIcon icon={ExternalLinkIcon} size={14} strokeWidth={2} />
           </a>
         </div>
       )}

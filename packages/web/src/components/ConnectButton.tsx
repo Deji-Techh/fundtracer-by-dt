@@ -2,7 +2,8 @@ import { useAppKit } from '@reown/appkit/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useCallback } from 'react';
 import { useNotify } from '../contexts/ToastContext';
-import { Wallet, AlertCircle, ExternalLink, Copy, RefreshCw } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Wallet01Icon, AlertCircleIcon, ExternalLinkIcon, Copy01Icon, RefreshCwIcon } from '@hugeicons/core-free-icons';
 
 export function ConnectButton() {
     const { open } = useAppKit();
@@ -103,9 +104,9 @@ export function ConnectButton() {
                 }}
             >
                 {isConnecting ? (
-                    <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    <HugeiconsIcon icon={RefreshCwIcon} size={16} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
                 ) : (
-                    <Wallet size={16} />
+                    <HugeiconsIcon icon={Wallet01Icon} size={16} strokeWidth={2} />
                 )}
                 {isConnecting ? 'Connecting...' : 'Connect Wallet'}
             </button>
@@ -133,7 +134,7 @@ export function ConnectButton() {
                         fontSize: '13px',
                         fontWeight: 600
                     }}>
-                        <AlertCircle size={14} />
+                        <HugeiconsIcon icon={AlertCircleIcon} size={14} strokeWidth={2} />
                         Connection Issue
                     </div>
 
@@ -162,7 +163,7 @@ export function ConnectButton() {
                             }}
                         >
                             <span>Open MetaMask</span>
-                            <ExternalLink size={12} />
+                            <HugeiconsIcon icon={ExternalLinkIcon} size={12} strokeWidth={2} />
                         </button>
 
                         <button
@@ -181,7 +182,7 @@ export function ConnectButton() {
                             }}
                         >
                             <span>Copy Link</span>
-                            <Copy size={12} />
+                            <HugeiconsIcon icon={Copy01Icon} size={12} strokeWidth={2} />
                         </button>
                     </div>
                 </div>

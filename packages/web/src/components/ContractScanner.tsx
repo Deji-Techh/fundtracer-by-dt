@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { HugeiconsIcon } from '@hugeicons/react';
 import {
-  Search, FileText, Users, ArrowUpRight, ArrowDownRight,
-  ExternalLink, Copy, Check, Download, ChevronLeft, ChevronRight,
-  Clock, Wallet, Activity, Shield, AlertCircle, Loader2,
-  BarChart3, TrendingUp, Calendar, Hash
-} from 'lucide-react';
+  Search01Icon, FileTextIcon, UsersIcon, ArrowUpRightIcon, ArrowDownRightIcon,
+  ExternalLinkIcon, Copy01Icon, CheckmarkCircle01Icon, Download02Icon, ChevronLeftIcon, ChevronRightIcon,
+  ClockIcon, Wallet01Icon, ActivityIcon, Shield01Icon, AlertCircleIcon, RefreshCwIcon,
+  BarChart01Icon, TrendingUpIcon, Calendar02Icon, HashIcon
+} from '@hugeicons/core-free-icons';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useNotify } from '../contexts/ToastContext';
 import { apiRequest } from '../api';
@@ -254,8 +255,10 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
           flexDirection: isMobile ? 'column' : 'row',
         }}>
           <div style={{ flex: 1, position: 'relative' }}>
-            <Search 
+            <HugeiconsIcon 
+              icon={Search01Icon} 
               size={20} 
+              strokeWidth={2}
               style={{
                 position: 'absolute',
                 left: 16,
@@ -311,12 +314,12 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
           >
             {loading ? (
               <>
-                <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                <HugeiconsIcon icon={RefreshCwIcon} size={20} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
                 Scanning...
               </>
             ) : (
               <>
-                <Search size={20} />
+                <HugeiconsIcon icon={Search01Icon} size={20} strokeWidth={2} />
                 Scan Contract
               </>
             )}
@@ -345,7 +348,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                 color: '#8b5cf6',
                 fontWeight: 500,
               }}>
-                <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                <HugeiconsIcon icon={RefreshCwIcon} size={20} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
                 Scanning... This may take 10-60 seconds for large contracts
               </div>
               <div style={{
@@ -378,7 +381,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                 color: '#ef4444',
               }}
             >
-              <AlertCircle size={20} />
+              <HugeiconsIcon icon={AlertCircleIcon} size={20} strokeWidth={2} />
               {error}
             </motion.div>
           )}
@@ -436,7 +439,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                         marginBottom: 12,
                       }}
                     >
-                      <Shield size={16} color={getTypeColor(result.contract.type)} />
+                      <HugeiconsIcon icon={Shield01Icon} size={16} strokeWidth={2} color={getTypeColor(result.contract.type)} />
                       <span style={{
                         fontSize: '0.875rem',
                         fontWeight: 600,
@@ -487,9 +490,9 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                     }}
                   >
                     {exporting ? (
-                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      <HugeiconsIcon icon={RefreshCwIcon} size={16} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
                     ) : (
-                      <Download size={16} />
+                      <HugeiconsIcon icon={Download02Icon} size={16} strokeWidth={2} />
                     )}
                     Export PDF
                   </motion.button>
@@ -553,9 +556,9 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                             }}
                           >
                             {copied === item.copyId ? (
-                              <Check size={14} color="#10b981" />
+                              <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} strokeWidth={2} color="#10b981" />
                             ) : (
-                              <Copy size={14} color="var(--color-text-muted)" />
+                              <HugeiconsIcon icon={Copy01Icon} size={14} strokeWidth={2} color="var(--color-text-muted)" />
                             )}
                           </motion.button>
                         )}
@@ -577,10 +580,10 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
               }}
             >
               {[
-                { icon: Users, label: 'Unique Wallets', value: result.stats.uniqueWallets.toLocaleString(), color: '#8b5cf6' },
-                { icon: Activity, label: 'Total Transfers', value: result.stats.totalTransfers.toLocaleString(), color: '#3b82f6' },
-                { icon: ArrowUpRight, label: 'Incoming', value: result.stats.incomingTransfers.toLocaleString(), color: '#10b981' },
-                { icon: ArrowDownRight, label: 'Outgoing', value: result.stats.outgoingTransfers.toLocaleString(), color: '#f59e0b' },
+                { icon: UsersIcon, label: 'Unique Wallets', value: result.stats.uniqueWallets.toLocaleString(), color: '#8b5cf6' },
+                { icon: ActivityIcon, label: 'Total Transfers', value: result.stats.totalTransfers.toLocaleString(), color: '#3b82f6' },
+                { icon: ArrowUpRightIcon, label: 'Incoming', value: result.stats.incomingTransfers.toLocaleString(), color: '#10b981' },
+                { icon: ArrowDownRightIcon, label: 'Outgoing', value: result.stats.outgoingTransfers.toLocaleString(), color: '#f59e0b' },
               ].map((stat, index) => (
                 <motion.div
                   key={stat.label}
@@ -604,7 +607,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                     justifyContent: 'center',
                     margin: '0 auto 12px',
                   }}>
-                    <stat.icon size={24} color={stat.color} />
+                    <HugeiconsIcon icon={stat.icon} size={24} strokeWidth={2} color={stat.color} />
                   </div>
                   <div style={{
                     fontSize: '1.75rem',
@@ -644,7 +647,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                 alignItems: 'center',
                 gap: 8,
               }}>
-                <BarChart3 size={18} />
+                <HugeiconsIcon icon={BarChart01Icon} size={18} strokeWidth={2} />
                 Transfer Categories
               </h3>
               <div style={{
@@ -719,7 +722,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                   alignItems: 'center',
                   gap: 8,
                 }}>
-                  <Wallet size={20} />
+                  <HugeiconsIcon icon={Wallet01Icon} size={20} strokeWidth={2} />
                   Top Interacting Wallets
                 </h3>
                 <span style={{
@@ -837,9 +840,9 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                               }}
                             >
                               {copied === `addr-${wallet.address}` ? (
-                                <Check size={14} color="#10b981" />
+                                <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} strokeWidth={2} color="#10b981" />
                               ) : (
-                                <Copy size={14} color="var(--color-text-muted)" />
+                                <HugeiconsIcon icon={Copy01Icon} size={14} strokeWidth={2} color="var(--color-text-muted)" />
                               )}
                             </motion.button>
                             <a
@@ -848,7 +851,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                               rel="noopener noreferrer"
                               style={{ color: 'var(--color-text-muted)' }}
                             >
-                              <ExternalLink size={14} />
+                              <HugeiconsIcon icon={ExternalLinkIcon} size={14} strokeWidth={2} />
                             </a>
                           </div>
                         </td>
@@ -934,7 +937,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                       gap: 4,
                     }}
                   >
-                    <ChevronLeft size={16} />
+                    <HugeiconsIcon icon={ChevronLeftIcon} size={16} strokeWidth={2} />
                     Prev
                   </motion.button>
                   
@@ -956,7 +959,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                     }}
                   >
                     Next
-                    <ChevronRight size={16} />
+                    <HugeiconsIcon icon={ChevronRightIcon} size={16} strokeWidth={2} />
                   </motion.button>
                 </div>
               </div>
