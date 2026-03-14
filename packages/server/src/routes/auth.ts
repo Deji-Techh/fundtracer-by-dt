@@ -143,19 +143,20 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
     
-    let tier = 'free';
+    let tier = 'max';
     let expiry = 0;
     let walletAddress = '';
     
     if (userDoc.exists) {
       const data = userDoc.data();
-      tier = data?.tier || 'free';
+      // Everyone gets max tier now - no more tier restrictions
+      tier = 'max';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
     
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'free';
+      tier = 'max';
     }
     
     await userRef.set({
@@ -243,19 +244,20 @@ router.get('/twitter/callback', async (req: Request, res: Response) => {
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
     
-    let tier = 'free';
+    let tier = 'max';
     let expiry = 0;
     let walletAddress = '';
     
     if (userDoc.exists) {
       const data = userDoc.data();
-      tier = data?.tier || 'free';
+      // Everyone gets max tier now - no more tier restrictions
+      tier = 'max';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
     
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'free';
+      tier = 'max';
     }
     
     await userRef.set({
@@ -485,12 +487,13 @@ router.post('/login-wallet', async (req: Request, res: Response) => {
 
     if (userDoc.exists) {
       const data = userDoc.data();
-      tier = data?.tier || 'max';
+      // Everyone gets max tier now - no more tier restrictions
+      tier = 'max';
       expiry = data?.subscriptionExpiry || 0;
       displayName = data?.displayName || '';
     }
 
-    // Check if subscription expired
+    // Check if subscription expired - still give max tier
     if (expiry > 0 && Date.now() > expiry) {
       tier = 'max';
     }
@@ -562,12 +565,13 @@ router.post('/google-login', async (req: Request, res: Response) => {
 
     if (userDoc.exists) {
       const data = userDoc.data();
-      tier = data?.tier || 'max';
+      // Everyone gets max tier now - no more tier restrictions
+      tier = 'max';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
 
-    // Check if subscription expired
+    // Check if subscription expired - still give max tier
     if (expiry > 0 && Date.now() > expiry) {
       tier = 'max';
     }
@@ -664,12 +668,13 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
 
     if (userDoc.exists) {
       const data = userDoc.data();
-      tier = data?.tier || 'max';
+      // Everyone gets max tier now - no more tier restrictions
+      tier = 'max';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
 
-    // Check if subscription expired
+    // Check if subscription expired - still give max tier
     if (expiry > 0 && Date.now() > expiry) {
       tier = 'max';
     }
