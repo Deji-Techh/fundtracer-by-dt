@@ -37,14 +37,17 @@ export async function usageMiddleware(
             // Check chain access based on tier
             const chain = req.body.chain;
             if (chain) {
+                // Normalize chain to lowercase for validation
+                const normalizedChain = chain.toLowerCase();
+                
                 // Validate chain is in allowed list
-                if (!ALLOWED_CHAINS.includes(chain)) {
+                if (!ALLOWED_CHAINS.includes(normalizedChain)) {
                     return { error: 'Invalid chain', status: 400 };
                 }
 
                 const isAllowed = tier === 'max' ||
-                    (tier === 'pro' && ['linea', 'arbitrum', 'base'].includes(chain)) ||
-                    (tier === 'free' && chain === 'linea');
+                    (tier === 'pro' && ['linea', 'arbitrum', 'base'].includes(normalizedChain)) ||
+                    (tier === 'free' && normalizedChain === 'linea');
 
                 if (!isAllowed) {
                     return { 

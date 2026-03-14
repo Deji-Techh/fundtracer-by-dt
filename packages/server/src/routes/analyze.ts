@@ -285,10 +285,13 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Address and chain are required' });
     }
 
+    // Normalize chain to lowercase for validation
+    const normalizedChain = chain.toLowerCase();
+
     // Validate chain parameter
     const ALLOWED_CHAINS = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon', 'bsc'];
-    if (!ALLOWED_CHAINS.includes(chain)) {
-        return res.status(400).json({ error: 'Invalid chain parameter' });
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
     // ... existing logic
@@ -296,8 +299,8 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Invalid wallet address format' });
     }
 
-    // Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(chain)) {
+    // Validate chain parameter (using normalized chain)
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
         return res.status(400).json({ error: 'Invalid chain parameter' });
     }
 
@@ -321,7 +324,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
         console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 90s timeout...`);
         const result = await withTimeout(
-            analyzer.analyze(address, chain as ChainId, { ...options, transactionLimit: 100, skipFundingTree: true }),
+            analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: 100, skipFundingTree: true }),
             90000, // Increased to 90s, fetch limited to 100 txs initially
             'Wallet analysis'
         );
