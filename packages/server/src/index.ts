@@ -412,7 +412,7 @@ apiRouter.use('/safety', authMiddleware, safetyRoutes); // Token safety checks
 apiRouter.use('/debug', publicLimiter, debugRoutes); // Debug routes (public) with rate limiting
 apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
 apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
-apiRouter.use('/scan-history', authMiddleware, scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
+apiRouter.use('/scan-history', scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
 apiRouter.use('/solana', authMiddleware, solanaRoutes); // Solana wallet analysis
 
 // NEW: Contract Scanner Routes
