@@ -1,5 +1,6 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { CloseIcon } from '@hugeicons/core-free-icons';
 
 interface PrivacyPolicyModalProps {
     isOpen: boolean;
@@ -15,7 +16,7 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, onClose
                 <div className="modal-header">
                     <h2>Privacy Policy</h2>
                     <button className="btn btn-ghost btn-icon" onClick={onClose}>
-                        <X size={20} />
+                        <HugeiconsIcon icon={CloseIcon} size={20} strokeWidth={2} />
                     </button>
                 </div>
 
