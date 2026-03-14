@@ -4,7 +4,7 @@
 // ============================================================
 
 import { Router, Response } from 'express';
-import { AuthenticatedRequest } from '../middleware/auth.js';
+import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { getFirestore } from '../firebase.js';
 import {
     WalletAnalyzer,
@@ -15,6 +15,7 @@ import {
 import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
+import { validateAddressInput, sanitizeString, validateArrayLength } from '../utils/validation.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -304,8 +305,23 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
     const { address, chain, options } = req.body;
 
-    if (!address || !chain) {
-        return res.status(400).json({ error: 'Address and chain are required' });
+    // Use comprehensive validation
+    const validation = validateAddressInput(address, chain);
+    if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+    }
+
+    // Additional validation for options if provided
+    if (options) {
+        if (options.limit !== undefined) {
+            const limit = Number(options.limit);
+            if (isNaN(limit) || limit < 1 || limit > 1000) {
+                return res.status(400).json({ error: 'Invalid limit parameter (1-1000)' });
+            }
+        }
+        if (options.addresses && !validateArrayLength(options.addresses, 100)) {
+            return res.status(400).json({ error: 'Too many addresses (max 100)' });
+        }
     }
 
     // Normalize chain to lowercase for validation
@@ -473,10 +489,15 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'At least 2 addresses are required' });
     }
 
+    // Validate array length
+    if (!validateArrayLength(addresses, 20)) {
+        return res.status(400).json({ error: 'Too many addresses (max 20)' });
+    }
+
     // Validate all addresses
     for (const addr of addresses) {
         if (!ETH_ADDRESS_REGEX.test(addr)) {
-            return res.status(400).json({ error: `Invalid address format: ${addr}` });
+            return res.status(400).json({ error: 'Invalid address format' });
         }
     }
 
