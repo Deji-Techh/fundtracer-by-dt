@@ -127,7 +127,17 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     });
     
     const googleUser = await userResponse.json();
-    const { uid, email, name, picture } = googleUser;
+    console.log('[AUTH] Google user info:', JSON.stringify(googleUser).slice(0, 300));
+    
+    const uid = googleUser.id;
+    const email = googleUser.email;
+    const name = googleUser.name;
+    const picture = googleUser.picture;
+    
+    if (!uid) {
+      console.error('[AUTH] No uid from Google:', googleUser);
+      return res.redirect(`${FRONTEND_URL}/auth?error=no_uid`);
+    }
     
     const db = getFirestore();
     const userRef = db.collection('users').doc(uid);
