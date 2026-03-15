@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { CloseIcon, MessageChat01Icon, ChevronDownIcon, ChevronUpIcon, Send01Icon, BugIcon } from '@hugeicons/core-free-icons';
+import { X, MessageSquare, ChevronDown, ChevronUp, Send, Bug } from 'lucide-react';
 import { useNotify } from '../contexts/ToastContext';
 
 interface FeedbackModalProps {
@@ -93,7 +92,7 @@ URL: ${window.location.href}
                 style={{ maxWidth: '550px', width: '95vw' }}
             >
                 <button className="modal-close" onClick={onClose}>
-                    <HugeiconsIcon icon={CloseIcon} size={20} strokeWidth={2} />
+                    <X size={20} />
                 </button>
 
                 <div style={{ padding: 'var(--space-6)' }}>
@@ -107,7 +106,7 @@ URL: ${window.location.href}
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}>
-                            <HugeiconsIcon icon={MessageChat01Icon} size={20} strokeWidth={2} />
+                            <MessageSquare size={20} />
                         </div>
                         <div>
                             <h2 style={{ margin: 0, fontSize: 'var(--text-xl)', color: 'var(--color-text-primary)' }}>
@@ -194,9 +193,9 @@ URL: ${window.location.href}
                                         padding: 0
                                     }}
                                 >
-                                    <HugeiconsIcon icon={BugIcon} size={14} strokeWidth={2} />
+                                    <Bug size={14} />
                                     Debug Log
-                                    {showDebugLog ? <HugeiconsIcon icon={ChevronUpIcon} size={14} strokeWidth={2} /> : <HugeiconsIcon icon={ChevronDownIcon} size={14} strokeWidth={2} />}
+                                    {showDebugLog ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </button>
 
                                 {showDebugLog && (
@@ -233,7 +232,7 @@ URL: ${window.location.href}
                                 disabled={sending}
                                 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)' }}
                             >
-                                <HugeiconsIcon icon={Send01Icon} size={16} strokeWidth={2} />
+                                <Send size={16} />
                                 {sending ? 'Opening Email...' : 'Send Feedback'}
                             </button>
                         </>

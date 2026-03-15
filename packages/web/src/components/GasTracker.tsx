@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { FuelIcon, TrendingUpIcon, TrendingDownIcon, ActivityIcon } from '@hugeicons/core-free-icons';
+import { Fuel, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 
 interface GasPrice {
   slow: number;
@@ -76,7 +75,7 @@ export function GasTracker() {
       border: '1px solid var(--color-border)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-        <HugeiconsIcon icon={FuelIcon} size={18} strokeWidth={2} style={{ color: 'var(--color-primary)' }} />
+        <Fuel size={18} style={{ color: 'var(--color-primary)' }} />
         <span style={{ fontWeight: 600 }}>Linea Gas Prices</span>
         <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
           Updated {formatTime(gasPrice.timestamp)}

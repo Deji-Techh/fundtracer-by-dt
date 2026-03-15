@@ -1,6 +1,5 @@
 import React from 'react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
+import { ArrowLeft } from 'lucide-react';
 
 const PrivacyPolicyPage: React.FC = () => {
     return (
@@ -22,7 +21,7 @@ const PrivacyPolicyPage: React.FC = () => {
                         fontSize: '14px',
                         marginBottom: '20px'
                     }}>
-                        <HugeiconsIcon icon={ArrowLeft01Icon} size={16} strokeWidth={2} /> Back to App
+                        <ArrowLeft size={16} /> Back to App
                     </a>
                     <h1 style={{ fontSize: '32px', fontWeight: 700, marginBottom: '10px' }}>Privacy Policy</h1>
                     <p style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>Last updated: January 18, 2026</p>

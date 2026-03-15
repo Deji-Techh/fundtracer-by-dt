@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { CloseIcon, Copy01Icon, CheckmarkCircle01Icon, ArrowLeft01Icon, RefreshCw } from '@hugeicons/core-free-icons';
+import { X, Copy, CheckCircle, ArrowLeft, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotify } from '../contexts/ToastContext';
 

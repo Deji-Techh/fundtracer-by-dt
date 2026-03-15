@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { ChainId, CHAINS } from '@fundtracer/core';
 import { useAuth } from '../contexts/AuthContext';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { Lock04Icon, ChevronDownIcon } from '@hugeicons/core-free-icons';
+import { Lock, ChevronDown } from 'lucide-react';
 import './ChainSelector.css';
 
 interface ChainSelectorProps {
@@ -52,7 +51,7 @@ function ChainSelector({ selectedChain, onSelect, onUpgrade }: ChainSelectorProp
                             {chain.name}
                             {!allowed && (
                                 <span className="chain-lock">
-                                    <HugeiconsIcon icon={Lock04Icon} size={10} strokeWidth={2} />
+                                    <Lock size={10} />
                                     {tier === 'free' ? 'PRO' : 'MAX'}
                                 </span>
                             )}
@@ -69,7 +68,7 @@ function ChainSelector({ selectedChain, onSelect, onUpgrade }: ChainSelectorProp
                 >
                     <span className="chain-dot chain-dot-active" />
                     <span className="chain-selected-name">{selectedChainData?.name}</span>
-                    <HugeiconsIcon icon={ChevronDownIcon} size={16} strokeWidth={2} className={`chain-chevron ${isDropdownOpen ? 'chain-chevron-open' : ''}`} />
+                    <ChevronDown size={16} className={`chain-chevron ${isDropdownOpen ? 'chain-chevron-open' : ''}`} />
                 </button>
 
                 {isDropdownOpen && (
@@ -86,7 +85,7 @@ function ChainSelector({ selectedChain, onSelect, onUpgrade }: ChainSelectorProp
                                     <span className="chain-item-name">{chain.name}</span>
                                     {!allowed && (
                                         <span className="chain-lock-mobile">
-                                            <HugeiconsIcon icon={Lock04Icon} size={10} strokeWidth={2} />
+                                            <Lock size={10} />
                                         </span>
                                     )}
                                 </button>

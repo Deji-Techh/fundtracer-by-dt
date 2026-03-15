@@ -1,8 +1,7 @@
 import { useAuth } from '../contexts/AuthContext';
 import { WalletButton } from './WalletButton';
 import TerminalAnimation from './TerminalAnimation';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { Wallet01Icon } from '@hugeicons/core-free-icons';
+import { Wallet } from 'lucide-react';
 
 function AuthPanel() {
     const {
@@ -78,7 +77,7 @@ function AuthPanel() {
                         fontWeight: 'bold',
                         fontSize: '14px'
                     }}>
-                        <HugeiconsIcon icon={Wallet01Icon} size={16} strokeWidth={1.5} />
+                        <Wallet size={16} />
                     </div>
                     <div>
                         <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -105,7 +104,7 @@ function AuthPanel() {
                 <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-surface-border)' }}>
                     <div style={{ marginBottom: 'var(--space-3)' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
-                            <HugeiconsIcon icon={Wallet01Icon} size={14} strokeWidth={1.5} /> Wallet
+                            <Wallet size={14} /> Wallet
                         </label>
                         <div style={{
                             padding: '8px 12px',

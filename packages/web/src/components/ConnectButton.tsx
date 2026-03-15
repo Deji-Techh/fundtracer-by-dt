@@ -2,9 +2,7 @@ import { useAppKit } from '@reown/appkit/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useCallback } from 'react';
 import { useNotify } from '../contexts/ToastContext';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { Wallet01Icon, AlertCircleIcon, ExternalLinkIcon, Copy01Icon } from '@hugeicons/core-free-icons';
-import { RefreshCw } from 'lucide-react';
+import { Wallet, AlertCircle, ExternalLink, Copy, RefreshCw } from 'lucide-react';
 
 export function ConnectButton() {
     const { open } = useAppKit();
@@ -107,7 +105,7 @@ export function ConnectButton() {
                 {isConnecting ? (
                     <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
                 ) : (
-                    <HugeiconsIcon icon={Wallet01Icon} size={16} strokeWidth={2} />
+                    <Wallet size={16} />
                 )}
                 {isConnecting ? 'Connecting...' : 'Connect Wallet'}
             </button>
@@ -135,7 +133,7 @@ export function ConnectButton() {
                         fontSize: '13px',
                         fontWeight: 600
                     }}>
-                        <HugeiconsIcon icon={AlertCircleIcon} size={14} strokeWidth={2} />
+                        <AlertCircle size={14} />
                         Connection Issue
                     </div>
 
@@ -164,7 +162,7 @@ export function ConnectButton() {
                             }}
                         >
                             <span>Open MetaMask</span>
-                            <HugeiconsIcon icon={ExternalLinkIcon} size={12} strokeWidth={2} />
+                            <ExternalLink size={12} />
                         </button>
 
                         <button
@@ -183,7 +181,7 @@ export function ConnectButton() {
                             }}
                         >
                             <span>Copy Link</span>
-                            <HugeiconsIcon icon={Copy01Icon} size={12} strokeWidth={2} />
+                            <Copy size={12} />
                         </button>
                     </div>
                 </div>

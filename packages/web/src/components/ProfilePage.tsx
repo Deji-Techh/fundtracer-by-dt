@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { updateProfile } from '../api';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { UserIcon, Shield01Icon, CheckmarkCircle01Icon, AlertCircleIcon, SaveIcon, CameraIcon, ArrowLeft01Icon } from '@hugeicons/core-free-icons';
+import { User, Shield, CheckCircle, AlertTriangle, Save, Camera, ArrowLeft } from 'lucide-react';
 
 interface ProfilePageProps {
     onBack?: () => void;
@@ -83,7 +82,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                         style={{ padding: '8px', borderRadius: '50%', minWidth: 'auto', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Back to Dashboard"
                     >
-                        <HugeiconsIcon icon={ArrowLeft01Icon} size={20} strokeWidth={2} />
+                        <ArrowLeft size={20} />
                     </button>
                 )}
                 <h1 className="gradient-text" style={{ fontSize: isMobile ? 'var(--text-xl)' : 'var(--text-3xl)', margin: 0 }}>
@@ -127,7 +126,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                                 }}
                             />
                         ) : (
-                            name ? name[0].toUpperCase() : <HugeiconsIcon icon={UserIcon}size={48} />
+                            name ? name[0].toUpperCase() : <User size={48} />
                         )}
                         <button
                             type="button"

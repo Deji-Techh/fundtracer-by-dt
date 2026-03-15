@@ -5,19 +5,19 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { 
-  PlayIcon,
-  PauseIcon,
-  RotateCcwIcon,
-  UsersIcon,
-  TargetIcon,
-  ActivityIcon,
-  Clock01Icon,
-  AlertCircleIcon,
-  CheckmarkCircle01Icon,
-  BarChart3Icon,
-  ShareIcon,
-  SaveIcon
-} from '@hugeicons/core-free-icons';
+  Play, 
+  Pause, 
+  RotateCcw, 
+  Users, 
+  Target, 
+  Activity,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  BarChart3,
+  Share2,
+  Save
+} from 'lucide-react';
 import { useSybilAnalysis } from '../../hooks/useSybilAnalysis';
 import { CaseManagerPanel } from './CaseManagerPanel';
 import { ExportPanel } from './ExportPanel';
@@ -127,7 +127,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
           alignItems: 'center',
           gap: isMobile ? '8px' : '12px'
         }}>
-          <TargetIcon size={isMobile ? 24 : 32} color="var(--color-accent)" />
+          <Target size={isMobile ? 24 : 32} color="var(--color-accent)" />
           Advanced Sybil Detection
         </h1>
         <p style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '13px' : '15px' }}>
@@ -161,7 +161,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
               alignItems: 'center',
               gap: '8px'
             }}>
-              <UsersIcon size={18} color="var(--color-accent)" />
+              <Users size={18} color="var(--color-accent)" />
               Wallet Addresses
               <span style={{ 
                 background: 'var(--color-border)', 
@@ -310,9 +310,9 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
               }}
             >
               {state.status === 'extracting' || state.status === 'clustering' ? (
-                <><PauseIcon size={18} /> Stop Analysis</>
+                <><Pause size={18} /> Stop Analysis</>
               ) : (
-                <><PlayIcon size={18} /> Start Analysis</>
+                <><Play size={18} /> Start Analysis</>
               )}
             </button>
 
@@ -350,7 +350,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
               padding: isMobile ? '40px 20px' : '60px 40px',
               textAlign: 'center'
             }}>
-              <ActivityIcon size={48} color="#374151" style={{ marginBottom: '16px' }} />
+              <Activity size={48} color="#374151" style={{ marginBottom: '16px' }} />
               <h3 style={{ color: 'var(--color-text-muted)', marginBottom: '8px' }}>
                 Ready to Analyze
               </h3>
@@ -419,7 +419,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                         margin: '0 auto 8px',
                         fontSize: '14px'
                       }}>
-                        {isComplete ? <CheckmarkCircle01Icon size={16} /> : i + 1}
+                        {isComplete ? <CheckCircle size={16} /> : i + 1}
                       </div>
                       <div style={{ 
                         fontSize: '11px', 
@@ -514,7 +514,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  <BarChart3Icon size={20} color="var(--color-accent)" />
+                  <BarChart3 size={20} color="var(--color-accent)" />
                   Detected Clusters
                 </h3>
 
@@ -617,7 +617,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                     alignItems: 'center',
                     gap: '8px'
                   }}>
-                    <Clock01Icon size={20} color="#f59e0b" />
+                    <Clock size={20} color="#f59e0b" />
                     Coordinated Campaigns
                   </h3>
 

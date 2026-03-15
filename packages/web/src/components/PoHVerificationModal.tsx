@@ -1,5 +1,4 @@
-import { HugeiconsIcon } from '@hugeicons/react';
-import { CloseIcon, Shield01Icon, AlertCircleIcon, ExternalLinkIcon } from '@hugeicons/core-free-icons';
+import { X, Shield, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 interface PoHVerificationModalProps {
@@ -61,7 +60,7 @@ export function PoHVerificationModal({ isOpen, onClose, walletAddress }: PoHVeri
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-              <HugeiconsIcon icon={Shield01Icon}size={20} color="white" />
+              <Shield size={20} color="white" />
             </div>
             <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>
               Not PoH Verified

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getLabel, setLabel } from '../utils/addressBook';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { TagIcon, Edit01Icon, CheckmarkCircle01Icon, CloseIcon } from '@hugeicons/core-free-icons';
+import { Tag, Edit2, Check, X } from 'lucide-react';
 
 interface AddressLabelProps {
     address: string;
@@ -73,7 +72,7 @@ function AddressLabel({ address, editable = false, showAddress = false, classNam
                     style={{ padding: 2, color: 'var(--color-success-text)' }}
                     onClick={(e) => { e.stopPropagation(); handleSave(); }}
                 >
-                    <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} strokeWidth={2} />
+                    <Check size={14} />
                 </button>
                 <button
                     type="button"
@@ -81,7 +80,7 @@ function AddressLabel({ address, editable = false, showAddress = false, classNam
                     style={{ padding: 2, color: 'var(--color-text-muted)' }}
                     onClick={(e) => { e.stopPropagation(); setIsEditing(false); }}
                 >
-                    <HugeiconsIcon icon={CloseIcon} size={14} strokeWidth={2} />
+                    <X size={14} />
                 </button>
             </form>
         );
@@ -127,7 +126,7 @@ function AddressLabel({ address, editable = false, showAddress = false, classNam
                     }}
                     title={label ? "Edit label" : "Add label"}
                 >
-                    {label ? <HugeiconsIcon icon={Edit01Icon} size={12} strokeWidth={2} /> : <HugeiconsIcon icon={TagIcon} size={12} strokeWidth={2} />}
+                    {label ? <Edit2 size={12} /> : <Tag size={12} />}
                 </button>
             )}
         </span>

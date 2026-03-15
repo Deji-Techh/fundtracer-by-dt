@@ -22,16 +22,16 @@ interface FundingNode {
 }
 import { useIsMobile } from '../hooks/useIsMobile';
 import {
-    Maximize2Icon,
-    Minimize2Icon,
-    ZoomInIcon,
-    ZoomOutIcon,
-    RotateCcwIcon,
-    ArrowLeft01Icon,
-    ExternalLinkIcon,
-    Copy01Icon,
-    CloseIcon,
-} from '@hugeicons/core-free-icons';
+    Maximize2,
+    Minimize2,
+    ZoomIn,
+    ZoomOut,
+    RotateCcw,
+    ArrowLeft,
+    ExternalLink,
+    Copy,
+    X,
+} from 'lucide-react';
 
 interface FundingTreeProps {
     node: FundingNode;
@@ -122,7 +122,7 @@ const NodeDetailPanel = ({
                     onClick={onClose}
                     className="btn-icon-close"
                 >
-                    <CloseIcon size={14} />
+                    <X size={14} />
                 </button>
             </div>
 
@@ -143,7 +143,7 @@ const NodeDetailPanel = ({
                     className={`btn-icon-copy ${copied ? 'copied' : ''}`}
                     title="Copy address"
                 >
-                    <Copy01Icon size={12} />
+                    <Copy size={12} />
                 </button>
             </div>
 
@@ -194,7 +194,7 @@ const NodeDetailPanel = ({
                 rel="noopener noreferrer"
                 className="explorer-link"
             >
-                <ExternalLinkIcon size={12} />
+                <ExternalLink size={12} />
                 View on {chainConfig.name} Explorer
             </a>
         </div>
@@ -320,7 +320,7 @@ const MobileTreeView = ({
                         fontSize: 11, color: 'var(--color-text-primary)', cursor: 'pointer',
                     }}
                 >
-                    <Maximize2Icon size={12} />
+                    <Maximize2 size={12} />
                     View Graph
                 </button>
             </div>
@@ -691,7 +691,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                             onClick={() => setShowMobileGraph(false)}
                             className="btn btn-secondary btn-icon funding-tree-back-btn"
                         >
-                            <ArrowLeft01Icon size={16} /> Back
+                            <ArrowLeft size={16} /> Back
                         </button>
                     )}
                     <span className={`funding-tree-toolbar-badge ${direction === 'source' ? 'source' : 'destination'}`}>
@@ -704,17 +704,17 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
 
                 <div className="funding-tree-toolbar-right">
                     <button onClick={() => handleZoom(1.2)} className="btn btn-secondary btn-icon">
-                        <ZoomInIcon size={16} />
+                        <ZoomIn size={16} />
                     </button>
                     <button onClick={() => handleZoom(0.8)} className="btn btn-secondary btn-icon">
-                        <ZoomOutIcon size={16} />
+                        <ZoomOut size={16} />
                     </button>
                     <button onClick={() => handleResetZoom()} className="btn btn-secondary btn-icon">
-                        <RotateCcwIcon size={16} />
+                        <RotateCcw size={16} />
                     </button>
                     {!isMobile && (
                         <button onClick={() => setIsFullscreen(!isFullscreen)} className="btn btn-secondary btn-icon">
-                            {isFullscreen ? <Minimize2Icon size={16} /> : <Maximize2Icon size={16} />}
+                            {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                         </button>
                     )}
                 </div>
