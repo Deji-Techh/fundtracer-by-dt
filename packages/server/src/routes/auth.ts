@@ -405,11 +405,9 @@ Provider: ${providerLabel}
         subject: "Welcome to Fundtracer - Your Blockchain Intelligence Journey Starts Here",
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 0;">
-            <!-- Header Banner -->
-            <div style="text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+            <!-- Banner Image Only -->
+            <div style="text-align: center; padding: 20px;">
               <img src="https://www.fundtracer.xyz/banner.png" alt="Fundtracer Banner" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 150px;" />
-              <h1 style="color: #22d3ee; margin: 15px 0 0; font-size: 28px; font-weight: 700;">FUNDTRACER</h1>
-              <p style="color: #94a3b8; margin: 8px 0 0; font-size: 13px;">Blockchain Intelligence Reimagined</p>
             </div>
             
             <!-- Main Content -->
@@ -522,11 +520,9 @@ Provider: ${providerLabel}
           subject: "Welcome to Fundtracer - Your Blockchain Intelligence Journey Starts Here",
           html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 0;">
-            <!-- Header Banner -->
-            <div style="text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+            <!-- Banner Image Only -->
+            <div style="text-align: center; padding: 20px;">
               <img src="https://www.fundtracer.xyz/banner.png" alt="Fundtracer Banner" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 150px;" />
-              <h1 style="color: #22d3ee; margin: 15px 0 0; font-size: 28px; font-weight: 700;">FUNDTRACER</h1>
-              <p style="color: #94a3b8; margin: 8px 0 0; font-size: 13px;">Blockchain Intelligence Reimagined</p>
             </div>
             
             <!-- Main Content -->
