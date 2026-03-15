@@ -180,7 +180,7 @@ export function LandingLayout({
             <h4 className="landing-footer__column-title">Connect</h4>
             <div className="landing-footer__column-links">
               <a href="https://twitter.com/fundtracer" target="_blank" rel="noopener">Twitter</a>
-              <a href="https://t.me/fundtracer" target="_blank" rel="noopener">Telegram</a>
+              <a href="https://t.me/fundtracer_bot" target="_blank" rel="noopener">Telegram</a>
               <a href="https://github.com/fundtracer" target="_blank" rel="noopener">GitHub</a>
             </div>
           </div>
