@@ -3,7 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useCallback } from 'react';
 import { useNotify } from '../contexts/ToastContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Wallet01Icon, AlertCircleIcon, ExternalLinkIcon, Copy01Icon, RotateCwIcon } from '@hugeicons/core-free-icons';
+import { Wallet01Icon, AlertCircleIcon, ExternalLinkIcon, Copy01Icon } from '@hugeicons/core-free-icons';
+import { RefreshCw } from 'lucide-react';
 
 export function ConnectButton() {
     const { open } = useAppKit();
@@ -104,7 +105,7 @@ export function ConnectButton() {
                 }}
             >
                 {isConnecting ? (
-                    <HugeiconsIcon icon={RotateCwIcon} size={16} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+                    <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />
                 ) : (
                     <HugeiconsIcon icon={Wallet01Icon} size={16} strokeWidth={2} />
                 )}

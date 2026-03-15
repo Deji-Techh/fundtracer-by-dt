@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { useAuth } from '../contexts/AuthContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { LogOut01Icon, AlertCircleIcon, RefreshCw, Wallet01Icon, ArrowRight01Icon, CloseIcon } from '@hugeicons/core-free-icons';
+import { LogOut01Icon, AlertCircleIcon, Wallet01Icon, ArrowRight01Icon, CloseIcon } from '@hugeicons/core-free-icons';
+import { RefreshCw } from 'lucide-react';
 import { useIsMobile } from '../hooks/useIsMobile';
 
 interface WalletButtonProps {
@@ -95,7 +96,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
         >
           <HugeiconsIcon icon={AlertCircleIcon} size={16} strokeWidth={2} color="#ef4444" />
           <span>Retry</span>
-          <HugeiconsIcon icon={RefreshCw} size={14} strokeWidth={2} />
+          <RefreshCw size={14} />
         </button>
       ) : isWalletConnected && displayAddress ? (
         <button
@@ -114,7 +115,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
           title="Connect wallet"
         >
           {isConnecting ? (
-            <HugeiconsIcon icon={RefreshCw} size={18} strokeWidth={1.5} className="spin" />
+            <RefreshCw size={18} className="spin" />
           ) : (
             <HugeiconsIcon icon={Wallet01Icon} size={18} strokeWidth={1.5} />
           )}
@@ -164,7 +165,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
                     cursor: 'pointer',
                   }}
                 >
-                <HugeiconsIcon icon={RefreshCw} size={14} strokeWidth={2} />
+                <RefreshCw size={14} />
                 Try Again
                 </button>
                 <button
