@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { AlertCircleIcon, RefreshCwIcon, Home03Icon } from '@hugeicons/core-free-icons';
+import { AlertCircleIcon, RotateCwIcon, Home03Icon } from '@hugeicons/core-free-icons';
 
 // ============================================
 // ERROR BOUNDARY - Catches React errors
@@ -113,7 +113,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <HugeiconsIcon icon={RefreshCwIcon} size={18} strokeWidth={2} />
+                <HugeiconsIcon icon={RotateCwIcon} size={18} strokeWidth={2} />
                 Reload Page
               </button>
               

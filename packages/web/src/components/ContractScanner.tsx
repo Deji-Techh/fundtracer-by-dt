@@ -4,7 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Search01Icon, FileTextIcon, UsersIcon, ArrowUpRightIcon, ArrowDownRightIcon,
   ExternalLinkIcon, Copy01Icon, CheckmarkCircle01Icon, Download02Icon, ChevronLeftIcon, ChevronRightIcon,
-  ClockIcon, Wallet01Icon, ActivityIcon, Shield01Icon, AlertCircleIcon, RefreshCwIcon,
+  ClockIcon, Wallet01Icon, ActivityIcon, Shield01Icon, AlertCircleIcon, RotateCwIcon,
   BarChart01Icon, TrendingUpIcon, Calendar02Icon, HashIcon
 } from '@hugeicons/core-free-icons';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -314,7 +314,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
           >
             {loading ? (
               <>
-                <HugeiconsIcon icon={RefreshCwIcon} size={20} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+                <HugeiconsIcon icon={RotateCwIcon} size={20} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
                 Scanning...
               </>
             ) : (
@@ -348,7 +348,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                 color: '#8b5cf6',
                 fontWeight: 500,
               }}>
-                <HugeiconsIcon icon={RefreshCwIcon} size={20} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+                <HugeiconsIcon icon={RotateCwIcon} size={20} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
                 Scanning... This may take 10-60 seconds for large contracts
               </div>
               <div style={{
@@ -490,7 +490,7 @@ export default function ContractScanner({ prefilledAddress }: ContractScannerPro
                     }}
                   >
                     {exporting ? (
-                      <HugeiconsIcon icon={RefreshCwIcon} size={16} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
+                      <HugeiconsIcon icon={RotateCwIcon} size={16} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />
                     ) : (
                       <HugeiconsIcon icon={Download02Icon} size={16} strokeWidth={2} />
                     )}
