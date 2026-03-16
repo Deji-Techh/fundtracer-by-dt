@@ -3,7 +3,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { initializeAppKit } from './reown.config'
+import { PrivyProvider } from '@privy-io/react-auth'
 import { ToastProvider } from './contexts/ToastContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -11,10 +11,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import './index.css'
 
-// CRITICAL: Initialize AppKit BEFORE creating React root
-// This ensures the store is ready before any hooks are called
-// This setup was proven to work for mobile wallet connections
-initializeAppKit()
+const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || ''
 
 // Setup queryClient with optimized configuration
 const queryClient = new QueryClient({
@@ -51,9 +48,28 @@ root.render(
             <QueryClientProvider client={queryClient}>
                 <ThemeProvider>
                     <ToastProvider>
-                        <AuthProvider>
-                            <App />
-                        </AuthProvider>
+                        {PRIVY_APP_ID ? (
+                            <PrivyProvider
+                                appId={PRIVY_APP_ID}
+                                config={{
+                                    appearance: {
+                                        theme: 'dark',
+                                        accentColor: '#22d3ee',
+                                    },
+                                    embeddedWallets: {
+                                        createOnLogin: 'users-without-wallets',
+                                    },
+                                }}
+                            >
+                                <AuthProvider>
+                                    <App />
+                                </AuthProvider>
+                            </PrivyProvider>
+                        ) : (
+                            <AuthProvider>
+                                <App />
+                            </AuthProvider>
+                        )}
                     </ToastProvider>
                 </ThemeProvider>
             </QueryClientProvider>

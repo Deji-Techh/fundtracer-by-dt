@@ -13,6 +13,7 @@
         "@fundtracer/core": "*",
         "@hugeicons/core-free-icons": "^3.1.1",
         "@hugeicons/react": "^1.1.4",
+        "@privy-io/react-auth": "^3.17.0",
         "@reown/appkit": "^1.8.17",
         "@reown/appkit-adapter-ethers": "^1.8.17",
         "@reown/appkit-adapter-wagmi": "^1.8.17",
