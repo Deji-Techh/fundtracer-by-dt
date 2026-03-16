@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
 import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions } from '../../api';
@@ -62,8 +62,9 @@ export function InvestigateView({
   onPrefillConsumed
 }: InvestigateViewProps) {
   const { user, profile, isAuthenticated } = useAuth();
-  const { open } = useAppKit();
-  const { address, isConnected } = useAppKitAccount();
+  const { login: loginPrivy, user: privyUser } = usePrivy();
+  const address = privyUser?.wallet?.address;
+  const isConnected = !!address;
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('wallet');
@@ -191,9 +192,9 @@ export function InvestigateView({
   // Connect wallet handler
   const handleConnectWallet = useCallback(() => {
     if (!isConnected) {
-      open();
+      loginPrivy();
     }
-  }, [isConnected, open]);
+  }, [isConnected, loginPrivy]);
 
   // Analyze wallet (removed PoH verification)
   const handleAnalyzeWallet = async (address: string) => {

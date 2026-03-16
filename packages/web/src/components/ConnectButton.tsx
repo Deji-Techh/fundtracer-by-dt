@@ -1,11 +1,11 @@
-import { useAppKit } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
 import { useState, useEffect, useCallback } from 'react';
 import { useNotify } from '../contexts/ToastContext';
 import { Wallet, AlertCircle, ExternalLink, Copy, RefreshCw } from 'lucide-react';
 
 export function ConnectButton() {
-    const { open } = useAppKit();
+    const { login: loginPrivy, connectWallet, user: privyUser } = usePrivy();
     const { user, signOut } = useAuth();
     const notify = useNotify();
     
@@ -39,7 +39,7 @@ export function ConnectButton() {
 
         try {
             // CRITICAL: Must be synchronous for mobile deep links
-            open();
+            loginPrivy();
             
             // Clear timeout if connection succeeds quickly
             setTimeout(() => {
@@ -54,7 +54,7 @@ export function ConnectButton() {
                 setShowFallback(true);
             }
         }
-    }, [open, isMobile, notify]);
+    }, [loginPrivy, isMobile, notify]);
 
     const openMetaMask = () => {
         window.location.href = 'https://metamask.app.link/dapp/fundtracer.xyz';

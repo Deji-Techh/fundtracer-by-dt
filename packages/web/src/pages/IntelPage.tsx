@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LandingLayout,
@@ -48,8 +48,9 @@ interface TrendingToken {
 
 export function IntelPage() {
   const navigate = useNavigate();
-  const { open } = useAppKit();
-  const { address, isConnected } = useAppKitAccount();
+  const { login: loginPrivy, user: privyUser } = usePrivy();
+  const address = privyUser?.wallet?.address;
+  const isConnected = !!address;
   const { isAuthenticated } = useAuth();
 
   const [marketStats, setMarketStats] = useState<MarketStats | null>(null);

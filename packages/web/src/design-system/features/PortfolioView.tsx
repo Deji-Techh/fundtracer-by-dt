@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { Panel } from '../primitives';
 import './PortfolioView.css';
 
@@ -14,12 +14,13 @@ const PortfolioAnalytics = React.lazy(() =>
 );
 
 export function PortfolioView() {
-  const { open } = useAppKit();
-  const { address, isConnected } = useAppKitAccount();
+  const { login: loginPrivy, user: privyUser } = usePrivy();
+  const address = privyUser?.wallet?.address;
+  const isConnected = !!address;
 
   const handleConnectWallet = () => {
     if (!isConnected) {
-      open();
+      loginPrivy();
     }
   };
 

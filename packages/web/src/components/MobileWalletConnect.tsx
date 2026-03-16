@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAppKit } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotify } from '../contexts/ToastContext';
 import { Wallet, Copy, QrCode, ExternalLink, AlertCircle, RefreshCw, Smartphone } from 'lucide-react';
@@ -9,7 +9,7 @@ interface MobileWalletConnectProps {
 }
 
 export const MobileWalletConnect: React.FC<MobileWalletConnectProps> = ({ className }) => {
-  const { open } = useAppKit();
+  const { login: loginPrivy } = usePrivy();
   const { user, signOut } = useAuth();
   const notify = useNotify();
   
@@ -62,8 +62,8 @@ export const MobileWalletConnect: React.FC<MobileWalletConnectProps> = ({ classN
     setConnectionTimeout(timeout);
     
     try {
-      // Open AppKit - MUST be called synchronously
-      open();
+      // Open Privy - MUST be called synchronously
+      loginPrivy();
     } catch (error) {
       console.error('[MobileWalletConnect] Error opening modal:', error);
       clearConnectionTimeout();

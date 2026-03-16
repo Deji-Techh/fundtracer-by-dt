@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
 import { trackVisit } from './api';
@@ -50,9 +50,9 @@ export default function EVMTabs() {
 
 function EVMMainApp() {
   const { user, profile, isAuthenticated, loading: authLoading } = useAuth();
-  const appKit = useAppKit();
-  const { open } = appKit;
-  const { address, isConnected } = useAppKitAccount();
+  const { login: loginPrivy, user: privyUser } = usePrivy();
+  const address = privyUser?.wallet?.address;
+  const isConnected = !!address;
   const { theme } = useTheme();
 
   const [activeTab, setActiveTab] = useState<TabType>('sybil');
@@ -84,8 +84,8 @@ function EVMMainApp() {
   }, [activeTab]);
 
   useEffect(() => {
-    try { (appKit as any).setThemeMode(theme); } catch {}
-  }, [theme, appKit]);
+    // Privy doesn't have theme sync like AppKit - handled differently
+  }, []);
 
   useEffect(() => {
     if (isConnected && address) {
@@ -128,9 +128,9 @@ function EVMMainApp() {
   const handleConnectWallet = useCallback(() => {
     if (!isWalletConnected) {
       wasJustConnected.current = true;
-      open();
+      loginPrivy();
     }
-  }, [isWalletConnected, open]);
+  }, [isWalletConnected, loginPrivy]);
 
   const renderMainContent = () => {
     if (authLoading) {

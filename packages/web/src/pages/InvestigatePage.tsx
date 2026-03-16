@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { trackVisit } from '../api';
@@ -123,9 +123,9 @@ export default function InvestigatePage() {
 function InvestigateMainApp() {
   const navigate = useNavigate();
   const { user, profile, isAuthenticated, loading: authLoading } = useAuth();
-  const appKit = useAppKit();
-  const { open } = appKit;
-  const { address, isConnected } = useAppKitAccount();
+  const { login: loginPrivy, user: privyUser } = usePrivy();
+  const address = privyUser?.wallet?.address;
+  const isConnected = !!address;
   const { theme } = useTheme();
 
   const [activeTab, setActiveTab] = useState<TabType>('investigate');
@@ -172,10 +172,10 @@ function InvestigateMainApp() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Sync theme with AppKit
+  // Sync theme with Privy
   useEffect(() => {
-    try { (appKit as any).setThemeMode(theme); } catch {}
-  }, [theme, appKit]);
+    // Privy doesn't have theme sync like AppKit - handled differently
+  }, []);
 
   // Track wallet connection
   useEffect(() => {
@@ -224,9 +224,9 @@ function InvestigateMainApp() {
   const handleConnectWallet = useCallback(() => {
     if (!isWalletConnected) {
       wasJustConnected.current = true;
-      open();
+      loginPrivy();
     }
-  }, [isWalletConnected, open]);
+  }, [isWalletConnected, loginPrivy]);
 
   // Search handler
   const handleSearch = useCallback(async (query: string) => {
@@ -352,7 +352,7 @@ function InvestigateMainApp() {
   const headerRight = (
     <div className="investigate-header-actions">
       {isWalletConnected ? (
-        <button className="investigate-wallet-btn" onClick={() => open()}>
+        <button className="investigate-wallet-btn" onClick={() => loginPrivy()}>
           <span className="investigate-wallet-addr">
             {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
           </span>

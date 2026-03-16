@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppKit } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import './MobileWalletSelector.css';
 
 interface MobileWalletSelectorProps {
@@ -24,7 +24,7 @@ export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({
     onClose, 
     onConnect 
 }) => {
-    const { open } = useAppKit();
+    const { login: loginPrivy } = usePrivy();
 
     if (!isOpen) return null;
 
@@ -39,13 +39,13 @@ export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({
                 const deeplinkUrl = wallet.deeplink + encodeURIComponent(currentUrl);
                 window.location.href = deeplinkUrl;
                 
-                // Also open AppKit for connection
+                // Also open Privy for connection
                 setTimeout(() => {
-                    open();
+                    loginPrivy();
                 }, 500);
             } else {
-                // For wallets without deep linking, just open AppKit
-                open();
+                // For wallets without deep linking, just open Privy
+                loginPrivy();
             }
             
             onClose();
@@ -86,7 +86,7 @@ export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({
                 <button 
                     className="mobile-wallet-qr-btn"
                     onClick={() => {
-                        open();
+                        loginPrivy();
                         onClose();
                     }}
                 >

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
 import AppShell from '../components/AppShell';
 import Loader from '../components/Loader';
@@ -16,9 +16,9 @@ const SettingsView = lazy(() => import('../design-system/features/SettingsView')
 export function AppPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const appKit = useAppKit();
-  const { open } = appKit;
-  const { address, isConnected } = useAppKitAccount();
+  const { login: loginPrivy, user: privyUser } = usePrivy();
+  const address = privyUser?.wallet?.address;
+  const isConnected = !!address;
 
   const [activeTab, setActiveTab] = useState<TabType>('investigate');
   const [isWalletConnected, setIsWalletConnected] = useState(false);
@@ -37,9 +37,9 @@ export function AppPage() {
 
   const handleConnectWallet = useCallback(() => {
     if (!isWalletConnected) {
-      open();
+      loginPrivy();
     }
-  }, [isWalletConnected, open]);
+  }, [isWalletConnected, loginPrivy]);
 
   const handleAnalyze = useCallback((address: string, chain: string) => {
     console.log('Analyzing:', address, 'on chain:', chain);

@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { Badge, Panel } from '../design-system/primitives';
 import './TelegramPage.css';
@@ -24,8 +24,9 @@ const navItems = [
 export function TelegramPage() {
   const navigate = useNavigate();
   const { user, profile, wallet } = useAuth();
-  const { open } = useAppKit();
-  const { address: appKitAddress, isConnected: appKitConnected } = useAppKitAccount();
+  const { login: loginPrivy, user: privyUser } = usePrivy();
+  const address = privyUser?.wallet?.address;
+  const isConnected = !!address;
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -33,8 +34,8 @@ export function TelegramPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Get wallet address from multiple sources
-  const walletAddress = appKitAddress || wallet?.address || user?.walletAddress;
-  const isWalletConnected = appKitConnected || !!wallet?.isConnected || !!user?.walletAddress;
+  const walletAddress = address || wallet?.address || user?.walletAddress;
+  const isWalletConnected = isConnected || !!wallet?.isConnected || !!user?.walletAddress;
 
   useEffect(() => {
     checkConnectionStatus();
@@ -89,7 +90,7 @@ export function TelegramPage() {
   };
 
   const handleConnectWallet = () => {
-    open();
+    loginPrivy();
   };
 
   if (loading) {
