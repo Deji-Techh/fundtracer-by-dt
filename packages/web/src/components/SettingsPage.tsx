@@ -36,7 +36,7 @@ interface SettingsPageProps {
 }
 
 export default function SettingsPage({ onConnectWallet, isWalletConnected, walletAddress, onUpgrade }: SettingsPageProps) {
-  const { user, profile, refreshProfile, signOut, signOutAccount } = useAuth();
+  const { user, profile, refreshProfile, signOut, signOutAccount, unlinkWallet } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const isMobile = useIsMobile();
   const notify = useNotify();
@@ -48,6 +48,11 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showContact, setShowContact] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  
+  // Confirmation modals state
+  const [showSignOutAccountModal, setShowSignOutAccountModal] = useState(false);
+  const [showDisconnectWalletModal, setShowDisconnectWalletModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -472,91 +477,346 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
         </div>
       </motion.div>
 
-      {/* Sign Out Account - for Google/X sign out */}
+      {/* Danger Zone */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="section-flat"
-        onClick={signOutAccount}
-        style={{ cursor: 'pointer' }}
+        style={{ marginTop: 32 }}
       >
+        <div style={{ 
+          fontSize: '0.75rem', 
+          fontWeight: 600, 
+          color: 'var(--color-text-muted)', 
+          textTransform: 'uppercase', 
+          letterSpacing: '0.05em',
+          marginBottom: 12,
+          padding: isMobile ? '0 16px' : '0 32px',
+        }}>
+          Account & Wallet
+        </div>
+        
+        {/* Sign Out Account - Always show if user is authenticated */}
         <motion.div 
-          whileHover={{ backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
-          whileTap={{ scale: 0.99 }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-            padding: isMobile ? '8px 0' : '12px 0',
-          }}
+          className="section-flat"
+          onClick={() => setShowSignOutAccountModal(true)}
+          style={{ cursor: 'pointer' }}
         >
-          <div style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            background: 'rgba(239, 68, 68, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <HugeiconsIcon icon={Logout03Icon} size={22} strokeWidth={1.5} color="#ef4444" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444' }}>
-              Sign Out Account
+          <motion.div 
+            whileHover={{ backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
+            whileTap={{ scale: 0.99 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              padding: isMobile ? '8px 0' : '12px 0',
+            }}
+          >
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: 'rgba(239, 68, 68, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <HugeiconsIcon icon={Logout03Icon} size={22} strokeWidth={1.5} color="#ef4444" />
             </div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-              Sign out of Google/X and return to home
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444' }}>
+                Sign Out Account
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                Sign out completely - disconnects wallet and account
+              </div>
             </div>
-          </div>
-          <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} color="var(--color-text-muted)" />
+            <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} color="var(--color-text-muted)" />
+          </motion.div>
         </motion.div>
+
+        {/* Disconnect Wallet - Only show when wallet is connected */}
+        {isWalletConnected && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="section-flat"
+            onClick={() => setShowDisconnectWalletModal(true)}
+            style={{ cursor: 'pointer' }}
+          >
+            <motion.div 
+              whileHover={{ backgroundColor: 'rgba(245, 158, 11, 0.05)' }}
+              whileTap={{ scale: 0.99 }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                padding: isMobile ? '8px 0' : '12px 0',
+              }}
+            >
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: 'rgba(245, 158, 11, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <HugeiconsIcon icon={Wallet01Icon} size={22} strokeWidth={1.5} color="#f59e0b" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#f59e0b' }}>
+                  Disconnect Wallet
+                </div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                  Unlink wallet - stay signed in, lose portfolio access
+                </div>
+              </div>
+              <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} color="var(--color-text-muted)" />
+            </motion.div>
+          </motion.div>
+        )}
       </motion.div>
 
-      {/* Sign Out Wallet - Only show when wallet is connected */}
-      {isWalletConnected && (
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="section-flat"
-        onClick={signOut}
-        style={{ cursor: 'pointer' }}
-      >
-        <motion.div 
-          whileHover={{ backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
-          whileTap={{ scale: 0.99 }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-            padding: isMobile ? '8px 0' : '12px 0',
-          }}
-        >
-          <div style={{
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            background: 'rgba(239, 68, 68, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <HugeiconsIcon icon={Wallet01Icon} size={22} strokeWidth={1.5} color="#ef4444" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '1rem', fontWeight: 600, color: '#ef4444' }}>
-              Disconnect Wallet
-            </div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-              Unlink your wallet from this account
-            </div>
-          </div>
-          <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={2} color="var(--color-text-muted)" />
-        </motion.div>
-      </motion.div>
-      )}
+      {/* Sign Out Account Confirmation Modal */}
+      <AnimatePresence>
+        {showSignOutAccountModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: 20,
+            }}
+            onClick={() => setShowSignOutAccountModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--color-bg-elevated)',
+                borderRadius: 16,
+                padding: 24,
+                maxWidth: 400,
+                width: '100%',
+                border: '1px solid var(--color-border)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}>
+                  <HugeiconsIcon icon={Logout03Icon} size={28} strokeWidth={1.5} color="#ef4444" />
+                </div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>
+                  Sign Out of Account?
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                  This will sign you out of your account <strong>and</strong> disconnect your wallet. 
+                  You'll need to sign in again to access your data.
+                </p>
+                <div style={{ 
+                  marginTop: 16, 
+                  padding: 12, 
+                  background: 'rgba(239, 68, 68, 0.1)', 
+                  borderRadius: 8,
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                }}>
+                  <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: 0 }}>
+                    Your premium tier, history, and portfolio will be unavailable until you sign back in.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  onClick={() => setShowSignOutAccountModal(false)}
+                  disabled={isProcessing}
+                  style={{
+                    flex: 1,
+                    padding: '12px 20px',
+                    borderRadius: 10,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-bg-hover)',
+                    color: 'var(--color-text-primary)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsProcessing(true);
+                    try {
+                      await signOutAccount();
+                    } catch (error) {
+                      console.error('Sign out account error:', error);
+                    } finally {
+                      setIsProcessing(false);
+                      setShowSignOutAccountModal(false);
+                    }
+                  }}
+                  disabled={isProcessing}
+                  style={{
+                    flex: 1,
+                    padding: '12px 20px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: '#ef4444',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    cursor: isProcessing ? 'not-allowed' : 'pointer',
+                    opacity: isProcessing ? 0.7 : 1,
+                  }}
+                >
+                  {isProcessing ? 'Signing out...' : 'Sign Out'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Disconnect Wallet Confirmation Modal */}
+      <AnimatePresence>
+        {showDisconnectWalletModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: 20,
+            }}
+            onClick={() => setShowDisconnectWalletModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'var(--color-bg-elevated)',
+                borderRadius: 16,
+                padding: 24,
+                maxWidth: 400,
+                width: '100%',
+                border: '1px solid var(--color-border)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}>
+                  <HugeiconsIcon icon={Wallet01Icon} size={28} strokeWidth={1.5} color="#f59e0b" />
+                </div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 8 }}>
+                  Disconnect Wallet?
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                  This will unlink your wallet from your account. You'll <strong>stay signed in</strong> with your email, 
+                  but portfolio features won't be available until you reconnect.
+                </p>
+                <div style={{ 
+                  marginTop: 16, 
+                  padding: 12, 
+                  background: 'rgba(245, 158, 11, 0.1)', 
+                  borderRadius: 8,
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                }}>
+                  <p style={{ fontSize: '0.8rem', color: '#f59e0b', margin: 0 }}>
+                    Your account stays active - you can reconnect your wallet anytime from Settings.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  onClick={() => setShowDisconnectWalletModal(false)}
+                  disabled={isProcessing}
+                  style={{
+                    flex: 1,
+                    padding: '12px 20px',
+                    borderRadius: 10,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-bg-hover)',
+                    color: 'var(--color-text-primary)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsProcessing(true);
+                    try {
+                      await unlinkWallet();
+                    } catch (error) {
+                      console.error('Disconnect wallet error:', error);
+                    } finally {
+                      setIsProcessing(false);
+                      setShowDisconnectWalletModal(false);
+                    }
+                  }}
+                  disabled={isProcessing}
+                  style={{
+                    flex: 1,
+                    padding: '12px 20px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: '#f59e0b',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    cursor: isProcessing ? 'not-allowed' : 'pointer',
+                    opacity: isProcessing ? 0.7 : 1,
+                  }}
+                >
+                  {isProcessing ? 'Disconnecting...' : 'Disconnect Wallet'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Contact & Privacy */}
       <motion.div 

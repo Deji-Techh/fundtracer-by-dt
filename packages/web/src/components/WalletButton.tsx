@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
+import { useAppKitAccount, useDisconnect } from '@reown/appkit/react';
+import { appKit } from '../reown.config';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Wallet01Icon, AlertCircleIcon } from '@hugeicons/core-free-icons';
 import { LogOut, RefreshCw } from 'lucide-react';
@@ -12,15 +14,25 @@ interface WalletButtonProps {
 }
 
 export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
-  const { login, logout, user, ready } = usePrivy();
+  const isMobile = useIsMobile();
+  
+  // Privy hooks (mobile)
+  const { login: privyLogin, logout: privyLogout, user: privyUser, ready: privyReady } = usePrivy();
+  
+  // AppKit hooks (desktop)
+  const { address: appKitAddress, isConnected: appKitIsConnected } = useAppKitAccount();
+  const { disconnect: appKitDisconnect } = useDisconnect();
+  
+  // Auth context
   const { wallet, signOut } = useAuth();
+  
   const [showConfirm, setShowConfirm] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const isMobile = useIsMobile();
 
-  const privyWallet = user?.wallet;
-  const address = privyWallet?.address || wallet?.address;
+  // Determine connection state based on device
+  const privyAddress = privyUser?.wallet?.address || null;
+  const address = isMobile ? privyAddress : (appKitAddress || wallet?.address);
   const isConnected = !!address;
 
   const handleConnect = async () => {
@@ -28,8 +40,15 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
     setIsConnecting(true);
     
     try {
-      console.log('[WalletButton] Opening Privy modal...');
-      await login();
+      if (isMobile) {
+        // Mobile: Use Privy
+        console.log('[WalletButton] Opening Privy modal...');
+        await privyLogin();
+      } else {
+        // Desktop: Use AppKit
+        console.log('[WalletButton] Opening AppKit modal...');
+        (appKit as any)?.open?.();
+      }
       onSuccess?.();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to connect wallet';
@@ -48,9 +67,13 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
   const handleConfirmSignOut = async () => {
     console.log('[WalletButton] Signing out...');
     try {
-      await logout();
+      if (isMobile) {
+        await privyLogout();
+      } else {
+        await appKitDisconnect();
+      }
     } catch (e) {
-      console.log('[WalletButton] Privy logout error, using fallback:', e);
+      console.log('[WalletButton] Provider logout error, using fallback:', e);
     }
     try {
       await signOut();
@@ -77,6 +100,8 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
     }
     return 'Failed to connect wallet. Please try again or check your wallet extension.';
   };
+
+  const isLoading = isConnecting || (isMobile && !privyReady);
 
   return (
     <>
@@ -115,15 +140,15 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
         <button
           className="connect-btn"
           onClick={handleConnect}
-          disabled={isConnecting || !ready}
+          disabled={isLoading}
           title="Connect wallet"
         >
-          {isConnecting ? (
+          {isLoading ? (
             <RefreshCw size={18} className="spin" />
           ) : (
             <HugeiconsIcon icon={Wallet01Icon} size={18} strokeWidth={1.5} />
           )}
-          <span>{isConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
+          <span>{isLoading ? 'Connecting...' : 'Connect Wallet'}</span>
         </button>
       )}
 
