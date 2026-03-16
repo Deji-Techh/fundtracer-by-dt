@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react';
+import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import {
     getProfile,
@@ -91,9 +92,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const notify = useNotify();
     const navigate = useNavigate();
 
-    const { address, isConnected } = useAppKitAccount();
+    // Privy hooks
+    const { user: privyUser } = usePrivy();
+    
+    // AppKit hooks (fallback)
+    const { address: appKitAddress, isConnected: appKitIsConnected } = useAppKitAccount();
     const { walletProvider } = useAppKitProvider('eip155');
-    const { disconnect } = useDisconnect();
+    const { disconnect: appKitDisconnect } = useDisconnect();
+
+    // Use Privy address if available, otherwise fall back to AppKit
+    const address = privyUser?.wallet?.address || appKitAddress;
+    const isConnected = !!address;
+    const disconnect = appKitDisconnect;
 
     const setTokenWithExpiry = useCallback((token: string, keepSignedIn: boolean) => {
         setAuthToken(token);
