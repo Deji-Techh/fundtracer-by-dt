@@ -142,6 +142,8 @@ app.use(helmet({
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
             "connect-src": [
                 "'self'",
+                "https://auth.privy.io",
+                "https://api.privy.io",
                 "https://rpc.linea.build",
                 "wss://relay.walletconnect.org",
                 "wss://relay.walletconnect.com",
