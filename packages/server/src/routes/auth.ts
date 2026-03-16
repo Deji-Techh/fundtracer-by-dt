@@ -144,6 +144,8 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
     
+    const isNewUser = !userDoc.exists;
+    
     let tier = 'max';
     let expiry = 0;
     let walletAddress = '';
@@ -183,7 +185,8 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       authProvider: 'google'
     }, getJwtSecret(), { expiresIn: '30d' });
     
-    if (email) {
+    // Only send welcome email for NEW users
+    if (email && isNewUser) {
       sendWelcomeEmail(email, name || '', 'google').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
     }
     
@@ -247,6 +250,8 @@ router.get('/twitter/callback', async (req: Request, res: Response) => {
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
     
+    const isNewUser = !userDoc.exists;
+    
     let tier = 'max';
     let expiry = 0;
     let walletAddress = '';
@@ -284,7 +289,10 @@ router.get('/twitter/callback', async (req: Request, res: Response) => {
       authProvider: 'twitter'
     }, getJwtSecret(), { expiresIn: '30d' });
     
-    sendWelcomeEmail(email, name || '', 'twitter').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
+    // Only send welcome email for NEW users
+    if (email && isNewUser) {
+      sendWelcomeEmail(email, name || '', 'twitter').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
+    }
     
     res.redirect(`${FRONTEND_URL}/auth?token=${token}`);
     
@@ -676,12 +684,14 @@ router.post('/login-wallet', async (req: Request, res: Response) => {
     // Get or create user
     const db = getFirestore();
     const userRef = db.collection('users').doc(address.toLowerCase());
-    const userDoc = await userRef.get();
-
+const userDoc = await userRef.get();
+    
+    const isNewUser = !userDoc.exists;
+    
     let tier = 'max';
     let expiry = 0;
-    let displayName = '';
-
+    let walletAddress = '';
+    
     if (userDoc.exists) {
       const data = userDoc.data();
       // Everyone gets max tier now - no more tier restrictions
@@ -772,7 +782,9 @@ router.post('/google-login', async (req: Request, res: Response) => {
     const db = getFirestore();
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
-
+    
+    const isNewUser = !userDoc.exists;
+    
     let tier = 'max';
     let expiry = 0;
     let walletAddress = '';
@@ -814,8 +826,8 @@ router.post('/google-login', async (req: Request, res: Response) => {
 
     console.log('[AUTH] Google Login SUCCESS');
     
-    // Send welcome email (async, don't wait)
-    if (email) {
+    // Only send welcome email for NEW users
+    if (email && isNewUser) {
       sendWelcomeEmail(email, name || '', 'google').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
     }
     
@@ -875,7 +887,9 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
     const db = getFirestore();
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
-
+    
+    const isNewUser = !userDoc.exists;
+    
     let tier = 'max';
     let expiry = 0;
     let walletAddress = '';
@@ -917,13 +931,9 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
 
     console.log('[AUTH] Twitter Login SUCCESS');
     
-    // Send welcome email for Twitter (async, don't wait)
-    // Twitter OAuth might not provide email, check if available
-    if (email) {
+    // Only send welcome email for NEW users
+    if (email && isNewUser) {
       sendWelcomeEmail(email, twitterDisplayName || '', 'twitter').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
-    } else if (twitterDisplayName) {
-      // Try to get email from Firestore user record if not provided by Twitter
-      console.log('[AUTH] Twitter user email not available, skipping welcome email');
     }
     
     res.json({

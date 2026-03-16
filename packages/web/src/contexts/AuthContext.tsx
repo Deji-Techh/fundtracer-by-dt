@@ -89,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const operationInProgress = useRef(false);
     const walletAuthAttempted = useRef(false);
+    const welcomeToastShown = useRef(false);
     const notify = useNotify();
     const navigate = useNavigate();
 
@@ -99,11 +100,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { address: appKitAddress, isConnected: appKitIsConnected } = useAppKitAccount();
     const { walletProvider } = useAppKitProvider('eip155');
     const { disconnect: appKitDisconnect } = useDisconnect();
+    
+    // Privy logout
+    const { logout: privyLogout } = usePrivy();
 
     // Use Privy address if available, otherwise fall back to AppKit
     const address = privyUser?.wallet?.address || appKitAddress;
     const isConnected = !!address;
-    const disconnect = appKitDisconnect;
+    
+    // Unified disconnect - handles both Privy (mobile) and AppKit (desktop)
+    const disconnect = useCallback(async () => {
+        // Disconnect from AppKit
+        try {
+            await appKitDisconnect();
+        } catch (e) {
+            console.log('[AuthContext] AppKit disconnect error:', e);
+        }
+        // Disconnect from Privy (if logged in)
+        try {
+            await privyLogout();
+        } catch (e) {
+            console.log('[AuthContext] Privy logout error:', e);
+        }
+    }, [appKitDisconnect, privyLogout]);
 
     const setTokenWithExpiry = useCallback((token: string, keepSignedIn: boolean) => {
         setAuthToken(token);
@@ -133,7 +152,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         isConnected: true
                     });
                 }
-                notify.success('Welcome to FundTracer!');
+                // Only show welcome toast once per session
+                if (!welcomeToastShown.current) {
+                    welcomeToastShown.current = true;
+                    notify.success('Welcome to FundTracer!');
+                }
             }
         }).catch(err => {
             console.error('[AuthContext] Failed to fetch profile:', err);
@@ -309,7 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sign out - disconnects wallet and clears all local data
     const signOut = useCallback(async () => {
         try {
-            disconnect();
+            await disconnect();
             clearAuthData();
             // Reset auth attempt flag so auto-auth works on next connection
             walletAuthAttempted.current = false;
@@ -326,8 +349,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (firebaseAuth) {
                 await firebaseAuth.signOut();
             }
-            // Clear all auth data
-            disconnect();
+            // Clear all auth data (includes disconnect)
+            await disconnect();
             clearAuthData();
             walletAuthAttempted.current = false;
             notify.success('Signed out of account');
@@ -336,7 +359,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
             console.error('Sign out account error:', error);
             // Still clear local data even if Firebase signout fails
-            disconnect();
+            await disconnect();
             clearAuthData();
             walletAuthAttempted.current = false;
             navigate('/');
@@ -409,7 +432,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
 
         try {
-            disconnect();
+            await disconnect();
             await unlinkWalletFromAccount(user.uid);
 
             setWallet(null);
