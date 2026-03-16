@@ -171,6 +171,7 @@ app.use(helmet({
             ],
             "frame-src": [
                 "'self'",
+                "https://auth.privy.io",
                 "https://secure.walletconnect.org",
                 "https://verify.walletconnect.com",
                 "https://accounts.google.com",
