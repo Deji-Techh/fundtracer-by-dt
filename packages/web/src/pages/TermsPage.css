@@ -7,6 +7,30 @@
   overflow-x: hidden;
 }
 
+/* Hero Section Fix */
+.about-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.about-hero__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.about-hero__title {
+  text-align: center;
+  width: 100%;
+}
+
+.about-hero__title-accent {
+  display: inline;
+}
+
 /* Legal Panel Styles */
 .legal-panel {
   padding: var(--space-6) !important;

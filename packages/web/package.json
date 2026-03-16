@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "build:seo": "vite build && node scripts/prerender.mjs",
+        "build:seo": "NODE_OPTIONS='--max-old-space-size=4096' vite build && node scripts/prerender.mjs",
         "preview": "vite preview"
     },
     "dependencies": {
