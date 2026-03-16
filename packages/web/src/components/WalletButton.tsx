@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Wallet01Icon, LogOut01Icon, AlertCircleIcon } from '@hugeicons/core-free-icons';
+import { Wallet01Icon, AlertCircleIcon } from '@hugeicons/core-free-icons';
 import { LogOut, RefreshCw } from 'lucide-react';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -236,7 +236,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
                   margin: '0 auto 16px',
                 }}
               >
-                <HugeiconsIcon icon={LogOut01Icon} size={24} strokeWidth={1.5} color="var(--color-danger, #ef4444)" />
+                <LogOut size={24} strokeWidth={1.5} color="var(--color-danger, #ef4444)" />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--color-text-primary)' }}>
                 Sign Out?
