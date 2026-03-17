@@ -20,8 +20,11 @@ export function Footer() {
       { label: 'Features', href: '/features' },
       { label: 'Pricing', href: '/pricing' },
       { label: 'How It Works', href: '/how-it-works' },
-      { label: 'CLI', href: '/cli' },
       { label: 'Telegram Bot', href: 'https://fundtracer.xyz/telegram' },
+    ],
+    resources: [
+      { label: 'CLI', href: '/cli' },
+      { label: 'GitHub', url: 'https://github.com/Deji-Tech' },
     ],
     company: [
       { label: 'About', href: '/about' },
@@ -112,6 +115,7 @@ export function Footer() {
 
             {[
               { title: 'Product', links: footerLinks.product },
+              { title: 'Resources', links: footerLinks.resources },
               { title: 'Company', links: footerLinks.company },
               { title: 'Legal', links: footerLinks.legal },
               { title: 'Connect', links: footerLinks.social },
