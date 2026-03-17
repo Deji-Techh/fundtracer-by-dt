@@ -58,6 +58,16 @@ const pages = {
     description: 'Use FundTracer directly from Telegram. Analyze wallets, check scores, and get alerts without leaving your chat. Download and start using FundTracer Bot today.',
     keywords: 'Telegram bot, FundTracer Telegram, crypto Telegram bot, wallet analysis Telegram',
   },
+  '/cli': {
+    title: 'CLI Documentation | FundTracer',
+    description: 'FundTracer CLI - Professional blockchain forensics from your terminal. Analyze wallets, detect Sybil patterns, and trace fund flows using command-line tools.',
+    keywords: 'FundTracer CLI, command line blockchain analyzer, terminal crypto tools, CLI wallet analysis',
+  },
+  '/auth': {
+    title: 'Sign In | FundTracer',
+    description: 'Sign in to FundTracer to access your portfolio, scan history, and advanced analysis features.',
+    keywords: 'FundTracer login, sign in, account access',
+  },
   '/app-evm': {
     title: 'Launch App (EVM) | FundTracer',
     description: 'Launch the FundTracer web application for EVM chains. Analyze Ethereum, Linea, Arbitrum, Base, Polygon, Optimism, and BSC wallets.',

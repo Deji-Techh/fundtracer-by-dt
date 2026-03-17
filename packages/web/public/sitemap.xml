@@ -47,6 +47,18 @@
   </url>
 
   <url>
+    <loc>https://www.fundtracer.xyz/cli</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://www.fundtracer.xyz/auth</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
     <loc>https://www.fundtracer.xyz/ext-install</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
