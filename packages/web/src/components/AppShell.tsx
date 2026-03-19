@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/AppShell.css';
+import { NotificationBell, NotificationPanel } from './notifications';
 
 interface NavItem {
   id: string;
@@ -124,6 +125,8 @@ export function AppShell({
 
           <div className="ft-topbar-gap"></div>
 
+          <NotificationBell />
+
           <div className="ft-node-status">
             <div className="ft-node-dot"></div>
             All nodes live
@@ -147,6 +150,8 @@ export function AppShell({
             </button>
           )}
         </header>
+
+        <NotificationPanel />
 
         {/* Content */}
         <main className="ft-content">

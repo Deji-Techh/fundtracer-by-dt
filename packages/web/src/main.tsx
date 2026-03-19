@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PrivyProvider } from '@privy-io/react-auth'
 import { ToastProvider } from './contexts/ToastContext'
 import { AuthProvider } from './contexts/AuthContext'
+import { NotificationProvider } from './contexts/NotificationContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
@@ -67,7 +68,9 @@ root.render(
                             </PrivyProvider>
                         ) : (
                             <AuthProvider>
-                                <App />
+                                <NotificationProvider>
+                                    <App />
+                                </NotificationProvider>
                             </AuthProvider>
                         )}
                     </ToastProvider>

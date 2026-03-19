@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
 import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions } from '../../api';
 import { addToHistory, getHistory, type HistoryItem } from '../../utils/history';
@@ -63,6 +64,7 @@ export function InvestigateView({
 }: InvestigateViewProps) {
   const { user, profile, isAuthenticated } = useAuth();
   const { login: loginPrivy, user: privyUser } = usePrivy();
+  const { addNotification } = useNotifications();
   const address = privyUser?.wallet?.address;
   const isConnected = !!address;
 
@@ -243,9 +245,23 @@ export function InvestigateView({
         });
 
         await recordUsage();
+        
+        // Send notification
+        addNotification({
+          type: 'scan_complete',
+          title: 'Wallet Scan Complete',
+          message: `Finished analyzing ${address.slice(0, 6)}...${address.slice(-4)} on ${CHAIN_CONFIG[selectedChain]?.name || selectedChain}`,
+          data: { address, chain: selectedChain, navigateTo: `/app-evm?address=${address}&chain=${selectedChain}` },
+        });
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
+      addNotification({
+        type: 'error',
+        title: 'Scan Failed',
+        message: err.message || 'Failed to analyze wallet',
+        data: { address, chain: selectedChain },
+      });
     } finally {
       setLoading(false);
     }

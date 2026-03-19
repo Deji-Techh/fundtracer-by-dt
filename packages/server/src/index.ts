@@ -406,6 +406,7 @@ import { dexScreenerRoutes } from './routes/dexscreener.js';
 import { geckoTerminalRoutes } from './routes/geckoterminal.js';
 import { scanHistoryRoutes } from './routes/scanHistory.js';
 import { solanaRoutes } from './routes/solana.js';
+import notificationRoutes from './routes/notifications.js';
 
 apiRouter.use('/portfolio', authMiddleware, portfolioRoutes);
 apiRouter.use('/history', authMiddleware, historyRoutes);
@@ -417,6 +418,7 @@ apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
 apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
 apiRouter.use('/scan-history', scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
 apiRouter.use('/solana', authMiddleware, solanaRoutes); // Solana wallet analysis
+apiRouter.use('/notifications', authMiddleware, notificationRoutes); // User notifications
 
 // NEW: Contract Scanner Routes
 import contractScannerRoutes from './routes/contractRoutes.js';
