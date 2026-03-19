@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AppShell from '../components/AppShell';
 import Loader from '../components/Loader';
 import InvestigateView from '../design-system/features/InvestigateView';
+import './AppPage.css';
 
 type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'solana' | 'history' | 'settings';
 
@@ -12,6 +13,25 @@ const PortfolioView = lazy(() => import('../design-system/features/PortfolioView
 const PolymarketView = lazy(() => import('../design-system/features/PolymarketView'));
 const HistoryView = lazy(() => import('../design-system/features/HistoryView'));
 const SettingsView = lazy(() => import('../design-system/features/SettingsView'));
+
+function PageSkeleton() {
+  return (
+    <div className="page-skeleton">
+      <div className="skeleton-header">
+        <div className="skeleton-title" />
+        <div className="skeleton-subtitle" />
+      </div>
+      <div className="skeleton-content">
+        <div className="skeleton-block tall" />
+        <div className="skeleton-grid">
+          <div className="skeleton-block" />
+          <div className="skeleton-block" />
+          <div className="skeleton-block" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function AppPage() {
   const navigate = useNavigate();
@@ -121,13 +141,13 @@ export function AppPage() {
       case 'investigate':
         return <InvestigateView />;
       case 'portfolio':
-        return <Suspense fallback={<div className="ft-page-head"><div className="ft-page-title">Loading...</div></div>}><PortfolioView /></Suspense>;
+        return <Suspense fallback={<PageSkeleton />}><PortfolioView /></Suspense>;
       case 'polymarket':
-        return <Suspense fallback={<div className="ft-page-head"><div className="ft-page-title">Loading...</div></div>}><PolymarketView /></Suspense>;
+        return <Suspense fallback={<PageSkeleton />}><PolymarketView /></Suspense>;
       case 'history':
-        return <Suspense fallback={<div className="ft-page-head"><div className="ft-page-title">Loading...</div></div>}><HistoryView onSelectScan={() => {}} /></Suspense>;
+        return <Suspense fallback={<PageSkeleton />}><HistoryView onSelectScan={() => {}} /></Suspense>;
       case 'settings':
-        return <Suspense fallback={<div className="ft-page-head"><div className="ft-page-title">Loading...</div></div>}><SettingsView onConnectWallet={handleConnectWallet} isWalletConnected={isWalletConnected} walletAddress={walletAddress} /></Suspense>;
+        return <Suspense fallback={<PageSkeleton />}><SettingsView onConnectWallet={handleConnectWallet} isWalletConnected={isWalletConnected} walletAddress={walletAddress} /></Suspense>;
       default:
         return <InvestigateView />;
     }

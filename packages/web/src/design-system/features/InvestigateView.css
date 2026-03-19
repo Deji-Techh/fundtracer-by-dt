@@ -67,6 +67,20 @@
   color: var(--intel-text-muted);
 }
 
+.stat-skeleton {
+  height: 24px;
+  width: 50px;
+  background: linear-gradient(90deg, var(--intel-bg-surface) 25%, var(--intel-bg-hover) 50%, var(--intel-bg-surface) 75%);
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: stat-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes stat-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* Panel */
 .panel {
   background: var(--intel-bg-surface);

@@ -21,24 +21,6 @@ import ContractAnalysisView, { ContractAnalysisResult } from '../../components/C
 import SybilDetector from '../../components/SybilDetector';
 import SearchHistory from '../../components/SearchHistory';
 
-// Fetch real-time stats from server
-const fetchStats = async () => {
-  try {
-    const response = await fetch('/api/scan-history/stats');
-    const data = await response.json();
-    if (data.success && data.stats) {
-      return {
-        walletsScanned: data.stats.walletsScanned || 0,
-        uniquePatterns: data.stats.uniquePatterns || 0,
-        chainsIndexed: data.stats.chainsIndexed || 7
-      };
-    }
-  } catch (error) {
-    console.error('Failed to fetch stats:', error);
-  }
-  return null;
-};
-
 interface InvestigateViewProps {
   prefillAddress?: string;
   prefillChain?: string;
@@ -112,13 +94,52 @@ export function InvestigateView({
   // Get number of enabled chains for stats
   const enabledChainsCount = Object.values(CHAIN_CONFIG).filter(c => c.enabled).length;
 
-  // Stats for real-time display
+  // Stats state - start with loading state
+  const [statsLoading, setStatsLoading] = useState(true);
   const [stats, setStats] = useState<Stats>({
     chainsIndexed: enabledChainsCount,
-    walletsTraced: '2.4M',
-    sybilClusters: '18.7K',
-    avgResponse: '0.4s'
+    walletsTraced: '—',
+    sybilClusters: '—',
+    avgResponse: '—'
   });
+
+  // Calculate user stats from their history
+  const calculateUserStats = useCallback(() => {
+    const history = getHistory();
+    
+    // Count total scans across all types
+    const totalScans = history.length;
+    
+    // Count sybil scans (each sybil scan may have multiple clusters)
+    const sybilScans = history.filter(h => h.type === 'sybil');
+    
+    // For now, show scan count. Sybil clusters would need to be stored in history
+    return {
+      walletsScanned: totalScans,
+      sybilScans: sybilScans.length
+    };
+  }, []);
+
+  // Listen for history changes and update stats
+  useEffect(() => {
+    const updateStats = () => {
+      const userStats = calculateUserStats();
+      setStats({
+        chainsIndexed: enabledChainsCount,
+        walletsTraced: formatNumber(userStats.walletsScanned),
+        sybilClusters: formatNumber(userStats.sybilScans),
+        avgResponse: userStats.walletsScanned > 0 ? '0.4s' : '—'
+      });
+      setStatsLoading(false);
+    };
+
+    // Initial load
+    updateStats();
+
+    // Listen for history changes
+    window.addEventListener('historyChanged', updateStats);
+    return () => window.removeEventListener('historyChanged', updateStats);
+  }, [calculateUserStats, enabledChainsCount]);
 
   // Results
   const [walletResult, setWalletResult] = useState<AnalysisResult | null>(null);
@@ -135,26 +156,6 @@ export function InvestigateView({
 
   // Get recent scans from history
   const recentHistory = getHistory().slice(0, 4);
-
-  // Fetch real-time stats on mount
-  useEffect(() => {
-    const loadStats = async () => {
-      const realtimeStats = await fetchStats();
-      if (realtimeStats) {
-        setStats(prev => ({
-          ...prev,
-          walletsTraced: formatNumber(realtimeStats.walletsScanned),
-          sybilClusters: formatNumber(realtimeStats.uniquePatterns),
-          chainsIndexed: realtimeStats.chainsIndexed
-        }));
-      }
-    };
-    loadStats();
-    
-    // Refresh stats every 60 seconds
-    const interval = setInterval(loadStats, 60000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Format number with K/M suffix
   const formatNumber = (num: number): string => {
@@ -532,22 +533,30 @@ export function InvestigateView({
         <div className="stat">
           <div className="stat-label">Chains indexed</div>
           <div className="stat-val">{stats.chainsIndexed}</div>
-          <div className="stat-note">+Linea recently</div>
+          <div className="stat-note">Active networks</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Wallets scanned</div>
-          <div className="stat-val">{stats.walletsTraced}</div>
-          <div className="stat-note">+12k this week</div>
+          <div className="stat-label">Your scans</div>
+          {statsLoading ? (
+            <div className="stat-skeleton" />
+          ) : (
+            <div className="stat-val">{stats.walletsTraced}</div>
+          )}
+          <div className="stat-note">Total analyses</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Sybil clusters</div>
-          <div className="stat-val">{stats.sybilClusters}</div>
-          <div className="stat-note">3.2% flagged</div>
+          <div className="stat-label">Sybil runs</div>
+          {statsLoading ? (
+            <div className="stat-skeleton" />
+          ) : (
+            <div className="stat-val">{stats.sybilClusters}</div>
+          )}
+          <div className="stat-note">Detections</div>
         </div>
         <div className="stat">
           <div className="stat-label">Avg response</div>
           <div className="stat-val">{stats.avgResponse}</div>
-          <div className="stat-note">Indexer healthy</div>
+          <div className="stat-note">Per scan</div>
         </div>
       </div>
 
