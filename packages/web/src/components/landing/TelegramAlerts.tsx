@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { CheckCircle, AlertTriangle, XCircle, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import './TelegramAlerts.css';
 
 const chatMessages = [
@@ -104,7 +105,7 @@ export function TelegramAlerts() {
                   {msg.text}
                   {msg.isRisk && (
                     <span className={`risk-badge ${msg.riskLevel}`}>
-                      {msg.riskLevel === 'low' ? '✅ LOW RISK' : msg.riskLevel === 'medium' ? '⚠️ MEDIUM' : '❌ HIGH'}
+                      {msg.riskLevel === 'low' ? <><ShieldCheck size={14} /> LOW RISK</> : msg.riskLevel === 'medium' ? <><ShieldAlert size={14} /> MEDIUM</> : <><ShieldX size={14} /> HIGH</>}
                     </span>
                   )}
                 </div>

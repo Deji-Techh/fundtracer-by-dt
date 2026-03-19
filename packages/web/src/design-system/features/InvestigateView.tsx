@@ -329,12 +329,6 @@ export function InvestigateView({
   const handleAnalyzeContract = async (address: string) => {
     if (!address.trim()) return;
 
-    // Allow scanning without wallet connection
-    // if (!isConnected) {
-    //   handleConnectWallet();
-    //   return;
-    // }
-
     setLoading(true);
     setError(null);
 
@@ -346,9 +340,22 @@ export function InvestigateView({
           totalTransactions: response.result.interactors?.length,
         }, 'contract');
         await recordUsage();
+        
+        addNotification({
+          type: 'contract_complete',
+          title: 'Contract Analysis Complete',
+          message: `Finished analyzing contract ${address.slice(0, 6)}...${address.slice(-4)}`,
+          data: { address, chain: selectedChain },
+        });
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
+      addNotification({
+        type: 'error',
+        title: 'Contract Analysis Failed',
+        message: err.message || 'Failed to analyze contract',
+        data: { address, chain: selectedChain },
+      });
     } finally {
       setLoading(false);
     }
@@ -357,12 +364,6 @@ export function InvestigateView({
   // Compare wallets
   const handleCompareWallets = async (addresses: string[]) => {
     if (addresses.length < 2) return;
-
-    // Allow scanning without wallet connection
-    // if (!isConnected) {
-    //   handleConnectWallet();
-    //   return;
-    // }
 
     setLoading(true);
     setError(null);
@@ -380,9 +381,22 @@ export function InvestigateView({
         }, 'compare');
 
         await recordUsage();
+        
+        addNotification({
+          type: 'scan_complete',
+          title: 'Wallet Comparison Complete',
+          message: `Compared ${addresses.length} wallets. Correlation: ${response.result.correlationScore}%`,
+          data: { addresses, chain: selectedChain },
+        });
       }
     } catch (err: any) {
       setError({ message: err.message, hint: err.hint });
+      addNotification({
+        type: 'error',
+        title: 'Comparison Failed',
+        message: err.message || 'Failed to compare wallets',
+        data: { addresses, chain: selectedChain },
+      });
     } finally {
       setLoading(false);
     }

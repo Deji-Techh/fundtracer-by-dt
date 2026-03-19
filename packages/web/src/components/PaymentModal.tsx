@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Copy, CheckCircle, ArrowLeft, Loader } from 'lucide-react';
+import { X, Copy, CheckCircle, ArrowLeft, Loader, Mail, AlertTriangle, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotify } from '../contexts/ToastContext';
 
@@ -157,8 +157,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                         <div className="payment-modal-header">
                             <h2>Upgrade to Premium</h2>
                             <p className="payment-subtitle">Choose your tier to unlock advanced features</p>
-                            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '8px', padding: '8px', background: 'var(--color-bg-tertiary)', borderRadius: '6px' }}>
-                                📧 <strong>Tiers are tied to your account</strong> - You can change wallets anytime, your premium access stays with your wallet address.
+                            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '8px', padding: '8px', background: 'var(--color-bg-tertiary)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Mail size={16} />
+                                <span><strong>Tiers are tied to your account</strong> - You can change wallets anytime, your premium access stays with your wallet address.</span>
                             </p>
                         </div>
 
@@ -174,7 +175,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                                 </div>
                                 <div className="tier-features">
                                     {tiers.pro.features.slice(0, 4).map((feature, i) => (
-                                        <span key={i}>✓ {feature}</span>
+                                        <span key={i}><Check size={14} style={{ marginRight: '6px' }} />{feature}</span>
                                     ))}
                                 </div>
                                 <button className="btn btn-secondary" style={{ marginTop: '16px', width: '100%' }}>
@@ -194,7 +195,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                                 </div>
                                 <div className="tier-features">
                                     {tiers.max.features.slice(0, 5).map((feature, i) => (
-                                        <span key={i}>✓ {feature}</span>
+                                        <span key={i}><Check size={14} style={{ marginRight: '6px' }} />{feature}</span>
                                     ))}
                                 </div>
                                 <button className="btn btn-primary" style={{ marginTop: '16px', width: '100%' }}>
@@ -221,7 +222,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                             </h3>
                             <div className="tier-features" style={{ display: 'grid', gap: '8px' }}>
                                 {tiers[selectedTier].features.map((feature, i) => (
-                                    <span key={i} style={{ fontSize: '14px' }}>✓ {feature}</span>
+                                    <span key={i} style={{ fontSize: '14px' }}><Check size={14} style={{ marginRight: '6px' }} />{feature}</span>
                                 ))}
                             </div>
                         </div>
@@ -274,8 +275,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
                             </p>
                         </div>
 
-                        <div className="payment-warning">
-                            <strong>⚠️ Important:</strong> Only send USDT on Linea Mainnet. Sending on other networks will result in loss of funds.
+                        <div className="payment-warning" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <AlertTriangle size={18} />
+                            <span><strong>Important:</strong> Only send USDT on Linea Mainnet. Sending on other networks will result in loss of funds.</span>
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>

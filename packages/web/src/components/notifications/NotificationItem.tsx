@@ -7,14 +7,76 @@ interface NotificationItemProps {
   notification: AppNotification;
 }
 
-const TYPE_CONFIG: Record<NotificationType, { emoji: string; color: string; icon: string }> = {
-  scan_complete: { emoji: '🔍', color: '#6366f1', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
-  sybil_complete: { emoji: '👥', color: '#8b5cf6', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0' },
-  contract_complete: { emoji: '📄', color: '#06b6d4', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-  login: { emoji: '🔐', color: '#22c55e', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
-  error: { emoji: '❌', color: '#ef4444', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  price_alert: { emoji: '💰', color: '#f59e0b', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  wallet_activity: { emoji: '💸', color: '#ec4899', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+const TYPE_CONFIG: Record<NotificationType, { icon: React.ReactNode; color: string }> = {
+  scan_complete: { 
+    color: '#6366f1',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    ),
+  },
+  sybil_complete: { 
+    color: '#8b5cf6',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    ),
+  },
+  contract_complete: { 
+    color: '#06b6d4',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    ),
+  },
+  login: { 
+    color: '#22c55e',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    ),
+  },
+  error: { 
+    color: '#ef4444',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    ),
+  },
+  price_alert: { 
+    color: '#f59e0b',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+    ),
+  },
+  wallet_activity: { 
+    color: '#ec4899',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+        <path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/>
+      </svg>
+    ),
+  },
 };
 
 function formatTimeAgo(date: Date): string {
@@ -50,7 +112,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
   const handleSnooze = (e: React.MouseEvent) => {
     e.stopPropagation();
-    snoozeType(notification.type, 30 * 60 * 1000); // 30 mins
+    snoozeType(notification.type, 30 * 60 * 1000);
     setShowMenu(false);
   };
 
@@ -66,8 +128,10 @@ export function NotificationItem({ notification }: NotificationItemProps) {
       onClick={handleClick}
       style={{ '--notif-color': config.color } as React.CSSProperties}
     >
-      <div className="notification-item-icon">
-        {config.emoji}
+      <div className="notification-item-icon" style={{ background: `${config.color}20` }}>
+        <span className="notification-icon-inner" style={{ color: config.color }}>
+          {config.icon}
+        </span>
       </div>
       
       <div className="notification-item-content">
@@ -91,7 +155,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
             setShowMenu(!showMenu);
           }}
         >
-          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+          <svg viewBox="0 0 24 24" fill="currentColor">
             <circle cx="12" cy="6" r="1.5" />
             <circle cx="12" cy="12" r="1.5" />
             <circle cx="12" cy="18" r="1.5" />
@@ -100,8 +164,20 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
         {showMenu && (
           <div className="notification-item-menu">
-            <button onClick={handleSnooze}>Snooze 30min</button>
-            <button onClick={handleDelete}>Delete</button>
+            <button onClick={handleSnooze}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Snooze 30min
+            </button>
+            <button onClick={handleDelete}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              Delete
+            </button>
           </div>
         )}
       </div>

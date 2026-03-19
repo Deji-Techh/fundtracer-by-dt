@@ -3,6 +3,26 @@ import { Transaction, ChainId, TxStatus, CHAINS } from '@fundtracer/core';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { getLabel } from '../utils/addressBook';
 
+const TokenIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M12 6v12M8 10h8M8 14h8"/>
+  </svg>
+);
+
+const ProtocolIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+  </svg>
+);
+
+const ContractIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+  </svg>
+);
+
 interface TransactionListProps {
     transactions: Transaction[];
     chain: ChainId;
@@ -245,10 +265,14 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                             {getLabel(tx.from) || (tx as any).fromLabel || formatAddress(tx.from)}
                                         </a>
                                         {(tx as any).fromType === 'token' && (
-                                            <span style={{ marginLeft: '4px', fontSize: '10px', color: 'var(--color-primary)' }}>🪙</span>
+                                            <span style={{ marginLeft: '4px', color: 'var(--color-primary)' }} title="Token">
+                                              <TokenIcon />
+                                            </span>
                                         )}
                                         {(tx as any).fromType === 'protocol' && (
-                                            <span style={{ marginLeft: '4px', fontSize: '10px', color: 'var(--color-accent)' }}>⚡</span>
+                                            <span style={{ marginLeft: '4px', color: 'var(--color-accent)' }} title="Protocol">
+                                              <ProtocolIcon />
+                                            </span>
                                         )}
                                     </td>
                                     <td>
@@ -268,13 +292,19 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                                     {getLabel(tx.to) || (tx as any).toLabel || formatAddress(tx.to)}
                                                 </a>
                                                 {(tx as any).toType === 'token' && (
-                                                    <span style={{ marginLeft: '4px', fontSize: '10px', color: 'var(--color-primary)' }} title="Token Contract">🪙</span>
+                                                    <span style={{ marginLeft: '4px', color: 'var(--color-primary)' }} title="Token Contract">
+                                                      <TokenIcon />
+                                                    </span>
                                                 )}
                                                 {(tx as any).toType === 'protocol' && (
-                                                    <span style={{ marginLeft: '4px', fontSize: '10px', color: 'var(--color-accent)' }} title="Protocol">⚡</span>
+                                                    <span style={{ marginLeft: '4px', color: 'var(--color-accent)' }} title="Protocol">
+                                                      <ProtocolIcon />
+                                                    </span>
                                                 )}
                                                 {(tx as any).toType === 'contract' && (
-                                                    <span style={{ marginLeft: '4px', fontSize: '10px', color: 'var(--color-text-muted)' }} title="Known Contract">📄</span>
+                                                    <span style={{ marginLeft: '4px', color: 'var(--color-text-muted)' }} title="Known Contract">
+                                                      <ContractIcon />
+                                                    </span>
                                                 )}
                                             </>
                                         ) : (

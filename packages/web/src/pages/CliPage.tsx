@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Search, Users, GitBranch, BarChart2, Check } from 'lucide-react';
 import './CliPage.css';
 
 export function CliPage() {
@@ -46,7 +47,7 @@ export function CliPage() {
               className="cli-copy-btn"
               onClick={() => handleCopy('npm install -g fundtracer')}
             >
-              {copied ? '✓ Copied' : 'Copy'}
+              {copied ? <><Check size={14} /> Copied</> : 'Copy'}
             </button>
           </div>
         </motion.div>
@@ -60,22 +61,22 @@ export function CliPage() {
           <h2>Features</h2>
           <div className="cli-features-grid">
             <div className="cli-feature">
-              <div className="feature-icon">🔍</div>
+              <div className="feature-icon"><Search size={24} /></div>
               <h3>Wallet Analysis</h3>
               <p>Trace funding sources, transaction history, and token holdings across multiple chains</p>
             </div>
             <div className="cli-feature">
-              <div className="feature-icon">👥</div>
+              <div className="feature-icon"><Users size={24} /></div>
               <h3>Sybil Detection</h3>
               <p>Identify coordinated attack patterns and airdrop farmers with advanced clustering</p>
             </div>
             <div className="cli-feature">
-              <div className="feature-icon">🌳</div>
+              <div className="feature-icon"><GitBranch size={24} /></div>
               <h3>Funding Trees</h3>
               <p>Visualize where funds originate from with deep funding chain analysis</p>
             </div>
             <div className="cli-feature">
-              <div className="feature-icon">📊</div>
+              <div className="feature-icon"><BarChart2 size={24} /></div>
               <h3>Multi-Chain</h3>
               <p>Support for Ethereum, Polygon, Arbitrum, Optimism, Base, and more</p>
             </div>

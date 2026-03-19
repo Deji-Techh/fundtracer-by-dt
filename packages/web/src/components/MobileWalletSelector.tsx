@@ -8,16 +8,38 @@ interface MobileWalletSelectorProps {
     onConnect: () => void;
 }
 
+const WalletIcon: React.FC<{ color: string; initial: string }> = ({ color, initial }) => (
+    <svg width="28" height="28" viewBox="0 0 28 28">
+        <rect width="28" height="28" rx="6" fill={color} />
+        <text x="14" y="19" textAnchor="middle" fill="white" fontSize="14" fontWeight="600">{initial}</text>
+    </svg>
+);
+
+const LinkIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+);
+
 const wallets = [
-    { id: 'metamask', name: 'MetaMask', icon: '🦊', deeplink: 'https://metamask.app.link/dapp/' },
-    { id: 'trust', name: 'Trust Wallet', icon: '🛡️', deeplink: 'https://link.trustwallet.com/open_url?url=' },
-    { id: 'rainbow', name: 'Rainbow', icon: '🌈', deeplink: 'https://rnbwapp.com/' },
-    { id: 'coinbase', name: 'Coinbase', icon: '🔵', deeplink: 'https://go.cb-w.com/dapp?cb_url=' },
-    { id: 'okx', name: 'OKX', icon: '⚫', deeplink: null },
-    { id: 'phantom', name: 'Phantom', icon: '👻', deeplink: 'https://phantom.app/ul/browse/' },
-    { id: 'zerion', name: 'Zerion', icon: '🟣', deeplink: null },
-    { id: 'bitget', name: 'Bitget', icon: '🔷', deeplink: null },
+    { id: 'metamask', name: 'MetaMask', color: '#f6851b', initial: 'M' },
+    { id: 'trust', name: 'Trust Wallet', color: '#3375bb', initial: 'T' },
+    { id: 'rainbow', name: 'Rainbow', color: '#001f3f', initial: 'R' },
+    { id: 'coinbase', name: 'Coinbase', color: '#0052ff', initial: 'C' },
+    { id: 'okx', name: 'OKX', color: '#000000', initial: 'O' },
+    { id: 'phantom', name: 'Phantom', color: '#ab9ff2', initial: 'P' },
+    { id: 'zerion', name: 'Zerion', color: '#2a5ada', initial: 'Z' },
+    { id: 'bitget', name: 'Bitget', color: '#1672ff', initial: 'B' },
 ];
+
+const deeplinks: Record<string, string | null> = {
+    metamask: 'https://metamask.app.link/dapp/',
+    trust: 'https://link.trustwallet.com/open_url?url=',
+    rainbow: 'https://rnbwapp.com/',
+    coinbase: 'https://go.cb-w.com/dapp?cb_url=',
+    phantom: 'https://phantom.app/ul/browse/',
+};
 
 export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({ 
     isOpen, 
@@ -30,21 +52,16 @@ export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({
 
     const handleWalletClick = async (walletId: string) => {
         try {
-            // For MetaMask and other mobile wallets, use deep linking
-            const wallet = wallets.find(w => w.id === walletId);
             const currentUrl = window.location.href;
+            const deeplink = deeplinks[walletId];
             
-            if (wallet?.deeplink) {
-                // Open wallet app with current dapp URL
-                const deeplinkUrl = wallet.deeplink + encodeURIComponent(currentUrl);
+            if (deeplink) {
+                const deeplinkUrl = deeplink + encodeURIComponent(currentUrl);
                 window.location.href = deeplinkUrl;
-                
-                // Also open Privy for connection
                 setTimeout(() => {
                     loginPrivy();
                 }, 500);
             } else {
-                // For wallets without deep linking, just open Privy
                 loginPrivy();
             }
             
@@ -73,7 +90,9 @@ export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({
                             className="mobile-wallet-option"
                             onClick={() => handleWalletClick(wallet.id)}
                         >
-                            <span className="mobile-wallet-icon">{wallet.icon}</span>
+                            <span className="mobile-wallet-icon">
+                                <WalletIcon color={wallet.color} initial={wallet.initial} />
+                            </span>
                             <span className="mobile-wallet-name">{wallet.name}</span>
                         </button>
                     ))}
@@ -90,7 +109,7 @@ export const MobileWalletSelector: React.FC<MobileWalletSelectorProps> = ({
                         onClose();
                     }}
                 >
-                    🔗 Use WalletConnect QR
+                    <LinkIcon /> Use WalletConnect QR
                 </button>
 
                 <p className="mobile-wallet-hint">

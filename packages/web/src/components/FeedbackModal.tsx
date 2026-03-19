@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageSquare, ChevronDown, ChevronUp, Send, Bug } from 'lucide-react';
+import { X, MessageSquare, ChevronDown, ChevronUp, Send, Bug, CheckCircle } from 'lucide-react';
 import { useNotify } from '../contexts/ToastContext';
 
 interface FeedbackModalProps {
@@ -124,8 +124,8 @@ URL: ${window.location.href}
                             padding: 'var(--space-6)',
                             color: 'var(--color-text-secondary)'
                         }}>
-                            <p style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-2)' }}>
-                                ✅ Email client opened!
+                            <p style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                <CheckCircle size={20} /> Email client opened!
                             </p>
                             <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
                                 Please send the email from your mail app.

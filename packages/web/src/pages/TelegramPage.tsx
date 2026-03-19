@@ -9,9 +9,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePrivy } from '@privy-io/react-auth';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { Badge, Panel } from '../design-system/primitives';
+import { CheckCircle, Bell, Bot, BarChart3, Lock, Infinity } from 'lucide-react';
 import './TelegramPage.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+
+const NotificationIcon = () => <Bell size={24} />;
+const AIIcon = () => <Bot size={24} />;
+const ChartIcon = () => <BarChart3 size={24} />;
+const SecureIcon = () => <Lock size={24} />;
 
 const navItems = [
   { label: 'About', href: '/about' },
@@ -136,7 +142,7 @@ export function TelegramPage() {
               <div className="telegram-setup">
                 {/* Step 1: Connect Wallet */}
                 <Panel variant="bordered" className={`telegram-step ${isWalletConnected ? 'telegram-step--completed' : ''}`}>
-                  <div className="telegram-step__number">{isWalletConnected ? '✓' : '1'}</div>
+                  <div className="telegram-step__number">{isWalletConnected ? <CheckCircle size={18} /> : '1'}</div>
                   <div className="telegram-step__content">
                     <h3>Connect Your Wallet</h3>
                     {isWalletConnected && walletAddress ? (
@@ -212,7 +218,7 @@ export function TelegramPage() {
               </div>
             ) : (
               <div className="telegram-connected">
-                <div className="telegram-connected__icon">✓</div>
+                <div className="telegram-connected__icon"><CheckCircle size={48} /></div>
                 <h2>Telegram Connected!</h2>
                 <p>Your Telegram is now linked to your FundTracer account.</p>
 
@@ -252,10 +258,10 @@ export function TelegramPage() {
             </div>
             <div className="telegram-features__grid">
               {[
-                { icon: '🔔', title: 'Real-Time Alerts', desc: 'Instant notifications when watched wallets move funds' },
-                { icon: '🤖', title: 'AI Analysis', desc: 'Every alert includes smart insights on what\'s happening' },
-                { icon: '📊', title: 'Flexible Frequency', desc: 'Real-time, 20min, 30min, or hourly digests' },
-                { icon: '🔒', title: 'Secure Linking', desc: 'Account-linked for personalized alerts' },
+                { icon: <NotificationIcon />, title: 'Real-Time Alerts', desc: 'Instant notifications when watched wallets move funds' },
+                { icon: <AIIcon />, title: 'AI Analysis', desc: 'Every alert includes smart insights on what\'s happening' },
+                { icon: <ChartIcon />, title: 'Flexible Frequency', desc: 'Real-time, 20min, 30min, or hourly digests' },
+                { icon: <SecureIcon />, title: 'Secure Linking', desc: 'Account-linked for personalized alerts' },
               ].map((feature, i) => (
                 <Panel key={i} variant="bordered" className="telegram-feature">
                   <span className="telegram-feature__icon">{feature.icon}</span>
@@ -290,7 +296,7 @@ export function TelegramPage() {
               </Panel>
               <Panel variant="bordered" className="telegram-plan">
                 <div className="telegram-plan__name">Max</div>
-                <div className="telegram-plan__count">∞</div>
+                <div className="telegram-plan__count"><Infinity size={32} /></div>
                 <div className="telegram-plan__label">wallets</div>
               </Panel>
             </div>

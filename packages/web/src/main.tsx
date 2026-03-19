@@ -63,7 +63,9 @@ root.render(
                                 }}
                             >
                                 <AuthProvider>
-                                    <App />
+                                    <NotificationProvider>
+                                        <App />
+                                    </NotificationProvider>
                                 </AuthProvider>
                             </PrivyProvider>
                         ) : (

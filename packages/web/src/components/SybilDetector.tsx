@@ -5,6 +5,7 @@ import { addToHistory } from '../utils/history';
 import { useNotify } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useNotifications } from '../contexts/NotificationContext';
 import { ethers } from 'ethers';
 import { usePrivy } from '@privy-io/react-auth';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -1649,6 +1650,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
   const { profile } = useAuth();
   const isMobile = useIsMobile();
   const { user: privyUser } = usePrivy();
+  const { addNotification } = useNotifications();
   // Note: walletProvider from AppKit is no longer available
   // For Privy, you would use the embedded wallet or external wallet from usePrivy()
   // This functionality needs to be reimplemented with Privy's provider
@@ -1735,14 +1737,33 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
       if (response.success && response.wallets) {
         setFetchedAddresses(response.wallets);
         notify.success(`Fetched ${response.wallets.length} addresses from Dune`);
+        
+        addNotification({
+          type: 'sybil_complete',
+          title: 'Dune Fetch Complete',
+          message: `Retrieved ${response.wallets.length} wallet addresses from ${contractAddress.slice(0, 6)}...`,
+          data: { contractAddress, chain, walletCount: response.wallets.length },
+        });
 
         // Increment usage count
         incrementSybilUsage();
       } else {
         setError(response.error || 'Failed to fetch from Dune');
+        addNotification({
+          type: 'error',
+          title: 'Dune Fetch Failed',
+          message: response.error || 'Failed to fetch wallet addresses',
+          data: { contractAddress, chain },
+        });
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch from Dune');
+      addNotification({
+        type: 'error',
+        title: 'Dune Fetch Failed',
+        message: err.message || 'Failed to fetch from Dune',
+        data: { contractAddress, chain },
+      });
     } finally {
       setFetching(false);
     }
@@ -1801,10 +1822,24 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         setResult(response.result);
         setStep('results');
         notify.success('Analysis complete!');
-
-        // Save sybil analysis to history
+        
         const clusterCount = response.result.clusters?.length || 0;
         const flaggedCount = response.result.flaggedClusters?.length || 0;
+        
+        addNotification({
+          type: 'sybil_complete',
+          title: 'Sybil Detection Complete',
+          message: `Analyzed ${allAddresses.length} wallets. Found ${clusterCount} clusters, ${flaggedCount} flagged.`,
+          data: { 
+            chain, 
+            walletCount: allAddresses.length, 
+            clusterCount,
+            flaggedCount,
+            navigateTo: '/app-evm?tab=sybil' 
+          },
+        });
+
+        // Save sybil analysis to history
         const sybilLabel = `Sybil: ${allAddresses.length} addresses, ${clusterCount} clusters`;
         const highRisk = response.result.summary?.highRiskWallets || 0;
         const mediumRisk = response.result.summary?.mediumRiskWallets || 0;
@@ -1825,9 +1860,21 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         incrementSybilUsage();
       } else {
         setError('Analysis failed');
+        addNotification({
+          type: 'error',
+          title: 'Sybil Analysis Failed',
+          message: 'Analysis could not be completed',
+          data: { chain },
+        });
       }
     } catch (err: any) {
       setError(err.message || 'Analysis failed');
+      addNotification({
+        type: 'error',
+        title: 'Sybil Analysis Failed',
+        message: err.message || 'Analysis failed',
+        data: { chain },
+      });
     } finally {
       setAnalyzing(false);
     }

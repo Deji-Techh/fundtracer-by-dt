@@ -1,10 +1,55 @@
 /**
  * CommandBar - Global search with keyboard shortcuts
- * ⌘K style search for wallets, transactions, tokens
+ * Ctrl+K style search for wallets, transactions, tokens
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './CommandBar.css';
+
+const WalletIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+  </svg>
+);
+
+const TxIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+  </svg>
+);
+
+const TokenIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M12 6v12M8 10h8M8 14h8"/>
+  </svg>
+);
+
+const ContractIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+  </svg>
+);
+
+const LabelIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+    <line x1="7" y1="7" x2="7.01" y2="7"/>
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="8"/>
+    <path d="M21 21l-4.35-4.35"/>
+  </svg>
+);
 
 export interface SearchResult {
   id: string;
@@ -35,7 +80,7 @@ export function CommandBar({
   results = [],
   loading = false,
   recentSearches = [],
-  hotkey = '⌘K',
+  hotkey = 'Ctrl+K',
   className = '',
   expanded: controlledExpanded,
   onExpandChange
@@ -134,12 +179,12 @@ export function CommandBar({
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'wallet': return '👛';
-      case 'transaction': return '📝';
-      case 'token': return '🪙';
-      case 'contract': return '📄';
-      case 'label': return '🏷️';
-      default: return '🔍';
+      case 'wallet': return <WalletIcon />;
+      case 'transaction': return <TxIcon />;
+      case 'token': return <TokenIcon />;
+      case 'contract': return <ContractIcon />;
+      case 'label': return <LabelIcon />;
+      default: return <SearchIcon />;
     }
   };
 
@@ -234,7 +279,7 @@ export function CommandBar({
               <kbd>↑</kbd><kbd>↓</kbd> Navigate
             </span>
             <span className="command-bar__footer-hint">
-              <kbd>↵</kbd> Select
+              <kbd>Enter</kbd> Select
             </span>
             <span className="command-bar__footer-hint">
               <kbd>ESC</kbd> Close
