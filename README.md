@@ -204,13 +204,13 @@ JWT_SECRET=your-secret
 
 ## Tech Stack
 
-**Frontend:** React, TypeScript, Vite, React Router
+**Frontend:** React, TypeScript, Vite, React Router.
 
-**Backend:** Node.js, Express, Firebase
+**Backend:** Node.js, Express, Firebase.
 
-**Blockchain:** Ethers.js, Viem, Solana Web3.js
+**Blockchain:** Ethers.js, Viem, Solana Web3.js.
 
-**APIs:** Alchemy, Moralis, Dune Analytics, CoinGecko
+**APIs:** Alchemy, Moralis, Dune Analytics, CoinGecko.
 
 ---
 
