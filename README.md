@@ -1,55 +1,166 @@
-# 🕵️‍♂️ FundTracer by DT
+# FundTracer
 
-<p align="center">
-  <img src="packages/web/public/logo.png" alt="FundTracer Logo" width="220">
-</p>
+Multi-chain blockchain forensics platform for tracing wallet funds, detecting Sybil patterns, and analyzing transaction activity.
 
-<p align="center">
-  <strong>Multi-Chain Blockchain Forensics & Sybil Detection Suite</strong><br>
-  Trace wallet funds, detect Sybil patterns, and analyze transactions across EVM chains and Solana.
-</p>
+## Live Apps
 
-<p align="center">
-  <a href="https://fundtracer.xyz">Website</a> •
-  <a href="#-features">Features</a> •
-  <a href="#-installation">Installation</a> •
-  <a href="#-structure">Project Structure</a> •
-  <a href="#-tech-stack">Tech Stack</a>
-</p>
+| App | URL |
+|-----|-----|
+| Landing Page | [fundtracer.xyz](https://fundtracer.xyz) |
+| EVM Analysis | [fundtracer.xyz/app-evm](https://fundtracer.xyz/app-evm) |
+| Solana Analysis | [fundtracer.xyz/app-solana](https://fundtracer.xyz/app-solana) |
+| Telegram Alerts | [fundtracer.xyz/telegram](https://fundtracer.xyz/telegram) |
 
 ---
 
-## 🚀 Live Demo
+## Products
 
-- **Landing Page**: [fundtracer.xyz](https://fundtracer.xyz)
-- **EVM App**: [fundtracer.xyz/app-evm](https://fundtracer.xyz/app-evm)
-- **Solana App**: [fundtracer.xyz/app-solana](https://fundtracer.xyz/app-solana)
+### Web App
 
----
+Browser-based wallet analysis for EVM chains and Solana. No installation required.
 
-## ✨ Features
+**Supported Chains:** Linea, Base, Arbitrum, Optimism, Polygon, BNB Chain, Ethereum
 
-### EVM Chains (app-evm)
-| Feature | Description |
+**Features:**
+- Wallet analysis with transaction history and risk scoring
+- Sybil detection for identifying coordinated activity
+- Contract interaction analysis
+- Portfolio tracking for tokens, DeFi positions, and NFTs
+- Scan history
+
+### CLI Tool
+
+Terminal-based blockchain forensics for developers and security researchers.
+
+**Installation:**
+
+```bash
+npm install -g fundtracer-cli
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/Deji-Tech/fundtracer-by-dt.git
+cd fundtracer-by-dt
+npm install
+cd packages/cli && npm run build && npm link
+```
+
+**Configuration:**
+
+Before using the CLI, configure your API keys:
+
+```bash
+fundtracer config --set-key alchemy:YOUR_KEY
+fundtracer config --set-key moralis:YOUR_KEY
+fundtracer config --set-key dune:YOUR_KEY
+```
+
+Get free API keys:
+- Alchemy: [dashboard.alchemy.com](https://dashboard.alchemy.com)
+- Moralis: [moralis.io](https://moralis.io)
+- Dune: [dune.com](https://dune.com)
+
+**Commands:**
+
+| Command | Description |
 |---------|-------------|
-| **Wallet Analysis** | Deep-dive into any wallet address across multiple EVM chains |
-| **Sybil Detection** | Identify coordinated activity and airdrop farmers |
-| **Contract Scanner** | Analyze smart contracts and discover interacting wallets |
-| **Portfolio Analytics** | Track token holdings, DeFi positions, and NFT collections |
-| **Funding Trace** | Recursively find the ultimate source of funds |
-| **History** | View and search past analyses |
+| `fundtracer analyze <address>` | Analyze a single wallet |
+| `fundtracer compare <addresses...>` | Compare wallets for Sybil detection |
+| `fundtracer portfolio <address>` | View NFT and token holdings |
+| `fundtracer batch <file>` | Analyze multiple wallets from a file |
+| `fundtracer interactive` | Start interactive mode |
+| `fundtracer config --show` | View current configuration |
 
-### Solana (app-solana)
-| Feature | Description |
+**Examples:**
+
+```bash
+# Analyze a wallet
+fundtracer analyze 0x742d35Cc6634C0532925a3b844Bc9e7595f8fC71
+
+# Compare multiple wallets
+fundtracer compare 0x742d... 0xdEaD... 0x8f2C...
+
+# Export as JSON
+fundtracer analyze 0x742d... --output json --export result.json
+
+# Batch analysis from file
+fundtracer batch addresses.txt --parallel 10
+
+# View portfolio
+fundtracer portfolio 0x742d... --tokens
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `-c, --chain <chain>` | Target chain (ethereum, linea, arbitrum, base, optimism, polygon) |
+| `-o, --output <format>` | Output format: table, json, csv, tree |
+| `-d, --depth <number>` | Funding tree depth (default: 3) |
+| `--export <file>` | Export results to file |
+| `--min-value <eth>` | Minimum transaction value filter |
+
+### Chrome Extension
+
+Embeds FundTracer data directly into Etherscan and blockchain explorers.
+
+**Installation:**
+
+1. Download the extension from [fundtracer.xyz/ext-install](https://fundtracer.xyz/ext-install)
+2. Open Chrome and navigate to `chrome://extensions`
+3. Enable "Developer mode"
+4. Drag the downloaded file into the extensions page
+
+**Features:**
+- One-click wallet analysis on any Etherscan page
+- Risk indicators and labels
+- Quick funding trace
+- Related wallets panel
+
+### Telegram Bot
+
+Real-time wallet alerts delivered to Telegram.
+
+**Setup:**
+
+1. Open [fundtracer.xyz/telegram](https://fundtracer.xyz/telegram)
+2. Connect your wallet
+3. Open the Telegram bot and link your account
+
+**Commands:**
+
+| Command | Description |
 |---------|-------------|
-| **Wallet Analysis** | Analyze Solana wallets for risk signals |
-| **Fee Payer Detection** | Detect Sybils via shared fee payers |
-| **Funding Tracing** | Trace SOL origin from exchanges |
-| **Program Fingerprints** | Identify airdrop farming patterns |
+| `/add <address>` | Add a wallet to your watchlist |
+| `/list` | View your watched wallets |
+| `/remove <address>` | Remove a wallet |
+| `/frequency` | Set alert frequency |
+| `/status` | View alert settings |
+| `/unlink` | Disconnect Telegram |
 
 ---
 
-## 🛠️ Installation
+## Pricing
+
+| Tier | Price | Features |
+|------|-------|----------|
+| Free | $0 | 10 scans/day, basic analysis |
+| Pro | $5 | 100 scans/day, all EVM chains |
+| Max | $10 | Unlimited scans, Solana included |
+
+---
+
+## Self-Hosting
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- API keys for blockchain data (Alchemy, Moralis, Dune)
+
+### Setup
 
 ```bash
 # Clone the repository
@@ -59,88 +170,50 @@ cd fundtracer-by-dt
 # Install dependencies
 npm install
 
-# Build all packages
+# Build packages
 npm run build --workspace=@fundtracer/core
 npm run build --workspace=@fundtracer/web
 npm run build --workspace=@fundtracer/server
 
+# Configure environment
+cp packages/server/.env.example packages/server/.env
+# Edit .env with your API keys
+
 # Start the server
 npm start --workspace=@fundtracer/server
+
+# For development
+cd packages/web && npm run dev
 ```
 
-### Development
-
-```bash
-# Start web app in development mode
-cd packages/web
-npm run dev
-```
-
----
-
-## 📁 Project Structure
-
-```
-fundtracer-by-dt/
-├── packages/
-│   ├── core/           # Shared utilities, types, and API functions
-│   ├── web/            # React frontend (Vite)
-│   │   └── src/
-│   │       ├── pages/           # Landing and static pages
-│   │       ├── components/      # UI components
-│   │       │   ├── CoinGecko/   # EVM app components
-│   │       │   ├── Terminal/     # Terminal UI components
-│   │       │   └── common/      # Shared components
-│   │       ├── contexts/         # React contexts
-│   │       ├── hooks/           # Custom hooks
-│   │       └── api/             # API integrations
-│   └── server/         # Express backend API
-├── .github/
-│   └── workflows/      # CI/CD deployment
-└── README.md
-```
-
----
-
-## Routes
-
-| Path | Description |
-|------|-------------|
-| `/` | Landing page with EVM/Solana launch buttons |
-| `/app-evm` | EVM blockchain analysis app |
-| `/app-solana` | Solana blockchain analysis app |
-
----
-
-## ⚙️ Configuration
-
-Create a `.env` file in `packages/server/`:
+### Environment Variables
 
 ```env
 NODE_ENV=production
 PORT=3001
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=your-client-email
-FIREBASE_PRIVATE_KEY=your-private-key
-ALCHEMY_API_KEY=your-alchemy-key
-MORALIS_API_KEY=your-moralis-key
-DUNE_API_KEY=your-dune-key
-JWT_SECRET=your-jwt-secret
+FIREBASE_PROJECT_ID=your-project
+FIREBASE_CLIENT_EMAIL=your-email
+FIREBASE_PRIVATE_KEY=your-key
+ALCHEMY_API_KEY=your-key
+MORALIS_API_KEY=your-key
+DUNE_API_KEY=your-key
+JWT_SECRET=your-secret
 ```
 
 ---
 
-## 🛡️ Tech Stack
+## Tech Stack
 
-- **Frontend**: React 18, TypeScript, Vite, React Router
-- **Styling**: CSS Variables, Framer Motion, Huge Icons
-- **Blockchain**: Ethers.js, Viem, Reown AppKit (EVM), Solana Web3.js
-- **Charts**: Chart.js, Lightweight Charts, D3.js
-- **Backend**: Node.js, Express, Firebase
-- **Deployment**: GitHub Actions, Render
+**Frontend:** React, TypeScript, Vite, React Router
+
+**Backend:** Node.js, Express, Firebase
+
+**Blockchain:** Ethers.js, Viem, Solana Web3.js
+
+**APIs:** Alchemy, Moralis, Dune Analytics, CoinGecko
 
 ---
 
-## 📄 License
+## License
 
-MIT © Built with ❤️ by **DT Development**
+MIT
