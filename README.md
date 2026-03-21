@@ -216,4 +216,4 @@ JWT_SECRET=your-secret
 
 ## License
 
-MIT
+GNU General Public License v3.0 - See [LICENSE](LICENSE)
