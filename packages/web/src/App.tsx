@@ -4,8 +4,7 @@ import IntelPage from './pages/IntelPage';
 import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
 import AppPage from './pages/AppPage';
-
-// Import new design system styles
+import { useAuth } from './contexts/AuthContext';
 import './design-system/tokens.css';
 
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
@@ -19,6 +18,59 @@ const InstallPage = lazy(() => import('./pages/InstallPage').then(m => ({ defaul
 const TelegramPage = lazy(() => import('./pages/TelegramPage').then(m => ({ default: m.TelegramPage })));
 const AuthPage = lazy(() => import('./pages/AuthPage').then(m => ({ default: m.AuthPage })));
 const CliPage = lazy(() => import('./pages/CliPage').then(m => ({ default: m.CliPage })));
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        background: '#0a0a0a',
+        color: '#fff'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        background: '#0a0a0a',
+        color: '#fff',
+        gap: '16px'
+      }}>
+        <h2 style={{ margin: 0 }}>Sign in to continue</h2>
+        <p style={{ color: '#888', margin: 0 }}>You need to be signed in to access FundTracer</p>
+        <button 
+          onClick={() => window.location.href = '/auth'}
+          style={{
+            padding: '12px 24px',
+            background: '#fff',
+            color: '#0a0a0a',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 500
+          }}
+        >
+          Sign In
+        </button>
+      </div>
+    );
+  }
+  
+  return <>{children}</>;
+}
 
 function App() {
   return (
@@ -35,16 +87,19 @@ function App() {
       <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
       <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
       <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
-        {/* Main app dashboard - uses new dark theme design */}
-        <Route path="/app-evm/*" element={
+      <Route path="/app-evm/*" element={
+        <ProtectedRoute>
           <Suspense fallback={<div>Loading...</div>}>
             <AppPage />
           </Suspense>
-        } />
+        </ProtectedRoute>
+      } />
       <Route path="/app-solana/*" element={
-        <SolanaWalletProvider>
-          <SolanaPage />
-        </SolanaWalletProvider>
+        <ProtectedRoute>
+          <SolanaWalletProvider>
+            <SolanaPage />
+          </SolanaWalletProvider>
+        </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

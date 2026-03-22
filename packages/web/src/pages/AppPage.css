@@ -95,3 +95,63 @@
 [data-theme="light"] .stat-skeleton {
   background: rgba(0, 0, 0, 0.06);
 }
+
+/* Auth Gate */
+.auth-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  padding: 24px;
+}
+
+.auth-gate-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.auth-gate-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  color: var(--color-text-muted);
+}
+
+.auth-gate-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.auth-gate-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+}
+
+.auth-gate-content p {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 32px;
+}
+
+.auth-gate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 28px;
+  background: var(--color-text-primary);
+  color: var(--color-bg);
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.auth-gate-btn:hover {
+  opacity: 0.9;
+}
