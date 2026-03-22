@@ -781,6 +781,341 @@
   transition: stroke-opacity 0.2s;
 }
 
+/* 3D View */
+.node-3d {
+  transition: transform 0.3s ease;
+}
+
+/* Stream Indicator */
+.stream-indicator {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-bg-elevated);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  z-index: 10;
+  animation: pulse 2s infinite;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #22c55e;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Keyboard Help Modal */
+.keyboard-help-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 24px;
+  z-index: 100;
+  min-width: 500px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.keyboard-help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.keyboard-help-header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.keyboard-help-header button {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.keyboard-shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.shortcut-group h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.shortcut kbd {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  min-width: 80px;
+  text-align: center;
+}
+
+.shortcut span {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* DeFi Intelligence Panel */
+.defi-section {
+  border-color: #10b981;
+}
+
+.defi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.defi-subsection h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.dex-path-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background-color: var(--color-bg);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+}
+
+.dex-token {
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+}
+
+.dex-volume {
+  margin-left: auto;
+  color: var(--color-accent);
+}
+
+.pool-item {
+  padding: 8px;
+  background-color: var(--color-bg);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.pool-name {
+  font-size: 0.75rem;
+  color: var(--color-text-primary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.pool-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+}
+
+.pool-apr {
+  color: #22c55e;
+}
+
+.analytics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.analytics-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.analytics-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  min-width: 100px;
+}
+
+.mixer-bar {
+  flex: 1;
+  height: 8px;
+  background-color: var(--color-bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mixer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.analytics-value {
+  font-size: 0.75rem;
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.tax-value {
+  color: #ef4444;
+}
+
+/* Timeline Section */
+.timeline-section {
+  border-color: #8b5cf6;
+}
+
+.timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timeline-slider input[type="range"] {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--color-bg);
+  border-radius: 4px;
+  outline: none;
+}
+
+.timeline-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+}
+
+.timeline-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.timeline-btn {
+  padding: 6px 12px;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.timeline-btn:hover {
+  background-color: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
+
+/* 3D Controls */
+.view-3d-controls {
+  position: absolute;
+  top: 130px;
+  left: 12px;
+  background-color: var(--color-bg-elevated);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  z-index: 10;
+  display: none;
+}
+
+.view-3d-controls.visible {
+  display: block;
+}
+
+.view-3d-controls label {
+  display: block;
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.view-3d-controls input[type="range"] {
+  width: 100px;
+  margin-bottom: 8px;
+}
+
+/* Graph Features Preview */
+.graph-features-preview {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.feature-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.feature-badge svg {
+  color: var(--color-accent);
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .graph-controls-left {
@@ -797,5 +1132,13 @@
   
   .graph-minimap {
     display: none;
+  }
+  
+  .keyboard-help-modal {
+    min-width: 90vw;
+  }
+  
+  .keyboard-shortcuts-grid {
+    grid-template-columns: 1fr;
   }
 }
