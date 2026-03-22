@@ -7,6 +7,38 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
+   WATERMARK
+   ───────────────────────────────────────────────────────────── */
+
+.view-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.05;
+}
+
+.view-watermark .watermark-logo {
+  width: 350px;
+  height: 350px;
+  color: var(--intel-text-primary);
+}
+
+.view-watermark .watermark-text {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--intel-text-primary);
+  text-transform: uppercase;
+}
+
+/* ─────────────────────────────────────────────────────────────
    SIDEBAR
    ───────────────────────────────────────────────────────────── */
 

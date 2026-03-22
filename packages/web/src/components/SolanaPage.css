@@ -8,12 +8,44 @@
   padding: 100px 24px 60px;
   background: var(--intel-bg-deep);
   overflow-x: hidden;
+  position: relative;
 }
 
 .solana-page__container {
   max-width: 1200px;
   margin: 0 auto;
   overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+/* Watermark */
+.solana-page .view-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+}
+
+.solana-page .watermark-logo {
+  width: 350px;
+  height: 350px;
+  color: var(--intel-text-primary);
+}
+
+.solana-page .watermark-text {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--intel-text-primary);
+  text-transform: uppercase;
 }
 
 /* Header Section */
