@@ -600,9 +600,9 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
         return `translate(${x}, ${y})`;
       })
       .call(d3.drag<SVGGElement, GraphNode>()
-        .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; setPinnedNodes(prev => new Set([...prev, d.id])); })
         .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
-        .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); if (!pinnedNodes.has(d.id)) { d.fx = null; d.fy = null; } }) as any);
+        .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx = event.x; d.fy = event.y; }) as any);
 
     nodes.append('circle')
       .attr('class', d => `node-circle node-${d.type} ${d.type === 'target' ? 'node-target' : ''}`)
@@ -1021,6 +1021,26 @@ ${gexfEdges}
     setAuditLog(prev => [...prev, { action: 'Boolean Query', user: 'You', timestamp: Date.now(), details: `Executed query with ${queryBuilder.length} conditions using ${queryOperator}` }]);
   }, [graphData, queryBuilder, queryOperator, notify]);
 
+  const handleToggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setPresentationMode('presentation');
+    } else {
+      document.exitFullscreen();
+      setPresentationMode('normal');
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setPresentationMode('normal');
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   const handleENSLookup = useCallback((address: string) => {
     const mockENS = { '0x742d': 'vitalik.eth', '0x8a2': 'alice.eth', '0x3f9': 'bob.eth' };
     const shortAddr = address.slice(0, 6);
@@ -1218,25 +1238,13 @@ ${gexfEdges}
 
           <div className="control-group-inline">
             <button className="ctrl-btn" onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}><Icon name={themeMode === 'dark' ? 'sun' : 'moon'} size={18} /></button>
-            <button className="ctrl-btn" onClick={() => setPresentationMode(presentationMode === 'normal' ? 'presentation' : 'normal')}><Icon name={presentationMode === 'normal' ? 'fullscreen' : 'minimize'} size={18} /></button>
+            <button className="ctrl-btn" onClick={handleToggleFullscreen} title="Fullscreen"><Icon name={presentationMode === 'normal' ? 'maximize' : 'minimize'} size={18} /></button>
             <button className="ctrl-btn" onClick={() => setShowKeyboardHelp(v => !v)} title="Keyboard Shortcuts"><Icon name="keyboard" size={18} /></button>
           </div>
 
           <div className="control-group-inline">
             <button className="ctrl-btn" onClick={handleUndo} disabled={undoStack.length === 0}><Icon name="undo" size={18} /></button>
             <button className="ctrl-btn" onClick={handleRedo} disabled={redoStack.length === 0}><Icon name="redo" size={18} /></button>
-          </div>
-
-          <div className="export-dropdown">
-            <button className="ctrl-btn"><Icon name="download" size={18} /><span>Export</span><Icon name="chevronDown" size={14} /></button>
-            <div className="export-menu">
-              <button onClick={handleExportPNG}><Icon name="image" size={14} />PNG Image</button>
-              <button onClick={handleExportSVG}><Icon name="code" size={14} />SVG Vector</button>
-              <button onClick={handleExportCSV}><Icon name="hash" size={14} />CSV Spreadsheet</button>
-              <button onClick={handleExportJSON}><Icon name="code" size={14} />JSON Data</button>
-              <button onClick={handleExportGEXF}><Icon name="network" size={14} />GEXF (Gephi)</button>
-              <button onClick={handleSaveSnapshot}><Icon name="save" size={14} />Save Snapshot</button>
-            </div>
           </div>
 
           <button className="ctrl-btn share-btn" onClick={handleShare}><Icon name="share" size={18} /><span>Share</span></button>
@@ -1702,46 +1710,78 @@ ${gexfEdges}
               </div>
               <button className="panel-close" onClick={() => setSelectedNode(null)}><Icon name="close" size={16} /></button>
             </div>
-            <div className="panel-tabs">
-              <button className="panel-tab active">Details</button>
-              <button className="panel-tab">Transactions</button>
-              <button className="panel-tab">Analysis</button>
-            </div>
             <div className="panel-content">
-              <div className="detail-section">
-                <h4>Address</h4>
-                <div className="detail-value address-value">
+              <div className="detail-row">
+                <span className="detail-label">Address</span>
+                <div className="detail-value-row">
                   <code>{selectedNode.address.slice(0, 10)}...{selectedNode.address.slice(-8)}</code>
-                  <button onClick={() => handleCopyAddress(selectedNode.address)}><Icon name="copy" size={14} /></button>
+                  <button className="icon-btn" onClick={() => handleCopyAddress(selectedNode.address)} title="Copy"><Icon name="copy" size={14} /></button>
                 </div>
               </div>
               {selectedNode.entityLabel && (
-                <div className="detail-section">
-                  <h4>Entity</h4>
-                  <div className="entity-display">
+                <div className="detail-row">
+                  <span className="detail-label">Entity</span>
+                  <div className="detail-value-row">
                     {selectedNode.imageUrl && <img src={selectedNode.imageUrl} alt={selectedNode.entityLabel} className="entity-logo" />}
                     <span>{selectedNode.entityLabel}</span>
                   </div>
                 </div>
               )}
-              <div className="detail-grid">
-                <div className="detail-item"><span className="detail-label">Balance</span><span className="detail-value">{selectedNode.balance?.toFixed(4)} ETH</span></div>
-                <div className="detail-item"><span className="detail-label">Transactions</span><span className="detail-value">{selectedNode.transactionCount?.toLocaleString()}</span></div>
-                <div className="detail-item"><span className="detail-label">Total Volume</span><span className="detail-value">{selectedNode.totalVolume?.toFixed(2)} ETH</span></div>
-                <div className="detail-item"><span className="detail-label">Risk Score</span><span className={`risk-badge risk-${selectedNode.riskScore! > 60 ? 'high' : selectedNode.riskScore! > 30 ? 'medium' : 'low'}`}>{selectedNode.riskScore}%</span></div>
-                <div className="detail-item"><span className="detail-label">Privacy Score</span><span className="detail-value">{selectedNode.privacyScore}/100</span></div>
-                {selectedNode.gasUsed && <div className="detail-item"><span className="detail-label">Gas Used</span><span className="detail-value">{selectedNode.gasUsed.toLocaleString()}</span></div>}
-                {selectedNode.nftCount && <div className="detail-item"><span className="detail-label">NFTs</span><span className="detail-value">{selectedNode.nftCount}</span></div>}
-                {selectedNode.daoVotes && <div className="detail-item"><span className="detail-label">DAO Votes</span><span className="detail-value">{selectedNode.daoVotes}</span></div>}
+              <div className="detail-row">
+                <span className="detail-label">Balance</span>
+                <span className="detail-value">{selectedNode.balance?.toFixed(4)} ETH</span>
               </div>
+              <div className="detail-row">
+                <span className="detail-label">Transactions</span>
+                <span className="detail-value">{selectedNode.transactionCount?.toLocaleString()}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Volume</span>
+                <span className="detail-value">{selectedNode.totalVolume?.toFixed(2)} ETH</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Risk Score</span>
+                <span className={`risk-badge risk-${selectedNode.riskScore! > 60 ? 'high' : selectedNode.riskScore! > 30 ? 'medium' : 'low'}`}>{selectedNode.riskScore}%</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Privacy</span>
+                <span className="detail-value">{selectedNode.privacyScore}/100</span>
+              </div>
+              {selectedNode.gasUsed && (
+                <div className="detail-row">
+                  <span className="detail-label">Gas Used</span>
+                  <span className="detail-value">{selectedNode.gasUsed.toLocaleString()}</span>
+                </div>
+              )}
+              {selectedNode.nftCount && (
+                <div className="detail-row">
+                  <span className="detail-label">NFTs</span>
+                  <span className="detail-value">{selectedNode.nftCount}</span>
+                </div>
+              )}
+              {selectedNode.daoVotes && (
+                <div className="detail-row">
+                  <span className="detail-label">DAO Votes</span>
+                  <span className="detail-value">{selectedNode.daoVotes}</span>
+                </div>
+              )}
               {selectedNode.firstTx && (
-                <div className="detail-section">
-                  <h4>Activity Period</h4>
-                  <div className="activity-period"><span>First: {new Date(selectedNode.firstTx).toLocaleDateString()}</span><span>Last: {selectedNode.lastTx ? new Date(selectedNode.lastTx).toLocaleDateString() : 'N/A'}</span></div>
+                <div className="detail-row">
+                  <span className="detail-label">First Tx</span>
+                  <span className="detail-value">{new Date(selectedNode.firstTx).toLocaleDateString()}</span>
+                </div>
+              )}
+              {selectedNode.lastTx && (
+                <div className="detail-row">
+                  <span className="detail-label">Last Tx</span>
+                  <span className="detail-value">{new Date(selectedNode.lastTx).toLocaleDateString()}</span>
                 </div>
               )}
               {selectedNode.isSuspicious && selectedNode.suspiciousReason && (
-                <div className="detail-section warning"><h4>Warning</h4><p>{selectedNode.suspiciousReason}</p></div>
+                <div className="detail-row warning">
+                  <span className="detail-label">Warning</span>
+                  <span className="detail-value">{selectedNode.suspiciousReason}</span>
+                </div>
               )}
               <div className="panel-actions">
                 <button className={`action-btn ${watchlist.has(selectedNode.id) ? 'active' : ''}`} onClick={() => handleToggleWatchlist(selectedNode.id)}><Icon name={watchlist.has(selectedNode.id) ? 'star' : 'starOutline'} size={16} />{watchlist.has(selectedNode.id) ? 'Watching' : 'Watch'}</button>

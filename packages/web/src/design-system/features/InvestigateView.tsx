@@ -722,18 +722,6 @@ export function InvestigateView({
                     ? 'Analyze Contract'
                     : 'Compare Wallets'}
                 </button>
-                <button className="btn-ghost" onClick={handleBatch}>
-                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M1 6h10M7 2l4 4-4 4"/>
-                  </svg>
-                  Batch
-                </button>
-                <button className="btn-ghost" onClick={handleExport}>
-                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M6 1v8M2 6l4 4 4-4M1 11h10"/>
-                  </svg>
-                  Export
-                </button>
               </div>
             </>
           )}
