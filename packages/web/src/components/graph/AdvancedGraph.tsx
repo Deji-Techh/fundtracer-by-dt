@@ -218,6 +218,7 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
     mixingIndicators: { type: string; score: number }[];
   } | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [queryBuilder, setQueryBuilder] = useState<{ field: string; operator: string; value: string }[]>([{ field: 'type', operator: 'equals', value: 'wallet' }]);
   const [queryOperator, setQueryOperator] = useState<'AND' | 'OR'>('AND');
   const [particleFlowEnabled, setParticleFlowEnabled] = useState(true);
@@ -894,9 +895,9 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
   const handleTogglePin = useCallback((nodeId: string) => { setPinnedNodes(prev => { const next = new Set(prev); next.has(nodeId) ? next.delete(nodeId) : next.add(nodeId); return next; }); }, []);
   const handleToggleWatchlist = useCallback((nodeId: string) => { setWatchlist(prev => { const next = new Set(prev); next.has(nodeId) ? next.delete(nodeId) : next.add(nodeId); return next; }); }, []);
 
-  const handleZoomIn = useCallback(() => { if (svgRef.current) d3.select(svgRef.current).transition().duration(300).call(d3.zoom<SVGSVGElement, unknown>().scaleBy as any, 1.3); }, []);
-  const handleZoomOut = useCallback(() => { if (svgRef.current) d3.select(svgRef.current).transition().duration(300).call(d3.zoom<SVGSVGElement, unknown>().scaleBy as any, 0.7); }, []);
-  const handleFit = useCallback(() => { if (svgRef.current) d3.select(svgRef.current).transition().duration(500).call(d3.zoom<SVGSVGElement, unknown>().transform as any, d3.zoomIdentity); }, []);
+  const handleZoomIn = useCallback(() => { if (svgRef.current) { const svg = d3.select(svgRef.current); svg.transition().duration(300).call(d3.zoom<SVGSVGElement, unknown>().scaleBy, 1.3); } }, []);
+  const handleZoomOut = useCallback(() => { if (svgRef.current) { const svg = d3.select(svgRef.current); svg.transition().duration(300).call(d3.zoom<SVGSVGElement, unknown>().scaleBy, 0.7); } }, []);
+  const handleFit = useCallback(() => { if (svgRef.current) { const svg = d3.select(svgRef.current); svg.transition().duration(500).call(d3.zoom<SVGSVGElement, unknown>().transform, d3.zoomIdentity); } }, []);
 
   const handleExportPNG = useCallback(() => {
     if (!svgRef.current) return;
@@ -981,8 +982,14 @@ ${gexfEdges}
   }, [graphData, annotations, encryptedExportPassword, notify]);
 
   const handleShare = useCallback(() => {
-    if (navigator.share) { navigator.share({ title: 'FundTracer Investigation', text: `Investigation of ${targetAddress || 'wallet'} on ${chain}`, url: window.location.href }); }
-    else { navigator.clipboard.writeText(window.location.href); notify.success('Link copied!'); }
+    setShowShareModal(true);
+  }, []);
+
+  const handleCopyShareLink = useCallback(() => {
+    const shareUrl = `${window.location.origin}/investigate?address=${targetAddress}&chain=${chain}`;
+    navigator.clipboard.writeText(shareUrl);
+    notify.success('Link copied!');
+    setShowShareModal(false);
   }, [targetAddress, chain, notify]);
 
   const handleAddQueryCondition = useCallback(() => {
@@ -1228,7 +1235,6 @@ ${gexfEdges}
           </div>
 
           <div className="control-group-inline">
-            <button className={`ctrl-btn ${viewMode === '3d' ? 'active' : ''}`} onClick={() => setViewMode(v => v === '2d' ? '3d' : '2d')} title="Toggle 3D View"><Icon name="layers" size={18} /><span>3D</span></button>
             <button className={`ctrl-btn ${showLabels ? 'active' : ''}`} onClick={() => setShowLabels(!showLabels)}><Icon name={showLabels ? 'eye' : 'eyeOff'} size={18} /></button>
             <button className={`ctrl-btn ${showParticleFlow ? 'active' : ''}`} onClick={() => setShowParticleFlow(!showParticleFlow)}><Icon name="zap" size={18} /></button>
             <button className={`ctrl-btn ${showMinimap ? 'active' : ''}`} onClick={() => setShowMinimap(!showMinimap)}><Icon name="grid" size={18} /></button>
@@ -1284,6 +1290,26 @@ ${gexfEdges}
           </div>
         )}
 
+        {showShareModal && (
+          <div className="share-modal-overlay" onClick={() => setShowShareModal(false)}>
+            <div className="share-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="share-modal-header">
+                <h3>Share Investigation</h3>
+                <button onClick={() => setShowShareModal(false)}><Icon name="close" size={16} /></button>
+              </div>
+              <div className="share-modal-content">
+                <p>Share this investigation link with others:</p>
+                <div className="share-url-box">
+                  <code>{window.location.origin}/investigate?address={targetAddress}&chain={chain}</code>
+                </div>
+                <button className="share-copy-btn" onClick={handleCopyShareLink}>
+                  <Icon name="copy" size={16} />Copy Link
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showKeyboardHelp && (
           <div className="keyboard-help-modal">
             <div className="keyboard-help-header">
@@ -1318,7 +1344,7 @@ ${gexfEdges}
 
         <div className="graph-controls-left">
           <div className="filter-section">
-            <div className="filter-header" onClick={() => setActivePanel('filters')}>
+            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'filters' ? 'filters' : 'filters')}>
               <Icon name="filter" size={16} /><span>Filters</span>
               <Icon name={activePanel === 'filters' ? 'chevronUp' : 'chevronDown'} size={14} />
             </div>
@@ -1338,29 +1364,49 @@ ${gexfEdges}
                 </div>
                 <div className="filter-group">
                   <label>Date Range</label>
-                  <div className="date-inputs">
-                    <input type="date" value={new Date(filters.timeRange[0]).toISOString().split('T')[0]} onChange={e => setFilters(prev => ({ ...prev, timeRange: [new Date(e.target.value).getTime(), prev.timeRange[1]] }))} />
-                    <span>to</span>
-                    <input type="date" value={new Date(filters.timeRange[1]).toISOString().split('T')[0]} onChange={e => setFilters(prev => ({ ...prev, timeRange: [prev.timeRange[0], new Date(e.target.value).getTime()] }))} />
+                  <div className="date-range-picker">
+                    <div className="date-presets">
+                      <button className="date-preset" onClick={() => setFilters(prev => ({ ...prev, timeRange: [Date.now() - 7 * 24 * 60 * 60 * 1000, Date.now()] }))}>7D</button>
+                      <button className="date-preset" onClick={() => setFilters(prev => ({ ...prev, timeRange: [Date.now() - 30 * 24 * 60 * 60 * 1000, Date.now()] }))}>30D</button>
+                      <button className="date-preset" onClick={() => setFilters(prev => ({ ...prev, timeRange: [Date.now() - 90 * 24 * 60 * 60 * 1000, Date.now()] }))}>90D</button>
+                      <button className="date-preset" onClick={() => setFilters(prev => ({ ...prev, timeRange: [Date.now() - 365 * 24 * 60 * 60 * 1000, Date.now()] }))}>1Y</button>
+                    </div>
+                    <div className="date-inputs">
+                      <input type="date" value={new Date(filters.timeRange[0]).toISOString().split('T')[0]} onChange={e => setFilters(prev => ({ ...prev, timeRange: [new Date(e.target.value).getTime(), prev.timeRange[1]] }))} />
+                      <span className="date-separator">to</span>
+                      <input type="date" value={new Date(filters.timeRange[1]).toISOString().split('T')[0]} onChange={e => setFilters(prev => ({ ...prev, timeRange: [prev.timeRange[0], new Date(e.target.value).getTime()] }))} />
+                    </div>
                   </div>
                 </div>
                 <div className="filter-group">
                   <label>Transaction Status</label>
-                  <div className="checkbox-group">
-                    {['success', 'failed', 'pending'].map(status => (
-                      <label key={status} className="checkbox-label">
-                        <input type="checkbox" checked={filters.txStatus.includes(status)} onChange={e => setFilters(prev => ({ ...prev, txStatus: e.target.checked ? [...prev.txStatus, status] : prev.txStatus.filter(s => s !== status) }))} />
-                        <span className={`status-badge status-${status}`}>{status}</span>
-                      </label>
-                    ))}
+                  <div className="status-toggles">
+                    <button className={`status-toggle success ${filters.txStatus.includes('success') ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, txStatus: prev.txStatus.includes('success') ? prev.txStatus.filter(s => s !== 'success') : [...prev.txStatus, 'success'] }))}>
+                      <span className="status-dot success" />Success
+                    </button>
+                    <button className={`status-toggle failed ${filters.txStatus.includes('failed') ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, txStatus: prev.txStatus.includes('failed') ? prev.txStatus.filter(s => s !== 'failed') : [...prev.txStatus, 'failed'] }))}>
+                      <span className="status-dot failed" />Failed
+                    </button>
+                    <button className={`status-toggle pending ${filters.txStatus.includes('pending') ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, txStatus: prev.txStatus.includes('pending') ? prev.txStatus.filter(s => s !== 'pending') : [...prev.txStatus, 'pending'] }))}>
+                      <span className="status-dot pending" />Pending
+                    </button>
                   </div>
                 </div>
                 <div className="filter-group">
                   <label>Show Options</label>
-                  <div className="toggle-group">
-                    <label className="toggle-label"><input type="checkbox" checked={filters.showWhales} onChange={e => setFilters(prev => ({ ...prev, showWhales: e.target.checked }))} /><span>Whales</span></label>
-                    <label className="toggle-label"><input type="checkbox" checked={filters.showSuspicious} onChange={e => setFilters(prev => ({ ...prev, showSuspicious: e.target.checked }))} /><span>Suspicious</span></label>
-                    <label className="toggle-label"><input type="checkbox" checked={filters.showDormant} onChange={e => setFilters(prev => ({ ...prev, showDormant: e.target.checked }))} /><span>Dormant</span></label>
+                  <div className="toggle-cards">
+                    <div className={`toggle-card ${filters.showWhales ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, showWhales: !prev.showWhales }))}>
+                      <span className="toggle-icon">🐋</span>
+                      <span>Whales</span>
+                    </div>
+                    <div className={`toggle-card ${filters.showSuspicious ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, showSuspicious: !prev.showSuspicious }))}>
+                      <span className="toggle-icon">⚠️</span>
+                      <span>Suspicious</span>
+                    </div>
+                    <div className={`toggle-card ${filters.showDormant ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, showDormant: !prev.showDormant }))}>
+                      <span className="toggle-icon">💤</span>
+                      <span>Dormant</span>
+                    </div>
                   </div>
                 </div>
                 <div className="filter-group">
@@ -1377,7 +1423,7 @@ ${gexfEdges}
 
           {aiAnalysis && (
             <div className="filter-section ai-section">
-              <div className="filter-header" onClick={() => setActivePanel('analytics')}>
+              <div className="filter-header" onClick={() => setActivePanel(activePanel === 'analytics' ? 'filters' : 'analytics')}>
                 <Icon name="brain" size={16} /><span>AI Analysis</span>
                 {aiAnalysis.anomalies.length > 0 && <span className="badge warning">{aiAnalysis.anomalies.length}</span>}
                 <Icon name={activePanel === 'analytics' ? 'chevronUp' : 'chevronDown'} size={14} />
@@ -1418,7 +1464,7 @@ ${gexfEdges}
           )}
 
           <div className="filter-section">
-            <div className="filter-header" onClick={() => setActivePanel('annotations')}>
+            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'annotations' ? 'filters' : 'annotations')}>
               <Icon name="message" size={16} /><span>Annotations ({annotations.length})</span>
               <Icon name={activePanel === 'annotations' ? 'chevronUp' : 'chevronDown'} size={14} />
             </div>
@@ -1437,7 +1483,7 @@ ${gexfEdges}
 
           {defiIntelligence && (
             <div className="filter-section defi-section">
-              <div className="filter-header" onClick={() => setActivePanel('defi')}>
+              <div className="filter-header" onClick={() => setActivePanel(activePanel === 'defi' ? 'filters' : 'defi')}>
                 <Icon name="activity" size={16} /><span>DeFi Intelligence</span>
                 <Icon name={activePanel === 'defi' ? 'chevronUp' : 'chevronDown'} size={14} />
               </div>
