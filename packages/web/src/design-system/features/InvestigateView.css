@@ -978,3 +978,10 @@
 .tab-graph.active {
   background: #141414;
 }
+
+/* Hide graph tab on mobile */
+@media (max-width: 1024px) {
+  .tab-graph {
+    display: none;
+  }
+}
