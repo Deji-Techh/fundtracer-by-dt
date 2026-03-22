@@ -573,10 +573,6 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
     const labelGroup = g.append('g').attr('class', 'labels');
     const particleGroup = g.append('g').attr('class', 'particles');
 
-    if (viewMode === '3d') {
-      g.attr('style', `transform: rotateX(${viewAngle.y}deg) rotateY(${viewAngle.x}deg); transform-style: preserve-3d; perspective: 1000px;`);
-    }
-
     const links = linkGroup.selectAll('line')
       .data(filteredEdges).enter().append('line')
       .attr('class', d => `edge edge-${d.type} ${d.isMEV ? 'edge-mev' : ''} ${d.isFlashLoan ? 'edge-flash' : ''}`)
@@ -589,16 +585,8 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
     const nodeRadius = 40;
     const nodes = nodeGroup.selectAll('.node-group')
       .data(filteredNodesList).enter().append('g')
-      .attr('class', d => `node-group ${d.isSuspicious ? 'node-suspicious' : ''} ${d.isWhale ? 'node-whale' : ''} ${viewMode === '3d' ? 'node-3d' : ''}`)
-      .attr('transform', d => {
-        const x = d.x || width / 2;
-        const y = d.y || height / 2;
-        if (viewMode === '3d') {
-          const z = (d.clusterId === 'target' ? 0 : Math.random() * 100 - 50);
-          return `translate3d(${x}px, ${y}px, ${z}px)`;
-        }
-        return `translate(${x}, ${y})`;
-      })
+      .attr('class', d => `node-group ${d.isSuspicious ? 'node-suspicious' : ''} ${d.isWhale ? 'node-whale' : ''}`)
+      .attr('transform', d => `translate(${d.x || width / 2}, ${d.y || height / 2})`)
       .call(d3.drag<SVGGElement, GraphNode>()
         .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; setPinnedNodes(prev => new Set([...prev, d.id])); })
         .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
@@ -820,17 +808,12 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
     if (streamEnabled && isGenerated) {
       interval = setInterval(() => {
         setLastUpdate(new Date());
-        if (Math.random() > 0.7) {
-          notify.info('New transaction detected');
-        }
       }, 5000);
-      notify.success('WebSocket stream connected');
     }
     return () => {
       if (interval) clearInterval(interval);
-      if (streamEnabled) notify.info('WebSocket stream disconnected');
     };
-  }, [streamEnabled, isGenerated, notify]);
+  }, [streamEnabled, isGenerated]);
 
   useEffect(() => {
     if (isGenerated && graphData.nodes.length > 0) {
