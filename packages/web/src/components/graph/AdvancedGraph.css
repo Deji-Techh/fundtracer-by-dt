@@ -16,14 +16,14 @@
   align-items: center;
   justify-content: center;
   padding: 40px;
-  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-elevated) 100%);
+  background: var(--color-bg);
 }
 
 .graph-empty-icon {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-accent) 0%, #8b5cf6 100%);
+  background: var(--color-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -96,7 +96,7 @@
   align-items: center;
   gap: 10px;
   padding: 14px 32px;
-  background: linear-gradient(135deg, var(--color-accent) 0%, #8b5cf6 100%);
+  background: var(--color-accent);
   border: none;
   border-radius: 12px;
   color: white;
@@ -176,10 +176,6 @@
   position: absolute;
   inset: 0;
   background-color: var(--color-bg);
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 50px 50px;
 }
 
 .graph-svg {
@@ -987,7 +983,7 @@
 
 .mixer-fill {
   height: 100%;
-  background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+  background: #f59e0b;
   border-radius: 4px;
   transition: width 0.3s;
 }
@@ -1378,7 +1374,7 @@
 .fingerprint-fill,
 .similarity-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-accent), #8b5cf6);
+  background: var(--color-accent);
   border-radius: 3px;
 }
 
