@@ -972,9 +972,9 @@
 }
 
 .tab-graph {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  background: #0a0a0a;
 }
 
 .tab-graph.active {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+  background: #141414;
 }
