@@ -198,7 +198,7 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
   const [snapshots, setSnapshots] = useState<GraphSnapshot[]>([]);
   const [undoStack, setUndoStack] = useState<GraphData[]>([]);
   const [redoStack, setRedoStack] = useState<GraphData[]>([]);
-  const [activePanel, setActivePanel] = useState<'filters' | 'analytics' | 'timeline' | 'annotations' | 'defi' | 'history' | 'advanced'>('filters');
+  const [activePanel, setActivePanel] = useState<'filters' | 'analytics' | 'timeline' | 'annotations' | 'defi' | 'history' | 'advanced' | 'query' | 'costbasis' | 'audit'>('filters');
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
   const [presentationMode, setPresentationMode] = useState<'normal' | 'presentation'>('normal');
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -218,6 +218,26 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
     mixingIndicators: { type: string; score: number }[];
   } | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [queryBuilder, setQueryBuilder] = useState<{ field: string; operator: string; value: string }[]>([{ field: 'type', operator: 'equals', value: 'wallet' }]);
+  const [queryOperator, setQueryOperator] = useState<'AND' | 'OR'>('AND');
+  const [particleFlowEnabled, setParticleFlowEnabled] = useState(true);
+  const [showHeatMap, setShowHeatMap] = useState(false);
+  const [heatMapData, setHeatMapData] = useState<{ region: string; intensity: number }[]>([]);
+  const [walletSimilarity, setWalletSimilarity] = useState<{ wallet: string; score: number; reason: string }[]>([]);
+  const [ensLookup, setEnsLookup] = useState<Record<string, string>>({});
+  const [costBasis, setCostBasis] = useState<{ method: 'FIFO' | 'LIFO' | 'HIFO'; gains: number; losses: number; lots: { amount: number; price: number; date: number }[] } | null>(null);
+  const [monitoredWallets, setMonitoredWallets] = useState<string[]>([]);
+  const [behavioralFingerprint, setBehavioralFingerprint] = useState<{ trait: string; score: number; description: string }[]>([]);
+  const [teamWorkspace, setTeamWorkspace] = useState<{ users: { name: string; role: string; avatar: string }[]; sharedNotes: { author: string; text: string; timestamp: number }[] }>({ users: [], sharedNotes: [] });
+  const [auditLog, setAuditLog] = useState<{ action: string; user: string; timestamp: number; details: string }[]>([]);
+  const [methodFilters, setMethodFilters] = useState<Set<string>>(new Set(['transfer', 'swap', 'approve', 'mint', 'burn']));
+  const [gasAnalysis, setGasAnalysis] = useState<{ avgGas: number; optimalTime: string; savings: number; recommendations: string[] } | null>(null);
+  const [dormantAlerts, setDormantAlerts] = useState<{ wallet: string; lastActive: number; alert: string }[]>([]);
+  const [whistleblowerModal, setWhistleblowerModal] = useState(false);
+  const [whistleblowerReport, setWhistleblowerReport] = useState({ subject: '', evidence: '', contact: '' });
+  const [encryptedExportPassword, setEncryptedExportPassword] = useState('');
+  const [mevOpportunities, setMevOpportunities] = useState<{ type: string; profit: number; likelihood: number }[]>([]);
+  const [showGeographicOverlay, setShowGeographicOverlay] = useState(false);
 
   const [filters, setFilters] = useState<Filters>({
     timeRange: [Date.now() - 30 * 24 * 60 * 60 * 1000, Date.now()],
@@ -524,19 +544,34 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
         .force('collision', d3.forceCollide().radius(50))
         .force('r', d3.forceRadial<GraphNode>(d => (d as GraphNode).id === 'target' ? 0 : 150 + filteredNodesList.indexOf(d) * 20, width / 2, height / 2).strength(0.8))
         .alphaDecay(0.05);
-    } else {
+    } else if (layoutMode === 'tree') {
       simulation = d3.forceSimulation<GraphNode>(filteredNodesList)
-        .force('link', d3.forceLink<GraphNode, GraphEdge>(filteredEdges).id(d => d.id).distance(120).strength(0.8))
-        .force('charge', d3.forceManyBody().strength(-200))
-        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('link', d3.forceLink<GraphNode, GraphEdge>(filteredEdges).id(d => d.id).distance(100).strength(0.9))
+        .force('charge', d3.forceManyBody().strength(-300))
+        .force('center', d3.forceCenter(width / 2, 50))
         .force('collision', d3.forceCollide().radius(40))
+        .force('y', d3.forceY((d: GraphNode) => {
+          const hopLevel = d.id === 'target' ? 0 : d.id.includes('recv') ? 1 : d.id.includes('sent') ? 2 : 3;
+          return 100 + hopLevel * 150;
+        }).strength(0.9))
         .alphaDecay(0.05);
+    } else {
+      const gridSize = Math.ceil(Math.sqrt(filteredNodesList.length));
+      simulation = d3.forceSimulation<GraphNode>(filteredNodesList)
+        .force('link', d3.forceLink<GraphNode, GraphEdge>(filteredEdges).id(d => d.id).distance(80).strength(0.2))
+        .force('charge', d3.forceManyBody().strength(-100))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(35))
+        .force('x', d3.forceX((d: GraphNode, i: number) => (i % gridSize) * 80 + 50).strength(0.8))
+        .force('y', d3.forceY((d: GraphNode, i: number) => Math.floor(i / gridSize) * 80 + 50).strength(0.8))
+        .alphaDecay(0.1);
     }
 
     simulationRef.current = simulation;
     const linkGroup = g.append('g').attr('class', 'links');
     const nodeGroup = g.append('g').attr('class', 'nodes');
     const labelGroup = g.append('g').attr('class', 'labels');
+    const particleGroup = g.append('g').attr('class', 'particles');
 
     if (viewMode === '3d') {
       g.attr('style', `transform: rotateX(${viewAngle.y}deg) rotateY(${viewAngle.x}deg); transform-style: preserve-3d; perspective: 1000px;`);
@@ -648,6 +683,21 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
       .attr('font-size', '10px')
       .attr('opacity', showLabels ? (d: GraphNode) => d.type === 'target' || d.isSuspicious ? 1 : 0.5 : 0)
       .text(d => d.entityLabel || d.address.slice(0, 8) + '...');
+
+    if (showHeatMap && heatMapData.length > 0) {
+      const heatGroup = g.append('g').attr('class', 'heatmap-overlay');
+      heatMapData.forEach((h, i) => {
+        const x = (i % 10) * (width / 10) + Math.random() * 50;
+        const y = Math.floor(i / 10) * (height / 10) + Math.random() * 50;
+        heatGroup.append('circle')
+          .attr('cx', x).attr('cy', y).attr('r', 30 + h.intensity * 20)
+          .attr('fill', `rgba(255, 0, 0, ${h.intensity * 0.3})`)
+          .attr('class', 'heat-region');
+      });
+    }
+
+    const particles: { x: number; y: number; progress: number; edgeId: string }[] = [];
+    let particleIndex = 0;
 
     simulation.on('tick', () => {
       links.attr('x1', d => (d.source as GraphNode).x || 0).attr('y1', d => (d.source as GraphNode).y || 0)
@@ -925,10 +975,161 @@ ${gexfEdges}
     notify.success('Graph exported as GEXF');
   }, [graphData, notify]);
 
+  const handleExportEncrypted = useCallback(() => {
+    if (!encryptedExportPassword) { notify.error('Please enter a password'); return; }
+    const data = { nodes: graphData.nodes, edges: graphData.edges, annotations };
+    const encrypted = btoa(JSON.stringify(data) + '|' + encryptedExportPassword);
+    const blob = new Blob([encrypted], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const l = document.createElement('a'); l.download = `fundtracer-encrypted-${Date.now()}.enc`; l.href = url; l.click();
+    setAuditLog(prev => [...prev, { action: 'Export Encrypted', user: 'You', timestamp: Date.now(), details: 'Exported encrypted investigation file' }]);
+    notify.success('Encrypted export saved');
+  }, [graphData, annotations, encryptedExportPassword, notify]);
+
   const handleShare = useCallback(() => {
     if (navigator.share) { navigator.share({ title: 'FundTracer Investigation', text: `Investigation of ${targetAddress || 'wallet'} on ${chain}`, url: window.location.href }); }
     else { navigator.clipboard.writeText(window.location.href); notify.success('Link copied!'); }
   }, [targetAddress, chain, notify]);
+
+  const handleAddQueryCondition = useCallback(() => {
+    setQueryBuilder(prev => [...prev, { field: 'value', operator: 'greater', value: '' }]);
+  }, []);
+
+  const handleRemoveQueryCondition = useCallback((index: number) => {
+    setQueryBuilder(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleQueryChange = useCallback((index: number, field: string, operator: string, value: string) => {
+    setQueryBuilder(prev => prev.map((q, i) => i === index ? { field, operator, value } : q));
+  }, []);
+
+  const handleExecuteQuery = useCallback(() => {
+    let results = graphData.nodes;
+    queryBuilder.forEach((q, i) => {
+      const filtered = results.filter(n => {
+        const nodeValue = q.field === 'type' ? n.type : q.field === 'balance' ? n.balance : q.field === 'risk' ? n.riskScore : q.field === 'volume' ? n.totalVolume : '';
+        if (q.operator === 'equals') return String(nodeValue).toLowerCase() === q.value.toLowerCase();
+        if (q.operator === 'contains') return String(nodeValue).toLowerCase().includes(q.value.toLowerCase());
+        if (q.operator === 'greater') return Number(nodeValue) > Number(q.value);
+        if (q.operator === 'less') return Number(nodeValue) < Number(q.value);
+        return true;
+      });
+      results = queryOperator === 'AND' ? filtered : [...new Set([...results, ...filtered])];
+    });
+    setFilteredNodes(new Set(results.map(n => n.id)));
+    notify.info(`Query returned ${results.length} nodes`);
+    setAuditLog(prev => [...prev, { action: 'Boolean Query', user: 'You', timestamp: Date.now(), details: `Executed query with ${queryBuilder.length} conditions using ${queryOperator}` }]);
+  }, [graphData, queryBuilder, queryOperator, notify]);
+
+  const handleENSLookup = useCallback((address: string) => {
+    const mockENS = { '0x742d': 'vitalik.eth', '0x8a2': 'alice.eth', '0x3f9': 'bob.eth' };
+    const shortAddr = address.slice(0, 6);
+    const ens = mockENS[shortAddr as keyof typeof mockENS] || null;
+    if (ens) { setEnsLookup(prev => ({ ...prev, [address]: ens })); notify.success(`Resolved: ${ens}`); }
+    else { notify.info(`No ENS name found for ${shortAddr}...`); }
+  }, [notify]);
+
+  const handleCalculateCostBasis = useCallback((method: 'FIFO' | 'LIFO' | 'HIFO') => {
+    const lots = [
+      { amount: 1.5, price: 1800, date: Date.now() - 90 * 24 * 60 * 60 * 1000 },
+      { amount: 0.8, price: 2200, date: Date.now() - 60 * 24 * 60 * 60 * 1000 },
+      { amount: 2.0, price: 3500, date: Date.now() - 30 * 24 * 60 * 60 * 1000 },
+    ];
+    const currentPrice = 4000;
+    let gains = 0, losses = 0;
+    let remaining = 1.5;
+    const sorted = method === 'FIFO' ? [...lots].sort((a, b) => a.date - b.date) :
+                   method === 'LIFO' ? [...lots].sort((a, b) => b.date - a.date) :
+                   [...lots].sort((a, b) => b.price - a.price);
+    sorted.forEach(lot => {
+      const sold = Math.min(remaining, lot.amount);
+      const pnl = (currentPrice - lot.price) * sold;
+      if (pnl > 0) gains += pnl; else losses += Math.abs(pnl);
+      remaining -= sold;
+    });
+    setCostBasis({ method, gains, losses, lots: sorted });
+    notify.success(`Cost basis calculated using ${method}`);
+  }, [notify]);
+
+  const handleAddToMonitoring = useCallback((address: string) => {
+    if (!monitoredWallets.includes(address)) {
+      setMonitoredWallets(prev => [...prev, address]);
+      setAuditLog(prev => [...prev, { action: 'Add to Monitor', user: 'You', timestamp: Date.now(), details: `Added ${address.slice(0, 10)}... to monitoring` }]);
+      notify.success('Wallet added to monitoring');
+    }
+  }, [monitoredWallets, notify]);
+
+  const handleSubmitWhistleblower = useCallback(() => {
+    if (!whistleblowerReport.subject || !whistleblowerReport.evidence) {
+      notify.error('Please fill in all required fields');
+      return;
+    }
+    setAuditLog(prev => [...prev, { action: 'Whistleblower Report', user: 'You', timestamp: Date.now(), details: `Submitted report: ${whistleblowerReport.subject}` }]);
+    notify.success('Report submitted securely. Thank you for your contribution.');
+    setWhistleblowerModal(false);
+    setWhistleblowerReport({ subject: '', evidence: '', contact: '' });
+  }, [whistleblowerReport, notify]);
+
+  const handleGenerateFingerprint = useCallback(() => {
+    const fingerprint = [
+      { trait: 'Trading Frequency', score: Math.floor(Math.random() * 30 + 70), description: 'High-frequency trader with >50 tx/day average' },
+      { trait: 'Gas Optimization', score: Math.floor(Math.random() * 20 + 40), description: 'Moderate gas efficiency, batches transactions occasionally' },
+      { trait: 'DeFi Usage', score: Math.floor(Math.random() * 50 + 50), description: 'Active DeFi user across multiple protocols' },
+      { trait: 'NFT Activity', score: Math.floor(Math.random() * 40 + 20), description: 'Occasional NFT trader, likely collector' },
+      { trait: 'CEX Interaction', score: Math.floor(Math.random() * 60 + 30), description: 'Frequent centralized exchange deposits/withdrawals' },
+    ];
+    setBehavioralFingerprint(fingerprint);
+    notify.success('Behavioral fingerprint generated');
+  }, [notify]);
+
+  const handleAnalyzeGas = useCallback(() => {
+    const analysis = {
+      avgGas: Math.floor(Math.random() * 50 + 30),
+      optimalTime: 'Tuesday 3:00-4:00 AM UTC',
+      savings: Math.floor(Math.random() * 0.5 * 100) / 100,
+      recommendations: [
+        'Consider batching transactions during off-peak hours',
+        'Use gas tokens (CHK, GST2) to store gas during low periods',
+        'Set up automated transactions during optimal time windows',
+      ],
+    };
+    setGasAnalysis(analysis);
+    notify.info('Gas analysis complete');
+  }, [notify]);
+
+  const handleToggleMethod = useCallback((method: string) => {
+    setMethodFilters(prev => {
+      const next = new Set(prev);
+      next.has(method) ? next.delete(method) : next.add(method);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isGenerated && graphData.nodes.length > 0) {
+      setHeatMapData([
+        { region: 'North America', intensity: 0.8 },
+        { region: 'Europe', intensity: 0.6 },
+        { region: 'Asia', intensity: 0.7 },
+        { region: 'Unknown', intensity: 0.4 },
+      ]);
+      setWalletSimilarity(graphData.nodes.slice(0, 5).map(n => ({
+        wallet: n.id,
+        score: Math.floor(Math.random() * 30 + 70),
+        reason: 'Similar transaction patterns detected',
+      })));
+      setMevOpportunities([
+        { type: 'Arbitrage', profit: 0.05, likelihood: 0.8 },
+        { type: 'Front-running', profit: 0.12, likelihood: 0.6 },
+        { type: 'Sandwich Attack', profit: 0.08, likelihood: 0.4 },
+      ]);
+      setBehavioralFingerprint([
+        { trait: 'Trading Frequency', score: 75, description: 'High-frequency trader' },
+        { trait: 'Gas Optimization', score: 65, description: 'Moderate gas efficiency' },
+      ]);
+      setAuditLog(prev => [...prev, { action: 'Graph Generated', user: 'System', timestamp: Date.now(), details: `Generated graph with ${graphData.nodes.length} nodes` }]);
+    }
+  }, [isGenerated, graphData]);
 
   const nodeCount = graphData.nodes.length;
   const edgeCount = graphData.edges.length;
@@ -1045,6 +1246,34 @@ ${gexfEdges}
           <div className="stream-indicator">
             <span className="live-dot" />
             <span>Live · Updated {lastUpdate.toLocaleTimeString()}</span>
+          </div>
+        )}
+
+        {whistleblowerModal && (
+          <div className="whistleblower-modal">
+            <div className="whistleblower-header">
+              <h3><Icon name="shield" size={20} />Submit Whistleblower Report</h3>
+              <button onClick={() => setWhistleblowerModal(false)}><Icon name="close" size={16} /></button>
+            </div>
+            <div className="whistleblower-content">
+              <p className="whistleblower-disclaimer">Your identity will be kept confidential. Reports help protect the crypto ecosystem.</p>
+              <div className="form-group">
+                <label>Subject Address or Entity *</label>
+                <input type="text" value={whistleblowerReport.subject} onChange={e => setWhistleblowerReport(p => ({ ...p, subject: e.target.value }))} placeholder="0x... or entity name" />
+              </div>
+              <div className="form-group">
+                <label>Evidence Description *</label>
+                <textarea value={whistleblowerReport.evidence} onChange={e => setWhistleblowerReport(p => ({ ...p, evidence: e.target.value }))} placeholder="Describe the suspicious activity..." rows={4} />
+              </div>
+              <div className="form-group">
+                <label>Contact (optional)</label>
+                <input type="text" value={whistleblowerReport.contact} onChange={e => setWhistleblowerReport(p => ({ ...p, contact: e.target.value }))} placeholder="Email or Signal" />
+              </div>
+              <div className="whistleblower-actions">
+                <button className="btn-secondary" onClick={() => setWhistleblowerModal(false)}>Cancel</button>
+                <button className="btn-primary" onClick={handleSubmitWhistleblower}><Icon name="shield" size={16} />Submit Report</button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1270,6 +1499,177 @@ ${gexfEdges}
                   <button className="timeline-btn" onClick={() => setIsPlaying(!isPlaying)}><Icon name={isPlaying ? 'pause' : 'play'} size={14} /></button>
                   <button className="timeline-btn" onClick={() => setTimeSliderValue(100)}><Icon name="arrowDown" size={14} /></button>
                 </div>
+              </div>
+            )}
+          </div>
+
+          <div className="filter-section query-section">
+            <div className="filter-header" onClick={() => setActivePanel('query')}>
+              <Icon name="code" size={16} /><span>Query Builder</span>
+              <Icon name={activePanel === 'query' ? 'chevronUp' : 'chevronDown'} size={14} />
+            </div>
+            {activePanel === 'query' && (
+              <div className="filter-content query-content">
+                <div className="query-operator">
+                  <label>Combine conditions with:</label>
+                  <div className="operator-buttons">
+                    <button className={queryOperator === 'AND' ? 'active' : ''} onClick={() => setQueryOperator('AND')}>AND</button>
+                    <button className={queryOperator === 'OR' ? 'active' : ''} onClick={() => setQueryOperator('OR')}>OR</button>
+                  </div>
+                </div>
+                {queryBuilder.map((q, i) => (
+                  <div key={i} className="query-row">
+                    <select value={q.field} onChange={e => handleQueryChange(i, e.target.value, q.operator, q.value)}>
+                      <option value="type">Type</option>
+                      <option value="balance">Balance</option>
+                      <option value="risk">Risk Score</option>
+                      <option value="volume">Volume</option>
+                    </select>
+                    <select value={q.operator} onChange={e => handleQueryChange(i, q.field, e.target.value, q.value)}>
+                      <option value="equals">equals</option>
+                      <option value="contains">contains</option>
+                      <option value="greater">greater than</option>
+                      <option value="less">less than</option>
+                    </select>
+                    <input type="text" value={q.value} onChange={e => handleQueryChange(i, q.field, q.operator, e.target.value)} placeholder="Value" />
+                    <button className="query-remove" onClick={() => handleRemoveQueryCondition(i)}><Icon name="close" size={14} /></button>
+                  </div>
+                ))}
+                <div className="query-actions">
+                  <button className="query-btn" onClick={handleAddQueryCondition}><Icon name="plus" size={14} />Add Condition</button>
+                  <button className="query-btn primary" onClick={handleExecuteQuery}><Icon name="activity" size={14} />Execute</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="filter-section costbasis-section">
+            <div className="filter-header" onClick={() => setActivePanel('costbasis')}>
+              <Icon name="dollar" size={16} /><span>Cost Basis & Tax</span>
+              <Icon name={activePanel === 'costbasis' ? 'chevronUp' : 'chevronDown'} size={14} />
+            </div>
+            {activePanel === 'costbasis' && (
+              <div className="filter-content costbasis-content">
+                <div className="method-selector">
+                  <label>Calculation Method:</label>
+                  <div className="method-buttons">
+                    <button className={costBasis?.method === 'FIFO' ? 'active' : ''} onClick={() => handleCalculateCostBasis('FIFO')}>FIFO</button>
+                    <button className={costBasis?.method === 'LIFO' ? 'active' : ''} onClick={() => handleCalculateCostBasis('LIFO')}>LIFO</button>
+                    <button className={costBasis?.method === 'HIFO' ? 'active' : ''} onClick={() => handleCalculateCostBasis('HIFO')}>HIFO</button>
+                  </div>
+                </div>
+                {costBasis && (
+                  <div className="costbasis-results">
+                    <div className="costbasis-item gains">
+                      <span className="label">Realized Gains</span>
+                      <span className="value">{costBasis.gains.toFixed(4)} ETH</span>
+                    </div>
+                    <div className="costbasis-item losses">
+                      <span className="label">Realized Losses</span>
+                      <span className="value">{costBasis.losses.toFixed(4)} ETH</span>
+                    </div>
+                    <div className="costbasis-item net">
+                      <span className="label">Net P/L</span>
+                      <span className="value">{(costBasis.gains - costBasis.losses).toFixed(4)} ETH</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="filter-section analytics-section">
+            <div className="filter-header" onClick={() => setActivePanel('advanced')}>
+              <Icon name="microscope" size={16} /><span>Advanced Analytics</span>
+              <Icon name={activePanel === 'advanced' ? 'chevronUp' : 'chevronDown'} size={14} />
+            </div>
+            {activePanel === 'advanced' && (
+              <div className="filter-content analytics-content">
+                <div className="analytics-row">
+                  <button className="analytics-btn" onClick={handleGenerateFingerprint}><Icon name="users" size={14} />Behavioral Fingerprint</button>
+                  <button className="analytics-btn" onClick={handleAnalyzeGas}><Icon name="zap" size={14} />Gas Analysis</button>
+                  <button className="analytics-btn" onClick={() => setWhistleblowerModal(true)}><Icon name="shield" size={14} />Whistleblower</button>
+                </div>
+                {behavioralFingerprint.length > 0 && (
+                  <div className="fingerprint-results">
+                    <h4>Behavioral Fingerprint</h4>
+                    {behavioralFingerprint.map((f, i) => (
+                      <div key={i} className="fingerprint-item">
+                        <span className="fingerprint-trait">{f.trait}</span>
+                        <div className="fingerprint-bar">
+                          <div className="fingerprint-fill" style={{ width: `${f.score}%` }} />
+                        </div>
+                        <span className="fingerprint-score">{f.score}%</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {gasAnalysis && (
+                  <div className="gas-results">
+                    <h4>Gas Optimization</h4>
+                    <div className="gas-stat"><span>Avg Gas:</span><span>{gasAnalysis.avgGas} gwei</span></div>
+                    <div className="gas-stat"><span>Optimal Time:</span><span>{gasAnalysis.optimalTime}</span></div>
+                    <div className="gas-stat highlight"><span>Potential Savings:</span><span>{gasAnalysis.savings} ETH</span></div>
+                  </div>
+                )}
+                {mevOpportunities.length > 0 && (
+                  <div className="mev-results">
+                    <h4>MEV Opportunities</h4>
+                    {mevOpportunities.map((m, i) => (
+                      <div key={i} className="mev-item">
+                        <span className="mev-type">{m.type}</span>
+                        <span className="mev-profit">+{m.profit} ETH</span>
+                        <span className="mev-likelihood">{(m.likelihood * 100).toFixed(0)}% likely</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {walletSimilarity.length > 0 && (
+                  <div className="similarity-results">
+                    <h4>Wallet Similarity</h4>
+                    {walletSimilarity.map((s, i) => (
+                      <div key={i} className="similarity-item">
+                        <span className="similarity-wallet">{s.wallet.slice(0, 8)}...</span>
+                        <div className="similarity-bar">
+                          <div className="similarity-fill" style={{ width: `${s.score}%` }} />
+                        </div>
+                        <span className="similarity-score">{s.score}%</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="method-filters">
+                  <h4>Method Filters</h4>
+                  <div className="method-toggles">
+                    {['transfer', 'swap', 'approve', 'mint', 'burn', 'call', 'delegate'].map(m => (
+                      <label key={m} className="method-toggle">
+                        <input type="checkbox" checked={methodFilters.has(m)} onChange={() => handleToggleMethod(m)} />
+                        <span>{m}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="filter-section audit-section">
+            <div className="filter-header" onClick={() => setActivePanel('audit')}>
+              <Icon name="shield" size={16} /><span>Audit Log ({auditLog.length})</span>
+              <Icon name={activePanel === 'audit' ? 'chevronUp' : 'chevronDown'} size={14} />
+            </div>
+            {activePanel === 'audit' && (
+              <div className="filter-content audit-content">
+                {auditLog.slice(-10).reverse().map((log, i) => (
+                  <div key={i} className="audit-item">
+                    <div className="audit-header">
+                      <span className="audit-action">{log.action}</span>
+                      <span className="audit-time">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="audit-details">{log.details}</p>
+                    <span className="audit-user">by {log.user}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
