@@ -957,3 +957,24 @@
 .batch-textarea::placeholder {
   color: var(--intel-text-muted);
 }
+
+/* Graph Tab - Full screen visualization */
+.investigate-graph {
+  width: 100%;
+  min-height: 600px;
+  margin: calc(-1 * var(--space-5));
+  margin-top: 0;
+}
+
+.investigate-graph .advanced-graph {
+  border-radius: 0;
+  min-height: calc(100vh - 300px);
+}
+
+.tab-graph {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+}
+
+.tab-graph.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+}

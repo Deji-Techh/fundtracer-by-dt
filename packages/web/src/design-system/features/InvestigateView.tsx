@@ -20,6 +20,7 @@ import MultiWalletView from '../../components/MultiWalletView';
 import ContractAnalysisView, { ContractAnalysisResult } from '../../components/ContractAnalysisView';
 import SybilDetector from '../../components/SybilDetector';
 import SearchHistory from '../../components/SearchHistory';
+import AdvancedGraph from '../../components/graph/AdvancedGraph';
 
 interface InvestigateViewProps {
   prefillAddress?: string;
@@ -29,7 +30,7 @@ interface InvestigateViewProps {
 }
 
 // Tab types matching reference HTML
-type TabType = 'wallet' | 'contract' | 'compare' | 'sybil';
+type TabType = 'wallet' | 'contract' | 'compare' | 'sybil' | 'graph';
 
 interface Stats {
   chainsIndexed: number;
@@ -517,6 +518,18 @@ export function InvestigateView({
       );
     }
 
+    // Advanced Graph tab - show full-screen graph visualization
+    if (activeTab === 'graph') {
+      return (
+        <div className="investigate-graph">
+          <AdvancedGraph 
+            targetAddress={walletResult?.wallet?.address || prefillAddress}
+            chain={selectedChain}
+          />
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -603,11 +616,23 @@ export function InvestigateView({
             </svg>
             Sybil Detector
           </div>
+          <div 
+            className={`tab ${activeTab === 'graph' ? 'active' : ''} tab-graph`}
+            onClick={() => setActiveTab('graph')}
+          >
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="6" cy="4" r="2"/>
+              <circle cx="2" cy="10" r="1.5"/>
+              <circle cx="10" cy="10" r="1.5"/>
+              <path d="M6 6v1M4 9l2 1M8 9l-2 1"/>
+            </svg>
+            Advanced Graph
+          </div>
         </div>
 
         <div className="panel-body">
           {/* Network Selection - Only show for wallet/contract/compare tabs */}
-          {activeTab !== 'sybil' && (
+          {activeTab !== 'sybil' && activeTab !== 'graph' && (
             <>
               <div className="field-label">Network</div>
               <div className="chains">
