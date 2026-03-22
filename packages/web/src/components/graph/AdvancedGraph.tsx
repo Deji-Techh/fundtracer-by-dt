@@ -198,7 +198,7 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
   const [snapshots, setSnapshots] = useState<GraphSnapshot[]>([]);
   const [undoStack, setUndoStack] = useState<GraphData[]>([]);
   const [redoStack, setRedoStack] = useState<GraphData[]>([]);
-  const [activePanel, setActivePanel] = useState<'filters' | 'analytics' | 'timeline' | 'annotations' | 'defi' | 'history' | 'advanced' | 'query' | 'costbasis' | 'audit'>('filters');
+  const [activePanel, setActivePanel] = useState<'filters' | 'analytics' | 'timeline' | 'annotations' | 'defi' | 'history' | 'advanced' | 'query' | 'costbasis' | 'audit' | ''>('filters');
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
   const [presentationMode, setPresentationMode] = useState<'normal' | 'presentation'>('normal');
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -1127,6 +1127,29 @@ ${gexfEdges}
     });
   }, []);
 
+  const handleViewLinkedGraph = useCallback((nodeId: string) => {
+    if (!selectedNode) return;
+    const connectedNodeIds = new Set<string>([nodeId]);
+    const linkedEdges = graphData.edges.filter(e => {
+      const sourceId = typeof e.source === 'string' ? e.source : e.source.id;
+      const targetId = typeof e.target === 'string' ? e.target : e.target.id;
+      return sourceId === nodeId || targetId === nodeId;
+    });
+    linkedEdges.forEach(e => {
+      const sourceId = typeof e.source === 'string' ? e.source : e.source.id;
+      const targetId = typeof e.target === 'string' ? e.target : e.target.id;
+      connectedNodeIds.add(sourceId);
+      connectedNodeIds.add(targetId);
+    });
+    const linkedNodes = graphData.nodes.filter(n => connectedNodeIds.has(n.id));
+    setGraphData({ nodes: linkedNodes, edges: linkedEdges });
+    setFilteredNodes(new Set());
+    setSelectedNode(null);
+    setActivePanel('');
+    notify.success(`Linked Graph: showing ${linkedNodes.length} nodes and ${linkedEdges.length} connections`);
+    setAuditLog(prev => [...prev, { action: 'View Linked Graph', user: 'You', timestamp: Date.now(), details: `Viewed connections for ${selectedNode.address.slice(0, 10)}...` }]);
+  }, [selectedNode, graphData, notify]);
+
   useEffect(() => {
     if (isGenerated && graphData.nodes.length > 0) {
       setHeatMapData([
@@ -1344,7 +1367,7 @@ ${gexfEdges}
 
         <div className="graph-controls-left">
           <div className="filter-section">
-            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'filters' ? 'filters' : 'filters')}>
+            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'filters' ? '' : 'filters')}>
               <Icon name="filter" size={16} /><span>Filters</span>
               <Icon name={activePanel === 'filters' ? 'chevronUp' : 'chevronDown'} size={14} />
             </div>
@@ -1423,7 +1446,7 @@ ${gexfEdges}
 
           {aiAnalysis && (
             <div className="filter-section ai-section">
-              <div className="filter-header" onClick={() => setActivePanel(activePanel === 'analytics' ? 'filters' : 'analytics')}>
+              <div className="filter-header" onClick={() => setActivePanel(activePanel === 'analytics' ? '' : 'analytics')}>
                 <Icon name="brain" size={16} /><span>AI Analysis</span>
                 {aiAnalysis.anomalies.length > 0 && <span className="badge warning">{aiAnalysis.anomalies.length}</span>}
                 <Icon name={activePanel === 'analytics' ? 'chevronUp' : 'chevronDown'} size={14} />
@@ -1464,7 +1487,7 @@ ${gexfEdges}
           )}
 
           <div className="filter-section">
-            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'annotations' ? 'filters' : 'annotations')}>
+            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'annotations' ? '' : 'annotations')}>
               <Icon name="message" size={16} /><span>Annotations ({annotations.length})</span>
               <Icon name={activePanel === 'annotations' ? 'chevronUp' : 'chevronDown'} size={14} />
             </div>
@@ -1483,7 +1506,7 @@ ${gexfEdges}
 
           {defiIntelligence && (
             <div className="filter-section defi-section">
-              <div className="filter-header" onClick={() => setActivePanel(activePanel === 'defi' ? 'filters' : 'defi')}>
+              <div className="filter-header" onClick={() => setActivePanel(activePanel === 'defi' ? '' : 'defi')}>
                 <Icon name="activity" size={16} /><span>DeFi Intelligence</span>
                 <Icon name={activePanel === 'defi' ? 'chevronUp' : 'chevronDown'} size={14} />
               </div>
@@ -1534,7 +1557,7 @@ ${gexfEdges}
           )}
 
           <div className="filter-section timeline-section">
-            <div className="filter-header" onClick={() => setActivePanel('timeline')}>
+            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'timeline' ? '' : 'timeline')}>
               <Icon name="clock" size={16} /><span>Timeline Playback</span>
               <Icon name={activePanel === 'timeline' ? 'chevronUp' : 'chevronDown'} size={14} />
             </div>
@@ -1557,7 +1580,7 @@ ${gexfEdges}
           </div>
 
           <div className="filter-section query-section">
-            <div className="filter-header" onClick={() => setActivePanel('query')}>
+            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'query' ? '' : 'query')}>
               <Icon name="code" size={16} /><span>Query Builder</span>
               <Icon name={activePanel === 'query' ? 'chevronUp' : 'chevronDown'} size={14} />
             </div>
@@ -1597,7 +1620,7 @@ ${gexfEdges}
           </div>
 
           <div className="filter-section costbasis-section">
-            <div className="filter-header" onClick={() => setActivePanel('costbasis')}>
+            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'costbasis' ? '' : 'costbasis')}>
               <Icon name="dollar" size={16} /><span>Cost Basis & Tax</span>
               <Icon name={activePanel === 'costbasis' ? 'chevronUp' : 'chevronDown'} size={14} />
             </div>
@@ -1632,7 +1655,7 @@ ${gexfEdges}
           </div>
 
           <div className="filter-section analytics-section">
-            <div className="filter-header" onClick={() => setActivePanel('advanced')}>
+            <div className="filter-header" onClick={() => setActivePanel(activePanel === 'advanced' ? '' : 'advanced')}>
               <Icon name="microscope" size={16} /><span>Advanced Analytics</span>
               <Icon name={activePanel === 'advanced' ? 'chevronUp' : 'chevronDown'} size={14} />
             </div>
@@ -1833,6 +1856,7 @@ ${gexfEdges}
                 <button className="action-btn" onClick={() => handleTogglePin(selectedNode.id)}><Icon name={pinnedNodes.has(selectedNode.id) ? 'lock' : 'unlock'} size={16} />{pinnedNodes.has(selectedNode.id) ? 'Unpin' : 'Pin'}</button>
                 <button className="action-btn" onClick={() => { const text = prompt('Add annotation:'); if (text) handleAddAnnotation(selectedNode.id, text); }}><Icon name="message" size={16} />Annotate</button>
                 <button className="action-btn" onClick={() => { setFilteredNodes(new Set([selectedNode.id])); setSelectedNode(null); }}><Icon name="search" size={16} />Isolate</button>
+                <button className="action-btn linked-graph-btn" onClick={() => handleViewLinkedGraph(selectedNode.id)}><Icon name="link" size={16} />View Linked Graph</button>
               </div>
             </div>
           </div>
