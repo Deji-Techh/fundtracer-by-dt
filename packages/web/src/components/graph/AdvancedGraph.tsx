@@ -588,9 +588,20 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
       .attr('class', d => `node-group ${d.isSuspicious ? 'node-suspicious' : ''} ${d.isWhale ? 'node-whale' : ''}`)
       .attr('transform', d => `translate(${d.x || width / 2}, ${d.y || height / 2})`)
       .call(d3.drag<SVGGElement, GraphNode>()
-        .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; setPinnedNodes(prev => new Set([...prev, d.id])); })
-        .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
-        .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx = event.x; d.fy = event.y; }) as any);
+        .on('start', (event, d) => { 
+          if (!event.active) simulation.alphaTarget(0.3).restart(); 
+          d.fx = d.x; 
+          d.fy = d.y; 
+        })
+        .on('drag', (event, d) => { 
+          d.fx = event.x; 
+          d.fy = event.y; 
+        })
+        .on('end', (event, d) => { 
+          if (!event.active) simulation.alphaTarget(0); 
+          d.fx = event.x; 
+          d.fy = event.y; 
+        }) as any);
 
     nodes.append('circle')
       .attr('class', d => `node-circle node-${d.type} ${d.type === 'target' ? 'node-target' : ''}`)
@@ -1005,8 +1016,9 @@ ${gexfEdges}
   }, [graphData, queryBuilder, queryOperator, notify]);
 
   const handleToggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+      containerRef.current.requestFullscreen();
       setPresentationMode('presentation');
     } else {
       document.exitFullscreen();
@@ -1186,18 +1198,7 @@ ${gexfEdges}
 
       <div ref={containerRef} className="graph-container" style={{ display: isGenerated && !isLoading ? 'block' : 'none' }}>
         <div className="graph-watermark">
-          <svg className="watermark-logo" viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="18" stroke="currentColor" strokeWidth="2"/>
-            <circle cx="20" cy="20" r="8" fill="currentColor"/>
-            <circle cx="12" cy="12" r="4" fill="currentColor"/>
-            <circle cx="28" cy="12" r="4" fill="currentColor"/>
-            <circle cx="12" cy="28" r="4" fill="currentColor"/>
-            <circle cx="28" cy="28" r="4" fill="currentColor"/>
-            <line x1="12" y1="12" x2="20" y2="20" stroke="currentColor" strokeWidth="1.5"/>
-            <line x1="28" y1="12" x2="20" y2="20" stroke="currentColor" strokeWidth="1.5"/>
-            <line x1="12" y1="28" x2="20" y2="20" stroke="currentColor" strokeWidth="1.5"/>
-            <line x1="28" y1="28" x2="20" y2="20" stroke="currentColor" strokeWidth="1.5"/>
-          </svg>
+          <img src="/logo.png" alt="FundTracer" className="watermark-logo" />
           <span className="watermark-text">FundTracer</span>
         </div>
         <svg ref={svgRef} className="graph-svg" />
