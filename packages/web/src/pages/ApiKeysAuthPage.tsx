@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Key, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Check, X, Sparkles, Shield, Zap, Loader2 } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { signUpWithEmail, signInWithEmail, verifyEmail, signInWithGoogle } from '../firebase';
-import { loginWithEmail as apiLoginWithEmail, loginWithGoogle as apiLoginWithGoogle } from '../api';
+import { signUpWithEmail, signInWithEmail, verifyEmail } from '../firebase';
+import { loginWithEmail as apiLoginWithEmail } from '../api';
 import './ApiKeysAuthPage.css';
 
 const navItems = [
@@ -107,10 +107,8 @@ export function ApiKeysAuthPage() {
     setLoading(true);
 
     try {
-      const idToken = await signInWithGoogle();
-      const response = await apiLoginWithGoogle(idToken);
-      localStorage.setItem('fundtracer_token', response.token);
-      window.location.href = '/api/keys';
+      // Use backend redirect flow with redirect to /api/keys
+      window.location.href = '/api/auth/google/start?redirect=/api/keys';
     } catch (err: any) {
       console.error('Google login error:', err);
       setError(err.message || 'Failed to sign in with Google');

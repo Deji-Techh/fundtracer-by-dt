@@ -29,7 +29,9 @@ router.get('/google/start', (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Google OAuth not configured' });
   }
   
-  const state = jwt.sign({ timestamp: Date.now() }, getJwtSecret(), { expiresIn: '10m' });
+  // Support redirect URL for post-login redirect
+  const redirectUrl = (req.query.redirect as string) || '/auth';
+  const state = jwt.sign({ timestamp: Date.now(), redirectUrl }, getJwtSecret(), { expiresIn: '10m' });
   
   const scopes = ['openid', 'email', 'profile'].join(' ');
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -41,7 +43,7 @@ router.get('/google/start', (req: Request, res: Response) => {
     `&access_type=offline` +
     `&prompt=consent`;
   
-  console.log('[AUTH] Redirecting to Google:', authUrl.slice(0, 100) + '...');
+  console.log('[AUTH] Redirecting to Google, redirect to:', redirectUrl);
   res.redirect(authUrl);
 });
 
@@ -71,34 +73,51 @@ router.get('/twitter/start', (req: Request, res: Response) => {
 router.get('/google/callback', async (req: Request, res: Response) => {
   const { code, state, error } = req.query;
   
+  // Default redirect after OAuth
+  let redirectUrl = `${FRONTEND_URL}/auth`;
+  
+  // Try to extract redirect URL from state
+  if (state) {
+    try {
+      const decoded = jwt.verify(state as string, getJwtSecret()) as { redirectUrl?: string };
+      if (decoded.redirectUrl) {
+        redirectUrl = `${FRONTEND_URL}${decoded.redirectUrl}`;
+      }
+    } catch (e) {
+      console.log('[AUTH] Could not decode state redirect:', e);
+    }
+  }
+  
   console.log('[AUTH] Google callback received:', { 
     hasCode: !!code, 
     hasState: !!state, 
     error,
-    redirectUri: GOOGLE_REDIRECT_URI 
+    redirectUri: GOOGLE_REDIRECT_URI,
+    redirectUrl 
   });
   
   if (error) {
     console.error('[AUTH] Google OAuth error:', error);
-    return res.redirect(`${FRONTEND_URL}/auth?error=oauth_failed`);
+    return res.redirect(`${redirectUrl}?error=oauth_failed`);
   }
   
   if (!code || !state) {
     console.error('[AUTH] Missing code or state');
-    return res.redirect(`${FRONTEND_URL}/auth?error=missing_params`);
+    return res.redirect(`${redirectUrl}?error=missing_params`);
   }
   
   try {
+    let decodedState: any;
     try {
-      jwt.verify(state as string, getJwtSecret());
+      decodedState = jwt.verify(state as string, getJwtSecret());
     } catch (e) {
       console.error('[AUTH] Invalid state:', e);
-      return res.redirect(`${FRONTEND_URL}/auth?error=invalid_state`);
+      return res.redirect(`${redirectUrl}?error=invalid_state`);
     }
     
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
       console.error('[AUTH] Google OAuth not configured');
-      return res.redirect(`${FRONTEND_URL}/auth?error=oauth_not_configured`);
+      return res.redirect(`${redirectUrl}?error=oauth_not_configured`);
     }
     
     console.log('[AUTH] Exchanging code for tokens, redirect_uri:', GOOGLE_REDIRECT_URI);
@@ -120,7 +139,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     
     if (!tokens.access_token) {
       console.error('[AUTH] Google token exchange failed:', JSON.stringify(tokens).slice(0, 500));
-      return res.redirect(`${FRONTEND_URL}/auth?error=token_exchange_failed`);
+      return res.redirect(`${redirectUrl}?error=token_exchange_failed`);
     }
     
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -137,7 +156,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     
     if (!uid) {
       console.error('[AUTH] No uid from Google:', googleUser);
-      return res.redirect(`${FRONTEND_URL}/auth?error=no_uid`);
+      return res.redirect(`${redirectUrl}?error=no_uid`);
     }
     
     const db = getFirestore();
@@ -190,11 +209,12 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       sendWelcomeEmail(email, name || '', 'google').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
     }
     
-    res.redirect(`${FRONTEND_URL}/auth?token=${token}`);
+    // Redirect to the original page with token
+    res.redirect(`${redirectUrl}?token=${token}`);
     
   } catch (err) {
     console.error('[AUTH] Google callback error:', err);
-    res.redirect(`${FRONTEND_URL}/auth?error=callback_failed`);
+    res.redirect(`${redirectUrl}?error=callback_failed`);
   }
 });
 
