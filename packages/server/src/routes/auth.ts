@@ -691,6 +691,7 @@ const userDoc = await userRef.get();
     let tier = 'max';
     let expiry = 0;
     let walletAddress = '';
+    let displayName = '';
     
     if (userDoc.exists) {
       const data = userDoc.data();
@@ -952,6 +953,116 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[AUTH] Twitter Login CRITICAL error:', error);
     res.status(500).json({ error: 'Twitter login failed' });
+  }
+});
+
+// Email/Password login (Firebase Auth)
+router.post('/email-login', async (req: Request, res: Response) => {
+  const { firebaseToken } = req.body;
+  console.log('[AUTH] Email Login Request');
+
+  if (!firebaseToken) {
+    return res.status(400).json({ error: 'Missing Firebase token' });
+  }
+
+  if (!firebaseAdminAuth) {
+    console.error('[AUTH] Firebase Admin not initialized');
+    return res.status(500).json({ error: 'Authentication service not configured' });
+  }
+
+  try {
+    // Verify the Firebase ID token
+    const decodedToken = await firebaseAdminAuth.verifyIdToken(firebaseToken);
+    const { uid, email, name, picture, email_verified } = decodedToken;
+    
+    console.log(`[AUTH] Email User: ${email} (${uid})`);
+
+    // Explicitly create/update user in Firebase Auth to ensure they appear in console
+    try {
+      await firebaseAdminAuth.getUser(uid);
+      console.log(`[AUTH] User already exists in Firebase Auth: ${uid}`);
+    } catch (userError: any) {
+      if (userError.code === 'auth/user-not-found') {
+        // Create user in Firebase Auth
+        await firebaseAdminAuth.createUser({
+          uid,
+          email: email || undefined,
+          displayName: name || undefined,
+          photoURL: picture || undefined,
+        });
+        console.log(`[AUTH] Created new user in Firebase Auth: ${uid}`);
+      }
+    }
+
+    const db = getFirestore();
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+    
+    const isNewUser = !userDoc.exists;
+    
+    let tier = 'max';
+    let expiry = 0;
+    let walletAddress = '';
+
+    if (userDoc.exists) {
+      const data = userDoc.data();
+      // Everyone gets max tier now - no more tier restrictions
+      tier = 'max';
+      expiry = data?.subscriptionExpiry || 0;
+      walletAddress = data?.walletAddress || '';
+    }
+
+    // Check if subscription expired - still give max tier
+    if (expiry > 0 && Date.now() > expiry) {
+      tier = 'max';
+    }
+
+    await userRef.set({
+      uid,
+      email,
+      displayName: name || '',
+      profilePicture: picture || '',
+      tier,
+      subscriptionExpiry: expiry,
+      lastLogin: Date.now(),
+      authProvider: 'email',
+      emailVerified: email_verified || false
+    }, { merge: true });
+
+    // Generate JWT
+    const token = jwt.sign({
+      uid,
+      email,
+      displayName: name || '',
+      profilePicture: picture || '',
+      tier,
+      walletAddress,
+      authProvider: 'email'
+    }, getJwtSecret(), { expiresIn: '30d' });
+
+    console.log('[AUTH] Email Login SUCCESS');
+    
+    // Only send welcome email for NEW users
+    if (email && isNewUser) {
+      sendWelcomeEmail(email, name || '', 'email').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
+    }
+    
+    res.json({
+      token,
+      user: {
+        uid,
+        email,
+        displayName: name || '',
+        profilePicture: picture || '',
+        tier,
+        walletAddress,
+        isVerified: email_verified || false
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[AUTH] Email Login CRITICAL error:', error);
+    res.status(500).json({ error: 'Email login failed' });
   }
 });
 
