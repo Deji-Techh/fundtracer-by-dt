@@ -235,10 +235,12 @@ export async function apiKeyAuthMiddleware(
     next: NextFunction
 ) {
     const authHeader = req.headers.authorization;
+    console.log('[API-KEY-MIDDLEWARE] Auth header:', authHeader ? authHeader.substring(0, 30) + '...' : 'none');
     
     // Check if this is an API key (starts with ft_live_ or ft_test_)
     if (authHeader && authHeader.startsWith('Bearer ft_')) {
         const apiKey = authHeader.split('Bearer ')[1];
+        console.log('[API-KEY-MIDDLEWARE] API key detected:', apiKey.substring(0, 20) + '...');
         
         try {
             const db = getFirestore();
