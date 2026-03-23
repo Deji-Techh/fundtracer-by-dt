@@ -168,6 +168,58 @@
   opacity: 0.5;
 }
 
+.loading-keys {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-keys svg {
+  opacity: 0.7;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.error-state svg {
+  color: #ef4444;
+}
+
+.retry-btn {
+  padding: 10px 20px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  border-color: var(--intel-cyan);
+  color: var(--intel-cyan);
+}
+
 .keys-grid {
   display: flex;
   flex-direction: column;

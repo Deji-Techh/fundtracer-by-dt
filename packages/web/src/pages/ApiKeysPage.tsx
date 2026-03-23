@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle, ExternalLink, Code } from 'lucide-react';
+import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle, ExternalLink, Code, Loader2 } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
+import { useAuth } from '../contexts/AuthContext';
+import { getApiKeys, createApiKey, deleteApiKey, ApiKeyData } from '../firebase';
 import './ApiKeysPage.css';
 
 const navItems = [
@@ -14,43 +16,38 @@ const navItems = [
   { label: 'CLI', href: '/cli' },
 ];
 
-interface ApiKey {
-  id: string;
-  name: string;
-  key: string;
-  type: 'live' | 'test';
-  created: string;
-  lastUsed: string | null;
-  requests: number;
-}
-
-const mockKeys: ApiKey[] = [
-  {
-    id: '1',
-    name: 'Production Key',
-    key: 'ft_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-    type: 'live',
-    created: '2026-03-15',
-    lastUsed: '2026-03-23',
-    requests: 12453,
-  },
-  {
-    id: '2',
-    name: 'Development Key',
-    key: 'ft_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-    type: 'test',
-    created: '2026-03-10',
-    lastUsed: '2026-03-22',
-    requests: 892,
-  },
-];
-
 export function ApiKeysPage() {
+  const { user } = useAuth();
   const [copied, setCopied] = useState<string | null>(null);
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
-  const [keys, setKeys] = useState<ApiKey[]>(mockKeys);
+  const [keys, setKeys] = useState<ApiKeyData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyType, setNewKeyType] = useState<'live' | 'test'>('test');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.uid) {
+      loadKeys();
+    }
+  }, [user?.uid]);
+
+  const loadKeys = async () => {
+    if (!user?.uid) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const userKeys = await getApiKeys(user.uid);
+      setKeys(userKeys);
+    } catch (err) {
+      console.error('Failed to load API keys:', err);
+      setError('Failed to load API keys. Please refresh the page.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -66,23 +63,42 @@ export function ApiKeysPage() {
     return key.replace(/(ft_(?:live|test)_).*(_[a-z0-9]{4})$/, '$1••••••••••••••••••••••••$2');
   };
 
-  const createKey = () => {
-    if (!newKeyName.trim()) return;
-    const newKey: ApiKey = {
-      id: Date.now().toString(),
-      name: newKeyName,
-      key: `ft_${newKeyType}_${Math.random().toString(36).substring(2, 30)}_${Math.random().toString(36).substring(2, 6)}`,
-      type: newKeyType,
-      created: new Date().toISOString().split('T')[0],
-      lastUsed: null,
-      requests: 0,
-    };
-    setKeys((prev) => [...prev, newKey]);
-    setNewKeyName('');
+  const formatDate = (date: Date | null): string => {
+    if (!date) return 'Never';
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
-  const deleteKey = (id: string) => {
-    setKeys((prev) => prev.filter((k) => k.id !== id));
+  const handleCreateKey = async () => {
+    if (!newKeyName.trim() || !user?.uid) return;
+    
+    setCreating(true);
+    setError(null);
+    try {
+      const newKey = await createApiKey(user.uid, newKeyName.trim(), newKeyType);
+      setKeys((prev) => [newKey, ...prev]);
+      setNewKeyName('');
+    } catch (err) {
+      console.error('Failed to create API key:', err);
+      setError('Failed to create API key. Please try again.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteKey = async (keyId: string) => {
+    if (!user?.uid) return;
+    
+    try {
+      await deleteApiKey(user.uid, keyId);
+      setKeys((prev) => prev.filter((k) => k.id !== keyId));
+    } catch (err) {
+      console.error('Failed to delete API key:', err);
+      setError('Failed to delete API key. Please try again.');
+    }
   };
 
   return (
@@ -120,6 +136,7 @@ export function ApiKeysPage() {
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
                   className="create-input"
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateKey()}
                 />
                 <div className="type-selector">
                   <button
@@ -135,8 +152,16 @@ export function ApiKeysPage() {
                     Live Key
                   </button>
                 </div>
-                <button className="create-btn" onClick={createKey}>
-                  <Plus size={18} />
+                <button 
+                  className="create-btn" 
+                  onClick={handleCreateKey}
+                  disabled={creating || !newKeyName.trim()}
+                >
+                  {creating ? (
+                    <Loader2 size={18} className="spin" />
+                  ) : (
+                    <Plus size={18} />
+                  )}
                   Create Key
                 </button>
               </div>
@@ -152,15 +177,34 @@ export function ApiKeysPage() {
 
             <div className="api-keys-list">
               <h2>Your API Keys</h2>
-              {keys.length === 0 ? (
+              {loading ? (
+                <div className="loading-keys">
+                  <Loader2 size={32} className="spin" />
+                  <p>Loading your API keys...</p>
+                </div>
+              ) : error ? (
+                <div className="error-state">
+                  <AlertCircle size={32} />
+                  <p>{error}</p>
+                  <button onClick={loadKeys} className="retry-btn">
+                    Try Again
+                  </button>
+                </div>
+              ) : keys.length === 0 ? (
                 <div className="no-keys">
                   <Key size={48} strokeWidth={1} />
                   <p>No API keys yet. Create your first key above.</p>
                 </div>
               ) : (
                 <div className="keys-grid">
-                  {keys.map((apiKey) => (
-                    <div key={apiKey.id} className="api-key-card">
+                  {keys.map((apiKey, index) => (
+                    <motion.div
+                      key={apiKey.id}
+                      className="api-key-card"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
                       <div className="key-card-header">
                         <div className="key-info">
                           <h3>{apiKey.name}</h3>
@@ -170,7 +214,7 @@ export function ApiKeysPage() {
                         </div>
                         <button
                           className="delete-btn"
-                          onClick={() => deleteKey(apiKey.id)}
+                          onClick={() => handleDeleteKey(apiKey.id)}
                           title="Delete key"
                         >
                           <Trash2 size={18} />
@@ -202,12 +246,12 @@ export function ApiKeysPage() {
                       <div className="key-stats">
                         <div className="stat">
                           <span className="stat-label">Created</span>
-                          <span className="stat-value">{apiKey.created}</span>
+                          <span className="stat-value">{formatDate(apiKey.createdAt)}</span>
                         </div>
                         <div className="stat">
                           <span className="stat-label">Last Used</span>
                           <span className="stat-value">
-                            {apiKey.lastUsed || 'Never'}
+                            {formatDate(apiKey.lastUsed)}
                           </span>
                         </div>
                         <div className="stat">
@@ -217,7 +261,7 @@ export function ApiKeysPage() {
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}

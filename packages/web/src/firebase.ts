@@ -12,6 +12,18 @@ import {
   sendEmailVerification,
   UserCredential
 } from 'firebase/auth';
+import { 
+  getFirestore, 
+  Firestore, 
+  collection, 
+  doc, 
+  getDocs, 
+  addDoc, 
+  deleteDoc, 
+  serverTimestamp,
+  query,
+  orderBy 
+} from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -24,11 +36,13 @@ const firebaseConfig = {
 
 let app: FirebaseApp | undefined;
 let auth: Auth | null = null;
+let db: Firestore | null = null;
 
 if (firebaseConfig.apiKey && firebaseConfig.projectId) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
+    db = getFirestore(app);
   } catch (error) {
     console.error('[Firebase] Init error:', error);
   }
@@ -113,5 +127,73 @@ export const getFirebaseToken = async (): Promise<string | null> => {
   }
 };
 
-export { app, auth };
+// API Keys Functions (Firestore)
+export interface ApiKeyData {
+  id: string;
+  name: string;
+  key: string;
+  type: 'live' | 'test';
+  createdAt: Date;
+  lastUsed: Date | null;
+  requests: number;
+}
+
+export const getApiKeys = async (userId: string): Promise<ApiKeyData[]> => {
+  if (!db) throw new Error('Firebase not initialized');
+  const keysRef = collection(db, 'users', userId, 'apiKeys');
+  const q = query(keysRef, orderBy('createdAt', 'desc'));
+  const snapshot = await getDocs(q);
+  
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+    createdAt: doc.data().createdAt?.toDate() || new Date(),
+    lastUsed: doc.data().lastUsed?.toDate() || null,
+  })) as ApiKeyData[];
+};
+
+export const createApiKey = async (
+  userId: string, 
+  name: string, 
+  type: 'live' | 'test'
+): Promise<ApiKeyData> => {
+  if (!db) throw new Error('Firebase not initialized');
+  
+  const keyPrefix = type === 'live' ? 'ft_live' : 'ft_test';
+  const randomPart = Math.random().toString(36).substring(2, 30);
+  const suffix = Math.random().toString(36).substring(2, 6);
+  const fullKey = `${keyPrefix}_${randomPart}_${suffix}`;
+  
+  const keysRef = collection(db, 'users', userId, 'apiKeys');
+  const docRef = await addDoc(keysRef, {
+    name,
+    key: fullKey,
+    type,
+    createdAt: serverTimestamp(),
+    lastUsed: null,
+    requests: 0,
+  });
+  
+  return {
+    id: docRef.id,
+    name,
+    key: fullKey,
+    type,
+    createdAt: new Date(),
+    lastUsed: null,
+    requests: 0,
+  };
+};
+
+export const deleteApiKey = async (userId: string, keyId: string): Promise<void> => {
+  if (!db) throw new Error('Firebase not initialized');
+  const keyRef = doc(db, 'users', userId, 'apiKeys', keyId);
+  await deleteDoc(keyRef);
+};
+
+export const getCurrentUserId = (): string | null => {
+  return auth?.currentUser?.uid || null;
+};
+
+export { app, auth, db };
 export default app;
