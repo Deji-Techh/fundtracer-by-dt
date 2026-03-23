@@ -412,7 +412,7 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
                   </div>
                   <p>Detect Sybil attack patterns and coordinated behavior.</p>
                   <div className="endpoint-params">
-                    <span className="param">address</span>
+                    <span className="param">contractAddress</span>
                     <span className="param-desc">Contract or wallet address</span>
                     <span className="param">chain</span>
                     <span className="param-desc">Blockchain network</span>
