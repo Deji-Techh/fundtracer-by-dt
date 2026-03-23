@@ -387,7 +387,7 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
                   <p>Compare multiple wallets to find shared interactions and connections.</p>
                   <div className="endpoint-params">
                     <span className="param">addresses</span>
-                    <span className="param-desc">Array of wallet addresses (2-10)</span>
+                    <span className="param-desc">Array of wallet addresses (2-20)</span>
                     <span className="param">chain</span>
                     <span className="param-desc">Blockchain network</span>
                   </div>
@@ -428,34 +428,6 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
                   <div className="endpoint-params">
                     <span className="param">contractAddress</span>
                     <span className="param-desc">Contract address</span>
-                    <span className="param">chain</span>
-                    <span className="param-desc">Blockchain network</span>
-                  </div>
-                </div>
-
-                <div className="api-endpoint">
-                  <div className="endpoint-header">
-                    <span className="method post">POST</span>
-                    <code>/contracts/info</code>
-                  </div>
-                  <p>Look up contract information and metadata.</p>
-                  <div className="endpoint-params">
-                    <span className="param">address</span>
-                    <span className="param-desc">Contract address</span>
-                    <span className="param">chain</span>
-                    <span className="param-desc">Blockchain network</span>
-                  </div>
-                </div>
-
-                <div className="api-endpoint">
-                  <div className="endpoint-header">
-                    <span className="method post">POST</span>
-                    <code>/market/tokens</code>
-                  </div>
-                  <p>Get token price and market data.</p>
-                  <div className="endpoint-params">
-                    <span className="param">address</span>
-                    <span className="param-desc">Token contract address</span>
                     <span className="param">chain</span>
                     <span className="param-desc">Blockchain network</span>
                   </div>
@@ -512,14 +484,23 @@ const { data: sybil } = await ft.detectSybil(
   '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
   'ethereum'
 );`}</code></pre>
-                      <button 
+                      <button
                         className="api-copy-btn"
                         onClick={() => handleCopy(`import { FundTracerAPI } from '@fundtracer/api';
 
 const ft = new FundTracerAPI('ft_live_YOUR_API_KEY');
 
-// Get wallet info
-const wallet = await ft.address.get('ethereum', '0x742d35...');`, 'js-sdk')}
+// Analyze a wallet
+const { data: wallet } = await ft.analyzeWallet(
+  '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+  { chain: 'ethereum', includeTransactions: true }
+);
+
+// Get funding tree
+const { data: tree } = await ft.getFundingTree(
+  '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+  { chain: 'ethereum', maxDepth: 3 }
+);`, 'js-sdk')}
                       >
                         {copied === 'js-sdk' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
                       </button>

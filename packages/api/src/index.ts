@@ -122,7 +122,7 @@ export class FundTracerAPI {
     this.validateChain(chain);
     return this.request<SybilResult>('/analyze/sybil', {
       method: 'POST',
-      body: JSON.stringify({ address, chain }),
+      body: JSON.stringify({ contractAddress: address, chain }),
     });
   }
 
@@ -167,7 +167,7 @@ export class FundTracerAPI {
     this.validateChain(chain);
     return this.request<SafetyResult>('/safety/check', {
       method: 'POST',
-      body: JSON.stringify({ address, chain }),
+      body: JSON.stringify({ contractAddress: address, chain }),
     });
   }
 

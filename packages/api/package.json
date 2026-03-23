@@ -1,6 +1,6 @@
 {
   "name": "@fundtracer/api",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Official JavaScript/TypeScript SDK for FundTracer API",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
