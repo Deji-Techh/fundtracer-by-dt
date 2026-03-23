@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle, ExternalLink, Code, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle, ExternalLink, Code, Loader2, User, LogOut, HelpCircle, ChevronDown, Mail } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiKeys, createApiKey, deleteApiKey, ApiKeyData } from '../firebase';
@@ -17,7 +17,7 @@ const navItems = [
 ];
 
 export function ApiKeysPage() {
-  const { user } = useAuth();
+  const { user, profile, signOutAccount } = useAuth();
   const [copied, setCopied] = useState<string | null>(null);
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [keys, setKeys] = useState<ApiKeyData[]>([]);
@@ -26,12 +26,25 @@ export function ApiKeysPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyType, setNewKeyType] = useState<'live' | 'test'>('test');
   const [error, setError] = useState<string | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user?.uid) {
       loadKeys();
     }
   }, [user?.uid]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setShowProfile(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadKeys = async () => {
     if (!user?.uid) return;
@@ -57,6 +70,11 @@ export function ApiKeysPage() {
 
   const toggleShowKey = (id: string) => {
     setShowKey((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleSignOut = async () => {
+    await signOutAccount();
+    window.location.href = '/';
   };
 
   const maskKey = (key: string) => {
@@ -111,9 +129,76 @@ export function ApiKeysPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="api-keys-title">
-              <Key size={32} strokeWidth={1.5} />
-              <h1>API Keys</h1>
+            <div className="api-keys-header-row">
+              <div className="api-keys-title">
+                <Key size={32} strokeWidth={1.5} />
+                <h1>API Keys</h1>
+              </div>
+              <div className="profile-dropdown" ref={profileRef}>
+                <button 
+                  className="profile-trigger"
+                  onClick={() => setShowProfile(!showProfile)}
+                >
+                  {profile?.profilePicture || profile?.photoURL ? (
+                    <img 
+                      src={profile.profilePicture || profile.photoURL || ''} 
+                      alt="Profile" 
+                      className="profile-avatar"
+                    />
+                  ) : (
+                    <div className="profile-avatar-placeholder">
+                      <User size={20} />
+                    </div>
+                  )}
+                  <ChevronDown size={16} className={`chevron ${showProfile ? 'open' : ''}`} />
+                </button>
+                
+                <AnimatePresence>
+                  {showProfile && (
+                    <motion.div 
+                      className="profile-menu"
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="profile-info">
+                        <div className="profile-header">
+                          {profile?.profilePicture || profile?.photoURL ? (
+                            <img 
+                              src={profile.profilePicture || profile.photoURL || ''} 
+                              alt="Profile" 
+                              className="profile-avatar-large"
+                            />
+                          ) : (
+                            <div className="profile-avatar-placeholder-large">
+                              <User size={24} />
+                            </div>
+                          )}
+                          <div className="profile-details">
+                            <span className="profile-name">
+                              {profile?.displayName || profile?.name || 'User'}
+                            </span>
+                            <span className="profile-email">
+                              <Mail size={12} />
+                              {profile?.email || user?.uid || 'No email'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="profile-menu-divider" />
+                      <a href="mailto:support@fundtracer.xyz" className="profile-menu-item">
+                        <HelpCircle size={18} />
+                        <span>Contact Support</span>
+                      </a>
+                      <button className="profile-menu-item logout" onClick={handleSignOut}>
+                        <LogOut size={18} />
+                        <span>Log Out</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
             <p>
               Manage your API keys for authenticating requests to the FundTracer API.

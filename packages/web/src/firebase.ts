@@ -141,6 +141,7 @@ export interface ApiKeyData {
   createdAt: Date;
   lastUsed: Date | null;
   requests: number;
+  active: boolean;
 }
 
 export const getApiKeys = async (userId: string): Promise<ApiKeyData[]> => {
@@ -177,6 +178,7 @@ export const createApiKey = async (
     createdAt: serverTimestamp(),
     lastUsed: null,
     requests: 0,
+    active: true,
   });
   
   return {
@@ -187,6 +189,7 @@ export const createApiKey = async (
     createdAt: new Date(),
     lastUsed: null,
     requests: 0,
+    active: true,
   };
 };
 

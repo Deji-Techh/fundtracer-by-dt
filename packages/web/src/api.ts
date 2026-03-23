@@ -25,6 +25,7 @@ export interface UserProfile {
     name?: string;
     displayName?: string;
     username?: string;
+    email?: string;
     hasCustomApiKey: boolean;
     hasAlchemyApiKey?: boolean;
     tier?: 'free' | 'pro' | 'max';
@@ -37,7 +38,7 @@ export interface UserProfile {
     walletAddress?: string | null;
     profilePicture?: string | null;
     photoURL?: string | null;
-    authProvider?: 'wallet' | 'google' | 'twitter';
+    authProvider?: 'wallet' | 'google' | 'twitter' | 'email';
 }
 
 // Token management
