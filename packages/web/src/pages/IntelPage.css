@@ -303,6 +303,12 @@
   .intel-hero__subtitle {
     font-size: var(--text-base);
   }
+
+  .intel-header-actions .intel-btn {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+  }
   
   .intel-hero__actions {
     flex-direction: column;
