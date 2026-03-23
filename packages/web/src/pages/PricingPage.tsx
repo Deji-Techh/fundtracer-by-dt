@@ -3,11 +3,12 @@
  * Uses LandingLayout and design system for Arkham-style presentation
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { Badge, Panel } from '../design-system/primitives';
 import './PricingPage.css';
+import { useAuth } from '../contexts/AuthContext';
 
 const navItems = [
   { label: 'About', href: '/about' },
@@ -26,7 +27,7 @@ const tiers = [
     originalPrice: '',
     period: 'forever',
     description: 'Perfect for getting started - now with unlimited access!',
-    badge: 'Best Value',
+    badge: null,
     features: [
       'Unlimited analyses',
       'Full wallet analysis',
@@ -36,15 +37,15 @@ const tiers = [
       'Priority support',
     ],
     cta: 'Get Started',
-    popular: true,
+    popular: false,
   },
   {
     name: 'Pro',
-    price: '$0',
-    originalPrice: '$5',
+    price: '$15',
+    originalPrice: '',
     period: '/month',
     description: 'Most popular for researchers',
-    badge: null,
+    badge: 'Most Popular',
     features: [
       'Unlimited analyses',
       'Advanced wallet analysis',
@@ -55,12 +56,12 @@ const tiers = [
       'Sybil detection',
     ],
     cta: 'Get Started',
-    popular: false,
+    popular: true,
   },
   {
     name: 'Max',
-    price: '$0',
-    originalPrice: '$10',
+    price: '$25',
+    originalPrice: '',
     period: '/month',
     description: 'For unlimited power users',
     badge: null,
@@ -83,6 +84,7 @@ const comparisonData = [
   { feature: 'Transaction History', free: 'Full', pro: 'Full', max: 'Full History' },
   { feature: 'Supported Chains', free: '7+', pro: '7+', max: 'All + Future' },
   { feature: 'Export Formats', free: 'CSV, JSON', pro: 'CSV, JSON', max: 'All Formats' },
+  { feature: 'Sybil Detection', free: '-', pro: '\u2713', max: '\u2713' },
   { feature: 'API Access', free: '-', pro: '-', max: '\u2713' },
   { feature: 'Support', free: 'Priority', pro: 'Priority', max: 'Dedicated' },
 ];
@@ -94,7 +96,7 @@ const faqs = [
   },
   {
     question: 'What payment methods do you accept?',
-    answer: 'We accept USDT (Linea network) for Pro and Max subscriptions.',
+    answer: 'We accept all major credit/debit cards, PayPal, and crypto via Lemon Squeezy.',
   },
   {
     question: 'Is there a free trial?',
@@ -108,6 +110,42 @@ const faqs = [
 
 export function PricingPage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+
+  const handleCheckout = async (tier: string) => {
+    if (tier === 'free') {
+      navigate(isAuthenticated ? '/app-evm' : '/auth?mode=signup');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigate(`/auth?mode=signup&redirect=/pricing&tier=${tier}`);
+      return;
+    }
+
+    setLoadingTier(tier);
+    try {
+      const response = await fetch('/api/payment/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ tier })
+      });
+
+      const data = await response.json();
+      if (data.success && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        alert(data.error || 'Failed to create checkout. Please try again.');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to create checkout. Please try again.');
+    } finally {
+      setLoadingTier(null);
+    }
+  };
 
   return (
     <LandingLayout navItems={navItems} showSearch={false}>
@@ -122,7 +160,7 @@ export function PricingPage() {
               <span className="pricing-hero__title-accent">Transparent Pricing</span>
             </h1>
             <p className="pricing-hero__subtitle">
-              All plans are currently <span className="pricing-hero__free-badge">FREE</span> - No payment required!
+              Choose the plan that fits your needs. Upgrade anytime.
             </p>
           </div>
         </section>
@@ -149,7 +187,6 @@ export function PricingPage() {
                     )}
                     <span className="pricing-tier__amount">{tier.price}</span>
                     <span className="pricing-tier__period">{tier.period}</span>
-                    <span className="pricing-tier__free-label">FREE</span>
                   </div>
                   <p className="pricing-tier__description">{tier.description}</p>
                 </div>
@@ -164,10 +201,11 @@ export function PricingPage() {
                   ))}
                 </ul>
                 <button 
-                  className={`pricing-tier__cta ${tier.popular ? 'pricing-tier__cta--primary' : ''}`}
-                  onClick={() => navigate('/app')}
+                  className={`pricing-tier__cta ${tier.popular ? 'pricing-tier__cta--primary' : ''} ${loadingTier === tier.name.toLowerCase() ? 'pricing-tier__cta--loading' : ''}`}
+                  onClick={() => handleCheckout(tier.name.toLowerCase())}
+                  disabled={loadingTier !== null}
                 >
-                  {tier.cta}
+                  {loadingTier === tier.name.toLowerCase() ? 'Loading...' : tier.cta}
                 </button>
               </Panel>
             ))}
@@ -227,9 +265,9 @@ export function PricingPage() {
             <p className="pricing-cta__subtitle">
               Contact us at fundtracerbydt@gmail.com
             </p>
-            <button 
+            <button
               className="pricing-cta__button"
-              onClick={() => navigate('/app')}
+              onClick={() => handleCheckout('free')}
             >
               Start Free
             </button>

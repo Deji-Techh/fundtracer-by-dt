@@ -286,6 +286,13 @@ app.use(cors({
     ],
     credentials: true,
 }));
+
+// Capture raw body for LemonSqueezy webhook BEFORE json middleware
+app.use('/api/payment/webhook', express.raw({ type: 'application/json' }), (req: any, _res, next) => {
+    req.rawBody = req.body.toString();
+    next();
+});
+
 app.use(express.json({ limit: '10mb' })); // Increased for large wallet lists
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Limit URL-encoded bodies
 

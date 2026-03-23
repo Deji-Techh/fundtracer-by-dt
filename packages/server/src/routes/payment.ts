@@ -1,135 +1,201 @@
 import { Router } from 'express';
-import { ethers } from 'ethers';
+import type { Request, Response } from 'express';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { getFirestore } from '../firebase.js';
+import * as lemonSqueezy from '@lemonsqueezy/lemonsqueezy.js';
+import crypto from 'crypto';
 
 const router = Router();
 
-// USDT contract address on Linea Mainnet
-const USDT_ADDRESS = '0xA219439258ca9da29E9Cc4cE5596924745e12B93'; // Linea USDT
-const PAYMENT_WALLET = '0xFF1A1D11CB6bad91C6d9250082D1DF44d84e4b87';
+const LEMON_SQUEEZY_STORE_ID = process.env.LEMON_SQUEEZY_STORE_ID;
+const LEMON_SQUEEZY_API_KEY = process.env.LEMON_SQUEEZY_API_KEY;
+const LEMON_SQUEEZY_WEBHOOK_SECRET = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET;
+const PRO_VARIANT_ID = process.env.LEMON_SQUEEZY_PRO_VARIANT_ID;
+const MAX_VARIANT_ID = process.env.LEMON_SQUEEZY_MAX_VARIANT_ID;
 
-// Tier prices in USDT (with 6 decimals)
-const TIER_PRICES = {
-    pro: ethers.parseUnits('5', 6), // 5 USDT
-    max: ethers.parseUnits('10', 6) // 10 USDT
+if (LEMON_SQUEEZY_API_KEY) {
+    lemonSqueezy.lemonSqueezySetup({ apiKey: LEMON_SQUEEZY_API_KEY });
+}
+
+const TIER_PRICES: Record<string, string> = {
+    pro: PRO_VARIANT_ID || '',
+    max: MAX_VARIANT_ID || ''
 };
 
-// USDT ABI (minimal - just Transfer event)
-const USDT_ABI = [
-    'event Transfer(address indexed from, address indexed to, uint256 value)'
-];
-
-/**
- * Verify payment endpoint
- * Checks if user sent the correct amount of USDT to payment wallet
- * Tiers are now tied to user account (email), not wallet address
- */
-router.post('/verify-payment', authMiddleware, async (req: AuthenticatedRequest, res) => {
+function verifyWebhookSignature(payload: string, signature: string): boolean {
+    if (!LEMON_SQUEEZY_WEBHOOK_SECRET) return false;
+    const hmac = crypto.createHmac('sha256', LEMON_SQUEEZY_WEBHOOK_SECRET);
+    const digest = hmac.update(payload).digest('hex');
     try {
-        const { userAddress, tier, paymentAddress } = req.body;
-        
-        // Get authenticated user ID (tier will be attached to this account)
+        return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+    } catch {
+        return false;
+    }
+}
+
+router.post('/create-checkout', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    try {
         const userId = req.user?.uid;
         const userEmail = req.user?.email;
+        const { tier } = req.body;
 
         if (!userId) {
-            return res.status(401).json({
-                success: false,
-                error: 'User not authenticated'
-            });
-        }
-
-        if (!userAddress || !tier || !paymentAddress) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields'
-            });
+            return res.status(401).json({ success: false, error: 'User not authenticated' });
         }
 
         if (!['pro', 'max'].includes(tier)) {
-            return res.status(400).json({
+            return res.status(400).json({ success: false, error: 'Invalid tier' });
+        }
+
+        if (!LEMON_SQUEEZY_API_KEY || !LEMON_SQUEEZY_STORE_ID) {
+            return res.status(500).json({
                 success: false,
-                error: 'Invalid tier'
+                error: 'Payment provider not configured. Please contact support.'
             });
         }
 
-        // Verify payment address matches
-        if (paymentAddress.toLowerCase() !== PAYMENT_WALLET.toLowerCase()) {
-            return res.status(400).json({
+        const variantId = TIER_PRICES[tier];
+        if (!variantId) {
+            return res.status(500).json({
                 success: false,
-                error: 'Invalid payment address'
+                error: 'Plan not configured. Please contact support.'
             });
         }
 
-        // Connect to Linea RPC
-        const provider = new ethers.JsonRpcProvider(
-            process.env.LINEA_RPC_URL || 'https://rpc.linea.build'
-        );
+        const frontendUrl = process.env.FRONTEND_URL || 'https://fundtracer.xyz';
 
-        // Create USDT contract instance
-        const usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, provider);
-
-        // Get current block
-        const currentBlock = await provider.getBlockNumber();
-
-        // Check last 1000 blocks (~30 minutes on Linea)
-        const fromBlock = Math.max(0, currentBlock - 1000);
-
-        // Query Transfer events from user to payment wallet
-        const filter = usdtContract.filters.Transfer(userAddress, PAYMENT_WALLET);
-        const events = await usdtContract.queryFilter(filter, fromBlock, currentBlock);
-
-        // Check if any transfer matches the tier price
-        const requiredAmount = TIER_PRICES[tier as 'pro' | 'max'];
-        const validPayment = events.find(event => {
-            // Type guard for EventLog
-            if ('args' in event) {
-                const amount = event.args?.value;
-                return amount && amount >= requiredAmount;
+        const result = await lemonSqueezy.createCheckout(LEMON_SQUEEZY_STORE_ID, variantId, {
+            checkoutOptions: {
+                embed: false,
+                media: true,
+                logo: true
+            },
+            checkoutData: {
+                email: userEmail || undefined,
+                custom: {
+                    user_id: userId,
+                    user_email: userEmail || '',
+                    tier
+                }
+            },
+            productOptions: {
+                redirectUrl: `${frontendUrl}/app-evm?subscription=success`,
+                receiptButtonText: 'Go to Dashboard',
+                receiptThankYouNote: 'Thank you for subscribing to FundTracer! Your premium tier is now active.'
             }
-            return false;
         });
 
-        if (validPayment) {
-            // Payment found! Update user tier on their ACCOUNT (not wallet)
-            const expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + 30); // 30 days from now
-            
-            const db = getFirestore();
-            const userRef = db.collection('users').doc(userId);
-            
-            await userRef.set({
-                tier,
-                tierExpiresAt: expiresAt,
-                tierUpdatedAt: new Date().toISOString(),
-                paymentWallet: userAddress.toLowerCase(), // Store which wallet paid
-                paymentTxHash: validPayment.transactionHash
-            }, { merge: true });
-
-            console.log(`[Payment] Updated user ${userEmail} (${userId}) to ${tier} tier, wallet used: ${userAddress}`);
-
-            return res.json({
-                success: true,
-                message: `Successfully upgraded to ${tier.toUpperCase()} tier. Your tier is tied to your account (${userEmail}).`,
-                tier,
-                expiresAt: expiresAt.toISOString(),
-                transactionHash: validPayment.transactionHash,
-                note: 'Your premium tier is attached to your account email, not your wallet. You can change wallets freely.'
-            });
-        } else {
-            return res.json({
-                success: false,
-                error: 'Payment not found. Please ensure you sent the correct amount and wait 2 minutes.'
-            });
+        if (result.error) {
+            console.error('[Payment] LemonSqueezy error:', result.error);
+            return res.status(500).json({ success: false, error: 'Failed to create checkout' });
         }
+
+        const checkoutData = result.data as any;
+        const checkoutUrl = checkoutData?.attributes?.url;
+        const checkoutId = checkoutData?.id;
+
+        if (!checkoutUrl) {
+            return res.status(500).json({ success: false, error: 'Failed to get checkout URL' });
+        }
+
+        res.json({
+            success: true,
+            checkoutUrl,
+            checkoutId
+        });
 
     } catch (error: any) {
-        console.error('Payment verification error:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Verification failed. Please try again later.'
+        console.error('[Payment] Create checkout error:', error);
+        res.status(500).json({ success: false, error: 'Failed to create checkout session' });
+    }
+});
+
+router.post('/webhook', async (req: Request, res: Response) => {
+    const signature = req.headers['x-signature'] as string;
+
+    if (!signature) {
+        return res.status(400).json({ error: 'Missing signature' });
+    }
+
+    try {
+        const rawBody = (req as any).rawBody as string;
+        if (!rawBody) {
+            console.error('[Payment] Raw body not found on request');
+            return res.status(400).json({ error: 'Missing raw body' });
+        }
+
+        if (!verifyWebhookSignature(rawBody, signature)) {
+            console.warn('[Payment] Invalid webhook signature');
+            return res.status(400).json({ error: 'Invalid signature' });
+        }
+
+        const payload = JSON.parse(rawBody);
+        const eventName = payload.meta && payload.meta['event_name'];
+
+        console.log(`[Payment] Webhook received: ${eventName}`);
+
+        if (eventName === 'subscription_created' || eventName === 'subscription_updated') {
+            const subscription = payload.data && payload.data.attributes;
+            const customData = payload.meta && payload.meta['custom_data'];
+            const userId = customData && customData['user_id'];
+            const tier = customData && customData['tier'];
+            const status = subscription && subscription.status;
+
+            if (status === 'active' && userId && tier) {
+                const db = getFirestore();
+                const renewsAt = subscription['renews_at'] ? new Date(subscription['renews_at']) : null;
+
+                await db.collection('users').doc(userId).set({
+                    tier,
+                    tierStatus: status,
+                    tierExpiresAt: renewsAt ? renewsAt.toISOString() : null,
+                    tierUpdatedAt: new Date().toISOString(),
+                    subscriptionId: payload.data && payload.data.id,
+                    lemonSqueezySubscriptionId: payload.data && payload.data.id
+                }, { merge: true });
+
+                console.log(`[Payment] Subscription activated for user ${userId}, tier: ${tier}`);
+            }
+
+            if (status === 'cancelled' && userId) {
+                const db = getFirestore();
+                await db.collection('users').doc(userId).set({
+                    tierStatus: 'cancelled',
+                    tierCancelledAt: new Date().toISOString()
+                }, { merge: true });
+
+                console.log(`[Payment] Subscription cancelled for user ${userId}`);
+            }
+        }
+
+        res.json({ received: true });
+    } catch (error) {
+        console.error('[Payment] Webhook processing error:', error);
+        res.status(500).json({ error: 'Webhook processing failed' });
+    }
+});
+
+router.get('/subscription-status', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const userId = req.user?.uid;
+        if (!userId) {
+            return res.status(401).json({ success: false, error: 'User not authenticated' });
+        }
+
+        const db = getFirestore();
+        const userDoc = await db.collection('users').doc(userId).get();
+        const userData = userDoc.data();
+
+        res.json({
+            success: true,
+            tier: userData?.tier || 'free',
+            tierStatus: userData?.tierStatus || null,
+            tierExpiresAt: userData?.tierExpiresAt || null,
+            hasActiveSubscription: userData?.tierStatus === 'active'
         });
+    } catch (error) {
+        console.error('[Payment] Subscription status error:', error);
+        res.status(500).json({ success: false, error: 'Failed to get subscription status' });
     }
 });
 
