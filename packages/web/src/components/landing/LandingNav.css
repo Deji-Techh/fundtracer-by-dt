@@ -80,6 +80,17 @@
   background: var(--color-bg-hover);
 }
 
+.ios-nav-link.highlight {
+  color: var(--intel-cyan);
+  background: rgba(56, 189, 248, 0.1);
+  font-weight: 600;
+}
+
+.ios-nav-link.highlight:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--intel-cyan);
+}
+
 .ios-nav-actions {
   display: flex;
   align-items: center;

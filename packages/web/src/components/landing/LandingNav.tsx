@@ -22,6 +22,7 @@ export function LandingNav() {
     { href: '/pricing', label: 'Pricing' },
     { href: '/how-it-works', label: 'How It Works' },
     { href: '/faq', label: 'FAQ' },
+    { href: '/api', label: 'API', highlight: true },
   ];
 
   return (
@@ -54,7 +55,7 @@ export function LandingNav() {
             <motion.a
               key={link.href}
               href={link.href}
-              className="ios-nav-link"
+              className={`ios-nav-link ${link.highlight ? 'highlight' : ''}`}
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}

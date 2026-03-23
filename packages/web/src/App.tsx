@@ -18,6 +18,7 @@ const InstallPage = lazy(() => import('./pages/InstallPage').then(m => ({ defaul
 const TelegramPage = lazy(() => import('./pages/TelegramPage').then(m => ({ default: m.TelegramPage })));
 const AuthPage = lazy(() => import('./pages/AuthPage').then(m => ({ default: m.AuthPage })));
 const CliPage = lazy(() => import('./pages/CliPage').then(m => ({ default: m.CliPage })));
+const ApiPage = lazy(() => import('./pages/ApiPage').then(m => ({ default: m.ApiPage })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -86,6 +87,7 @@ function App() {
       <Route path="/ext-install" element={<Suspense fallback={null}><InstallPage /></Suspense>} />
       <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
       <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
+      <Route path="/api" element={<Suspense fallback={null}><ApiPage /></Suspense>} />
       <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
       <Route path="/app-evm/*" element={
         <ProtectedRoute>
