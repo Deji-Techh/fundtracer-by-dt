@@ -465,7 +465,7 @@ createTelegramBot().catch(err => {
 const frontendApiRoutes = ['/api/keys', '/api/docs'];
 
 // Fallback for SPA routing - MUST BE LAST
-app.get('*', (req, res) => {
+app.all('*', (req, res) => {
     // Serve SPA for non-API routes OR for specific frontend routes that start with /api
     const isFrontendApiRoute = frontendApiRoutes.includes(req.path);
     if (!req.path.startsWith('/api/') || isFrontendApiRoute) {
