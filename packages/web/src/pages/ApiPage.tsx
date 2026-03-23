@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Code, Copy, Check, ExternalLink, Key, Zap, Shield, Database, Clock, GitBranch } from 'lucide-react';
+import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './ApiPage.css';
+
+const navItems = [
+  { label: 'About', href: '/about' },
+  { label: 'Features', href: '/features' },
+  { label: 'Pricing', href: '/pricing' },
+  { label: 'How It Works', href: '/how-it-works' },
+  { label: 'FAQ', href: '/faq' },
+  { label: 'API', href: '/api', active: true },
+  { label: 'CLI', href: '/cli' },
+];
 
 export function ApiPage() {
   const [copied, setCopied] = useState<string | null>(null);
@@ -83,6 +94,7 @@ response = requests.get(
   ];
 
   return (
+    <LandingLayout navItems={navItems} showSearch={false}>
     <div className="api-page">
       <div className="api-container">
         <motion.div 
@@ -642,6 +654,7 @@ wallet = ft.address.get('ethereum', '0x742d35...')`, 'python-sdk')}
         </motion.div>
       </div>
     </div>
+    </LandingLayout>
   );
 }
 

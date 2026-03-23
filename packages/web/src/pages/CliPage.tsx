@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Users, GitBranch, BarChart2, Check } from 'lucide-react';
+import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './CliPage.css';
+
+const navItems = [
+  { label: 'About', href: '/about' },
+  { label: 'Features', href: '/features' },
+  { label: 'Pricing', href: '/pricing' },
+  { label: 'How It Works', href: '/how-it-works' },
+  { label: 'FAQ', href: '/faq' },
+  { label: 'API', href: '/api' },
+  { label: 'CLI', href: '/cli', active: true },
+];
 
 export function CliPage() {
   const [copied, setCopied] = useState(false);
@@ -13,6 +24,7 @@ export function CliPage() {
   };
 
   return (
+    <LandingLayout navItems={navItems} showSearch={false}>
     <div className="cli-page">
       <div className="cli-container">
         <motion.div 
@@ -183,6 +195,7 @@ export function CliPage() {
         </motion.div>
       </div>
     </div>
+    </LandingLayout>
   );
 }
 

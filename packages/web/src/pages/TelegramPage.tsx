@@ -22,9 +22,11 @@ const SecureIcon = () => <Lock size={24} />;
 const navItems = [
   { label: 'About', href: '/about' },
   { label: 'Features', href: '/features' },
-  { label: 'How It Works', href: '/how-it-works' },
   { label: 'Pricing', href: '/pricing' },
+  { label: 'How It Works', href: '/how-it-works' },
   { label: 'FAQ', href: '/faq' },
+  { label: 'API', href: '/api' },
+  { label: 'CLI', href: '/cli' },
 ];
 
 export function TelegramPage() {

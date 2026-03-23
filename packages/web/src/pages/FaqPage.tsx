@@ -12,9 +12,11 @@ import './FaqPage.css';
 const navItems = [
   { label: 'About', href: '/about' },
   { label: 'Features', href: '/features' },
-  { label: 'How It Works', href: '/how-it-works' },
   { label: 'Pricing', href: '/pricing' },
+  { label: 'How It Works', href: '/how-it-works' },
   { label: 'FAQ', href: '/faq', active: true },
+  { label: 'API', href: '/api' },
+  { label: 'CLI', href: '/cli' },
 ];
 
 const faqCategories = [
