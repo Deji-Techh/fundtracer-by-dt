@@ -468,7 +468,6 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
               </div>
             </div>
           )}
-                </div>
 
           {activeTab === 'sdks' && (
             <div className="api-section" id="sdks">
@@ -669,6 +668,7 @@ wallet = ft.address.get('ethereum', '0x742d35...')`, 'python-sdk')}
           )}
         </motion.div>
       </div>
+    </div>
     </LandingLayout>
   );
 }
