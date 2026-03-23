@@ -24,6 +24,11 @@ import {
   query,
   orderBy 
 } from 'firebase/firestore';
+import {
+  applyActionCode,
+  confirmPasswordReset,
+  sendPasswordResetEmail
+} from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -193,6 +198,27 @@ export const deleteApiKey = async (userId: string, keyId: string): Promise<void>
 
 export const getCurrentUserId = (): string | null => {
   return auth?.currentUser?.uid || null;
+};
+
+// Email Action Handlers
+export const handleVerifyEmail = async (oobCode: string): Promise<void> => {
+  if (!auth) throw new Error('Firebase not initialized');
+  await applyActionCode(auth, oobCode);
+};
+
+export const handlePasswordReset = async (oobCode: string, newPassword: string): Promise<void> => {
+  if (!auth) throw new Error('Firebase not initialized');
+  await confirmPasswordReset(auth, oobCode, newPassword);
+};
+
+export const handleRecoverEmail = async (oobCode: string): Promise<void> => {
+  if (!auth) throw new Error('Firebase not initialized');
+  await applyActionCode(auth, oobCode);
+};
+
+export const sendPasswordReset = async (email: string): Promise<void> => {
+  if (!auth) throw new Error('Firebase not initialized');
+  await sendPasswordResetEmail(auth, email);
 };
 
 export { app, auth, db };
