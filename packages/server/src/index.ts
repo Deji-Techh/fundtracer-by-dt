@@ -454,18 +454,18 @@ createTelegramBot().catch(err => {
 
 // Fallback for SPA routing - MUST BE LAST
 app.get('*', (req, res) => {
-    console.log('[DEBUG] Fallback handler hit for path:', req.path);
-    if (req.path.startsWith('/api/') || req.path === '/api') {
-        console.log('[DEBUG] API route not found, serving SPA anyway');
+    // Only serve SPA for non-API routes
+    if (!req.path.startsWith('/api')) {
+        const indexPath = path.join(webDistPath, 'index.html');
+        res.sendFile(indexPath, (err) => {
+            if (err) {
+                console.error('[DEBUG] Failed to serve index.html:', err);
+                res.status(500).send('Failed to load application');
+            }
+        });
+    } else {
+        res.status(404).json({ error: 'API endpoint not found' });
     }
-    const indexPath = path.join(webDistPath, 'index.html');
-    console.log('[DEBUG] Serving SPA fallback:', indexPath);
-    res.sendFile(indexPath, (err) => {
-        if (err) {
-            console.error('[DEBUG] Failed to serve index.html:', err);
-            res.status(500).send('Failed to load application. Check server logs.');
-        }
-    });
 });
 
 // Error handler
