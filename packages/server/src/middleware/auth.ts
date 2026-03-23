@@ -50,6 +50,10 @@ export async function authMiddleware(
     }
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        // Check if API key middleware already authenticated the user
+        if (req.user) {
+            return next();
+        }
         return res.status(401).json({ error: 'No authentication token provided' });
     }
 
