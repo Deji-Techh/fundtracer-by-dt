@@ -23,7 +23,7 @@ export function Footer() {
       { label: 'Telegram Bot', href: 'https://fundtracer.xyz/telegram' },
     ],
     resources: [
-      { label: 'API Documentation', href: '/api-docs' },
+      { label: 'API Documentation', href: '/api/docs' },
       { label: 'CLI', href: '/cli' },
       { label: 'GitHub', url: 'https://github.com/Deji-Tech' },
     ],

@@ -25,63 +25,118 @@ export function ApiPage() {
   };
 
   const codeExamples: Record<string, { curl: string; js: string; python: string }> = {
-    address: {
-      curl: `curl -X GET "https://api.fundtracer.xyz/v1/address/ethereum/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1" \\
-  -H "Authorization: Bearer ft_live_YOUR_API_KEY"`,
+    wallet: {
+      curl: `curl -X POST "https://fundtracer.xyz/api/analyze/wallet" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
+  -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum"}'`,
       js: `const response = await fetch(
-  'https://api.fundtracer.xyz/v1/address/ethereum/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+  'https://fundtracer.xyz/api/analyze/wallet',
   {
+    method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       'Authorization': 'Bearer ft_live_YOUR_API_KEY'
-    }
+    },
+    body: JSON.stringify({
+      address: '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+      chain: 'ethereum'
+    })
   }
 );
 const data = await response.json();`,
       python: `import requests
 
-response = requests.get(
-    'https://api.fundtracer.xyz/v1/address/ethereum/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
-    headers={'Authorization': 'Bearer ft_live_YOUR_API_KEY'}
+response = requests.post(
+    'https://fundtracer.xyz/api/analyze/wallet',
+    headers={
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ft_live_YOUR_API_KEY'
+    },
+    json={
+        'address': '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+        'chain': 'ethereum'
+    }
 )
 data = response.json()`,
     },
-    transactions: {
-      curl: `curl -X GET "https://api.fundtracer.xyz/v1/address/ethereum/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1/transactions?page=1&limit=50" \\
-  -H "Authorization: Bearer ft_live_YOUR_API_KEY"`,
+    fundingTree: {
+      curl: `curl -X POST "https://fundtracer.xyz/api/analyze/funding-tree" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
+  -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum", "options": {"treeConfig": {"maxDepth": 3}}}"'`,
       js: `const response = await fetch(
-  'https://api.fundtracer.xyz/v1/address/ethereum/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1/transactions?page=1&limit=50',
+  'https://fundtracer.xyz/api/analyze/funding-tree',
   {
+    method: 'POST',
     headers: {
+      'Content-Type': 'application/json',
       'Authorization': 'Bearer ft_live_YOUR_API_KEY'
-    }
-  }
-);`,
-      python: `import requests
-
-response = requests.get(
-    'https://api.fundtracer.xyz/v1/address/ethereum/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1/transactions',
-    params={'page': 1, 'limit': 50},
-    headers={'Authorization': 'Bearer ft_live_YOUR_API_KEY'}
-)`,
     },
-    graph: {
-      curl: `curl -X GET "https://api.fundtracer.xyz/v1/address/ethereum/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1/graph?hops=2" \\
-  -H "Authorization: Bearer ft_live_YOUR_API_KEY"`,
-      js: `const response = await fetch(
-  'https://api.fundtracer.xyz/v1/address/ethereum/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1/graph?hops=2',
-  {
-    headers: {
-      'Authorization': 'Bearer ft_live_YOUR_API_KEY'
-    }
+    body: JSON.stringify({
+      address: '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+      chain: 'ethereum',
+      options: { treeConfig: { maxDepth: 3 } }
+    })
   }
-);`,
+);
+const data = await response.json();`,
       python: `import requests
 
-response = requests.get(
-    'https://api.fundtracer.xyz/v1/address/ethereum/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1/graph',
-    params={'hops': 2},
-    headers={'Authorization': 'Bearer ft_live_YOUR_API_KEY'}
-)`,
+response = requests.post(
+    'https://fundtracer.xyz/api/analyze/funding-tree',
+    headers={
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ft_live_YOUR_API_KEY'
+    },
+    json={
+        'address': '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+        'chain': 'ethereum',
+        'options': {'treeConfig': {'maxDepth': 3}}
+    }
+)
+data = response.json()`,
+    },
+    compare: {
+      curl: `curl -X POST "https://fundtracer.xyz/api/analyze/compare" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
+  -d '{"addresses": ["0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"], "chain": "ethereum"}'`,
+      js: `const response = await fetch(
+  'https://fundtracer.xyz/api/analyze/compare',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ft_live_YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      addresses: [
+        '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+        '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
+      ],
+      chain: 'ethereum'
+    })
+  }
+);
+const data = await response.json();`,
+      python: `import requests
+
+response = requests.post(
+    'https://fundtracer.xyz/api/analyze/compare',
+    headers={
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ft_live_YOUR_API_KEY'
+    },
+    json={
+        'addresses': [
+            '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+            '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
+        ],
+        'chain': 'ethereum'
+    }
+)
+data = response.json()`,
     },
   };
 
@@ -117,8 +172,9 @@ response = requests.get(
               <Key size={18} />
               Get API Key
             </a>
-            <a href="/api-docs#endpoints" className="api-btn secondary">
-              View Documentation
+            <a href="/api/docs" className="api-btn secondary" target="_blank" rel="noopener noreferrer">
+              <ExternalLink size={18} />
+              Full Documentation
             </a>
           </div>
         </motion.div>
@@ -175,10 +231,10 @@ response = requests.get(
               <div className="api-base-url">
                 <h3>Base URL</h3>
                 <div className="api-code-block">
-                  <code>https://api.fundtracer.xyz/v1</code>
+                  <code>https://fundtracer.xyz/api</code>
                   <button 
                     className="api-copy-btn"
-                    onClick={() => handleCopy('https://api.fundtracer.xyz/v1', 'base-url')}
+                    onClick={() => handleCopy('https://fundtracer.xyz/api', 'base-url')}
                   >
                     {copied === 'base-url' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
                   </button>
@@ -264,173 +320,155 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
           {activeTab === 'endpoints' && (
             <div className="api-section" id="endpoints">
               <h2>API Endpoints</h2>
+              <p className="api-intro">
+                All endpoints require authentication. Base URL: <code>https://fundtracer.xyz/api</code>
+              </p>
 
               <div className="api-endpoints">
                 <div className="api-endpoint">
                   <div className="endpoint-header">
-                    <span className="method get">GET</span>
-                    <code>/v1/address/{'{chain}'}/{'{address}'}</code>
+                    <span className="method post">POST</span>
+                    <code>/analyze/wallet</code>
                   </div>
-                  <p>Get wallet information including balance, transaction count, risk score, and labels.</p>
-                  <div className="endpoint-try">
-                    <span className="param">chain</span>
-                    <span className="param-desc">ethereum, linea, arbitrum, etc.</span>
+                  <p>Get comprehensive wallet analysis including balance, transactions, risk score, and labels.</p>
+                  <div className="endpoint-params">
                     <span className="param">address</span>
                     <span className="param-desc">Wallet address (0x...)</span>
-                  </div>
-                  <div className="endpoint-example">
-                    <h4>Example Request</h4>
-                    <div className="code-tabs">
-                      <div className="code-tabs-header">
-                        <button className="code-tab active">cURL</button>
-                        <button className="code-tab">JavaScript</button>
-                        <button className="code-tab">Python</button>
-                      </div>
-                      <div className="code-tabs-content">
-                        <div className="code-content active">
-                          <div className="api-code-block">
-                            <pre><code>{codeExamples.address.curl}</code></pre>
-                            <button 
-                              className="api-copy-btn"
-                              onClick={() => handleCopy(codeExamples.address.curl, 'address-curl')}
-                            >
-                              {copied === 'address-curl' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="api-endpoint">
-                  <div className="endpoint-header">
-                    <span className="method get">GET</span>
-                    <code>/v1/address/{'{chain}'}/{'{address}'}/transactions</code>
-                  </div>
-                  <p>Get paginated transaction history for a wallet address.</p>
-                  <div className="endpoint-params">
-                    <span className="param">page</span>
-                    <span className="param-desc">Page number (default: 1)</span>
-                    <span className="param">limit</span>
-                    <span className="param-desc">Items per page (default: 50, max: 100)</span>
+                    <span className="param">chain</span>
+                    <span className="param-desc">ethereum, linea, arbitrum, base, optimism, polygon, bsc</span>
                   </div>
                   <div className="endpoint-example">
                     <h4>Example Request</h4>
                     <div className="api-code-block">
-                      <pre><code>{codeExamples.transactions.curl}</code></pre>
+                      <pre><code>{codeExamples.wallet.curl}</code></pre>
                       <button 
                         className="api-copy-btn"
-                        onClick={() => handleCopy(codeExamples.transactions.curl, 'tx-curl')}
+                        onClick={() => handleCopy(codeExamples.wallet.curl, 'wallet-curl')}
                       >
-                        {copied === 'tx-curl' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+                        {copied === 'wallet-curl' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
                       </button>
                     </div>
                   </div>
-                </div>
-
-                <div className="api-endpoint">
-                  <div className="endpoint-header">
-                    <span className="method get">GET</span>
-                    <code>/v1/address/{'{chain}'}/{'{address}'}/graph</code>
-                  </div>
-                  <p>Get funding flow graph showing sources and destinations.</p>
-                  <div className="endpoint-params">
-                    <span className="param">hops</span>
-                    <span className="param-desc">Number of hops to trace (1-5)</span>
-                    <span className="param">minValue</span>
-                    <span className="param-desc">Minimum transaction value in ETH</span>
-                  </div>
-                  <div className="endpoint-example">
-                    <h4>Example Request</h4>
-                    <div className="api-code-block">
-                      <pre><code>{codeExamples.graph.curl}</code></pre>
-                      <button 
-                        className="api-copy-btn"
-                        onClick={() => handleCopy(codeExamples.graph.curl, 'graph-curl')}
-                      >
-                        {copied === 'graph-curl' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="api-endpoint">
-                  <div className="endpoint-header">
-                    <span className="method get">GET</span>
-                    <code>/v1/address/{'{chain}'}/{'{address}'}/tokens</code>
-                  </div>
-                  <p>Get token balances for a wallet address.</p>
-                </div>
-
-                <div className="api-endpoint">
-                  <div className="endpoint-header">
-                    <span className="method get">GET</span>
-                    <code>/v1/address/{'{chain}'}/{'{address}'}/risk</code>
-                  </div>
-                  <p>Get risk score and privacy analysis for a wallet.</p>
-                </div>
-
-                <div className="api-endpoint">
-                  <div className="endpoint-header">
-                    <span className="method get">GET</span>
-                    <code>/v1/address/{'{chain}'}/{'{address}'}/entities</code>
-                  </div>
-                  <p>Get detected entity labels (exchanges, protocols, etc.).</p>
                 </div>
 
                 <div className="api-endpoint">
                   <div className="endpoint-header">
                     <span className="method post">POST</span>
-                    <code>/v1/analyze</code>
+                    <code>/analyze/funding-tree</code>
                   </div>
-                  <p>Submit an async deep analysis job for a wallet.</p>
+                  <p>Get funding flow graph showing sources and destinations of funds.</p>
+                  <div className="endpoint-params">
+                    <span className="param">address</span>
+                    <span className="param-desc">Wallet address to trace</span>
+                    <span className="param">chain</span>
+                    <span className="param-desc">Blockchain network</span>
+                    <span className="param">options.treeConfig.maxDepth</span>
+                    <span className="param-desc">Trace depth (1-5)</span>
+                  </div>
+                  <div className="endpoint-example">
+                    <h4>Example Request</h4>
+                    <div className="api-code-block">
+                      <pre><code>{codeExamples.fundingTree.curl}</code></pre>
+                      <button 
+                        className="api-copy-btn"
+                        onClick={() => handleCopy(codeExamples.fundingTree.curl, 'tree-curl')}
+                      >
+                        {copied === 'tree-curl' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="api-endpoint">
                   <div className="endpoint-header">
-                    <span className="method get">GET</span>
-                    <code>/v1/health</code>
+                    <span className="method post">POST</span>
+                    <code>/analyze/compare</code>
                   </div>
-                  <p>Check API health status (no authentication required).</p>
+                  <p>Compare multiple wallets to find shared interactions and connections.</p>
+                  <div className="endpoint-params">
+                    <span className="param">addresses</span>
+                    <span className="param-desc">Array of wallet addresses (2-10)</span>
+                    <span className="param">chain</span>
+                    <span className="param-desc">Blockchain network</span>
+                  </div>
+                  <div className="endpoint-example">
+                    <h4>Example Request</h4>
+                    <div className="api-code-block">
+                      <pre><code>{codeExamples.compare.curl}</code></pre>
+                      <button 
+                        className="api-copy-btn"
+                        onClick={() => handleCopy(codeExamples.compare.curl, 'compare-curl')}
+                      >
+                        {copied === 'compare-curl' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="api-response-format">
-                <h3>Response Format</h3>
-                <p>All responses follow a consistent JSON structure:</p>
-                <div className="api-code-block">
-                  <pre><code>{`{
-  "success": true,
-  "data": { ... },
-  "meta": {
-    "rateLimit": {
-      "remaining": 94,
-      "reset": 1640000060
-    },
-    "executionTime": "45ms"
-  }
-}`}</code></pre>
-                  <button 
-                    className="api-copy-btn"
-                    onClick={() => handleCopy(`{
-  "success": true,
-  "data": { ... },
-  "meta": {
-    "rateLimit": {
-      "remaining": 94,
-      "reset": 1640000060
-    },
-    "executionTime": "45ms"
-  }
-}`, 'response-format')}
-                  >
-                    {copied === 'response-format' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
-                  </button>
+                <div className="api-endpoint">
+                  <div className="endpoint-header">
+                    <span className="method post">POST</span>
+                    <code>/analyze/sybil</code>
+                  </div>
+                  <p>Detect Sybil attack patterns and coordinated behavior.</p>
+                  <div className="endpoint-params">
+                    <span className="param">address</span>
+                    <span className="param-desc">Contract or wallet address</span>
+                    <span className="param">chain</span>
+                    <span className="param-desc">Blockchain network</span>
+                  </div>
                 </div>
+
+                <div className="api-endpoint">
+                  <div className="endpoint-header">
+                    <span className="method post">POST</span>
+                    <code>/analyze/contract</code>
+                  </div>
+                  <p>Analyze smart contracts and their interactions.</p>
+                  <div className="endpoint-params">
+                    <span className="param">contractAddress</span>
+                    <span className="param-desc">Contract address</span>
+                    <span className="param">chain</span>
+                    <span className="param-desc">Blockchain network</span>
+                  </div>
+                </div>
+
+                <div className="api-endpoint">
+                  <div className="endpoint-header">
+                    <span className="method post">POST</span>
+                    <code>/contracts/info</code>
+                  </div>
+                  <p>Look up contract information and metadata.</p>
+                  <div className="endpoint-params">
+                    <span className="param">address</span>
+                    <span className="param-desc">Contract address</span>
+                    <span className="param">chain</span>
+                    <span className="param-desc">Blockchain network</span>
+                  </div>
+                </div>
+
+                <div className="api-endpoint">
+                  <div className="endpoint-header">
+                    <span className="method post">POST</span>
+                    <code>/market/tokens</code>
+                  </div>
+                  <p>Get token price and market data.</p>
+                  <div className="endpoint-params">
+                    <span className="param">address</span>
+                    <span className="param-desc">Token contract address</span>
+                    <span className="param">chain</span>
+                    <span className="param-desc">Blockchain network</span>
+                  </div>
+                </div>
+
+                <a href="/api/docs" className="api-full-docs-link" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink size={18} />
+                  View Full Documentation
+                </a>
               </div>
             </div>
           )}
+                </div>
 
           {activeTab === 'sdks' && (
             <div className="api-section" id="sdks">
@@ -630,30 +668,7 @@ wallet = ft.address.get('ethereum', '0x742d35...')`, 'python-sdk')}
             </div>
           )}
         </motion.div>
-
-        <motion.div 
-          className="api-footer"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <div className="api-footer-content">
-            <h3>Get Started Today</h3>
-            <p>Start building with the FundTracer API. No credit card required for free tier.</p>
-            <div className="api-footer-actions">
-              <a href="/api/keys" className="api-btn primary">
-                <Key size={18} />
-                Create API Key
-              </a>
-              <a href="/api-docs#endpoints" className="api-btn secondary">
-                <ExternalLink size={18} />
-                Full Documentation
-              </a>
-            </div>
-          </div>
-        </motion.div>
       </div>
-    </div>
     </LandingLayout>
   );
 }

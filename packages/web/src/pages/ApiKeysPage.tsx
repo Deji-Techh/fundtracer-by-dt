@@ -367,7 +367,7 @@ export function ApiKeysPage() {
               <h2>Documentation</h2>
               <p>Learn how to integrate FundTracer API into your applications</p>
               <div className="doc-links">
-                <a href="/api-docs#endpoints" className="doc-link">
+                <a href="/api/docs" className="doc-link" target="_blank" rel="noopener noreferrer">
                   <div className="doc-link-icon">
                     <ExternalLink size={20} />
                   </div>
