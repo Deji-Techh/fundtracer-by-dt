@@ -87,7 +87,7 @@ function App() {
       <Route path="/ext-install" element={<Suspense fallback={null}><InstallPage /></Suspense>} />
       <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
       <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
-      <Route path="/api" element={<Suspense fallback={null}><ApiPage /></Suspense>} />
+      <Route path="/api-docs" element={<Suspense fallback={null}><ApiPage /></Suspense>} />
       <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
       <Route path="/app-evm/*" element={
         <ProtectedRoute>

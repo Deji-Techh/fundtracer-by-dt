@@ -22,7 +22,7 @@ export function LandingNav() {
     { href: '/pricing', label: 'Pricing' },
     { href: '/how-it-works', label: 'How It Works' },
     { href: '/faq', label: 'FAQ' },
-    { href: '/api', label: 'API', highlight: true },
+    { href: '/api-docs', label: 'API', highlight: true },
   ];
 
   return (

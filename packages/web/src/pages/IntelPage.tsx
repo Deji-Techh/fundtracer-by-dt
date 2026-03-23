@@ -230,7 +230,7 @@ export function IntelPage() {
     { label: 'Pricing', href: '/pricing' },
     { label: 'How It Works', href: '/how-it-works' },
     { label: 'FAQ', href: '/faq' },
-    { label: 'API', href: '/api' },
+    { label: 'API', href: '/api-docs' },
     { label: 'CLI', href: '/cli' },
     { label: 'About', href: '/about' },
   ];

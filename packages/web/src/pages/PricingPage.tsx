@@ -15,7 +15,7 @@ const navItems = [
   { label: 'Pricing', href: '/pricing', active: true },
   { label: 'How It Works', href: '/how-it-works' },
   { label: 'FAQ', href: '/faq' },
-  { label: 'API', href: '/api' },
+  { label: 'API', href: '/api-docs' },
   { label: 'CLI', href: '/cli' },
 ];
 
