@@ -49,8 +49,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     commonjsOptions: {
       transformMixedEsModules: true,
+      include: [/node_modules/],
     },
     rollupOptions: {
+      external: ['@privy-io/react-auth'],
       output: {
         manualChunks: {
           'vendor': ['react', 'react-dom'],
