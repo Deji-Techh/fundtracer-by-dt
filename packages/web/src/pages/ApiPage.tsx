@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Code, Copy, Check, ExternalLink, Key, Zap, Shield, Database, Clock, GitBranch } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Code, Copy, Check, ExternalLink, Key, Zap, Shield, Database, Clock, GitBranch, X, Send, AlertCircle } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './ApiPage.css';
 
@@ -17,6 +17,67 @@ const navItems = [
 export function ApiPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
+  const [contactError, setContactError] = useState('');
+  const [contactForm, setContactForm] = useState({ name: '', company: '', email: '', message: '' });
+  const [proLoading, setProLoading] = useState(false);
+
+  const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setContactForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setContactError('');
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name || !contactForm.email || !contactForm.message) {
+      setContactError('Please fill in all required fields');
+      return;
+    }
+    setContactLoading(true);
+    setContactError('');
+    try {
+      const res = await fetch('/api/contact/sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setContactSuccess(true);
+        setContactForm({ name: '', company: '', email: '', message: '' });
+      } else {
+        setContactError(data.error || 'Failed to send message');
+      }
+    } catch {
+      setContactError('Failed to send message. Please try again.');
+    } finally {
+      setContactLoading(false);
+    }
+  };
+
+  const handleProCheckout = async () => {
+    setProLoading(true);
+    try {
+      const res = await fetch('/api/payment/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ tier: 'pro' }),
+      });
+      const data = await res.json();
+      if (data.success && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        alert(data.error || 'Failed to start checkout. Please try again.');
+      }
+    } catch {
+      alert('Failed to start checkout. Please try again.');
+    } finally {
+      setProLoading(false);
+    }
+  };
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -149,8 +210,9 @@ data = response.json()`,
   ];
 
   return (
-    <LandingLayout navItems={navItems} showSearch={false}>
-    <div className="api-page">
+    <>
+      <LandingLayout navItems={navItems} showSearch={false}>
+        <div className="api-page">
       <div className="api-container">
         <motion.div 
           className="api-header"
@@ -561,7 +623,7 @@ const { data: tree } = await ft.getFundingTree(
                 <div className="api-pricing-tier featured">
                   <div className="tier-badge">Most Popular</div>
                   <h3>Pro</h3>
-                  <div className="tier-price">$25<span>/month</span></div>
+                  <div className="tier-price">$15<span>/month</span></div>
                   <ul className="tier-features">
                     <li><Check size={16} /> 10,000 requests/day</li>
                     <li><Check size={16} /> 60 requests/minute</li>
@@ -569,7 +631,13 @@ const { data: tree } = await ft.getFundingTree(
                     <li><Check size={16} /> Graph & analysis</li>
                     <li><Check size={16} /> Priority support</li>
                   </ul>
-                  <a href="/api/keys?plan=pro" className="api-btn primary">Get Pro Key</a>
+                  <button
+                    className="api-btn primary"
+                    onClick={handleProCheckout}
+                    disabled={proLoading}
+                  >
+                    {proLoading ? 'Loading...' : 'Get Pro Key'}
+                  </button>
                 </div>
 
                 <div className="api-pricing-tier">
@@ -582,7 +650,12 @@ const { data: tree } = await ft.getFundingTree(
                     <li><Check size={16} /> Dedicated support</li>
                     <li><Check size={16} /> SLA guarantee</li>
                   </ul>
-                  <a href="/contact" className="api-btn secondary">Contact Sales</a>
+                  <button
+                    className="api-btn secondary"
+                    onClick={() => setShowContactModal(true)}
+                  >
+                    Contact Sales
+                  </button>
                 </div>
               </div>
 
@@ -624,7 +697,112 @@ const { data: tree } = await ft.getFundingTree(
         </motion.div>
       </div>
     </div>
+
+      <AnimatePresence>
+        {showContactModal && (
+          <motion.div
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(e: React.MouseEvent) => { if (e.target === e.currentTarget) setShowContactModal(false); }}
+          >
+            <motion.div
+              className="contact-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="contact-modal__header">
+                <h2>Contact Sales</h2>
+                <button className="contact-modal__close" onClick={() => setShowContactModal(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              {contactSuccess ? (
+                <div className="contact-modal__success">
+                  <div className="success-icon"><Check size={32} /></div>
+                  <h3>Message Sent!</h3>
+                  <p>We'll be in touch with you shortly.</p>
+                  <button className="api-btn primary" onClick={() => { setShowContactModal(false); setContactSuccess(false); }}>
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <form className="contact-modal__form" onSubmit={handleContactSubmit}>
+                  <div className="form-group">
+                    <label htmlFor="name">Name <span className="required">*</span></label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={contactForm.name}
+                      onChange={handleContactChange}
+                      placeholder="John Doe"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="company">Company</label>
+                    <input
+                      type="text"
+                      id="company"
+                      name="company"
+                      value={contactForm.company}
+                      onChange={handleContactChange}
+                      placeholder="Acme Corp (optional)"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="email">Email <span className="required">*</span></label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={contactForm.email}
+                      onChange={handleContactChange}
+                      placeholder="john@acme.com"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="message">How can we help? <span className="required">*</span></label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      value={contactForm.message}
+                      onChange={handleContactChange}
+                      placeholder="Tell us about your use case, expected volume, and any specific requirements..."
+                      rows={4}
+                      required
+                    />
+                  </div>
+                  {contactError && (
+                    <div className="form-error">
+                      <AlertCircle size={16} />
+                      {contactError}
+                    </div>
+                  )}
+                  <button type="submit" className="api-btn primary submit-btn" disabled={contactLoading}>
+                    {contactLoading ? (
+                      'Sending...'
+                    ) : (
+                      <>
+                        <Send size={16} />
+                        Send Message
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </LandingLayout>
+    </>
   );
 }
 

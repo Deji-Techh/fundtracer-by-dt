@@ -144,6 +144,21 @@
   color: var(--intel-text-muted);
 }
 
+.pricing-tier__original-price {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--intel-text-muted);
+  text-decoration: line-through;
+}
+
+.pricing-tier__amount--free {
+  color: var(--intel-green);
+}
+
+.pricing-tier__free-badge {
+  margin-left: var(--space-2);
+}
+
 .pricing-tier__description {
   font-size: var(--text-sm);
   color: var(--intel-text-secondary);

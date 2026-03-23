@@ -77,6 +77,7 @@ import { userRoutes } from './routes/user.js';
 import { duneRoutes } from './routes/dune.js';
 import contractRoutes from './routes/contracts.js';
 import paymentRoutes from './routes/payment.js';
+import contactRoutes from './routes/contact.js';
 import { PaymentListener } from './services/PaymentListener.js';
 import contractService from './services/ContractService.js';
 
@@ -390,6 +391,7 @@ apiRouter.use('/user', authMiddleware, userRoutes);
 apiRouter.use('/auth', authLimiter, authRoutes); // Public auth route with stricter rate limiting
 apiRouter.use('/contracts', publicLimiter, contractRoutes); // Public contract lookup with rate limiting
 apiRouter.use('/payment', publicLimiter, paymentRoutes); // Payment verification with rate limiting
+apiRouter.use('/contact', publicLimiter, contactRoutes); // Contact/sales form
 apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
 apiRouter.use('/dune', authMiddleware, duneRoutes);
 import { trackingRoutes } from './routes/tracking.js';

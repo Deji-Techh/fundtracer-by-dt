@@ -38,11 +38,12 @@ const tiers = [
     ],
     cta: 'Get Started',
     popular: false,
+    isFree: true,
   },
   {
     name: 'Pro',
     price: '$15',
-    originalPrice: '',
+    originalPrice: '$15',
     period: '/month',
     description: 'Most popular for researchers',
     badge: 'Most Popular',
@@ -57,11 +58,12 @@ const tiers = [
     ],
     cta: 'Get Started',
     popular: true,
+    isFree: true,
   },
   {
     name: 'Max',
     price: '$25',
-    originalPrice: '',
+    originalPrice: '$25',
     period: '/month',
     description: 'For unlimited power users',
     badge: null,
@@ -76,6 +78,7 @@ const tiers = [
     ],
     cta: 'Go Unlimited',
     popular: false,
+    isFree: true,
   },
 ];
 
@@ -119,32 +122,8 @@ export function PricingPage() {
       return;
     }
 
-    if (!isAuthenticated) {
-      navigate(`/auth?mode=signup&redirect=/pricing&tier=${tier}`);
-      return;
-    }
-
-    setLoadingTier(tier);
-    try {
-      const response = await fetch('/api/payment/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ tier })
-      });
-
-      const data = await response.json();
-      if (data.success && data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else {
-        alert(data.error || 'Failed to create checkout. Please try again.');
-      }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Failed to create checkout. Please try again.');
-    } finally {
-      setLoadingTier(null);
-    }
+    // For now, all tiers are free - just navigate to app
+    navigate(isAuthenticated ? '/app-evm' : '/auth?mode=signup');
   };
 
   return (
@@ -182,11 +161,18 @@ export function PricingPage() {
                 <div className="pricing-tier__header">
                   <h3 className="pricing-tier__name">{tier.name}</h3>
                   <div className="pricing-tier__price">
-                    {tier.originalPrice && (
-                      <span className="pricing-tier__original-price">{tier.originalPrice}</span>
+                    {tier.isFree ? (
+                      <>
+                        <span className="pricing-tier__original-price">{tier.originalPrice}</span>
+                        <span className="pricing-tier__amount pricing-tier__amount--free">FREE</span>
+                        <Badge variant="success" size="xs" className="pricing-tier__free-badge">FREE</Badge>
+                      </>
+                    ) : (
+                      <>
+                        <span className="pricing-tier__amount">{tier.price}</span>
+                        <span className="pricing-tier__period">{tier.period}</span>
+                      </>
                     )}
-                    <span className="pricing-tier__amount">{tier.price}</span>
-                    <span className="pricing-tier__period">{tier.period}</span>
                   </div>
                   <p className="pricing-tier__description">{tier.description}</p>
                 </div>
