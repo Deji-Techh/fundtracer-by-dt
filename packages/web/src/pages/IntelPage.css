@@ -5,6 +5,39 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
+   WATERMARK (Arkham-style)
+   ───────────────────────────────────────────────────────────── */
+
+.intel-page .view-watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.06;
+}
+
+.intel-page .watermark-logo {
+  width: 500px;
+  height: 500px;
+  object-fit: contain;
+  filter: grayscale(100%) brightness(2);
+}
+
+.intel-page .watermark-text {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  color: var(--intel-text-primary);
+  text-transform: uppercase;
+}
+
+/* ─────────────────────────────────────────────────────────────
    HERO SECTION
    ───────────────────────────────────────────────────────────── */
 

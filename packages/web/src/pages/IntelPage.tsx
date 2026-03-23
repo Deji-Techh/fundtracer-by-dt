@@ -262,6 +262,11 @@ export function IntelPage() {
         </div>
       }
     >
+      {/* Arkham-style Watermark */}
+      <div className="view-watermark">
+        <img src="/logo.png" alt="" className="watermark-logo" />
+        <span className="watermark-text">FUNDTRACER</span>
+      </div>
       <div className="intel-page">
         {/* Hero Section */}
         <section className="intel-hero">
