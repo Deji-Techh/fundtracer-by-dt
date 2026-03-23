@@ -454,8 +454,9 @@ createTelegramBot().catch(err => {
 
 // Fallback for SPA routing - MUST BE LAST
 app.get('*', (req, res) => {
-    if (req.path.startsWith('/api')) {
-        return res.status(404).json({ error: 'API endpoint not found' });
+    console.log('[DEBUG] Fallback handler hit for path:', req.path);
+    if (req.path.startsWith('/api/') || req.path === '/api') {
+        console.log('[DEBUG] API route not found, serving SPA anyway');
     }
     const indexPath = path.join(webDistPath, 'index.html');
     console.log('[DEBUG] Serving SPA fallback:', indexPath);
