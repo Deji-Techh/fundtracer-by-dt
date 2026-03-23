@@ -452,10 +452,14 @@ createTelegramBot().catch(err => {
     console.error('[Server] Failed to initialize Telegram bot:', err);
 });
 
+// Frontend routes that start with /api (must be handled by SPA)
+const frontendApiRoutes = ['/api/keys'];
+
 // Fallback for SPA routing - MUST BE LAST
 app.get('*', (req, res) => {
-    // Only serve SPA for non-API routes
-    if (!req.path.startsWith('/api')) {
+    // Serve SPA for non-API routes OR for specific frontend routes that start with /api
+    const isFrontendApiRoute = frontendApiRoutes.includes(req.path);
+    if (!req.path.startsWith('/api/') || isFrontendApiRoute) {
         const indexPath = path.join(webDistPath, 'index.html');
         res.sendFile(indexPath, (err) => {
             if (err) {
