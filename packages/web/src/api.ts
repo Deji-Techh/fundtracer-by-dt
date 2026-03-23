@@ -162,6 +162,14 @@ export async function loginWithTwitter(idToken: string): Promise<{ token: string
     return data;
 }
 
+export async function loginWithEmail(firebaseToken: string): Promise<{ token: string, user: any }> {
+    const data = await apiRequest<{ token: string, user: any }>('/api/auth/email-login', 'POST', {
+        firebaseToken
+    });
+    setAuthToken(data.token);
+    return data;
+}
+
 export async function linkWalletToGoogle(
     idToken: string,
     address: string,

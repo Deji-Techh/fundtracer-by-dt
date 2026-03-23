@@ -1,5 +1,17 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getAuth, signInWithPopup, signInWithRedirect, GoogleAuthProvider, TwitterAuthProvider, Auth, getRedirectResult } from 'firebase/auth';
+import { 
+  getAuth, 
+  signInWithPopup, 
+  signInWithRedirect, 
+  GoogleAuthProvider, 
+  TwitterAuthProvider, 
+  Auth, 
+  getRedirectResult,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+  UserCredential
+} from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,7 +25,6 @@ const firebaseConfig = {
 let app: FirebaseApp | undefined;
 let auth: Auth | null = null;
 
-// Initialize Firebase only once
 if (firebaseConfig.apiKey && firebaseConfig.projectId) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -28,7 +39,6 @@ if (firebaseConfig.apiKey && firebaseConfig.projectId) {
 const googleProvider = new GoogleAuthProvider();
 const twitterProvider = new TwitterAuthProvider();
 
-// Sign in with redirect (popup blocker safe)
 export const signInWithGoogleRedirect = async (): Promise<void> => {
   if (!auth) throw new Error('Firebase not initialized');
   await signInWithRedirect(auth, googleProvider);
@@ -39,7 +49,6 @@ export const signInWithTwitterRedirect = async (): Promise<void> => {
   await signInWithRedirect(auth, twitterProvider);
 };
 
-// Get redirect result (call after redirect back)
 export const getAuthResult = async (): Promise<string | null> => {
   if (!auth) throw new Error('Firebase not initialized');
   try {
@@ -54,7 +63,6 @@ export const getAuthResult = async (): Promise<string | null> => {
   }
 };
 
-// Fallback to popup (for cases where redirect is not preferred)
 export const signInWithGoogle = async (): Promise<string> => {
   if (!auth) throw new Error('Firebase not initialized');
   const result = await signInWithPopup(auth, googleProvider);
@@ -67,7 +75,6 @@ export const signInWithTwitter = async (): Promise<string> => {
   return result.user.getIdToken();
 };
 
-// Popup variants with different names for clarity
 export const signInWithGooglePopup = async () => {
   if (!auth) throw new Error('Firebase not initialized');
   const result = await signInWithPopup(auth, googleProvider);
@@ -78,6 +85,32 @@ export const signInWithTwitterPopup = async () => {
   if (!auth) throw new Error('Firebase not initialized');
   const result = await signInWithPopup(auth, twitterProvider);
   return result;
+};
+
+export const signUpWithEmail = async (email: string, password: string): Promise<UserCredential> => {
+  if (!auth) throw new Error('Firebase not initialized');
+  const result = await createUserWithEmailAndPassword(auth, email, password);
+  return result;
+};
+
+export const signInWithEmail = async (email: string, password: string): Promise<UserCredential> => {
+  if (!auth) throw new Error('Firebase not initialized');
+  const result = await signInWithEmailAndPassword(auth, email, password);
+  return result;
+};
+
+export const verifyEmail = async (): Promise<void> => {
+  if (!auth?.currentUser) throw new Error('Firebase not initialized');
+  await sendEmailVerification(auth.currentUser);
+};
+
+export const getFirebaseToken = async (): Promise<string | null> => {
+  if (!auth?.currentUser) return null;
+  try {
+    return await auth.currentUser.getIdToken();
+  } catch {
+    return null;
+  }
 };
 
 export { app, auth };

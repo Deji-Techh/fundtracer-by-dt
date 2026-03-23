@@ -117,7 +117,7 @@ response = requests.get(
               <Key size={18} />
               Get API Key
             </a>
-            <a href="#endpoints" className="api-btn secondary">
+            <a href="/api-docs#endpoints" className="api-btn secondary">
               View Documentation
             </a>
           </div>
@@ -197,7 +197,7 @@ response = requests.get(
           )}
 
           {activeTab === 'authentication' && (
-            <div className="api-section">
+            <div className="api-section" id="authentication">
               <h2>Authentication</h2>
               <p className="api-intro">
                 All API requests require authentication using an API key. Include your API key in the Authorization header.
@@ -433,7 +433,7 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
           )}
 
           {activeTab === 'sdks' && (
-            <div className="api-section">
+            <div className="api-section" id="sdks">
               <h2>SDKs & Libraries</h2>
               <p className="api-intro">
                 Official SDKs for easy integration into your projects.
@@ -645,7 +645,7 @@ wallet = ft.address.get('ethereum', '0x742d35...')`, 'python-sdk')}
                 <Key size={18} />
                 Create API Key
               </a>
-              <a href="#endpoints" className="api-btn secondary">
+              <a href="/api-docs#endpoints" className="api-btn secondary">
                 <ExternalLink size={18} />
                 Full Documentation
               </a>

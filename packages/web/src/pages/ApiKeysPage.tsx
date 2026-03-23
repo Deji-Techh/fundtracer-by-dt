@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle, ExternalLink, Code } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './ApiKeysPage.css';
 
@@ -232,6 +232,40 @@ export function ApiKeysPage() {
                 <li>Rotate your keys regularly or immediately if compromised</li>
                 <li>Monitor your API usage for any unexpected activity</li>
               </ul>
+            </div>
+
+            <div className="api-keys-documentation">
+              <h2>Documentation</h2>
+              <p>Learn how to integrate FundTracer API into your applications</p>
+              <div className="doc-links">
+                <a href="/api-docs#endpoints" className="doc-link">
+                  <div className="doc-link-icon">
+                    <ExternalLink size={20} />
+                  </div>
+                  <div className="doc-link-content">
+                    <h3>API Reference</h3>
+                    <p>Explore all available endpoints and parameters</p>
+                  </div>
+                </a>
+                <a href="/api-docs#authentication" className="doc-link">
+                  <div className="doc-link-icon">
+                    <Key size={20} />
+                  </div>
+                  <div className="doc-link-content">
+                    <h3>Authentication</h3>
+                    <p>Learn how to authenticate your API requests</p>
+                  </div>
+                </a>
+                <a href="/api-docs#sdks" className="doc-link">
+                  <div className="doc-link-icon">
+                    <Code size={20} />
+                  </div>
+                  <div className="doc-link-content">
+                    <h3>SDKs & Libraries</h3>
+                    <p>Official SDKs for JavaScript, Python, and more</p>
+                  </div>
+                </a>
+              </div>
             </div>
           </motion.div>
         </div>
