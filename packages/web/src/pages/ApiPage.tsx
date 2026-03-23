@@ -495,14 +495,23 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
 
 const ft = new FundTracerAPI('ft_live_YOUR_API_KEY');
 
-// Get wallet info
-const wallet = await ft.address.get('ethereum', '0x742d35...');
+// Analyze a wallet
+const { data: wallet } = await ft.analyzeWallet(
+  '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+  { chain: 'ethereum', includeTransactions: true }
+);
 
-// Get transactions
-const txs = await ft.address.transactions('ethereum', '0x742d35...');
+// Get funding tree
+const { data: tree } = await ft.getFundingTree(
+  '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+  { chain: 'ethereum', maxDepth: 3 }
+);
 
-// Get funding graph
-const graph = await ft.address.graph('ethereum', '0x742d35...', { hops: 2 });`}</code></pre>
+// Detect Sybil behavior
+const { data: sybil } = await ft.detectSybil(
+  '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+  'ethereum'
+);`}</code></pre>
                       <button 
                         className="api-copy-btn"
                         onClick={() => handleCopy(`import { FundTracerAPI } from '@fundtracer/api';
@@ -518,45 +527,10 @@ const wallet = await ft.address.get('ethereum', '0x742d35...');`, 'js-sdk')}
                   </div>
                 </div>
 
-                <div className="api-sdk">
-                  <h3>Python</h3>
-                  <div className="api-code-block">
-                    <code>pip install fundtracer-api</code>
-                    <button 
-                      className="api-copy-btn"
-                      onClick={() => handleCopy('pip install fundtracer-api', 'pip-sdk')}
-                    >
-                      {copied === 'pip-sdk' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
-                    </button>
-                  </div>
-                  <div className="sdk-example">
-                    <h4>Usage</h4>
-                    <div className="api-code-block">
-                      <pre><code>{`from fundtracer import FundTracerAPI
-
-ft = FundTracerAPI('ft_live_YOUR_API_KEY')
-
-# Get wallet info
-wallet = ft.address.get('ethereum', '0x742d35...')
-
-# Get transactions
-txs = ft.address.transactions('ethereum', '0x742d35...')
-
-# Get funding graph
-graph = ft.address.graph('ethereum', '0x742d35...', hops=2)`}</code></pre>
-                      <button 
-                        className="api-copy-btn"
-                        onClick={() => handleCopy(`from fundtracer import FundTracerAPI
-
-ft = FundTracerAPI('ft_live_YOUR_API_KEY')
-
-# Get wallet info
-wallet = ft.address.get('ethereum', '0x742d35...')`, 'python-sdk')}
-                      >
-                        {copied === 'python-sdk' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
-                      </button>
-                    </div>
-                  </div>
+                  <div className="api-sdk">
+                  <h3>Python (Coming Soon)</h3>
+                  <p>Official Python client library.</p>
+                  <div className="coming-soon-badge">Coming Q3 2026</div>
                 </div>
 
                 <div className="api-sdk">
