@@ -19,6 +19,7 @@ const TelegramPage = lazy(() => import('./pages/TelegramPage').then(m => ({ defa
 const AuthPage = lazy(() => import('./pages/AuthPage').then(m => ({ default: m.AuthPage })));
 const CliPage = lazy(() => import('./pages/CliPage').then(m => ({ default: m.CliPage })));
 const ApiPage = lazy(() => import('./pages/ApiPage').then(m => ({ default: m.ApiPage })));
+const ApiKeysPage = lazy(() => import('./pages/ApiKeysPage').then(m => ({ default: m.ApiKeysPage })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -88,6 +89,7 @@ function App() {
       <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
       <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
       <Route path="/api-docs" element={<Suspense fallback={null}><ApiPage /></Suspense>} />
+      <Route path="/api/keys" element={<Suspense fallback={null}><ApiKeysPage /></Suspense>} />
       <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
       <Route path="/app-evm/*" element={
         <ProtectedRoute>

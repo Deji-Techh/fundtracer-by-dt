@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { CommandBar, SearchResult } from '../primitives';
 import logoImg from '../../assets/logo.png';
+import { ThemeToggle } from '../../components/common/ThemeToggle';
 import './LandingLayout.css';
 
 interface LandingLayoutProps {
@@ -90,6 +91,7 @@ export function LandingLayout({
           {/* Right side */}
           <div className="landing-header__right">
             {headerRight}
+            <ThemeToggle size="sm" />
             
             {/* Mobile menu button */}
             <button 

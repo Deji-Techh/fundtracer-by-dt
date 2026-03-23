@@ -569,7 +569,7 @@ wallet = ft.address.get('ethereum', '0x742d35...')`, 'python-sdk')}
                 <div className="api-pricing-tier featured">
                   <div className="tier-badge">Most Popular</div>
                   <h3>Pro</h3>
-                  <div className="tier-price">$49<span>/month</span></div>
+                  <div className="tier-price">$25<span>/month</span></div>
                   <ul className="tier-features">
                     <li><Check size={16} /> 10,000 requests/day</li>
                     <li><Check size={16} /> 60 requests/minute</li>
@@ -645,7 +645,7 @@ wallet = ft.address.get('ethereum', '0x742d35...')`, 'python-sdk')}
                 <Key size={18} />
                 Create API Key
               </a>
-              <a href="/docs" className="api-btn secondary">
+              <a href="#endpoints" className="api-btn secondary">
                 <ExternalLink size={18} />
                 Full Documentation
               </a>
