@@ -1,5 +1,5 @@
 // ============================================================
-// Authentication Middleware - Verify JWT (Email, Google, Wallet, or Admin)
+// Authentication Middleware - Verify JWT (Email, Google, Wallet, or Admin) or API Keys
 // ============================================================
 
 import express, { Response, NextFunction } from 'express';
@@ -218,4 +218,90 @@ export function requireAdminRole(...allowedRoles: AdminRole[]) {
         
         next();
     };
+}
+
+// ============================================================
+// API Key Authentication Middleware
+// Validates ft_live_xxxx and ft_test_xxxx keys from Firestore
+// ============================================================
+
+export async function apiKeyAuthMiddleware(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+) {
+    const authHeader = req.headers.authorization;
+    
+    // Check if this is an API key (starts with ft_live_ or ft_test_)
+    if (authHeader && authHeader.startsWith('Bearer ft_')) {
+        const apiKey = authHeader.split('Bearer ')[1];
+        
+        try {
+            const db = getFirestore();
+            
+            // Search for the API key in all users' apiKeys subcollections
+            // This is a simplified approach - in production you might want to index keys
+            const usersSnapshot = await db.collection('users').get();
+            
+            for (const userDoc of usersSnapshot.docs) {
+                const userId = userDoc.id;
+                const apiKeysSnapshot = await db
+                    .collection('users')
+                    .doc(userId)
+                    .collection('apiKeys')
+                    .where('key', '==', apiKey)
+                    .limit(1)
+                    .get();
+                
+                if (!apiKeysSnapshot.empty) {
+                    const keyData = apiKeysSnapshot.docs[0].data();
+                    const userData = userDoc.data();
+                    
+                    // Check if key is active (not expired/revoked)
+                    if (keyData.active === false) {
+                        return res.status(401).json({ 
+                            error: 'API key has been revoked',
+                            code: 'KEY_REVOKED'
+                        });
+                    }
+                    
+                    // Populate request with user data
+                    req.user = {
+                        uid: userId,
+                        email: userData?.email || null,
+                        name: userData?.displayName || userId.slice(0, 8),
+                        photoURL: userData?.profilePicture || null,
+                        type: 'user'
+                    };
+                    
+                    // Set tier and other data
+                    res.locals.tier = userData?.tier || 'max'; // API key users get max tier
+                    res.locals.isVerified = userData?.isVerified || false;
+                    res.locals.authProvider = 'api_key';
+                    res.locals.walletAddress = userData?.walletAddress || null;
+                    res.locals.apiKeyId = apiKeysSnapshot.docs[0].id;
+                    
+                    console.log(`[API-KEY] Authenticated: ${userId} (key: ${apiKey.slice(0, 15)}...)`);
+                    next();
+                    return;
+                }
+            }
+            
+            // API key not found in any user's collection
+            return res.status(401).json({ 
+                error: 'Invalid API key',
+                code: 'KEY_INVALID'
+            });
+            
+        } catch (error) {
+            console.error('[API-KEY] Auth error:', error);
+            return res.status(500).json({ 
+                error: 'Failed to validate API key',
+                code: 'KEY_VALIDATION_ERROR'
+            });
+        }
+    }
+    
+    // Not an API key, continue to JWT validation
+    next();
 }

@@ -69,7 +69,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 import { initializeFirebase } from './firebase.js';
-import { authMiddleware } from './middleware/auth.js';
+import { authMiddleware, apiKeyAuthMiddleware } from './middleware/auth.js';
 import { usageMiddleware } from './middleware/usage.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { analyzeRoutes } from './routes/analyze.js';
@@ -383,7 +383,7 @@ apiRouter.use('/user', authMiddleware, userRoutes);
 apiRouter.use('/auth', authLimiter, authRoutes); // Public auth route with stricter rate limiting
 apiRouter.use('/contracts', publicLimiter, contractRoutes); // Public contract lookup with rate limiting
 apiRouter.use('/payment', publicLimiter, paymentRoutes); // Payment verification with rate limiting
-apiRouter.use('/analyze', authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
+apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
 apiRouter.use('/dune', authMiddleware, duneRoutes);
 import { trackingRoutes } from './routes/tracking.js';
 import healthRoutes from './routes/health.js';
