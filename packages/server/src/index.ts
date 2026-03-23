@@ -342,7 +342,6 @@ const publicLimiter = rateLimit({
 
 // Apply general rate limiting to all API routes
 app.use('/api/', apiLimiter);
-app.use('/', apiLimiter);
 
 // Initialize Firebase Admin
 try {
