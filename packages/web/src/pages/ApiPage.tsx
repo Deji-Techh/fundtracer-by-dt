@@ -541,16 +541,16 @@ const wallet = await ft.address.get('ethereum', '0x742d35...');`, 'js-sdk')}
               </div>
 
               <div className="api-openapi">
-                <h3>OpenAPI Specification</h3>
-                <p>Access the full API specification in OpenAPI (Swagger) format.</p>
+                <h3>SDK Reference</h3>
+                <p>TypeScript types and full SDK documentation are available on npm.</p>
                 <div className="api-openapi-actions">
-                  <a href="/api/openapi.json" className="api-btn secondary">
+                  <a href="https://www.npmjs.com/package/@fundtracer/api" target="_blank" rel="noopener noreferrer" className="api-btn secondary">
                     <ExternalLink size={16} />
-                    Download JSON
+                    View on npm
                   </a>
                   <a href="/api/docs" className="api-btn secondary">
                     <ExternalLink size={16} />
-                    Swagger UI
+                    Full Documentation
                   </a>
                 </div>
               </div>

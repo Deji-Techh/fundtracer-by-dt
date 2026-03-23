@@ -115,23 +115,10 @@ export interface ContractInfo {
   chain: ChainId;
   name?: string;
   isVerified: boolean;
- ABI?: any;
+  ABI?: any;
   sourceCode?: string;
   compilerVersion?: string;
   transactionCount?: number;
-}
-
-export interface TokenPrice {
-  address: string;
-  chain: ChainId;
-  symbol: string;
-  name: string;
-  price: number;
-  priceChange24h?: number;
-  marketCap?: number;
-  volume24h?: number;
-  liquidity?: number;
-  logo?: string;
 }
 
 export interface SafetyResult {

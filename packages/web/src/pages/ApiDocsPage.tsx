@@ -358,20 +358,7 @@ export function ApiDocsPage() {
                       </div>
                     </div>
 
-                    <div className="endpoint-item">
-                      <div className="endpoint-header">
-                        <span className="method post">POST</span>
-                        <code>/contracts/info</code>
-                      </div>
-                      <p>Look up contract information and metadata.</p>
-                      <h4>Request Body</h4>
-                      <div className="api-code-block">
-                        <pre><code>{`{
-  "address": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-  "chain": "ethereum"
-}`}</code></pre>
-                      </div>
-                    </div>
+
                   </div>
                 </motion.div>
               )}

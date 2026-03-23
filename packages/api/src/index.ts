@@ -8,7 +8,6 @@ import type {
   CompareResult,
   SybilResult,
   ContractInfo,
-  TokenPrice,
   SafetyResult,
   ApiError,
   RateLimitInfo,
@@ -149,14 +148,15 @@ export class FundTracerAPI {
     });
   }
 
-  async getTokenPrice(
-    address: string,
-    chain: ChainId
-  ): Promise<ApiResponse<TokenPrice>> {
-    this.validateChain(chain);
-    return this.request<TokenPrice>('/market/tokens', {
-      method: 'POST',
-      body: JSON.stringify({ address, chain }),
+  async getMarketStats(): Promise<ApiResponse<any>> {
+    return this.request<any>('/market/stats', {
+      method: 'GET',
+    });
+  }
+
+  async getTrendingCoins(): Promise<ApiResponse<any>> {
+    return this.request<any>('/market/coins', {
+      method: 'GET',
     });
   }
 
@@ -165,8 +165,9 @@ export class FundTracerAPI {
     chain: ChainId
   ): Promise<ApiResponse<SafetyResult>> {
     this.validateChain(chain);
-    return this.request<SafetyResult>(`/safety/${address}`, {
-      method: 'GET',
+    return this.request<SafetyResult>('/safety/check', {
+      method: 'POST',
+      body: JSON.stringify({ address, chain }),
     });
   }
 
