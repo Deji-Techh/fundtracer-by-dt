@@ -432,9 +432,8 @@ apiRouter.use('/telegram', telegramRoutes);
 import polymarketRoutes from './routes/polymarket.js';
 apiRouter.use('/polymarket', publicLimiter, polymarketRoutes);
 
-// Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
+// Mount router at /api
 app.use('/api', apiRouter);
-app.use('/', apiRouter);
 
 // Telegram webhook route - must be registered BEFORE catch-all
 // We create a router that will be populated once the bot initializes
