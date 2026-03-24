@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle, ExternalLink, Code, Loader2, User, LogOut, HelpCircle, ChevronDown, Mail } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { useAuth } from '../contexts/AuthContext';
-import { getApiKeys, ApiKeyData } from '../firebase';
-import { createApiKey as serverCreateApiKey, deleteApiKey as serverDeleteApiKey } from '../api';
+import { listApiKeys as serverListApiKeys, createApiKey as serverCreateApiKey, deleteApiKey as serverDeleteApiKey } from '../api';
+import type { ApiKeyData } from '../api';
 import './ApiKeysPage.css';
 
 const navItems = [
@@ -31,10 +31,10 @@ export function ApiKeysPage() {
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (user?.uid) {
+    if (user?.uid || isAuthenticated) {
       loadKeys();
     }
-  }, [user?.uid]);
+  }, [user?.uid, isAuthenticated]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,13 +48,11 @@ export function ApiKeysPage() {
   }, []);
 
   const loadKeys = async () => {
-    if (!user?.uid) return;
-    
     setLoading(true);
     setError(null);
     try {
-      const userKeys = await getApiKeys(user.uid);
-      setKeys(userKeys);
+      const result = await serverListApiKeys();
+      setKeys(result.keys || []);
     } catch (err) {
       console.error('Failed to load API keys:', err);
       setError('Failed to load API keys. Please refresh the page.');

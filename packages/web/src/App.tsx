@@ -95,6 +95,9 @@ function ApiKeysRoute() {
   }
   
   if (!isAuthenticated) {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('postLoginRedirect', '/api/keys');
+    }
     return (
       <Suspense fallback={null}>
         <ApiKeysAuthPage />

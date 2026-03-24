@@ -63,8 +63,8 @@ export function AuthPage() {
     if (token && !tokenProcessed) {
       setTokenProcessed(true);
       setTokenFromExternal(token);
-      const redirectTo = sessionStorage.getItem('authRedirect') || '/api/keys';
-      sessionStorage.removeItem('authRedirect');
+      const redirectTo = sessionStorage.getItem('postLoginRedirect') || '/app-evm';
+      sessionStorage.removeItem('postLoginRedirect');
       navigate(redirectTo, { replace: true });
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -77,9 +77,7 @@ export function AuthPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const redirectTo = sessionStorage.getItem('authRedirect') || '/api/keys';
-      sessionStorage.removeItem('authRedirect');
-      navigate(redirectTo);
+      navigate('/app-evm');
     }
   }, [isAuthenticated, navigate]);
 
@@ -180,8 +178,9 @@ export function AuthPage() {
     setLoading(true);
     setError(null);
     try {
-      const currentPath = window.location.pathname + window.location.search;
-      sessionStorage.setItem('authRedirect', currentPath);
+      const isFromApiPage = window.location.pathname.includes('/api');
+      const redirectTo = isFromApiPage ? '/api/keys' : '/app-evm';
+      sessionStorage.setItem('postLoginRedirect', redirectTo);
       await loginWithGoogle();
     } catch (err: any) {
       setError(err.message || 'Google sign in failed');

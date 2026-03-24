@@ -347,6 +347,41 @@ router.post('/usage/increment', async (req: AuthenticatedRequest, res: Response)
 
 const FREE_TIER_API_KEY_LIMIT = 2;
 
+router.get('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const db = getFirestore();
+        const keysSnapshot = await db
+            .collection('users').doc(req.user.uid)
+            .collection('apiKeys')
+            .where('active', '==', true)
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const keys = keysSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data.name || 'Unnamed Key',
+                key: data.key || '',
+                type: data.type || 'test',
+                createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+                lastUsed: data.lastUsed ? new Date(data.lastUsed) : null,
+                requests: data.requests || 0,
+                active: data.active !== false,
+            };
+        });
+
+        res.json({ success: true, keys });
+    } catch (error: any) {
+        console.error('[User] listApiKeys error:', error);
+        res.status(500).json({ error: 'Failed to load API keys' });
+    }
+});
+
 router.post('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });

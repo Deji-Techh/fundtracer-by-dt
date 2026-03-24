@@ -585,6 +585,24 @@ export async function createApiKey(name: string, type: 'live' | 'test' = 'test')
 }
 
 // Delete API key
+export async function listApiKeys(): Promise<{ success: boolean; keys: ApiKeyData[] }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/user/api-keys`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || 'Failed to load API keys');
+    }
+    return data;
+}
+
 export async function deleteApiKey(keyId: string): Promise<{ success: boolean }> {
     const token = getAuthToken();
     if (!token) throw new Error('Not authenticated');
