@@ -75,12 +75,6 @@ export function AuthPage() {
     }
   }, [searchParams, tokenProcessed, setTokenFromExternal, navigate]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/app-evm');
-    }
-  }, [isAuthenticated, navigate]);
-
   const handleVerifyEmailAction = async (code: string) => {
     setActionLoading(true);
     try {

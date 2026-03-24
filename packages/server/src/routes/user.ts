@@ -354,26 +354,33 @@ router.get('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
 
     try {
         const db = getFirestore();
-        const keysSnapshot = await db
-            .collection('users').doc(req.user.uid)
+        const userRef = db.collection('users').doc(req.user.uid);
+        const userDoc = await userRef.get();
+        
+        if (!userDoc.exists) {
+            return res.json({ success: true, keys: [] });
+        }
+
+        const keysSnapshot = await userRef
             .collection('apiKeys')
-            .where('active', '==', true)
             .orderBy('createdAt', 'desc')
             .get();
 
-        const keys = keysSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                name: data.name || 'Unnamed Key',
-                key: data.key || '',
-                type: data.type || 'test',
-                createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
-                lastUsed: data.lastUsed ? new Date(data.lastUsed) : null,
-                requests: data.requests || 0,
-                active: data.active !== false,
-            };
-        });
+        const keys = keysSnapshot.docs
+            .filter(doc => doc.data().active !== false)
+            .map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    name: data.name || 'Unnamed Key',
+                    key: data.key || '',
+                    type: data.type || 'test',
+                    createdAt: data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString(),
+                    lastUsed: data.lastUsed ? new Date(data.lastUsed).toISOString() : null,
+                    requests: data.requests || 0,
+                    active: data.active !== false,
+                };
+            });
 
         res.json({ success: true, keys });
     } catch (error: any) {

@@ -663,10 +663,10 @@ const { data: gas } = await ft.getGasPrices('ethereum');`, 'js-sdk')}
                   </ul>
                   <button
                     className="api-btn primary"
-                    onClick={handleProCheckout}
-                    disabled={proLoading}
+                    disabled={true}
+                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
                   >
-                    {proLoading ? 'Loading...' : 'Get Pro Key'}
+                    Coming Soon
                   </button>
                 </div>
 

@@ -200,7 +200,7 @@
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  padding: 16px;
+  padding: 40px 16px 16px;
   overflow-x: auto;
 }
 
@@ -218,19 +218,21 @@
 
 .api-copy-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 4px;
+  padding: 4px 8px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  z-index: 10;
 }
 
 .api-copy-btn:hover {
