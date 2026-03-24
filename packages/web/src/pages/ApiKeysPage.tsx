@@ -18,7 +18,7 @@ const navItems = [
 ];
 
 export function ApiKeysPage() {
-  const { user, profile, signOutAccount } = useAuth();
+  const { user, profile, signOutAccount, isAuthenticated } = useAuth();
   const [copied, setCopied] = useState<string | null>(null);
   const [showKey, setShowKey] = useState<Record<string, boolean>>({});
   const [keys, setKeys] = useState<ApiKeyData[]>([]);
