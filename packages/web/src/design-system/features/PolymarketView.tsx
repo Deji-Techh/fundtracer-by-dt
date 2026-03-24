@@ -14,11 +14,31 @@ export function PolymarketView() {
   return (
     <div className="polymarket-view">
       {/* Header */}
-      <div className="polymarket-view__header">
-        <h1 className="polymarket-view__title">Polymarket</h1>
-        <p className="polymarket-view__subtitle">
+      <div className="page-head">
+        <h1 className="page-title">Polymarket</h1>
+        <p className="page-desc">
           Track prediction markets, trending events, and price movements in real-time
         </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="stats">
+        <div className="stat">
+          <div className="stat-label">Active Markets</div>
+          <div className="stat-val">50+</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Volume (24h)</div>
+          <div className="stat-val">$2.5M</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Trending</div>
+          <div className="stat-val">12</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Categories</div>
+          <div className="stat-val">8</div>
+        </div>
       </div>
 
       {/* Content */}

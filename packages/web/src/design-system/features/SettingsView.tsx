@@ -25,11 +25,31 @@ export function SettingsView({
   return (
     <div className="settings-view">
       {/* Header */}
-      <div className="settings-view__header">
-        <h1 className="settings-view__title">Settings</h1>
-        <p className="settings-view__subtitle">
+      <div className="page-head">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-desc">
           Manage your account, preferences, and connected services
         </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="stats">
+        <div className="stat">
+          <div className="stat-label">Account Status</div>
+          <div className="stat-val">Active</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">API Keys</div>
+          <div className="stat-val">2</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Daily Queries</div>
+          <div className="stat-val">0</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Member Since</div>
+          <div className="stat-val">Today</div>
+        </div>
       </div>
 
       {/* Content */}
