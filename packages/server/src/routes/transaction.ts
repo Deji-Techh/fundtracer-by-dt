@@ -200,7 +200,7 @@ router.get('/:chain/:hash', authMiddleware, usageMiddleware, async (req: Authent
             return res.status(400).json({ error: 'Unsupported chain' });
         }
 
-        const apiKeyId = (req as any).locals?.apiKeyId;
+        const apiKeyId = (req as any).res?.locals?.apiKeyId;
         const alchemyKey = await getAlchemyKeyForUser(userId, apiKeyId);
         const rpcUrl = getRpcUrl(normalizedChain, alchemyKey);
         const provider = new ethers.JsonRpcProvider(rpcUrl);
