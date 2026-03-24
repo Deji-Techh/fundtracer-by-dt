@@ -294,8 +294,8 @@ export async function apiKeyAuthMiddleware(
                         type: 'user'
                     };
                     
-                    // Set tier and other data
-                    res.locals.tier = userData?.tier || 'max'; // API key users get max tier
+                    // Set tier and other data (default to 'free' if not set)
+                    res.locals.tier = userData?.tier || 'free';
                     res.locals.isVerified = userData?.isVerified || false;
                     res.locals.authProvider = 'api_key';
                     res.locals.walletAddress = userData?.walletAddress || null;

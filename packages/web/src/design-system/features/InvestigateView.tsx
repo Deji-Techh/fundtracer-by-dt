@@ -652,7 +652,6 @@ export function InvestigateView({
                     >
                       <div className="chain-pip" style={{ background: chain.color }}></div>
                       {chain.name}
-                      {requiredTier && <span className="chain-tier">{requiredTier}</span>}
                     </div>
                   );
                 })}

@@ -181,9 +181,6 @@ export function InvestigateSection({
             >
               {chain.icon && <span className="investigate-chain__icon">{chain.icon}</span>}
               <span className="investigate-chain__name">{chain.name}</span>
-              {chain.locked && (
-                <Badge variant="warning" size="xs">{chain.requiredTier || 'PRO'}</Badge>
-              )}
             </button>
           ))}
         </div>
