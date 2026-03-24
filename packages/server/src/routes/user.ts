@@ -345,4 +345,117 @@ router.post('/usage/increment', async (req: AuthenticatedRequest, res: Response)
     }
 });
 
+const FREE_TIER_API_KEY_LIMIT = 2;
+
+router.post('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { name, type = 'test' } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ error: 'Key name is required' });
+    }
+
+    if (name.length > 100) {
+        return res.status(400).json({ error: 'Key name too long (max 100 characters)' });
+    }
+
+    const keyType = type === 'live' ? 'live' : 'test';
+    const keyPrefix = keyType === 'live' ? 'ft_live' : 'ft_test';
+    const randomPart = Math.random().toString(36).substring(2, 30);
+    const suffix = Math.random().toString(36).substring(2, 6);
+    const fullKey = `${keyPrefix}_${randomPart}_${suffix}`;
+
+    try {
+        const db = getFirestore();
+        const userRef = db.collection('users').doc(req.user.uid);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+        const userTier = userData?.tier || 'free';
+
+        if (userTier === 'free') {
+            const keysSnapshot = await db
+                .collection('users').doc(req.user.uid)
+                .collection('apiKeys')
+                .where('active', '==', true)
+                .count()
+                .get();
+            const currentKeyCount = keysSnapshot.data().count;
+
+            if (currentKeyCount >= FREE_TIER_API_KEY_LIMIT) {
+                return res.status(403).json({
+                    error: `Free tier is limited to ${FREE_TIER_API_KEY_LIMIT} API keys. Upgrade to create more.`,
+                    limit: FREE_TIER_API_KEY_LIMIT,
+                    current: currentKeyCount,
+                    upgradeUrl: '/pricing',
+                });
+            }
+        }
+
+        const keysRef = db.collection('users').doc(req.user.uid).collection('apiKeys');
+        const now = Date.now();
+        const dailyReset = new Date();
+        dailyReset.setHours(24, 0, 0, 0);
+
+        const keyData = {
+            name: name.trim(),
+            key: fullKey,
+            type: keyType,
+            createdAt: now,
+            lastUsed: null,
+            requests: 0,
+            active: true,
+            userId: req.user.uid,
+            tier: userTier,
+            dailyUsage: 0,
+            dailyUsageReset: dailyReset.getTime(),
+        };
+
+        const docRef = await keysRef.add(keyData);
+
+        res.status(201).json({
+            success: true,
+            key: {
+                id: docRef.id,
+                name: name.trim(),
+                key: fullKey,
+                type: keyType,
+                createdAt: new Date(now),
+                lastUsed: null,
+                requests: 0,
+                active: true,
+            },
+        });
+    } catch (error: any) {
+        console.error('[User] createApiKey error:', error);
+        res.status(500).json({ error: 'Failed to create API key' });
+    }
+});
+
+router.delete('/api-keys/:keyId', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const db = getFirestore();
+        const keyRef = db.collection('users').doc(req.user.uid)
+            .collection('apiKeys').doc(req.params.keyId);
+        const keyDoc = await keyRef.get();
+
+        if (!keyDoc.exists) {
+            return res.status(404).json({ error: 'API key not found' });
+        }
+
+        await keyRef.update({ active: false });
+
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error('[User] deleteApiKey error:', error);
+        res.status(500).json({ error: 'Failed to delete API key' });
+    }
+});
+
 export { router as userRoutes };

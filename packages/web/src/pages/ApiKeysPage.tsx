@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle, ExternalLink, Code, Loader2, User, LogOut, HelpCircle, ChevronDown, Mail } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { useAuth } from '../contexts/AuthContext';
-import { getApiKeys, createApiKey, deleteApiKey, ApiKeyData } from '../firebase';
+import { getApiKeys, ApiKeyData } from '../firebase';
+import { createApiKey as serverCreateApiKey, deleteApiKey as serverDeleteApiKey } from '../api';
 import './ApiKeysPage.css';
 
 const navItems = [
@@ -104,12 +105,20 @@ export function ApiKeysPage() {
     setCreating(true);
     setError(null);
     try {
-      const newKey = await createApiKey(user.uid, newKeyName.trim(), newKeyType);
-      setKeys((prev) => [newKey, ...prev]);
-      setNewKeyName('');
-    } catch (err) {
+      const result = await serverCreateApiKey(newKeyName.trim(), newKeyType);
+      if (result.success && result.key) {
+        setKeys((prev) => [result.key!, ...prev]);
+        setNewKeyName('');
+      } else {
+        setError(result.error || 'Failed to create API key.');
+      }
+    } catch (err: any) {
       console.error('Failed to create API key:', err);
-      setError('Failed to create API key. Please try again.');
+      if (err.status === 403) {
+        setError(`Free tier is limited to ${FREE_TIER_KEY_LIMIT} API keys. Upgrade to Pro or Max for unlimited keys.`);
+      } else {
+        setError(err.message || 'Failed to create API key. Please try again.');
+      }
     } finally {
       setCreating(false);
     }
@@ -119,7 +128,7 @@ export function ApiKeysPage() {
     if (!user?.uid) return;
     
     try {
-      await deleteApiKey(user.uid, keyId);
+      await serverDeleteApiKey(keyId);
       setKeys((prev) => prev.filter((k) => k.id !== keyId));
     } catch (err) {
       console.error('Failed to delete API key:', err);

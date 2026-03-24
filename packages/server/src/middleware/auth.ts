@@ -5,6 +5,7 @@
 import express, { Response, NextFunction } from 'express';
 import { getFirestore } from '../firebase.js';
 import jwt from 'jsonwebtoken';
+import { incrementAPIKeyUsage } from '../models/apiKey.js';
 
 export type AdminRole = 'superadmin' | 'admin' | 'moderator';
 
@@ -299,6 +300,12 @@ export async function apiKeyAuthMiddleware(
                     res.locals.authProvider = 'api_key';
                     res.locals.walletAddress = userData?.walletAddress || null;
                     res.locals.apiKeyId = apiKeysSnapshot.docs[0].id;
+                    res.locals.apiKeyOwnerId = userId;
+
+                    const apiKeyDocId = apiKeysSnapshot.docs[0].id;
+                    incrementAPIKeyUsage(userId, apiKeyDocId).catch(err =>
+                        console.error('[API-KEY] Failed to track usage:', err)
+                    );
                     
                     console.log(`[API-KEY] Authenticated: ${userId} (key: ${apiKey.slice(0, 15)}...)`);
                     next();

@@ -194,9 +194,9 @@ export async function getUserAPIKeys(userId: string): Promise<APIKey[]> {
 }
 
 // Update API key usage
-export async function incrementAPIKeyUsage(keyId: string): Promise<void> {
+export async function incrementAPIKeyUsage(userId: string, keyId: string): Promise<void> {
   const db = getFirestore();
-  const keyRef = db.collection('apiKeys').doc(keyId);
+  const keyRef = db.collection('users').doc(userId).collection('apiKeys').doc(keyId);
   const now = Date.now();
   const dailyReset = getDailyResetTimestamp();
   

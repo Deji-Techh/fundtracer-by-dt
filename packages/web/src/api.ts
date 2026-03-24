@@ -3,6 +3,7 @@
 // ============================================================
 
 import { ChainId, AnalysisResult, MultiWalletResult, FundingNode } from '@fundtracer/core';
+import type { ApiKeyData } from './firebase';
 
 // In production, assume the API is on the same domain if not specified (e.g., via proxy)
 // Or use a hardcoded production URL if frontend/backend are separate
@@ -556,4 +557,48 @@ export async function getPolymarketHistory(
     
     const url = `/api/polymarket/history/${conditionId}${params.toString() ? '?' + params.toString() : ''}`;
     return apiRequest(url);
+}
+
+// Create API key (server-enforced free tier limit of 2)
+export async function createApiKey(name: string, type: 'live' | 'test' = 'test'): Promise<{ success: boolean; key?: ApiKeyData; error?: string; limit?: number; current?: number }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/user/api-keys`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name, type }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        const err: any = new Error(data.error || 'Failed to create API key');
+        err.status = response.status;
+        err.limit = data.limit;
+        err.current = data.current;
+        throw err;
+    }
+    return data;
+}
+
+// Delete API key
+export async function deleteApiKey(keyId: string): Promise<{ success: boolean }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/user/api-keys/${keyId}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete API key');
+    }
+    return data;
 }
