@@ -3,13 +3,21 @@
  * Full redesign to match InvestigateView layout
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotify } from '../../contexts/ToastContext';
+import { getAuthToken } from '../../api';
 import './SettingsView.css';
 
 type SettingsTab = 'profile' | 'account' | 'preferences' | 'security';
+type SecurityAction = 'none' | 'enable' | 'verify' | 'disable';
+
+interface TwoFactorSetup {
+  secret: string;
+  qrCode: string;
+  manualEntry: string;
+}
 
 export function SettingsView() {
   const { user, profile, refreshProfile } = useAuth();
@@ -19,6 +27,127 @@ export function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [name, setName] = useState(profile?.username || '');
   const [isSaving, setIsSaving] = useState(false);
+  
+  // 2FA State
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [securityAction, setSecurityAction] = useState<SecurityAction>('none');
+  const [twoFactorSetup, setTwoFactorSetup] = useState<TwoFactorSetup | null>(null);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [showBackupCodes, setShowBackupCodes] = useState(false);
+
+  useEffect(() => {
+    fetchTwoFactorStatus();
+  }, []);
+
+  const fetchTwoFactorStatus = async () => {
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/user/2fa/status', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setTwoFactorEnabled(data.enabled || false);
+    } catch (err) {
+      console.error('Failed to fetch 2FA status:', err);
+    }
+  };
+
+  const handleStart2FA = async () => {
+    setTwoFactorLoading(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/user/2fa/setup', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setTwoFactorSetup(data.setup);
+        setSecurityAction('verify');
+        notifySuccess('2FA setup initiated');
+      } else {
+        notifyError(data.error || 'Failed to setup 2FA');
+      }
+    } catch (err) {
+      notifyError('Failed to setup 2FA');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      notifyError('Please enter a 6-digit code');
+      return;
+    }
+
+    setTwoFactorLoading(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/user/2fa/verify', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code: verificationCode })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setBackupCodes(data.backupCodes || []);
+        setShowBackupCodes(true);
+        setTwoFactorEnabled(true);
+        setSecurityAction('none');
+        setTwoFactorSetup(null);
+        setVerificationCode('');
+        notifySuccess('2FA enabled successfully!');
+      } else {
+        notifyError(data.error || 'Invalid code');
+      }
+    } catch (err) {
+      notifyError('Failed to verify 2FA');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      notifyError('Please enter your 2FA code or a backup code');
+      return;
+    }
+
+    setTwoFactorLoading(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/user/2fa/disable', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code: verificationCode })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setTwoFactorEnabled(false);
+        setSecurityAction('none');
+        setVerificationCode('');
+        notifySuccess('2FA disabled successfully');
+      } else {
+        notifyError(data.error || 'Failed to disable 2FA');
+      }
+    } catch (err) {
+      notifyError('Failed to disable 2FA');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     setIsSaving(true);
@@ -59,8 +188,8 @@ export function SettingsView() {
         </div>
         <div className="stat">
           <div className="stat-label">Security</div>
-          <div className="stat-val">Active</div>
-          <div className="stat-note">2FA enabled</div>
+          <div className="stat-val">{twoFactorEnabled ? 'Protected' : 'Basic'}</div>
+          <div className="stat-note">{twoFactorEnabled ? '2FA enabled' : 'No 2FA'}</div>
         </div>
       </div>
 
@@ -228,22 +357,198 @@ export function SettingsView() {
         {/* Security Tab */}
         {activeTab === 'security' && (
           <div className="panel-content">
+            {/* 2FA Section */}
+            {securityAction === 'none' && !twoFactorEnabled && (
+              <div className="panel-section">
+                <div className="panel-section-header">
+                  <h3>Two-Factor Authentication</h3>
+                  <p>Add an extra layer of security to your account</p>
+                </div>
+                <p className="twofa-desc">
+                  Protect your account with an authenticator app like Google Authenticator, Authy, or 1Password.
+                </p>
+                <button 
+                  className="btn-primary" 
+                  onClick={handleStart2FA}
+                  disabled={twoFactorLoading}
+                >
+                  {twoFactorLoading ? 'Loading...' : 'Enable 2FA'}
+                </button>
+              </div>
+            )}
+
+            {/* 2FA Setup - Show QR Code */}
+            {securityAction === 'verify' && twoFactorSetup && !showBackupCodes && (
+              <div className="panel-section">
+                <div className="panel-section-header">
+                  <h3>Setup Authenticator App</h3>
+                  <p>Scan the QR code with your authenticator app</p>
+                </div>
+                
+                <div className="twofa-qr-section">
+                  <div className="twofa-qr-code">
+                    <img src={twoFactorSetup.qrCode} alt="2FA QR Code" />
+                  </div>
+                  
+                  <div className="twofa-manual">
+                    <p className="twofa-manual-label">Can't scan? Enter this code manually:</p>
+                    <code className="twofa-secret">{twoFactorSetup.manualEntry}</code>
+                    <button 
+                      className="btn-copy"
+                      onClick={() => {
+                        navigator.clipboard.writeText(twoFactorSetup.manualEntry);
+                        notifySuccess('Copied to clipboard');
+                      }}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                <div className="twofa-verify-section">
+                  <label className="form-label">Enter 6-digit code</label>
+                  <input 
+                    type="text" 
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    className="form-input twofa-input"
+                    maxLength={6}
+                  />
+                  <div className="twofa-actions">
+                    <button 
+                      className="btn-secondary"
+                      onClick={() => {
+                        setSecurityAction('none');
+                        setTwoFactorSetup(null);
+                        setVerificationCode('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      className="btn-primary"
+                      onClick={handleVerify2FA}
+                      disabled={twoFactorLoading || verificationCode.length !== 6}
+                    >
+                      {twoFactorLoading ? 'Verifying...' : 'Verify & Enable'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show Backup Codes */}
+            {showBackupCodes && backupCodes.length > 0 && (
+              <div className="panel-section">
+                <div className="panel-section-header">
+                  <h3>Backup Codes</h3>
+                  <p>Save these codes in a safe place. You can use them to access your account if you lose your authenticator.</p>
+                </div>
+                
+                <div className="backup-codes-grid">
+                  {backupCodes.map((code, i) => (
+                    <code key={i} className="backup-code">{code}</code>
+                  ))}
+                </div>
+                
+                <button 
+                  className="btn-primary"
+                  onClick={() => {
+                    const text = backupCodes.join('\n');
+                    navigator.clipboard.writeText(text);
+                    notifySuccess('Backup codes copied');
+                  }}
+                >
+                  Copy All Codes
+                </button>
+                
+                <button 
+                  className="btn-secondary"
+                  onClick={() => {
+                    setShowBackupCodes(false);
+                    setBackupCodes([]);
+                  }}
+                  style={{ marginTop: '12px' }}
+                >
+                  I've Saved My Codes
+                </button>
+              </div>
+            )}
+
+            {/* 2FA Already Enabled - Show Disable Option */}
+            {securityAction === 'none' && twoFactorEnabled && (
+              <div className="panel-section">
+                <div className="panel-section-header">
+                  <h3>Two-Factor Authentication</h3>
+                  <p>Your account is protected with 2FA</p>
+                </div>
+                <div className="twofa-status">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                  </svg>
+                  <span>2FA is enabled</span>
+                </div>
+                <button 
+                  className="btn-danger"
+                  onClick={() => setSecurityAction('disable')}
+                >
+                  Disable 2FA
+                </button>
+              </div>
+            )}
+
+            {/* Disable 2FA */}
+            {securityAction === 'disable' && (
+              <div className="panel-section">
+                <div className="panel-section-header">
+                  <h3>Disable 2FA</h3>
+                  <p>Enter your 2FA code or a backup code to disable</p>
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">2FA Code or Backup Code</label>
+                  <input 
+                    type="text" 
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.toUpperCase().slice(0, 8))}
+                    placeholder="000000 or ABC123"
+                    className="form-input"
+                  />
+                </div>
+                
+                <div className="twofa-actions">
+                  <button 
+                    className="btn-secondary"
+                    onClick={() => {
+                      setSecurityAction('none');
+                      setVerificationCode('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="btn-danger"
+                    onClick={handleDisable2FA}
+                    disabled={twoFactorLoading}
+                  >
+                    {twoFactorLoading ? 'Processing...' : 'Disable 2FA'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Password Section */}
             <div className="panel-section">
               <div className="panel-section-header">
                 <h3>Password</h3>
-                <p>Change your password</p>
+                <p>Change your account password</p>
               </div>
               <button className="btn-secondary">Change Password</button>
             </div>
 
-            <div className="panel-section">
-              <div className="panel-section-header">
-                <h3>Two-Factor Authentication</h3>
-                <p>Add an extra layer of security</p>
-              </div>
-              <button className="btn-secondary">Enable 2FA</button>
-            </div>
-
+            {/* Danger Zone */}
             <div className="panel-section danger">
               <div className="panel-section-header">
                 <h3>Danger Zone</h3>

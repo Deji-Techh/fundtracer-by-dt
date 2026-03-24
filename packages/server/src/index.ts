@@ -407,6 +407,9 @@ import { adminRoutes } from './routes/admin.js';
 // Mount admin routes - login is public, other routes protected by middleware inside adminRoutes
 apiRouter.use('/admin', adminRoutes);
 
+import { twoFactorRoutes } from './routes/twoFactor.js';
+apiRouter.use('/user', authMiddleware, twoFactorRoutes);
+
 // NEW API Routes (Moralis, CoinGecko, Ankr, QuickNode, Dune)
 import { portfolioRoutes } from './routes/portfolio.js';
 import { historyRoutes } from './routes/history.js';
