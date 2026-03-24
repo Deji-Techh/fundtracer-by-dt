@@ -180,7 +180,7 @@ export function ApiDocsPage() {
                 >
                   <h2>API Endpoints</h2>
                   <p className="section-intro">
-                    All endpoints use POST method and accept JSON request bodies. Authentication is required for all endpoints.
+                    Most endpoints use POST method and accept JSON request bodies. GET endpoints (gas prices, transaction lookup) use path/query parameters. Authentication is required for all endpoints.
                   </p>
 
                   <div className="endpoint-docs">
