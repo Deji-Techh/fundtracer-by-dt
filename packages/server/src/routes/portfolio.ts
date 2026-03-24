@@ -11,10 +11,15 @@ router.get('/:walletAddress', authMiddleware, async (req: Request, res: Response
     const { walletAddress } = req.params;
     const chain = (req.query.chain as string) || 'linea';
 
+    console.log('[Portfolio] Request - wallet:', walletAddress, 'chain:', chain);
+    console.log('[Portfolio] User:', req.user);
+
     if (!walletAddress || !walletAddress.startsWith('0x')) {
       return res.status(400).json({ error: 'Invalid wallet address' });
     }
 
+    console.log('[Portfolio] Calling Moralis with chain:', chain);
+    
     // Fetch tokens from Moralis
     const tokensData = await moralisService.getWalletTokens(walletAddress, chain);
     
@@ -72,9 +77,11 @@ router.get('/:walletAddress', authMiddleware, async (req: Request, res: Response
     });
   } catch (error: any) {
     console.error('[Portfolio Route] Error:', error);
+    console.error('[Portfolio Route] Stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to fetch portfolio data',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      message: error.message || String(error),
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 });
