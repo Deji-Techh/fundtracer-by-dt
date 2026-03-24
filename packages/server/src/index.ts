@@ -444,21 +444,21 @@ import { scanHistoryRoutes } from './routes/scanHistory.js';
 import { solanaRoutes } from './routes/solana.js';
 import notificationRoutes from './routes/notifications.js';
 
-apiRouter.use('/portfolio', authMiddleware, portfolioRoutes);
-apiRouter.use('/history', authMiddleware, historyRoutes);
+apiRouter.use('/portfolio', apiKeyAuthMiddleware, authMiddleware, portfolioRoutes);
+apiRouter.use('/history', apiKeyAuthMiddleware, authMiddleware, historyRoutes);
 apiRouter.use('/tokens', publicLimiter, tokenRoutes); // Public token search with rate limiting
 apiRouter.use('/market', publicLimiter, marketRoutes); // Public market stats with rate limiting
-apiRouter.use('/safety', authMiddleware, safetyRoutes); // Token safety checks
+apiRouter.use('/safety', apiKeyAuthMiddleware, authMiddleware, safetyRoutes); // Token safety checks
 apiRouter.use('/debug', publicLimiter, debugRoutes); // Debug routes (public) with rate limiting
 apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
 apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
-apiRouter.use('/scan-history', scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
-apiRouter.use('/solana', authMiddleware, solanaRoutes); // Solana wallet analysis
-apiRouter.use('/notifications', authMiddleware, notificationRoutes); // User notifications
+apiRouter.use('/scan-history', apiKeyAuthMiddleware, authMiddleware, scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
+apiRouter.use('/solana', apiKeyAuthMiddleware, authMiddleware, solanaRoutes); // Solana wallet analysis
+apiRouter.use('/notifications', apiKeyAuthMiddleware, authMiddleware, notificationRoutes); // User notifications
 
 // NEW: Contract Scanner Routes
 import contractScannerRoutes from './routes/contractRoutes.js';
-apiRouter.use('/contract', authMiddleware, contractScannerRoutes);
+apiRouter.use('/contract', apiKeyAuthMiddleware, authMiddleware, contractScannerRoutes);
 
 // NEW: Telegram Routes
 import { telegramRoutes } from './routes/telegram.js';
