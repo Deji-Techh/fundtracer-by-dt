@@ -64,7 +64,7 @@ function Header({ onUpgradeClick, onFeedbackClick, onProfileClick, isUpgradeActi
                 </a>
                 
                 <a
-                    href="mailto:fundtracerbydt@gmail.com"
+                    href="mailto:support@fundtracer.xyz"
                     className="header-action-btn"
                     title="Contact us"
                 >

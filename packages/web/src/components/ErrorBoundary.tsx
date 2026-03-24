@@ -24,10 +24,58 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: Error): State {
+    // Don't show error page for non-critical errors
+    const nonCriticalPatterns = [
+      'net::',
+      'fetch failed',
+      'Failed to fetch',
+      'NetworkError',
+      '401',
+      '403',
+      'ethereum',
+      'window.ethereum',
+      'metamask',
+      'toLocaleDateString',
+      'is not a function',
+    ];
+    
+    const errorMessage = error.message.toLowerCase();
+    const isNonCritical = nonCriticalPatterns.some(pattern => 
+      errorMessage.includes(pattern.toLowerCase()) || error.stack?.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (isNonCritical) {
+      console.warn('[ErrorBoundary] Non-critical error ignored:', error.message);
+      return { hasError: false, error: null, errorInfo: null };
+    }
+    
     return { hasError: true, error, errorInfo: null };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Don't log/catch non-critical errors
+    const nonCriticalPatterns = [
+      'net::',
+      'fetch failed',
+      'Failed to fetch',
+      'NetworkError',
+      '401',
+      '403',
+      'ethereum',
+      'window.ethereum',
+      'metamask',
+      'toLocaleDateString',
+    ];
+    
+    const errorMessage = error.message.toLowerCase();
+    const isNonCritical = nonCriticalPatterns.some(pattern => 
+      errorMessage.includes(pattern.toLowerCase()) || error.stack?.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (isNonCritical) {
+      return; // Ignore non-critical errors
+    }
+    
     console.error('Uncaught error:', error, errorInfo);
     this.setState({ error, errorInfo });
     

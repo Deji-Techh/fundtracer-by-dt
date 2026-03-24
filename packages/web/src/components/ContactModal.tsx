@@ -25,7 +25,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
     const subject = `Contact from ${formData.name}`;
     const body = `Name: ${formData.name}\n\nEmail: ${formData.email}\n\nDescription:\n${formData.description}\n\nDebug Log:\n${formData.debugLog || 'None provided'}`;
     
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&to=fundtracerbydt@gmail.com&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&to=support@fundtracer.xyz&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     
     // Open Gmail
     window.open(gmailUrl, '_blank');

@@ -50,7 +50,7 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({ isOpen, onClose
                     <p>The data provided by FundTracer is for informational purposes only and does not constitute financial advice. Always do your own research.</p>
 
                     <h3 style={{ color: 'var(--color-text-primary)', marginTop: '1.5rem', marginBottom: '0.5rem' }}>7. Contact</h3>
-                    <p>If you have questions about this policy, please contact us at <a href="mailto:fundtracerbydt@gmail.com" style={{ color: 'var(--color-primary)' }}>fundtracerbydt@gmail.com</a>.</p>
+                    <p>If you have questions about this policy, please contact us at <a href="mailto:support@fundtracer.xyz" style={{ color: 'var(--color-primary)' }}>support@fundtracer.xyz</a>.</p>
                 </div>
 
                 <div className="modal-footer">

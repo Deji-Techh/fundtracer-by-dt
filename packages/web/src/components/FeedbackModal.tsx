@@ -70,7 +70,7 @@ URL: ${window.location.href}
 `);
 
         // Open email client
-        window.location.href = `mailto:fundtracerbydt@gmail.com?subject=${subject}&body=${body}`;
+        window.location.href = `mailto:support@fundtracer.xyz?subject=${subject}&body=${body}`;
 
         setSending(false);
         setSent(true);

@@ -126,7 +126,7 @@ export function PrivacyPage() {
               <h2>Contact Us</h2>
               <p>
                 For privacy-related questions or requests, please contact us at{' '}
-                <a href="mailto:fundtracerbydt@gmail.com">fundtracerbydt@gmail.com</a>
+                <a href="mailto:support@fundtracer.xyz">support@fundtracer.xyz</a>
               </p>
             </Panel>
           </div>

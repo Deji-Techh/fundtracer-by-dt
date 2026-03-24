@@ -80,9 +80,11 @@ export function ApiKeysPage() {
     return key.replace(/(ft_(?:live|test)_).*(_[a-z0-9]{4})$/, '$1••••••••••••••••••••••••$2');
   };
 
-  const formatDate = (date: Date | null): string => {
+  const formatDate = (date: Date | string | null): string => {
     if (!date) return 'Never';
-    return date.toLocaleDateString('en-US', {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) return 'Never';
+    return d.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

@@ -251,7 +251,7 @@ export function PricingPage() {
           <div className="pricing-cta__content">
             <h2 className="pricing-cta__title">Still Have Questions?</h2>
             <p className="pricing-cta__subtitle">
-              Contact us at fundtracerbydt@gmail.com
+              Contact us at support@fundtracer.xyz
             </p>
             <button
               className="pricing-cta__button"

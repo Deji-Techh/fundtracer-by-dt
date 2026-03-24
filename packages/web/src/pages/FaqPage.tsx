@@ -151,7 +151,7 @@ export function FaqPage() {
           <div className="faq-cta__content">
             <h2 className="faq-cta__title">Still Have Questions?</h2>
             <p className="faq-cta__subtitle">
-              We're here to help. Contact us at fundtracerbydt@gmail.com
+              We're here to help. Contact us at support@fundtracer.xyz
             </p>
             <button 
               className="faq-cta__button"

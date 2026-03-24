@@ -84,7 +84,7 @@ const PrivacyPolicyPage: React.FC = () => {
                     <section style={{ marginBottom: '30px' }}>
                         <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '15px' }}>7. Contact Us</h2>
                         <p>
-                            If you have questions or comments about this policy, you may email us at [fundtracerbydt@gmail.com].
+                            If you have questions or comments about this policy, you may email us at [support@fundtracer.xyz].
                         </p>
                     </section>
                 </div>

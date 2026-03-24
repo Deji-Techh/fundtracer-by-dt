@@ -181,7 +181,7 @@ export function Footer() {
                 © {new Date().getFullYear()} FundTracer by DT. All rights reserved.
               </p>
               <p className="footer-email-v2">
-                fundtracerbydt@gmail.com
+                support@fundtracer.xyz
               </p>
             </div>
           </motion.div>

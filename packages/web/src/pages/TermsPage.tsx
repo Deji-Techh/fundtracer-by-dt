@@ -107,7 +107,7 @@ export function TermsPage() {
               <h2>Contact</h2>
               <p>
                 For questions about these Terms of Service, please contact us at{' '}
-                <a href="mailto:fundtracerbydt@gmail.com">fundtracerbydt@gmail.com</a>
+                <a href="mailto:support@fundtracer.xyz">support@fundtracer.xyz</a>
               </p>
             </Panel>
           </div>
