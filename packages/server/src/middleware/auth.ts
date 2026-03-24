@@ -59,7 +59,12 @@ export async function authMiddleware(
 
     const token = authHeader.split('Bearer ')[1];
 
-    // Skip JWT verification if this is an API key (not a JWT)
+    // If API key middleware already authenticated, skip JWT verification
+    if (req.user) {
+        return next();
+    }
+
+    // Skip JWT verification if this is an API key prefix (not a JWT)
     if (token.startsWith('ft_')) {
         return res.status(401).json({ error: 'Invalid API key', code: 'KEY_INVALID' });
     }
