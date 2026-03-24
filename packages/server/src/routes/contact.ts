@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 
 const router = Router();
 
-const SALES_EMAIL = process.env.SALES_EMAIL || 'fundtracerbydt@gmail.com';
+const SALES_EMAIL = process.env.SALES_EMAIL || 'sales@fundtracer.xyz';
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
