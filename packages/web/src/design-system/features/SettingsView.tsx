@@ -36,6 +36,9 @@ export function SettingsView() {
   const [verificationCode, setVerificationCode] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showBackupCodes, setShowBackupCodes] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchTwoFactorStatus();
@@ -112,6 +115,39 @@ export function SettingsView() {
       notifyError('Failed to verify 2FA');
     } finally {
       setTwoFactorLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.toLowerCase() !== 'fundtracer') {
+      notifyError('Please type "fundtracer" to confirm');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/user/account', {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code: verificationCode })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        notifySuccess('Account deleted successfully');
+        // Redirect to home or sign out
+        window.location.href = '/';
+      } else {
+        notifyError(data.error || 'Failed to delete account');
+      }
+    } catch (err) {
+      notifyError('Failed to delete account');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -549,13 +585,68 @@ export function SettingsView() {
             </div>
 
             {/* Danger Zone */}
-            <div className="panel-section danger">
-              <div className="panel-section-header">
-                <h3>Danger Zone</h3>
-                <p>Irreversible account actions</p>
+            {!showDeleteConfirm ? (
+              <div className="panel-section danger">
+                <div className="panel-section-header">
+                  <h3>Danger Zone</h3>
+                  <p>Irreversible account actions</p>
+                </div>
+                <button 
+                  className="btn-danger"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete Account
+                </button>
               </div>
-              <button className="btn-danger">Delete Account</button>
-            </div>
+            ) : (
+              <div className="panel-section danger">
+                <div className="panel-section-header">
+                  <h3>Delete Account</h3>
+                  <p>This action cannot be undone. All your data will be permanently deleted.</p>
+                </div>
+                
+                <div className="delete-confirm-warning">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  <span>This is a permanent action</span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Type <code>fundtracer</code> to confirm deletion
+                  </label>
+                  <input 
+                    type="text" 
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="fundtracer"
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="twofa-actions">
+                  <button 
+                    className="btn-secondary"
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setDeleteConfirmText('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="btn-danger"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteConfirmText.toLowerCase() !== 'fundtracer' || isDeleting}
+                  >
+                    {isDeleting ? 'Deleting...' : 'Delete My Account'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

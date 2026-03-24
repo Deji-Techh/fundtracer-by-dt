@@ -1031,3 +1031,25 @@
     height: 160px;
   }
 }
+
+/* Delete Confirmation */
+.delete-confirm-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--intel-red);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+}
+
+.delete-confirm-warning code {
+  background: var(--intel-red-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  color: var(--intel-red);
+}

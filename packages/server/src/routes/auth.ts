@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
+import speakeasy from 'speakeasy';
 import { getFirestore } from '../firebase.js';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
@@ -1049,6 +1050,22 @@ router.post('/email-login', async (req: Request, res: Response) => {
       emailVerified: email_verified || false
     }, { merge: true });
 
+    // Check if user has 2FA enabled
+    const userData = userDoc.exists ? userDoc.data() : null;
+    const twoFactorEnabled = userData?.twoFactorEnabled || false;
+    
+    // If 2FA is enabled, require verification
+    if (twoFactorEnabled) {
+      console.log('[AUTH] 2FA required for user:', uid);
+      
+      // Return partial response requiring 2FA
+      return res.json({
+        requiresTwoFactor: true,
+        tempUid: uid, // Temporary reference for 2FA verification
+        message: 'Please enter your 2FA code'
+      });
+    }
+
     // Generate JWT
     const token = jwt.sign({
       uid,
@@ -1083,6 +1100,83 @@ router.post('/email-login', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[AUTH] Email Login CRITICAL error:', error);
     res.status(500).json({ error: 'Email login failed' });
+  }
+});
+
+// Verify 2FA and complete login
+router.post('/verify-2fa', async (req: Request, res: Response) => {
+  const { tempUid, code } = req.body;
+  
+  if (!tempUid || !code) {
+    return res.status(400).json({ error: 'Missing user ID or code' });
+  }
+
+  console.log('[AUTH] 2FA Verification Request for:', tempUid);
+
+  try {
+    const db = getFirestore();
+    const userRef = db.collection('users').doc(tempUid);
+    const userDoc = await userRef.get();
+    const userData = userDoc.data();
+
+    if (!userData) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!userData.twoFactorEnabled) {
+      return res.status(400).json({ error: '2FA is not enabled for this user' });
+    }
+
+    // Verify the 2FA code
+    const verified = speakeasy.totp.verify({
+      secret: userData.twoFactorSecret,
+      encoding: 'base32',
+      token: code,
+      window: 1
+    });
+
+    // Also check backup codes
+    const isBackupCode = userData.twoFactorBackupCodes?.includes(code.toUpperCase());
+
+    if (!verified && !isBackupCode) {
+      return res.status(401).json({ error: 'Invalid 2FA code' });
+    }
+
+    // Remove used backup code if applicable
+    if (isBackupCode) {
+      const newBackupCodes = userData.twoFactorBackupCodes.filter((c: string) => c !== code.toUpperCase());
+      await userRef.update({ twoFactorBackupCodes: newBackupCodes });
+    }
+
+    // Generate JWT
+    const token = jwt.sign({
+      uid: tempUid,
+      email: userData.email,
+      displayName: userData.displayName || '',
+      profilePicture: userData.profilePicture || '',
+      tier: userData.tier || 'max',
+      walletAddress: userData.walletAddress || '',
+      authProvider: userData.authProvider || 'email'
+    }, getJwtSecret(), { expiresIn: '30d' });
+
+    console.log('[AUTH] 2FA Login SUCCESS for:', tempUid);
+
+    res.json({
+      token,
+      user: {
+        uid: tempUid,
+        email: userData.email,
+        displayName: userData.displayName || '',
+        profilePicture: userData.profilePicture || '',
+        tier: userData.tier || 'max',
+        walletAddress: userData.walletAddress || '',
+        isVerified: userData.emailVerified || false
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[AUTH] 2FA Verification error:', error);
+    res.status(500).json({ error: 'Verification failed' });
   }
 });
 

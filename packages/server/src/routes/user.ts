@@ -4,6 +4,7 @@
 
 import { Router, Response } from 'express';
 import { AuthenticatedRequest, requireWallet } from '../middleware/auth.js';
+import { requireTwoFactor } from '../middleware/twoFactor.js';
 import { getFirestore } from '../firebase.js';
 import axios from 'axios';
 
@@ -389,7 +390,7 @@ router.get('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-router.post('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/api-keys', requireTwoFactor, async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -478,7 +479,7 @@ router.post('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-router.delete('/api-keys/:keyId', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/api-keys/:keyId', requireTwoFactor, async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -499,6 +500,42 @@ router.delete('/api-keys/:keyId', async (req: AuthenticatedRequest, res: Respons
     } catch (error: any) {
         console.error('[User] deleteApiKey error:', error);
         res.status(500).json({ error: 'Failed to delete API key' });
+    }
+});
+
+// Delete user account
+router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    console.log('[User] Account deletion requested for:', req.user.uid);
+
+    try {
+        const db = getFirestore();
+        const userRef = db.collection('users').doc(req.user.uid);
+        
+        // Get user data for logging
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+        
+        // Delete user's API keys subcollection
+        const apiKeysSnapshot = await userRef.collection('apiKeys').get();
+        const deletePromises = apiKeysSnapshot.docs.map(doc => doc.ref.delete());
+        await Promise.all(deletePromises);
+
+        // Delete user document
+        await userRef.delete();
+
+        console.log('[User] Account deleted:', req.user.uid);
+
+        res.json({ 
+            success: true, 
+            message: 'Account deleted successfully' 
+        });
+    } catch (error: any) {
+        console.error('[User] deleteAccount error:', error);
+        res.status(500).json({ error: 'Failed to delete account' });
     }
 });
 
