@@ -241,13 +241,16 @@ export async function apiKeyAuthMiddleware(
     if (authHeader && authHeader.startsWith('Bearer ft_')) {
         const apiKey = authHeader.split('Bearer ')[1];
         console.log('[API-KEY-MIDDLEWARE] API key detected:', apiKey.substring(0, 20) + '...');
+        console.log('[API-KEY-MIDDLEWARE] Full key:', apiKey);
         
         try {
             const db = getFirestore();
+            console.log('[API-KEY-MIDDLEWARE] Searching Firestore for key...');
             
             // Search for the API key in all users' apiKeys subcollections
             // This is a simplified approach - in production you might want to index keys
             const usersSnapshot = await db.collection('users').get();
+            console.log('[API-KEY-MIDDLEWARE] Total users:', usersSnapshot.size);
             
             for (const userDoc of usersSnapshot.docs) {
                 const userId = userDoc.id;
