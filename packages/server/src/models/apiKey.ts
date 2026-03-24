@@ -195,8 +195,19 @@ export async function getUserAPIKeys(userId: string): Promise<APIKey[]> {
 
 // Update API key usage
 export async function incrementAPIKeyUsage(userId: string, keyId: string): Promise<void> {
+  console.log(`[INCREMENT] Starting - userId: ${userId}, keyId: ${keyId}`);
   const db = getFirestore();
   const keyRef = db.collection('users').doc(userId).collection('apiKeys').doc(keyId);
+  
+  // First check if the document exists
+  const keyDoc = await keyRef.get();
+  if (!keyDoc.exists) {
+    console.error(`[INCREMENT] API key document not found: users/${userId}/apiKeys/${keyId}`);
+    throw new Error('API key document not found');
+  }
+  
+  console.log(`[INCREMENT] Found key document, current data:`, keyDoc.data());
+  
   const now = Date.now();
   const dailyReset = getDailyResetTimestamp();
   
@@ -205,6 +216,8 @@ export async function incrementAPIKeyUsage(userId: string, keyId: string): Promi
     dailyUsageReset: dailyReset,
     lastUsed: now,
   });
+  
+  console.log(`[INCREMENT] Successfully updated dailyUsage for key: ${keyId}`);
 }
 
 // Reset daily usage if needed

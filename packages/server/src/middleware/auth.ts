@@ -303,9 +303,10 @@ export async function apiKeyAuthMiddleware(
                     res.locals.apiKeyOwnerId = userId;
 
                     const apiKeyDocId = apiKeysSnapshot.docs[0].id;
-                    incrementAPIKeyUsage(userId, apiKeyDocId).catch(err =>
-                        console.error('[API-KEY] Failed to track usage:', err)
-                    );
+                    console.log(`[API-KEY] About to increment usage for user: ${userId}, keyId: ${apiKeyDocId}`);
+                    incrementAPIKeyUsage(userId, apiKeyDocId)
+                        .then(() => console.log(`[API-KEY] Usage incremented successfully`))
+                        .catch(err => console.error('[API-KEY] Failed to track usage:', err));
                     
                     console.log(`[API-KEY] Authenticated: ${userId} (key: ${apiKey.slice(0, 15)}...)`);
                     next();
