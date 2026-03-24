@@ -142,6 +142,148 @@ Real-time wallet alerts delivered to Telegram.
 
 ---
 
+## API
+
+The FundTracer API provides programmatic access to blockchain forensics data. Generate API keys at [fundtracer.xyz/api/keys](https://fundtracer.xyz/api/keys).
+
+### Base URL
+
+```
+https://www.fundtracer.xyz/api
+```
+
+### Authentication
+
+All endpoints require a Bearer token:
+
+```bash
+curl -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
+  https://www.fundtracer.xyz/api/analyze/wallet
+```
+
+### Endpoints
+
+#### Wallet Analysis
+
+```bash
+# Analyze a single wallet
+curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"address":"0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1","chain":"ethereum"}' \
+  https://www.fundtracer.xyz/api/analyze/wallet
+```
+
+#### Funding Tree
+
+```bash
+# Get funding flow graph
+curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"address":"0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1","chain":"ethereum"}' \
+  https://www.fundtracer.xyz/api/analyze/funding-tree
+```
+
+#### Compare Wallets
+
+```bash
+# Find shared interactions between wallets
+curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"addresses":["0x742d...","0xd8dA..."],"chain":"ethereum"}' \
+  https://www.fundtracer.xyz/api/analyze/compare
+```
+
+#### Sybil Detection
+
+```bash
+# Detect coordinated behavior around a contract
+curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"contractAddress":"0x7a250d...","chain":"ethereum"}' \
+  https://www.fundtracer.xyz/api/analyze/sybil
+```
+
+#### Contract Analysis
+
+```bash
+# Analyze smart contract interactions
+curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"contractAddress":"0x7a250d...","chain":"ethereum"}' \
+  https://www.fundtracer.xyz/api/analyze/contract
+```
+
+#### Batch Analysis *(NEW)*
+
+```bash
+# Analyze up to 50 wallets in one request
+curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"addresses":["0x742d...","0xd8dA..."],"chain":"ethereum"}' \
+  https://www.fundtracer.xyz/api/analyze/batch
+```
+
+#### Transaction Lookup *(NEW)*
+
+```bash
+# Fetch detailed transaction info with logs and gas costs
+curl -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
+  "https://www.fundtracer.xyz/api/tx/ethereum/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640c5a76964d3e17d20f3e7f52a"
+```
+
+#### Gas Prices *(NEW)*
+
+```bash
+# Get current gas prices (low/medium/high in gwei)
+curl -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
+  "https://www.fundtracer.xyz/api/gas?chain=ethereum"
+
+# Supported chains: ethereum, arbitrum, optimism, polygon, bsc, base
+```
+
+### Supported Chains
+
+| Chain | ID | Identifier |
+|-------|----|----|
+| Ethereum | 1 | `ethereum` |
+| Linea | 59144 | `linea` |
+| Arbitrum | 42161 | `arbitrum` |
+| Base | 8453 | `base` |
+| Optimism | 10 | `optimism` |
+| Polygon | 137 | `polygon` |
+| BNB Chain | 56 | `bsc` |
+
+### SDK
+
+```bash
+npm install @fundtracer/api
+```
+
+```typescript
+import { FundTracerAPI } from '@fundtracer/api';
+
+const ft = new FundTracerAPI('ft_live_YOUR_API_KEY');
+
+// Analyze a wallet
+const { data: wallet } = await ft.analyzeWallet('0x742d...', { chain: 'ethereum' });
+
+// Get funding tree
+const { data: tree } = await ft.getFundingTree('0x742d...', { chain: 'ethereum', maxDepth: 3 });
+
+// Batch analyze wallets
+const { data: batch } = await ft.analyzeBatch(['0x742d...', '0xd8dA...'], 'ethereum');
+
+// Get transaction details
+const { data: tx } = await ft.getTransaction('ethereum', '0x88e6...');
+
+// Get gas prices
+const { data: gas } = await ft.getGasPrices('ethereum');
+```
+
+See [fundtracer.xyz/api-docs](https://fundtracer.xyz/api-docs) for full documentation.
+
+---
+
 ## Pricing
 
 | Tier | Price | Features |

@@ -195,7 +195,7 @@ router.get('/:chain/:hash', authMiddleware, usageMiddleware, async (req: Authent
         }
 
         const normalizedChain = normalizeChain(chain);
-        const validChains = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon', 'bsc'];
+        const validChains = ['eth', 'linea', 'arb', 'base', 'opt', 'polygon_pos', 'bsc'];
         if (!validChains.includes(normalizedChain)) {
             return res.status(400).json({ error: 'Unsupported chain' });
         }
@@ -229,8 +229,8 @@ router.get('/:chain/:hash', authMiddleware, usageMiddleware, async (req: Authent
 
         const chainId = tx.chainId || (() => {
             const chainMap: Record<string, number> = {
-                ethereum: 1, linea: 59144, arbitrum: 42161,
-                optimism: 10, polygon: 137, bsc: 56, base: 8453,
+                eth: 1, linea: 59144, arb: 42161,
+                opt: 10, polygon_pos: 137, bsc: 56, base: 8453,
             };
             return chainMap[normalizedChain] || 1;
         })();

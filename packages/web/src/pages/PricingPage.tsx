@@ -34,6 +34,7 @@ const tiers = [
       'Full transaction history',
       'All chains (7+)',
       'Export to CSV/JSON',
+      '2 API keys',
       'Priority support',
     ],
     cta: 'Get Started',
@@ -53,6 +54,7 @@ const tiers = [
       'Full transaction history',
       'All chains (7+)',
       'Export to CSV/JSON',
+      'Unlimited API keys',
       'Priority support',
       'Sybil detection',
     ],
@@ -71,7 +73,7 @@ const tiers = [
       'Unlimited analyses',
       'Full historical data',
       'All chains + future',
-      'API access',
+      'Unlimited API keys',
       'Custom branding',
       'Dedicated support',
       'Advanced analytics',
@@ -88,7 +90,7 @@ const comparisonData = [
   { feature: 'Supported Chains', free: '7+', pro: '7+', max: 'All + Future' },
   { feature: 'Export Formats', free: 'CSV, JSON', pro: 'CSV, JSON', max: 'All Formats' },
   { feature: 'Sybil Detection', free: '-', pro: '\u2713', max: '\u2713' },
-  { feature: 'API Access', free: '-', pro: '-', max: '\u2713' },
+  { feature: 'API Keys', free: '2', pro: 'Unlimited', max: 'Unlimited' },
   { feature: 'Support', free: 'Priority', pro: 'Priority', max: 'Dedicated' },
 ];
 

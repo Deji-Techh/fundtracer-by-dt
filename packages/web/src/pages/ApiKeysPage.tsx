@@ -90,8 +90,16 @@ export function ApiKeysPage() {
     });
   };
 
+  const FREE_TIER_KEY_LIMIT = 2;
+  const isFreeTier = !profile?.tier || profile.tier === 'free';
+  const hasReachedKeyLimit = isFreeTier && keys.length >= FREE_TIER_KEY_LIMIT;
+
   const handleCreateKey = async () => {
     if (!newKeyName.trim() || !user?.uid) return;
+    if (hasReachedKeyLimit) {
+      setError(`Free tier is limited to ${FREE_TIER_KEY_LIMIT} API keys. Upgrade to Pro or Max for unlimited keys.`);
+      return;
+    }
     
     setCreating(true);
     setError(null);
@@ -214,6 +222,18 @@ export function ApiKeysPage() {
           >
             <div className="api-keys-create">
               <h2>Create New API Key</h2>
+              {hasReachedKeyLimit ? (
+                <div className="create-notice create-notice--limit">
+                  <AlertCircle size={16} />
+                  <span>
+                    Free tier is limited to {FREE_TIER_KEY_LIMIT} API keys. You have reached your limit.{' '}
+                    <a href="/pricing" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                      Upgrade to Pro or Max
+                    </a>{' '}
+                    for unlimited keys.
+                  </span>
+                </div>
+              ) : (
               <div className="create-form">
                 <input
                   type="text"
@@ -250,18 +270,23 @@ export function ApiKeysPage() {
                   Create Key
                 </button>
               </div>
+              )}
               <div className="create-notice">
                 <AlertCircle size={16} />
                 <span>
                   {newKeyType === 'test'
                     ? 'Test keys are for development only and do not count against rate limits.'
                     : 'Live keys are for production use and will count against your rate limits.'}
+                  {isFreeTier && ` Free tier limited to ${FREE_TIER_KEY_LIMIT} keys.`}
                 </span>
               </div>
             </div>
 
             <div className="api-keys-list">
-              <h2>Your API Keys</h2>
+              <h2>
+                Your API Keys
+                {isFreeTier && <span className="key-count-badge">{keys.length}/{FREE_TIER_KEY_LIMIT}</span>}
+              </h2>
               {loading ? (
                 <div className="loading-keys">
                   <Loader2 size={32} className="spin" />
