@@ -88,6 +88,27 @@ const PORT = process.env.PORT || 3001;
 
 let server: any = null;
 let isShuttingDown = false;
+let isReady = false;
+
+// Fast health check - responds immediately even during startup
+app.get('/health', (req, res) => {
+    res.status(isReady ? 200 : 200).json({ 
+        status: isReady ? 'ok' : 'starting',
+        timestamp: Date.now()
+    });
+});
+
+// Health check for shutdown state (runs after /health is registered)
+app.use((req, res, next) => {
+    if (isShuttingDown) {
+        res.status(503).json({ 
+            error: 'Server is shutting down',
+            status: 'unavailable'
+        });
+        return;
+    }
+    next();
+});
 
 // Graceful shutdown handler
 function gracefulShutdown(signal: string) {
@@ -503,7 +524,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 server = app.listen(PORT, async () => {
     console.log(`✅ FundTracer API Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Health check: http://localhost:${PORT}/api/health`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+    
+    // Mark server as ready
+    isReady = true;
 
     // Start Alert Worker
     try {

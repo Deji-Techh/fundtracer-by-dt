@@ -24,33 +24,32 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
+    const userId = req.user.uid;
+    console.log('[2FA] Setup requested for user:', userId);
+
     try {
         const db = getFirestore();
-        const userRef = db.collection('users').doc(req.user.uid);
-        const userDoc = await userRef.get();
+        const userRef = db.collection('users').doc(userId);
         
-        // Create user document if it doesn't exist
-        if (!userDoc.exists) {
-            await userRef.set({
-                uid: req.user.uid,
-                email: req.user.email || '',
-                displayName: req.user.name || '',
-                createdAt: Date.now()
-            });
+        // Get user data first
+        let userData: any = null;
+        try {
+            const userDoc = await userRef.get();
+            userData = userDoc.data();
+        } catch (e) {
+            console.log('[2FA] User document may not exist yet');
         }
-        
-        const userData = userDoc.data();
 
         // Check if 2FA is already enabled
         if (userData?.twoFactorEnabled) {
             return res.status(400).json({ error: '2FA is already enabled' });
         }
 
-        console.log('[2FA] Generating secret for user:', req.user.uid);
+        console.log('[2FA] Generating secret');
         
         // Generate secret
         const secret = speakeasy.generateSecret({
-            name: `FundTracer (${userData?.email || req.user.email || req.user.uid})`,
+            name: `FundTracer (${userData?.email || req.user.email || userId})`,
             issuer: 'FundTracer',
             length: 32
         });
@@ -58,11 +57,12 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
         console.log('[2FA] Generating QR code');
         
         // Generate QR code as data URL
-        const qrCode = await QRCode.toDataURL(secret.otpauthURL || '');
+        const otpauthURL = secret.otpauthURL || '';
+        const qrCode = await QRCode.toDataURL(otpauthURL);
 
-        console.log('[2FA] Storing pending secret');
+        console.log('[2FA] Storing pending secret in Firestore');
         
-        // Store temporary secret (not enabled yet) - use set with merge
+        // Store temporary secret (not enabled yet)
         await userRef.set({
             twoFactorPending: {
                 secret: secret.base32,
@@ -81,7 +81,8 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
             }
         });
     } catch (error: any) {
-        console.error('[2FA] Setup error:', error);
+        console.error('[2FA] Setup CRITICAL error:', error);
+        console.error('[2FA] Stack:', error.stack);
         res.status(500).json({ error: 'Failed to setup 2FA: ' + error.message });
     }
 });
