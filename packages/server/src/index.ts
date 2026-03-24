@@ -389,7 +389,7 @@ import { authRoutes } from './routes/auth.js';
 // ... (existing imports)
 
 // Mount router at both /api (for local dev) and root (for Netlify environment where /api might be stripped)
-apiRouter.use('/user', authMiddleware, userRoutes);
+apiRouter.use('/user', apiKeyAuthMiddleware, authMiddleware, userRoutes);
 apiRouter.use('/auth', authLimiter, authRoutes); // Public auth route with stricter rate limiting
 apiRouter.use('/contracts', publicLimiter, contractRoutes); // Public contract lookup with rate limiting
 apiRouter.use('/payment', publicLimiter, paymentRoutes); // Payment verification with rate limiting
