@@ -145,6 +145,70 @@ export interface RateLimitInfo {
   reset: number;
 }
 
+export interface GasPriceLevel {
+  gasPrice: number;
+  time: string;
+}
+
+export interface GasPrices {
+  chain: ChainId;
+  chainId: number;
+  unit: string;
+  timestamp: string;
+  low: GasPriceLevel;
+  medium: GasPriceLevel;
+  high: GasPriceLevel;
+}
+
+export interface TransactionInfo {
+  hash: string;
+  blockNumber: number;
+  blockHash: string;
+  timestamp: string | null;
+  chain: ChainId;
+  chainId: number;
+  from: { address: string; label?: string; type?: string };
+  to: { address: string; label?: string; type?: string } | null;
+  value: string;
+  valueInEth: string;
+  gasUsed: string | null;
+  effectiveGasPrice: string | null;
+  gasCostInEth: string | null;
+  maxFeePerGas: string | null;
+  maxPriorityFeePerGas: string | null;
+  nonce: number;
+  transactionIndex: number;
+  status: 'success' | 'failed' | 'pending';
+  type: number;
+  input: string;
+  inputMethod: string | null;
+  logs: any[];
+  logsBloom: string | null;
+  gasLimit: string | null;
+}
+
+export interface BatchResult {
+  address: string;
+  analyzed: boolean;
+  totalReceived?: number;
+  totalSent?: number;
+  transactionCount?: number;
+  uniqueAddresses?: number;
+  activityDays?: number;
+  riskScore?: number;
+  riskLevel?: string;
+  error?: string;
+}
+
+export interface BatchAnalysisResult {
+  result: BatchResult[];
+  meta: {
+    total: number;
+    analyzed: number;
+    failed: number;
+  };
+}
+
 export interface ApiResponse<T> {
   data: T;
   rateLimit?: RateLimitInfo;

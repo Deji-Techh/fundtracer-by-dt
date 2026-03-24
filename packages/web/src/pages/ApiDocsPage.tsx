@@ -358,6 +358,175 @@ export function ApiDocsPage() {
                       </div>
                     </div>
 
+                    <div className="endpoint-item">
+                      <div className="endpoint-header">
+                        <span className="method post">POST</span>
+                        <code>/analyze/batch</code>
+                      </div>
+                      <p>Analyze multiple wallet addresses in a single batch request (max 50 addresses).</p>
+                      <h4>Request Body</h4>
+                      <div className="api-code-block">
+                        <pre><code>{`{
+  "addresses": [
+    "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+    "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+  ],
+  "chain": "ethereum",
+  "options": {}
+}`}</code></pre>
+                        {copyBtn(`{
+  "addresses": [
+    "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+    "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+  ],
+  "chain": "ethereum",
+  "options": {}
+}`, 'batch-request')}
+                      </div>
+                      <h4>Parameters</h4>
+                      <table className="params-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><code>addresses</code></td>
+                            <td>string[]</td>
+                            <td>Array of wallet addresses (max 50)</td>
+                          </tr>
+                          <tr>
+                            <td><code>chain</code></td>
+                            <td>string</td>
+                            <td>Blockchain network</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="endpoint-item">
+                      <div className="endpoint-header">
+                        <span className="method get">GET</span>
+                        <code>/tx/:chain/:hash</code>
+                      </div>
+                      <p>Fetch detailed information about a specific transaction including logs, gas costs, and decoded events.</p>
+                      <h4>Parameters</h4>
+                      <table className="params-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><code>chain</code></td>
+                            <td>string</td>
+                            <td>Blockchain: ethereum, linea, arbitrum, base, optimism, polygon, bsc</td>
+                          </tr>
+                          <tr>
+                            <td><code>hash</code></td>
+                            <td>string</td>
+                            <td>Transaction hash (0x... format)</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <h4>Example Response</h4>
+                      <div className="api-code-block">
+                        <pre><code>{`{
+  "success": true,
+  "result": {
+    "hash": "0xabc123...",
+    "blockNumber": 19200000,
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "chain": "ethereum",
+    "from": { "address": "0x...", "label": "Vitalik.eth" },
+    "to": { "address": "0x...", "label": "Uniswap V2" },
+    "value": "1000000000000000000",
+    "valueInEth": "1.0",
+    "gasUsed": "21000",
+    "effectiveGasPrice": "30000000000",
+    "gasCostInEth": "0.00063",
+    "status": "success",
+    "logs": []
+  }
+}`}</code></pre>
+                        {copyBtn(`{
+  "success": true,
+  "result": {
+    "hash": "0xabc123...",
+    "blockNumber": 19200000,
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "chain": "ethereum",
+    "from": { "address": "0x...", "label": "Vitalik.eth" },
+    "to": { "address": "0x...", "label": "Uniswap V2" },
+    "value": "1000000000000000000",
+    "valueInEth": "1.0",
+    "gasUsed": "21000",
+    "effectiveGasPrice": "30000000000",
+    "gasCostInEth": "0.00063",
+    "status": "success",
+    "logs": []
+  }
+}`, 'tx-response')}
+                      </div>
+                    </div>
+
+                    <div className="endpoint-item">
+                      <div className="endpoint-header">
+                        <span className="method get">GET</span>
+                        <code>/gas?chain=ethereum</code>
+                      </div>
+                      <p>Get current gas prices (low, medium, high) for supported chains.</p>
+                      <h4>Query Parameters</h4>
+                      <table className="params-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><code>chain</code></td>
+                            <td>string</td>
+                            <td>Blockchain: ethereum, arbitrum, optimism, polygon, bsc, base (default: ethereum)</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <h4>Example Response</h4>
+                      <div className="api-code-block">
+                        <pre><code>{`{
+  "success": true,
+  "result": {
+    "chain": "ethereum",
+    "chainId": 1,
+    "unit": "gwei",
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "low": { "gasPrice": 20, "time": "<= 5 min" },
+    "medium": { "gasPrice": 35, "time": "<= 3 min" },
+    "high": { "gasPrice": 60, "time": "<= 30 sec" }
+  }
+}`}</code></pre>
+                        {copyBtn(`{
+  "success": true,
+  "result": {
+    "chain": "ethereum",
+    "chainId": 1,
+    "unit": "gwei",
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "low": { "gasPrice": 20, "time": "<= 5 min" },
+    "medium": { "gasPrice": 35, "time": "<= 3 min" },
+    "high": { "gasPrice": 60, "time": "<= 30 sec" }
+  }
+}`, 'gas-response')}
+                      </div>
+                    </div>
 
                   </div>
                 </motion.div>

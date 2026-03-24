@@ -16618,5 +16618,255 @@
     "name": "MixedPriceOracleV4",
     "type": "contract",
     "source": "lineascan-verified"
+  },
+  "0x42f65d9fb55cd9bf3ec37427b2ca4004c8fce07a": {
+    "name": "ITBReserveDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x934ec7a30e81f892a77cd32f35a0533b56ba26ce": {
+    "name": "ITBReserveERC20WrappedDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x271441f4baf9465b227241bd9cf3fb09a11e5ee3": {
+    "name": "ITBKarakDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xd2f94afaedc4a18846448ea975e8955d98709505": {
+    "name": "ITBGearboxDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x3ae58adf9967e708f7cab810225795499f7b1c88": {
+    "name": "ITBEigenLayerDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xebf61a1d988f879efc9fdc3d0a24d94cb8b80533": {
+    "name": "ITBCurveAndConvexNoConfigDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x0ab30c3bfb9e6363edb0350bdf99ad5b3cd7a6e6": {
+    "name": "ITBCorkDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xe874aa3baf3c44381681930400944a4b265e63c8": {
+    "name": "ITBAaveDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xb75bfc8b0cc8588c510dcae75c67a9dc9cf508d5": {
+    "name": "ITBBasePositionDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x67d968669d0091e221c1dac417825ae0459b666a": {
+    "name": "SGHODecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x6a1be80d1f3e762b9ff73b5ff122b68027f17abf": {
+    "name": "YuzuDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x51c4402818835a958a27dc88920840814a7f7840": {
+    "name": "GlueXDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xa80801e9a60291bb215ed2c2eaaa256d5f67b83b": {
+    "name": "RedSnwapperDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xcf5fe3b1e81c36653e709ba123b4cc1f8020b2fd": {
+    "name": "ValantisDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x9c3e7758dd946899183a8e00700d92f188186fea": {
+    "name": "TacCrossChainLayerDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x17f80976d6d95489774de6a05bc85e3f9b8cae7c": {
+    "name": "KinetiqDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x322fc8bc06fe28dad75414a5f26dc3bc80d88523": {
+    "name": "StakeStoneDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x452d3e63ce5b0fa7ad31bf60d55df0393393832a": {
+    "name": "wSwellUnwrappingDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xad651bdb8460cff7aacb0f1b263d295c489ac2dd": {
+    "name": "rFLRDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x5647fbb9bf3e750c3672703b9d958d590ec96d66": {
+    "name": "CompoundV2DecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xcaf2bed2340eb6d060ef7afa2540c40d929add9e": {
+    "name": "AvalancheBridgeDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x366b60b909bfecb0cabf8dc84af9f8760420f74d": {
+    "name": "CCTPDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xbca876092d7c2dc423bb229e5a2d768495512153": {
+    "name": "UltraYieldDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x80f43d26fbc64ff06ff1b3e241d7ddd77c036d2f": {
+    "name": "TermFinanceDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xb6a1cbe03e7fcbe394b18d7065cad2e9741f4885": {
+    "name": "WeETHDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x4f8fa832e43d3c1576601fb471da1e22646d0442": {
+    "name": "ZircuitSimpleStakingDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xb690679d2533df5067ed3a8fe47d98ea75a20b8e": {
+    "name": "WithdrawQueueDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x8541f09319f525cb54d5c876d480b30ce5231b46": {
+    "name": "VaultCraftDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xc3fd643c3bbd57090e261409f0577917a28f53ce": {
+    "name": "TellerDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xc38b88ee94a702a07ca63bb43345f7b714f50975": {
+    "name": "UsualMoneyDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x149bd9d5b2086d4357c2f8b4cd0f295856cc79da": {
+    "name": "UniswapV2DecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x9bbd3c0f7e3a57fe084680f60109c69a1c596f9e": {
+    "name": "TreehouseDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x337a3812aa22726604154b53adb964a0af68f2fc": {
+    "name": "SyrupDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xf4906a413b2a2155aa4dc648e68da2087d15dbcd": {
+    "name": "SymbioticVaultDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x437e8e411bece940f6ddb2f62b4a56d6cb4d1517": {
+    "name": "SymbioticDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xfa009e8c2d2dda318f5f9a999e313373f1cf0c34": {
+    "name": "SwellSimpleStakingDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x44b5877413c23b1ed63771e401bf8f848d43fe1b": {
+    "name": "SwellDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xae954f9767bfd39b710767f2ac592a4596ca3aea": {
+    "name": "StandardBridgeDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x45964c1b918d8786a4472dd6010401fd08602529": {
+    "name": "SpectraDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x009aca2c200ba29b8348afa6bafa9d163e74e828": {
+    "name": "SonicGatewayDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xe536ce753807a14407a0159b590604e740355ac0": {
+    "name": "SonicDepositDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x08d87c74e8666d6f6f7e4088fb8992098ad9aec2": {
+    "name": "SkyMoneyDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x75798b089132fcb91a5cb8e720197a4e0b80a924": {
+    "name": "SiloDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x467881d5d2101afe1158324aaa4c290e5fc324e2": {
+    "name": "SiloVaultDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x00ec6dc8179bd4ec35c1ee785b4b16cb3c1fdf4a": {
+    "name": "ScrollBridgeDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0xe4e0fc85a79426b6d786c30b0a5fbab47941c08c": {
+    "name": "SatlayerStakingDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x206983e924863b20529f0a6c4612a3b12dc0e160": {
+    "name": "ResolvDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x3b6fc85f679772569dee0098886420d73df908dd": {
+    "name": "PumpStakingDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x99657ae340071f49cbcd4e754e647bb6a990ac06": {
+    "name": "Permit2DecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
+  },
+  "0x7d5219ab9e659c7b44b78f56bb5d8b6d7909362a": {
+    "name": "PendleRouterDecoderAndSanitizer",
+    "type": "contract",
+    "source": "lineascan-verified"
   }
 }

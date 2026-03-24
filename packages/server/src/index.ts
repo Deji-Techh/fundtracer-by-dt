@@ -78,6 +78,8 @@ import { duneRoutes } from './routes/dune.js';
 import contractRoutes from './routes/contracts.js';
 import paymentRoutes from './routes/payment.js';
 import contactRoutes from './routes/contact.js';
+import transactionRoutes from './routes/transaction.js';
+import gasRoutes from './routes/gas.js';
 import { PaymentListener } from './services/PaymentListener.js';
 import contractService from './services/ContractService.js';
 
@@ -392,6 +394,8 @@ apiRouter.use('/auth', authLimiter, authRoutes); // Public auth route with stric
 apiRouter.use('/contracts', publicLimiter, contractRoutes); // Public contract lookup with rate limiting
 apiRouter.use('/payment', publicLimiter, paymentRoutes); // Payment verification with rate limiting
 apiRouter.use('/contact', publicLimiter, contactRoutes); // Contact/sales form
+apiRouter.use('/tx', apiKeyAuthMiddleware, transactionRoutes); // Transaction lookup
+apiRouter.use('/gas', apiKeyAuthMiddleware, gasRoutes); // Gas prices
 apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
 apiRouter.use('/dune', authMiddleware, duneRoutes);
 import { trackingRoutes } from './routes/tracking.js';

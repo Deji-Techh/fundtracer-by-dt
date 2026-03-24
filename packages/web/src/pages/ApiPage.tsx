@@ -545,7 +545,19 @@ const { data: tree } = await ft.getFundingTree(
 const { data: sybil } = await ft.detectSybil(
   '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
   'ethereum'
-);`}</code></pre>
+);
+
+// Batch analyze multiple wallets
+const { data: batch } = await ft.analyzeBatch(
+  ['0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1', '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'],
+  'ethereum'
+);
+
+// Get transaction details
+const { data: tx } = await ft.getTransaction('ethereum', '0xabc123def456...');
+
+// Get gas prices
+const { data: gas } = await ft.getGasPrices('ethereum');`}</code></pre>
                       <button
                         className="api-copy-btn"
                         onClick={() => handleCopy(`import { FundTracerAPI } from '@fundtracer/api';
@@ -562,7 +574,25 @@ const { data: wallet } = await ft.analyzeWallet(
 const { data: tree } = await ft.getFundingTree(
   '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
   { chain: 'ethereum', maxDepth: 3 }
-);`, 'js-sdk')}
+);
+
+// Detect Sybil behavior
+const { data: sybil } = await ft.detectSybil(
+  '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+  'ethereum'
+);
+
+// Batch analyze multiple wallets
+const { data: batch } = await ft.analyzeBatch(
+  ['0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1', '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'],
+  'ethereum'
+);
+
+// Get transaction details
+const { data: tx } = await ft.getTransaction('ethereum', '0xabc123def456...');
+
+// Get gas prices
+const { data: gas } = await ft.getGasPrices('ethereum');`, 'js-sdk')}
                       >
                         {copied === 'js-sdk' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
                       </button>

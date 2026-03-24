@@ -12,6 +12,9 @@ import type {
   ApiError,
   RateLimitInfo,
   ApiResponse,
+  GasPrices,
+  TransactionInfo,
+  BatchAnalysisResult,
 } from './types';
 
 const DEFAULT_BASE_URL = 'https://fundtracer.xyz/api';
@@ -168,6 +171,42 @@ export class FundTracerAPI {
     return this.request<SafetyResult>('/safety/check', {
       method: 'POST',
       body: JSON.stringify({ contractAddress: address, chain }),
+    });
+  }
+
+  async getTransaction(
+    chain: ChainId,
+    txHash: string
+  ): Promise<ApiResponse<TransactionInfo>> {
+    this.validateChain(chain);
+    return this.request<TransactionInfo>(`/tx/${chain}/${txHash}`, {
+      method: 'GET',
+    });
+  }
+
+  async getGasPrices(chain: ChainId = 'ethereum'): Promise<ApiResponse<GasPrices>> {
+    this.validateChain(chain);
+    return this.request<GasPrices>(`/gas?chain=${chain}`, {
+      method: 'GET',
+    });
+  }
+
+  async analyzeBatch(
+    addresses: string[],
+    chain: ChainId,
+    options: { maxAddresses?: number } = {}
+  ): Promise<ApiResponse<BatchAnalysisResult>> {
+    if (addresses.length === 0) {
+      throw new Error('Must provide at least one address');
+    }
+    const maxAddresses = options.maxAddresses ?? 50;
+    if (addresses.length > maxAddresses) {
+      throw new Error(`Maximum ${maxAddresses} addresses per batch`);
+    }
+    this.validateChain(chain);
+    return this.request<BatchAnalysisResult>('/analyze/batch', {
+      method: 'POST',
+      body: JSON.stringify({ addresses, chain }),
     });
   }
 

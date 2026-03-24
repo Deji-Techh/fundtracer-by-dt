@@ -728,6 +728,93 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 /**
+ * POST /batch
+ * Analyze multiple wallet addresses in batch
+ * Returns summary info for each address
+ */
+router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { addresses, chain, options } = req.body;
+
+    if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
+        return res.status(400).json({ error: 'Addresses array is required' });
+    }
+
+    if (addresses.length > 50) {
+        return res.status(400).json({ error: 'Maximum 50 addresses per batch' });
+    }
+
+    const validAddresses = addresses.filter((addr: string) => ETH_ADDRESS_REGEX.test(addr));
+    if (validAddresses.length === 0) {
+        return res.status(400).json({ error: 'No valid addresses provided' });
+    }
+
+    const normalizedChain = (chain as string)?.toLowerCase() || 'linea';
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ error: `Invalid chain: ${chain}` });
+    }
+
+    try {
+        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+
+        const analyzer = new WalletAnalyzer({
+            alchemy: alchemyKey,
+        });
+
+        const results = await Promise.allSettled(
+            validAddresses.map(addr =>
+                analyzer.analyze(addr, normalizedChain as ChainId, {
+                    transactionLimit: 100,
+                    skipFundingTree: true,
+                })
+            )
+        );
+
+        const batchResults = results.map((result, i) => {
+            if (result.status === 'fulfilled') {
+                const r = result.value as any;
+                return {
+                    address: validAddresses[i],
+                    analyzed: true,
+                    totalReceived: r.summary?.totalValueReceivedEth,
+                    totalSent: r.summary?.totalValueSentEth,
+                    transactionCount: r.summary?.totalTransactions,
+                    uniqueAddresses: r.summary?.uniqueInteractedAddresses,
+                    activityDays: r.summary?.activityPeriodDays,
+                    riskScore: r.overallRiskScore,
+                    riskLevel: r.riskLevel,
+                };
+            } else {
+                return {
+                    address: validAddresses[i],
+                    analyzed: false,
+                    error: result.reason?.message || 'Analysis failed',
+                };
+            }
+        });
+
+        const analyzed = batchResults.filter((r: any) => r.analyzed).length;
+
+        res.json({
+            success: true,
+            result: batchResults,
+            meta: {
+                total: validAddresses.length,
+                analyzed,
+                failed: validAddresses.length - analyzed,
+            },
+            usageRemaining: res.locals.usageRemaining,
+        });
+    } catch (error: any) {
+        console.error('[Batch] Error:', error.message);
+        res.status(500).json({ error: 'Batch analysis failed', message: error.message });
+    }
+});
+
+/**
  * POST /sybil-addresses
  * Analyze a list of addresses directly (e.g., pasted from Dune)
  * Skips the slow "find interactors" step
