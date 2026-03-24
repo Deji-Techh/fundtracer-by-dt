@@ -28,6 +28,17 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
         const db = getFirestore();
         const userRef = db.collection('users').doc(req.user.uid);
         const userDoc = await userRef.get();
+        
+        // Create user document if it doesn't exist
+        if (!userDoc.exists) {
+            await userRef.set({
+                uid: req.user.uid,
+                email: req.user.email || '',
+                displayName: req.user.name || '',
+                createdAt: Date.now()
+            });
+        }
+        
         const userData = userDoc.data();
 
         // Check if 2FA is already enabled
@@ -35,6 +46,8 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
             return res.status(400).json({ error: '2FA is already enabled' });
         }
 
+        console.log('[2FA] Generating secret for user:', req.user.uid);
+        
         // Generate secret
         const secret = speakeasy.generateSecret({
             name: `FundTracer (${userData?.email || req.user.email || req.user.uid})`,
@@ -42,16 +55,22 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
             length: 32
         });
 
+        console.log('[2FA] Generating QR code');
+        
         // Generate QR code as data URL
         const qrCode = await QRCode.toDataURL(secret.otpauthURL || '');
 
-        // Store temporary secret (not enabled yet)
-        await userRef.update({
+        console.log('[2FA] Storing pending secret');
+        
+        // Store temporary secret (not enabled yet) - use set with merge
+        await userRef.set({
             twoFactorPending: {
                 secret: secret.base32,
                 createdAt: Date.now()
             }
-        });
+        }, { merge: true });
+
+        console.log('[2FA] Setup complete');
 
         res.json({
             success: true,
@@ -61,9 +80,9 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
                 manualEntry: secret.base32
             }
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('[2FA] Setup error:', error);
-        res.status(500).json({ error: 'Failed to setup 2FA' });
+        res.status(500).json({ error: 'Failed to setup 2FA: ' + error.message });
     }
 });
 
