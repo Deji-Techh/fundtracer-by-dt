@@ -377,7 +377,7 @@ export function AuthPage() {
                     <h2>{authMode === 'signup' ? 'Create Account' : 'Welcome Back'}</h2>
                     <p className="auth-desc-text">
                       {authMode === 'signup' 
-                        ? 'Get started with FundTracer — free forever.' 
+                        ? 'Get started with FundTracer.' 
                         : 'Sign in to access your dashboard'}
                     </p>
                   </div>
@@ -413,15 +413,15 @@ export function AuthPage() {
                   <div className="auth-trust-row">
                     <div className="auth-trust-item">
                       <Check size={14} />
-                      <span>Free forever</span>
-                    </div>
-                    <div className="auth-trust-item">
-                      <Check size={14} />
                       <span>No credit card</span>
                     </div>
                     <div className="auth-trust-item">
                       <Check size={14} />
                       <span>7+ chains</span>
+                    </div>
+                    <div className="auth-trust-item">
+                      <Check size={14} />
+                      <span>Sybil detection</span>
                     </div>
                   </div>
 

@@ -286,13 +286,13 @@ See [fundtracer.xyz/api-docs](https://fundtracer.xyz/api-docs) for full document
 
 ## Pricing
 
-All tiers are currently free. API keys included with every plan.
+All tiers are currently free to use.
 
-| Tier | Price | Features |
-|------|-------|----------|
-| Free | $0 | Unlimited analyses, 2 API keys, all EVM chains |
-| Pro | $0 | Unlimited analyses, unlimited API keys, Sybil detection |
-| Max | $0 | Unlimited analyses, unlimited API keys, dedicated support |
+| Tier | Price | API Keys | Features |
+|------|-------|----------|----------|
+| Free | $0 | 2 keys | Analyses, all EVM chains, wallet tracing |
+| Pro | $0 | Unlimited | All Free features + Sybil detection |
+| Max | $0 | Unlimited | All Pro features + dedicated support |
 
 ---
 
