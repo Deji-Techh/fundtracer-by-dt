@@ -114,6 +114,299 @@
   }
 }
 
+/* Panel Content */
+.panel-content {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Panel Section */
+.panel-section {
+  background: var(--intel-bg-surface);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.panel-section.danger {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.panel-section-header {
+  margin-bottom: var(--space-4);
+}
+
+.panel-section-header h3 {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--intel-text-primary);
+  margin: 0 0 var(--space-1);
+}
+
+.panel-section-header p {
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+  margin: 0;
+}
+
+/* Form */
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-group label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--intel-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--intel-bg-elevated);
+  border: 1px solid var(--intel-border-default);
+  border-radius: var(--radius-md);
+  color: var(--intel-text-primary);
+  font-size: var(--text-sm);
+  transition: all 0.15s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--intel-cyan);
+  box-shadow: 0 0 0 3px var(--intel-cyan-glow);
+}
+
+.form-input.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-hint {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+  margin-top: var(--space-2);
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: var(--intel-cyan);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--intel-bg-deep);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: var(--intel-cyan-bright);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: transparent;
+  border: 1px solid var(--intel-border-default);
+  border-radius: var(--radius-md);
+  color: var(--intel-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--intel-bg-hover);
+  color: var(--intel-text-primary);
+  border-color: var(--intel-border-strong);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--intel-red);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-danger:hover {
+  background: var(--intel-red-bg);
+  border-color: var(--intel-red);
+}
+
+/* Plan Card */
+.plan-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  background: linear-gradient(135deg, var(--intel-cyan-bg) 0%, var(--intel-bg-elevated) 100%);
+  border: 1px solid var(--intel-cyan);
+  border-radius: var(--radius-md);
+}
+
+.plan-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.plan-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--intel-text-primary);
+}
+
+.plan-badge {
+  display: inline-flex;
+  padding: var(--space-1) var(--space-2);
+  background: var(--intel-cyan);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--intel-bg-deep);
+  text-transform: uppercase;
+}
+
+.plan-details {
+  font-size: var(--text-sm);
+  color: var(--intel-text-muted);
+}
+
+/* Wallet Info */
+.wallet-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--intel-bg-elevated);
+  border: 1px solid var(--intel-border-default);
+  border-radius: var(--radius-md);
+}
+
+.wallet-address {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--intel-text-primary);
+}
+
+.wallet-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: var(--intel-green-bg);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--intel-green);
+}
+
+.wallet-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--intel-green);
+  border-radius: var(--radius-full);
+}
+
+/* Preference Row */
+.preference-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--intel-border-subtle);
+}
+
+.preference-row:last-child {
+  border-bottom: none;
+}
+
+.preference-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.preference-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--intel-text-primary);
+}
+
+.preference-desc {
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--intel-bg-base);
+  border: 1px solid var(--intel-border-default);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: var(--intel-text-muted);
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+}
+
+.toggle-switch.active {
+  background: var(--intel-cyan-bg);
+  border-color: var(--intel-cyan);
+}
+
+.toggle-switch.active::after {
+  left: 22px;
+  background: var(--intel-cyan);
+}
+
 /* Design System Overrides for SettingsPage */
 .settings-view__content .settings-page {
   padding: 0;
