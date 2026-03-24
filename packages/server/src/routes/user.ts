@@ -418,13 +418,15 @@ router.post('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
         const userTier = userData?.tier || 'free';
 
         if (userTier === 'free') {
+            // Count ALL keys (not just active ones) to enforce limit
             const keysSnapshot = await db
                 .collection('users').doc(req.user.uid)
                 .collection('apiKeys')
-                .where('active', '==', true)
                 .count()
                 .get();
             const currentKeyCount = keysSnapshot.data().count;
+
+            console.log(`[API Keys] Free tier user ${req.user.uid} has ${currentKeyCount} keys, limit is ${FREE_TIER_API_KEY_LIMIT}`);
 
             if (currentKeyCount >= FREE_TIER_API_KEY_LIMIT) {
                 return res.status(403).json({
