@@ -3,6 +3,25 @@ import { cache } from '../utils/cache.js';
 const MORALIS_API_KEY = process.env.MORALIS_API_KEY;
 const MORALIS_BASE_URL = 'https://deep-index.moralis.io/api/v2';
 
+const CHAIN_MAP: Record<string, string> = {
+  ethereum: 'eth',
+  eth: 'eth',
+  linea: 'linea',
+  arbitrum: 'arb',
+  arb: 'arb',
+  base: 'base',
+  optimism: 'opt',
+  opt: 'opt',
+  polygon: 'polygon',
+  matic: 'polygon',
+  bsc: 'bsc',
+  binance: 'bsc',
+};
+
+function normalizeChainForMoralis(chain: string): string {
+  return CHAIN_MAP[chain.toLowerCase()] || chain.toLowerCase();
+}
+
 export class MoralisService {
   private headers: HeadersInit;
 
@@ -18,13 +37,14 @@ export class MoralisService {
   }
 
   async getWalletTokens(address: string, chain: string = 'linea') {
-    const cacheKey = `moralis:tokens:${address}:${chain}`;
+    const normalizedChain = normalizeChainForMoralis(chain);
+    const cacheKey = `moralis:tokens:${address}:${normalizedChain}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
     try {
       const response = await fetch(
-        `${MORALIS_BASE_URL}/${address}/erc20?chain=${chain}`,
+        `${MORALIS_BASE_URL}/${address}/erc20?chain=${normalizedChain}`,
         { headers: this.headers }
       );
 
@@ -42,13 +62,14 @@ export class MoralisService {
   }
 
   async getWalletNFTs(address: string, chain: string = 'linea') {
-    const cacheKey = `moralis:nfts:${address}:${chain}`;
+    const normalizedChain = normalizeChainForMoralis(chain);
+    const cacheKey = `moralis:nfts:${address}:${normalizedChain}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
     try {
       const response = await fetch(
-        `${MORALIS_BASE_URL}/${address}/nft?chain=${chain}&format=decimal`,
+        `${MORALIS_BASE_URL}/${address}/nft?chain=${normalizedChain}&format=decimal`,
         { headers: this.headers }
       );
 
@@ -66,13 +87,14 @@ export class MoralisService {
   }
 
   async getTokenMetadata(address: string, chain: string = 'linea') {
-    const cacheKey = `moralis:metadata:${address}:${chain}`;
+    const normalizedChain = normalizeChainForMoralis(chain);
+    const cacheKey = `moralis:metadata:${address}:${normalizedChain}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
     try {
       const response = await fetch(
-        `${MORALIS_BASE_URL}/erc20/metadata?chain=${chain}&addresses=${address}`,
+        `${MORALIS_BASE_URL}/erc20/metadata?chain=${normalizedChain}&addresses=${address}`,
         { headers: this.headers }
       );
 
