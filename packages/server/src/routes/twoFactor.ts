@@ -68,9 +68,17 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
         });
 
         console.log('[2FA] Generating QR code');
+        console.log('[2FA] Secret base32:', secret.base32 ? 'present' : 'missing');
+        console.log('[2FA] Secret otpauth_url:', secret.otpauth_url ? 'present' : 'missing');
+        console.log('[2FA] Secret otpauthURL:', (secret as any).otpauthURL ? 'present' : 'missing');
         
-        // Generate QR code as data URL
-        const otpauthURL = secret.otpauthURL || '';
+        // Generate QR code as data URL - speakeasy v2 uses otpauth_url (underscore)
+        const otpauthURL = secret.otpauth_url || (secret as any).otpauthURL || '';
+        
+        if (!otpauthURL) {
+            throw new Error('Failed to generate OTP auth URL - secret.otpauth_url is empty');
+        }
+        
         const qrCode = await QRCode.toDataURL(otpauthURL);
 
         console.log('[2FA] Storing pending secret in Firestore');
