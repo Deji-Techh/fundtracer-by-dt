@@ -20,7 +20,7 @@ interface TwoFactorSetup {
 }
 
 export function SettingsView() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut, signOutAccount } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { success: notifySuccess, error: notifyError } = useNotify();
 
@@ -342,10 +342,18 @@ export function SettingsView() {
                 <div className="wallet-info">
                   <div className="wallet-address">{profile.walletAddress}</div>
                   <div className="wallet-status">Connected</div>
+                  <button className="btn-secondary" onClick={signOut} style={{ marginTop: '12px' }}>
+                    Sign Out Wallet
+                  </button>
                 </div>
               ) : (
-                <button className="btn-primary">Connect Wallet</button>
+                <button className="btn-primary" onClick={signOut}>
+                  Connect Wallet
+                </button>
               )}
+              <button className="btn-secondary" onClick={signOutAccount} style={{ marginTop: '12px' }}>
+                Sign Out Account
+              </button>
             </div>
           </div>
         )}
@@ -575,14 +583,7 @@ export function SettingsView() {
               </div>
             )}
 
-            {/* Password Section */}
-            <div className="panel-section">
-              <div className="panel-section-header">
-                <h3>Password</h3>
-                <p>Change your account password</p>
-              </div>
-              <button className="btn-secondary">Change Password</button>
-            </div>
+
 
             {/* Danger Zone */}
             {!showDeleteConfirm ? (
@@ -627,12 +628,29 @@ export function SettingsView() {
                   />
                 </div>
 
+                {twoFactorEnabled && (
+                  <div className="form-group">
+                    <label className="form-label">
+                      Enter 2FA code (required)
+                    </label>
+                    <input 
+                      type="text" 
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      className="form-input"
+                      maxLength={6}
+                    />
+                  </div>
+                )}
+
                 <div className="twofa-actions">
                   <button 
                     className="btn-secondary"
                     onClick={() => {
                       setShowDeleteConfirm(false);
                       setDeleteConfirmText('');
+                      setVerificationCode('');
                     }}
                   >
                     Cancel
@@ -640,7 +658,11 @@ export function SettingsView() {
                   <button 
                     className="btn-danger"
                     onClick={handleDeleteAccount}
-                    disabled={deleteConfirmText.toLowerCase() !== 'fundtracer' || isDeleting}
+                    disabled={
+                      deleteConfirmText.toLowerCase() !== 'fundtracer' || 
+                      isDeleting ||
+                      (twoFactorEnabled && (!verificationCode || verificationCode.length !== 6))
+                    }
                   >
                     {isDeleting ? 'Deleting...' : 'Delete My Account'}
                   </button>
