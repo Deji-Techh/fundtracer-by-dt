@@ -748,7 +748,7 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
     try {
       notify.info('Fetching wallet data... This may take a while for wallets with many transactions.');
       
-      const response = await analyzeWallet(addressToUse, chain as any);
+      const response = await analyzeWallet(addressToUse, chain as any, { limit: 10000 });
       
       console.log('API Response:', response);
       

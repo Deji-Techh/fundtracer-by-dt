@@ -352,7 +352,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         });
 
         // Pagination params
-        const limit = Math.min(options?.limit || 100, 500); // Max 500 per request
+        const limit = Math.min(options?.limit || 10000, 10000); // Max 10000 per request
         const offset = options?.offset || 0;
 
         console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 120s timeout...`);
@@ -362,7 +362,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             'Wallet analysis'
         );
 
-        // Paginate transactions
+        // Paginate transactions - return up to 10000
         const totalTransactions = result.transactions.length;
         const paginatedTransactions = result.transactions.slice(offset, offset + limit);
         const hasMore = offset + limit < totalTransactions;
