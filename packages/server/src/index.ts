@@ -69,6 +69,14 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 import { initializeFirebase } from './firebase.js';
+
+try {
+    initializeFirebase();
+    console.log('[Server] Firebase initialized successfully');
+} catch (error) {
+    console.error('[Server] Firebase initialization failed:', error);
+}
+
 import { authMiddleware, apiKeyAuthMiddleware } from './middleware/auth.js';
 import { usageMiddleware } from './middleware/usage.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
