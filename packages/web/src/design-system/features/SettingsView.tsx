@@ -29,6 +29,7 @@ export function SettingsView() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [name, setName] = useState(profile?.username || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(profile?.emailNotifications ?? true);
   
   // 2FA State
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -225,6 +226,32 @@ export function SettingsView() {
       notifyError('Failed to update profile');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleEmailNotificationToggle = async () => {
+    const newValue = !emailNotifications;
+    setEmailNotifications(newValue);
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ emailNotifications: newValue })
+      });
+      const data = await res.json();
+      if (data.success) {
+        notifySuccess(newValue ? 'Email notifications enabled' : 'Email notifications disabled');
+      } else {
+        setEmailNotifications(!newValue);
+        notifyError(data.error || 'Failed to update notification preference');
+      }
+    } catch (error) {
+      setEmailNotifications(!newValue);
+      notifyError('Failed to update notification preference');
     }
   };
 
@@ -434,7 +461,7 @@ export function SettingsView() {
                   <span className="preference-label">Email Notifications</span>
                   <span className="preference-desc">Receive updates via email</span>
                 </div>
-                <button className="toggle-switch active">
+                <button className={`toggle-switch ${emailNotifications ? 'active' : ''}`} onClick={handleEmailNotificationToggle}>
                   <span className="toggle-knob" />
                 </button>
               </div>

@@ -102,17 +102,21 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-// Update user profile (only displayName and profilePicture, email is read-only from Google)
+// Update user profile (only displayName, profilePicture, and emailNotifications)
 router.post('/profile', async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const { displayName, profilePicture } = req.body;
+    const { displayName, profilePicture, emailNotifications } = req.body;
 
     // Validate inputs
     if (displayName && displayName.length > 50) {
         return res.status(400).json({ error: 'Display name too long (max 50 chars)' });
+    }
+
+    if (emailNotifications !== undefined && typeof emailNotifications !== 'boolean') {
+        return res.status(400).json({ error: 'emailNotifications must be a boolean' });
     }
 
     try {
@@ -122,6 +126,7 @@ router.post('/profile', async (req: AuthenticatedRequest, res: Response) => {
         const updates: any = {};
         if (displayName) updates.displayName = displayName;
         if (profilePicture !== undefined) updates.profilePicture = profilePicture;
+        if (emailNotifications !== undefined) updates.emailNotifications = emailNotifications;
 
         // Only update if there are changes
         if (Object.keys(updates).length > 0) {
