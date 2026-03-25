@@ -20,7 +20,10 @@ interface TwoFactorSetup {
 
 // Generate 2FA setup for user
 router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
+    console.log('[2FA] Setup endpoint hit, user:', req.user?.uid);
+
     if (!req.user) {
+        console.log('[2FA] No user found in request');
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
@@ -45,7 +48,17 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
             return res.status(400).json({ error: '2FA is already enabled' });
         }
 
-        console.log('[2FA] Generating secret');
+        console.log('[2FA] About to generate secret with speakeasy...');
+        
+        // Verify speakeasy is available
+        if (!speakeasy || typeof speakeasy.generateSecret !== 'function') {
+            throw new Error('speakeasy package not available - check if package is installed');
+        }
+        
+        // Verify QRCode is available
+        if (!QRCode || typeof QRCode.toDataURL !== 'function') {
+            throw new Error('qrcode package not available - check if package is installed');
+        }
         
         // Generate secret
         const secret = speakeasy.generateSecret({
