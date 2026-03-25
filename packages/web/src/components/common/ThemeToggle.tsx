@@ -72,38 +72,111 @@ export function ThemeToggle({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
 
   if (isMobile) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-        {themes.map((t) => (
-          <motion.button
-            key={t.value}
-            onClick={() => setTheme(t.value)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '12px 16px',
-              width: '100%',
-              borderRadius: 'var(--radius-lg)',
-              background: theme === t.value ? 'var(--color-accent-muted)' : 'transparent',
-              border: `1px solid ${theme === t.value ? 'var(--color-accent)' : 'var(--color-border)'}`,
-              color: theme === t.value ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 500,
-              transition: 'all 0.2s ease',
-            }}
+      <div ref={dropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <motion.button
+          onClick={() => setIsOpen(!isOpen)}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 14px',
+            borderRadius: 'var(--radius-lg)',
+            background: 'var(--glass-bg)',
+            backdropFilter: 'var(--glass-blur)',
+            WebkitBackdropFilter: 'var(--glass-blur)',
+            border: '1px solid var(--glass-border)',
+            color: 'var(--color-text-secondary)',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: 500,
+            transition: 'all var(--transition-base)',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <span style={{ fontSize: '14px' }}>{currentTheme?.icon}</span>
+          <motion.svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            style={{ marginLeft: '4px', opacity: 0.6 }}
           >
-            {t.icon}
-            <span>{t.label}</span>
-            {theme === t.value && (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 'auto' }}>
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            )}
-          </motion.button>
-        ))}
+            <polyline points="6 9 12 15 18 9" />
+          </motion.svg>
+        </motion.button>
+
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                minWidth: '160px',
+                padding: '6px',
+                borderRadius: 'var(--radius-lg)',
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--shadow-lg)',
+                zIndex: 100,
+              }}
+            >
+              {themes.map((t) => (
+                <motion.button
+                  key={t.value}
+                  onClick={() => {
+                    setTheme(t.value);
+                    setIsOpen(false);
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-md)',
+                    background: theme === t.value ? 'var(--color-accent-muted)' : 'transparent',
+                    border: 'none',
+                    color: theme === t.value ? 'var(--color-accent)' : 'var(--color-text-primary)',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: theme === t.value ? 600 : 400,
+                    transition: 'all 0.15s ease',
+                    textAlign: 'left',
+                  }}
+                >
+                  {t.icon}
+                  <span>{t.label}</span>
+                  {theme === t.value && (
+                    <motion.svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      style={{ marginLeft: 'auto' }}
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </motion.svg>
+                  )}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }

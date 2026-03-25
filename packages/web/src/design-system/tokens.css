@@ -394,6 +394,133 @@
   --accent-green: var(--intel-green);
 }
 
+/* ============================================================
+   DIM MODE THEME (Twitter-style)
+   ============================================================ */
+
+[data-theme="dim"] {
+  /* Background Hierarchy - Dim dark with warm tones */
+  --intel-bg-deep: #0c0e12;
+  --intel-bg-base: #15202b;
+  --intel-bg-elevated: #192734;
+  --intel-bg-surface: #22303c;
+  --intel-bg-hover: #273340;
+  --intel-bg-active: #2f3e4f;
+  
+  /* Card backgrounds (alias for surface) */
+  --bg-card: #192734;
+  --bg-deep: #0c0e12;
+  
+  /* Border Colors - Dim mode */
+  --intel-border-subtle: #38444d;
+  --intel-border-default: #4a5660;
+  --intel-border-strong: #536471;
+  --intel-border-focus: var(--intel-cyan);
+  
+  /* Text Hierarchy - Muted warm tones */
+  --intel-text-primary: #e7e9ea;
+  --intel-text-secondary: #8b98a5;
+  --intel-text-muted: #71767b;
+  --intel-text-disabled: #5c6c7a;
+  
+  /* Primary Green (Brand Color) - Adjusted for dim mode */
+  --intel-cyan: #00d4ff;
+  --intel-cyan-dim: #00b8dd;
+  --intel-cyan-bright: #33ddff;
+  --intel-cyan-glow: rgba(0, 212, 255, 0.2);
+  --intel-cyan-bg: rgba(0, 212, 255, 0.12);
+  
+  /* Status Colors - Dim mode */
+  --intel-green: #00ba7c;
+  --intel-green-dim: #00a068;
+  --intel-green-bg: rgba(0, 186, 124, 0.12);
+  
+  --intel-red: #f9364e;
+  --intel-red-dim: #dd2a40;
+  --intel-red-bg: rgba(249, 54, 80, 0.12);
+  
+  --intel-yellow: #ffd400;
+  --intel-yellow-dim: #ddb800;
+  --intel-yellow-bg: rgba(255, 212, 0, 0.12);
+  
+  --intel-purple: #8b5cf6;
+  --intel-purple-dim: #7c3aed;
+  --intel-purple-bg: rgba(139, 92, 246, 0.12);
+  
+  --intel-orange: #fb923c;
+  --intel-orange-dim: #f97316;
+  --intel-orange-bg: rgba(251, 146, 60, 0.12);
+  
+  /* Entity Labels - Dim mode */
+  --label-whale: #00d4ff;
+  --label-whale-bg: rgba(0, 212, 255, 0.15);
+  
+  --label-exchange: #fb923c;
+  --label-exchange-bg: rgba(251, 146, 60, 0.15);
+  
+  --label-defi: #8b5cf6;
+  --label-defi-bg: rgba(139, 92, 246, 0.15);
+  
+  --label-nft: #ec4899;
+  --label-nft-bg: rgba(236, 72, 153, 0.15);
+  
+  --label-bridge: #06b6d4;
+  --label-bridge-bg: rgba(6, 182, 212, 0.15);
+  
+  --label-scam: #f9364e;
+  --label-scam-bg: rgba(249, 54, 80, 0.15);
+  
+  --label-fund: #00ba7c;
+  --label-fund-bg: rgba(0, 186, 124, 0.15);
+  
+  --label-dao: #fbbf24;
+  --label-dao-bg: rgba(251, 191, 36, 0.15);
+  
+  /* Risk Levels - Dim mode */
+  --risk-low: #00ba7c;
+  --risk-low-bg: rgba(0, 186, 124, 0.15);
+  
+  --risk-medium: #ffd400;
+  --risk-medium-bg: rgba(255, 212, 0, 0.15);
+  
+  --risk-high: #fb923c;
+  --risk-high-bg: rgba(251, 146, 60, 0.15);
+  
+  --risk-critical: #f9364e;
+  --risk-critical-bg: rgba(249, 54, 80, 0.15);
+  
+  /* Shadows - Dim mode */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.45);
+  
+  --glow-cyan: 0 0 20px rgba(0, 212, 255, 0.3);
+  --glow-green: 0 0 20px rgba(0, 186, 124, 0.3);
+  --glow-red: 0 0 20px rgba(249, 54, 80, 0.3);
+  
+  /* Legacy aliases - Dim mode */
+  --bg-deep: var(--intel-bg-deep);
+  --bg-base: var(--intel-bg-base);
+  --bg-elevated: var(--intel-bg-elevated);
+  --bg-surface: var(--intel-bg-surface);
+  --bg-hover: var(--intel-bg-hover);
+  --bg-active: var(--intel-bg-active);
+  --border-subtle: var(--intel-border-subtle);
+  --border-default: var(--intel-border-default);
+  --border-strong: var(--intel-border-strong);
+  --border-focus: var(--intel-border-focus);
+  --text-primary: var(--intel-text-primary);
+  --text-secondary: var(--intel-text-secondary);
+  --text-muted: var(--intel-text-muted);
+  --text-disabled: var(--intel-text-disabled);
+  --accent-cyan: var(--intel-cyan);
+  --accent-cyan-dim: var(--intel-cyan-dim);
+  --accent-cyan-bright: var(--intel-cyan-bright);
+  --accent-red: var(--intel-red);
+  --accent-green: var(--intel-green);
+}
+
 /* ─────────────────────────────────────────────────────────────
    BASE RESET & DEFAULTS
    ───────────────────────────────────────────────────────────── */
