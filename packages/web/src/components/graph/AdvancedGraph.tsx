@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import { useNotify } from '../../contexts/ToastContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { CHAINS } from '@fundtracer/core';
+import { analyzeWallet } from '../../api';
 import './AdvancedGraph.css';
 
 interface GraphNode extends d3.SimulationNodeDatum {
@@ -726,21 +727,111 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
 
   }, [graphData, filteredNodes, filters, showLabels, pinnedNodes, watchlist, themeMode, layoutMode, viewMode, viewAngle]);
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
+    const addressToUse = walletAddress || targetAddress;
+    if (!addressToUse) {
+      notify.error('Please enter a wallet address');
+      return;
+    }
+
     setIsLoading(true);
     setUndoStack(prev => [...prev, graphData]);
     setRedoStack([]);
-    setTimeout(() => {
-      const data = generateMockData();
+
+    try {
+      const response = await analyzeWallet(addressToUse, chain as any);
+      
+      if (!response.success || !response.result) {
+        throw new Error(response.error || 'Failed to analyze wallet');
+      }
+
+      const txns = response.result.transactions || [];
+      const nodes: GraphNode[] = [];
+      const edges: GraphEdge[] = [];
+      const addressMap = new Map<string, GraphNode>();
+
+      // Add target wallet as main node
+      const targetNode: GraphNode = {
+        id: 'target',
+        address: addressToUse,
+        label: `${addressToUse.slice(0, 6)}...${addressToUse.slice(-4)}`,
+        type: 'target',
+        balance: 0,
+        transactionCount: txns.length,
+        totalVolume: txns.reduce((sum: number, t: any) => sum + parseFloat(t.valueInEth || '0'), 0),
+        firstTx: txns[0]?.timestamp ? new Date(txns[0].timestamp).getTime() : undefined,
+        lastTx: txns[txns.length - 1]?.timestamp ? new Date(txns[txns.length - 1].timestamp).getTime() : undefined,
+      };
+      nodes.push(targetNode);
+      addressMap.set(addressToUse.toLowerCase(), targetNode);
+
+      // Create nodes for each transaction (expanded view)
+      txns.forEach((tx: any, idx: number) => {
+        const fromAddr = tx.from?.toLowerCase();
+        const toAddr = tx.to?.toLowerCase();
+        const txValue = parseFloat(tx.valueInEth || '0');
+
+        // Add sender node if not exists
+        if (fromAddr && !addressMap.has(fromAddr)) {
+          const senderNode: GraphNode = {
+            id: `sender_${idx}`,
+            address: fromAddr,
+            label: `${fromAddr.slice(0, 6)}...${fromAddr.slice(-4)}`,
+            type: fromAddr === addressToUse.toLowerCase() ? 'target' : 'wallet',
+          };
+          nodes.push(senderNode);
+          addressMap.set(fromAddr, senderNode);
+        }
+
+        // Add receiver node if not exists
+        if (toAddr && !addressMap.has(toAddr)) {
+          const receiverNode: GraphNode = {
+            id: `receiver_${idx}`,
+            address: toAddr,
+            label: `${toAddr.slice(0, 6)}...${toAddr.slice(-4)}`,
+            type: toAddr === addressToUse.toLowerCase() ? 'target' : 'wallet',
+          };
+          nodes.push(receiverNode);
+          addressMap.set(toAddr, receiverNode);
+        }
+
+        // Add edge from sender to receiver
+        if (fromAddr && toAddr) {
+          const edgeId = `edge_${idx}`;
+          edges.push({
+            id: edgeId,
+            source: addressMap.get(fromAddr)!,
+            target: addressMap.get(toAddr)!,
+            type: tx.category || 'transfer',
+            value: txValue,
+            token: tx.token || 'ETH',
+            timestamp: tx.timestamp ? new Date(tx.timestamp).getTime() : undefined,
+            txHash: tx.hash,
+            status: tx.error ? 'failed' : 'success',
+          });
+        }
+      });
+
+      // Deduplicate nodes - keep unique addresses
+      const uniqueNodes = Array.from(addressMap.values());
+      
+      const data: GraphData = { nodes: uniqueNodes, edges };
       setGraphData(data);
       setFilteredNodes(new Set());
       setIsGenerated(true);
-      setIsLoading(false);
+      
       const ai = performAIAnalysis(data);
       setAiAnalysis(ai);
-      notify.success(`Graph generated with ${data.nodes.length} nodes and ${data.edges.length} connections`);
-    }, 800);
-  }, [generateMockData, performAIAnalysis, notify, graphData]);
+      
+      notify.success(`Graph generated with ${uniqueNodes.length} nodes and ${edges.length} transactions`);
+    } catch (err: any) {
+      console.error('Graph generation error:', err);
+      notify.error(err.message || 'Failed to generate graph');
+      setIsGenerated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [walletAddress, targetAddress, chain, notify, graphData, performAIAnalysis]);
 
   const handleUndo = useCallback(() => {
     if (undoStack.length === 0) return;
@@ -804,6 +895,61 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
   }, [graphData, notify]);
 
   useEffect(() => { if (isGenerated && graphData.nodes.length > 0) renderGraph(); }, [isGenerated, renderGraph]);
+  
+  // Handle merge/expand toggle - store original data for expand
+  const [originalGraphData, setOriginalGraphData] = useState<GraphData>({ nodes: [], edges: [] });
+  
+  useEffect(() => {
+    if (!isGenerated || graphData.edges.length === 0) return;
+
+    if (isMerged) {
+      // Store original expanded data
+      setOriginalGraphData(graphData);
+      
+      // Merge: aggregate edges between same address pairs
+      const edgeMap = new Map<string, { source: string; target: string; value: number; count: number; type: string }>();
+      
+      graphData.edges.forEach(edge => {
+        const sourceId = typeof edge.source === 'object' ? (edge.source as GraphNode).id : edge.source;
+        const targetId = typeof edge.target === 'object' ? (edge.target as GraphNode).id : edge.target;
+        const key = `${sourceId}->${targetId}`;
+        
+        if (edgeMap.has(key)) {
+          const existing = edgeMap.get(key)!;
+          existing.value += edge.value;
+          existing.count += 1;
+        } else {
+          edgeMap.set(key, {
+            source: sourceId,
+            target: targetId,
+            value: edge.value,
+            count: 1,
+            type: edge.type,
+          });
+        }
+      });
+
+      // Create merged edges
+      const mergedEdges: GraphEdge[] = Array.from(edgeMap.values()).map((e, idx) => ({
+        id: `merged_${idx}`,
+        source: e.source,
+        target: e.target,
+        type: e.type as any,
+        value: e.value,
+        timestamp: undefined,
+      }));
+
+      setGraphData(prev => ({ ...prev, edges: mergedEdges }));
+      notify.info(`Merged into ${mergedEdges.length} connections`);
+    } else {
+      // Expanded: restore original data
+      if (originalGraphData.edges.length > 0) {
+        setGraphData(originalGraphData);
+        notify.info(`Expanded to ${originalGraphData.edges.length} transactions`);
+      }
+    }
+  }, [isMerged]);
+
   useEffect(() => {
     const handleResize = () => { if (isGenerated) renderGraph(); };
     window.addEventListener('resize', handleResize);
@@ -1264,6 +1410,17 @@ ${gexfEdges}
               <Icon name="arrowRight" size={14} />
             </button>
           </div>
+
+          {isGenerated && (
+            <button 
+              className={`ctrl-btn merge-toggle ${isMerged ? 'active' : ''}`}
+              onClick={() => setIsMerged(!isMerged)}
+              title={isMerged ? 'Expand transactions' : 'Merge transactions'}
+            >
+              <Icon name={isMerged ? 'layers' : 'gitMerge'} size={16} />
+              <span>{isMerged ? 'Expanded' : 'Merge TX'}</span>
+            </button>
+          )}
 
           {showAISuggestions && (
             <div className="ai-suggestions">
