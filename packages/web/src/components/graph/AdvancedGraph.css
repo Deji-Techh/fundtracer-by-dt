@@ -125,10 +125,10 @@
   align-items: center;
   gap: 10px;
   padding: 14px 32px;
-  background: var(--color-accent);
+  background: var(--color-accent) !important;
   border: none;
   border-radius: 12px;
-  color: white;
+  color: white !important;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -139,6 +139,8 @@
 .btn-generate:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(59, 130, 246, 0.4);
+  background: var(--color-accent) !important;
+  color: white !important;
 }
 
 .btn-generate svg {
@@ -345,10 +347,13 @@
   top: 80px;
   left: 12px;
   width: 200px;
+  max-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
   gap: 12px;
   z-index: 10;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .filter-section {
@@ -465,22 +470,22 @@
 .date-range-picker {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .date-presets {
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 .date-preset {
   flex: 1;
-  padding: 6px 8px;
+  padding: 4px 2px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 4px;
   color: var(--color-text-secondary);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -500,17 +505,18 @@
 .date-inputs {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .date-inputs input {
   flex: 1;
-  padding: 8px 10px;
+  padding: 4px 2px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 4px;
   color: var(--color-text-primary);
-  font-size: 0.75rem;
+  font-size: 0.65rem;
+  width: 100%;
 }
 
 .date-separator {
@@ -560,24 +566,26 @@
 
 /* Toggle Cards */
 .toggle-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .toggle-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 12px 8px;
+  gap: 4px;
+  padding: 6px 8px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--color-text-secondary);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   cursor: pointer;
   transition: all 0.2s;
+  flex: 1 1 calc(33% - 4px);
+  min-width: 50px;
 }
 
 .toggle-card:hover {

@@ -162,6 +162,7 @@ const Icon = ({ name, size = 20, className = '' }: { name: string; size?: number
     arrowUp: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>,
     arrowDown: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><path d="M12 5v14M19 12l-7 7-7-7"/></svg>,
     more: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
+    whale: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><path d="M3 12c0 0 2-4 6-4s4 4 4 4 2-4 6-4 5 4 5 4v4c0 1-.9 2-2 2H4c-1.1 0-2-1-2-2v-4s1-4 1-4z"/><path d="M8 12c0 0 1-2 3-2s2 2 2 2 1-2 3-2 2 2 2 2"/></svg>,
     link: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
     plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>,
     minus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><line x1="5" x2="19" y1="12" y2="12"/></svg>,
@@ -1421,15 +1422,15 @@ ${gexfEdges}
                   <label>Show Options</label>
                   <div className="toggle-cards">
                     <div className={`toggle-card ${filters.showWhales ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, showWhales: !prev.showWhales }))}>
-                      <span className="toggle-icon">🐋</span>
+                      <Icon name="whale" size={12} />
                       <span>Whales</span>
                     </div>
                     <div className={`toggle-card ${filters.showSuspicious ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, showSuspicious: !prev.showSuspicious }))}>
-                      <span className="toggle-icon">⚠️</span>
+                      <Icon name="alert" size={12} />
                       <span>Suspicious</span>
                     </div>
                     <div className={`toggle-card ${filters.showDormant ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, showDormant: !prev.showDormant }))}>
-                      <span className="toggle-icon">💤</span>
+                      <Icon name="moon" size={12} />
                       <span>Dormant</span>
                     </div>
                   </div>
