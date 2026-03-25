@@ -94,6 +94,9 @@ import contractService from './services/ContractService.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy for rate limiting behind Render's load balancer
+app.set('trust proxy', 1);
+
 let server: any = null;
 let isShuttingDown = false;
 let isReady = false;

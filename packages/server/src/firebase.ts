@@ -8,7 +8,21 @@ import fs from 'fs';
 let firebaseInitialized = false;
 
 export function initializeFirebase() {
-    if (firebaseInitialized) return;
+    if (firebaseInitialized) {
+        console.log('[Firebase] Already initialized (skipping)');
+        return;
+    }
+
+    // Check if Firebase is already initialized (e.g., from GOOGLE_APPLICATION_CREDENTIALS)
+    try {
+        if (admin.apps.length > 0) {
+            console.log('[Firebase] Already initialized by Firebase auto-discovery');
+            firebaseInitialized = true;
+            return;
+        }
+    } catch (e) {
+        // Ignore errors, proceed with manual initialization
+    }
 
     console.log('[Firebase] Starting initialization...');
 
