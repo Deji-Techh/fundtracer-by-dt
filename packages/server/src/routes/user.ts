@@ -5,7 +5,7 @@
 import { Router, Response } from 'express';
 import { AuthenticatedRequest, requireWallet } from '../middleware/auth.js';
 import { requireTwoFactor } from '../middleware/twoFactor.js';
-import { getFirestore } from '../firebase.js';
+import { getFirestore, getAuth } from '../firebase.js';
 import axios from 'axios';
 
 const router = Router();
@@ -509,25 +509,59 @@ router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, re
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    console.log('[User] Account deletion requested for:', req.user.uid);
+    const userId = req.user.uid;
+    console.log('[User] Account deletion requested for:', userId);
 
     try {
         const db = getFirestore();
-        const userRef = db.collection('users').doc(req.user.uid);
+        const userRef = db.collection('users').doc(userId);
+
+        // Delete scanHistory subcollection (user's search/investigate history)
+        const scanHistoryRef = db.collection('scanHistory').doc(userId).collection('items');
+        const scanHistorySnapshot = await scanHistoryRef.limit(500).get();
+        if (scanHistorySnapshot.size > 0) {
+            const scanDeletePromises = scanHistorySnapshot.docs.map(doc => doc.ref.delete());
+            await Promise.all(scanDeletePromises);
+            console.log('[User] Deleted scanHistory items:', scanHistorySnapshot.size);
+        }
         
-        // Get user data for logging
-        const userDoc = await userRef.get();
-        const userData = userDoc.data();
-        
+        // Delete the scanHistory user document itself
+        await db.collection('scanHistory').doc(userId).delete().catch(() => {});
+
+        // Delete user's notifications
+        const notificationsSnapshot = await db.collection('notifications')
+            .where('userId', '==', userId)
+            .limit(500)
+            .get();
+        if (notificationsSnapshot.size > 0) {
+            const notifDeletePromises = notificationsSnapshot.docs.map(doc => doc.ref.delete());
+            await Promise.all(notifDeletePromises);
+            console.log('[User] Deleted notifications:', notificationsSnapshot.size);
+        }
+
         // Delete user's API keys subcollection
         const apiKeysSnapshot = await userRef.collection('apiKeys').get();
-        const deletePromises = apiKeysSnapshot.docs.map(doc => doc.ref.delete());
-        await Promise.all(deletePromises);
+        if (apiKeysSnapshot.size > 0) {
+            const apiKeyDeletePromises = apiKeysSnapshot.docs.map(doc => doc.ref.delete());
+            await Promise.all(apiKeyDeletePromises);
+            console.log('[User] Deleted API keys:', apiKeysSnapshot.size);
+        }
 
         // Delete user document
         await userRef.delete();
+        console.log('[User] Deleted user document');
 
-        console.log('[User] Account deleted:', req.user.uid);
+        // Delete Firebase Auth account
+        try {
+            const auth = getAuth();
+            await auth.deleteUser(userId);
+            console.log('[User] Deleted Firebase Auth account');
+        } catch (authError: any) {
+            console.error('[User] Error deleting Firebase Auth:', authError.message);
+            // Continue even if auth deletion fails (user might not exist in Firebase Auth)
+        }
+
+        console.log('[User] Account fully deleted:', userId);
 
         res.json({ 
             success: true, 
