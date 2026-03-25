@@ -734,18 +734,39 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
       return;
     }
 
+    // Validate address format
+    if (!addressToUse.startsWith('0x') || addressToUse.length < 42) {
+      notify.error('Invalid wallet address format');
+      return;
+    }
+
     setIsLoading(true);
     setUndoStack(prev => [...prev, graphData]);
     setRedoStack([]);
+    setIsGenerated(false);
 
     try {
+      notify.info('Fetching wallet data... This may take a while for wallets with many transactions.');
+      
       const response = await analyzeWallet(addressToUse, chain as any);
+      
+      console.log('API Response:', response);
       
       if (!response.success || !response.result) {
         throw new Error(response.error || 'Failed to analyze wallet');
       }
 
-      const txns = response.result.transactions || [];
+      // Check different possible transaction field names
+      const txns = response.result.transactions || response.result.txs || response.result.data || [];
+      
+      if (!txns || txns.length === 0) {
+        notify.info('No transactions found for this wallet');
+        setIsLoading(false);
+        return;
+      }
+
+      notify.info(`Found ${txns.length} transactions, building graph...`);
+
       const nodes: GraphNode[] = [];
       const edges: GraphEdge[] = [];
       const addressMap = new Map<string, GraphNode>();
@@ -758,7 +779,7 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
         type: 'target',
         balance: 0,
         transactionCount: txns.length,
-        totalVolume: txns.reduce((sum: number, t: any) => sum + parseFloat(t.valueInEth || '0'), 0),
+        totalVolume: txns.reduce((sum: number, t: any) => sum + parseFloat(t.valueInEth || t.value || '0'), 0),
         firstTx: txns[0]?.timestamp ? new Date(txns[0].timestamp).getTime() : undefined,
         lastTx: txns[txns.length - 1]?.timestamp ? new Date(txns[txns.length - 1].timestamp).getTime() : undefined,
       };
@@ -767,14 +788,16 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
 
       // Create nodes for each transaction (expanded view)
       txns.forEach((tx: any, idx: number) => {
-        const fromAddr = tx.from?.toLowerCase();
-        const toAddr = tx.to?.toLowerCase();
-        const txValue = parseFloat(tx.valueInEth || '0');
+        const fromAddr = (tx.from || tx.from_address || tx.sender)?.toLowerCase();
+        const toAddr = (tx.to || tx.to_address || tx.receiver || tx.contractAddress)?.toLowerCase();
+        const txValue = parseFloat(tx.valueInEth || tx.value || tx.value_eth || '0');
+
+        if (!fromAddr || !toAddr) return;
 
         // Add sender node if not exists
-        if (fromAddr && !addressMap.has(fromAddr)) {
+        if (!addressMap.has(fromAddr)) {
           const senderNode: GraphNode = {
-            id: `sender_${idx}`,
+            id: `sender_${fromAddr}`,
             address: fromAddr,
             label: `${fromAddr.slice(0, 6)}...${fromAddr.slice(-4)}`,
             type: fromAddr === addressToUse.toLowerCase() ? 'target' : 'wallet',
@@ -784,9 +807,9 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
         }
 
         // Add receiver node if not exists
-        if (toAddr && !addressMap.has(toAddr)) {
+        if (!addressMap.has(toAddr)) {
           const receiverNode: GraphNode = {
-            id: `receiver_${idx}`,
+            id: `receiver_${toAddr}`,
             address: toAddr,
             label: `${toAddr.slice(0, 6)}...${toAddr.slice(-4)}`,
             type: toAddr === addressToUse.toLowerCase() ? 'target' : 'wallet',
@@ -796,20 +819,18 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
         }
 
         // Add edge from sender to receiver
-        if (fromAddr && toAddr) {
-          const edgeId = `edge_${idx}`;
-          edges.push({
-            id: edgeId,
-            source: addressMap.get(fromAddr)!,
-            target: addressMap.get(toAddr)!,
-            type: tx.category || 'transfer',
-            value: txValue,
-            token: tx.token || 'ETH',
-            timestamp: tx.timestamp ? new Date(tx.timestamp).getTime() : undefined,
-            txHash: tx.hash,
-            status: tx.error ? 'failed' : 'success',
-          });
-        }
+        const edgeId = `edge_${idx}`;
+        edges.push({
+          id: edgeId,
+          source: addressMap.get(fromAddr)!,
+          target: addressMap.get(toAddr)!,
+          type: tx.category || tx.type || 'transfer',
+          value: txValue,
+          token: tx.token || 'ETH',
+          timestamp: tx.timestamp ? new Date(tx.timestamp).getTime() : undefined,
+          txHash: tx.hash || tx.tx_hash || tx.transactionHash,
+          status: tx.error || tx.failed ? 'failed' : 'success',
+        });
       });
 
       // Deduplicate nodes - keep unique addresses
