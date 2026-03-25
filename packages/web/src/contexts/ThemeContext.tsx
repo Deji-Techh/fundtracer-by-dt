@@ -29,6 +29,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(THEME_KEY, theme);
     }, [theme]);
 
+    useEffect(() => {
+        const stored = localStorage.getItem(THEME_KEY);
+        if (stored === 'dark' || stored === 'dim' || stored === 'light') {
+            document.documentElement.setAttribute('data-theme', stored);
+        }
+    }, []);
+
     const setTheme = useCallback((newTheme: Theme) => {
         setThemeState(newTheme);
     }, []);
