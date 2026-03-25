@@ -171,6 +171,48 @@ body {
   --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
+/* Dim Theme (Twitter-style) */
+[data-theme="dim"] {
+  --color-bg: #15202b;
+  --color-bg-subtle: #192734;
+  --color-bg-elevated: #273340;
+  --color-bg-hover: #22303c;
+  --color-bg-active: #2f3e4f;
+  --color-border: #38444d;
+  --color-border-hover: #4a5660;
+  --color-border-light: #2f3940;
+  --color-border-accent: #536471;
+  --color-text-primary: #e7e9ea;
+  --color-text-secondary: #8b98a5;
+  --color-text-tertiary: #71767b;
+  --color-text-muted: #5c6c7a;
+  --color-accent: #1d9bf0;
+  --color-accent-hover: #1a8cd8;
+  --color-accent-muted: rgba(29, 155, 240, 0.15);
+  
+  /* Surface Colors - Dim mode */
+  --color-surface: #192734;
+  --color-surface-border: #38444d;
+  --color-bg-secondary: #192734;
+  --color-bg-tertiary: #22303c;
+  --color-bg-primary: #15202b;
+  
+  /* Semantic Colors - Dim mode */
+  --color-success-text: #00ba7c;
+  --color-success-bg: rgba(0, 186, 124, 0.15);
+  --color-danger-text: #f9364e;
+  --color-danger-bg: rgba(249, 54, 80, 0.15);
+  --color-warning-text: #ffd400;
+  --color-warning-bg: rgba(255, 212, 0, 0.15);
+  --color-info-text: #1d9bf0;
+  --color-info-bg: rgba(29, 155, 240, 0.15);
+  
+  /* Shadow - Dim mode */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
 /* Top Navigation */
 .top-nav {
   position: fixed;

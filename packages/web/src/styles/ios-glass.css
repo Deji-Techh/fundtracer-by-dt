@@ -146,6 +146,45 @@
   --shadow-green: 0 4px 20px rgba(22, 163, 74, 0.15);
 }
 
+/* Dim Theme (Twitter-style) */
+[data-theme="dim"] {
+  --glass-bg: rgba(25, 39, 52, 0.72);
+  --glass-bg-hover: rgba(34, 48, 60, 0.85);
+  --glass-border: rgba(56, 68, 77, 0.3);
+  --glass-border-hover: rgba(56, 68, 77, 0.5);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.24), 0 2px 8px rgba(0, 0, 0, 0.12);
+  
+  --color-bg: #15202b;
+  --color-bg-secondary: #192734;
+  --color-bg-tertiary: #22303c;
+  --color-bg-elevated: #273340;
+  --color-bg-hover: rgba(255, 255, 255, 0.04);
+  --color-bg-active: rgba(255, 255, 255, 0.08);
+  
+  --color-border: rgba(56, 68, 77, 0.4);
+  --color-border-hover: rgba(56, 68, 77, 0.6);
+  --color-border-light: rgba(56, 68, 77, 0.3);
+  
+  --color-text-primary: #e7e9ea;
+  --color-text-secondary: #8b98a5;
+  --color-text-tertiary: #71767b;
+  --color-text-muted: #5c6c7a;
+  
+  --color-accent: #1d9bf0;
+  --color-accent-hover: #1a8cd8;
+  --color-accent-muted: rgba(29, 155, 240, 0.15);
+  --color-accent-subtle: rgba(29, 155, 240, 0.08);
+  --color-accent-glow: rgba(29, 155, 240, 0.3);
+  
+  --gradient-bg: radial-gradient(ellipse at 50% 0%, rgba(29, 155, 240, 0.06) 0%, transparent 50%);
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.35);
+  --shadow-green: 0 4px 20px rgba(29, 155, 240, 0.15);
+}
+
 /* Reset */
 *,
 *::before,

@@ -191,7 +191,7 @@ export function AboutPage() {
               <a href="https://x.com/devabraham123" target="_blank" rel="noopener noreferrer" className="about-team__card-link">
                 <Panel variant="bordered" className="about-team__card">
                   <div className="about-team__avatar">DA</div>
-                  <h3 className="about-team__name">Dec Abraham</h3>
+                  <h3 className="about-team__name">Dev Abraham</h3>
                   <p className="about-team__role">Lead Designer</p>
                   <p className="about-team__bio">
                     Creative designer crafting beautiful user experiences.
