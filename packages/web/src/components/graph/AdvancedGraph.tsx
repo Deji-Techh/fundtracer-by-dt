@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as d3 from 'd3';
 import { useNotify } from '../../contexts/ToastContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { CHAINS } from '@fundtracer/core';
 import './AdvancedGraph.css';
 
@@ -199,7 +200,8 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
   const [undoStack, setUndoStack] = useState<GraphData[]>([]);
   const [redoStack, setRedoStack] = useState<GraphData[]>([]);
   const [activePanel, setActivePanel] = useState<'filters' | 'analytics' | 'timeline' | 'annotations' | 'defi' | 'history' | 'advanced' | 'query' | 'costbasis' | 'audit' | ''>('filters');
-  const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
+  const { theme: globalTheme, toggleTheme } = useTheme();
+  const themeMode = globalTheme === 'light' ? 'light' : 'dark';
   const [presentationMode, setPresentationMode] = useState<'normal' | 'presentation'>('normal');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [animationSpeed, setAnimationSpeed] = useState(1);
@@ -1265,7 +1267,7 @@ ${gexfEdges}
           </div>
 
           <div className="control-group-inline">
-            <button className="ctrl-btn" onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}><Icon name={themeMode === 'dark' ? 'sun' : 'moon'} size={18} /></button>
+            <button className="ctrl-btn" onClick={toggleTheme}><Icon name={themeMode === 'dark' ? 'sun' : 'moon'} size={18} /></button>
             <button className="ctrl-btn" onClick={handleToggleFullscreen} title="Fullscreen"><Icon name={presentationMode === 'normal' ? 'maximize' : 'minimize'} size={18} /></button>
             <button className="ctrl-btn" onClick={() => setShowKeyboardHelp(v => !v)} title="Keyboard Shortcuts"><Icon name="keyboard" size={18} /></button>
           </div>

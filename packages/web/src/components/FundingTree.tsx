@@ -62,7 +62,8 @@ const ENTITY_COLORS_LIGHT: Record<string, { bg: string; border: string; text: st
 };
 
 function getEntityStyle(entityType?: string) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const theme = document.documentElement.getAttribute('data-theme');
+    const isLight = theme === 'light';
     const colors = isLight ? ENTITY_COLORS_LIGHT : ENTITY_COLORS;
     return colors[entityType || 'wallet'] || colors.wallet;
 }

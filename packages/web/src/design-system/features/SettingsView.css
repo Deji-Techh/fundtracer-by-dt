@@ -1053,3 +1053,63 @@
   font-family: var(--font-mono);
   color: var(--intel-red);
 }
+
+/* Theme Selector */
+.theme-selector {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.theme-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--intel-surface);
+  border: 2px solid var(--intel-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.theme-btn:hover {
+  background: var(--intel-surface-hover);
+  border-color: var(--intel-text-secondary);
+}
+
+.theme-btn.active {
+  border-color: var(--intel-accent);
+  background: rgba(0, 97, 255, 0.1);
+}
+
+.theme-btn span {
+  font-size: var(--text-sm);
+  color: var(--intel-text-secondary);
+  font-weight: 500;
+}
+
+.theme-btn.active span {
+  color: var(--intel-accent);
+}
+
+.theme-preview {
+  width: 48px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--intel-border);
+}
+
+.theme-preview-light {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.theme-preview-dim {
+  background: linear-gradient(135deg, #15202b 0%, #192734 100%);
+}
+
+.theme-preview-dark {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+}

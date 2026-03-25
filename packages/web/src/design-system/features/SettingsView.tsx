@@ -23,7 +23,7 @@ interface TwoFactorSetup {
 export function SettingsView() {
   const { user, profile, refreshProfile, signOut, signOutAccount } = useAuth();
   const { login: loginPrivy } = usePrivy();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme, toggleTheme } = useTheme();
   const { success: notifySuccess, error: notifyError } = useNotify();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -399,16 +399,27 @@ export function SettingsView() {
                 <h3>Appearance</h3>
                 <p>Customize how the app looks</p>
               </div>
-              <div className="preference-row">
-                <div className="preference-info">
-                  <span className="preference-label">Dark Mode</span>
-                  <span className="preference-desc">Use dark theme</span>
-                </div>
+              <div className="theme-selector">
                 <button 
-                  className={`toggle-switch ${theme === 'dark' ? 'active' : ''}`}
-                  onClick={toggleTheme}
+                  className={`theme-btn ${theme === 'light' ? 'active' : ''}`}
+                  onClick={() => setTheme('light')}
                 >
-                  <span className="toggle-knob" />
+                  <div className="theme-preview theme-preview-light" />
+                  <span>Light</span>
+                </button>
+                <button 
+                  className={`theme-btn ${theme === 'dim' ? 'active' : ''}`}
+                  onClick={() => setTheme('dim')}
+                >
+                  <div className="theme-preview theme-preview-dim" />
+                  <span>Dim</span>
+                </button>
+                <button 
+                  className={`theme-btn ${theme === 'dark' ? 'active' : ''}`}
+                  onClick={() => setTheme('dark')}
+                >
+                  <div className="theme-preview theme-preview-dark" />
+                  <span>Dark</span>
                 </button>
               </div>
             </div>

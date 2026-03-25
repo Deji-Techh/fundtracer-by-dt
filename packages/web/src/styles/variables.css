@@ -155,6 +155,60 @@
 }
 
 /* ============================================================
+   Dim Theme Overrides (Twitter-style)
+   ============================================================ */
+[data-theme="dim"] {
+  /* Color Palette - Muted Dark with Warm Tones */
+  --color-bg-primary: #15202b;
+  --color-bg-secondary: #192734;
+  --color-bg-tertiary: #22303c;
+  --color-bg-elevated: #273340;
+
+  /* Subtle borders and surfaces */
+  --color-surface: rgba(25, 39, 52, 0.95);
+  --color-surface-border: rgba(56, 68, 77, 0.8);
+  --color-surface-hover: rgba(34, 48, 60, 0.95);
+
+  /* Text colors - muted warm */
+  --color-text-primary: #e7e9ea;
+  --color-text-secondary: #8b98a5;
+  --color-text-muted: #71767b;
+
+  /* Accent - subtle blue */
+  --color-accent-primary: #1d9bf0;
+  --color-accent-highlight: #1a8cd8;
+  --color-accent-active: #1a8cd8;
+
+  /* Status colors - dim versions */
+  --color-success: rgba(0, 186, 124, 0.15);
+  --color-success-text: #00ba7c;
+  --color-success-bg: rgba(0, 186, 124, 0.1);
+
+  --color-warning: rgba(255, 212, 0, 0.15);
+  --color-warning-text: #ffd400;
+  --color-warning-bg: rgba(255, 212, 0, 0.1);
+
+  --color-danger: rgba(249, 54, 80, 0.15);
+  --color-danger-text: #f9364e;
+  --color-danger-bg: rgba(249, 54, 80, 0.1);
+
+  --color-info: rgba(29, 155, 240, 0.15);
+  --color-info-text: #1d9bf0;
+  --color-info-bg: rgba(29, 155, 240, 0.1);
+
+  /* Risk indicators - dim versions */
+  --color-risk-low: rgba(0, 186, 124, 0.2);
+  --color-risk-medium: rgba(255, 212, 0, 0.2);
+  --color-risk-high: rgba(249, 54, 80, 0.2);
+  --color-risk-critical: rgba(249, 54, 80, 0.35);
+
+  /* Shadows - subtle for dim mode */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================================
    Reset & Base
    ============================================================ */
 
