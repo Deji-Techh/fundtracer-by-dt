@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotify } from '../../contexts/ToastContext';
+import { usePrivy } from '@privy-io/react-auth';
 import { getAuthToken } from '../../api';
 import './SettingsView.css';
 
@@ -21,6 +22,7 @@ interface TwoFactorSetup {
 
 export function SettingsView() {
   const { user, profile, refreshProfile, signOut, signOutAccount } = useAuth();
+  const { login: loginPrivy } = usePrivy();
   const { theme, toggleTheme } = useTheme();
   const { success: notifySuccess, error: notifyError } = useNotify();
 
@@ -124,6 +126,11 @@ export function SettingsView() {
       return;
     }
 
+    if (twoFactorEnabled && (!verificationCode || verificationCode.length !== 6)) {
+      notifyError('Please enter your 2FA code');
+      return;
+    }
+
     setIsDeleting(true);
     try {
       const token = getAuthToken();
@@ -137,14 +144,18 @@ export function SettingsView() {
       });
       const data = await res.json();
       
+      console.log('[Delete Account] Response:', data);
+      
       if (data.success) {
         notifySuccess('Account deleted successfully');
-        // Redirect to home or sign out
+        // Sign out and redirect
+        await signOutAccount();
         window.location.href = '/';
       } else {
-        notifyError(data.error || 'Failed to delete account');
+        notifyError(data.error || data.message || 'Failed to delete account');
       }
     } catch (err) {
+      console.error('[Delete Account] Error:', err);
       notifyError('Failed to delete account');
     } finally {
       setIsDeleting(false);
@@ -186,10 +197,30 @@ export function SettingsView() {
   };
 
   const handleSaveProfile = async () => {
+    if (!name || name.trim() === '') {
+      notifyError('Please enter a display name');
+      return;
+    }
+    
     setIsSaving(true);
     try {
-      await refreshProfile();
-      notifySuccess('Profile updated successfully');
+      const token = getAuthToken();
+      const res = await fetch('/api/user/profile', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ displayName: name.trim() })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        await refreshProfile();
+        notifySuccess('Profile updated successfully');
+      } else {
+        notifyError(data.error || 'Failed to update profile');
+      }
     } catch (error) {
       notifyError('Failed to update profile');
     } finally {
@@ -347,11 +378,13 @@ export function SettingsView() {
                   </button>
                 </div>
               ) : (
-                <button className="btn-primary" onClick={signOut}>
+                <button className="btn-primary" onClick={loginPrivy}>
                   Connect Wallet
                 </button>
               )}
-              <button className="btn-secondary" onClick={signOutAccount} style={{ marginTop: '12px' }}>
+            </div>
+            <div style={{ marginTop: '12px' }}>
+              <button className="btn-secondary" onClick={signOutAccount}>
                 Sign Out Account
               </button>
             </div>
