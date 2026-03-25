@@ -263,6 +263,60 @@
   color: var(--color-text-muted);
 }
 
+.wallet-search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-bg-elevated);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  flex: 1;
+  min-width: 180px;
+  max-width: 350px;
+}
+
+.wallet-search-box svg {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.wallet-search-box input {
+  background: none;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  outline: none;
+  width: 100%;
+  font-family: var(--font-mono);
+}
+
+.wallet-search-box input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.wallet-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  background: var(--color-accent);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wallet-search-btn:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.wallet-search-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .control-group-inline {
   display: flex;
   gap: 4px;
@@ -470,23 +524,23 @@
 .date-range-picker {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .date-presets {
   display: flex;
-  gap: 2px;
+  gap: 3px;
 }
 
 .date-preset {
   flex: 1;
-  padding: 4px 2px;
+  padding: 5px 4px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--color-text-secondary);
-  font-size: 0.65rem;
-  font-weight: 500;
+  font-size: 0.7rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -505,23 +559,29 @@
 .date-inputs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .date-inputs input {
   flex: 1;
-  padding: 4px 2px;
+  padding: 6px 8px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--color-text-primary);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   width: 100%;
+  outline: none;
+}
+
+.date-inputs input:focus {
+  border-color: var(--color-accent);
 }
 
 .date-separator {
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: 0.65rem;
+  font-weight: 500;
 }
 
 /* Status Toggles */

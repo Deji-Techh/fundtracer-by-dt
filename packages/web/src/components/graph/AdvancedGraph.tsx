@@ -170,6 +170,9 @@ const Icon = ({ name, size = 20, className = '' }: { name: string; size?: number
     volumeOff: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" x2="17" y1="9" y2="15"/><line x1="17" x2="23" y1="9" y2="15"/></svg>,
     history: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>,
     image: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>,
+    externalLink: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>,
+    gitMerge: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>,
+    wallet: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4h-4z"/></svg>,
   };
   return icons[name] || icons.search;
 };
@@ -207,6 +210,8 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [animationSpeed, setAnimationSpeed] = useState(1);
   const [showAISuggestions, setShowAISuggestions] = useState(false);
+  const [isMerged, setIsMerged] = useState(true);
+  const [walletAddress, setWalletAddress] = useState('');
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [viewAngle, setViewAngle] = useState({ x: -20, y: 45 });
   const [timeSliderValue, setTimeSliderValue] = useState(100);
@@ -1242,6 +1247,23 @@ ${gexfEdges}
             <input type="text" placeholder="Search or /ai command..." value={searchQuery} onChange={e => handleSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.target as HTMLInputElement).value.startsWith('/')) handleNaturalLanguageSearch((e.target as HTMLInputElement).value.slice(1)); }} />
             <button className={`nl-toggle ${showAISuggestions ? 'active' : ''}`} onClick={() => setShowAISuggestions(!showAISuggestions)} title="AI Search"><Icon name="brain" size={16} /></button>
           </div>
+          <div className="wallet-search-box">
+            <Icon name="wallet" size={16} />
+            <input 
+              type="text" 
+              placeholder="Enter wallet address..." 
+              value={walletAddress}
+              onChange={e => setWalletAddress(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && walletAddress) { setIsMerged(false); handleGenerate(); }}}
+            />
+            <button 
+              className="wallet-search-btn"
+              onClick={() => { if (walletAddress) { setIsMerged(false); handleGenerate(); }}}
+              disabled={!walletAddress}
+            >
+              <Icon name="arrowRight" size={14} />
+            </button>
+          </div>
 
           {showAISuggestions && (
             <div className="ai-suggestions">
@@ -1855,6 +1877,8 @@ ${gexfEdges}
                 </div>
               )}
               <div className="panel-actions">
+                <button className="action-btn" onClick={() => window.open(`https://etherscan.io/address/${selectedNode.address}`, '_blank')}><Icon name="externalLink" size={16} />Explorer</button>
+                <button className={`action-btn ${isMerged ? '' : 'active'}`} onClick={() => setIsMerged(!isMerged)}><Icon name={isMerged ? 'layers' : 'gitMerge'} size={16} />{isMerged ? 'Expand' : 'Merge'} TX</button>
                 <button className={`action-btn ${watchlist.has(selectedNode.id) ? 'active' : ''}`} onClick={() => handleToggleWatchlist(selectedNode.id)}><Icon name={watchlist.has(selectedNode.id) ? 'star' : 'starOutline'} size={16} />{watchlist.has(selectedNode.id) ? 'Watching' : 'Watch'}</button>
                 <button className="action-btn" onClick={() => handleTogglePin(selectedNode.id)}><Icon name={pinnedNodes.has(selectedNode.id) ? 'lock' : 'unlock'} size={16} />{pinnedNodes.has(selectedNode.id) ? 'Unpin' : 'Pin'}</button>
                 <button className="action-btn" onClick={() => { const text = prompt('Add annotation:'); if (text) handleAddAnnotation(selectedNode.id, text); }}><Icon name="message" size={16} />Annotate</button>
