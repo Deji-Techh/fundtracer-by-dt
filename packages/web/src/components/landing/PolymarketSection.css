@@ -260,7 +260,7 @@
 }
 
 [data-theme="light"] .market-card {
-  background: #fff;
+  background: #f8f7f4;
   border-color: rgba(0, 0, 0, 0.08);
 }
 
@@ -277,7 +277,7 @@
 }
 
 [data-theme="light"] .feature {
-  background: #fff;
+  background: #f8f7f4;
   border-color: rgba(0, 0, 0, 0.06);
 }
 

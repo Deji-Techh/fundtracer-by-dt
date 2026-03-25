@@ -105,13 +105,13 @@
    ============================================================ */
 [data-theme="light"] {
   /* Color Palette - Clean Light Professional Theme */
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f8f9fa;
-  --color-bg-tertiary: #f0f1f3;
-  --color-bg-elevated: #e8eaed;
+  --color-bg-primary: #f8f7f4;
+  --color-bg-secondary: #f5f4f1;
+  --color-bg-tertiary: #ebeae7;
+  --color-bg-elevated: #e5e4e1;
 
   /* Subtle borders and surfaces */
-  --color-surface: rgba(255, 255, 255, 0.95);
+  --color-surface: rgba(248, 247, 244, 0.95);
   --color-surface-border: rgba(210, 215, 220, 0.8);
   --color-surface-hover: rgba(245, 245, 248, 0.95);
 

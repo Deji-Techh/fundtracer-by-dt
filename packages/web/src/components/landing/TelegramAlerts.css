@@ -343,7 +343,7 @@
 }
 
 [data-theme="light"] .chat-container {
-  background: #ffffff;
+  background: #f8f7f4;
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 
     0 4px 6px rgba(0, 0, 0, 0.05),
@@ -372,7 +372,7 @@
 }
 
 [data-theme="light"] .telegram-feature:hover {
-  background: #fff;
+  background: #f8f7f4;
   border-color: rgba(0, 212, 255, 0.3);
 }
 

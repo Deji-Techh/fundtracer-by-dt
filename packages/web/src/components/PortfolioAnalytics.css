@@ -1233,7 +1233,7 @@
 .qr-placeholder {
   width: 160px;
   height: 160px;
-  background: white;
+  background: #f8f7f4;
   border-radius: 12px;
   display: flex;
   flex-direction: column;

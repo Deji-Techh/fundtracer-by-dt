@@ -115,10 +115,10 @@
   --glass-border-hover: rgba(0, 0, 0, 0.14);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
   
-  --color-bg: #fafafa;
-  --color-bg-secondary: #f4f4f5;
-  --color-bg-tertiary: #e4e4e7;
-  --color-bg-elevated: #ffffff;
+  --color-bg: #f8f7f4;
+  --color-bg-secondary: #f5f4f1;
+  --color-bg-tertiary: #ebeae7;
+  --color-bg-elevated: #f8f7f4;
   --color-bg-hover: rgba(0, 0, 0, 0.04);
   --color-bg-active: rgba(0, 0, 0, 0.08);
   

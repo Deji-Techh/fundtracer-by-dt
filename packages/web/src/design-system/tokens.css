@@ -273,16 +273,16 @@
 
 [data-theme="light"] {
   /* Background Hierarchy - Light grays */
-  --intel-bg-deep: #ffffff;
-  --intel-bg-base: #fafafa;
-  --intel-bg-elevated: #ffffff;
-  --intel-bg-surface: #f5f5f5;
-  --intel-bg-hover: #ebebeb;
-  --intel-bg-active: #e0e0e0;
+  --intel-bg-deep: #f8f7f4;
+  --intel-bg-base: #f8f7f4;
+  --intel-bg-elevated: #f8f7f4;
+  --intel-bg-surface: #f5f4f1;
+  --intel-bg-hover: #ebeae7;
+  --intel-bg-active: #dcdad7;
   
   /* Card backgrounds (alias for surface) */
-  --bg-card: #ffffff;
-  --bg-deep: #fafafa;
+  --bg-card: #f8f7f4;
+  --bg-deep: #f8f7f4;
   
   /* Border Colors - Light mode */
   --intel-border-subtle: #e5e5e5;
