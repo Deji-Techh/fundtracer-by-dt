@@ -1343,32 +1343,19 @@ ${gexfEdges}
           <div className="graph-empty-icon"><Icon name="network" size={64} /></div>
           <h2 className="graph-empty-title">Advanced Graph Analysis</h2>
           <p className="graph-empty-desc">Visualize wallet connections with interactive force-directed graphs. Track fund flows, identify patterns, detect anomalies, and explore multi-hop relationships.</p>
-          <div className="graph-empty-controls">
-            <div className="control-group">
-              <label>Max Hops</label>
-              <div className="hop-selector">
-                {[1, 2, 3, 4, 5].map(h => (
-                  <button key={h} className={`hop-btn ${filters.hopLevels.includes(h) ? 'active' : ''}`} onClick={() => setFilters(prev => ({ ...prev, hopLevels: [h] }))}>{h}</button>
-                ))}
-              </div>
-            </div>
-            <div className="control-group">
-              <label>Layout</label>
-              <select value={layoutMode} onChange={e => setLayoutMode(e.target.value as any)}>
-                <option value="force">Force Directed</option>
-                <option value="radial">Radial Burst</option>
-                <option value="tree">Tree View</option>
-                <option value="grid">Grid</option>
-              </select>
-            </div>
+          <div className="wallet-input-section">
+            <Icon name="wallet" size={20} />
+            <input 
+              type="text" 
+              placeholder="Enter wallet address (e.g., 0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1)" 
+              value={walletAddress}
+              onChange={e => setWalletAddress(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && walletAddress) { setIsMerged(false); handleGenerate(); }}}
+              className="wallet-input"
+            />
           </div>
-          <div className="graph-features-preview">
-            <div className="feature-badge"><Icon name="brain" size={14} /><span>AI Analysis</span></div>
-            <div className="feature-badge"><Icon name="activity" size={14} /><span>Real-time</span></div>
-            <div className="feature-badge"><Icon name="layers" size={14} /><span>Multi-chain</span></div>
-            <div className="feature-badge"><Icon name="shield" size={14} /><span>Privacy Mode</span></div>
-          </div>
-          <button className="btn-generate" onClick={handleGenerate}><Icon name="network" size={20} />Generate Graph</button>
+          <button className="btn-generate" onClick={() => { if (walletAddress) { setIsMerged(false); handleGenerate(); } else { notify.error('Please enter a wallet address'); }}} disabled={!walletAddress}><Icon name="network" size={20} />Generate Graph</button>
+          <p className="wallet-hint">Enter any wallet address to view all transactions</p>
         </div>
       )}
 
