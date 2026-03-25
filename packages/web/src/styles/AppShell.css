@@ -21,6 +21,46 @@
   --red:      #ef4444;
 }
 
+/* Dim Theme (Twitter-style) */
+[data-theme="dim"] {
+  --bg:       #15202b;
+  --surface:  #192734;
+  --surface2: #22303c;
+  --surface3: #273340;
+  --line:     #38444d;
+  --line2:    #4a5660;
+  --muted:    #5c6c7a;
+  --sub:      #8b98a5;
+  --body:     #8b98a5;
+  --primary:  #e7e9ea;
+  --white:    #e7e9ea;
+  --green:    #00ba7c;
+  --green-bg: rgba(0, 186, 124, 0.12);
+  --green-border: rgba(0, 186, 124, 0.3);
+  --amber:    #ffd400;
+  --red:      #f9364e;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg:       #fafafa;
+  --surface:  #ffffff;
+  --surface2: #f5f5f5;
+  --surface3: #ebebeb;
+  --line:     #e5e5e5;
+  --line2:    #d4d4d4;
+  --muted:    #a3a3a3;
+  --sub:      #737373;
+  --body:     #525252;
+  --primary:  #0a0a0a;
+  --white:    #0a0a0a;
+  --green:    #00b368;
+  --green-bg: rgba(0, 179, 104, 0.1);
+  --green-border: rgba(0, 179, 104, 0.25);
+  --amber:    #ca8a04;
+  --red:      #dc2626;
+}
+
 html { height: 100%; }
 body { 
   height: 100%; 

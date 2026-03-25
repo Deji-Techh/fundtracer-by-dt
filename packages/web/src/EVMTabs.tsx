@@ -21,6 +21,7 @@ import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import { PoHVerificationModal } from './components/PoHVerificationModal';
 
 import './global.css';
+import './styles/ios-glass.css';
 
 const PortfolioAnalytics = lazy(() => import('./components/PortfolioAnalytics').then(m => ({ default: m.PortfolioAnalytics })));
 const PolymarketPage = lazy(() => import('./components/PolymarketPage'));

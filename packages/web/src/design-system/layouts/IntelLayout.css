@@ -38,6 +38,16 @@
   text-transform: uppercase;
 }
 
+@media (max-width: 768px) {
+  .view-watermark .watermark-logo {
+    width: 180px;
+    height: 180px;
+  }
+  .view-watermark .watermark-text {
+    font-size: 1.5rem;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────
    SIDEBAR
    ───────────────────────────────────────────────────────────── */
