@@ -770,49 +770,73 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
       const nodes: GraphNode[] = [];
       const edges: GraphEdge[] = [];
       const addressMap = new Map<string, GraphNode>();
+      
+      // Track aggregated data per address
+      const addressStats = new Map<string, { txCount: number; totalSent: number; totalReceived: number; firstTx: number; lastTx: number }>();
 
-      // Add target wallet as main node
-      const targetNode: GraphNode = {
-        id: 'target',
-        address: addressToUse,
-        label: `${addressToUse.slice(0, 6)}...${addressToUse.slice(-4)}`,
-        type: 'target',
-        balance: 0,
-        transactionCount: txns.length,
-        totalVolume: txns.reduce((sum: number, t: any) => sum + parseFloat(t.valueInEth || t.value || '0'), 0),
-        firstTx: txns[0]?.timestamp ? new Date(txns[0].timestamp).getTime() : undefined,
-        lastTx: txns[txns.length - 1]?.timestamp ? new Date(txns[txns.length - 1].timestamp).getTime() : undefined,
-      };
-      nodes.push(targetNode);
-      addressMap.set(addressToUse.toLowerCase(), targetNode);
+      // Initialize target wallet stats
+      addressStats.set(addressToUse.toLowerCase(), { txCount: 0, totalSent: 0, totalReceived: 0, firstTx: Infinity, lastTx: 0 });
 
       // Create nodes for each transaction (expanded view)
       txns.forEach((tx: any, idx: number) => {
         const fromAddr = (tx.from || tx.from_address || tx.sender)?.toLowerCase();
         const toAddr = (tx.to || tx.to_address || tx.receiver || tx.contractAddress)?.toLowerCase();
         const txValue = parseFloat(tx.valueInEth || tx.value || tx.value_eth || '0');
+        const txTime = tx.timestamp ? new Date(tx.timestamp).getTime() : Date.now();
 
         if (!fromAddr || !toAddr) return;
 
-        // Add sender node if not exists
+        // Update sender stats
+        if (!addressStats.has(fromAddr)) {
+          addressStats.set(fromAddr, { txCount: 0, totalSent: 0, totalReceived: 0, firstTx: Infinity, lastTx: 0 });
+        }
+        const senderStats = addressStats.get(fromAddr)!;
+        senderStats.txCount++;
+        senderStats.totalSent += txValue;
+        senderStats.firstTx = Math.min(senderStats.firstTx, txTime);
+        senderStats.lastTx = Math.max(senderStats.lastTx, txTime);
+
+        // Update receiver stats
+        if (!addressStats.has(toAddr)) {
+          addressStats.set(toAddr, { txCount: 0, totalSent: 0, totalReceived: 0, firstTx: Infinity, lastTx: 0 });
+        }
+        const receiverStats = addressStats.get(toAddr)!;
+        receiverStats.txCount++;
+        receiverStats.totalReceived += txValue;
+        receiverStats.firstTx = Math.min(receiverStats.firstTx, txTime);
+        receiverStats.lastTx = Math.max(receiverStats.lastTx, txTime);
+
+        // Add sender node
         if (!addressMap.has(fromAddr)) {
+          const isTarget = fromAddr === addressToUse.toLowerCase();
+          const stats = addressStats.get(fromAddr)!;
           const senderNode: GraphNode = {
-            id: `sender_${fromAddr}`,
+            id: fromAddr,
             address: fromAddr,
             label: `${fromAddr.slice(0, 6)}...${fromAddr.slice(-4)}`,
-            type: fromAddr === addressToUse.toLowerCase() ? 'target' : 'wallet',
+            type: isTarget ? 'target' : 'wallet',
+            transactionCount: stats.txCount,
+            totalVolume: stats.totalSent,
+            firstTx: stats.firstTx === Infinity ? undefined : stats.firstTx,
+            lastTx: stats.lastTx || undefined,
           };
           nodes.push(senderNode);
           addressMap.set(fromAddr, senderNode);
         }
 
-        // Add receiver node if not exists
+        // Add receiver node
         if (!addressMap.has(toAddr)) {
+          const isTarget = toAddr === addressToUse.toLowerCase();
+          const stats = addressStats.get(toAddr)!;
           const receiverNode: GraphNode = {
-            id: `receiver_${toAddr}`,
+            id: toAddr,
             address: toAddr,
             label: `${toAddr.slice(0, 6)}...${toAddr.slice(-4)}`,
-            type: toAddr === addressToUse.toLowerCase() ? 'target' : 'wallet',
+            type: isTarget ? 'target' : 'wallet',
+            transactionCount: stats.txCount,
+            totalVolume: stats.totalReceived,
+            firstTx: stats.firstTx === Infinity ? undefined : stats.firstTx,
+            lastTx: stats.lastTx || undefined,
           };
           nodes.push(receiverNode);
           addressMap.set(toAddr, receiverNode);
@@ -827,16 +851,23 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
           type: tx.category || tx.type || 'transfer',
           value: txValue,
           token: tx.token || 'ETH',
-          timestamp: tx.timestamp ? new Date(tx.timestamp).getTime() : undefined,
+          timestamp: txTime,
           txHash: tx.hash || tx.tx_hash || tx.transactionHash,
           status: tx.error || tx.failed ? 'failed' : 'success',
         });
       });
 
-      // Deduplicate nodes - keep unique addresses
-      const uniqueNodes = Array.from(addressMap.values());
+      // Update target node with full stats
+      const targetStats = addressStats.get(addressToUse.toLowerCase())!;
+      const targetNode = addressMap.get(addressToUse.toLowerCase());
+      if (targetNode) {
+        targetNode.transactionCount = txns.length;
+        targetNode.totalVolume = txns.reduce((sum: number, t: any) => sum + parseFloat(t.valueInEth || t.value || '0'), 0);
+        targetNode.firstTx = txns[0]?.timestamp ? new Date(txns[0].timestamp).getTime() : undefined;
+        targetNode.lastTx = txns[txns.length - 1]?.timestamp ? new Date(txns[txns.length - 1].timestamp).getTime() : undefined;
+      }
       
-      const data: GraphData = { nodes: uniqueNodes, edges };
+      const data: GraphData = { nodes, edges };
       setGraphData(data);
       setFilteredNodes(new Set());
       setIsGenerated(true);
@@ -844,7 +875,7 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
       const ai = performAIAnalysis(data);
       setAiAnalysis(ai);
       
-      notify.success(`Graph generated with ${uniqueNodes.length} nodes and ${edges.length} transactions`);
+      notify.success(`Graph generated with ${nodes.length} nodes and ${edges.length} transactions`);
     } catch (err: any) {
       console.error('Graph generation error:', err);
       notify.error(err.message || 'Failed to generate graph');
