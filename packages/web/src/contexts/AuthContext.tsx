@@ -114,13 +114,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             await appKitDisconnect();
         } catch (e) {
-            console.log('[AuthContext] AppKit disconnect error:', e);
+            // Silent fail
         }
         // Disconnect from Privy (if logged in)
         try {
             await privyLogout();
         } catch (e) {
-            console.log('[AuthContext] Privy logout error:', e);
+            // Silent fail
         }
     }, [appKitDisconnect, privyLogout]);
 

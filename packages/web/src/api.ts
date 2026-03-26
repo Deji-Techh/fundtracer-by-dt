@@ -106,7 +106,6 @@ async function apiRequestWithRetry<T>(
             const shouldRetry = response.status >= 500 || response.status === 429;
             if (shouldRetry && retryCount < MAX_RETRIES) {
                 const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
-                console.log(`[API Retry] ${endpoint}: Retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
                 await delay(retryDelay);
                 return apiRequestWithRetry<T>(endpoint, method, body, retryCount + 1);
             }
@@ -126,7 +125,6 @@ async function apiRequestWithRetry<T>(
         const shouldRetry = retryCount < MAX_RETRIES;
         if (shouldRetry) {
             const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
-            console.log(`[API Retry] ${endpoint}: Network error, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
             await delay(retryDelay);
             return apiRequestWithRetry<T>(endpoint, method, body, retryCount + 1);
         }

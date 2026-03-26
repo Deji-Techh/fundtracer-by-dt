@@ -98,13 +98,11 @@ export function AppPage() {
   }, [isWalletConnected, loginPrivy]);
 
   const handleAnalyze = useCallback((address: string, chain: string) => {
-    console.log('Analyzing:', address, 'on chain:', chain);
     navigate(`/app-evm?address=${address}&chain=${chain}`);
   }, [navigate]);
 
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) return;
-    console.log('Searching:', query);
     
     // Check if it's a coin/token search (Dexscreener API)
     const isTokenSearch = query.length <= 20 && !query.startsWith('0x');

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Code, Copy, Check, ExternalLink, Key, Zap, Shield, Database, Clock, GitBranch, Book, Hash, DollarSign, AlertTriangle, CheckCircle, ArrowRight, FileText } from 'lucide-react';
+import { Code, Copy, Check, ExternalLink, Key, Zap, Shield, Database, Clock, GitBranch, Book, Hash, DollarSign, AlertTriangle, CheckCircle, ArrowRight, FileText, Download } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './ApiDocsPage.css';
 
@@ -21,6 +21,474 @@ export function ApiDocsPage() {
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const copyAsMarkdown = () => {
+    const markdown = `# FundTracer API Documentation
+
+## Base URL
+\`https://www.fundtracer.xyz/api\`
+
+## Authentication
+All API requests require authentication using an API key. Include your API key in the Authorization header.
+
+### Authorization Header
+\`\`\`
+Authorization: Bearer ft_live_YOUR_API_KEY
+\`\`\`
+
+### Alternative: X-API-Key Header
+\`\`\`
+X-API-Key: ft_live_YOUR_API_KEY
+\`\`\`
+
+## Supported Chains
+- ethereum
+- linea
+- arbitrum
+- base
+- optimism
+- polygon
+- bsc
+
+## Endpoints
+
+### POST /analyze/wallet
+Get comprehensive wallet analysis including balance, transactions, risk score, and labels.
+
+**Request Body:**
+\`\`\`json
+{
+  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+  "chain": "ethereum",
+  "options": {
+    "limit": 100,
+    "offset": 0
+  }
+}
+\`\`\`
+
+**Response Example:**
+\`\`\`json
+{
+  "success": true,
+  "result": {
+    "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+    "chain": "ethereum",
+    "balance": "1.5234 ETH",
+    "balanceUSD": 2847.32,
+    "riskScore": 65,
+    "labels": ["whale", "early-adopter"],
+    "transactions": [
+      {
+        "hash": "0x1234...",
+        "from": "0x742d...",
+        "to": "0xabcd...",
+        "value": "0.5 ETH",
+        "timestamp": 1709234567
+      }
+    ],
+    "tokens": [
+      {
+        "symbol": "USDC",
+        "balance": "1000",
+        "valueUSD": 1000
+      }
+    ]
+  },
+  "usageRemaining": 95
+}
+\`\`\`
+
+**Optional Parameters:**
+- \`options.limit\`: Number of transactions to return (default: 100, max: 10000)
+- \`options.offset\`: Pagination offset (default: 0)
+- \`options.includeTokens\`: Include token balances (default: true)
+- \`options.includeNFTs\`: Include NFT holdings (default: false)
+
+### POST /analyze/funding-tree
+Get funding flow graph showing sources and destinations of funds.
+
+**Request Body:**
+\`\`\`json
+{
+  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+  "chain": "ethereum",
+  "options": {
+    "treeConfig": {
+      "maxDepth": 3
+    }
+  }
+}
+\`\`\`
+
+**Response Example:**
+\`\`\`json
+{
+  "success": true,
+  "result": {
+    "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+    "inflow": [
+      { "address": "0xabcd...ef12", "amount": "5.2 ETH", "txCount": 12 }
+    ],
+    "outflow": [
+      { "address": "0x9876...5432", "amount": "2.1 ETH", "txCount": 5 }
+    ],
+    "topInteractors": [
+      { "address": "0x1111...2222", "totalFlow": "10.5 ETH" }
+    ]
+  },
+  "usageRemaining": 94
+}
+\`\`\`
+
+**Optional Parameters:**
+- \`options.treeConfig.maxDepth\`: Depth of funding tree (default: 3, max: 5)
+- \`options.includeContracts\`: Include contract interactions (default: true)
+- \`options.minTransactionCount\`: Minimum tx count to include (default: 1)
+
+### POST /analyze/compare
+Compare multiple wallets to find shared interactions and connections.
+
+**Request Body:**
+\`\`\`json
+{
+  "addresses": [
+    "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+    "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+  ],
+  "chain": "ethereum"
+}
+\`\`\`
+
+**Response Example:**
+\`\`\`json
+{
+  "success": true,
+  "result": {
+    "addresses": ["0x742d...", "0xd8dA..."],
+    "sharedInteractions": [
+      { "address": "0xaaaa...bbbb", "sharedWith": ["0x742d...", "0xd8dA..."], "txCount": 15 }
+    ],
+    "commonTokens": ["USDC", "WBTC"],
+    "similarityScore": 0.73
+  },
+  "usageRemaining": 93
+}
+\`\`\`
+
+**Optional Parameters:**
+- \`options.includeTokens\`: Compare token holdings (default: true)
+- \`options.minTxCount\`: Minimum transactions to consider (default: 3)
+
+### POST /analyze/sybil
+Detect Sybil attack patterns and coordinated behavior.
+
+**Request Body:**
+\`\`\`json
+{
+  "contractAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+  "chain": "ethereum"
+}
+\`\`\`
+
+**Response Example:**
+\`\`\`json
+{
+  "success": true,
+  "result": {
+    "contractAddress": "0x742d...",
+    "sybilScore": 0.85,
+    "flaggedAddresses": [
+      { "address": "0xaaaa...bbbb", "confidence": 0.92, "reasons": ["copy trading", "same timing"] }
+    ],
+    "clusterCount": 3,
+    "totalFlagged": 47
+  },
+  "usageRemaining": 92
+}
+\`\`\`
+
+**Optional Parameters:**
+- \`options.confidenceThreshold\`: Min confidence to flag (default: 0.5)
+- \`options.analyzeTiming\`: Include transaction timing analysis (default: true)
+
+### POST /analyze/contract
+Analyze smart contracts and their interactions.
+
+**Request Body:**
+\`\`\`json
+{
+  "contractAddress": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+  "chain": "ethereum",
+  "options": {
+    "maxInteractors": 50,
+    "analyzeFunding": true
+  }
+}
+\`\`\`
+
+**Response Example:**
+\`\`\`json
+{
+  "success": true,
+  "result": {
+    "address": "0x7a250...",
+    "name": "Uniswap V2 Router",
+    "type": "dex",
+    "interactions": 1523,
+    "uniqueInteractors": 892,
+    "topInteractors": [
+      { "address": "0xbbb...", "txCount": 234 }
+    ],
+    "totalVolume": "12500 ETH"
+  },
+  "usageRemaining": 91
+}
+\`\`\`
+
+**Optional Parameters:**
+- \`options.maxInteractors\`: Max top interactor addresses (default: 50, max: 200)
+- \`options.analyzeFunding\`: Include funding analysis (default: true)
+- \`options.includeTransactions\`: Include sample transactions (default: false)
+
+### POST /analyze/batch
+Analyze multiple wallet addresses in a single batch request (max 50 addresses).
+
+**Request Body:**
+\`\`\`json
+{
+  "addresses": [
+    "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+    "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+  ],
+  "chain": "ethereum"
+}
+\`\`\`
+
+**Response Example:**
+\`\`\`json
+{
+  "success": true,
+  "result": {
+    "totalRequested": 2,
+    "successful": 2,
+    "failed": 0,
+    "analyses": [
+      { "address": "0x742d...", "balance": "1.5 ETH", "riskScore": 45 },
+      { "address": "0xd8dA...", "balance": "0.8 ETH", "riskScore": 72 }
+    ]
+  },
+  "usageRemaining": 90
+}
+\`\`\`
+
+**Optional Parameters:**
+- \`options.includeDetails\`: Include full analysis for each address (default: false)
+- \`options.priority\`: Processing priority "high" or "low" (default: "high")
+
+### GET /gas?chain=ethereum
+Get current gas prices (low, medium, high) for supported chains.
+
+**Query Parameters:**
+- \`chain\`: The blockchain network (ethereum, linea, arbitrum, base, optimism, polygon, bsc)
+
+**Response Example:**
+\`\`\`json
+{
+  "success": true,
+  "result": {
+    "chain": "ethereum",
+    "gasPrices": {
+      "low": "20 gwei",
+      "medium": "30 gwei",
+      "high": "45 gwei"
+    },
+    "lastUpdated": 1709234567
+  },
+  "usageRemaining": 89
+}
+\`\`\`
+
+### GET /portfolio/:address?chain=ethereum
+Get portfolio data including token balances, NFT holdings, and total value.
+
+**Path Parameters:**
+- \`address\`: Wallet address
+
+**Query Parameters:**
+- \`chain\`: The blockchain network
+
+**Response Example:**
+\`\`\`json
+{
+  "success": true,
+  "result": {
+    "address": "0x742d...",
+    "chain": "ethereum",
+    "totalValueUSD": 15420.50,
+    "tokens": [
+      { "symbol": "ETH", "balance": "1.5", "valueUSD": 2847 },
+      { "symbol": "USDC", "balance": "5000", "valueUSD": 5000 }
+    ],
+    "nfts": [
+      { "collection": "Bored Ape", "tokenId": "1234" }
+    ]
+  },
+  "usageRemaining": 88
+}
+\`\`\`
+
+**Optional Query Parameters:**
+- \`includeNFTs\`: Include NFT holdings (default: false)
+- \`includeDust\`: Include tokens with value < $1 (default: false)
+
+### GET /tx/:chain/:hash
+Fetch detailed information about a specific transaction including logs, gas costs, and decoded events.
+
+**Path Parameters:**
+- \`chain\`: The blockchain network
+- \`hash\`: Transaction hash
+
+**Response Example:**
+\`\`\`json
+{
+  "success": true,
+  "result": {
+    "hash": "0x1234...",
+    "chain": "ethereum",
+    "from": "0x742d...",
+    "to": "0xabcd...",
+    "value": "0.5 ETH",
+    "gasUsed": "21000",
+    "gasPrice": "30 gwei",
+    "logs": [
+      { "address": "0x...", "topics": [...], "data": "..." }
+    ]
+  },
+  "usageRemaining": 87
+}
+\`\`\`
+
+## Response Format
+
+### Success Response
+\`\`\`json
+{
+  "success": true,
+  "result": {},
+  "usageRemaining": 95
+}
+\`\`\`
+
+### Error Response
+\`\`\`json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_ADDRESS",
+    "message": "Invalid wallet address format"
+  }
+}
+\`\`\`
+
+## Rate Limits
+- Free tier: 100 requests/day, 2 API keys max
+- Pro tier: 10,000 requests/day, 10 API keys max
+- Enterprise tier: 100,000 requests/day, unlimited API keys
+
+## API Key Limits
+- Free: Maximum 2 keys
+- Pro: Maximum 10 keys
+- Enterprise: Unlimited keys
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| INVALID_ADDRESS | The provided address is not a valid blockchain address |
+| INVALID_CHAIN | The specified chain is not supported |
+| UNAUTHORIZED | Missing or invalid API key |
+| RATE_LIMIT_EXCEEDED | Daily request limit reached |
+| SERVER_ERROR | Internal server error, please retry later |
+| NOT_FOUND | The requested resource was not found |
+| BAD_REQUEST | Invalid request parameters |
+
+## Code Examples
+
+### cURL
+\`\`\`bash
+curl -X POST "https://www.fundtracer.xyz/api/analyze/wallet" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
+  -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum"}'
+\`\`\`
+
+### JavaScript
+\`\`\`javascript
+const response = await fetch(
+  'https://www.fundtracer.xyz/api/analyze/wallet',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ft_live_YOUR_API_KEY'
+    },
+    body: JSON.stringify({
+      address: '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+      chain: 'ethereum'
+    })
+  }
+);
+const data = await response.json();
+\`\`\`
+
+### Python
+\`\`\`python
+import requests
+
+response = requests.post(
+    'https://www.fundtracer.xyz/api/analyze/wallet',
+    headers={
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ft_live_YOUR_API_KEY'
+    },
+    json={
+        'address': '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1',
+        'chain': 'ethereum'
+    }
+)
+data = response.json()
+print(data['result'])
+\`\`\`
+
+### Go
+\`\`\`go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "net/http"
+)
+
+func main() {
+    client := &http.Client{}
+    reqBody, _ := json.Marshal(map[string]string{
+        "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+        "chain": "ethereum",
+    })
+    req, _ := http.NewRequest("POST", "https://www.fundtracer.xyz/api/analyze/wallet", bytes.NewBuffer(reqBody))
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer ft_live_YOUR_API_KEY")
+    resp, _ := client.Do(req)
+    defer resp.Body.Close()
+}
+\`\`\`
+`;
+    navigator.clipboard.writeText(markdown);
+    setCopied('markdown');
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -55,10 +523,20 @@ export function ApiDocsPage() {
           >
             <h1>FundTracer API Documentation</h1>
             <p>Complete reference guide for integrating blockchain intelligence into your applications</p>
-            <a href="/api/keys" className="get-started-btn">
-              Get API Key
-              <ArrowRight size={18} />
-            </a>
+            <div className="header-actions">
+              <a href="/api/keys" className="get-started-btn">
+                Get API Key
+                <ArrowRight size={18} />
+              </a>
+              <button 
+                className="get-started-btn secondary"
+                onClick={() => copyAsMarkdown()}
+                title="Copy entire page as Markdown"
+              >
+                <Download size={18} />
+                Copy as Markdown
+              </button>
+            </div>
           </motion.div>
 
           <div className="api-docs-layout">
@@ -869,8 +1347,7 @@ X-RateLimit-Reset: 1640000060  // Unix timestamp when limit resets`}</code></pre
   }
 );
 
-const data = await response.json();
-console.log(data.result);`}</code></pre>
+const data = await response.json();`}</code></pre>
                     {copyBtn(`const response = await fetch(
   'https://www.fundtracer.xyz/api/analyze/wallet',
   {
@@ -886,8 +1363,7 @@ console.log(data.result);`}</code></pre>
   }
 );
 
-const data = await response.json();
-console.log(data.result);`, 'js-example')}
+const data = await response.json();`, 'js-example')}
                   </div>
 
                   <h3>Python</h3>

@@ -58,12 +58,16 @@
 }
 
 .auth-card-inner {
-  background: rgba(15, 15, 20, 0.8);
+  background: var(--intel-bg-surface);
   border: 1px solid var(--intel-border-default);
   border-radius: 16px;
   padding: 40px 32px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+}
+
+[data-theme="light"] .auth-card-inner {
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .auth-brand {

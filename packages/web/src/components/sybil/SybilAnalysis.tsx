@@ -85,9 +85,7 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
     
     setShowResults(true);
     await analyze(addresses, chain, {
-      onProgress: (message, progress) => {
-        console.log(`[Analysis] ${progress}%: ${message}`);
-      },
+      onProgress: () => {},
       saveSnapshot: !!currentCaseId
     });
   };

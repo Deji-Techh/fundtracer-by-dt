@@ -5,7 +5,6 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ onLaunchApp }: LandingPageProps) {
-  console.log('[LandingPage] Rendering');
   
   return (
     <div style={{ 

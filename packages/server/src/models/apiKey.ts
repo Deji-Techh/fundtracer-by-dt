@@ -52,6 +52,7 @@ export const TIER_LIMITS = {
     daily: 100,
     perMinute: 10,
     burst: 20,
+    maxKeys: 2,
     endpoints: ['address', 'transactions', 'tokens', 'risk'],
     features: ['basic_address_info', 'transaction_history'],
   },
@@ -59,6 +60,7 @@ export const TIER_LIMITS = {
     daily: 10000,
     perMinute: 60,
     burst: 100,
+    maxKeys: 10,
     endpoints: ['address', 'transactions', 'tokens', 'risk', 'graph', 'sources', 'destinations', 'analyze', 'entities'],
     features: ['full_graph_analysis', 'async_analysis', 'entity_detection'],
   },
@@ -66,6 +68,7 @@ export const TIER_LIMITS = {
     daily: 100000,
     perMinute: 300,
     burst: 1000,
+    maxKeys: Infinity,
     endpoints: ['*'],
     features: ['*', 'webhooks', 'alerts', 'websocket', 'priority_support'],
   },
@@ -119,6 +122,20 @@ export async function createAPIKey(
   const keyCollection = db.collection('apiKeys');
   
   const tier = options.tier || 'free';
+  const limits = TIER_LIMITS[tier];
+  
+  // Check existing key count for this user
+  const existingKeys = await keyCollection
+    .where('userId', '==', userId)
+    .where('isActive', '==', true)
+    .get();
+  
+  const currentKeyCount = existingKeys.size;
+  
+  if (limits.maxKeys !== Infinity && currentKeyCount >= limits.maxKeys) {
+    throw new Error(`Maximum API keys (${limits.maxKeys}) reached for ${tier} tier. Upgrade to create more keys.`);
+  }
+  
   const keyType = options.keyType || 'live';
   const rawKey = generateAPIKey(keyType);
   const keyHash = hashAPIKey(rawKey);

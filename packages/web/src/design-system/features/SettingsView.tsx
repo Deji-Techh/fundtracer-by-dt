@@ -145,8 +145,6 @@ export function SettingsView() {
       });
       const data = await res.json();
       
-      console.log('[Delete Account] Response:', data);
-      
       if (data.success) {
         notifySuccess('Account deleted successfully');
         // Sign out and redirect

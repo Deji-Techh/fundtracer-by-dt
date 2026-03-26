@@ -18,7 +18,6 @@ export function PoHGuard({ children, onAttempt }: PoHGuardProps) {
     if (!isVerified) {
       e.preventDefault();
       e.stopPropagation();
-      console.log('[PoHGuard] Wallet not PoH verified, showing modal');
       setShowModal(true);
       onAttempt?.();
       return false;

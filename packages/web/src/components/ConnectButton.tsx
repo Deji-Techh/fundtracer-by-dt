@@ -23,14 +23,12 @@ export function ConnectButton() {
     }, []);
 
     const handleConnect = useCallback(() => {
-        console.log('[ConnectButton] Connecting...');
         setIsConnecting(true);
         setShowFallback(false);
         
         // Set timeout for mobile fallback
         const timeout = setTimeout(() => {
             if (isMobile) {
-                console.log('[ConnectButton] Timeout - showing fallback');
                 setShowFallback(true);
                 setIsConnecting(false);
                 notify.warning('Connection timed out. Try the options below.');

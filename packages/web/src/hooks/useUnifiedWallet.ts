@@ -65,7 +65,6 @@ export function useUnifiedWallet(): UnifiedWallet {
       connect: async () => {
         // AppKit uses the AppKit modal, trigger it via the button
         // The actual connection is handled by the AppKitButton
-        console.log('[useUnifiedWallet] AppKit - use the AppKit modal to connect');
       },
       disconnect: async () => {
         try {

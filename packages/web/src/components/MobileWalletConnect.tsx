@@ -45,14 +45,12 @@ export const MobileWalletConnect: React.FC<MobileWalletConnectProps> = ({ classN
 
   const handleConnect = () => {
     // CRITICAL: Must be synchronous for mobile deep links
-    console.log('[MobileWalletConnect] Opening wallet modal...');
     
     setIsConnecting(true);
     setShowFallback(false);
     
     // Set timeout to show fallback options if connection hangs
     const timeout = setTimeout(() => {
-      console.log('[MobileWalletConnect] Connection timeout - showing fallback');
       setShowFallback(true);
       setIsConnecting(false);
       generateWalletUrl();

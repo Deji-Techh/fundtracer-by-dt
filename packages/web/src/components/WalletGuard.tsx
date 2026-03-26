@@ -16,7 +16,6 @@ export function WalletGuard({ children, actionName = 'perform this action', onAt
     if (!isWalletConnected) {
       e.preventDefault();
       e.stopPropagation();
-      console.log('[WalletGuard] Wallet not connected, showing modal');
       setShowModal(true);
       onAttempt?.();
       return false;

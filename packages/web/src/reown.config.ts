@@ -119,7 +119,6 @@ export function initializeAppKit() {
             defaultNetwork: linea
         })
         
-        console.log('[AppKit] Initialized with', includeWalletIds.length, 'wallets for mobile support')
         return appKitInstance
     } catch (error) {
         console.error('[AppKit] Failed to initialize:', error)

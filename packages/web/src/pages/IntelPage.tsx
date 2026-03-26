@@ -348,7 +348,7 @@ export function IntelPage() {
               <LiveFeed
                 items={liveFeed}
                 title="LIVE TRANSACTIONS"
-                onItemClick={(item) => console.log('Clicked:', item)}
+                onItemClick={(item) => {}}
               />
             </div>
 

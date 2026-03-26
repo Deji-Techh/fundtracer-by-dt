@@ -42,11 +42,9 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
     try {
       if (isMobile) {
         // Mobile: Use Privy
-        console.log('[WalletButton] Opening Privy modal...');
         await privyLogin();
       } else {
         // Desktop: Use AppKit
-        console.log('[WalletButton] Opening AppKit modal...');
         (appKit as any)?.open?.();
       }
       onSuccess?.();
@@ -65,7 +63,6 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
   };
 
   const handleConfirmSignOut = async () => {
-    console.log('[WalletButton] Signing out...');
     try {
       if (isMobile) {
         await privyLogout();
@@ -73,12 +70,12 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
         await appKitDisconnect();
       }
     } catch (e) {
-      console.log('[WalletButton] Provider logout error, using fallback:', e);
+      // Silent fail
     }
     try {
       await signOut();
     } catch (e) {
-      console.log('[WalletButton] Auth signOut error:', e);
+      // Silent fail
     }
     setShowConfirm(false);
   };

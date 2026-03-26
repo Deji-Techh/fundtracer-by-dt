@@ -22,10 +22,6 @@ class PerformanceMonitor {
     if (this.metrics.length > this.maxMetrics) {
       this.metrics.shift();
     }
-
-    if (import.meta.env.DEV) {
-      console.log(`[Performance] ${name}:`, value, metadata ? metadata : '');
-    }
   }
 
   trackTiming(name: string, duration: number, metadata?: Record<string, any>) {

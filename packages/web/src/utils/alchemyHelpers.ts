@@ -68,7 +68,6 @@ export class AlchemyKeyManager {
 
     // Log rotation if needed
     if (this.usageCount.get(selected)! >= this.maxCallsPerKey) {
-      console.log(`[Alchemy] Key rotated after ${this.maxCallsPerKey} calls`);
       this.usageCount.set(selected, 0);
       this.lastRotation.set(selected, Date.now());
     }
