@@ -560,9 +560,14 @@ export async function getPolymarketHistory(
 }
 
 // Create API key (server-enforced free tier limit of 2)
-export async function createApiKey(name: string, type: 'live' | 'test' = 'test'): Promise<{ success: boolean; key?: ApiKeyData; error?: string; limit?: number; current?: number }> {
+export async function createApiKey(name: string, type: 'live' | 'test' = 'test', twoFactorCode?: string): Promise<{ success: boolean; key?: ApiKeyData; error?: string; limit?: number; current?: number; twoFactorEnabled?: boolean; requiresCode?: boolean }> {
     const token = getAuthToken();
     if (!token) throw new Error('Not authenticated');
+
+    const body: { name: string; type: string; code?: string } = { name, type };
+    if (twoFactorCode) {
+        body.code = twoFactorCode;
+    }
 
     const response = await fetch(`${API_BASE}/api/user/api-keys`, {
         method: 'POST',
@@ -570,7 +575,7 @@ export async function createApiKey(name: string, type: 'live' | 'test' = 'test')
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, type }),
+        body: JSON.stringify(body),
     });
 
     const data = await response.json();
@@ -579,6 +584,8 @@ export async function createApiKey(name: string, type: 'live' | 'test' = 'test')
         err.status = response.status;
         err.limit = data.limit;
         err.current = data.current;
+        err.twoFactorEnabled = data.twoFactorEnabled;
+        err.requiresCode = data.requiresCode;
         throw err;
     }
     return data;

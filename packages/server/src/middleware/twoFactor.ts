@@ -17,24 +17,34 @@ export async function requireTwoFactor(
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const { code } = req.body;
-
-    if (!code || typeof code !== 'string') {
-        return res.status(400).json({ 
-            error: '2FA verification required',
-            message: 'Please provide your 2FA code or backup code'
-        });
-    }
-
     try {
         const db = getFirestore();
         const userRef = db.collection('users').doc(req.user.uid);
         const userDoc = await userRef.get();
         const userData = userDoc.data();
 
-        if (!userData?.twoFactorEnabled) {
-            // No 2FA enabled, skip verification
-            return next();
+        // Check if 2FA is enabled
+        const has2FA = userData?.twoFactorEnabled === true;
+
+        if (!has2FA) {
+            // No 2FA enabled - return specific error so frontend can show popup
+            return res.status(403).json({ 
+                error: '2FA required',
+                message: 'Two-factor authentication is required to create API keys. Please enable 2FA in your account settings.',
+                twoFactorEnabled: false,
+                settingsUrl: '/app-evm?tab=settings'
+            });
+        }
+
+        // 2FA is enabled - require code
+        const { code } = req.body;
+        if (!code || typeof code !== 'string') {
+            return res.status(400).json({ 
+                error: '2FA verification required',
+                message: 'Please enter your 2FA code to continue',
+                twoFactorEnabled: true,
+                requiresCode: true
+            });
         }
 
         // Verify the 2FA code

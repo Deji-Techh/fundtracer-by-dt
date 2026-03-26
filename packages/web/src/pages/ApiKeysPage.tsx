@@ -28,7 +28,15 @@ export function ApiKeysPage() {
   const [newKeyType, setNewKeyType] = useState<'live' | 'test'>('test');
   const [error, setError] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  
+  // 2FA modal state
+  const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(true); // true = prompt for code
+  const [pendingKeyName, setPendingKeyName] = useState('');
 
   useEffect(() => {
     if (user?.uid || isAuthenticated) {
@@ -72,8 +80,15 @@ export function ApiKeysPage() {
   };
 
   const handleSignOut = async () => {
-    await signOutAccount();
-    window.location.href = '/';
+    if (signingOut) return; // Prevent double sign out
+    setSigningOut(true);
+    try {
+      await signOutAccount();
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Sign out error:', err);
+      setSigningOut(false);
+    }
   };
 
   const maskKey = (key: string) => {
@@ -105,16 +120,53 @@ export function ApiKeysPage() {
     setCreating(true);
     setError(null);
     try {
-      const result = await serverCreateApiKey(newKeyName.trim(), newKeyType);
+      // First try without 2FA code to check if 2FA is enabled
+      const result = await serverCreateApiKey(newKeyName.trim(), newKeyType, undefined);
+      
+      if (!result.success && result.twoFactorEnabled === false) {
+        // 2FA not enabled - show enable popup
+        setShowTwoFactorModal(true);
+        setTwoFactorEnabled(false);
+        setTwoFactorError(null);
+        setPendingKeyName(newKeyName.trim());
+        setCreating(false);
+        return;
+      }
+      
+      if (!result.success && result.requiresCode) {
+        // 2FA enabled but no code provided - show code input
+        setShowTwoFactorModal(true);
+        setTwoFactorEnabled(true);
+        setTwoFactorError(null);
+        setPendingKeyName(newKeyName.trim());
+        setCreating(false);
+        return;
+      }
+      
       if (result.success && result.key) {
         setKeys((prev) => [result.key!, ...prev]);
         setNewKeyName('');
+        setShowTwoFactorModal(false);
+        setTwoFactorCode('');
+        setPendingKeyName('');
       } else {
         setError(result.error || 'Failed to create API key.');
       }
     } catch (err: any) {
       console.error('Failed to create API key:', err);
-      if (err.status === 403) {
+      
+      // Check for 2FA-specific errors
+      if (err.twoFactorEnabled === false) {
+        setShowTwoFactorModal(true);
+        setTwoFactorEnabled(false);
+        setPendingKeyName(newKeyName.trim());
+        setError(null);
+      } else if (err.requiresCode) {
+        setShowTwoFactorModal(true);
+        setTwoFactorEnabled(true);
+        setTwoFactorError(err.message || 'Please enter your 2FA code');
+        setPendingKeyName(newKeyName.trim());
+      } else if (err.status === 403) {
         setError(`Free tier is limited to ${FREE_TIER_KEY_LIMIT} API keys. Upgrade to Pro or Max for unlimited keys.`);
       } else {
         setError(err.message || 'Failed to create API key. Please try again.');
@@ -122,6 +174,37 @@ export function ApiKeysPage() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleTwoFactorSubmit = async () => {
+    if (!pendingKeyName) return;
+    
+    setCreating(true);
+    setTwoFactorError(null);
+    try {
+      const result = await serverCreateApiKey(pendingKeyName, newKeyType, twoFactorCode);
+      if (result.success && result.key) {
+        setKeys((prev) => [result.key!, ...prev]);
+        setNewKeyName('');
+        setShowTwoFactorModal(false);
+        setTwoFactorCode('');
+        setPendingKeyName('');
+      } else {
+        setTwoFactorError(result.error || 'Failed to create API key.');
+      }
+    } catch (err: any) {
+      setTwoFactorError(err.message || 'Invalid 2FA code. Please try again.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleCloseTwoFactorModal = () => {
+    setShowTwoFactorModal(false);
+    setTwoFactorCode('');
+    setTwoFactorError(null);
+    setPendingKeyName('');
+    setNewKeyName('');
   };
 
   const handleDeleteKey = async (keyId: string) => {
@@ -208,9 +291,9 @@ export function ApiKeysPage() {
                         <HelpCircle size={18} />
                         <span>Contact Support</span>
                       </a>
-                      <button className="profile-menu-item logout" onClick={handleSignOut}>
-                        <LogOut size={18} />
-                        <span>Log Out</span>
+                      <button className="profile-menu-item logout" onClick={handleSignOut} disabled={signingOut}>
+                        {signingOut ? <Loader2 size={18} className="spinner" /> : <LogOut size={18} />}
+                        <span>{signingOut ? 'Signing out...' : 'Log Out'}</span>
                       </button>
                     </motion.div>
                   )}
@@ -433,6 +516,84 @@ export function ApiKeysPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* 2FA Modal */}
+      <AnimatePresence>
+        {showTwoFactorModal && (
+          <motion.div 
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseTwoFactorModal}
+          >
+            <motion.div 
+              className="modal-content"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e: any) => e.stopPropagation()}
+            >
+              {!twoFactorEnabled ? (
+                // 2FA not enabled - show enable prompt
+                <>
+                  <div className="modal-header">
+                    <AlertCircle size={48} strokeWidth={1.5} />
+                    <h2>2FA Required</h2>
+                  </div>
+                  <div className="modal-body">
+                    <p>Two-factor authentication is required to create API keys.</p>
+                    <p>Please enable 2FA in your account settings to continue.</p>
+                  </div>
+                  <div className="modal-footer">
+                    <a href="/app-evm?tab=settings" className="btn btn-primary">
+                      Enable 2FA in Settings
+                    </a>
+                    <button className="btn btn-secondary" onClick={handleCloseTwoFactorModal}>
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                // 2FA enabled - show code input
+                <>
+                  <div className="modal-header">
+                    <AlertCircle size={48} strokeWidth={1.5} />
+                    <h2>2FA Verification</h2>
+                  </div>
+                  <div className="modal-body">
+                    <p>Enter your 2FA code to create an API key</p>
+                    <div className="form-group">
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Enter 2FA code"
+                        value={twoFactorCode}
+                        onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        maxLength={6}
+                        autoFocus
+                      />
+                    </div>
+                    {twoFactorError && <p className="error-text">{twoFactorError}</p>}
+                  </div>
+                  <div className="modal-footer">
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={handleTwoFactorSubmit}
+                      disabled={creating || twoFactorCode.length < 6}
+                    >
+                      {creating ? <Loader2 size={18} className="spinner" /> : 'Verify & Create'}
+                    </button>
+                    <button className="btn btn-secondary" onClick={handleCloseTwoFactorModal}>
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </LandingLayout>
   );
 }
