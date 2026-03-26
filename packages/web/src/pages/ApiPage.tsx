@@ -87,12 +87,12 @@ export function ApiPage() {
 
   const codeExamples: Record<string, { curl: string; js: string; python: string }> = {
     wallet: {
-      curl: `curl -X POST "https://fundtracer.xyz/api/analyze/wallet" \\
+      curl: `curl -X POST "https://www.fundtracer.xyz/api/analyze/wallet" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
   -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum"}'`,
       js: `const response = await fetch(
-  'https://fundtracer.xyz/api/analyze/wallet',
+  'https://www.fundtracer.xyz/api/analyze/wallet',
   {
     method: 'POST',
     headers: {
@@ -109,7 +109,7 @@ const data = await response.json();`,
       python: `import requests
 
 response = requests.post(
-    'https://fundtracer.xyz/api/analyze/wallet',
+    'https://www.fundtracer.xyz/api/analyze/wallet',
     headers={
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ft_live_YOUR_API_KEY'
@@ -122,12 +122,12 @@ response = requests.post(
 data = response.json()`,
     },
     fundingTree: {
-      curl: `curl -X POST "https://fundtracer.xyz/api/analyze/funding-tree" \\
+      curl: `curl -X POST "https://www.fundtracer.xyz/api/analyze/funding-tree" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
   -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum", "options": {"treeConfig": {"maxDepth": 3}}}"'`,
       js: `const response = await fetch(
-  'https://fundtracer.xyz/api/analyze/funding-tree',
+  'https://www.fundtracer.xyz/api/analyze/funding-tree',
   {
     method: 'POST',
     headers: {
@@ -145,7 +145,7 @@ const data = await response.json();`,
       python: `import requests
 
 response = requests.post(
-    'https://fundtracer.xyz/api/analyze/funding-tree',
+    'https://www.fundtracer.xyz/api/analyze/funding-tree',
     headers={
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ft_live_YOUR_API_KEY'
@@ -159,12 +159,12 @@ response = requests.post(
 data = response.json()`,
     },
     compare: {
-      curl: `curl -X POST "https://fundtracer.xyz/api/analyze/compare" \\
+      curl: `curl -X POST "https://www.fundtracer.xyz/api/analyze/compare" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
   -d '{"addresses": ["0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"], "chain": "ethereum"}'`,
       js: `const response = await fetch(
-  'https://fundtracer.xyz/api/analyze/compare',
+  'https://www.fundtracer.xyz/api/analyze/compare',
   {
     method: 'POST',
     headers: {
@@ -184,7 +184,7 @@ const data = await response.json();`,
       python: `import requests
 
 response = requests.post(
-    'https://fundtracer.xyz/api/analyze/compare',
+    'https://www.fundtracer.xyz/api/analyze/compare',
     headers={
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ft_live_YOUR_API_KEY'
@@ -293,10 +293,10 @@ data = response.json()`,
               <div className="api-base-url">
                 <h3>Base URL</h3>
                 <div className="api-code-block">
-                  <code>https://fundtracer.xyz/api</code>
+                  <code>https://www.fundtracer.xyz/api</code>
                   <button 
                     className="api-copy-btn"
-                    onClick={() => handleCopy('https://fundtracer.xyz/api', 'base-url')}
+                    onClick={() => handleCopy('https://www.fundtracer.xyz/api', 'base-url')}
                   >
                     {copied === 'base-url' ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
                   </button>
@@ -383,7 +383,7 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
             <div className="api-section" id="endpoints">
               <h2>API Endpoints</h2>
               <p className="api-intro">
-                All endpoints require authentication. Base URL: <code>https://fundtracer.xyz/api</code>
+                All endpoints require authentication. Base URL: <code>https://www.fundtracer.xyz/api</code>
               </p>
 
               <div className="api-endpoints">

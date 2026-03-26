@@ -122,8 +122,8 @@ export function ApiDocsPage() {
 
                   <h3>Base URL</h3>
                   <div className="api-code-block">
-                    <code>https://fundtracer.xyz/api</code>
-                    {copyBtn('https://fundtracer.xyz/api', 'base-url')}
+                    <code>https://www.fundtracer.xyz/api</code>
+                    {copyBtn('https://www.fundtracer.xyz/api', 'base-url')}
                   </div>
                 </motion.div>
               )}
@@ -528,6 +528,40 @@ export function ApiDocsPage() {
                       </div>
                     </div>
 
+                    <div className="endpoint-item">
+                      <div className="endpoint-header">
+                        <span className="method get">GET</span>
+                        <code>/portfolio/:address?chain=ethereum</code>
+                      </div>
+                      <p>Get portfolio data including token balances, NFT holdings, and total value for a wallet address.</p>
+                      <h4>Query Parameters</h4>
+                      <table className="params-table">
+                        <thead>
+                          <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><code>address</code></td>
+                            <td>string</td>
+                            <td>Wallet address (in path)</td>
+                          </tr>
+                          <tr>
+                            <td><code>chain</code></td>
+                            <td>string</td>
+                            <td>Blockchain: ethereum, arbitrum, optimism, polygon, bsc, base, linea (default: ethereum)</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <h4>Example</h4>
+                      <div className="api-code-block">
+                        <pre><code>GET /portfolio/0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1?chain=ethereum</code></pre>
+                      </div>
+                    </div>
+
                   </div>
                 </motion.div>
               )}
@@ -821,7 +855,7 @@ X-RateLimit-Reset: 1640000060  // Unix timestamp when limit resets`}</code></pre
                   <h3>JavaScript / Node.js</h3>
                   <div className="api-code-block">
                     <pre><code>{`const response = await fetch(
-  'https://fundtracer.xyz/api/analyze/wallet',
+  'https://www.fundtracer.xyz/api/analyze/wallet',
   {
     method: 'POST',
     headers: {
@@ -838,7 +872,7 @@ X-RateLimit-Reset: 1640000060  // Unix timestamp when limit resets`}</code></pre
 const data = await response.json();
 console.log(data.result);`}</code></pre>
                     {copyBtn(`const response = await fetch(
-  'https://fundtracer.xyz/api/analyze/wallet',
+  'https://www.fundtracer.xyz/api/analyze/wallet',
   {
     method: 'POST',
     headers: {
@@ -861,7 +895,7 @@ console.log(data.result);`, 'js-example')}
                     <pre><code>{`import requests
 
 response = requests.post(
-    'https://fundtracer.xyz/api/analyze/wallet',
+    'https://www.fundtracer.xyz/api/analyze/wallet',
     headers={
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ft_live_YOUR_API_KEY'
@@ -877,7 +911,7 @@ print(data['result'])`}</code></pre>
                     {copyBtn(`import requests
 
 response = requests.post(
-    'https://fundtracer.xyz/api/analyze/wallet',
+    'https://www.fundtracer.xyz/api/analyze/wallet',
     headers={
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ft_live_YOUR_API_KEY'
@@ -894,11 +928,11 @@ print(data['result'])`, 'python-example')}
 
                   <h3>cURL</h3>
                   <div className="api-code-block">
-                    <pre><code>{`curl -X POST "https://fundtracer.xyz/api/analyze/wallet" \\
+                    <pre><code>{`curl -X POST "https://www.fundtracer.xyz/api/analyze/wallet" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
   -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum"}'`}</code></pre>
-                    {copyBtn(`curl -X POST "https://fundtracer.xyz/api/analyze/wallet" \\
+                    {copyBtn(`curl -X POST "https://www.fundtracer.xyz/api/analyze/wallet" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
   -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum"}'`, 'curl-example')}
