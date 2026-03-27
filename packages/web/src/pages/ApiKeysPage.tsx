@@ -176,46 +176,86 @@ export function ApiKeysPage() {
     }
   };
 
-  const handleTwoFactorSubmit = async () => {
-    if (!pendingKeyName) return;
-    
-    setCreating(true);
-    setTwoFactorError(null);
-    try {
-      const result = await serverCreateApiKey(pendingKeyName, newKeyType, twoFactorCode);
-      if (result.success && result.key) {
-        setKeys((prev) => [result.key!, ...prev]);
-        setNewKeyName('');
-        setShowTwoFactorModal(false);
-        setTwoFactorCode('');
-        setPendingKeyName('');
-      } else {
-        setTwoFactorError(result.error || 'Failed to create API key.');
-      }
-    } catch (err: any) {
-      setTwoFactorError(err.message || 'Invalid 2FA code. Please try again.');
-    } finally {
-      setCreating(false);
-    }
-  };
-
   const handleCloseTwoFactorModal = () => {
     setShowTwoFactorModal(false);
     setTwoFactorCode('');
     setTwoFactorError(null);
     setPendingKeyName('');
     setNewKeyName('');
+    setPendingDeleteKeyId(null);
   };
 
-  const handleDeleteKey = async (keyId: string) => {
+  const [pendingDeleteKeyId, setPendingDeleteKeyId] = useState<string | null>(null);
+
+  const handleDeleteKeyClick = async (keyId: string) => {
+    setError(null);
+    await handleDeleteKey(keyId);
+  };
+
+  const handleDeleteKey = async (keyId: string, twoFactorCode?: string) => {
     if (!user?.uid) return;
     
     try {
-      await serverDeleteApiKey(keyId);
+      await serverDeleteApiKey(keyId, twoFactorCode);
       setKeys((prev) => prev.filter((k) => k.id !== keyId));
-    } catch (err) {
+      setShowTwoFactorModal(false);
+      setTwoFactorCode('');
+      setPendingDeleteKeyId(null);
+    } catch (err: any) {
       console.error('Failed to delete API key:', err);
-      setError('Failed to delete API key. Please try again.');
+      
+      if (err.twoFactorEnabled === false) {
+        setShowTwoFactorModal(true);
+        setTwoFactorEnabled(false);
+        setPendingDeleteKeyId(keyId);
+        setError(null);
+      } else if (err.requiresCode) {
+        setShowTwoFactorModal(true);
+        setTwoFactorEnabled(true);
+        setTwoFactorError(err.message || 'Please enter your 2FA code');
+        setPendingDeleteKeyId(keyId);
+      } else {
+        setError(err.message || 'Failed to delete API key. Please try again.');
+      }
+    }
+  };
+
+  const handleTwoFactorSubmit = async () => {
+    if (pendingKeyName) {
+      // Creating a new key
+      setCreating(true);
+      setTwoFactorError(null);
+      try {
+        const result = await serverCreateApiKey(pendingKeyName, newKeyType, twoFactorCode);
+        if (result.success && result.key) {
+          setKeys((prev) => [result.key!, ...prev]);
+          setNewKeyName('');
+          setShowTwoFactorModal(false);
+          setTwoFactorCode('');
+          setPendingKeyName('');
+        } else {
+          setTwoFactorError(result.error || 'Failed to create API key.');
+        }
+      } catch (err: any) {
+        setTwoFactorError(err.message || 'Invalid 2FA code. Please try again.');
+      } finally {
+        setCreating(false);
+      }
+    } else if (pendingDeleteKeyId) {
+      // Deleting a key
+      setCreating(true);
+      setTwoFactorError(null);
+      try {
+        await serverDeleteApiKey(pendingDeleteKeyId, twoFactorCode);
+        setKeys((prev) => prev.filter((k) => k.id !== pendingDeleteKeyId));
+        setShowTwoFactorModal(false);
+        setTwoFactorCode('');
+        setPendingDeleteKeyId(null);
+      } catch (err: any) {
+        setTwoFactorError(err.message || 'Invalid 2FA code. Please try again.');
+      } finally {
+        setCreating(false);
+      }
     }
   };
 
@@ -416,7 +456,7 @@ export function ApiKeysPage() {
                         </div>
                         <button
                           className="delete-btn"
-                          onClick={() => handleDeleteKey(apiKey.id)}
+                          onClick={() => handleDeleteKeyClick(apiKey.id)}
                           title="Delete key"
                         >
                           <Trash2 size={18} />
@@ -562,7 +602,7 @@ export function ApiKeysPage() {
                     <h2>2FA Verification</h2>
                   </div>
                   <div className="modal-body">
-                    <p>Enter your 2FA code to create an API key</p>
+                    <p>Enter your 2FA code to {pendingKeyName ? 'create an API key' : 'delete this API key'}</p>
                     <div className="form-group">
                       <input
                         type="text"

@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import IntelPage from './pages/IntelPage';
 import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
@@ -77,7 +77,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function ApiKeysRoute() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, setTokenFromExternal } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [tokenProcessed, setTokenProcessed] = useState(false);
+  
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const authError = searchParams.get('error');
+    
+    if (token && !tokenProcessed) {
+      setTokenProcessed(true);
+      setTokenFromExternal(token);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    
+    if (authError) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams, tokenProcessed, setTokenFromExternal]);
   
   if (loading) {
     return (

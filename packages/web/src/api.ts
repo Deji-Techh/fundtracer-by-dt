@@ -608,7 +608,7 @@ export async function listApiKeys(): Promise<{ success: boolean; keys: ApiKeyDat
     return data;
 }
 
-export async function deleteApiKey(keyId: string): Promise<{ success: boolean }> {
+export async function deleteApiKey(keyId: string, twoFactorCode?: string): Promise<{ success: boolean }> {
     const token = getAuthToken();
     if (!token) throw new Error('Not authenticated');
 
@@ -616,12 +616,17 @@ export async function deleteApiKey(keyId: string): Promise<{ success: boolean }>
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
         },
+        body: twoFactorCode ? JSON.stringify({ code: twoFactorCode }) : undefined,
     });
 
     const data = await response.json();
     if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete API key');
+        const error = new Error(data.error || 'Failed to delete API key');
+        (error as any).twoFactorEnabled = data.twoFactorEnabled;
+        (error as any).requiresCode = data.requiresCode;
+        throw error;
     }
     return data;
 }
