@@ -548,9 +548,10 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
       return true;
     });
 
-    const filteredNodeIds = new Set(['target', ...filteredEdges.map(e => typeof e.source === 'string' ? e.source : e.source.id), ...filteredEdges.map(e => typeof e.target === 'string' ? e.target : e.target.id)]);
+    const filteredNodeIds = new Set([...filteredEdges.map(e => typeof e.source === 'string' ? e.source : e.source.id), ...filteredEdges.map(e => typeof e.target === 'string' ? e.target : e.target.id)]);
     const filteredNodesList = graphData.nodes.filter(node => {
-      if (node.id === 'target') return true;
+      // Always include target nodes
+      if (node.type === 'target') return true;
       if (!filteredNodeIds.has(node.id)) return false;
       if (!filters.showSuspicious && node.isSuspicious) return false;
       if (!filters.showWhales && node.isWhale) return false;
