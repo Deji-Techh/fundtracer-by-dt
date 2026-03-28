@@ -1550,25 +1550,6 @@ ${gexfEdges}
               </button>
             </div>
           )}
-            <>
-              <button 
-                className={`ctrl-btn merge-toggle ${showTransactionNodes ? 'active' : ''}`}
-                onClick={() => setShowTransactionNodes(!showTransactionNodes)}
-                title={showTransactionNodes ? 'Hide transaction nodes' : 'Show transaction nodes'}
-              >
-                <Icon name="gitMerge" size={16} />
-                <span>{showTransactionNodes ? 'TX Nodes' : 'Address Only'}</span>
-              </button>
-              <button 
-                className={`ctrl-btn merge-toggle ${graphViewMode === 'clustered' ? 'active' : ''}`}
-                onClick={() => setGraphViewMode(graphViewMode === 'clustered' ? 'timeline' : 'clustered')}
-                title={graphViewMode === 'clustered' ? 'Switch to timeline view' : 'Switch to clustered view'}
-              >
-                <Icon name={graphViewMode === 'clustered' ? 'circle' : 'clock'} size={16} />
-                <span>{graphViewMode === 'clustered' ? 'Clustered' : 'Timeline'}</span>
-              </button>
-            </>
-          )}
 
           {showAISuggestions && (
             <div className="ai-suggestions">
