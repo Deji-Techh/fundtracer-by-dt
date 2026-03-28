@@ -274,26 +274,26 @@ export function InvestigateView({
 
   // Handle analyze button click
   const handleAnalyze = () => {
-    const input = document.querySelector('.ft-addr-input') as HTMLInputElement;
-    if (!input || !input.value.trim()) return;
-
-    const address = input.value.trim();
-
     switch (activeTab) {
-      case 'wallet':
-        handleAnalyzeWallet(address);
+      case 'wallet': {
+        const input = document.querySelector('.ft-addr-input') as HTMLInputElement;
+        if (!input || !input.value.trim()) return;
+        handleAnalyzeWallet(input.value.trim());
         break;
-      case 'contract':
-        // Handle contract analysis
-        handleAnalyzeContract(address);
+      }
+      case 'contract': {
+        const input = document.querySelector('.ft-addr-input') as HTMLInputElement;
+        if (!input || !input.value.trim()) return;
+        handleAnalyzeContract(input.value.trim());
         break;
-      case 'compare':
-        // Handle compare (multiple addresses)
-        const addresses = address.split(',').map(a => a.trim()).filter(a => a);
+      }
+      case 'compare': {
+        const addresses = compareAddresses.filter(a => a.trim());
         if (addresses.length >= 2) {
           handleCompareWallets(addresses);
         }
         break;
+      }
       case 'sybil':
         // Sybil detection handled by SybilDetector
         break;
@@ -767,7 +767,11 @@ export function InvestigateView({
 
               {/* Actions */}
               <div className="actions">
-                <button className="btn-analyze" onClick={handleAnalyze} disabled={loading}>
+                <button 
+                  className="btn-analyze" 
+                  onClick={handleAnalyze} 
+                  disabled={loading || (activeTab === 'compare' && compareAddresses.filter(a => a.trim()).length < 2)}
+                >
                   <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="6" cy="6" r="4.5"/><path d="M9.5 9.5l3 3"/>
                   </svg>
