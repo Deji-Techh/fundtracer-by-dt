@@ -315,8 +315,8 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
     if (options) {
         if (options.limit !== undefined) {
             const limit = Number(options.limit);
-            if (isNaN(limit) || limit < 1 || limit > 1000) {
-                return res.status(400).json({ error: 'Invalid limit parameter (1-1000)' });
+            if (isNaN(limit) || limit < 1) {
+                return res.status(400).json({ error: 'Invalid limit parameter (must be positive integer)' });
             }
         }
         if (options.addresses && !validateArrayLength(options.addresses, 100)) {
@@ -351,18 +351,19 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
         });
 
-        // Pagination params
-        const limit = Math.min(options?.limit || 10000, 10000); // Max 10000 per request
+        // Pagination params - unlimited if not specified (fetch all)
+        const limit = options?.limit ? Math.min(options.limit, 100000) : 100000; // Cap at 100k for safety
         const offset = options?.offset || 0;
 
-        console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 120s timeout...`);
+        console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 180s timeout...`);
+        const txLimit = options?.limit || 100000;
         const result = await withTimeout(
-            analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: 10000, skipFundingTree: true }),
-            120000, // Increased to 120s to handle large tx lists
+            analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: txLimit, skipFundingTree: true }),
+            180000, // Increased to 180s for large wallets
             'Wallet analysis'
         );
 
-        // Paginate transactions - return up to 10000
+        // Paginate transactions - return up to limit
         const totalTransactions = result.transactions.length;
         const paginatedTransactions = result.transactions.slice(offset, offset + limit);
         const hasMore = offset + limit < totalTransactions;

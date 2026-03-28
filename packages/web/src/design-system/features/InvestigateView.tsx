@@ -149,6 +149,9 @@ export function InvestigateView({
   const [pagination, setPagination] = useState<{ total: number; offset: number; limit: number; hasMore: boolean } | null>(null);
   const [currentAnalysisAddress, setCurrentAnalysisAddress] = useState<string>('');
   const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
+  
+  // Compare tab multiple addresses
+  const [compareAddresses, setCompareAddresses] = useState<string[]>(['', '']);
 
   // Gas payment hook (keep for now, just remove PoH requirement)
   const {
@@ -665,46 +668,101 @@ export function InvestigateView({
               <div className="field-label">
                 {activeTab === 'wallet' && 'Wallet address'}
                 {activeTab === 'contract' && 'Contract address'}
-                {activeTab === 'compare' && 'Wallet addresses (comma separated)'}
+                {activeTab === 'compare' && 'Wallet addresses'}
               </div>
-              <div className="addr-field">
-                <div className="addr-bar">
-                  <span className="addr-label">EVM</span>
-                  <div className="addr-tools">
-                    <button className="addr-tool" onClick={() => navigator.clipboard.readText().then(text => {
-                      const input = document.querySelector('.ft-addr-input') as HTMLInputElement;
-                      if (input) input.value = text;
-                    })}>
-                      <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4">
-                        <rect x="3" y="1" width="6" height="7" rx="0.5"/>
-                        <path d="M1 3v6h6"/>
-                      </svg>
-                      Paste
-                    </button>
-                    <button className="addr-tool" onClick={() => setShowRecentDropdown(!showRecentDropdown)}>Recent</button>
-                    <button className="addr-tool" onClick={() => setShowGuideModal(true)}>Guide ↗</button>
-                  </div>
+              
+              {activeTab === 'compare' ? (
+                <div className="compare-addresses">
+                  {compareAddresses.map((addr, idx) => (
+                    <div key={idx} className="addr-field compare-addr-field">
+                      <div className="addr-bar">
+                        <span className="addr-label">#{idx + 1}</span>
+                        {compareAddresses.length > 2 && (
+                          <button 
+                            className="addr-tool remove-btn" 
+                            onClick={() => {
+                              const newAddrs = [...compareAddresses];
+                              newAddrs.splice(idx, 1);
+                              setCompareAddresses(newAddrs);
+                            }}
+                          >
+                            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4">
+                              <line x1="2" y1="5" x2="8" y2="5"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <input 
+                        className="ft-addr-input" 
+                        type="text" 
+                        value={addr}
+                        onChange={(e) => {
+                          const newAddrs = [...compareAddresses];
+                          newAddrs[idx] = e.target.value;
+                          setCompareAddresses(newAddrs);
+                        }}
+                        placeholder="0x… wallet address"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            const addresses = compareAddresses.filter(a => a.trim());
+                            if (addresses.length >= 2) {
+                              handleCompareWallets(addresses);
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  ))}
+                  <button 
+                    className="add-address-btn"
+                    onClick={() => setCompareAddresses([...compareAddresses, ''])}
+                    disabled={compareAddresses.length >= 10}
+                  >
+                    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <line x1="5" y1="2" x2="5" y2="8"/>
+                      <line x1="2" y1="5" x2="8" y2="5"/>
+                    </svg>
+                    Add Address
+                  </button>
                 </div>
-                <input 
-                  className="ft-addr-input" 
-                  type="text" 
-                  placeholder={
-                    activeTab === 'wallet' 
-                      ? '0x… wallet address or ENS name' 
-                      : activeTab === 'contract'
-                      ? '0x… contract address'
-                      : '0x…, 0x… (comma separated)'
-                  }
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') handleAnalyze();
-                  }}
-                />
-              </div>
+              ) : (
+                <div className="addr-field">
+                  <div className="addr-bar">
+                    <span className="addr-label">EVM</span>
+                    <div className="addr-tools">
+                      <button className="addr-tool" onClick={() => navigator.clipboard.readText().then(text => {
+                        const input = document.querySelector('.ft-addr-input') as HTMLInputElement;
+                        if (input) input.value = text;
+                      })}>
+                        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4">
+                          <rect x="3" y="1" width="6" height="7" rx="0.5"/>
+                          <path d="M1 3v6h6"/>
+                        </svg>
+                        Paste
+                      </button>
+                      <button className="addr-tool" onClick={() => setShowRecentDropdown(!showRecentDropdown)}>Recent</button>
+                      <button className="addr-tool" onClick={() => setShowGuideModal(true)}>Guide ↗</button>
+                    </div>
+                  </div>
+                  <input 
+                    className="ft-addr-input" 
+                    type="text" 
+                    placeholder={
+                      activeTab === 'wallet' 
+                        ? '0x… wallet address or ENS name' 
+                        : '0x… contract address'
+                    }
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleAnalyze();
+                    }}
+                  />
+                </div>
+              )}
               
               <div className="hint">
                 {activeTab === 'wallet' && 'Supports EVM addresses and ENS names.'}
                 {activeTab === 'contract' && 'Enter a contract address to analyze its code and interactions.'}
-                {activeTab === 'compare' && 'Enter 2 or more addresses separated by commas to compare.'}
+                {activeTab === 'compare' && `Add ${2 - compareAddresses.filter(a => a.trim()).length} more address to compare`}
               </div>
 
               {/* Actions */}

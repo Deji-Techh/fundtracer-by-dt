@@ -219,6 +219,58 @@
   transition: border-color var(--transition-fast);
 }
 
+.compare-addresses {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.compare-addr-field {
+  margin-bottom: var(--space-2);
+}
+
+.compare-addr-field .addr-bar {
+  background: var(--intel-bg);
+}
+
+.compare-addr-field .remove-btn {
+  color: var(--intel-red);
+}
+
+.compare-addr-field .remove-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.add-address-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px dashed var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--intel-text-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.add-address-btn:hover:not(:disabled) {
+  border-color: var(--intel-cyan);
+  color: var(--intel-cyan);
+}
+
+.add-address-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-address-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
 .addr-field:focus-within {
   border-color: var(--intel-cyan);
 }

@@ -990,6 +990,11 @@
 .node-indicator.mixer { background-color: #d08770; }
 .node-indicator.dao { background-color: #a3be8c; }
 .node-indicator.nft { background-color: #b48ead; }
+.node-indicator.transaction { 
+  background-color: #22c55e; 
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
 
 .panel-close {
   background: none;
@@ -1096,6 +1101,29 @@
 .risk-badge.risk-low {
   background-color: rgba(22, 163, 74, 0.15);
   color: #16a34a;
+}
+
+.tx-status {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.tx-status.success {
+  background-color: rgba(22, 163, 74, 0.15);
+  color: #16a34a;
+}
+
+.tx-status.failed {
+  background-color: rgba(220, 38, 38, 0.15);
+  color: #dc2626;
+}
+
+.tx-status.pending {
+  background-color: rgba(217, 119, 6, 0.15);
+  color: #d97706;
 }
 
 .panel-actions {
