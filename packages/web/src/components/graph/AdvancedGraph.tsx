@@ -1517,7 +1517,7 @@ ${gexfEdges}
         <svg ref={svgRef} className="graph-svg" />
 
         <div className="graph-controls-top">
-          {isGenerated ? (
+          {isGenerated && (
             <>
               <button 
                 className={`ctrl-btn merge-toggle ${showTransactionNodes ? 'active' : ''}`}
