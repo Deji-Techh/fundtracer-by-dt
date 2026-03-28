@@ -231,7 +231,7 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
   const [streamEnabled, setStreamEnabled] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [graphViewMode, setGraphViewMode] = useState<'clustered' | 'timeline'>('clustered');
-  const [showTransactionNodes, setShowTransactionNodes] = useState(true);
+  const [showTransactionNodes, setShowTransactionNodes] = useState(false);
   const [defiIntelligence, setDefiIntelligence] = useState<{
     dexPaths: { from: string; to: string; pools: string[]; volume: number }[];
     liquidityPools: { protocol: string; pool: string; tvl: number; apr: number }[];
@@ -525,10 +525,10 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
     glowMerge.append('feMergeNode').attr('in', 'SourceGraphic');
 
     const markerSent = defs.append('marker').attr('id', 'arrow-sent').attr('viewBox', '0 -5 10 10').attr('refX', 42).attr('refY', 0).attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto');
-    markerSent.append('path').attr('fill', themeMode === 'dark' ? '#81a1c1' : '#3b82f6').attr('d', 'M0,-5L10,0L0,5');
+    markerSent.append('path').attr('fill', '#ef4444').attr('d', 'M0,-5L10,0L0,5');
 
     const markerReceived = defs.append('marker').attr('id', 'arrow-received').attr('viewBox', '0 -5 10 10').attr('refX', 42).attr('refY', 0).attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto');
-    markerReceived.append('path').attr('fill', themeMode === 'dark' ? '#88c0d0' : '#06b6d4').attr('d', 'M0,-5L10,0L0,5');
+    markerReceived.append('path').attr('fill', '#22c55e').attr('d', 'M0,-5L10,0L0,5');
 
     const g = svg.append('g');
     const zoomBehavior = d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.05, 10]).on('zoom', (event) => {
@@ -608,11 +608,10 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
     const links = linkGroup.selectAll('line')
       .data(filteredEdges).enter().append('line')
       .attr('class', d => `edge edge-${d.type} ${d.isMEV ? 'edge-mev' : ''} ${d.isFlashLoan ? 'edge-flash' : ''}`)
-      .attr('stroke', d => themeMode === 'dark' ? (d.type === 'sent' ? '#81a1c1' : d.type === 'received' ? '#88c0d0' : d.type === 'swap' ? '#a3be8c' : '#b48ead') : (d.type === 'sent' ? '#3b82f6' : d.type === 'received' ? '#06b6d4' : d.type === 'swap' ? '#10b981' : '#ec4899'))
-      .attr('stroke-width', d => Math.max(1, Math.sqrt(d.value) * 0.8))
-      .attr('stroke-opacity', 0.6)
-      .attr('marker-end', d => d.type === 'sent' ? 'url(#arrow-sent)' : d.type === 'received' ? 'url(#arrow-received)' : null)
-      .attr('stroke-dasharray', d => d.type === 'swap' ? '5,5' : d.type === 'call' ? '2,2' : null);
+      .attr('stroke', d => d.type === 'sent' ? '#ef4444' : d.type === 'received' ? '#22c55e' : '#a3be8c')
+      .attr('stroke-width', d => Math.max(2, Math.sqrt(d.value) * 1.2))
+      .attr('stroke-opacity', 0.7)
+      .attr('marker-end', d => d.type === 'sent' ? 'url(#arrow-sent)' : d.type === 'received' ? 'url(#arrow-received)' : null);
 
     const nodeRadius = 40;
     const nodes = nodeGroup.selectAll('.node-group')
