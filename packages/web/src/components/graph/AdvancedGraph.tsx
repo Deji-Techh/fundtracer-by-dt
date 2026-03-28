@@ -302,7 +302,8 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
 
   // Auto-generate graph when targetAddress is provided (on mount)
   useEffect(() => {
-    if (targetAddress && !walletAddress && !isGenerated) {
+    if (targetAddress && !walletAddress && !isGenerated && !isLoading) {
+      // Set the address and trigger generation
       setWalletAddress(targetAddress);
     }
   }, [targetAddress]);
@@ -957,8 +958,12 @@ const AdvancedGraph: React.FC<{ targetAddress?: string; chain?: string; onClose?
       setFilteredNodes(new Set());
       setIsGenerated(true);
       
-      const ai = performAIAnalysis(data);
-      setAiAnalysis(ai);
+      try {
+        const ai = performAIAnalysis(data);
+        setAiAnalysis(ai);
+      } catch (e) {
+        console.warn('AI analysis failed:', e);
+      }
       
       notify.success(`Graph generated with ${nodes.length} nodes and ${edges.length} transactions`);
     } catch (err: any) {
@@ -1531,24 +1536,6 @@ ${gexfEdges}
                 <span>{graphViewMode === 'clustered' ? 'Clustered' : 'Timeline'}</span>
               </button>
             </>
-          ) : (
-            <div className="wallet-search-box">
-              <Icon name="wallet" size={16} />
-              <input 
-                type="text" 
-                placeholder="Enter wallet address to visualize..." 
-                value={walletAddress || targetAddress || ''}
-                onChange={e => setWalletAddress(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { setIsMerged(false); setWalletAddress(e.currentTarget.value); }}}
-              />
-              <button 
-                className="wallet-search-btn"
-                onClick={() => setIsMerged(false)}
-                disabled={!walletAddress && !targetAddress}
-              >
-                <Icon name="arrowRight" size={14} />
-              </button>
-            </div>
           )}
 
           {showAISuggestions && (
