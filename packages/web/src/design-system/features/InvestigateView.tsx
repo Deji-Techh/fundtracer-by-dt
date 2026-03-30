@@ -702,7 +702,7 @@ export function InvestigateView({
           )}
 
           {/* Address Input - Only show for wallet/contract/compare tabs */}
-          {activeTab !== 'sybil' && activeTab !== 'track' && (
+          {activeTab !== 'sybil' && activeTab !== 'track' && activeTab !== 'graph' && (
             <>
               <div className="field-label">
                 {activeTab === 'wallet' && 'Wallet address'}
