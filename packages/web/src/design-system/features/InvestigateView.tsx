@@ -31,7 +31,7 @@ interface InvestigateViewProps {
 }
 
 // Tab types matching reference HTML
-type TabType = 'wallet' | 'contract' | 'compare' | 'sybil' | 'graph';
+type TabType = 'wallet' | 'contract' | 'compare' | 'sybil' | 'graph' | 'track';
 
 interface Stats {
   chainsIndexed: number;
@@ -674,7 +674,7 @@ export function InvestigateView({
 
         <div className="panel-body">
           {/* Network Selection - Only show for wallet/contract/compare tabs */}
-          {activeTab !== 'sybil' && activeTab !== 'graph' && (
+          {activeTab !== 'sybil' && activeTab !== 'graph' && activeTab !== 'track' && (
             <>
               <div className="field-label">Network</div>
               <div className="chains">
@@ -702,7 +702,7 @@ export function InvestigateView({
           )}
 
           {/* Address Input - Only show for wallet/contract/compare tabs */}
-          {activeTab !== 'sybil' && (
+          {activeTab !== 'sybil' && activeTab !== 'track' && (
             <>
               <div className="field-label">
                 {activeTab === 'wallet' && 'Wallet address'}

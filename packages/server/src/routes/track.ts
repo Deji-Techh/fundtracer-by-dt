@@ -31,7 +31,7 @@ interface ActivityItem {
 }
 
 // GET /api/track - Get all tracked wallets (global watchlist)
-router.get('/track', async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const watchlistRef = firestore.collection('watchlist');
         const snapshot = await watchlistRef.orderBy('addedAt', 'desc').limit(500).get();
@@ -49,7 +49,7 @@ router.get('/track', async (req, res) => {
 });
 
 // POST /api/track - Add wallet to global watchlist
-router.post('/track', authMiddleware, async (req: AuthenticatedRequest, res) => {
+router.post('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
         const { address, chain = 'ethereum' } = req.body;
         
@@ -94,7 +94,7 @@ router.post('/track', authMiddleware, async (req: AuthenticatedRequest, res) => 
 });
 
 // DELETE /api/track/:address - Remove wallet from watchlist
-router.delete('/track/:address', authMiddleware, async (req: AuthenticatedRequest, res) => {
+router.delete('/:address', authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
         const { address } = req.params;
         const userId = (req as any).user?.uid || (req as any).user?.id;

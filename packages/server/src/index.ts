@@ -81,6 +81,7 @@ import { authMiddleware, apiKeyAuthMiddleware } from './middleware/auth.js';
 import { usageMiddleware } from './middleware/usage.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { analyzeRoutes } from './routes/analyze.js';
+import trackRoutes from './routes/track.js';
 import { userRoutes } from './routes/user.js';
 import { duneRoutes } from './routes/dune.js';
 import contractRoutes from './routes/contracts.js';
@@ -429,6 +430,7 @@ apiRouter.use('/contact', publicLimiter, contactRoutes); // Contact/sales form
 apiRouter.use('/tx', apiKeyAuthMiddleware, transactionRoutes); // Transaction lookup
 apiRouter.use('/gas', apiKeyAuthMiddleware, gasRoutes); // Gas prices
 apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
+apiRouter.use('/track', authMiddleware, trackRoutes);
 apiRouter.use('/dune', authMiddleware, duneRoutes);
 import { trackingRoutes } from './routes/tracking.js';
 import healthRoutes from './routes/health.js';

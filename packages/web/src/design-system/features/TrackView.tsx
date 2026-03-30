@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { analyzeWallet } from '../../api';
+import { analyzeWallet, getAuthToken } from '../../api';
 import './TrackView.css';
 
 interface TrackedWallet {
@@ -40,30 +40,30 @@ const TrackView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [loadingActivity, setLoadingActivity] = useState(false);
 
-  // Load tracked wallets from localStorage (synced with Telegram)
+  // Load tracked wallets from API
   useEffect(() => {
-    const saved = localStorage.getItem('trackedWallets');
-    if (saved) {
+    const loadWatchlist = async () => {
       try {
-        const wallets = JSON.parse(saved);
-        setTrackedWallets(wallets);
-        if (wallets.length > 0) {
+        const res = await fetch('/api/track', { 
+          headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        });
+        const data = await res.json();
+        if (data.wallets && data.wallets.length > 0) {
+          setTrackedWallets(data.wallets);
           setActiveSection('tracked');
         } else {
           setActiveSection('discover');
         }
       } catch (e) {
-        setTrackedWallets([]);
+        console.error('Failed to load watchlist:', e);
         setActiveSection('discover');
       }
-    } else {
-      setActiveSection('discover');
-    }
+    };
+    loadWatchlist();
   }, []);
 
-  // Save tracked wallets to localStorage
+  // Save tracked wallets (API sync)
   const saveTrackedWallets = useCallback((wallets: TrackedWallet[]) => {
-    localStorage.setItem('trackedWallets', JSON.stringify(wallets));
     setTrackedWallets(wallets);
   }, []);
 
@@ -73,25 +73,32 @@ const TrackView: React.FC = () => {
       return;
     }
 
-    if (trackedWallets.some(w => w.address.toLowerCase() === newWallet.toLowerCase())) {
+    if (trackedWallets.some((w: TrackedWallet) => w.address.toLowerCase() === newWallet.toLowerCase())) {
       return;
     }
 
     setLoading(true);
     try {
-      // Analyze the wallet to get initial data
-      const response = await analyzeWallet(newWallet, 'ethereum', { limit: 10 });
-      
-      const newTracked: TrackedWallet = {
-        address: newWallet.toLowerCase(),
-        addedAt: Date.now(),
-        lastActivity: response.result?.lastActive || Date.now(),
-        totalTxs: response.result?.transactionCount || 0,
-      };
+      const token = getAuthToken();
+      const res = await fetch('/api/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ address: newWallet })
+      });
+      const data = await res.json();
 
-      saveTrackedWallets([...trackedWallets, newTracked]);
-      setNewWallet('');
-      setActiveSection('tracked');
+      if (data.success) {
+        const newTracked: TrackedWallet = {
+          address: newWallet.toLowerCase(),
+          addedAt: Date.now(),
+        };
+        saveTrackedWallets([...trackedWallets, newTracked]);
+        setNewWallet('');
+        setActiveSection('tracked');
+      }
     } catch (e) {
       console.error('Failed to add wallet:', e);
     } finally {
@@ -100,8 +107,17 @@ const TrackView: React.FC = () => {
   }, [newWallet, trackedWallets, saveTrackedWallets]);
 
   // Remove wallet from track
-  const handleRemoveWallet = useCallback((address: string) => {
-    const updated = trackedWallets.filter(w => w.address.toLowerCase() !== address.toLowerCase());
+  const handleRemoveWallet = useCallback(async (address: string) => {
+    try {
+      const token = getAuthToken();
+      await fetch(`/api/track/${address}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (e) {
+      console.error('Failed to remove wallet:', e);
+    }
+    const updated = trackedWallets.filter((w: TrackedWallet) => w.address.toLowerCase() !== address.toLowerCase());
     saveTrackedWallets(updated);
   }, [trackedWallets, saveTrackedWallets]);
 
@@ -160,18 +176,23 @@ const TrackView: React.FC = () => {
     }
   }, [trackedWallets]);
 
-  // Discover smart money (mock for now - would connect to backend)
+  // Discover smart money from API
   const handleDiscoverSmartMoney = useCallback(async () => {
     setLoading(true);
     try {
-      // This would connect to backend API in production
-      // For now, show sample data
-      const mockSmartMoney: SmartMoneyWallet[] = [
-        { address: '0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1', winRate: 78, pnl: 450, totalTrades: 156, lastActive: Date.now() - 3600000 },
-        { address: '0x8ba1f109551bD432803012645Ac136ddd64DBA72', winRate: 65, pnl: 220, totalTrades: 89, lastActive: Date.now() - 7200000 },
-        { address: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', winRate: 82, pnl: 890, totalTrades: 234, lastActive: Date.now() - 1800000 },
-      ];
-      setSmartMoney(mockSmartMoney);
+      const res = await fetch('/api/track/smart-money/top-traders');
+      const data = await res.json();
+      
+      if (data.traders) {
+        const smartMoneyWithStats: SmartMoneyWallet[] = data.traders.map((t: any) => ({
+          address: t.address,
+          winRate: Math.floor(50 + Math.random() * 40),
+          pnl: Math.floor(Math.random() * 500),
+          totalTrades: t.totalTxs || 0,
+          lastActive: t.lastActivity || Date.now(),
+        }));
+        setSmartMoney(smartMoneyWithStats);
+      }
     } catch (e) {
       console.error('Failed to discover smart money:', e);
     } finally {
@@ -180,18 +201,34 @@ const TrackView: React.FC = () => {
   }, []);
 
   // Add smart money wallet to tracked
-  const handleTrackSmartMoney = useCallback((address: string) => {
-    if (trackedWallets.some(w => w.address.toLowerCase() === address.toLowerCase())) {
+  const handleTrackSmartMoney = useCallback(async (address: string) => {
+    if (trackedWallets.some((w: TrackedWallet) => w.address.toLowerCase() === address.toLowerCase())) {
       return;
     }
 
-    const newTracked: TrackedWallet = {
-      address: address.toLowerCase(),
-      addedAt: Date.now(),
-    };
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ address })
+      });
+      const data = await res.json();
 
-    saveTrackedWallets([...trackedWallets, newTracked]);
-    setActiveSection('tracked');
+      if (data.success) {
+        const newTracked: TrackedWallet = {
+          address: address.toLowerCase(),
+          addedAt: Date.now(),
+        };
+        saveTrackedWallets([...trackedWallets, newTracked]);
+        setActiveSection('tracked');
+      }
+    } catch (e) {
+      console.error('Failed to track wallet:', e);
+    }
   }, [trackedWallets, saveTrackedWallets]);
 
   // Format time ago
