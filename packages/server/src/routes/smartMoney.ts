@@ -51,8 +51,10 @@ router.get('/discover', async (req, res) => {
             lastActive: number;
         }> = new Map();
 
-        const MAX_POOLS_PER_CHAIN = 10;
-        const MAX_TRADES_PER_POOL = 25;
+        const MAX_POOLS_PER_CHAIN = 5;
+        const MAX_TRADES_PER_POOL = 10;
+
+        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
         for (const chainId of chains) {
             const geckoChain = CHAIN_TO_GECKO[chainId];
@@ -60,7 +62,10 @@ router.get('/discover', async (req, res) => {
 
             try {
                 const poolsData = await geckoTerminal.getTrendingPools(geckoChain, MAX_POOLS_PER_CHAIN);
-                if (!poolsData?.data) continue;
+                if (!poolsData?.data) {
+                    await delay(1000);
+                    continue;
+                }
                 
                 const pools = poolsData.data.slice(0, MAX_POOLS_PER_CHAIN);
                 
@@ -74,6 +79,8 @@ router.get('/discover', async (req, res) => {
                     try {
                         const tradesData = await geckoTerminal.getPoolTrades(geckoChain, poolAddress, MAX_TRADES_PER_POOL);
                         if (!tradesData?.data) continue;
+
+                        await delay(500);
                         
                         const trades = tradesData.data.slice(0, MAX_TRADES_PER_POOL);
 
@@ -120,6 +127,8 @@ router.get('/discover', async (req, res) => {
             } catch (poolErr) {
                 console.error(`[SmartMoney API] Error fetching pools for chain ${chainId}:`, poolErr);
             }
+            
+            await delay(2000);
         }
 
         const wallets = Array.from(walletStats.values());

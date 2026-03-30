@@ -83,7 +83,7 @@ export class GeckoTerminalService {
       }
 
       const data = await response.json();
-      cache.set(cacheKey, data, 300); // Cache for 5 minutes
+      cache.set(cacheKey, data, 600); // Cache for 10 minutes
       return data;
     } catch (error) {
       console.error('[GeckoTerminalService] Error fetching trending pools:', error);
@@ -157,7 +157,7 @@ export class GeckoTerminalService {
       }
 
       const data = await response.json();
-      cache.set(cacheKey, data, 15);
+      cache.set(cacheKey, data, 60); // Cache for 60 seconds
       return data;
     } catch (error) {
       console.error('[GeckoTerminalService] Error fetching trades:', error);
