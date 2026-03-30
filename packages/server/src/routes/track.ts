@@ -8,7 +8,7 @@ import { getFirestore, admin } from '../firebase.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
-const firestore = getFirestore();
+const getDb = () => getFirestore();
 
 interface TrackedWallet {
     address: string;
@@ -33,7 +33,7 @@ interface ActivityItem {
 // GET /api/track - Get all tracked wallets (global watchlist)
 router.get('/', async (req, res) => {
     try {
-        const watchlistRef = firestore.collection('watchlist');
+        const watchlistRef = getDb().collection('watchlist');
         const snapshot = await watchlistRef.orderBy('addedAt', 'desc').limit(500).get();
         
         const wallets: TrackedWallet[] = snapshot.docs.map(doc => ({
@@ -61,12 +61,12 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
         const userId = (req as any).user?.uid || (req as any).user?.id;
         
         // Check if already exists
-        const existingDoc = await firestore.collection('watchlist').doc(walletAddress).get();
+        const existingDoc = await getDb().collection('watchlist').doc(walletAddress).get();
         if (existingDoc.exists) {
             const existingData = existingDoc.data();
             const watchers = existingData?.watchers || [];
             if (userId && !watchers.includes(userId)) {
-                await firestore.collection('watchlist').doc(walletAddress).update({
+                await getDb().collection('watchlist').doc(walletAddress).update({
                     watchers: admin.firestore.FieldValue.arrayUnion(userId),
                     watchCount: admin.firestore.FieldValue.increment(1)
                 });
@@ -74,7 +74,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
             return res.json({ success: true, message: 'Wallet already tracked', address: walletAddress });
         }
 
-        await firestore.collection('watchlist').doc(walletAddress).set({
+        await getDb().collection('watchlist').doc(walletAddress).set({
             address: walletAddress,
             addedAt: Date.now(),
             addedBy: userId || 'unknown',
@@ -100,7 +100,7 @@ router.delete('/:address', authMiddleware, async (req: AuthenticatedRequest, res
         const userId = (req as any).user?.uid || (req as any).user?.id;
         const walletAddress = address.toLowerCase();
         
-        const doc = await firestore.collection('watchlist').doc(walletAddress).get();
+        const doc = await getDb().collection('watchlist').doc(walletAddress).get();
         if (!doc.exists) {
             return res.status(404).json({ error: 'Wallet not found in watchlist' });
         }
@@ -111,9 +111,9 @@ router.delete('/:address', authMiddleware, async (req: AuthenticatedRequest, res
         if (userId && watchers.includes(userId)) {
             const newWatchers = watchers.filter((w: string) => w !== userId);
             if (newWatchers.length === 0) {
-                await firestore.collection('watchlist').doc(walletAddress).delete();
+                await getDb().collection('watchlist').doc(walletAddress).delete();
             } else {
-                await firestore.collection('watchlist').doc(walletAddress).update({
+                await getDb().collection('watchlist').doc(walletAddress).update({
                     watchers: newWatchers,
                     watchCount: admin.firestore.FieldValue.increment(-1)
                 });
@@ -158,7 +158,7 @@ router.get('/track/:address/activity', async (req, res) => {
         }));
 
         if (activities.length > 0) {
-            await firestore.collection('watchlist').doc(walletAddress).update({
+            await getDb().collection('watchlist').doc(walletAddress).update({
                 lastActivity: activities[0].timestamp,
                 totalTxs: admin.firestore.FieldValue.increment(activities.length)
             });
@@ -194,7 +194,7 @@ router.get('/smart-money/top-traders', async (req, res) => {
     try {
         const { limit = '20' } = req.query;
         
-        const snapshot = await firestore.collection('watchlist')
+        const snapshot = await getDb().collection('watchlist')
             .where('totalTxs', '>=', 10)
             .orderBy('totalTxs', 'desc')
             .limit(parseInt(limit as string) || 20)
