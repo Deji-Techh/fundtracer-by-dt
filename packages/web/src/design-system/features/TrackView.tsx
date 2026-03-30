@@ -151,19 +151,40 @@ const TrackView: React.FC = () => {
             const txs = response.result?.transactions || [];
             
             if (txs.length > 0) {
-              const chainActivities: ActivityItem[] = txs.map((tx: any) => ({
-                hash: tx.hash || tx.tx_hash || '',
-                from: (tx.from || tx.from_address || '').toLowerCase(),
-                to: (tx.to || tx.to_address || '').toLowerCase(),
-                value: parseFloat(tx.value || tx.valueInEth || '0'),
-                token: tx.token || 'ETH',
-                chain,
-                type: wallet.address.toLowerCase() === (tx.from || tx.from_address || '').toLowerCase() 
-                  ? 'sell' 
-                  : 'buy',
-                timestamp: tx.timestamp ? new Date(tx.timestamp).getTime() : Date.now(),
-                status: tx.error || tx.failed ? 'failed' : 'success',
-              }));
+              const chainActivities: ActivityItem[] = txs.map((tx: any) => {
+                const fromAddr = (tx.from || tx.from_address || '').toLowerCase();
+                const toAddr = (tx.to || tx.to_address || '').toLowerCase();
+                const walletAddr = wallet.address.toLowerCase();
+                
+                let rawValue = tx.value || tx.valueInEth || tx.value_in_eth || '0';
+                let value = parseFloat(rawValue);
+                if (value > 1e15) {
+                  value = value / 1e18;
+                }
+                
+                let timestamp = Date.now();
+                if (tx.timestamp) {
+                  const ts = tx.timestamp;
+                  if (typeof ts === 'number') {
+                    timestamp = ts > 1e12 ? ts : ts * 1000;
+                  } else {
+                    const parsed = new Date(ts).getTime();
+                    if (!isNaN(parsed)) timestamp = parsed;
+                  }
+                }
+                
+                return {
+                  hash: tx.hash || tx.tx_hash || '',
+                  from: fromAddr,
+                  to: toAddr,
+                  value,
+                  token: tx.token || tx.symbol || 'ETH',
+                  chain,
+                  type: walletAddr === fromAddr ? 'sell' : 'buy',
+                  timestamp,
+                  status: tx.error || tx.failed ? 'failed' : 'success',
+                };
+              });
               
               if (!allActivities[chain]) {
                 allActivities[chain] = [];
@@ -255,12 +276,17 @@ const TrackView: React.FC = () => {
 
   // Format time ago
   const formatTimeAgo = (timestamp: number) => {
+    if (!timestamp || timestamp <= 0 || timestamp > Date.now() + 86400000) {
+      return 'unknown';
+    }
     const diff = Date.now() - timestamp;
+    if (diff < 0) return 'just now';
+    const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return 'just now';
+    if (seconds < 60) return 'just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     return `${days}d ago`;
