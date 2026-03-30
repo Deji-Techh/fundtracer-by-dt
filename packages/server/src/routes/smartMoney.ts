@@ -32,8 +32,8 @@ router.get('/discover', async (req, res) => {
         } = req.query;
 
         const chains = chain === 'all' 
-            ? SUPPORTED_CHAINS 
-            : SUPPORTED_CHAINS.includes(chain as string) ? [chain as string] : SUPPORTED_CHAINS;
+            ? SUPPORTED_CHAINS.slice(0, 3) 
+            : SUPPORTED_CHAINS.includes(chain as string) ? [chain as string] : SUPPORTED_CHAINS.slice(0, 1);
 
         const sortField = sortBy as string;
         const limitNum = Math.min(parseInt(limit as string) || 20, 50);
@@ -51,13 +51,18 @@ router.get('/discover', async (req, res) => {
             lastActive: number;
         }> = new Map();
 
+        const MAX_POOLS_PER_CHAIN = 10;
+        const MAX_TRADES_PER_POOL = 25;
+
         for (const chainId of chains) {
             const geckoChain = CHAIN_TO_GECKO[chainId];
             if (!geckoChain) continue;
 
             try {
-                const poolsData = await geckoTerminal.getTrendingPools(geckoChain, 20);
-                const pools = poolsData?.data || [];
+                const poolsData = await geckoTerminal.getTrendingPools(geckoChain, MAX_POOLS_PER_CHAIN);
+                if (!poolsData?.data) continue;
+                
+                const pools = poolsData.data.slice(0, MAX_POOLS_PER_CHAIN);
                 
                 for (const pool of pools) {
                     const poolAddress = pool.attributes?.pool_address || pool.attributes?.address;
@@ -67,8 +72,10 @@ router.get('/discover', async (req, res) => {
                     const currentPrice = parseFloat(poolAttributes?.base_token?.price_usd || poolAttributes?.quote_token?.price_usd || '0');
                     
                     try {
-                        const tradesData = await geckoTerminal.getPoolTrades(geckoChain, poolAddress, 50);
-                        const trades = tradesData?.data || [];
+                        const tradesData = await geckoTerminal.getPoolTrades(geckoChain, poolAddress, MAX_TRADES_PER_POOL);
+                        if (!tradesData?.data) continue;
+                        
+                        const trades = tradesData.data.slice(0, MAX_TRADES_PER_POOL);
 
                         for (const trade of trades) {
                             const tradeAttributes = trade.attributes;
@@ -118,7 +125,7 @@ router.get('/discover', async (req, res) => {
         const wallets = Array.from(walletStats.values());
 
         const sortedWallets = wallets
-            .filter(w => w.totalTrades >= 3)
+            .filter(w => w.totalTrades >= 2)
             .map(w => ({
                 address: w.address,
                 chain: w.chain,
