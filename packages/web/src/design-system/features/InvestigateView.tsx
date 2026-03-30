@@ -104,6 +104,22 @@ export function InvestigateView({
     avgResponse: '—'
   });
 
+  // Check if device is desktop (hide Advanced Graph on mobile/tablet)
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
+  // Redirect to wallet tab if on mobile and graph tab is active
+  useEffect(() => {
+    if (!isDesktop && activeTab === 'graph') {
+      setActiveTab('wallet');
+    }
+  }, [isDesktop, activeTab]);
+
   // Calculate user stats from their history
   const calculateUserStats = useCallback(() => {
     const history = getHistory();
@@ -619,18 +635,20 @@ export function InvestigateView({
             </svg>
             Sybil Detector
           </div>
-          <div 
-            className={`tab ${activeTab === 'graph' ? 'active' : ''} tab-graph`}
-            onClick={() => setActiveTab('graph')}
-          >
-            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="6" cy="4" r="2"/>
-              <circle cx="2" cy="10" r="1.5"/>
-              <circle cx="10" cy="10" r="1.5"/>
-              <path d="M6 6v1M4 9l2 1M8 9l-2 1"/>
-            </svg>
-            Advanced Graph
-          </div>
+          {isDesktop && (
+            <div 
+              className={`tab ${activeTab === 'graph' ? 'active' : ''} tab-graph`}
+              onClick={() => setActiveTab('graph')}
+            >
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="6" cy="4" r="2"/>
+                <circle cx="2" cy="10" r="1.5"/>
+                <circle cx="10" cy="10" r="1.5"/>
+                <path d="M6 6v1M4 9l2 1M8 9l-2 1"/>
+              </svg>
+              Advanced Graph
+            </div>
+          )}
         </div>
 
         <div className="panel-body">
