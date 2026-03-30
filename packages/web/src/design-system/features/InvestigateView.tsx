@@ -28,10 +28,13 @@ interface InvestigateViewProps {
   prefillChain?: string;
   prefillType?: string;
   onPrefillConsumed?: () => void;
+  suiMode?: boolean;
 }
 
 // Tab types matching reference HTML
-type TabType = 'wallet' | 'contract' | 'compare' | 'sybil' | 'graph' | 'track';
+type TabType = 'wallet' | 'contract' | 'compare' | 'sybil' | 'graph' | 'track' | 'sui-grid';
+
+type SuiFeature = 'wallet' | 'contract' | 'compare' | 'sybil' | 'track';
 
 interface Stats {
   chainsIndexed: number;
@@ -44,7 +47,8 @@ export function InvestigateView({
   prefillAddress,
   prefillChain,
   prefillType,
-  onPrefillConsumed
+  onPrefillConsumed,
+  suiMode = false
 }: InvestigateViewProps) {
   const { user, profile, isAuthenticated } = useAuth();
   const { login: loginPrivy, user: privyUser } = usePrivy();
@@ -67,6 +71,16 @@ export function InvestigateView({
   const [showRecentDropdown, setShowRecentDropdown] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
+  
+  // Sui modal state
+  const [showSuiGrid, setShowSuiGrid] = useState(suiMode);
+  
+  // Show Sui grid when suiMode is true
+  useEffect(() => {
+    if (suiMode) {
+      setShowSuiGrid(true);
+    }
+  }, [suiMode]);
 
   // Get user tier from profile
   const userTier = profile?.tier || 'free';
@@ -564,6 +578,80 @@ export function InvestigateView({
 
   return (
     <div className="investigate-view">
+      {/* Sui Grid Modal Overlay */}
+      {showSuiGrid && (
+        <div className="sui-grid-overlay" onClick={() => setShowSuiGrid(false)}>
+          <div className="sui-grid-modal" onClick={e => e.stopPropagation()}>
+            <div className="sui-grid-header">
+              <div className="sui-grid-title">
+                <svg viewBox="0 0 24 24" fill="none" className="sui-grid-icon">
+                  <circle cx="12" cy="12" r="10" fill="#6f6feb" />
+                  <circle cx="12" cy="12" r="5" fill="#fff" />
+                </svg>
+                Sui
+              </div>
+              <button className="sui-grid-close" onClick={() => setShowSuiGrid(false)}>
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 1l12 12M13 1L1 13" />
+                </svg>
+              </button>
+            </div>
+            <div className="sui-grid-content">
+              <div className="sui-grid-item" onClick={() => { setActiveTab('wallet'); setShowSuiGrid(false); }}>
+                <div className="sui-grid-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                  </svg>
+                </div>
+                <div className="sui-grid-item-label">Wallet</div>
+                <div className="sui-grid-item-desc">Analyze any wallet</div>
+              </div>
+              <div className="sui-grid-item" onClick={() => { setActiveTab('contract'); setShowSuiGrid(false); }}>
+                <div className="sui-grid-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                  </svg>
+                </div>
+                <div className="sui-grid-item-label">Contract</div>
+                <div className="sui-grid-item-desc">Smart contract analysis</div>
+              </div>
+              <div className="sui-grid-item" onClick={() => { setActiveTab('compare'); setShowSuiGrid(false); }}>
+                <div className="sui-grid-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="9" cy="9" r="6"/>
+                    <circle cx="15" cy="15" r="6"/>
+                  </svg>
+                </div>
+                <div className="sui-grid-item-label">Compare</div>
+                <div className="sui-grid-item-desc">Compare wallets</div>
+              </div>
+              <div className="sui-grid-item" onClick={() => { setActiveTab('sybil'); setShowSuiGrid(false); }}>
+                <div className="sui-grid-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  </svg>
+                </div>
+                <div className="sui-grid-item-label">Sybil Detector</div>
+                <div className="sui-grid-item-desc">Detect fake users</div>
+              </div>
+              <div className="sui-grid-item" onClick={() => { setActiveTab('track'); setShowSuiGrid(false); }}>
+                <div className="sui-grid-item-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </div>
+                <div className="sui-grid-item-label">Track</div>
+                <div className="sui-grid-item-desc">Monitor wallets</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="page-head">
         <div className="page-title">Investigate</div>
@@ -604,6 +692,25 @@ export function InvestigateView({
 
       {/* Panel with Tabs */}
       <div className="panel">
+        {/* Sui Mode Header */}
+        {suiMode && (
+          <div className="sui-mode-header">
+            <button className="sui-mode-back" onClick={() => setShowSuiGrid(true)}>
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M8 3l-4 4 4 4"/>
+              </svg>
+              Back to Sui
+            </button>
+            <div className="sui-mode-title">
+              <svg viewBox="0 0 24 24" fill="none" className="sui-mode-icon">
+                <circle cx="12" cy="12" r="10" fill="#6f6feb" />
+                <circle cx="12" cy="12" r="5" fill="#fff" />
+              </svg>
+              Sui Blockchain
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="tabs">
           <div 
