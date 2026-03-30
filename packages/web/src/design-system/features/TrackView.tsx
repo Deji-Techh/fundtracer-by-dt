@@ -331,7 +331,7 @@ const TrackView: React.FC = () => {
               onClick={handleDiscoverSmartMoney}
               disabled={loading}
             >
-              {loading ? 'Discovering...' : '🔍 Find Top Traders'}
+              {loading ? 'Discovering...' : 'Find Top Traders'}
             </button>
 
             {smartMoney.length > 0 && (
@@ -405,10 +405,10 @@ const TrackView: React.FC = () => {
                     {chainActivities.slice(0, 10).map((activity, idx) => (
                       <div key={`${activity.hash}-${idx}`} className={`activity-item ${activity.type}`}>
                         <div className="activity-icon">
-                          {activity.type === 'buy' && '🟢'}
-                          {activity.type === 'sell' && '🔴'}
-                          {activity.type === 'transfer' && '🔵'}
-                          {activity.type === 'bridge' && '🌉'}
+                          {activity.type === 'buy' && 'IN'}
+                          {activity.type === 'sell' && 'OUT'}
+                          {activity.type === 'transfer' && 'TX'}
+                          {activity.type === 'bridge' && 'BR'}
                         </div>
                         <div className="activity-details">
                           <span className="activity-type">{activity.type}</span>
