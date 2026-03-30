@@ -21,6 +21,7 @@ import ContractAnalysisView, { ContractAnalysisResult } from '../../components/C
 import SybilDetector from '../../components/SybilDetector';
 import SearchHistory from '../../components/SearchHistory';
 import AdvancedGraph from '../../components/graph/AdvancedGraph';
+import TrackView from './TrackView';
 
 interface InvestigateViewProps {
   prefillAddress?: string;
@@ -537,6 +538,15 @@ export function InvestigateView({
       );
     }
 
+    // Track tab - Wallet Tracking
+    if (activeTab === 'track') {
+      return (
+        <div className="investigate-track">
+          <TrackView />
+        </div>
+      );
+    }
+
     // Advanced Graph tab - show full-screen graph visualization
     if (activeTab === 'graph') {
       return (
@@ -634,6 +644,17 @@ export function InvestigateView({
               <path d="M6 1l1.3 3H11l-2.7 2 1 3.3L6 7.5 3.7 9.3l1-3.3L2 4h3.7z"/>
             </svg>
             Sybil Detector
+          </div>
+          <div 
+            className={`tab ${activeTab === 'track' ? 'active' : ''}`}
+            onClick={() => setActiveTab('track')}
+          >
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M4 4h8v8H4z"/>
+              <path d="M4 2h8M2 4v8"/>
+              <circle cx="8" cy="8" r="1.5"/>
+            </svg>
+            Track
           </div>
           {isDesktop && (
             <div 

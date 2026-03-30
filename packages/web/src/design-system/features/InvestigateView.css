@@ -1023,6 +1023,14 @@
   min-height: calc(100vh - 300px);
 }
 
+/* Track Tab */
+.investigate-track {
+  margin: calc(-1 * var(--space-4));
+  margin-top: 0;
+  padding: var(--space-4);
+  min-height: 500px;
+}
+
 .tab-graph {
   background: #0a0a0a;
 }

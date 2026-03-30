@@ -1,0 +1,497 @@
+.track-view {
+  padding: var(--space-4);
+}
+
+.track-header {
+  margin-bottom: var(--space-4);
+}
+
+.track-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+  color: var(--intel-text-primary);
+}
+
+.track-header p {
+  color: var(--intel-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Track Tabs */
+.track-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--intel-border-subtle);
+  padding-bottom: var(--space-2);
+}
+
+.track-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  color: var(--intel-text-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.track-tab:hover {
+  background: var(--intel-bg-subtle);
+  color: var(--intel-text-primary);
+}
+
+.track-tab.active {
+  background: var(--intel-cyan);
+  color: var(--intel-bg);
+}
+
+.track-tab .badge {
+  background: var(--intel-cyan);
+  color: var(--intel-bg);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.track-tab.active .badge {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--intel-bg);
+}
+
+/* Track Content */
+.track-content {
+  min-height: 400px;
+}
+
+/* Add Wallet Row */
+.add-wallet-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.add-wallet-row .wallet-input {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  background: var(--intel-bg-deep);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--intel-text-primary);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+}
+
+.add-wallet-row .wallet-input:focus {
+  outline: none;
+  border-color: var(--intel-cyan);
+}
+
+.add-wallet-row .add-btn {
+  padding: var(--space-2) var(--space-4);
+  background: var(--intel-cyan);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--intel-bg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.add-wallet-row .add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tracked List */
+.tracked-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tracked-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--intel-bg-deep);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
+}
+
+.tracked-item:hover {
+  border-color: var(--intel-cyan);
+}
+
+.tracked-item .wallet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tracked-item .wallet-address {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--intel-text-primary);
+}
+
+.tracked-item .tx-count {
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+}
+
+.tracked-item .wallet-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.tracked-item .action-btn {
+  padding: var(--space-1) var(--space-2);
+  background: var(--intel-bg);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--intel-text-muted);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tracked-item .action-btn:hover {
+  border-color: var(--intel-cyan);
+  color: var(--intel-cyan);
+}
+
+.tracked-item .remove-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--intel-text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tracked-item .remove-btn:hover {
+  border-color: var(--intel-red);
+  color: var(--intel-red);
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  color: var(--intel-text-muted);
+  text-align: center;
+}
+
+.empty-state svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-3);
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-1);
+}
+
+.empty-state span {
+  font-size: var(--text-xs);
+  opacity: 0.7;
+}
+
+/* Discover Section */
+.discover-section {
+  padding: var(--space-2);
+}
+
+.discover-header {
+  margin-bottom: var(--space-4);
+}
+
+.discover-header h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.discover-header p {
+  font-size: var(--text-sm);
+  color: var(--intel-text-muted);
+}
+
+.discover-btn {
+  width: 100%;
+  padding: var(--space-3);
+  background: linear-gradient(135deg, var(--intel-cyan), #06b6d4);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--intel-bg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  margin-bottom: var(--space-4);
+}
+
+.discover-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.discover-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Smart Money List */
+.smart-money-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.smart-money-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  background: var(--intel-bg-deep);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.smart-money-item .wallet-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.smart-money-item .wallet-address {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.smart-money-item .stats-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.smart-money-item .stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.smart-money-item .stat .label {
+  font-size: 0.65rem;
+  color: var(--intel-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.smart-money-item .stat .value {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.smart-money-item .stat.win-rate .value {
+  color: var(--intel-cyan);
+}
+
+.smart-money-item .stat.pnl .value {
+  color: #22c55e;
+}
+
+.smart-money-item .track-btn {
+  padding: var(--space-1) var(--space-3);
+  background: transparent;
+  border: 1px solid var(--intel-cyan);
+  border-radius: var(--radius-md);
+  color: var(--intel-cyan);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.smart-money-item .track-btn:hover:not(:disabled) {
+  background: var(--intel-cyan);
+  color: var(--intel-bg);
+}
+
+.smart-money-item .track-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: var(--intel-text-muted);
+  color: var(--intel-text-muted);
+}
+
+/* Activity Section */
+.activity-section {
+  padding: var(--space-2);
+}
+
+.activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.activity-header h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.activity-header .refresh-btn {
+  padding: var(--space-1) var(--space-3);
+  background: var(--intel-bg-deep);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--intel-text-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.activity-header .refresh-btn:hover:not(:disabled) {
+  border-color: var(--intel-cyan);
+  color: var(--intel-cyan);
+}
+
+/* Activity Feed */
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.chain-group {
+  background: var(--intel-bg-deep);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.chain-group .chain-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--intel-bg);
+  border-bottom: 1px solid var(--intel-border-subtle);
+}
+
+.chain-group .chain-name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  text-transform: capitalize;
+}
+
+.chain-group .activity-count {
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--intel-border-subtle);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-item .activity-icon {
+  font-size: var(--text-lg);
+}
+
+.activity-item .activity-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-item .activity-type {
+  font-size: var(--text-sm);
+  text-transform: capitalize;
+  color: var(--intel-text-primary);
+}
+
+.activity-item .activity-value {
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+}
+
+.activity-item .activity-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.activity-item .activity-time {
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+}
+
+.activity-item .activity-hash {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--intel-cyan);
+  text-decoration: none;
+}
+
+.activity-item .activity-hash:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .track-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .track-tab {
+    white-space: nowrap;
+  }
+
+  .tracked-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .tracked-item .wallet-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .smart-money-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .smart-money-item .track-btn {
+    width: 100%;
+  }
+}
