@@ -6,9 +6,26 @@
 import { Router } from 'express';
 import { getFirestore, admin } from '../firebase.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { GeckoTerminalService } from '../services/GeckoTerminalService.js';
+import { cache } from '../utils/cache.js';
 
 const router = Router();
 const getDb = () => getFirestore();
+const geckoTerminal = new GeckoTerminalService();
+
+// Supported chains for smart money discovery
+const SUPPORTED_CHAINS = ['ethereum', 'linea', 'polygon', 'arbitrum', 'optimism', 'base', 'bsc'];
+
+// Chain mapping to GeckoTerminal format
+const CHAIN_TO_GECKO: Record<string, string> = {
+    'ethereum': 'eth',
+    'linea': 'linea',
+    'polygon': 'polygon_pos',
+    'arbitrum': 'arbitrum',
+    'optimism': 'optimism',
+    'base': 'base',
+    'bsc': 'bsc'
+};
 
 interface TrackedWallet {
     address: string;
@@ -260,6 +277,140 @@ router.get('/smart-money/compare', async (req, res) => {
         });
     } catch (error: any) {
         console.error('[Track API] Error comparing wallet:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET /api/track/smart-money/discover - Discover top performing wallets across chains
+router.get('/smart-money/discover', async (req, res) => {
+    try {
+        const { 
+            chain = 'all', 
+            sortBy = 'pnl', 
+            timeframe = '24h',
+            limit = '20'
+        } = req.query;
+
+        const chains = chain === 'all' 
+            ? SUPPORTED_CHAINS 
+            : SUPPORTED_CHAINS.includes(chain as string) ? [chain as string] : SUPPORTED_CHAINS;
+
+        const sortField = sortBy as string;
+        const limitNum = Math.min(parseInt(limit as string) || 20, 50);
+        const timeframeHours = timeframe === '24h' ? 24 : timeframe === '7d' ? 168 : 720;
+        const timeframeMs = timeframeHours * 60 * 60 * 1000;
+        const cutoffTime = Date.now() - timeframeMs;
+
+        const walletStats: Map<string, {
+            address: string;
+            chain: string;
+            totalVolume: number;
+            totalTrades: number;
+            profitableTrades: number;
+            totalPnL: number;
+            lastActive: number;
+        }> = new Map();
+
+        for (const chainId of chains) {
+            const geckoChain = CHAIN_TO_GECKO[chainId];
+            if (!geckoChain) continue;
+
+            try {
+                const poolsData = await geckoTerminal.getTrendingPools(geckoChain, 20);
+                const pools = poolsData?.data || [];
+                
+                for (const pool of pools) {
+                    const poolAddress = pool.attributes?.pool_address || pool.attributes?.address;
+                    if (!poolAddress) continue;
+
+                    const poolAttributes = pool.attributes;
+                    const currentPrice = parseFloat(poolAttributes?.base_token?.price_usd || poolAttributes?.quote_token?.price_usd || '0');
+                    
+                    try {
+                        const tradesData = await geckoTerminal.getPoolTrades(geckoChain, poolAddress, 50);
+                        const trades = tradesData?.data || [];
+
+                        for (const trade of trades) {
+                            const tradeAttributes = trade.attributes;
+                            const trader = tradeAttributes?.maker_address || tradeAttributes?.from;
+                            if (!trader || trader === '0x0000000000000000000000000000000000000000') continue;
+
+                            const tradeTime = new Date(tradeAttributes?.trade_timestamp || tradeAttributes?.timestamp).getTime();
+                            if (tradeTime < cutoffTime) continue;
+
+                            const tradeType = tradeAttributes?.type; // 'buy' or 'sell'
+                            const tradeVolumeUSD = parseFloat(tradeAttributes?.volume_in_usd || tradeAttributes?.trade_volume_usd || '0');
+                            const tradePrice = parseFloat(tradeAttributes?.token_price_usd || currentPrice.toString());
+
+                            let existing = walletStats.get(trader.toLowerCase());
+                            if (!existing) {
+                                existing = {
+                                    address: trader.toLowerCase(),
+                                    chain: chainId,
+                                    totalVolume: 0,
+                                    totalTrades: 0,
+                                    profitableTrades: 0,
+                                    totalPnL: 0,
+                                    lastActive: 0
+                                };
+                                walletStats.set(trader.toLowerCase(), existing);
+                            }
+
+                            existing.totalVolume += tradeVolumeUSD;
+                            existing.totalTrades += 1;
+                            existing.lastActive = Math.max(existing.lastActive, tradeTime);
+
+                            if (tradeType === 'sell' && tradePrice > 0 && currentPrice > 0) {
+                                const pnl = (currentPrice - tradePrice) / tradePrice * tradeVolumeUSD;
+                                existing.totalPnL += pnl;
+                                if (pnl > 0) existing.profitableTrades += 1;
+                            } else if (tradeType === 'buy') {
+                                const pnl = (currentPrice - tradePrice) / tradePrice * tradeVolumeUSD;
+                                existing.totalPnL += pnl;
+                                if (pnl > 0) existing.profitableTrades += 1;
+                            }
+                        }
+                    } catch (tradeErr) {
+                        console.error(`[Track API] Error fetching trades for pool ${poolAddress}:`, tradeErr);
+                    }
+                }
+            } catch (poolErr) {
+                console.error(`[Track API] Error fetching pools for chain ${chainId}:`, poolErr);
+            }
+        }
+
+        const wallets = Array.from(walletStats.values());
+
+        const sortedWallets = wallets
+            .filter(w => w.totalTrades >= 3)
+            .map(w => ({
+                address: w.address,
+                chain: w.chain,
+                totalTrades: w.totalTrades,
+                totalVolume: Math.round(w.totalVolume * 100) / 100,
+                pnl: Math.round(w.totalPnL * 100) / 100,
+                winRate: w.totalTrades > 0 ? Math.round((w.profitableTrades / w.totalTrades) * 100) : 0,
+                lastActive: w.lastActive
+            }))
+            .sort((a, b) => {
+                if (sortField === 'volume') return b.totalVolume - a.totalVolume;
+                if (sortField === 'winRate') return b.winRate - a.winRate;
+                return b.pnl - a.pnl;
+            })
+            .slice(0, limitNum);
+
+        res.json({ 
+            success: true, 
+            traders: sortedWallets,
+            filters: {
+                chain: chain,
+                sortBy: sortField,
+                timeframe: timeframe,
+                count: sortedWallets.length
+            }
+        });
+    } catch (error: any) {
+        console.error('[Track API] Error discovering smart money:', error);
         res.status(500).json({ error: error.message });
     }
 });

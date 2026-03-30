@@ -252,6 +252,35 @@
   color: var(--intel-text-secondary);
 }
 
+.discover-filters {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  flex: 1;
+  min-width: 120px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--intel-bg-deep);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--intel-text-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filter-select:hover {
+  border-color: var(--intel-cyan);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--intel-cyan);
+}
+
 .discover-btn {
   width: 100%;
   padding: var(--space-3);
@@ -304,9 +333,26 @@
   color: var(--intel-text-primary);
 }
 
+.smart-money-item .wallet-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.smart-money-item .wallet-chain {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  background: var(--intel-bg-hover);
+  border-radius: var(--radius-sm);
+  color: var(--intel-text-secondary);
+  text-transform: uppercase;
+}
+
 .smart-money-item .stats-row {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 
 .smart-money-item .stat {
@@ -333,6 +379,18 @@
 
 .smart-money-item .stat.pnl .value {
   color: #22c55e;
+}
+
+.smart-money-item .stat.pnl .value.positive {
+  color: #22c55e;
+}
+
+.smart-money-item .stat.pnl .value.negative {
+  color: #ef4444;
+}
+
+.smart-money-item .stat.volume .value {
+  color: var(--intel-text-secondary);
 }
 
 .smart-money-item .track-btn {

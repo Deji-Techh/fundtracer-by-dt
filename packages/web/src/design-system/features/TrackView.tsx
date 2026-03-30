@@ -24,11 +24,19 @@ interface ActivityItem {
 
 interface SmartMoneyWallet {
   address: string;
+  chain: string;
   winRate: number;
   pnl: number;
   totalTrades: number;
+  totalVolume: number;
   lastActive: number;
 }
+
+type DiscoverFilter = {
+  chain: string;
+  sortBy: string;
+  timeframe: string;
+};
 
 const TrackView: React.FC = () => {
   const { user } = usePrivy();
@@ -39,6 +47,11 @@ const TrackView: React.FC = () => {
   const [newWallet, setNewWallet] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingActivity, setLoadingActivity] = useState(false);
+  const [filters, setFilters] = useState<DiscoverFilter>({
+    chain: 'all',
+    sortBy: 'pnl',
+    timeframe: '24h'
+  });
 
   // Load tracked wallets from API
   useEffect(() => {
@@ -176,29 +189,38 @@ const TrackView: React.FC = () => {
     }
   }, [trackedWallets]);
 
-  // Discover smart money from API
+  // Discover smart money from API with filters
   const handleDiscoverSmartMoney = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/track/smart-money/top-traders');
+      const params = new URLSearchParams({
+        chain: filters.chain,
+        sortBy: filters.sortBy,
+        timeframe: filters.timeframe,
+        limit: '20'
+      });
+      const res = await fetch(`/api/track/smart-money/discover?${params}`);
       const data = await res.json();
       
       if (data.traders) {
         const smartMoneyWithStats: SmartMoneyWallet[] = data.traders.map((t: any) => ({
           address: t.address,
-          winRate: Math.floor(50 + Math.random() * 40),
-          pnl: Math.floor(Math.random() * 500),
-          totalTrades: t.totalTxs || 0,
-          lastActive: t.lastActivity || Date.now(),
+          chain: t.chain || 'ethereum',
+          winRate: t.winRate || 0,
+          pnl: t.pnl || 0,
+          totalTrades: t.totalTrades || 0,
+          totalVolume: t.totalVolume || 0,
+          lastActive: t.lastActive || Date.now(),
         }));
         setSmartMoney(smartMoneyWithStats);
       }
     } catch (e) {
       console.error('Failed to discover smart money:', e);
+      setSmartMoney([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   // Add smart money wallet to tracked
   const handleTrackSmartMoney = useCallback(async (address: string) => {
@@ -363,6 +385,43 @@ const TrackView: React.FC = () => {
               <p>Discover top performing wallets to track</p>
             </div>
 
+            <div className="discover-filters">
+              <select 
+                value={filters.chain}
+                onChange={(e) => setFilters({...filters, chain: e.target.value})}
+                className="filter-select"
+              >
+                <option value="all">All Chains</option>
+                <option value="ethereum">Ethereum</option>
+                <option value="linea">Linea</option>
+                <option value="base">Base</option>
+                <option value="arbitrum">Arbitrum</option>
+                <option value="polygon">Polygon</option>
+                <option value="optimism">Optimism</option>
+                <option value="bsc">BSC</option>
+              </select>
+
+              <select 
+                value={filters.sortBy}
+                onChange={(e) => setFilters({...filters, sortBy: e.target.value})}
+                className="filter-select"
+              >
+                <option value="pnl">Sort by PnL</option>
+                <option value="winRate">Sort by Win Rate</option>
+                <option value="volume">Sort by Volume</option>
+              </select>
+
+              <select 
+                value={filters.timeframe}
+                onChange={(e) => setFilters({...filters, timeframe: e.target.value})}
+                className="filter-select"
+              >
+                <option value="24h">Last 24h</option>
+                <option value="7d">Last 7 days</option>
+                <option value="30d">Last 30 days</option>
+              </select>
+            </div>
+
             <button 
               className="discover-btn"
               onClick={handleDiscoverSmartMoney}
@@ -376,7 +435,10 @@ const TrackView: React.FC = () => {
                 {smartMoney.map((wallet) => (
                   <div key={wallet.address} className="smart-money-item">
                     <div className="wallet-info">
-                      <span className="wallet-address">{formatAddress(wallet.address)}</span>
+                      <div className="wallet-header">
+                        <span className="wallet-address">{formatAddress(wallet.address)}</span>
+                        <span className="wallet-chain">{wallet.chain}</span>
+                      </div>
                       <div className="stats-row">
                         <span className="stat win-rate">
                           <span className="label">Win Rate</span>
@@ -384,20 +446,26 @@ const TrackView: React.FC = () => {
                         </span>
                         <span className="stat pnl">
                           <span className="label">PnL</span>
-                          <span className="value">+{wallet.pnl}%</span>
+                          <span className={`value ${wallet.pnl >= 0 ? 'positive' : 'negative'}`}>
+                            {wallet.pnl >= 0 ? '+' : ''}{typeof wallet.pnl === 'number' ? wallet.pnl.toFixed(2) : wallet.pnl}%
+                          </span>
                         </span>
                         <span className="stat trades">
                           <span className="label">Trades</span>
                           <span className="value">{wallet.totalTrades}</span>
+                        </span>
+                        <span className="stat volume">
+                          <span className="label">Volume</span>
+                          <span className="value">${typeof wallet.totalVolume === 'number' ? wallet.totalVolume.toLocaleString() : wallet.totalVolume}</span>
                         </span>
                       </div>
                     </div>
                     <button 
                       className="track-btn"
                       onClick={() => handleTrackSmartMoney(wallet.address)}
-                      disabled={trackedWallets.some(w => w.address.toLowerCase() === wallet.address.toLowerCase())}
+                      disabled={trackedWallets.some((w: TrackedWallet) => w.address.toLowerCase() === wallet.address.toLowerCase())}
                     >
-                      {trackedWallets.some(w => w.address.toLowerCase() === wallet.address.toLowerCase()) 
+                      {trackedWallets.some((w: TrackedWallet) => w.address.toLowerCase() === wallet.address.toLowerCase()) 
                         ? 'Tracking' 
                         : '+ Track'}
                     </button>
