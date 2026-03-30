@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
@@ -61,6 +61,16 @@ function EVMMainApp() {
   const [prefillAddress, setPrefillAddress] = useState<string>('');
   const [prefillChain, setPrefillChain] = useState<string>('');
   const [prefillType, setPrefillType] = useState<string>('');
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const address = searchParams.get('address');
+    const chain = searchParams.get('chain');
+    const type = searchParams.get('tab');
+    if (address) setPrefillAddress(address);
+    if (chain) setPrefillChain(chain);
+    if (type) setPrefillType(type);
+  }, [searchParams]);
   
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string>('');
