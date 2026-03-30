@@ -431,6 +431,8 @@ apiRouter.use('/tx', apiKeyAuthMiddleware, transactionRoutes); // Transaction lo
 apiRouter.use('/gas', apiKeyAuthMiddleware, gasRoutes); // Gas prices
 apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
 apiRouter.use('/track', authMiddleware, trackRoutes);
+import { smartMoneyRoutes } from './routes/smartMoney.js';
+apiRouter.use('/smart-money', smartMoneyRoutes); // Public smart money discovery
 apiRouter.use('/dune', authMiddleware, duneRoutes);
 import { trackingRoutes } from './routes/tracking.js';
 import healthRoutes from './routes/health.js';

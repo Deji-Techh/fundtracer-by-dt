@@ -199,7 +199,7 @@ const TrackView: React.FC = () => {
         timeframe: filters.timeframe,
         limit: '20'
       });
-      const res = await fetch(`/api/track/smart-money/discover?${params}`);
+      const res = await fetch(`/api/smart-money/discover?${params}`);
       const data = await res.json();
       
       if (data.traders) {
