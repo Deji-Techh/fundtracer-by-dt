@@ -156,21 +156,25 @@ const TrackView: React.FC = () => {
                 const toAddr = (tx.to || tx.to_address || '').toLowerCase();
                 const walletAddr = wallet.address.toLowerCase();
                 
-                let rawValue = tx.value || tx.valueInEth || tx.value_in_eth || '0';
+                let rawValue = tx.value || tx.valueInEth || tx.value_in_eth || tx.value_in_token || '0';
                 let value = parseFloat(rawValue);
-                if (value > 1e15) {
+                if (!isNaN(value) && value > 1e10) {
                   value = value / 1e18;
                 }
+                if (isNaN(value)) value = 0;
                 
-                let timestamp = Date.now();
+                let timestamp = 0;
                 if (tx.timestamp) {
                   const ts = tx.timestamp;
                   if (typeof ts === 'number') {
                     timestamp = ts > 1e12 ? ts : ts * 1000;
-                  } else {
+                  } else if (typeof ts === 'string') {
                     const parsed = new Date(ts).getTime();
                     if (!isNaN(parsed)) timestamp = parsed;
                   }
+                }
+                if (timestamp <= 0 || timestamp > Date.now() + 86400000) {
+                  timestamp = 0;
                 }
                 
                 return {
