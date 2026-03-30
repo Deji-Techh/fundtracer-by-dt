@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { GeckoTerminalService } from '../services/GeckoTerminalService.js';
+import { cache } from '../utils/cache.js';
 
 const router = Router();
 const geckoTerminal = new GeckoTerminalService();
@@ -30,6 +31,13 @@ router.get('/discover', async (req, res) => {
             timeframe = '24h',
             limit = '20'
         } = req.query;
+
+        // Check cache first
+        const cacheKey = `smart-money:discover:${chain}:${sortBy}:${timeframe}:${limit}`;
+        const cached = cache.get(cacheKey);
+        if (cached) {
+            return res.json(cached);
+        }
 
         const chains = chain === 'all' 
             ? SUPPORTED_CHAINS.slice(0, 3) 
@@ -151,7 +159,7 @@ router.get('/discover', async (req, res) => {
             })
             .slice(0, limitNum);
 
-        res.json({ 
+        const responseData = { 
             success: true, 
             traders: sortedWallets,
             filters: {
@@ -160,7 +168,11 @@ router.get('/discover', async (req, res) => {
                 timeframe: timeframe,
                 count: sortedWallets.length
             }
-        });
+        };
+        
+        cache.set(cacheKey, responseData, 600);
+        
+        res.json(responseData);
     } catch (error: any) {
         console.error('[SmartMoney API] Error discovering smart money:', error);
         res.status(500).json({ error: error.message });
