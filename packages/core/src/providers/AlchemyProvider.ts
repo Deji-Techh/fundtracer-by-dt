@@ -29,6 +29,7 @@ const ALCHEMY_URLS: Partial<Record<ChainId, string>> = {
     base: 'https://base-mainnet.g.alchemy.com/v2/',
     optimism: 'https://opt-mainnet.g.alchemy.com/v2/',
     polygon: 'https://polygon-mainnet.g.alchemy.com/v2/',
+    sui: 'https://sui-mainnet.alchemy-blast.com/v2/',
 };
 
 /** Rate limiter for Alchemy - minimal delay to avoid 429s */

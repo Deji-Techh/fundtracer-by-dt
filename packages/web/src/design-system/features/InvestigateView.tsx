@@ -780,8 +780,8 @@ export function InvestigateView({
         </div>
 
         <div className="panel-body">
-          {/* Network Selection - Only show for wallet/contract/compare tabs */}
-          {activeTab !== 'sybil' && activeTab !== 'graph' && activeTab !== 'track' && (
+          {/* Network Selection - Only show for wallet/contract/compare tabs (not for sui mode) */}
+          {!suiMode && activeTab !== 'sybil' && activeTab !== 'graph' && activeTab !== 'track' && (
             <>
               <div className="field-label">Network</div>
               <div className="chains">
@@ -808,8 +808,8 @@ export function InvestigateView({
             </>
           )}
 
-          {/* Address Input - Only show for wallet/contract/compare tabs */}
-          {activeTab !== 'sybil' && activeTab !== 'track' && activeTab !== 'graph' && (
+          {/* Address Input - Only show for wallet/contract/compare tabs (not for sui mode) */}
+          {!suiMode && activeTab !== 'sybil' && activeTab !== 'track' && activeTab !== 'graph' && (
             <>
               <div className="field-label">
                 {activeTab === 'wallet' && 'Wallet address'}

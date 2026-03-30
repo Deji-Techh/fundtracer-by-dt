@@ -3,7 +3,7 @@
 // ============================================================
 
 /** Supported blockchain networks */
-export type ChainId = 'ethereum' | 'linea' | 'arbitrum' | 'base' | 'optimism' | 'polygon' | 'bsc';
+export type ChainId = 'ethereum' | 'linea' | 'arbitrum' | 'base' | 'optimism' | 'polygon' | 'bsc' | 'sui';
 
 /** Chain configuration */
 export interface ChainConfig {

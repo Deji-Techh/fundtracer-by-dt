@@ -70,6 +70,16 @@ export const CHAIN_CONFIG = {
     enabled: true,
     priority: 7,
   },
+  sui: {
+    id: 'sui',
+    name: 'Sui',
+    displayName: 'Sui',
+    color: '#6f6feb',
+    icon: '/chains/sui.svg',
+    explorerUrl: 'https://sui.io',
+    enabled: true,
+    priority: 8,
+  },
 };
 
 export type ChainKey = keyof typeof CHAIN_CONFIG;

@@ -68,6 +68,15 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
         apiUrl: 'https://api.bscscan.com/api',
         enabled: true,
     },
+    sui: {
+        id: 'sui',
+        chainId: 0,
+        name: 'Sui',
+        symbol: 'SUI',
+        explorer: 'https://sui.io',
+        apiUrl: 'https://sui-mainnet.alchemy-blast.com',
+        enabled: true,
+    },
 };
 
 export const getEnabledChains = (): ChainConfig[] =>
