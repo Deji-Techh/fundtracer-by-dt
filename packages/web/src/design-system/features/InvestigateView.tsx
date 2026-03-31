@@ -262,7 +262,10 @@ export function InvestigateView({
 
     try {
       const response = await analyzeWallet(address, selectedChain, { limit: 100, offset: 0 });
-      if (response.result) {
+      console.log('[SUI] Wallet analysis response:', JSON.stringify(response).substring(0, 500));
+      
+      if (response?.result) {
+        console.log('[SUI] Setting wallet result, has transactions:', response.result.transactions?.length);
         setWalletResult(response.result);
         setResultsCache(prev => ({ ...prev, [cacheKey]: response.result }));
 
@@ -289,8 +292,12 @@ export function InvestigateView({
           message: `Finished analyzing ${address.slice(0, 6)}...${address.slice(-4)} on ${CHAIN_CONFIG[selectedChain]?.name || selectedChain}`,
           data: { address, chain: selectedChain, navigateTo: `/app-evm?address=${address}&chain=${selectedChain}` },
         });
+      } else {
+        console.error('[SUI] No result in response:', response);
+        setError({ message: 'No data returned from analysis', hint: 'Please try again' });
       }
     } catch (err: any) {
+      console.error('[SUI] Analysis error:', err);
       setError({ message: err.message, hint: err.hint });
       addNotification({
         type: 'error',
