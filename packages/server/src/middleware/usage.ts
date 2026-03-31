@@ -17,7 +17,8 @@ const ALLOWED_CHAINS = [
     'base',
     'optimism', 'opt',
     'polygon', 'polygon_pos', 'matic',
-    'bsc', 'binance'
+    'bsc', 'binance',
+    'sui'
 ];
 
 // Map frontend chain IDs to canonical names
