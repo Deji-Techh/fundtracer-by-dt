@@ -247,7 +247,14 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                     transition={{ duration: 0.2 }}
                 >
                     {activeTab === 'overview' && (
-                        <OverviewTab result={result} formatAddress={formatAddress} isMobile={isMobile} />
+                        <OverviewTab 
+                            result={result} 
+                            formatAddress={formatAddress} 
+                            isMobile={isMobile} 
+                            chain={chain}
+                            chainConfig={chainConfig}
+                            navigate={navigate}
+                        />
                     )}
 
                     {activeTab === 'funding' && (
@@ -597,12 +604,19 @@ function FundingTab({
 function OverviewTab({
     result,
     formatAddress,
-    isMobile
+    isMobile,
+    chain,
+    chainConfig,
+    navigate,
 }: {
     result: AnalysisResult;
     formatAddress: (addr: string) => string;
     isMobile: boolean;
+    chain: string;
+    chainConfig: { explorer: string };
+    navigate: (path: string) => void;
 }) {
+    const [hoveredAddress, setHoveredAddress] = useState<{ address: string; x: number; y: number } | null>(null);
     return (
         <div className="overview-grid">
             {/* Top Funding Sources */}
