@@ -182,7 +182,8 @@ async function handleSuiAnalysis(
                     if (transactions.length === 0) return 0;
                     const timestamps = transactions.map(t => t.timestamp).filter(Boolean);
                     if (timestamps.length === 0) return 0;
-                    const ms = Date.now() - Math.min(...timestamps);
+                    // timestamps are in seconds, convert to ms for comparison with Date.now()
+                    const ms = Date.now() - (Math.min(...timestamps) * 1000);
                     const days = ms / (1000 * 60 * 60 * 24);
                     return Math.ceil(days);
                 })(),
