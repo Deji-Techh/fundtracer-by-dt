@@ -309,6 +309,9 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
     const { address, chain, options } = req.body;
 
+    // DEBUG: Log incoming chain value
+    console.log(`[DEBUG] /analyze/wallet called with chain="${chain}" (type: ${typeof chain}), address="${address?.slice(0, 10)}..."`);
+
     // Use comprehensive validation
     const validation = validateAddressInput(address, chain);
     if (!validation.valid) {
@@ -330,19 +333,24 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
     // Normalize chain to lowercase for validation
     const normalizedChain = normalizeChainId(chain);
+    console.log(`[DEBUG] normalizedChain="${normalizedChain}", ALLOWED_CHAINS includes it: ${ALLOWED_CHAINS.includes(normalizedChain)}`);
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        console.log(`[DEBUG] Chain "${normalizedChain}" NOT in ALLOWED_CHAINS, checking UNSUPPORTED_CHAINS...`);
         if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
+            console.log(`[DEBUG] Chain "${normalizedChain}" is in UNSUPPORTED_CHAINS - returning coming soon`);
             return res.status(400).json({ 
                 error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
             });
         }
+        console.log(`[DEBUG] Chain "${normalizedChain}" not in UNSUPPORTED_CHAINS either - returning generic Invalid chain`);
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
     // Handle Sui specifically - return "coming soon" message
     if (normalizedChain === 'sui') {
+        console.log(`[DEBUG] Chain is "sui" - returning coming soon message`);
         return res.status(400).json({ 
             error: `Sui support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
         });
