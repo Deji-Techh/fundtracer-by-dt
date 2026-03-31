@@ -534,7 +534,7 @@ function OverviewTab({
                     <HugeiconsIcon icon={ArrowDown01Icon} size={16} strokeWidth={2} style={{ marginRight: 8, verticalAlign: 'middle' }} />
                     Top Funding Sources
                 </h4>
-                {result.summary.topFundingSources.length > 0 ? (
+                {result.summary?.topFundingSources?.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                         {result.summary.topFundingSources.map((source, i) => (
                             <motion.div
@@ -560,7 +560,7 @@ function OverviewTab({
                     <HugeiconsIcon icon={ArrowUp01Icon} size={16} strokeWidth={2} style={{ marginRight: 8, verticalAlign: 'middle' }} />
                     Top Destinations
                 </h4>
-                {result.summary.topFundingDestinations.length > 0 ? (
+                {result.summary?.topFundingDestinations?.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                         {result.summary.topFundingDestinations.map((dest, i) => (
                             <motion.div
@@ -586,7 +586,7 @@ function OverviewTab({
                     <HugeiconsIcon icon={FolderIcon} size={16} strokeWidth={2} style={{ marginRight: 8, verticalAlign: 'middle' }} />
                     Contracts Interacted
                 </h4>
-                {result.projectsInteracted.slice(0, 5).map((project, i) => (
+                {(result.projectsInteracted || []).slice(0, 5).map((project, i) => (
                     <motion.div
                         key={project.contractAddress}
                         className="overview-item"
@@ -608,7 +608,7 @@ function OverviewTab({
             </div>
 
             {/* Same Block Activity */}
-            {result.sameBlockTransactions.length > 0 && (
+            {result.sameBlockTransactions?.length > 0 && (
                 <div className="overview-section">
                     <h4 className="overview-section-title">
                         <HugeiconsIcon icon={Clock01Icon} size={16} strokeWidth={2} style={{ marginRight: 8, verticalAlign: 'middle' }} />
@@ -647,7 +647,7 @@ function OverviewTab({
 
 // Suspicious Tab Component
 function SuspiciousTab({ indicators }: { indicators: SuspiciousIndicator[] }) {
-    if (indicators.length === 0) {
+    if ((indicators?.length || 0) === 0) {
         return (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -717,7 +717,7 @@ function SuspiciousTab({ indicators }: { indicators: SuspiciousIndicator[] }) {
                         {indicator.description}
                     </p>
 
-                    {indicator.evidence.length > 0 && (
+                    {(indicator.evidence?.length || 0) > 0 && (
                         <div style={{
                             fontSize: 'var(--text-xs)',
                             color: 'var(--color-text-muted)',

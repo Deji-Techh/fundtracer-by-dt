@@ -29,10 +29,10 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
         return tx.valueInEth;
     };
 
-    const hasNoFindings = result.commonFundingSources.length === 0 
-        && result.commonDestinations.length === 0 
-        && result.directTransfers.length === 0 
-        && result.sharedProjects.length === 0;
+    const hasNoFindings = (result.commonFundingSources?.length || 0) === 0 
+        && (result.commonDestinations?.length || 0) === 0 
+        && (result.directTransfers?.length || 0) === 0 
+        && (result.sharedProjects?.length || 0) === 0;
 
     return (
         <div className="stagger-children">
@@ -42,7 +42,7 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                     <div>
                         <h2 style={{ marginBottom: 'var(--space-2)', fontSize: 'var(--text-lg)' }}>Multi-Wallet Analysis</h2>
                         <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-                            Comparing {result.wallets.length} wallets on {chainConfig?.name || chain} for shared activity
+                            Comparing {(result.wallets?.length || 0)} wallets on {chainConfig?.name || chain} for shared activity
                         </p>
                     </div>
 
@@ -69,22 +69,22 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
             <div className="stats-grid" style={{ marginBottom: 'var(--space-4)' }}>
                 <div className="stat-card">
                     <div className="stat-label">Common Funding Sources</div>
-                    <div className="stat-value" style={{ color: result.commonFundingSources.length > 0 ? 'var(--color-warning-text, var(--color-warning, #f59e0b))' : undefined }}>
-                        {result.commonFundingSources.length}
+                    <div className="stat-value" style={{ color: (result.commonFundingSources?.length || 0) > 0 ? 'var(--color-warning-text, var(--color-warning, #f59e0b))' : undefined }}>
+                        {result.commonFundingSources?.length || 0}
                     </div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Common Destinations</div>
-                    <div className="stat-value">{result.commonDestinations.length}</div>
+                    <div className="stat-value">{result.commonDestinations?.length || 0}</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Shared Projects</div>
-                    <div className="stat-value">{result.sharedProjects.length}</div>
+                    <div className="stat-value">{result.sharedProjects?.length || 0}</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Direct Transfers</div>
-                    <div className="stat-value" style={{ color: result.directTransfers.length > 0 ? 'var(--color-danger-text, var(--color-danger, #ef4444))' : undefined }}>
-                        {result.directTransfers.length}
+                    <div className="stat-value" style={{ color: (result.directTransfers?.length || 0) > 0 ? 'var(--color-danger-text, var(--color-danger, #ef4444))' : undefined }}>
+                        {result.directTransfers?.length || 0}
                     </div>
                 </div>
             </div>
@@ -106,8 +106,7 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                 </div>
             )}
 
-            {/* Common Funding Sources */}
-            {result.commonFundingSources.length > 0 && (
+            {(result.commonFundingSources?.length || 0) > 0 && (
                 <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
                     <h3 className="card-title" style={{ marginBottom: 'var(--space-4)' }}>
                         Common Funding Sources
@@ -123,13 +122,13 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                         >
                             {showSourcesAsList ? 'Show Short' : 'View as List'}
                         </button>
-                        {result.commonFundingSources.length > 12 && (
+                        {(result.commonFundingSources?.length || 0) > 12 && (
                             <button
                                 onClick={() => setShowAllSources(!showAllSources)}
                                 className="btn btn-secondary btn-sm"
                                 style={{ fontSize: 'var(--text-xs)' }}
                             >
-                                {showAllSources ? 'Show Less' : `Show All (${result.commonFundingSources.length})`}
+                                {showAllSources ? 'Show Less' : `Show All (${result.commonFundingSources?.length || 0})`}
                             </button>
                         )}
                     </div>
@@ -141,7 +140,7 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                             borderRadius: 'var(--radius-md)',
                             padding: 'var(--space-3)'
                         }}>
-                            {(showAllSources ? result.commonFundingSources : result.commonFundingSources.slice(0, 12)).map((addr) => (
+                            {(showAllSources ? result.commonFundingSources : (result.commonFundingSources || []).slice(0, 12)).map((addr) => (
                                 <div
                                     key={addr}
                                     style={{
@@ -197,7 +196,7 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
             )}
 
             {/* Common Destinations */}
-            {result.commonDestinations.length > 0 && (
+            {(result.commonDestinations?.length || 0) > 0 && (
                 <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
                     <h3 className="card-title" style={{ marginBottom: 'var(--space-4)' }}>
                         Common Destinations
@@ -213,13 +212,13 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                         >
                             {showDestinationsAsList ? 'Show Short' : 'View as List'}
                         </button>
-                        {result.commonDestinations.length > 12 && (
+                        {(result.commonDestinations?.length || 0) > 12 && (
                             <button
                                 onClick={() => setShowAllDestinations(!showAllDestinations)}
                                 className="btn btn-secondary btn-sm"
                                 style={{ fontSize: 'var(--text-xs)' }}
                             >
-                                {showAllDestinations ? 'Show Less' : `Show All (${result.commonDestinations.length})`}
+                                {showAllDestinations ? 'Show Less' : `Show All (${result.commonDestinations?.length || 0})`}
                             </button>
                         )}
                     </div>
@@ -287,7 +286,7 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
             )}
 
             {/* Direct Transfers */}
-            {result.directTransfers.length > 0 && (
+            {(result.directTransfers?.length || 0) > 0 && (
                 <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
                     <h3 className="card-title" style={{ marginBottom: 'var(--space-4)' }}>
                         Direct Transfers Between Wallets
