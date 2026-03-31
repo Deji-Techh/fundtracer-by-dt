@@ -625,6 +625,23 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Too many addresses (max 20)' });
     }
 
+    // Normalize chain to lowercase
+    const normalizedChain = chain?.toLowerCase();
+
+    // Handle Sui chain for compare endpoint
+    if (normalizedChain === 'sui') {
+        // Validate all addresses for Sui
+        for (const addr of addresses) {
+            if (!SUI_ADDRESS_REGEX.test(addr)) {
+                return res.status(400).json({ error: 'Invalid Sui address format. Expected 64 hex characters starting with 0x.' });
+            }
+        }
+        return res.status(400).json({ 
+            error: 'Compare is not yet supported for Sui blockchain. This feature is coming soon.',
+            isSuiUnsupported: true
+        });
+    }
+
     // Validate all addresses
     for (const addr of addresses) {
         if (!ETH_ADDRESS_REGEX.test(addr)) {
@@ -633,13 +650,13 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Normalize chain to lowercase
-    const normalizedChain = chain?.toLowerCase();
+    const normalizedChainCompare = chain?.toLowerCase();
 
-// Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
+    // Validate chain parameter
+    if (!ALLOWED_CHAINS.includes(normalizedChainCompare)) {
+        if (UNSUPPORTED_CHAINS.includes(normalizedChainCompare)) {
             return res.status(400).json({ 
-                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+                error: `${normalizedChainCompare.charAt(0).toUpperCase() + normalizedChainCompare.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
             });
         }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
@@ -708,12 +725,23 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Contract address and chain are required' });
     }
 
+    // Normalize chain to lowercase
+    const normalizedChain = normalizeChainId(chain);
+
+    // Handle Sui chain - return coming soon message
+    if (normalizedChain === 'sui') {
+        if (!SUI_ADDRESS_REGEX.test(contractAddress)) {
+            return res.status(400).json({ error: 'Invalid Sui address format. Expected 64 hex characters starting with 0x.' });
+        }
+        return res.status(400).json({ 
+            error: 'Contract analysis is not yet supported for Sui blockchain. This feature is coming soon.',
+            isSuiUnsupported: true
+        });
+    }
+
     if (!ETH_ADDRESS_REGEX.test(contractAddress)) {
         return res.status(400).json({ error: 'Invalid contract address format' });
     }
-
-    // Normalize chain to lowercase
-    const normalizedChain = normalizeChainId(chain);
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
@@ -808,12 +836,23 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Contract address is required' });
     }
 
+    // Normalize chain to lowercase
+    const normalizedChain = normalizeChainId(chain);
+
+    // Handle Sui chain - return coming soon message
+    if (normalizedChain === 'sui') {
+        if (!SUI_ADDRESS_REGEX.test(contractAddress)) {
+            return res.status(400).json({ error: 'Invalid Sui address format. Expected 64 hex characters starting with 0x.' });
+        }
+        return res.status(400).json({ 
+            error: 'Sybil detection is not yet supported for Sui blockchain. This feature is coming soon.',
+            isSuiUnsupported: true
+        });
+    }
+
     if (!ETH_ADDRESS_REGEX.test(contractAddress)) {
         return res.status(400).json({ error: 'Invalid contract address format' });
     }
-
-    // Normalize chain to lowercase
-    const normalizedChain = normalizeChainId(chain);
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
