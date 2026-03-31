@@ -6,6 +6,7 @@
 import { ChainId } from '../types.js';
 import { ITransactionProvider } from './ITransactionProvider.js';
 import { AlchemyProvider } from './AlchemyProvider.js';
+import { SuiProvider } from './SuiProvider.js';
 
 export interface ApiKeyConfig {
     // Primary RPC provider (recommended)
@@ -63,6 +64,13 @@ export class ProviderFactory {
         // Return cached provider if exists
         const cached = this.providers.get(chainId);
         if (cached) return cached;
+
+        // Sui uses its own provider with Sui RPC
+        if (chainId === 'sui') {
+            const provider = new SuiProvider(process.env.SUI_RPC_URL);
+            this.providers.set(chainId, provider);
+            return provider;
+        }
 
         // BSC is not supported by Alchemy - use Moralis as primary provider
         if (chainId === 'bsc') {

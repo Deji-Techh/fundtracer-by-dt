@@ -43,4 +43,6 @@ services:
         sync: false
       - key: DUNE_API_KEY
         sync: false
+      - key: SUI_RPC_URL
+        sync: false
     healthCheckPath: /health

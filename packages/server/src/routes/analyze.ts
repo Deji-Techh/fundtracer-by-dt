@@ -10,12 +10,14 @@ import {
     WalletAnalyzer,
     SybilAnalyzer,
     ChainId,
-    FilterOptions
+    FilterOptions,
+    SuiProvider
 } from '@fundtracer/core';
 import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength } from '../utils/validation.js';
+import { cache } from '../utils/cache.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -120,6 +122,79 @@ function getUserFriendlyError(error: any): { status: number; error: string; mess
         error: 'Analysis failed',
         message: msg || 'An unexpected error occurred during analysis.',
     };
+}
+
+// Sui Analysis Handler
+async function handleSuiAnalysis(
+    req: AuthenticatedRequest,
+    res: Response,
+    address: string,
+    options: any
+) {
+    const cacheKey = `sui:wallet:${address}`;
+    const cached = cache.get(cacheKey);
+    
+    if (cached) {
+        return res.json(cached);
+    }
+
+    try {
+        const suiProvider = new SuiProvider(process.env.SUI_RPC_URL);
+        const normalizedAddress = address.toLowerCase();
+        
+        const limit = options?.limit || 100;
+        const offset = options?.offset || 0;
+        
+        console.log(`[SUI] Analyzing wallet: ${normalizedAddress}`);
+        
+        // Get wallet info
+        const walletInfo = await suiProvider.getWalletInfo(normalizedAddress);
+        
+        // Get transactions
+        const transactions = await suiProvider.getTransactions(normalizedAddress, { limit });
+        
+        // Get token transfers
+        const tokenTransfers = await suiProvider.getTokenTransfers(normalizedAddress);
+        
+        const result = {
+            wallet: walletInfo,
+            transactions: transactions.slice(offset, offset + limit),
+            pagination: {
+                total: transactions.length,
+                offset,
+                limit,
+                hasMore: offset + limit < transactions.length
+            },
+            tokenTransfers,
+            summary: {
+                totalTransactions: transactions.length,
+                successfulTxs: transactions.filter(t => t.status === 'success').length,
+                failedTxs: transactions.filter(t => t.status === 'failed').length,
+                totalValueSent: transactions.reduce((sum, t) => sum + (t.isIncoming ? 0 : t.valueInEth), 0),
+                totalValueReceived: transactions.reduce((sum, t) => sum + (t.isIncoming ? t.valueInEth : 0), 0),
+                uniqueInteractedAddresses: new Set(transactions.map(t => t.to).filter(Boolean)).size,
+                activityPeriodDays: (() => {
+                    if (transactions.length === 0) return 0;
+                    const timestamps = transactions.map(t => t.timestamp).filter(Boolean);
+                    if (timestamps.length === 0) return 0;
+                    const ms = Date.now() - Math.min(...timestamps);
+                    const days = ms / (1000 * 60 * 60 * 24);
+                    return Math.ceil(days);
+                })(),
+            }
+        };
+        
+        // Cache for 60 seconds
+        cache.set(cacheKey, result, 60);
+        
+        return res.json(result);
+    } catch (error: any) {
+        console.error('[SUI] Analysis error:', error);
+        return res.status(500).json({ 
+            error: 'Sui analysis failed',
+            message: error.message || 'Failed to analyze Sui wallet'
+        });
+    }
 }
 
 const router = Router();
@@ -348,12 +423,9 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
-    // Handle Sui specifically - return "coming soon" message
+    // Handle Sui using SuiProvider
     if (normalizedChain === 'sui') {
-        console.log(`[DEBUG] Chain is "sui" - returning coming soon message`);
-        return res.status(400).json({ 
-            error: `Sui support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
-        });
+        return handleSuiAnalysis(req, res, address, options);
     }
 
     // EVM address validation
