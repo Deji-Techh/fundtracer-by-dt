@@ -29,8 +29,13 @@ interface SuiTransactionBlock {
         };
     };
     effects?: {
-        status: { status: string } | string;
-        gasUsed: string;
+        status: { status: string; error?: string } | string;
+        gasUsed: {
+            computationCost: string;
+            storageCost: string;
+            storageRebate: string;
+            nonRefundableStorageFee: string;
+        };
         events?: Array<{
             type: string;
             parsedJson?: any;
@@ -297,10 +302,29 @@ export class SuiProvider implements ITransactionProvider {
                     valueInEth = Number(netValue) / 1e9;
                     value = netValue.toString();
                 } else {
-                    // Fallback to gas used as value
-                    const gasUsed = tx.effects?.gasUsed ? parseInt(tx.effects.gasUsed) : 0;
-                    valueInEth = gasUsed / 1e9;
-                    value = gasUsed.toString();
+                    // Fallback to gas used as value - gasUsed is an object with computationCost, storageCost, etc.
+                    const gasUsedObj = tx.effects?.gasUsed;
+                    let totalGas = 0;
+                    if (gasUsedObj) {
+                        totalGas = parseInt(gasUsedObj.computationCost || '0') + 
+                                   parseInt(gasUsedObj.storageCost || '0');
+                    }
+                    valueInEth = totalGas / 1e9;
+                    value = totalGas.toString();
+                }
+
+                // Null safety for valueInEth
+                if (isNaN(valueInEth) || valueInEth === null) {
+                    valueInEth = 0;
+                }
+
+                // Format gasUsed as a string (total gas)
+                const gasUsedObj = tx.effects?.gasUsed;
+                let gasUsedStr = '0';
+                if (gasUsedObj) {
+                    const totalGas = parseInt(gasUsedObj.computationCost || '0') + 
+                                    parseInt(gasUsedObj.storageCost || '0');
+                    gasUsedStr = totalGas.toString();
                 }
 
                 return {
@@ -311,7 +335,7 @@ export class SuiProvider implements ITransactionProvider {
                     to: to || '',
                     value: value,
                     valueInEth: valueInEth,
-                    gasUsed: tx.effects?.gasUsed || '0',
+                    gasUsed: gasUsedStr,
                     gasPrice: '0',
                     gasCostInEth: 0,
                     status: status,
