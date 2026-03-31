@@ -355,7 +355,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
     // Mobile state
     const [showMobileGraph, setShowMobileGraph] = useState(false);
 
-    const chainConfig = CHAINS[chain];
+    const chainConfig = CHAINS[chain] || { explorer: '#', name: 'Unknown' };
     const isMobile = useIsMobile();
 
     // Safety checks

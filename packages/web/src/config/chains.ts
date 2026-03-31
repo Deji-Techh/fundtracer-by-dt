@@ -77,6 +77,7 @@ export const CHAIN_CONFIG = {
     color: '#6f6feb',
     icon: '/chains/sui.svg',
     explorerUrl: 'https://sui.io',
+    explorer: 'https://sui.io',
     enabled: true,
     priority: 8,
   },

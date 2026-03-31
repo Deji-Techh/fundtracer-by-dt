@@ -46,7 +46,7 @@ function ContractAnalysisView({ result }: ContractAnalysisViewProps) {
     const [showSharedFunding, setShowSharedFunding] = useState(true);
     const isMobile = useIsMobile();
 
-    const chainConfig = CHAINS[result.chain];
+    const chainConfig = CHAINS[result.chain] || { explorer: '#', name: 'Unknown' };
 
     const sortedInteractors = useMemo(() => {
         const sorted = [...result.interactors];

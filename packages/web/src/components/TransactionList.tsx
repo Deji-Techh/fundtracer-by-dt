@@ -46,7 +46,7 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
     const sentinelRef = useRef<HTMLDivElement>(null);
     const isMobile = useIsMobile();
 
-    const chainConfig = CHAINS[chain];
+    const chainConfig = CHAINS[chain] || { explorer: '#' };
 
     const filteredAndSorted = useMemo(() => {
         let result = [...transactions];

@@ -1291,11 +1291,12 @@ const ExportDropdown: React.FC<{
   };
 
   const exportToJSON = () => {
-    const explorerUrl = CHAINS[chain].explorer;
+    const explorerUrl = CHAINS[chain]?.explorer || '#';
+    const chainName = CHAINS[chain]?.name || 'Unknown';
     const data = {
       exportedAt: new Date().toISOString(),
       contractAddress,
-      chain: CHAINS[chain].name,
+      chain: chainName,
       summary: result.summary,
       clusters: result.flaggedClusters.map(c => ({
         fundingSource: c.fundingSource,
@@ -1902,7 +1903,7 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
   };
 
   const filteredClusters = result?.clusters.filter(c => c.sybilScore >= filterMinScore) || [];
-  const chainConfig = CHAINS[chain];
+  const chainConfig = CHAINS[chain] || { explorer: '#' };
 
   // Wizard steps configuration
   const wizardSteps = [
