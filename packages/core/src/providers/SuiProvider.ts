@@ -115,31 +115,37 @@ export class SuiProvider implements ITransactionProvider {
                 limit: 100
             });
 
-            // Get first tx timestamp using correct Sui query format
-            const allTxs = await this.rpcCall('suix_queryTransactionBlocks', {
-                query: { sender: address },
-                limit: 1
-            });
+            // Get first tx timestamp using correct Sui query format (array format)
+            const allTxs = await this.rpcCall('suix_queryTransactionBlocks', [
+                { filter: { FromAddress: address } },
+                null,
+                1,
+                true
+            ]);
 
             const firstTxTimestamp = allTxs?.data?.[0]?.timestampMs 
                 ? parseInt(allTxs.data[0].timestampMs) 
                 : undefined;
 
             // Get last activity
-            const lastTxs = await this.rpcCall('suix_queryTransactionBlocks', {
-                query: { sender: address },
-                limit: 1
-            });
+            const lastTxs = await this.rpcCall('suix_queryTransactionBlocks', [
+                { filter: { FromAddress: address } },
+                null,
+                1,
+                true
+            ]);
 
             const lastTxTimestamp = lastTxs?.data?.[0]?.timestampMs 
                 ? parseInt(lastTxs.data[0].timestampMs) 
                 : firstTxTimestamp;
 
             // Get total transaction count
-            const txCountResult = await this.rpcCall('suix_queryTransactionBlocks', {
-                query: { sender: address },
-                limit: 1000
-            });
+            const txCountResult = await this.rpcCall('suix_queryTransactionBlocks', [
+                { filter: { FromAddress: address } },
+                null,
+                1000,
+                true
+            ]);
 
             const txCount = txCountResult?.data?.length || 0;
             const txArray = txCountResult?.data || [];
@@ -180,9 +186,10 @@ export class SuiProvider implements ITransactionProvider {
             
             // Query transaction blocks - use array format with options inside query object
             // Based on Alchemy Sui docs: [queryObject, cursor, limit, descendingOrder]
+            // Use FromAddress filter instead of 'sender'
             const senderTxs = await this.rpcCall('suix_queryTransactionBlocks', [
                 {
-                    filter: { sender: address },
+                    filter: { FromAddress: address },
                     options: {
                         showEffects: true,
                         showEvents: true,
@@ -194,10 +201,10 @@ export class SuiProvider implements ITransactionProvider {
                 true  // descending order (newest first)
             ]);
 
-            // Query transaction blocks where address is recipient
+            // Query transaction blocks where address is recipient - use ToAddress
             const recipientTxs = await this.rpcCall('suix_queryTransactionBlocks', [
                 {
-                    filter: { recipient: address },
+                    filter: { ToAddress: address },
                     options: {
                         showEffects: true,
                         showEvents: true,
