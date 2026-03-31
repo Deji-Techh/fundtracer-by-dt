@@ -28,10 +28,11 @@ const ALLOWED_CHAINS = [
     'base',
     'optimism', 'opt',
     'polygon', 'polygon_pos', 'matic',
-    'bsc', 'binance'
+    'bsc', 'binance',
+    'sui' // Added but handled specially - returns "coming soon"
 ];
 
-// Chains not yet supported - will return helpful error
+// Chains not yet supported - will return helpful error (kept for reference)
 const UNSUPPORTED_CHAINS = ['sui', 'solana'];
 
 // Map frontend chain IDs to canonical names
@@ -340,8 +341,14 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
-    // Skip EVM address validation for unsupported chains (already handled above)
-    // ... existing logic
+    // Handle Sui specifically - return "coming soon" message
+    if (normalizedChain === 'sui') {
+        return res.status(400).json({ 
+            error: `Sui support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+        });
+    }
+
+    // EVM address validation
     if (!ETH_ADDRESS_REGEX.test(address)) {
         return res.status(400).json({ error: 'Invalid wallet address format' });
     }
