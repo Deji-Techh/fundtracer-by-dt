@@ -135,7 +135,11 @@ async function handleSuiAnalysis(
     const cached = cache.get(cacheKey);
     
     if (cached) {
-        return res.json(cached);
+        return res.json({
+            success: true,
+            result: cached,
+            usageRemaining: res.locals.usageRemaining,
+        });
     }
 
     try {
@@ -170,8 +174,8 @@ async function handleSuiAnalysis(
                 totalTransactions: transactions.length,
                 successfulTxs: transactions.filter(t => t.status === 'success').length,
                 failedTxs: transactions.filter(t => t.status === 'failed').length,
-                totalValueSent: transactions.reduce((sum, t) => sum + (t.isIncoming ? 0 : t.valueInEth), 0),
-                totalValueReceived: transactions.reduce((sum, t) => sum + (t.isIncoming ? t.valueInEth : 0), 0),
+                totalValueSentEth: transactions.reduce((sum, t) => sum + (t.isIncoming ? 0 : t.valueInEth), 0),
+                totalValueReceivedEth: transactions.reduce((sum, t) => sum + (t.isIncoming ? t.valueInEth : 0), 0),
                 uniqueInteractedAddresses: new Set(transactions.map(t => t.to).filter(Boolean)).size,
                 activityPeriodDays: (() => {
                     if (transactions.length === 0) return 0;
@@ -181,13 +185,23 @@ async function handleSuiAnalysis(
                     const days = ms / (1000 * 60 * 60 * 24);
                     return Math.ceil(days);
                 })(),
-            }
+            },
+            overallRiskScore: 0,
+            riskLevel: 'low',
+            suspiciousIndicators: [],
+            fundingSources: null,
+            fundingDestinations: null,
+            projectsInteracted: [],
         };
         
         // Cache for 60 seconds
         cache.set(cacheKey, result, 60);
         
-        return res.json(result);
+        return res.json({
+            success: true,
+            result,
+            usageRemaining: res.locals.usageRemaining,
+        });
     } catch (error: any) {
         console.error('[SUI] Analysis error:', error);
         return res.status(500).json({ 
