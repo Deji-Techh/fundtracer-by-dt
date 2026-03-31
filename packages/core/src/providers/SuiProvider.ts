@@ -104,13 +104,16 @@ export class SuiProvider implements ITransactionProvider {
             const balance = balanceResult?.totalBalance || '0';
             const balanceInSui = parseInt(balance) / 1e9;
 
-            // Get coins (token holdings) - omit null cursor param
-            const coinsResult = await this.rpcCall('suix_getCoins', [address, null, "100"]);
+            // Get coins (token holdings) - using just address and limit
+            const coinsResult = await this.rpcCall('suix_getCoins', {
+                owner: address,
+                limit: 100
+            });
 
             // Get first tx timestamp using correct Sui query format
             const allTxs = await this.rpcCall('suix_queryTransactionBlocks', {
                 query: { sender: address },
-                limit: "1"
+                limit: 1
             });
 
             const firstTxTimestamp = allTxs?.data?.[0]?.timestampMs 
@@ -120,7 +123,7 @@ export class SuiProvider implements ITransactionProvider {
             // Get last activity
             const lastTxs = await this.rpcCall('suix_queryTransactionBlocks', {
                 query: { sender: address },
-                limit: "1"
+                limit: 1
             });
 
             const lastTxTimestamp = lastTxs?.data?.[0]?.timestampMs 
@@ -130,7 +133,7 @@ export class SuiProvider implements ITransactionProvider {
             // Get total transaction count
             const txCountResult = await this.rpcCall('suix_queryTransactionBlocks', {
                 query: { sender: address },
-                limit: "1000"
+                limit: 1000
             });
 
             const txCount = txCountResult?.data?.length || 0;
@@ -167,7 +170,7 @@ export class SuiProvider implements ITransactionProvider {
         if (cached) return cached;
 
         try {
-            const limit = filters?.limit ? String(filters.limit) : "100";
+            const limit = filters?.limit || 100;
             
             // Query transaction blocks where address is sender
             const senderTxs = await this.rpcCall('suix_queryTransactionBlocks', {
@@ -274,7 +277,10 @@ export class SuiProvider implements ITransactionProvider {
 
         try {
             // Get all coins for the address
-            const coinsResult = await this.rpcCall('suix_getCoins', [address, null, "100"]);
+            const coinsResult = await this.rpcCall('suix_getCoins', {
+                owner: address,
+                limit: 100
+            });
             const coins: SuiCoin[] = coinsResult?.data || [];
 
             const tokenTransfers: TokenTransfer[] = coins.map((coin) => {
@@ -304,7 +310,7 @@ export class SuiProvider implements ITransactionProvider {
             // Get earliest transaction
             const txs = await this.rpcCall('suix_queryTransactionBlocks', {
                 query: { recipient: address },
-                limit: "1"
+                limit: 1
             });
 
             if (!txs?.data?.[0]) return null;
