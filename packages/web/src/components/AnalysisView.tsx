@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
+import { useNavigate } from 'react-router-dom';
 import '../global.css';
 import {
   Download02Icon,
@@ -15,8 +16,10 @@ import {
   Clock01Icon,
   Link01Icon,
   FolderIcon,
+  EyeIcon,
+  Search01Icon,
 } from '@hugeicons/core-free-icons';
-import { AnalysisResult, SuspiciousIndicator, FundingNode } from '@fundtracer/core';
+import { AnalysisResult, SuspiciousIndicator, FundingNode, CHAINS } from '@fundtracer/core';
 import FundingTree from './FundingTree';
 import TransactionList from './TransactionList';
 import AddressLabel from './AddressLabel';
@@ -40,7 +43,12 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
     const [treeLoading, setTreeLoading] = useState(false);
     const [treeError, setTreeError] = useState<string | null>(null);
     const [treeDepth, setTreeDepth] = useState(2);
+    const [hoveredAddress, setHoveredAddress] = useState<{ address: string; x: number; y: number } | null>(null);
     const isMobile = useIsMobile();
+    const navigate = useNavigate();
+
+    const chain = result.wallet.chain;
+    const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
 
     // Check if tree data was already included in the analysis result (non-empty children)
     const hasPreloadedTree = result.fundingSources?.children?.length > 0 || result.fundingDestinations?.children?.length > 0;
@@ -270,6 +278,74 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                         <SuspiciousTab indicators={result.suspiciousIndicators} />
                     )}
                 </motion.div>
+
+                {/* Hover Tooltip for addresses */}
+                {hoveredAddress && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            left: hoveredAddress.x + 10,
+                            top: hoveredAddress.y + 10,
+                            zIndex: 1000,
+                            background: 'var(--color-bg-elevated)',
+                            border: '1px solid var(--color-surface-border)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: 'var(--space-3)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                            maxWidth: 300,
+                        }}
+                        onMouseEnter={() => setHoveredAddress(hoveredAddress)}
+                        onMouseLeave={() => setHoveredAddress(null)}
+                    >
+                        <div style={{ 
+                            fontFamily: 'var(--font-mono)', 
+                            fontSize: 'var(--text-xs)', 
+                            marginBottom: 'var(--space-2)',
+                            wordBreak: 'break-all' 
+                        }}>
+                            {hoveredAddress.address}
+                        </div>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                            <a
+                                href={`${chainConfig.explorer}/address/${hoveredAddress.address}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 'var(--space-1)',
+                                    padding: 'var(--space-1) var(--space-2)',
+                                    background: 'var(--color-primary)',
+                                    color: 'var(--color-primary-text)',
+                                    borderRadius: 'var(--radius-sm)',
+                                    fontSize: 'var(--text-xs)',
+                                    textDecoration: 'none',
+                                }}
+                            >
+                                <HugeiconsIcon icon={EyeIcon} size={12} strokeWidth={2} />
+                                View
+                            </a>
+                            <button
+                                onClick={() => navigate(`/app-evm?address=${hoveredAddress.address}&chain=${chain}`)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 'var(--space-1)',
+                                    padding: 'var(--space-1) var(--space-2)',
+                                    background: 'var(--color-bg-tertiary)',
+                                    color: 'var(--color-text-primary)',
+                                    borderRadius: 'var(--radius-sm)',
+                                    fontSize: 'var(--text-xs)',
+                                    border: '1px solid var(--color-surface-border)',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <HugeiconsIcon icon={Search01Icon} size={12} strokeWidth={2} />
+                                Scan
+                            </button>
+                        </div>
+                    </div>
+                )}
             </motion.div>
         </motion.div>
     );
@@ -544,6 +620,9 @@ function OverviewTab({
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.05 }}
+                                style={{ position: 'relative' }}
+                                onMouseEnter={(e) => setHoveredAddress({ address: source.address, x: e.clientX, y: e.clientY })}
+                                onMouseLeave={() => setHoveredAddress(null)}
                             >
                                 <span className="tx-address">{formatAddress(source.address)}</span>
                                 <span className="tx-value incoming">+{source.valueEth.toFixed(4)} {getChainTokenSymbol(result.wallet.chain)}</span>
@@ -570,6 +649,9 @@ function OverviewTab({
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.05 }}
+                                style={{ position: 'relative' }}
+                                onMouseEnter={(e) => setHoveredAddress({ address: dest.address, x: e.clientX, y: e.clientY })}
+                                onMouseLeave={() => setHoveredAddress(null)}
                             >
                                 <span className="tx-address">{formatAddress(dest.address)}</span>
                                 <span className="tx-value outgoing">-{dest.valueEth.toFixed(4)} {getChainTokenSymbol(result.wallet.chain)}</span>
@@ -648,6 +730,20 @@ function OverviewTab({
 
 // Suspicious Tab Component
 function SuspiciousTab({ indicators }: { indicators: SuspiciousIndicator[] }) {
+    const [expandedIndicators, setExpandedIndicators] = useState<Set<number>>(new Set());
+
+    const toggleExpand = (index: number) => {
+        setExpandedIndicators(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(index)) {
+                newSet.delete(index);
+            } else {
+                newSet.add(index);
+            }
+            return newSet;
+        });
+    };
+
     if ((indicators?.length || 0) === 0) {
         return (
             <motion.div
@@ -673,67 +769,92 @@ function SuspiciousTab({ indicators }: { indicators: SuspiciousIndicator[] }) {
             animate={{ opacity: 1 }}
             style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
         >
-            {indicators.map((indicator, i) => (
-                <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    style={{
-                        padding: 'var(--space-4)',
-                        background:
-                            indicator.severity === 'critical' || indicator.severity === 'high'
-                                ? 'var(--color-danger-bg)'
+            {indicators.map((indicator, i) => {
+                const isExpanded = expandedIndicators.has(i);
+                return (
+                    <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        style={{
+                            padding: 'var(--space-4)',
+                            background:
+                                indicator.severity === 'critical' || indicator.severity === 'high'
+                                    ? 'var(--color-danger-bg)'
+                                    : indicator.severity === 'medium'
+                                        ? 'var(--color-warning-bg)'
+                                        : 'var(--color-bg-tertiary)',
+                            borderRadius: 'var(--radius-md)',
+                            borderLeft: `3px solid ${indicator.severity === 'critical' || indicator.severity === 'high'
+                                ? 'var(--color-danger-text)'
                                 : indicator.severity === 'medium'
-                                    ? 'var(--color-warning-bg)'
-                                    : 'var(--color-bg-tertiary)',
-                        borderRadius: 'var(--radius-md)',
-                        borderLeft: `3px solid ${indicator.severity === 'critical' || indicator.severity === 'high'
-                            ? 'var(--color-danger-text)'
-                            : indicator.severity === 'medium'
-                                ? 'var(--color-warning-text)'
-                                : 'var(--color-text-muted)'
-                            }`,
-                    }}
-                >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-2)' }}>
-                        <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>
-                            {indicator.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                    ? 'var(--color-warning-text)'
+                                    : 'var(--color-text-muted)'
+                                }`,
+                        }}
+                    >
+                        <div 
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', cursor: 'pointer' }}
+                            onClick={() => toggleExpand(i)}
+                        >
+                            <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', flex: 1 }}>
+                                {indicator.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </div>
+                            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                                <span className={`risk-badge ${indicator.severity}`}>
+                                    {indicator.severity}
+                                </span>
+                                <span style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 'var(--text-xs)',
+                                    color: 'var(--color-text-muted)'
+                                }}>
+                                    +{indicator.score} pts
+                                </span>
+                                <span style={{
+                                    fontSize: 'var(--text-xs)',
+                                    color: 'var(--color-text-muted)',
+                                    transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.2s',
+                                }}>
+                                    ▼
+                                </span>
+                            </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                            <span className={`risk-badge ${indicator.severity}`}>
-                                {indicator.severity}
-                            </span>
-                            <span style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 'var(--text-xs)',
-                                color: 'var(--color-text-muted)'
-                            }}>
-                                +{indicator.score} pts
-                            </span>
-                        </div>
-                    </div>
 
-                    <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
-                        {indicator.description}
-                    </p>
+                        <AnimatePresence>
+                            {isExpanded && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    style={{ overflow: 'hidden' }}
+                                >
+                                    <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--space-3)', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)' }}>
+                                        {indicator.description}
+                                    </p>
 
-                    {(indicator.evidence?.length || 0) > 0 && (
-                        <div style={{
-                            fontSize: 'var(--text-xs)',
-                            color: 'var(--color-text-muted)',
-                            fontFamily: 'var(--font-mono)',
-                        }}>
-                            Evidence:
-                            <ul style={{ margin: 'var(--space-1) 0 0 var(--space-4)', padding: 0 }}>
-                                {indicator.evidence.map((e, j) => (
-                                    <li key={j}>{e}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                </motion.div>
-            ))}
+                                    {(indicator.evidence?.length || 0) > 0 && (
+                                        <div style={{
+                                            fontSize: 'var(--text-xs)',
+                                            color: 'var(--color-text-muted)',
+                                            fontFamily: 'var(--font-mono)',
+                                        }}>
+                                            Evidence:
+                                            <ul style={{ margin: 'var(--space-1) 0 0 var(--space-4)', padding: 0 }}>
+                                                {indicator.evidence.map((e, j) => (
+                                                    <li key={j} style={{ wordBreak: 'break-all' }}>{e}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </motion.div>
+                );
+            })}
         </motion.div>
     );
 }

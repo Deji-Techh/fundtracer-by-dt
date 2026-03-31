@@ -66,21 +66,8 @@ export default defineConfig({
     cssCodeSplit: true,
   },
   optimizeDeps: {
-    include: [
-      '@reown/appkit',
-      '@reown/appkit-adapter-ethers',
-      'ethers',
-      'firebase/app',
-      'firebase/auth',
-      'uuid',
-    ],
-    exclude: ['@privy-io/react-auth'],
     esbuildOptions: {
       target: 'es2020',
     },
-  },
-  esbuild: {
-    legalComments: 'none',
-    treeShaking: true,
   },
 });
