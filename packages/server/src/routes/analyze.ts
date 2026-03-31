@@ -31,6 +31,9 @@ const ALLOWED_CHAINS = [
     'bsc', 'binance'
 ];
 
+// Chains not yet supported - will return helpful error
+const UNSUPPORTED_CHAINS = ['sui', 'solana'];
+
 // Map frontend chain IDs to canonical names
 const normalizeChainId = (chain: string): string => {
     const mapping: Record<string, string> = {
@@ -329,6 +332,11 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
+            return res.status(400).json({ 
+                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+            });
+        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
@@ -422,6 +430,11 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
+            return res.status(400).json({ 
+                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+            });
+        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
@@ -505,8 +518,13 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
     // Normalize chain to lowercase
     const normalizedChain = chain?.toLowerCase();
 
-    // Validate chain parameter
-    if (!normalizedChain || !ALLOWED_CHAINS.includes(normalizedChain)) {
+// Validate chain parameter
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
+            return res.status(400).json({ 
+                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+            });
+        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
@@ -582,6 +600,11 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
+            return res.status(400).json({ 
+                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+            });
+        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
@@ -677,6 +700,11 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
+            return res.status(400).json({ 
+                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+            });
+        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
@@ -849,6 +877,11 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
+            return res.status(400).json({ 
+                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+            });
+        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
