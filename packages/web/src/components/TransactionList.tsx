@@ -309,7 +309,9 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                                 )}
                                             </>
                                         ) : (
-                                            <span style={{ color: 'var(--color-text-muted)' }}>Contract Creation</span>
+                                            <span style={{ color: 'var(--color-text-muted)' }}>
+                                                {tx.category === 'unknown' ? 'Contract Call' : tx.category.replace(/_/g, ' ')}
+                                            </span>
                                         )}
                                     </td>
                                     <td>
