@@ -89,6 +89,20 @@ export const DEFAULT_CHAIN: ChainKey = 'linea';
 
 export const getChainConfig = (chainKey: ChainKey) => CHAIN_CONFIG[chainKey];
 
+export const getChainTokenSymbol = (chainKey: string): string => {
+  const tokenSymbols: Record<string, string> = {
+    ethereum: 'ETH',
+    linea: 'ETH',
+    arbitrum: 'ETH',
+    base: 'ETH',
+    optimism: 'ETH',
+    polygon: 'MATIC',
+    bsc: 'BNB',
+    sui: 'SUI',
+  };
+  return tokenSymbols[chainKey] || 'ETH';
+};
+
 export const getEnabledChains = () => 
   Object.entries(CHAIN_CONFIG)
     .filter(([_, config]) => config.enabled)

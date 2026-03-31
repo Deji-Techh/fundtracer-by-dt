@@ -62,21 +62,12 @@ export class SuiRpcService {
     if (cached) return cached;
 
     try {
-      const transactions = await this.rpcCall('suix_queryTransactionBlocks', [{
-        filter: {
-          MoveFunction: {
-            package: '0x2',
-            module: 'coin',
-            function: 'transfer',
-          },
-        },
-        sender: address,
-      }, limit, true, {
-        showEffects: true,
-        showEvents: true,
-      }]);
+      const transactions = await this.rpcCall('suix_queryTransactionBlocks', {
+        query: { sender: address },
+        limit: limit
+      });
 
-      const summaries: TransactionSummary[] = (transactions || []).map((tx: any) => ({
+      const summaries: TransactionSummary[] = (transactions?.data || []).map((tx: any) => ({
         digest: tx.digest,
         timestamp: tx.timestampMs || Date.now(),
         sender: tx.transaction?.data?.sender || '',
@@ -110,16 +101,14 @@ export class SuiRpcService {
         return [];
       }
 
-      const transactions = await this.rpcCall('suix_queryTransactionBlocks', [{
-        MoveCall: {
-          package: '0x1',
-          module: 'dex',
-          function: 'swap',
-        },
-      }, 100, true, {
-        showEffects: true,
-        showEvents: true,
-      }]);
+      const transactions = await this.rpcCall('suix_queryTransactionBlocks', {
+        query: { MoveCall: { package: '0x1', module: 'dex', function: 'swap' } },
+        limit: 100,
+        options: {
+          showEffects: true,
+          showEvents: true,
+        }
+      });
 
       const traders = new Map<string, {
         address: string;

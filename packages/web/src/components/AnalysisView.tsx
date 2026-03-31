@@ -22,6 +22,7 @@ import TransactionList from './TransactionList';
 import AddressLabel from './AddressLabel';
 import { fetchFundingTree } from '../api';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { getChainTokenSymbol } from '../config/chains';
 
 interface AnalysisViewProps {
     result: AnalysisResult;
@@ -120,7 +121,7 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                                 {result.wallet.chain}
                             </span>
                             <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>
-                                {result.wallet.balanceInEth.toFixed(4)} ETH
+                                {result.wallet.balanceInEth.toFixed(4)} {getChainTokenSymbol(result.wallet.chain)}
                             </span>
                             {result.wallet.isContract && (
                                 <span className="risk-badge medium">Contract</span>
@@ -172,13 +173,13 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                 <div className="stat-card">
                     <div className="stat-label">Total Received</div>
                     <div className="stat-value positive">
-                        +{result.summary.totalValueReceivedEth.toFixed(4)} ETH
+                        +{result.summary.totalValueReceivedEth.toFixed(4)} {getChainTokenSymbol(result.wallet.chain)}
                     </div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Total Sent</div>
                     <div className="stat-value negative">
-                        -{result.summary.totalValueSentEth.toFixed(4)} ETH
+                        -{result.summary.totalValueSentEth.toFixed(4)} {getChainTokenSymbol(result.wallet.chain)}
                     </div>
                 </div>
                 <div className="stat-card">
@@ -545,7 +546,7 @@ function OverviewTab({
                                 transition={{ delay: i * 0.05 }}
                             >
                                 <span className="tx-address">{formatAddress(source.address)}</span>
-                                <span className="tx-value incoming">+{source.valueEth.toFixed(4)} ETH</span>
+                                <span className="tx-value incoming">+{source.valueEth.toFixed(4)} {getChainTokenSymbol(result.wallet.chain)}</span>
                             </motion.div>
                         ))}
                     </div>
@@ -571,7 +572,7 @@ function OverviewTab({
                                 transition={{ delay: i * 0.05 }}
                             >
                                 <span className="tx-address">{formatAddress(dest.address)}</span>
-                                <span className="tx-value outgoing">-{dest.valueEth.toFixed(4)} ETH</span>
+                                <span className="tx-value outgoing">-{dest.valueEth.toFixed(4)} {getChainTokenSymbol(result.wallet.chain)}</span>
                             </motion.div>
                         ))}
                     </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { MultiWalletResult, ChainId, CHAINS } from '@fundtracer/core';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { getChainTokenSymbol } from '../config/chains';
 
 interface MultiWalletViewProps {
     result: MultiWalletResult;
@@ -459,7 +460,7 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', fontSize: 'var(--text-xs)' }}>
                                 <div>
                                     <div style={{ color: 'var(--color-text-muted)' }}>Balance</div>
-                                    <div style={{ fontFamily: 'var(--font-mono)' }}>{wallet.wallet.balanceInEth.toFixed(4)} ETH</div>
+                                    <div style={{ fontFamily: 'var(--font-mono)' }}>{wallet.wallet.balanceInEth.toFixed(4)} {getChainTokenSymbol(chain)}</div>
                                 </div>
                                 <div>
                                     <div style={{ color: 'var(--color-text-muted)' }}>Transactions</div>

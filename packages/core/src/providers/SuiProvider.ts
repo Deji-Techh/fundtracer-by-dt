@@ -39,6 +39,11 @@ interface SuiTransactionBlock {
                 fields: any;
             };
         }>;
+        balanceChanges?: Array<{
+            owner: string | { AddressOwner: string };
+            amount: string;
+            coinType: string;
+        }>;
     };
 }
 
@@ -198,39 +203,74 @@ export class SuiProvider implements ITransactionProvider {
             }
 
             const transactions: Transaction[] = Array.from(txMap.values()).map((tx) => {
-                const status: TxStatus = tx.effects?.status?.status === 'success' ? 'success' : 'failed';
-                const timestamp = tx.timestampMs ? parseInt(tx.timestampMs) : Date.now();
+                // Fix status detection - check multiple possible status fields
+                const statusStr = tx.effects?.status?.status || tx.effects?.status || '';
+                const status: TxStatus = statusStr === 'success' ? 'success' : statusStr === 'failure' ? 'failed' : 'pending';
+                
+                // Fix timestamp - divide by 1000 to convert milliseconds to seconds for frontend display
+                const timestamp = tx.timestampMs ? Math.floor(parseInt(tx.timestampMs) / 1000) : Math.floor(Date.now() / 1000);
 
-                // Determine category based on transaction effects
+                // Fix category detection - check more event types
                 let category: TxCategory = 'unknown';
                 const events = tx.effects?.events || [];
                 
                 for (const event of events) {
-                    if (event.type?.includes('Transfer')) {
+                    const eventType = event.type || event.moveEvent?.type || '';
+                    if (eventType.includes('Transfer') || eventType.includes('Coin')) {
                         category = 'transfer';
                         break;
                     }
-                    if (event.type?.includes('Swap') || event.type?.includes('Dex')) {
+                    if (eventType.includes('Swap') || eventType.includes('Dex') || eventType.includes('Liquidity')) {
                         category = 'dex_swap';
+                        break;
+                    }
+                    if (eventType.includes('Stake') || eventType.includes('Staking')) {
+                        category = 'staking';
+                        break;
+                    }
+                    if (eventType.includes('NFT') || eventType.includes('Object')) {
+                        category = 'nft_transfer';
                         break;
                     }
                 }
 
-                // Extract value from balance changes
+                // Extract from/to from transaction data
+                const from = tx.transaction?.data?.sender || address;
+                const to = this.extractRecipient(tx);
+
+                // Extract value from balance changes if available
                 let value = '0';
                 let valueInEth = 0;
                 
-                // Calculate value based on gas and transfers
-                const gasUsed = tx.effects?.gasUsed ? parseInt(tx.effects.gasUsed) : 0;
-                valueInEth = gasUsed / 1e9; // Convert to SUI
-                value = (gasUsed).toString();
+                // Try to get value from balance changes in effects
+                const balanceChanges = tx.effects?.balanceChanges || [];
+                if (balanceChanges.length > 0) {
+                    let netValue = BigInt(0);
+                    for (const change of balanceChanges) {
+                        const owner = change.owner;
+                        const isOwner = typeof owner === 'string' 
+                            ? owner === address 
+                            : owner?.AddressOwner === address;
+                        if (isOwner) {
+                            netValue += BigInt(change.amount || 0);
+                        }
+                    }
+                    // Convert from mist (1e9 SUI) to actual SUI
+                    valueInEth = Number(netValue) / 1e9;
+                    value = netValue.toString();
+                } else {
+                    // Fallback to gas used as value
+                    const gasUsed = tx.effects?.gasUsed ? parseInt(tx.effects.gasUsed) : 0;
+                    valueInEth = gasUsed / 1e9;
+                    value = gasUsed.toString();
+                }
 
                 return {
                     hash: tx.digest,
-                    blockNumber: 0, // Sui doesn't have block numbers in the same way
+                    blockNumber: 0,
                     timestamp: timestamp,
-                    from: tx.transaction?.data?.sender || '',
-                    to: this.extractRecipient(tx),
+                    from: from,
+                    to: to || '',
                     value: value,
                     valueInEth: valueInEth,
                     gasUsed: tx.effects?.gasUsed || '0',
@@ -238,7 +278,7 @@ export class SuiProvider implements ITransactionProvider {
                     gasCostInEth: 0,
                     status: status,
                     category: category,
-                    isIncoming: tx.transaction?.data?.sender !== address,
+                    isIncoming: from !== address,
                     tokenTransfers: [],
                 };
             });

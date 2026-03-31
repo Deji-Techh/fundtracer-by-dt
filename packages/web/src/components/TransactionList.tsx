@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Transaction, ChainId, TxStatus, CHAINS } from '@fundtracer/core';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { getLabel } from '../utils/addressBook';
+import { getChainTokenSymbol } from '../config/chains';
 
 const TokenIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -173,7 +174,7 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                 <span className={`tx-value ${tx.isIncoming ? 'incoming' : 'outgoing'}`} style={{ fontSize: 14, fontWeight: 600 }}>
-                                    {tx.isIncoming ? '+' : '-'}{tx.valueInEth.toFixed(4)} ETH
+                                    {tx.isIncoming ? '+' : '-'}{tx.valueInEth.toFixed(4)} {getChainTokenSymbol(chain)}
                                 </span>
                                 <span className={`tx-status ${tx.status}`} style={{ fontSize: 12 }}>
                                     {tx.status === 'success' ? '✓' : '✗'}
@@ -316,7 +317,7 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                             {tx.isIncoming ? '+' : '-'}{tx.valueInEth.toFixed(4)} {
                                                 (tx.category === 'token_transfer' && tx.tokenTransfers && tx.tokenTransfers.length > 0)
                                                     ? tx.tokenTransfers[0].tokenSymbol
-                                                    : 'ETH'
+                                                    : getChainTokenSymbol(chain)
                                             }
                                         </span>
                                     </td>
