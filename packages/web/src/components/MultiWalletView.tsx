@@ -464,15 +464,15 @@ function MultiWalletView({ result, chain }: MultiWalletViewProps) {
                                 </div>
                                 <div>
                                     <div style={{ color: 'var(--color-text-muted)' }}>Transactions</div>
-                                    <div style={{ fontFamily: 'var(--font-mono)' }}>{wallet.transactions.length}</div>
+                                    <div style={{ fontFamily: 'var(--font-mono)' }}>{wallet.transactions?.length || 0}</div>
                                 </div>
                                 <div>
                                     <div style={{ color: 'var(--color-text-muted)' }}>Suspicious Flags</div>
                                     <div style={{
                                         fontFamily: 'var(--font-mono)',
-                                        color: wallet.suspiciousIndicators.length > 0 ? 'var(--color-warning-text, var(--color-warning, #f59e0b))' : 'var(--color-success-text, var(--color-success, #10b981))'
+                                        color: (wallet.suspiciousIndicators?.length || 0) > 0 ? 'var(--color-warning-text, var(--color-warning, #f59e0b))' : 'var(--color-success-text, var(--color-success, #10b981))'
                                     }}>
-                                        {wallet.suspiciousIndicators.length}
+                                        {wallet.suspiciousIndicators?.length || 0}
                                     </div>
                                 </div>
                                 <div>

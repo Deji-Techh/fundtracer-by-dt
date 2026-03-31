@@ -216,7 +216,7 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                     >
                         <HugeiconsIcon icon={ArrowAllDirectionIcon} size={18} strokeWidth={2} />
                         <span>Transactions</span>
-                        <span className="tab-badge">{result.transactions.length}</span>
+                        <span className="tab-badge">{result.transactions?.length || 0}</span>
                     </button>
                     <button
                         className={`tab-flat ${activeTab === 'suspicious' ? 'active' : ''}`}
@@ -224,8 +224,8 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                     >
                         <HugeiconsIcon icon={AlertDiamondIcon} size={18} strokeWidth={2} />
                         <span>Suspicious</span>
-                        {result.suspiciousIndicators.length > 0 && (
-                            <span className="tab-badge">{result.suspiciousIndicators.length}</span>
+                        {(result.suspiciousIndicators?.length || 0) > 0 && (
+                            <span className="tab-badge">{result.suspiciousIndicators?.length || 0}</span>
                         )}
                     </button>
                 </div>
@@ -636,7 +636,7 @@ function OverviewTab({
                                     </span>
                                 )}
                             </div>
-                            <span className="risk-badge medium">{group.transactions.length} txs</span>
+                            <span className="risk-badge medium">{group.transactions?.length || 0} txs</span>
                         </motion.div>
                     ))}
                 </div>
