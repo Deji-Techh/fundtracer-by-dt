@@ -283,13 +283,25 @@ webDistPath = possiblePaths.find(p => {
     }
 }) || possiblePaths[0]; // Default to first if none found
 
-// Serve whitepaper
+// Serve whitepaper - multiple routes for flexibility
 app.get('/whitepaper.pdf', (req, res) => {
     const whitepaperPath = path.join(webDistPath, 'fundtracer-whitepaper.html');
     res.setHeader('Content-Disposition', 'attachment; filename="fundtracer-whitepaper.pdf"');
     res.sendFile(whitepaperPath, (err) => {
         if (err) {
+            console.error('[WHITEPAPER] Error serving whitepaper:', err.message);
             res.status(404).send('Whitepaper not found');
+        }
+    });
+});
+
+app.get('/fundtracer.pdf', (req, res) => {
+    const whitepaperPath = path.join(webDistPath, 'fundtracer-whitepaper.html');
+    res.setHeader('Content-Disposition', 'attachment; filename="fundtracer.pdf"');
+    res.sendFile(whitepaperPath, (err) => {
+        if (err) {
+            console.error('[WHITEPAPER] Error serving fundtracer.pdf:', err.message);
+            res.status(404).send('PDF not found');
         }
     });
 });
