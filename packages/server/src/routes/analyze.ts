@@ -340,6 +340,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
+    // Skip EVM address validation for unsupported chains (already handled above)
     // ... existing logic
     if (!ETH_ADDRESS_REGEX.test(address)) {
         return res.status(400).json({ error: 'Invalid wallet address format' });

@@ -2,6 +2,7 @@
 
 export const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 export const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+export const SUI_ADDRESS_REGEX = /^0x[a-fA-F0-9]{64}$/;
 
 export function isValidEthAddress(address: string): boolean {
   return ETH_ADDRESS_REGEX.test(address);
@@ -11,11 +12,19 @@ export function isValidSolanaAddress(address: string): boolean {
   return SOLANA_ADDRESS_REGEX.test(address);
 }
 
+export function isValidSuiAddress(address: string): boolean {
+  return SUI_ADDRESS_REGEX.test(address);
+}
+
 export function isValidAddress(address: string, chain: string): boolean {
   const normalizedChain = chain.toLowerCase();
   
   if (normalizedChain === 'solana' || normalizedChain === 'sol') {
     return isValidSolanaAddress(address);
+  }
+  
+  if (normalizedChain === 'sui') {
+    return isValidSuiAddress(address);
   }
   
   return isValidEthAddress(address);
@@ -55,7 +64,7 @@ export function validateAddressInput(address: unknown, chain: unknown): Validati
   }
   
   const normalizedChain = chain.toLowerCase();
-  const allowedChains = ['ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'bsc', 'avalanche', 'linea', 'solana'];
+  const allowedChains = ['ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'bsc', 'avalanche', 'linea', 'solana', 'sui'];
   
   if (!allowedChains.includes(normalizedChain)) {
     return { valid: false, error: `Invalid chain. Allowed: ${allowedChains.join(', ')}` };

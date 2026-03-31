@@ -597,7 +597,7 @@ export function InvestigateView({
               </button>
             </div>
             <div className="sui-grid-content">
-              <div className="sui-grid-item" onClick={() => { setActiveTab('wallet'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('wallet'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <circle cx="12" cy="12" r="10"/>
@@ -607,7 +607,7 @@ export function InvestigateView({
                 <div className="sui-grid-item-label">Wallet</div>
                 <div className="sui-grid-item-desc">Analyze any wallet</div>
               </div>
-              <div className="sui-grid-item" onClick={() => { setActiveTab('contract'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('contract'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -617,7 +617,7 @@ export function InvestigateView({
                 <div className="sui-grid-item-label">Contract</div>
                 <div className="sui-grid-item-desc">Smart contract analysis</div>
               </div>
-              <div className="sui-grid-item" onClick={() => { setActiveTab('compare'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('compare'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <circle cx="9" cy="9" r="6"/>
@@ -627,7 +627,7 @@ export function InvestigateView({
                 <div className="sui-grid-item-label">Compare</div>
                 <div className="sui-grid-item-desc">Compare wallets</div>
               </div>
-              <div className="sui-grid-item" onClick={() => { setActiveTab('sybil'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('sybil'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -637,7 +637,7 @@ export function InvestigateView({
                 <div className="sui-grid-item-label">Sybil Detector</div>
                 <div className="sui-grid-item-desc">Detect fake users</div>
               </div>
-              <div className="sui-grid-item" onClick={() => { setActiveTab('track'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('track'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
