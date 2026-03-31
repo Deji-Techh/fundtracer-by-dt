@@ -178,27 +178,36 @@ export class SuiProvider implements ITransactionProvider {
         try {
             const limit = filters?.limit || 100;
             
-            // Query transaction blocks with options to get events and balance changes
-            const senderTxs = await this.rpcCall('suix_queryTransactionBlocks', {
-                query: { sender: address },
-                limit: limit,
-                options: {
-                    showEffects: true,
-                    showEvents: true,
-                    showBalanceChanges: true,
-                }
-            });
+            // Query transaction blocks - use array format with options inside query object
+            // Based on Alchemy Sui docs: [queryObject, cursor, limit, descendingOrder]
+            const senderTxs = await this.rpcCall('suix_queryTransactionBlocks', [
+                {
+                    filter: { sender: address },
+                    options: {
+                        showEffects: true,
+                        showEvents: true,
+                        showBalanceChanges: true,
+                    }
+                },
+                null, // cursor
+                limit,
+                true  // descending order (newest first)
+            ]);
 
             // Query transaction blocks where address is recipient
-            const recipientTxs = await this.rpcCall('suix_queryTransactionBlocks', {
-                query: { recipients: [address] },
-                limit: limit,
-                options: {
-                    showEffects: true,
-                    showEvents: true,
-                    showBalanceChanges: true,
-                }
-            });
+            const recipientTxs = await this.rpcCall('suix_queryTransactionBlocks', [
+                {
+                    filter: { recipient: address },
+                    options: {
+                        showEffects: true,
+                        showEvents: true,
+                        showBalanceChanges: true,
+                    }
+                },
+                null,
+                limit,
+                true
+            ]);
 
             // Combine and deduplicate
             const txMap = new Map<string, SuiTransactionBlock>();

@@ -16,11 +16,12 @@ import {
 import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
-import { validateAddressInput, sanitizeString, validateArrayLength } from '../utils/validation.js';
+import { validateAddressInput, sanitizeString, validateArrayLength, isValidSuiAddress } from '../utils/validation.js';
 import { cache } from '../utils/cache.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+const SUI_ADDRESS_REGEX = /^0x[a-fA-F0-9]{64}$/;
 
 // Chain configuration - support both frontend IDs and canonical names
 const ALLOWED_CHAINS = [
@@ -439,6 +440,10 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
     // Handle Sui using SuiProvider
     if (normalizedChain === 'sui') {
+        // Validate Sui address
+        if (!SUI_ADDRESS_REGEX.test(address)) {
+            return res.status(400).json({ error: 'Invalid Sui wallet address format. Expected 64 hex characters starting with 0x.' });
+        }
         return handleSuiAnalysis(req, res, address, options);
     }
 
@@ -526,6 +531,15 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
     // Normalize chain to lowercase
     const normalizedChain = normalizeChainId(chain);
 
+    // Handle Sui chain - return a message that funding tree is not yet supported
+    if (normalizedChain === 'sui') {
+        return res.status(400).json({ 
+            error: 'Funding tree is not yet supported for Sui blockchain. This feature is coming soon.',
+            isSuiUnsupported: true
+        });
+    }
+
+    // EVM address validation
     if (!ETH_ADDRESS_REGEX.test(address)) {
         return res.status(400).json({ error: 'Invalid wallet address format' });
     }
