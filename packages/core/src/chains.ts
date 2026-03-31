@@ -73,7 +73,7 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
         chainId: 0,
         name: 'Sui',
         symbol: 'SUI',
-        explorer: 'https://sui.io',
+        explorer: 'https://suiys.com',
         apiUrl: 'https://sui-mainnet.alchemy-blast.com',
         enabled: true,
     },

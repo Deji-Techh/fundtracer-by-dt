@@ -28,8 +28,8 @@ interface SuiTransactionBlock {
             };
         };
     };
-    effects: {
-        status: { status: string };
+    effects?: {
+        status: { status: string } | string;
         gasUsed: string;
         events?: Array<{
             type: string;
@@ -178,16 +178,26 @@ export class SuiProvider implements ITransactionProvider {
         try {
             const limit = filters?.limit || 100;
             
-            // Query transaction blocks where address is sender
+            // Query transaction blocks with options to get events and balance changes
             const senderTxs = await this.rpcCall('suix_queryTransactionBlocks', {
                 query: { sender: address },
-                limit: limit
+                limit: limit,
+                options: {
+                    showEffects: true,
+                    showEvents: true,
+                    showBalanceChanges: true,
+                }
             });
 
             // Query transaction blocks where address is recipient
             const recipientTxs = await this.rpcCall('suix_queryTransactionBlocks', {
                 query: { recipients: [address] },
-                limit: limit
+                limit: limit,
+                options: {
+                    showEffects: true,
+                    showEvents: true,
+                    showBalanceChanges: true,
+                }
             });
 
             // Combine and deduplicate
@@ -203,23 +213,35 @@ export class SuiProvider implements ITransactionProvider {
             }
 
             const transactions: Transaction[] = Array.from(txMap.values()).map((tx) => {
+                // Debug: log raw tx data to see what's coming back
+                console.log('[SUI] Raw tx:', JSON.stringify({
+                    digest: tx.digest,
+                    timestampMs: tx.timestampMs,
+                    status: tx.effects?.status,
+                    events: tx.effects?.events?.slice(0, 2),
+                    balanceChanges: tx.effects?.balanceChanges?.slice(0, 2),
+                    gasUsed: tx.effects?.gasUsed,
+                }));
+
                 // Fix status detection - check multiple possible status fields
-                const statusStr = tx.effects?.status?.status || tx.effects?.status || '';
+                const rawStatus = tx.effects?.status;
+                let statusStr = '';
+                if (typeof rawStatus === 'object' && rawStatus !== null) {
+                    statusStr = rawStatus.status || '';
+                } else if (typeof rawStatus === 'string') {
+                    statusStr = rawStatus;
+                }
                 const status: TxStatus = statusStr === 'success' ? 'success' : statusStr === 'failure' ? 'failed' : 'pending';
                 
                 // Fix timestamp - divide by 1000 to convert milliseconds to seconds for frontend display
                 const timestamp = tx.timestampMs ? Math.floor(parseInt(tx.timestampMs) / 1000) : Math.floor(Date.now() / 1000);
 
-                // Fix category detection - check more event types
-                let category: TxCategory = 'unknown';
+                // Fix category detection - check more event types, default to transfer for Sui
+                let category: TxCategory = 'transfer'; // Default to transfer for Sui
                 const events = tx.effects?.events || [];
                 
                 for (const event of events) {
                     const eventType = event.type || event.moveEvent?.type || '';
-                    if (eventType.includes('Transfer') || eventType.includes('Coin')) {
-                        category = 'transfer';
-                        break;
-                    }
                     if (eventType.includes('Swap') || eventType.includes('Dex') || eventType.includes('Liquidity')) {
                         category = 'dex_swap';
                         break;
