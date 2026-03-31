@@ -437,6 +437,14 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Keep-alive route to prevent Render free tier cold starts
+app.get('/keep-alive', (req, res) => {
+    res.send('OK');
+});
+
+// Start keep-alive pinger after server starts
+let keepAliveInterval: NodeJS.Timeout;
+
 // Protected routes
 // Create a main router
 const apiRouter = express.Router();
@@ -582,6 +590,16 @@ server = app.listen(PORT, async () => {
     } catch (error) {
         console.error('[Server] Failed to start Polymarket watcher:', error);
     }
+
+    // Start keep-alive pinger to prevent Render cold starts
+    const RENDER_URL = process.env.RENDER_URL || 'https://fundtracer-by-dt-654o.onrender.com';
+    keepAliveInterval = setInterval(() => {
+        fetch(`${RENDER_URL}/keep-alive`)
+            .then(() => console.log('[Keep-alive] Ping successful'))
+            .catch((err) => console.error('[Keep-alive] Ping failed:', err));
+    }, 3 * 60 * 1000); // Every 3 minutes
+
+    console.log(`[Keep-alive] Pinger started for ${RENDER_URL}`);
 });
 
 export const handler = app;
