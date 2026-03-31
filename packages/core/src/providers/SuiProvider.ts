@@ -137,6 +137,7 @@ export class SuiProvider implements ITransactionProvider {
             });
 
             const txCount = txCountResult?.data?.length || 0;
+            const txArray = txCountResult?.data || [];
 
             const walletInfo: WalletInfo = {
                 address: address.toLowerCase(),
@@ -146,7 +147,7 @@ export class SuiProvider implements ITransactionProvider {
                 txCount: txCount,
                 firstTxTimestamp,
                 lastTxTimestamp,
-                isContract: false, // Sui addresses are always wallet addresses
+                isContract: false,
             };
 
             this.setCache(cacheKey, walletInfo);
