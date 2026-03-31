@@ -283,6 +283,17 @@ webDistPath = possiblePaths.find(p => {
     }
 }) || possiblePaths[0]; // Default to first if none found
 
+// Serve whitepaper
+app.get('/whitepaper.pdf', (req, res) => {
+    const whitepaperPath = path.join(webDistPath, 'fundtracer-whitepaper.html');
+    res.setHeader('Content-Disposition', 'attachment; filename="fundtracer-whitepaper.pdf"');
+    res.sendFile(whitepaperPath, (err) => {
+        if (err) {
+            res.status(404).send('Whitepaper not found');
+        }
+    });
+});
+
 // Static files serving configured
 app.use(express.static(webDistPath));
 

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FundTracer Whitepaper</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #1e1e2e;
+            background: #fff;
+            font-size: 11pt;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 0;
+        }
+        
+        /* Cover Page */
+        .cover {
+            page-break-after: always;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
+            color: #fff;
+            padding: 60px;
+        }
+        
+        .cover-logo {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #6f6feb 0%, #9d4edd 100%);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(111, 111, 235, 0.4);
+        }
+        
+        .cover-logo svg {
+            width: 70px;
+            height: 70px;
+            fill: white;
+        }
+        
+        .cover h1 {
+            font-size: 48pt;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+        }
+        
+        .cover .tagline {
+            font-size: 18pt;
+            opacity: 0.9;
+            margin-bottom: 60px;
+            font-weight: 300;
+        }
+        
+        .cover .version {
+            font-size: 12pt;
+            opacity: 0.6;
+            margin-top: 40px;
+        }
+        
+        /* Content Pages */
+        .page {
+            padding: 40px 50px;
+            min-height: 100vh;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        h1.chapter {
+            font-size: 28pt;
+            color: #0f0f23;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #6f6feb;
+        }
+        
+        h2 {
+            font-size: 16pt;
+            color: #0f0f23;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        h3 {
+            font-size: 13pt;
+            color: #1e1e2e;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin-left: 25px;
+            margin-bottom: 15px;
+        }
+        
+        li {
+            margin-bottom: 6px;
+        }
+        
+        code {
+            background: #f4f4f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 10pt;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #fef9e7 0%, #fde8d7 100%);
+            border-left: 4px solid #f39c12;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #e8f4fd 0%, #d4ecf9 100%);
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .feature {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 18px;
+        }
+        
+        .feature h4 {
+            color: #6f6feb;
+            margin-bottom: 8px;
+            font-size: 12pt;
+        }
+        
+        .feature p {
+            font-size: 10pt;
+            margin-bottom: 0;
+            color: #666;
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32pt;
+            font-weight: 700;
+            color: #6f6feb;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 10pt;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .chains-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        .chain-item {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .chain-item .name {
+            font-weight: 600;
+            color: #0f0f23;
+        }
+        
+        .chain-item .status {
+            font-size: 9pt;
+            color: #27ae60;
+            margin-top: 4px;
+        }
+        
+        .chain-item.soon .status {
+            color: #f39c12;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #0f0f23;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9pt;
+            color: #999;
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+        
+        @media print {
+            body { font-size: 10pt; }
+            .page { padding: 30px 40px; }
+            .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .feature-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Cover Page -->
+        <div class="cover">
+            <div class="cover-logo">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="10"/>
+                    <circle cx="12" cy="12" r="4" fill="#0f0f23"/>
+                </svg>
+            </div>
+            <h1>FundTracer</h1>
+            <p class="tagline">Multi-Chain Blockchain Forensics Platform</p>
+            <p class="version">Whitepaper v1.0 | March 2026</p>
+        </div>
+        
+        <!-- Page 2: Abstract -->
+        <div class="page">
+            <h1 class="chapter">Abstract</h1>
+            
+            <p>
+                FundTracer is a comprehensive multi-chain blockchain forensics platform designed to provide 
+                deep insights into wallet behavior, transaction patterns, and on-chain activity. By combining 
+                advanced data aggregation, pattern recognition, and intuitive visualization tools, FundTracer 
+                enables analysts, investigators, traders, and developers to trace fund flows, detect coordinated 
+                activity, and make informed decisions based on real-time blockchain data.
+            </p>
+            
+            <div class="highlight-box">
+                <strong>Mission:</strong> Democratize blockchain forensics by providing powerful yet accessible 
+                tools that reveal the truth behind on-chain activity. We believe transparency is fundamental 
+                to the Web3 ecosystem, and FundTracer makes that transparency actionable.
+            </div>
+            
+            <p>
+                The platform supports multiple EVM-compatible blockchains with plans to expand to Move-based 
+                chains including Sui. Our unified API provides programmatic access to all features, enabling 
+                developers to build sophisticated monitoring and analytics tools.
+            </p>
+            
+            <div class="stats-row">
+                <div class="stat">
+                    <div class="stat-number">7+</div>
+                    <div class="stat-label">Supported Chains</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">100K+</div>
+                    <div class="stat-label">Tx Analyzable</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">&lt;3s</div>
+                    <div class="stat-label">Analysis Time</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">99.9%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Page 3: Introduction -->
+        <div class="page page-break">
+            <h1 class="chapter">1. Introduction</h1>
+            
+            <h2>1.1 The Need for Blockchain Forensics</h2>
+            
+            <p>
+                The blockchain ecosystem has grown exponentially, with billions of transactions occurring daily 
+                across numerous networks. This proliferation of on-chain activity creates both opportunities 
+                and challenges. While transparency is a core feature of blockchain technology, analyzing and 
+                interpreting this data requires specialized tools and expertise.
+            </p>
+            
+            <p>
+                Traditional blockchain explorers provide raw transaction data but lack the analytical depth 
+                needed for meaningful investigation. Security researchers, law enforcement, DeFi traders, 
+                and project teams need tools that can:
+            </p>
+            
+            <ul>
+                <li>Trace fund flows between wallets across multiple chains</li>
+                <li>Identify patterns of coordinated activity (Sybil attacks)</li>
+                <li>Analyze smart contract interactions and token holdings</li>
+                <li>Detect potential fraud, wash trading, or market manipulation</li>
+                <li>Monitor wallets of interest for real-time activity</li>
+            </ul>
+            
+            <h2>1.2 What is FundTracer?</h2>
+            
+            <p>
+                FundTracer addresses these needs by providing a unified platform that aggregates data from 
+                multiple sources, applies intelligent analysis algorithms, and presents findings through 
+                intuitive interfaces designed for both technical and non-technical users.
+            </p>
+            
+            <div class="info-box">
+                <strong>Key Differentiator:</strong> Unlike traditional forensics tools that focus on 
+                compliance and surveillance, FundTracer is designed for the broader Web3 ecosystem, 
+                serving security researchers, traders, developers, and investigators alike.
+            </div>
+            
+            <h2>1.3 Target Audience</h2>
+            
+            <div class="feature-grid">
+                <div class="feature">
+                    <h4>Security Researchers</h4>
+                    <p>Investigate hacks, trace stolen funds, identify attack patterns</p>
+                </div>
+                <div class="feature">
+                    <h4>DeFi Traders</h4>
+                    <p>Analyze whale movements, track protocol usage, identify opportunities</p>
+                </div>
+                <div class="feature">
+                    <h4>Compliance Teams</h4>
+                    <p>Support KYC/AML investigations, trace fund origins</p>
+                </div>
+                <div class="feature">
+                    <h4>Protocol Developers</h4>
+                    <p>Understand user behavior, analyze adoption, detect bot activity</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Page 4: Architecture -->
+        <div class="page page-break">
+            <h1 class="chapter">2. System Architecture</h1>
+            
+            <h2>2.1 Overview</h2>
+            
+            <p>
+                FundTracer employs a multi-layered architecture designed for scalability, reliability, 
+                and comprehensive data coverage. The system processes blockchain data through several 
+                stages, from raw RPC calls to actionable intelligence.
+            </p>
+            
+            <h2>2.2 Data Aggregation Layer</h2>
+            
+            <p>
+                FundTracer connects to multiple blockchain data providers to ensure comprehensive coverage:
+            </p>
+            
+            <ul>
+                <li><strong>Alchemy:</strong> Primary RPC provider for transaction data and state queries</li>
+                <li><strong>Moralis:</strong> NFT and token balance tracking</li>
+                <li><strong>Chain Explorers:</strong> Etherscan, Arbiscan, Basescan for enhanced metadata</li>
+                <li><strong>CoinGecko:</strong> Real-time and historical pricing data</li>
+            </ul>
+            
+            <h2>2.3 Analysis Engine</h2>
+            
+            <p>
+                The core analysis engine processes raw blockchain data through several stages:
+            </p>
+            
+            <div class="feature-grid">
+                <div class="feature">
+                    <h4>Transaction Parsing</h4>
+                    <p>Decodes calldata, identifies token transfers, contract calls, and DeFi interactions</p>
+                </div>
+                <div class="feature">
+                    <h4>Pattern Detection</h4>
+                    <p>Applies heuristics to identify known attack patterns and suspicious behaviors</p>
+                </div>
+                <div class="feature">
+                    <h4>Graph Analysis</h4>
+                    <p>Constructs wallet interaction graphs to identify clusters and coordinated activity</p>
+                </div>
+                <div class="feature">
+                    <h4>Risk Scoring</h4>
+                    <p>Computes risk scores based on transaction patterns and known entity associations</p>
+                </div>
+            </div>
+            
+            <h2>2.4 API Architecture</h2>
+            
+            <p>
+                FundTracer exposes a RESTful API for programmatic access. All endpoints require 
+                authentication via API keys.
+            </p>
+            
+            <table>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td><code>/analyze/wallet</code></td>
+                    <td>Comprehensive wallet analysis</td>
+                </tr>
+                <tr>
+                    <td><code>/analyze/funding-tree</code></td>
+                    <td>Trace fund sources and destinations</td>
+                </tr>
+                <tr>
+                    <td><code>/analyze/compare</code></td>
+                    <td>Compare wallets for shared activity</td>
+                </tr>
+                <tr>
+                    <td><code>/analyze/sybil</code></td>
+                    <td>Detect coordinated activity around contracts</td>
+                </tr>
+                <tr>
+                    <td><code>/analyze/contract</code></td>
+                    <td>Analyze smart contract interactions</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Page 5: Features -->
+        <div class="page page-break">
+            <h1 class="chapter">3. Core Features</h1>
+            
+            <h2>3.1 Wallet Analysis</h2>
+            
+            <p>
+                The primary feature provides deep insights into any wallet address:
+            </p>
+            
+            <ul>
+                <li>Complete transaction history with decoded events</li>
+                <li>Token holdings (ERC-20, ERC-721, ERC-1155)</li>
+                <li>DeFi protocol interactions (lending, swapping, staking)</li>
+                <li>Gas spending analysis</li>
+                <li>First and last active timestamps</li>
+                <li>Risk score and categorization</li>
+            </ul>
+            
+            <h2>3.2 Funding Tree Trace</h2>
+            
+            <p>
+                Visualizes the flow of funds into and out of a wallet:
+            </p>
+            
+            <ul>
+                <li>Configurable depth (1-5 levels)</li>
+                <li>Distinguishes between direct and indirect funding sources</li>
+                <li>Identifies common funders across multiple addresses</li>
+                <li>Highlights high-value transactions</li>
+                <li>Exportable as JSON for further analysis</li>
+            </ul>
+            
+            <h2>3.3 Sybil Detection</h2>
+            
+            <p>
+                Identifies coordinated activity that may indicate Sybil attacks, bot activity, or wash trading:
+            </p>
+            
+            <ul>
+                <li>Analyzes all wallets interacting with a target contract</li>
+                <li>Detects timing patterns suggesting coordinated action</li>
+                <li>Identifies shared funding sources</li>
+                <li>Flags similar transaction patterns</li>
+                <li>Provides confidence scores for findings</li>
+            </ul>
+            
+            <h2>3.4 Wallet Comparison</h2>
+            
+            <p>
+                Compares multiple wallets to identify connections:
+            </p>
+            
+            <ul>
+                <li>Shared contract interactions</li>
+                <li>Common token holdings</li>
+                <li>Similar timing patterns</li>
+                <li>Connected funding sources</li>
+            </ul>
+            
+            <h2>3.5 Portfolio Tracking</h2>
+            
+            <p>
+                Real-time monitoring of wallet portfolios:
+            </p>
+            
+            <ul>
+                <li>Token balances across all supported chains</li>
+                <li>NFT collection tracking</li>
+                <li>DeFi position aggregation</li>
+                <li>Portfolio value in USD</li>
+                <li>Historical balance tracking</li>
+            </ul>
+        </div>
+        
+        <!-- Page 6: Supported Chains -->
+        <div class="page page-break">
+            <h1 class="chapter">4. Supported Blockchains</h1>
+            
+            <p>
+                FundTracer currently supports multiple EVM-compatible networks with more coming soon.
+            </p>
+            
+            <div class="chains-grid">
+                <div class="chain-item">
+                    <div class="name">Ethereum</div>
+                    <div class="status">● Supported</div>
+                </div>
+                <div class="chain-item">
+                    <div class="name">Linea</div>
+                    <div class="status">● Supported</div>
+                </div>
+                <div class="chain-item">
+                    <div class="name">Arbitrum</div>
+                    <div class="status">● Supported</div>
+                </div>
+                <div class="chain-item">
+                    <div class="name">Base</div>
+                    <div class="status">● Supported</div>
+                </div>
+                <div class="chain-item">
+                    <div class="name">Optimism</div>
+                    <div class="status">● Supported</div>
+                </div>
+                <div class="chain-item">
+                    <div class="name">Polygon</div>
+                    <div class="status">● Supported</div>
+                </div>
+                <div class="chain-item">
+                    <div class="name">BNB Chain</div>
+                    <div class="status">● Supported</div>
+                </div>
+                <div class="chain-item soon">
+                    <div class="name">Sui</div>
+                    <div class="status">○ Coming Soon</div>
+                </div>
+            </div>
+            
+            <h2>4.1 Upcoming: Sui Blockchain</h2>
+            
+            <p>
+                FundTracer is expanding to support the Sui blockchain, a high-performance Move-based 
+                Layer 1 blockchain developed by Mysten Labs. Sui offers:
+            </p>
+            
+            <ul>
+                <li>Horizontal scaling without sharding</li>
+                <li>Sub-second finality</li>
+                <li>Rich object model with built-in provenance</li>
+                <li>Powerful smart contracts in Move</li>
+            </ul>
+            
+            <p>
+                Sui support will include wallet analysis, transaction tracing, and integration with 
+                Sui's unique object-centric data model.
+            </p>
+        </div>
+        
+        <!-- Page 7: Use Cases -->
+        <div class="page page-break">
+            <h1 class="chapter">5. Use Cases</h1>
+            
+            <h2>5.1 Security Research</h2>
+            <p>
+                Investigate wallet addresses associated with hacks, exploits, or fraudulent schemes. 
+                Trace stolen funds across multiple chains and identify potential laundering patterns.
+            </p>
+            
+            <h2>5.2 DeFi Analytics</h2>
+            <p>
+                Analyze wallet behavior of known traders, whale movements, and protocol usage. 
+                Identify institutional activity and track token accumulation patterns.
+            </p>
+            
+            <h2>5.3 Compliance & Investigation</h2>
+            <p>
+                Support KYC/AML investigations by tracing fund origins and identifying connections 
+                between addresses. Generate audit reports for regulatory submissions.
+            </p>
+            
+            <h2>5.4 Protocol Development</h2>
+            <p>
+                Understand user behavior, analyze adoption patterns, and detect bot activity 
+                around token launches or airdrops.
+            </p>
+            
+            <h2>5.5 Due Diligence</h2>
+            <p>
+                Research wallet addresses before transactions. Verify counterparty reliability 
+                and identify potential risks in on-chain dealings.
+            </p>
+            
+            <h2>5.6 NFT Analytics</h2>
+            <p>
+                Track NFT portfolio changes, identify wash trading patterns in collections, 
+                and analyze creator royalty distributions.
+            </p>
+        </div>
+        
+        <!-- Page 8: Product Suite & Pricing -->
+        <div class="page page-break">
+            <h1 class="chapter">6. Product Suite</h1>
+            
+            <div class="two-column">
+                <div>
+                    <h2>6.1 Web Application</h2>
+                    <p>
+                        Browser-based interface at <strong>fundtracer.xyz/app-evm</strong>. 
+                        No installation required. Supports all EVM chains with intuitive visualization.
+                    </p>
+                </div>
+                <div>
+                    <h2>6.2 CLI Tool</h2>
+                    <p>
+                        Command-line interface for power users. Install via:
+                        <code>npm install -g fundtracer-cli</code>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="two-column">
+                <div>
+                    <h2>6.3 Telegram Bot</h2>
+                    <p>
+                        Real-time wallet alerts delivered to Telegram. 
+                        Set up at <strong>fundtracer.xyz/telegram</strong>.
+                    </p>
+                </div>
+                <div>
+                    <h2>6.4 Chrome Extension</h2>
+                    <p>
+                        Embeds FundTracer into Etherscan and block explorers.
+                        Download from <strong>fundtracer.xyz/ext-install</strong>.
+                    </p>
+                </div>
+            </div>
+            
+            <h2>6.5 Pricing</h2>
+            
+            <table>
+                <tr>
+                    <th>Tier</th>
+                    <th>Price</th>
+                    <th>API Keys</th>
+                    <th>Features</th>
+                </tr>
+                <tr>
+                    <td>Free</td>
+                    <td>$0</td>
+                    <td>2 keys</td>
+                    <td>Basic analysis, EVM chains</td>
+                </tr>
+                <tr>
+                    <td>Pro</td>
+                    <td>$0</td>
+                    <td>Unlimited</td>
+                    <td>Sybil detection, all chains</td>
+                </tr>
+                <tr>
+                    <td>Max</td>
+                    <td>$0</td>
+                    <td>Unlimited</td>
+                    <td>Priority support, dedicated infrastructure</td>
+                </tr>
+            </table>
+            
+            <div class="info-box">
+                All tiers are currently free during the beta period. No credit card required.
+            </div>
+        </div>
+        
+        <!-- Page 9: Security & Conclusion -->
+        <div class="page page-break">
+            <h1 class="chapter">7. Security & Privacy</h1>
+            
+            <ul>
+                <li><strong>No Data Retention:</strong> FundTracer does not store user query history</li>
+                <li><strong>Read-Only:</strong> All operations are read-only; no transactions can be initiated</li>
+                <li><strong>API Key Security:</strong> Keys are hashed and never exposed in logs</li>
+                <li><strong>Firebase Auth:</strong> Secure authentication with industry-standard practices</li>
+                <li><strong>HTTPS Only:</strong> All communications encrypted in transit</li>
+                <li><strong>Rate Limiting:</strong> Built-in protection against abuse</li>
+            </ul>
+            
+            <h1 class="chapter" style="margin-top: 40px;">8. Roadmap</h1>
+            
+            <ul>
+                <li><strong>Q2 2026:</strong> Sui blockchain integration</li>
+                <li><strong>Q3 2026:</strong> AI-powered pattern recognition</li>
+                <li><strong>Q4 2026:</strong> Real-time whale movement alerts</li>
+                <li><strong>2027:</strong> Solana, Aptos expansion</li>
+            </ul>
+            
+            <h1 class="chapter" style="margin-top: 40px;">9. Conclusion</h1>
+            
+            <p>
+                FundTracer provides a comprehensive solution for blockchain forensics and wallet analysis. 
+                By combining multiple data sources, advanced pattern detection, and intuitive interfaces, 
+                it serves the needs of security researchers, DeFi traders, compliance teams, and 
+                developers alike.
+            </p>
+            
+            <div class="highlight-box">
+                <strong>Get Started:</strong> Visit <strong>fundtracer.xyz</strong> to begin analyzing 
+                wallets today. All tiers are currently free to use.
+            </div>
+            
+            <div class="footer">
+                <span>© 2026 FundTracer. All rights reserved.</span>
+                <span>fundtracer.xyz | contact@fundtracer.xyz</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
