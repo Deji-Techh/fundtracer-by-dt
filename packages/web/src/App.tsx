@@ -22,6 +22,8 @@ const ApiPage = lazy(() => import('./pages/ApiPage').then(m => ({ default: m.Api
 const ApiDocsPage = lazy(() => import('./pages/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
 const ApiKeysPage = lazy(() => import('./pages/ApiKeysPage').then(m => ({ default: m.ApiKeysPage })));
 const ApiKeysAuthPage = lazy(() => import('./pages/ApiKeysAuthPage').then(m => ({ default: m.ApiKeysAuthPage })));
+const BlogPage = lazy(() => import('./pages/BlogPage').then(m => ({ default: m.BlogPage })));
+const BlogPostPage = lazy(() => import('./pages/BlogPostPage').then(m => ({ default: m.BlogPostPage })));
 const GettingStartedPage = lazy(() => import('./pages/DocsGettingStartedPage').then(m => ({ default: m.GettingStartedPage })));
 const EthereumWalletTrackerPage = lazy(() => import('./pages/DocsEthereumPage').then(m => ({ default: m.EthereumWalletTrackerPage })));
 const SolanaWalletTrackerPage = lazy(() => import('./pages/DocsSolanaPage').then(m => ({ default: m.SolanaWalletTrackerPage })));
@@ -155,6 +157,8 @@ function App() {
       <Route path="/api-docs" element={<Suspense fallback={null}><ApiPage /></Suspense>} />
       <Route path="/api/docs" element={<Suspense fallback={null}><ApiDocsPage /></Suspense>} />
       <Route path="/docs" element={<Navigate to="/docs/getting-started" replace />} />
+      <Route path="/blog" element={<Suspense fallback={null}><BlogPage /></Suspense>} />
+      <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />
       <Route path="/docs/getting-started" element={<Suspense fallback={null}><GettingStartedPage /></Suspense>} />
       <Route path="/docs/ethereum-wallet-tracker" element={<Suspense fallback={null}><EthereumWalletTrackerPage /></Suspense>} />
       <Route path="/docs/solana-wallet-tracker" element={<Suspense fallback={null}><SolanaWalletTrackerPage /></Suspense>} />
