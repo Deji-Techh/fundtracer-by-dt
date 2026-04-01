@@ -226,6 +226,7 @@ export function IntelPage() {
 
   const navItems = [
     { label: 'Intel', href: '/', active: true },
+    { label: 'Docs', href: '/docs/getting-started' },
     { label: 'Features', href: '/features' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'How It Works', href: '/how-it-works' },

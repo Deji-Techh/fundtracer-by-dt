@@ -154,6 +154,7 @@ function App() {
       <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
       <Route path="/api-docs" element={<Suspense fallback={null}><ApiPage /></Suspense>} />
       <Route path="/api/docs" element={<Suspense fallback={null}><ApiDocsPage /></Suspense>} />
+      <Route path="/docs" element={<Navigate to="/docs/getting-started" replace />} />
       <Route path="/docs/getting-started" element={<Suspense fallback={null}><GettingStartedPage /></Suspense>} />
       <Route path="/docs/ethereum-wallet-tracker" element={<Suspense fallback={null}><EthereumWalletTrackerPage /></Suspense>} />
       <Route path="/docs/solana-wallet-tracker" element={<Suspense fallback={null}><SolanaWalletTrackerPage /></Suspense>} />
