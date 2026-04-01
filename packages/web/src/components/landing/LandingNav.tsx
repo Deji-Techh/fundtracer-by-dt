@@ -18,11 +18,12 @@ export function LandingNav() {
 
   const navLinks = [
     { href: '/about', label: 'About' },
+    { href: '/docs/getting-started', label: 'Docs', highlight: true },
     { href: '/features', label: 'Features' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/how-it-works', label: 'How It Works' },
     { href: '/faq', label: 'FAQ' },
-    { href: '/api-docs', label: 'API', highlight: true },
+    { href: '/api-docs', label: 'API' },
   ];
 
   return (

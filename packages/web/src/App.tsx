@@ -22,6 +22,15 @@ const ApiPage = lazy(() => import('./pages/ApiPage').then(m => ({ default: m.Api
 const ApiDocsPage = lazy(() => import('./pages/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
 const ApiKeysPage = lazy(() => import('./pages/ApiKeysPage').then(m => ({ default: m.ApiKeysPage })));
 const ApiKeysAuthPage = lazy(() => import('./pages/ApiKeysAuthPage').then(m => ({ default: m.ApiKeysAuthPage })));
+const GettingStartedPage = lazy(() => import('./pages/DocsGettingStartedPage').then(m => ({ default: m.GettingStartedPage })));
+const EthereumWalletTrackerPage = lazy(() => import('./pages/DocsEthereumPage').then(m => ({ default: m.EthereumWalletTrackerPage })));
+const SolanaWalletTrackerPage = lazy(() => import('./pages/DocsSolanaPage').then(m => ({ default: m.SolanaWalletTrackerPage })));
+const MultiChainWalletTrackerPage = lazy(() => import('./pages/DocsMultiChainPage').then(m => ({ default: m.MultiChainWalletTrackerPage })));
+const ContractAnalyticsPage = lazy(() => import('./pages/DocsContractAnalyticsPage').then(m => ({ default: m.ContractAnalyticsPage })));
+const SybilDetectionPage = lazy(() => import('./pages/DocsSybilDetectionPage').then(m => ({ default: m.SybilDetectionPage })));
+const FundingTreeAnalysisPage = lazy(() => import('./pages/DocsFundingTreePage').then(m => ({ default: m.FundingTreeAnalysisPage })));
+const WalletRiskScorePage = lazy(() => import('./pages/DocsRiskScorePage').then(m => ({ default: m.WalletRiskScorePage })));
+const CliGuidePage = lazy(() => import('./pages/DocsCliGuidePage').then(m => ({ default: m.CliGuidePage })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -145,6 +154,16 @@ function App() {
       <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
       <Route path="/api-docs" element={<Suspense fallback={null}><ApiPage /></Suspense>} />
       <Route path="/api/docs" element={<Suspense fallback={null}><ApiDocsPage /></Suspense>} />
+      <Route path="/docs/getting-started" element={<Suspense fallback={null}><GettingStartedPage /></Suspense>} />
+      <Route path="/docs/ethereum-wallet-tracker" element={<Suspense fallback={null}><EthereumWalletTrackerPage /></Suspense>} />
+      <Route path="/docs/solana-wallet-tracker" element={<Suspense fallback={null}><SolanaWalletTrackerPage /></Suspense>} />
+      <Route path="/docs/multi-chain-wallet-tracker" element={<Suspense fallback={null}><MultiChainWalletTrackerPage /></Suspense>} />
+      <Route path="/docs/contract-analytics" element={<Suspense fallback={null}><ContractAnalyticsPage /></Suspense>} />
+      <Route path="/docs/sybil-detection" element={<Suspense fallback={null}><SybilDetectionPage /></Suspense>} />
+      <Route path="/docs/funding-tree-analysis" element={<Suspense fallback={null}><FundingTreeAnalysisPage /></Suspense>} />
+      <Route path="/docs/wallet-risk-score" element={<Suspense fallback={null}><WalletRiskScorePage /></Suspense>} />
+      <Route path="/docs/api-reference" element={<Suspense fallback={null}><ApiDocsPage /></Suspense>} />
+      <Route path="/docs/cli-guide" element={<Suspense fallback={null}><CliGuidePage /></Suspense>} />
       <Route path="/api/keys" element={<ApiKeysRoute />} />
       <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
       <Route path="/app-evm/*" element={
