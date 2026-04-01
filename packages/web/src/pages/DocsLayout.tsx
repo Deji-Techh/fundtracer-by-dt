@@ -3,7 +3,7 @@
  * Uses theme-aware styling with data-theme support
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Book, 
@@ -60,6 +60,18 @@ export function DocsLayout({
 }: DocsLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentSection, setCurrentSection] = useState(activeSection || sections[0]?.id || '');
+
+  useEffect(() => {
+    document.title = `${title} | FundTracer Docs`;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc && description) {
+      metaDesc.setAttribute('content', description);
+    }
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) {
+      canonical.setAttribute('href', `https://www.fundtracer.xyz/docs/${title.toLowerCase().replace(/\s+/g, '-')}`);
+    }
+  }, [title, description]);
 
   const scrollToSection = (sectionId: string) => {
     setCurrentSection(sectionId);
@@ -177,6 +189,25 @@ export function DocsLayout({
           <div className="docs-content">
             {children}
           </div>
+
+          {/* JSON-LD Schema */}
+          <script type="application/ld+json" dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "TechArticle",
+              "headline": title,
+              "description": description,
+              "url": `https://www.fundtracer.xyz/docs/${title.toLowerCase().replace(/\s+/g, '-')}`,
+              "publisher": {
+                "@type": "Organization",
+                "name": "FundTracer by DT"
+              },
+              "about": {
+                "@type": "Thing",
+                "name": title
+              }
+            })
+          }} />
         </main>
       </div>
     </div>

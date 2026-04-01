@@ -121,6 +121,13 @@ export function EthereumWalletTrackerPage() {
         <li><strong>Compliance</strong> - Verify source of funds</li>
         <li><strong>Competitive Intelligence</strong> - Track competitor wallet activity</li>
       </ul>
+
+      <h2 id="use-cases">Related Documentation</h2>
+      <ul>
+        <li><a href="/docs/multi-chain-wallet-tracker" style={{color: 'var(--intel-cyan)'}}>Multi-Chain Wallet Tracker</a> - Analyze across all chains</li>
+        <li><a href="/docs/wallet-risk-score" style={{color: 'var(--intel-cyan)'}}>Wallet Risk Score</a> - Understand risk scoring</li>
+        <li><a href="/docs/funding-tree-analysis" style={{color: 'var(--intel-cyan)'}}>Funding Tree Analysis</a> - Trace fund sources</li>
+      </ul>
     </DocsLayout>
   );
 }
