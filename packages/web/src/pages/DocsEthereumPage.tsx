@@ -4,23 +4,21 @@
  */
 
 import React from 'react';
-import { DocsLayout } from './DocsLayout';
-import { Wallet, Search, TrendingUp, Shield, Clock, DollarSign } from 'lucide-react';
+import { DocsPage } from './DocsPage';
 
 const sections = [
-  { id: 'overview', title: 'Overview', icon: <Wallet size={16} /> },
-  { id: 'features', title: 'Features', icon: <Search size={16} /> },
-  { id: 'how-to-use', title: 'How to Use', icon: <Search size={16} /> },
-  { id: 'response-format', title: 'Response Format', icon: <TrendingUp size={16} /> },
-  { id: 'use-cases', title: 'Use Cases', icon: <Shield size={16} /> },
+  { id: 'overview', title: 'Overview' },
+  { id: 'features', title: 'Features' },
+  { id: 'how-to-use', title: 'How to Use' },
+  { id: 'response-format', title: 'Response Format' },
+  { id: 'use-cases', title: 'Use Cases' },
 ];
 
 export function EthereumWalletTrackerPage() {
   return (
-    <DocsLayout
+    <DocsPage
       title="Ethereum Wallet Tracker"
       description="Learn how to analyze Ethereum wallet addresses, view transaction history, and assess wallet behavior."
-      activeSection="overview"
       sections={sections}
     >
       <h2 id="overview">Overview</h2>
@@ -128,7 +126,7 @@ export function EthereumWalletTrackerPage() {
         <li><a href="/docs/wallet-risk-score" style={{color: 'var(--intel-cyan)'}}>Wallet Risk Score</a> - Understand risk scoring</li>
         <li><a href="/docs/funding-tree-analysis" style={{color: 'var(--intel-cyan)'}}>Funding Tree Analysis</a> - Trace fund sources</li>
       </ul>
-    </DocsLayout>
+    </DocsPage>
   );
 }
 

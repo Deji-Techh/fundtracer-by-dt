@@ -4,22 +4,20 @@
  */
 
 import React from 'react';
-import { DocsLayout } from './DocsLayout';
-import { GitCompare, Network, ArrowRight, Search, TrendingUp } from 'lucide-react';
+import { DocsPage } from './DocsPage';
 
 const sections = [
-  { id: 'overview', title: 'Overview', icon: <GitCompare size={16} /> },
-  { id: 'how-it-works', title: 'How It Works', icon: <Search size={16} /> },
-  { id: 'visualization', title: 'Visualization', icon: <Network size={16} /> },
-  { id: 'interpretation', title: 'Interpreting Results', icon: <TrendingUp size={16} /> },
+  { id: 'overview', title: 'Overview' },
+  { id: 'how-it-works', title: 'How It Works' },
+  { id: 'visualization', title: 'Visualization' },
+  { id: 'interpretation', title: 'Interpreting Results' },
 ];
 
 export function FundingTreeAnalysisPage() {
   return (
-    <DocsLayout
+    <DocsPage
       title="Funding Tree Analysis"
       description="Visualize and trace fund flows between wallets with interactive tree visualization."
-      activeSection="overview"
       sections={sections}
     >
       <h2 id="overview">Overview</h2>
@@ -98,7 +96,7 @@ export function FundingTreeAnalysisPage() {
           </tr>
         </tbody>
       </table>
-    </DocsLayout>
+    </DocsPage>
   );
 }
 

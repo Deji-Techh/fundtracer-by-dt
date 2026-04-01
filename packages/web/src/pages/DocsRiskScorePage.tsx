@@ -4,22 +4,20 @@
  */
 
 import React from 'react';
-import { DocsLayout } from './DocsLayout';
-import { Shield, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
+import { DocsPage } from './DocsPage';
 
 const sections = [
-  { id: 'overview', title: 'Overview', icon: <Shield size={16} /> },
-  { id: 'methodology', title: 'Methodology', icon: <TrendingUp size={16} /> },
-  { id: 'risk-factors', title: 'Risk Factors', icon: <AlertTriangle size={16} /> },
-  { id: 'interpretation', title: 'Interpreting Scores', icon: <CheckCircle size={16} /> },
+  { id: 'overview', title: 'Overview' },
+  { id: 'methodology', title: 'Methodology' },
+  { id: 'risk-factors', title: 'Risk Factors' },
+  { id: 'interpretation', title: 'Interpreting Scores' },
 ];
 
 export function WalletRiskScorePage() {
   return (
-    <DocsLayout
+    <DocsPage
       title="Wallet Risk Score"
       description="Understand how FundTracer calculates risk scores for wallet addresses."
-      activeSection="overview"
       sections={sections}
     >
       <h2 id="overview">Overview</h2>
@@ -93,7 +91,7 @@ export function WalletRiskScorePage() {
           </tr>
         </tbody>
       </table>
-    </DocsLayout>
+    </DocsPage>
   );
 }
 

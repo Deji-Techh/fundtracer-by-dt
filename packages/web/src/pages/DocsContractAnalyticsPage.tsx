@@ -4,23 +4,21 @@
  */
 
 import React from 'react';
-import { DocsLayout } from './DocsLayout';
-import { Search, Shield, TrendingUp, Users, FileText } from 'lucide-react';
+import { DocsPage } from './DocsPage';
 
 const sections = [
-  { id: 'overview', title: 'Overview', icon: <Search size={16} /> },
-  { id: 'features', title: 'Features', icon: <Shield size={16} /> },
-  { id: 'how-to-use', title: 'How to Use', icon: <Search size={16} /> },
-  { id: 'analysis-metrics', title: 'Analysis Metrics', icon: <TrendingUp size={16} /> },
-  { id: 'use-cases', title: 'Use Cases', icon: <Users size={16} /> },
+  { id: 'overview', title: 'Overview' },
+  { id: 'features', title: 'Features' },
+  { id: 'how-to-use', title: 'How to Use' },
+  { id: 'analysis-metrics', title: 'Analysis Metrics' },
+  { id: 'use-cases', title: 'Use Cases' },
 ];
 
 export function ContractAnalyticsPage() {
   return (
-    <DocsLayout
+    <DocsPage
       title="Contract Analytics"
       description="Analyze smart contracts to understand their behavior, security, and interaction patterns."
-      activeSection="overview"
       sections={sections}
     >
       <h2 id="overview">Overview</h2>
@@ -112,7 +110,7 @@ export function ContractAnalyticsPage() {
         <li><strong>Whale Tracking</strong> - Monitor large holder movements</li>
         <li><strong>Market Analysis</strong> - Understand token distribution and liquidity</li>
       </ul>
-    </DocsLayout>
+    </DocsPage>
   );
 }
 

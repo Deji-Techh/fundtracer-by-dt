@@ -4,33 +4,21 @@
  */
 
 import React from 'react';
-import { DocsLayout } from './DocsLayout';
-import { 
-  Wallet, 
-  Shield, 
-  Search, 
-  GitCompare, 
-  Code, 
-  Terminal,
-  Zap,
-  ArrowRight,
-  CheckCircle
-} from 'lucide-react';
+import { DocsPage } from './DocsPage';
 
 const sections = [
-  { id: 'overview', title: 'Overview', icon: <Zap size={16} /> },
-  { id: 'features', title: 'Core Features', icon: <Wallet size={16} /> },
-  { id: 'quickstart', title: 'Quick Start', icon: <Zap size={16} /> },
-  { id: 'supported-chains', title: 'Supported Chains', icon: <Search size={16} /> },
-  { id: 'authentication', title: 'Authentication', icon: <Shield size={16} /> },
+  { id: 'overview', title: 'Overview' },
+  { id: 'features', title: 'Core Features' },
+  { id: 'quickstart', title: 'Quick Start' },
+  { id: 'supported-chains', title: 'Supported Chains' },
+  { id: 'authentication', title: 'Authentication' },
 ];
 
 export function GettingStartedPage() {
   return (
-    <DocsLayout
+    <DocsPage
       title="Getting Started"
       description="Learn how to use FundTracer for blockchain wallet analysis, Sybil detection, and on-chain forensics."
-      activeSection="overview"
       sections={sections}
     >
       <h2 id="overview">Overview</h2>
@@ -47,19 +35,19 @@ export function GettingStartedPage() {
       <h2 id="features">Core Features</h2>
       <div className="feature-grid">
         <div className="feature-card">
-          <h4><Wallet size={16} style={{marginRight: 8, verticalAlign: 'middle'}} />Wallet Analysis</h4>
-          <p>Deep dive into any wallet address. View transaction history, token holdings, funding sources, and behavioral patterns.</p>
+          <h4>Wallet Analysis</h4>
+          <p>Deep dive into any wallet address across multiple chains. View transaction history, token holdings, funding sources, and behavioral patterns.</p>
         </div>
         <div className="feature-card">
-          <h4><Search size={16} style={{marginRight: 8, verticalAlign: 'middle'}} />Contract Analytics</h4>
+          <h4>Contract Analytics</h4>
           <p>Analyze smart contracts to understand their behavior, security, and interaction patterns.</p>
         </div>
         <div className="feature-card">
-          <h4><GitCompare size={16} style={{marginRight: 8, verticalAlign: 'middle'}} />Wallet Comparison</h4>
+          <h4>Wallet Comparison</h4>
           <p>Compare multiple wallets side-by-side to identify connections and coordinated behaviors.</p>
         </div>
         <div className="feature-card">
-          <h4><Shield size={16} style={{marginRight: 8, verticalAlign: 'middle'}} />Sybil Detection</h4>
+          <h4>Sybil Detection</h4>
           <p>Identify coordinated bot networks and fake accounts using advanced clustering algorithms.</p>
         </div>
       </div>
@@ -172,7 +160,7 @@ export function GettingStartedPage() {
           <li><a href="/docs/api-reference" style={{color: 'var(--intel-cyan)'}}>API Reference</a></li>
         </ul>
       </div>
-    </DocsLayout>
+    </DocsPage>
   );
 }
 

@@ -4,22 +4,20 @@
  */
 
 import React from 'react';
-import { DocsLayout } from './DocsLayout';
-import { Wallet, Network, Search, TrendingUp, Shield } from 'lucide-react';
+import { DocsPage } from './DocsPage';
 
 const sections = [
-  { id: 'overview', title: 'Overview', icon: <Wallet size={16} /> },
-  { id: 'supported-chains', title: 'Supported Chains', icon: <Network size={16} /> },
-  { id: 'cross-chain', title: 'Cross-Chain Analysis', icon: <Search size={16} /> },
-  { id: 'unified-view', title: 'Unified Portfolio View', icon: <TrendingUp size={16} /> },
+  { id: 'overview', title: 'Overview' },
+  { id: 'supported-chains', title: 'Supported Chains' },
+  { id: 'cross-chain', title: 'Cross-Chain Analysis' },
+  { id: 'unified-view', title: 'Unified Portfolio View' },
 ];
 
 export function MultiChainWalletTrackerPage() {
   return (
-    <DocsLayout
+    <DocsPage
       title="Multi-Chain Wallet Tracker"
       description="Analyze wallet addresses across multiple blockchains from a single interface."
-      activeSection="overview"
       sections={sections}
     >
       <h2 id="overview">Overview</h2>
@@ -113,7 +111,7 @@ export function MultiChainWalletTrackerPage() {
         <li>Cross-chain transfer history</li>
         <li>Combined risk score</li>
       </ul>
-    </DocsLayout>
+    </DocsPage>
   );
 }
 

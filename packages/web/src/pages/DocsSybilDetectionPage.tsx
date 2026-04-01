@@ -4,22 +4,20 @@
  */
 
 import React from 'react';
-import { DocsLayout } from './DocsLayout';
-import { Shield, Search, Network, Users, AlertTriangle } from 'lucide-react';
+import { DocsPage } from './DocsPage';
 
 const sections = [
-  { id: 'overview', title: 'Overview', icon: <Shield size={16} /> },
-  { id: 'how-it-works', title: 'How It Works', icon: <Search size={16} /> },
-  { id: 'detection-methods', title: 'Detection Methods', icon: <Network size={16} /> },
-  { id: 'interpretation', title: 'Interpreting Results', icon: <Users size={16} /> },
+  { id: 'overview', title: 'Overview' },
+  { id: 'how-it-works', title: 'How It Works' },
+  { id: 'detection-methods', title: 'Detection Methods' },
+  { id: 'interpretation', title: 'Interpreting Results' },
 ];
 
 export function SybilDetectionPage() {
   return (
-    <DocsLayout
+    <DocsPage
       title="Sybil Detection"
       description="Identify coordinated bot networks and fake accounts using advanced clustering algorithms."
-      activeSection="overview"
       sections={sections}
     >
       <h2 id="overview">Overview</h2>
@@ -99,7 +97,7 @@ export function SybilDetectionPage() {
           </tr>
         </tbody>
       </table>
-    </DocsLayout>
+    </DocsPage>
   );
 }
 

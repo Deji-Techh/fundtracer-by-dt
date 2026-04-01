@@ -4,22 +4,20 @@
  */
 
 import React from 'react';
-import { DocsLayout } from './DocsLayout';
-import { Terminal, Download, Settings, Key } from 'lucide-react';
+import { DocsPage } from './DocsPage';
 
 const sections = [
-  { id: 'overview', title: 'Overview', icon: <Terminal size={16} /> },
-  { id: 'installation', title: 'Installation', icon: <Download size={16} /> },
-  { id: 'commands', title: 'Commands', icon: <Terminal size={16} /> },
-  { id: 'configuration', title: 'Configuration', icon: <Settings size={16} /> },
+  { id: 'overview', title: 'Overview' },
+  { id: 'installation', title: 'Installation' },
+  { id: 'commands', title: 'Commands' },
+  { id: 'configuration', title: 'Configuration' },
 ];
 
 export function CliGuidePage() {
   return (
-    <DocsLayout
+    <DocsPage
       title="CLI Guide"
       description="Command-line interface for FundTracer. Analyze wallets directly from your terminal."
-      activeSection="overview"
       sections={sections}
     >
       <h2 id="overview">Overview</h2>
@@ -65,7 +63,7 @@ fundtracer config set-api-key ft_live_your_api_key
 
 # View current config
 fundtracer config show`}</code></pre>
-    </DocsLayout>
+    </DocsPage>
   );
 }
 

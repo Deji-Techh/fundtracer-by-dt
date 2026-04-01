@@ -4,23 +4,21 @@
  */
 
 import React from 'react';
-import { DocsLayout } from './DocsLayout';
-import { Wallet, Search, TrendingUp, Shield, Clock, DollarSign } from 'lucide-react';
+import { DocsPage } from './DocsPage';
 
 const sections = [
-  { id: 'overview', title: 'Overview', icon: <Wallet size={16} /> },
-  { id: 'features', title: 'Features', icon: <Search size={16} /> },
-  { id: 'how-to-use', title: 'How to Use', icon: <Search size={16} /> },
-  { id: 'response-format', title: 'Response Format', icon: <TrendingUp size={16} /> },
-  { id: 'use-cases', title: 'Use Cases', icon: <Shield size={16} /> },
+  { id: 'overview', title: 'Overview' },
+  { id: 'features', title: 'Features' },
+  { id: 'how-to-use', title: 'How to Use' },
+  { id: 'response-format', title: 'Response Format' },
+  { id: 'use-cases', title: 'Use Cases' },
 ];
 
 export function SolanaWalletTrackerPage() {
   return (
-    <DocsLayout
+    <DocsPage
       title="Solana Wallet Tracker"
       description="Learn how to analyze Solana wallet addresses, view transaction history, and track SPL token holdings."
-      activeSection="overview"
       sections={sections}
     >
       <h2 id="overview">Overview</h2>
@@ -120,7 +118,7 @@ export function SolanaWalletTrackerPage() {
         <li><strong>Airdrop Tracking</strong> - Identify potential airdrop farmers</li>
         <li><strong>Security Research</strong> - Investigate suspicious wallet activity</li>
       </ul>
-    </DocsLayout>
+    </DocsPage>
   );
 }
 
