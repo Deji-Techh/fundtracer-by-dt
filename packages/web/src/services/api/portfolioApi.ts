@@ -1,5 +1,18 @@
 const API_BASE = '';
 
+async function authenticatedFetch(url: string, options?: RequestInit): Promise<Response> {
+  const response = await fetch(url, {
+    ...options,
+    credentials: 'include',
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  
+  return response;
+}
+
 export interface Token {
   address: string;
   symbol: string;
@@ -32,7 +45,7 @@ export interface PortfolioData {
 
 export const portfolioApi = {
   async getPortfolio(walletAddress: string, chain: string = 'linea'): Promise<PortfolioData> {
-    const response = await fetch(`${API_BASE}/api/portfolio/${walletAddress}?chain=${chain}`);
+    const response = await authenticatedFetch(`${API_BASE}/api/portfolio/${walletAddress}?chain=${chain}`);
     
     if (!response.ok) {
       const error = await response.json();
@@ -43,7 +56,7 @@ export const portfolioApi = {
   },
 
   async getNFTs(walletAddress: string, chain: string = 'linea'): Promise<NFT[]> {
-    const response = await fetch(`${API_BASE}/api/portfolio/${walletAddress}/nfts?chain=${chain}`);
+    const response = await authenticatedFetch(`${API_BASE}/api/portfolio/${walletAddress}/nfts?chain=${chain}`);
     
     if (!response.ok) {
       const error = await response.json();
