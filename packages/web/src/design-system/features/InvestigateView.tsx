@@ -24,6 +24,7 @@ import ContractGridView from '../../components/ContractGridView';
 import ContractAnalysisView, { ContractAnalysisResult } from '../../components/ContractAnalysisView';
 import SybilGridView from '../../components/SybilGridView';
 import SybilDetector from '../../components/SybilDetector';
+import CEXFlowView from '../../components/CEXFlowView';
 import SearchHistory from '../../components/SearchHistory';
 import AdvancedGraph from '../../components/graph/AdvancedGraph';
 import TrackView from './TrackView';
@@ -37,7 +38,7 @@ interface InvestigateViewProps {
 }
 
 // Tab types matching reference HTML
-type TabType = 'wallet' | 'contract' | 'compare' | 'sybil' | 'graph' | 'track' | 'sui-grid';
+type TabType = 'wallet' | 'contract' | 'compare' | 'sybil' | 'graph' | 'track' | 'sui-grid' | 'cex-flow';
 
 type SuiFeature = 'wallet' | 'contract' | 'compare' | 'sybil' | 'track';
 
@@ -524,6 +525,11 @@ export function InvestigateView({
       return <SybilGridView chain={selectedChain} />;
     }
 
+    // CEX Flow tab - show CEXFlowView
+    if (activeTab === 'cex-flow') {
+      return <CEXFlowView chain={selectedChain} />;
+    }
+
     // Wallet tab - show WalletGridView or SearchHistory
     if (activeTab === 'wallet') {
       if (walletResult) {
@@ -792,6 +798,17 @@ export function InvestigateView({
             </svg>
             Track
           </div>
+          {!suiMode && (
+            <div 
+              className={`tab ${activeTab === 'cex-flow' ? 'active' : ''} tab-cex`}
+              onClick={() => setActiveTab('cex-flow')}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              </svg>
+              CEX Flow
+            </div>
+          )}
           {isDesktop && (
             <div 
               className={`tab ${activeTab === 'graph' ? 'active' : ''} tab-graph`}
@@ -810,7 +827,7 @@ export function InvestigateView({
 
         <div className="panel-body">
           {/* Network Selection - Only show for wallet/contract/compare tabs (not for sui mode) */}
-          {!suiMode && activeTab !== 'sybil' && activeTab !== 'graph' && activeTab !== 'track' && (
+          {!suiMode && activeTab !== 'sybil' && activeTab !== 'graph' && activeTab !== 'track' && activeTab !== 'cex-flow' && (
             <>
               <div className="field-label">Network</div>
               <div className="chains">

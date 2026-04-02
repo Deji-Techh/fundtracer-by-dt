@@ -290,6 +290,50 @@ export async function analyzeContract(
     return apiRequest('/api/analyze/contract', 'POST', { contractAddress, chain, options });
 }
 
+// CEX Flow Analysis
+export interface CEXFlowResult {
+    targetWallet: string;
+    chain: string;
+    connectedCEX: {
+        cexName: string;
+        address: string;
+        type: string;
+        isMain: boolean;
+    }[];
+    connectedWallets: {
+        address: string;
+        totalSent: number;
+        firstTx: number;
+        lastTx: number;
+        txCount: number;
+        isCEX: boolean;
+        cexName?: string;
+    }[];
+    stats: {
+        totalInteractors: number;
+        uniqueCEX: number;
+        totalVolume: number;
+        cexVolume: number;
+    };
+    detectedCEX: {
+        address: string;
+        score: number;
+        signals: string[];
+    }[];
+}
+
+export async function analyzeCEXFlow(
+    walletAddress: string,
+    chain: ChainId,
+    options?: { cexName?: string; depth?: number }
+): Promise<ApiResponse<CEXFlowResult>> {
+    return apiRequest('/api/analyze/cex-flow', 'POST', { 
+        walletAddress, 
+        chain,
+        ...options 
+    });
+}
+
 // Contract endpoints
 export async function searchContract(query: string): Promise<{ address: string | null; name: string | null }> {
     return apiRequest('/api/contracts/search', 'POST', { query });

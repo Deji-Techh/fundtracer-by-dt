@@ -1091,4 +1091,85 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
     }
 });
 
+// CEX Flow Analysis Endpoint
+router.post('/cex-flow', async (req: AuthenticatedRequest, res: Response) => {
+    const startTime = Date.now();
+    
+    try {
+        const { walletAddress, chain, cexName, depth } = req.body;
+
+        // Validation
+        if (!walletAddress) {
+            return res.status(400).json({ error: 'walletAddress is required' });
+        }
+
+        const normalizedChain = normalizeChainId(chain || 'ethereum');
+        if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+            return res.status(400).json({ 
+                error: 'Invalid chain',
+                message: `Chain must be one of: ${ALLOWED_CHAINS.join(', ')}`
+            });
+        }
+
+        // Get wallet analysis first (to get transactions)
+        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        
+        const analyzer = new WalletAnalyzer({
+            alchemy: alchemyKey,
+            moralis: process.env.MORALIS_API_KEY,
+            etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            arbiscan: process.env.ARBISCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        });
+        
+        const walletResult = await withTimeout(
+            analyzer.analyze(walletAddress, normalizedChain as ChainId, { transactionLimit: 500, skipFundingTree: true }),
+            180000,
+            'Wallet analysis for CEX flow'
+        );
+        
+        // Get transactions from the result
+        const transactions = (walletResult.transactions || []).map((tx: any) => ({
+            hash: tx.hash || tx.digest,
+            from: tx.from || tx.sender,
+            to: tx.to || tx.recipient,
+            value: parseFloat(tx.value || tx.valueInEth || '0'),
+            timestamp: tx.timestamp || tx.timestampMs || Date.now(),
+            token: tx.token || 'ETH',
+        }));
+
+        // Import CEX service
+        const { CEXService } = await import('../services/CEXService.js');
+        const cexService = new CEXService();
+
+        // Analyze CEX flow
+        const result = await cexService.analyzeCEXFlow(walletAddress, normalizedChain as ChainId, {
+            cexName,
+            depth: depth || 2,
+            transactions,
+        });
+
+        const duration = (Date.now() - startTime) / 1000;
+        
+        res.json({
+            success: true,
+            result,
+            meta: {
+                duration: `${duration}s`,
+                transactionsAnalyzed: transactions.length,
+            },
+            usageRemaining: res.locals.usageRemaining,
+        });
+    } catch (error: any) {
+        console.error('CEX flow analysis error:', error.message);
+        res.status(500).json({
+            error: 'CEX flow analysis failed',
+            message: error.message,
+        });
+    }
+});
+
 export { router as analyzeRoutes };
