@@ -54,11 +54,11 @@ interface ContractAnalysisResult {
     riskScore: number;
 }
 
-interface ContractGridViewProps {
-    result: ContractAnalysisResult;
-}
-
 type PageType = 'overview' | 'interactors' | 'shared-funding';
+
+interface ContractGridViewProps {
+    result?: ContractAnalysisResult;
+}
 
 export default function ContractGridView({ result }: ContractGridViewProps) {
     const [currentPage, setCurrentPage] = useState<PageType>('overview');
@@ -66,6 +66,15 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
     const [hoveredAddress, setHoveredAddress] = useState<{ address: string; x: number; y: number } | null>(null);
     const isMobile = useIsMobile();
     const navigate = useNavigate();
+
+    // Defensive: ensure result exists and has required fields
+    if (!result) {
+        return (
+            <div className="wallet-grid-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
+                <p>No contract data available</p>
+            </div>
+        );
+    }
 
     // Defensive: ensure arrays exist
     const interactors = result?.interactors || [];
@@ -113,7 +122,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
         }
     };
 
-    const riskLevel = result.riskScore >= 50 ? 'critical' : result.riskScore >= 20 ? 'medium' : 'low';
+    const riskLevel = (result?.riskScore || 0) >= 50 ? 'critical' : (result?.riskScore || 0) >= 20 ? 'medium' : 'low';
 
     return (
         <div className="wallet-grid-container">
