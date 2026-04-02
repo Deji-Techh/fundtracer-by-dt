@@ -17,8 +17,11 @@ import './InvestigateView.css';
 // Lazy load result views
 import AnalysisView from '../../components/AnalysisView';
 import WalletGridView from '../../components/WalletGridView';
+import CompareGridView from '../../components/CompareGridView';
 import MultiWalletView from '../../components/MultiWalletView';
+import ContractGridView from '../../components/ContractGridView';
 import ContractAnalysisView, { ContractAnalysisResult } from '../../components/ContractAnalysisView';
+import SybilGridView from '../../components/SybilGridView';
 import SybilDetector from '../../components/SybilDetector';
 import SearchHistory from '../../components/SearchHistory';
 import AdvancedGraph from '../../components/graph/AdvancedGraph';
@@ -498,9 +501,9 @@ export function InvestigateView({
       );
     }
 
-    // Sybil tab - show only SybilDetector without PoH guard
+    // Sybil tab - show SybilGridView
     if (activeTab === 'sybil') {
-      return <SybilDetector />;
+      return <SybilGridView chain={selectedChain} />;
     }
 
     // Wallet tab - show WalletGridView or SearchHistory
@@ -522,10 +525,10 @@ export function InvestigateView({
       );
     }
 
-    // Contract tab - show ContractAnalysisView
+    // Contract tab - show ContractGridView
     if (activeTab === 'contract') {
       if (contractResult) {
-        return <ContractAnalysisView result={contractResult} />;
+        return <ContractGridView result={contractResult} />;
       }
       return (
         <div className="investigate-empty">
@@ -541,10 +544,10 @@ export function InvestigateView({
       );
     }
 
-    // Compare tab - show MultiWalletView
+    // Compare tab - show CompareGridView
     if (activeTab === 'compare') {
       if (multiWalletResult) {
-        return <MultiWalletView result={multiWalletResult} chain={selectedChain} />;
+        return <CompareGridView result={multiWalletResult} chain={selectedChain} />;
       }
       return (
         <div className="investigate-empty">
