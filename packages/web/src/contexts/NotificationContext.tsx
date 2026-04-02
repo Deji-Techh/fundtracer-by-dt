@@ -109,6 +109,16 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return {};
 }
 
+async function authenticatedFetch(url: string, options?: RequestInit): Promise<Response> {
+  const headers = await getAuthHeaders();
+  const response = await fetch(url, {
+    ...options,
+    headers: { ...headers, ...options?.headers },
+    credentials: 'include',
+  });
+  return response;
+}
+
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
@@ -165,8 +175,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     
     const syncNotifications = async () => {
       try {
-        const headers = await getAuthHeaders();
-        const response = await fetch('/api/notifications', { headers });
+        const response = await authenticatedFetch('/api/notifications');
         
         if (response.ok) {
           const data = await response.json();
