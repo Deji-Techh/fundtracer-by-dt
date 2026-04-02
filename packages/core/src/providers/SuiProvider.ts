@@ -1,6 +1,6 @@
 // ============================================================
 // FundTracer by DT - Sui Provider
-// Full Sui blockchain analysis using Alchemy RPC
+// Full Sui blockchain analysis using RPC
 // ============================================================
 
 import {
@@ -15,7 +15,7 @@ import {
 } from '../types.js';
 import { ITransactionProvider } from './ITransactionProvider.js';
 
-const SUI_RPC_URL = process.env.SUI_RPC_URL || 'https://sui-mainnet.g.alchemy.com/v2/demo';
+const SUI_RPC_URL = process.env.SUI_RPC_URL;
 
 interface SuiTransactionBlock {
     digest: string;
@@ -66,7 +66,10 @@ export class SuiProvider implements ITransactionProvider {
     private cacheDuration = 30000; // 30 seconds
 
     constructor(rpcUrl?: string) {
-        this.rpcUrl = rpcUrl || SUI_RPC_URL;
+        if (!rpcUrl && !SUI_RPC_URL) {
+            throw new Error('SUI_RPC_URL environment variable is required');
+        }
+        this.rpcUrl = rpcUrl || SUI_RPC_URL!;
     }
 
     private async rpcCall(method: string, params: any = []): Promise<any> {

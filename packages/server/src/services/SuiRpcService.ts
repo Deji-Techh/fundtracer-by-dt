@@ -5,7 +5,7 @@
 
 import { cache } from '../utils/cache.js';
 
-const SUI_RPC_URL = process.env.SUI_RPC_URL || 'https://sui-mainnet.g.alchemy.com/v2/demo';
+const SUI_RPC_URL = process.env.SUI_RPC_URL;
 
 interface SuiTransactionBlock {
   digest: string;
@@ -32,7 +32,10 @@ export class SuiRpcService {
   private rpcUrl: string;
 
   constructor(rpcUrl?: string) {
-    this.rpcUrl = rpcUrl || SUI_RPC_URL;
+    if (!rpcUrl && !SUI_RPC_URL) {
+      throw new Error('SUI_RPC_URL environment variable is required');
+    }
+    this.rpcUrl = rpcUrl || SUI_RPC_URL!;
   }
 
   private async rpcCall(method: string, params: any[] = []): Promise<any> {
