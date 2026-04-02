@@ -10,6 +10,7 @@ import { useNotifications } from '../../contexts/NotificationContext';
 import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
 import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions } from '../../api';
 import { addToHistory, getHistory, type HistoryItem } from '../../utils/history';
+import { getCachedResults, saveResultToCache } from '../../utils/resultsCache';
 import { useGasPayment } from '../../hooks/useGasPayment';
 import { CHAIN_CONFIG } from '../../config/chains';
 import './InvestigateView.css';
@@ -185,6 +186,20 @@ export function InvestigateView({
   const [currentAnalysisAddress, setCurrentAnalysisAddress] = useState<string>('');
   const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
   
+  // Load cached results on mount
+  useEffect(() => {
+    const cached = getCachedResults();
+    if (cached.wallet) {
+      setWalletResult(cached.wallet.result);
+    }
+    if (cached.contract) {
+      setContractResult(cached.contract.result);
+    }
+    if (cached.compare) {
+      setMultiWalletResult(cached.compare.result);
+    }
+  }, []);
+  
   // Compare tab multiple addresses
   const [compareAddresses, setCompareAddresses] = useState<string[]>(['', '']);
 
@@ -272,6 +287,7 @@ export function InvestigateView({
         console.log('[SUI] Setting wallet result, has transactions:', response.result.transactions?.length);
         setWalletResult(response.result);
         setResultsCache(prev => ({ ...prev, [cacheKey]: response.result }));
+        saveResultToCache('wallet', response.result);
 
         if (response.result.pagination) {
           setPagination(response.result.pagination);
@@ -383,6 +399,7 @@ export function InvestigateView({
       const response = await analyzeContract(address, selectedChain);
       if (response.result) {
         setContractResult(response.result);
+        saveResultToCache('contract', response.result);
         addToHistory(address, selectedChain, 'Contract Analysis', {
           totalTransactions: response.result.interactors?.length,
         }, 'contract');
@@ -419,6 +436,7 @@ export function InvestigateView({
       const response = await compareWallets(addresses, selectedChain);
       if (response.result) {
         setMultiWalletResult(response.result);
+        saveResultToCache('compare', response.result);
 
         const compareLabel = `Compare: ${addresses.length} wallets`;
         addToHistory(addresses.join(','), selectedChain, compareLabel, {
