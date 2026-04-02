@@ -67,13 +67,18 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
     const isMobile = useIsMobile();
     const navigate = useNavigate();
 
-    const chain = result.chain;
+    // Defensive: ensure arrays exist
+    const interactors = result?.interactors || [];
+    const sharedFundingGroups = result?.sharedFundingGroups || [];
+    const suspiciousPatterns = result?.suspiciousPatterns || [];
+
+    const chain = result?.chain || 'linea';
     const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
     const tokenSymbol = getChainTokenSymbol(chain);
 
-    const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-    const formatDate = (ts: number) => new Date(ts * 1000).toLocaleDateString();
-    const formatValue = (val: number) => val < 0.0001 ? '<0.0001' : val.toFixed(4);
+    const formatAddress = (addr: string) => `${addr?.slice(0, 6)}...${addr?.slice(-4)}` || '';
+    const formatDate = (ts: number) => ts ? new Date(ts * 1000).toLocaleDateString() : 'N/A';
+    const formatValue = (val: number) => val < 0.0001 ? '<0.0001' : val?.toFixed(4) || '0';
 
     const pages: PageType[] = ['overview', 'interactors', 'shared-funding'];
     const currentIndex = pages.indexOf(currentPage);
@@ -81,7 +86,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
     const canGoForward = currentIndex < pages.length - 1;
 
     const sortedInteractors = useMemo(() => {
-        const sorted = [...result.interactors];
+        const sorted = [...interactors];
         switch (sortBy) {
             case 'interactions':
                 return sorted.sort((a, b) => b.interactionCount - a.interactionCount);
@@ -92,7 +97,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
             default:
                 return sorted;
         }
-    }, [result.interactors, sortBy]);
+    }, [interactors, sortBy]);
 
     const severityColor = (severity: string) => {
         switch (severity) {

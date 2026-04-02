@@ -14,7 +14,7 @@ import {
   Search01Icon,
 } from '@hugeicons/core-free-icons';
 import SybilDetector from './SybilDetector';
-import { ChainId, CHAINS } from '@fundtracer/core';
+import { ChainId, CHAINS, SybilCluster } from '@fundtracer/core';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { getChainTokenSymbol } from '../config/chains';
 
@@ -24,8 +24,15 @@ interface SybilGridViewProps {
 
 type PageType = 'analyze' | 'clusters' | 'analysis';
 
+interface SybilResult {
+  clusters: SybilCluster[];
+  totalAnalyzed: number;
+  flaggedCount: number;
+}
+
 export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
   const [currentPage, setCurrentPage] = useState<PageType>('analyze');
+  const [sybilResult, setSybilResult] = useState<SybilResult | null>(null);
   const [hoveredAddress, setHoveredAddress] = useState<{ address: string; x: number; y: number } | null>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -39,6 +46,23 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
   const currentIndex = pages.indexOf(currentPage);
   const canGoBack = currentIndex > 0;
   const canGoForward = currentIndex < pages.length - 1;
+
+  const handleAnalysisComplete = (result: { clusters: SybilCluster[]; totalAnalyzed: number; flaggedCount: number }) => {
+    setSybilResult(result);
+    localStorage.setItem('sybil_last_result', JSON.stringify(result));
+    setCurrentPage('clusters');
+  };
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('sybil_last_result');
+    if (saved) {
+      try {
+        setSybilResult(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse saved sybil result', e);
+      }
+    }
+  }, []);
 
   return (
     <div className="wallet-grid-container">
@@ -115,7 +139,7 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
               transition={{ duration: 0.3 }}
               className="sybil-analyze-page"
             >
-              <SybilDetector />
+              <SybilDetector onAnalysisComplete={handleAnalysisComplete} />
             </motion.div>
           )}
 
@@ -132,16 +156,68 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
                 <h2>Sybil Clusters</h2>
                 <p>View detected Sybil clusters from your analysis</p>
               </div>
-              <div className="empty-state">
-                <HugeiconsIcon icon={GroupIcon} size={48} strokeWidth={1.5} />
-                <p>Run a Sybil analysis to see clusters</p>
-                <button 
-                  className="btn-primary"
-                  onClick={() => setCurrentPage('analyze')}
-                >
-                  Go to Analysis
-                </button>
-              </div>
+              
+              {!sybilResult ? (
+                <div className="empty-state">
+                  <HugeiconsIcon icon={GroupIcon} size={48} strokeWidth={1.5} />
+                  <p>Run a Sybil analysis to see clusters</p>
+                  <button 
+                    className="btn-primary"
+                    onClick={() => setCurrentPage('analyze')}
+                  >
+                    Go to Analysis
+                  </button>
+                </div>
+              ) : sybilResult.clusters.length === 0 ? (
+                <div className="empty-state">
+                  <HugeiconsIcon icon={GroupIcon} size={48} strokeWidth={1.5} />
+                  <p>No sybil clusters detected</p>
+                  <button 
+                    className="btn-primary"
+                    onClick={() => setCurrentPage('analyze')}
+                  >
+                    Run New Analysis
+                  </button>
+                </div>
+              ) : (
+                <div className="clusters-list">
+                  {sybilResult.clusters.map((cluster, i) => (
+                    <motion.div
+                      key={i}
+                      className="cluster-card"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                    >
+                      <div className="cluster-header">
+                        <span className="cluster-id">Cluster #{i + 1}</span>
+                        <span className={`cluster-score ${cluster.sybilScore >= 80 ? 'critical' : cluster.sybilScore >= 60 ? 'high' : cluster.sybilScore >= 40 ? 'medium' : 'low'}`}>
+                          {cluster.sybilScore}% score
+                        </span>
+                      </div>
+                      <div className="cluster-info">
+                        <span className="cluster-wallets">{cluster.wallets.length} wallets</span>
+                        <span className="cluster-common">{cluster.commonFundingSource || 'No common funding'}</span>
+                      </div>
+                      <div className="cluster-wallets-list">
+                        {cluster.wallets.slice(0, 5).map((wallet, j) => (
+                          <span 
+                            key={j} 
+                            className="wallet-tag"
+                            onMouseEnter={(e) => setHoveredAddress({ address: wallet, x: e.clientX, y: e.clientY })}
+                            onMouseLeave={() => setHoveredAddress(null)}
+                          >
+                            {formatAddress(wallet)}
+                          </span>
+                        ))}
+                        {cluster.wallets.length > 5 && (
+                          <span className="wallet-tag more">+{cluster.wallets.length - 5} more</span>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -158,16 +234,56 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
                 <h2>Detailed Analysis</h2>
                 <p>Deep dive into Sybil patterns and findings</p>
               </div>
-              <div className="empty-state">
-                <HugeiconsIcon icon={Shield01Icon} size={48} strokeWidth={1.5} />
-                <p>Complete a Sybil analysis to view detailed findings</p>
-                <button 
-                  className="btn-primary"
-                  onClick={() => setCurrentPage('analyze')}
-                >
-                  Go to Analysis
-                </button>
-              </div>
+              
+              {!sybilResult ? (
+                <div className="empty-state">
+                  <HugeiconsIcon icon={Shield01Icon} size={48} strokeWidth={1.5} />
+                  <p>Complete a Sybil analysis to view detailed findings</p>
+                  <button 
+                    className="btn-primary"
+                    onClick={() => setCurrentPage('analyze')}
+                  >
+                    Go to Analysis
+                  </button>
+                </div>
+              ) : (
+                <div className="analysis-stats">
+                  <div className="stat-card">
+                    <span className="stat-label">Total Analyzed</span>
+                    <span className="stat-value">{sybilResult.totalAnalyzed}</span>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-label">Clusters Found</span>
+                    <span className="stat-value">{sybilResult.clusters.length}</span>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-label">Flagged Wallets</span>
+                    <span className="stat-value">{sybilResult.flaggedCount}</span>
+                  </div>
+                  <div className="stat-card">
+                    <span className="stat-label">Clean Wallets</span>
+                    <span className="stat-value">{sybilResult.totalAnalyzed - sybilResult.flaggedCount}</span>
+                  </div>
+                  
+                  {sybilResult.clusters.length > 0 && (
+                    <div className="analysis-details">
+                      <h3>Top Risk Clusters</h3>
+                      {sybilResult.clusters
+                        .sort((a, b) => b.sybilScore - a.sybilScore)
+                        .slice(0, 5)
+                        .map((cluster, i) => (
+                          <div key={i} className="risk-item">
+                            <span className="risk-rank">#{i + 1}</span>
+                            <span className="risk-wallets">{cluster.wallets.length} wallets</span>
+                            <span className={`risk-score ${cluster.sybilScore >= 80 ? 'critical' : cluster.sybilScore >= 60 ? 'high' : 'medium'}`}>
+                              {cluster.sybilScore}%
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -398,6 +514,157 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
           transform: translateY(-1px);
         }
 
+        .clusters-list {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-4);
+        }
+
+        .cluster-card {
+          background: var(--color-bg-secondary);
+          border: 1px solid var(--color-surface-border);
+          border-radius: var(--radius-lg);
+          padding: var(--space-4);
+        }
+
+        .cluster-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: var(--space-3);
+        }
+
+        .cluster-id {
+          font-weight: 600;
+          color: var(--color-text-primary);
+        }
+
+        .cluster-score {
+          padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-sm);
+          font-size: var(--text-xs);
+          font-weight: 600;
+        }
+
+        .cluster-score.critical {
+          background: var(--color-danger-bg);
+          color: var(--color-danger-text);
+        }
+
+        .cluster-score.high {
+          background: rgba(234, 88, 12, 0.15);
+          color: #ea580c;
+        }
+
+        .cluster-score.medium {
+          background: var(--color-warning-bg);
+          color: var(--color-warning-text);
+        }
+
+        .cluster-score.low {
+          background: var(--color-success-bg);
+          color: var(--color-success-text);
+        }
+
+        .cluster-info {
+          display: flex;
+          gap: var(--space-4);
+          font-size: var(--text-sm);
+          color: var(--color-text-muted);
+          margin-bottom: var(--space-3);
+        }
+
+        .cluster-wallets-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--space-2);
+        }
+
+        .wallet-tag {
+          padding: var(--space-1) var(--space-2);
+          background: var(--color-bg-tertiary);
+          border-radius: var(--radius-sm);
+          font-size: var(--text-xs);
+          font-family: var(--font-mono);
+          cursor: pointer;
+        }
+
+        .wallet-tag:hover {
+          background: var(--color-bg-elevated);
+        }
+
+        .wallet-tag.more {
+          color: var(--color-text-muted);
+        }
+
+        .analysis-stats {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: var(--space-4);
+        }
+
+        .stat-card {
+          background: var(--color-bg-secondary);
+          border: 1px solid var(--color-surface-border);
+          border-radius: var(--radius-lg);
+          padding: var(--space-4);
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-2);
+        }
+
+        .stat-label {
+          font-size: var(--text-sm);
+          color: var(--color-text-muted);
+        }
+
+        .stat-value {
+          font-size: var(--text-2xl);
+          font-weight: 700;
+          color: var(--color-text-primary);
+        }
+
+        .analysis-details {
+          grid-column: span 2;
+          background: var(--color-bg-secondary);
+          border: 1px solid var(--color-surface-border);
+          border-radius: var(--radius-lg);
+          padding: var(--space-4);
+        }
+
+        .analysis-details h3 {
+          margin: 0 0 var(--space-4) 0;
+          font-size: var(--text-lg);
+        }
+
+        .risk-item {
+          display: flex;
+          align-items: center;
+          gap: var(--space-4);
+          padding: var(--space-2) 0;
+          border-bottom: 1px solid var(--color-surface-border);
+        }
+
+        .risk-rank {
+          font-weight: 600;
+          color: var(--color-text-muted);
+          width: 40px;
+        }
+
+        .risk-wallets {
+          flex: 1;
+          color: var(--color-text-muted);
+        }
+
+        .risk-score {
+          font-weight: 700;
+          font-family: var(--font-mono);
+        }
+
+        .risk-score.critical { color: var(--color-danger-text); }
+        .risk-score.high { color: #ea580c; }
+        .risk-score.medium { color: var(--color-warning-text); }
+
         @media (max-width: 768px) {
           .wallet-grid-container {
             flex-direction: column;
@@ -412,6 +679,12 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
           }
           .grid-nav-arrows {
             display: none;
+          }
+          .analysis-stats {
+            grid-template-columns: 1fr;
+          }
+          .analysis-details {
+            grid-column: span 1;
           }
         }
       `}</style>

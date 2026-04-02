@@ -66,6 +66,7 @@ import { verifySubscriptionPayment, sendGasPayment, verifyGasPayment } from '../
 
 interface SybilDetectorProps {
   onBack?: () => void;
+  onAnalysisComplete?: (result: { clusters: any[]; totalAnalyzed: number; flaggedCount: number }) => void;
 }
 
 type WizardStep = 'fetch' | 'analyze' | 'results';
@@ -1646,7 +1647,7 @@ const TARGET_WALLET = '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd';
 const LINEA_CHAIN_ID = 59144;
 
 // Main SybilDetector component
-function SybilDetector({ onBack }: SybilDetectorProps) {
+function SybilDetector({ onBack, onAnalysisComplete }: SybilDetectorProps) {
   const notify = useNotify();
   const { profile } = useAuth();
   const isMobile = useIsMobile();
@@ -1826,6 +1827,15 @@ function SybilDetector({ onBack }: SybilDetectorProps) {
         
         const clusterCount = response.result.clusters?.length || 0;
         const flaggedCount = response.result.flaggedClusters?.length || 0;
+        
+        // Call the callback if provided (for grid view to display results)
+        if (onAnalysisComplete) {
+          onAnalysisComplete({
+            clusters: response.result.clusters || [],
+            totalAnalyzed: allAddresses.length,
+            flaggedCount
+          });
+        }
         
         addNotification({
           type: 'sybil_complete',
