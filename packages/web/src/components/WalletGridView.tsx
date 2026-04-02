@@ -442,7 +442,7 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                                     </select>
                                 </div>
                                 <button 
-                                    className="generate-tree-btn"
+                                    className={`generate-tree-btn ${treeLoading ? 'loading' : ''}`}
                                     onClick={handleGenerateTree}
                                     disabled={treeLoading}
                                 >
@@ -1132,41 +1132,52 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                 .generate-tree-btn {
                     display: flex;
                     align-items: center;
+                    justify-content: center;
                     gap: var(--space-2);
-                    padding: var(--space-2) var(--space-4);
-                    background: var(--color-primary);
-                    color: var(--color-primary-text);
+                    padding: var(--space-3) var(--space-6);
+                    background: linear-gradient(135deg, var(--color-primary) 0%, #8b5cf6 100%);
+                    color: white;
                     border: none;
-                    border-radius: var(--radius-md);
+                    border-radius: var(--radius-lg);
                     font-size: var(--text-sm);
-                    font-weight: 500;
+                    font-weight: 600;
                     cursor: pointer;
-                    transition: all 0.2s ease;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
                 }
 
                 .generate-tree-btn:hover:not(:disabled) {
-                    opacity: 0.9;
-                    transform: translateY(-1px);
+                    opacity: 0.95;
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
                 }
 
                 .generate-tree-btn:disabled {
-                    opacity: 0.5;
+                    opacity: 0.6;
                     cursor: not-allowed;
+                    transform: none;
+                    box-shadow: none;
                 }
 
-                .coming-soon {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    height: 100%;
-                    gap: var(--space-4);
-                    color: var(--color-text-muted);
+                .generate-tree-btn.loading {
+                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                    animation: pulse 1.5s infinite;
                 }
 
-                .coming-soon h3 {
-                    margin: 0;
-                    color: var(--color-text-primary);
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                }
+
+                .tree-error {
+                    padding: var(--space-2) var(--space-3);
+                    background: rgba(239, 68, 68, 0.1);
+                    border-radius: var(--radius-sm);
+                    color: var(--color-danger-text);
+                    font-size: var(--text-sm);
+                    margin-top: var(--space-2);
                 }
 
                 @media (max-width: 768px) {
