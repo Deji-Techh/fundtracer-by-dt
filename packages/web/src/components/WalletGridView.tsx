@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +33,7 @@ import FundingTree from './FundingTree';
 import TransactionList from './TransactionList';
 import AddressLabel from './AddressLabel';
 import { fetchFundingTree } from '../api';
+import { portfolioApi, type PortfolioData } from '../services/api/portfolioApi';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { getChainTokenSymbol } from '../config/chains';
 
@@ -55,6 +56,9 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
     const [treeLoading, setTreeLoading] = useState(false);
     const [treeError, setTreeError] = useState<string | null>(null);
     const [treeDepth, setTreeDepth] = useState(2);
+    const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null);
+    const [portfolioLoading, setPortfolioLoading] = useState(false);
+    const [portfolioError, setPortfolioError] = useState<string | null>(null);
     const isMobile = useIsMobile();
     const navigate = useNavigate();
 
@@ -77,6 +81,19 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
             setTreeError(err.message || 'Failed to generate funding tree');
         } finally {
             setTreeLoading(false);
+        }
+    };
+
+    const handleFetchPortfolio = async () => {
+        setPortfolioLoading(true);
+        setPortfolioError(null);
+        try {
+            const data = await portfolioApi.getPortfolio(result.wallet.address, result.wallet.chain);
+            setPortfolioData(data);
+        } catch (err: any) {
+            setPortfolioError(err.message || 'Failed to fetch portfolio');
+        } finally {
+            setPortfolioLoading(false);
         }
     };
 
@@ -114,6 +131,13 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
             opacity: 0,
         }),
     };
+
+    // Fetch portfolio when visiting portfolio page
+    useEffect(() => {
+        if (currentPage === 'portfolio' && !portfolioData && !portfolioLoading) {
+            handleFetchPortfolio();
+        }
+    }, [currentPage]);
 
     return (
         <div className="wallet-grid-container">
@@ -448,117 +472,109 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                             exit={{ opacity: 0, x: -300 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="portfolio-grid">
-                                {/* Wallet Balance */}
-                                <div className="portfolio-box balance-box">
-                                    <div className="box-header">
-                                        <h3>Wallet Balance</h3>
-                                        <HugeiconsIcon icon={WalletIcon} size={16} strokeWidth={2} />
-                                    </div>
-                                    <div className="balance-info">
-                                        <div className="main-balance">
-                                            <span className="balance-value">{result.wallet.balanceInEth.toFixed(6)}</span>
-                                            <span className="balance-symbol">{tokenSymbol}</span>
-                                        </div>
-                                        <div className="balance-usd">
-                                            ≈ ${(result.wallet.balanceInEth * 3000).toFixed(2)} USD
-                                        </div>
-                                    </div>
+                            {portfolioLoading && (
+                                <div className="portfolio-loading">
+                                    <div className="loading-spinner" />
+                                    <p>Loading portfolio data...</p>
                                 </div>
-
-                                {/* Token Holdings */}
-                                <div className="portfolio-box tokens-box">
-                                    <div className="box-header">
-                                        <h3>Token Holdings</h3>
-                                        <HugeiconsIcon icon={BitcoinIcon} size={16} strokeWidth={2} />
-                                    </div>
-                                    <div className="token-list">
-                                        <div className="token-item main">
-                                            <span className="token-name">{tokenSymbol}</span>
-                                            <span className="token-balance">{result.wallet.balanceInEth.toFixed(6)}</span>
+                            )}
+                            {portfolioError && (
+                                <div className="portfolio-error">
+                                    <p>{portfolioError}</p>
+                                    <button onClick={handleFetchPortfolio}>Retry</button>
+                                </div>
+                            )}
+                            {portfolioData && !portfolioLoading && !portfolioError && (
+                                <div className="portfolio-grid">
+                                    {/* Total Value */}
+                                    <div className="portfolio-box balance-box">
+                                        <div className="box-header">
+                                            <h3>Total Value</h3>
+                                            <HugeiconsIcon icon={WalletIcon} size={16} strokeWidth={2} />
                                         </div>
-                                        {(result.projectsInteracted || []).slice(0, 5).map((project, i) => (
-                                            <div key={i} className="token-item">
-                                                <span className="token-name">{project.projectName || formatAddress(project.contractAddress)}</span>
-                                                <span className="token-balance">{project.totalValueInEth.toFixed(4)} {tokenSymbol}</span>
+                                        <div className="balance-info">
+                                            <div className="main-balance">
+                                                <span className="balance-value">${portfolioData.totalValue.toFixed(2)}</span>
+                                                <span className="balance-symbol">USD</span>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Contracts Interacted */}
-                                <div className="portfolio-box contracts-box">
-                                    <div className="box-header">
-                                        <h3>Contracts Interacted</h3>
-                                        <HugeiconsIcon icon={Link01Icon} size={16} strokeWidth={2} />
-                                    </div>
-                                    <div className="contract-list">
-                                        {(result.projectsInteracted || []).length === 0 ? (
-                                            <div className="empty-list">
-                                                <p>No contracts found</p>
+                                            <div className="balance-usd">
+                                                Last updated: {new Date(portfolioData.lastUpdated).toLocaleString()}
                                             </div>
-                                        ) : (
-                                            (result.projectsInteracted || []).slice(0, 8).map((project, i) => (
-                                                <motion.div 
-                                                    key={i}
-                                                    className="contract-item"
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: i * 0.05 }}
-                                                >
-                                                    <div className="contract-info">
-                                                        <span className="contract-address">
-                                                            {formatAddress(project.contractAddress)}
-                                                        </span>
-                                                        <span className="contract-category">{project.category}</span>
-                                                    </div>
-                                                    <div className="contract-stats">
-                                                        <span className="interaction-count">{project.interactionCount} interactions</span>
-                                                    </div>
-                                                </motion.div>
-                                            ))
-                                        )}
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Activity Summary */}
-                                <div className="portfolio-box activity-box">
-                                    <div className="box-header">
-                                        <h3>Activity Summary</h3>
-                                        <HugeiconsIcon icon={Clock01Icon} size={16} strokeWidth={2} />
+                                    {/* Token Holdings */}
+                                    <div className="portfolio-box tokens-box">
+                                        <div className="box-header">
+                                            <h3>Token Holdings</h3>
+                                            <HugeiconsIcon icon={BitcoinIcon} size={16} strokeWidth={2} />
+                                        </div>
+                                        <div className="token-list">
+                                            {(portfolioData.tokens || []).length === 0 ? (
+                                                <div className="empty-list">
+                                                    <p>No tokens found</p>
+                                                </div>
+                                            ) : (
+                                                (portfolioData.tokens || []).slice(0, 10).map((token, i) => (
+                                                    <div key={i} className="token-item">
+                                                        <span className="token-name">{token.symbol}</span>
+                                                        <span className="token-balance">{parseFloat(token.balance).toFixed(4)} ({token.symbol})</span>
+                                                        <span className="token-value">${token.value.toFixed(2)}</span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="activity-stats">
-                                        <div className="activity-item">
-                                            <span className="activity-label">First Activity</span>
-                                            <span className="activity-value">
-                                                {result.wallet.firstTxTimestamp 
-                                                    ? new Date(result.wallet.firstTxTimestamp * 1000).toLocaleDateString()
-                                                    : 'Unknown'}
-                                            </span>
+
+                                    {/* NFT Holdings */}
+                                    <div className="portfolio-box contracts-box">
+                                        <div className="box-header">
+                                            <h3>NFT Holdings</h3>
+                                            <HugeiconsIcon icon={Link01Icon} size={16} strokeWidth={2} />
                                         </div>
-                                        <div className="activity-item">
-                                            <span className="activity-label">Last Activity</span>
-                                            <span className="activity-value">
-                                                {result.wallet.lastTxTimestamp
-                                                    ? new Date(result.wallet.lastTxTimestamp * 1000).toLocaleDateString()
-                                                    : 'Unknown'}
-                                            </span>
+                                        <div className="contract-list">
+                                            {(portfolioData.nfts || []).length === 0 ? (
+                                                <div className="empty-list">
+                                                    <p>No NFTs found</p>
+                                                </div>
+                                            ) : (
+                                                (portfolioData.nfts || []).slice(0, 8).map((nft, i) => (
+                                                    <motion.div 
+                                                        key={i}
+                                                        className="contract-item"
+                                                        initial={{ opacity: 0, x: -10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: i * 0.05 }}
+                                                    >
+                                                        <div className="contract-info">
+                                                            <span className="contract-address">
+                                                                {nft.name || formatAddress(nft.contractAddress)}
+                                                            </span>
+                                                            <span className="contract-category">{nft.collectionName}</span>
+                                                        </div>
+                                                    </motion.div>
+                                                ))
+                                            )}
                                         </div>
-                                        <div className="activity-item">
-                                            <span className="activity-label">Avg Txs/Day</span>
-                                            <span className="activity-value">
-                                                {result.summary?.averageTxPerDay?.toFixed(1) || '0'}
-                                            </span>
+                                    </div>
+
+                                    {/* Attribution */}
+                                    <div className="portfolio-box activity-box">
+                                        <div className="box-header">
+                                            <h3>Data Source</h3>
+                                            <HugeiconsIcon icon={Clock01Icon} size={16} strokeWidth={2} />
                                         </div>
-                                        <div className="activity-item">
-                                            <span className="activity-label">Risk Score</span>
-                                            <span className={`activity-value risk-${result.riskLevel}`}>
-                                                {result.overallRiskScore} ({result.riskLevel})
-                                            </span>
+                                        <div className="activity-stats">
+                                            <div className="activity-item">
+                                                <span className="activity-label">Provider</span>
+                                                <span className="activity-value">
+                                                    {portfolioData.attribution?.text || 'DeFi Llama'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -930,6 +946,39 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                     overflow: auto;
                 }
 
+                .portfolio-loading,
+                .portfolio-error {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100%;
+                    gap: var(--space-4);
+                    color: var(--color-text-muted);
+                }
+
+                .portfolio-loading .loading-spinner {
+                    width: 32px;
+                    height: 32px;
+                    border: 3px solid var(--color-border);
+                    border-top-color: var(--color-primary);
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+
+                .portfolio-error button {
+                    padding: var(--space-2) var(--space-4);
+                    background: var(--color-primary);
+                    color: var(--color-primary-text);
+                    border: none;
+                    border-radius: var(--radius-md);
+                    cursor: pointer;
+                }
+
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+
                 .portfolio-grid {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
@@ -1007,6 +1056,12 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                     font-size: var(--text-sm);
                 }
 
+                .token-value {
+                    font-family: var(--font-mono);
+                    font-size: var(--text-sm);
+                    color: var(--color-text-muted);
+                }
+
                 .contract-item {
                     display: flex;
                     justify-content: space-between;
@@ -1072,6 +1127,31 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
 
                 .activity-value.risk-low {
                     color: var(--color-success-text);
+                }
+
+                .generate-tree-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: var(--space-2);
+                    padding: var(--space-2) var(--space-4);
+                    background: var(--color-primary);
+                    color: var(--color-primary-text);
+                    border: none;
+                    border-radius: var(--radius-md);
+                    font-size: var(--text-sm);
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .generate-tree-btn:hover:not(:disabled) {
+                    opacity: 0.9;
+                    transform: translateY(-1px);
+                }
+
+                .generate-tree-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
                 }
 
                 .coming-soon {

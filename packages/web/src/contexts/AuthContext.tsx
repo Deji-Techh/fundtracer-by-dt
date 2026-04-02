@@ -24,6 +24,7 @@ import {
 } from '../api';
 import { auth as firebaseAuth } from '../firebase';
 import { useNotify } from './ToastContext';
+import { syncHistoryWithServer } from '../utils/history';
 
 const TOKEN_EXPIRY_KEY = 'fundtracer_token_expiry';
 const PROFILE_PICTURE_KEY = 'fundtracer_profile_picture';
@@ -146,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     walletAddress: userProfile.walletAddress || '',
                 });
                 setIsAuthenticated(true);
+                syncHistoryWithServer();
                 if (userProfile.walletAddress) {
                     setWallet({
                         address: userProfile.walletAddress,
@@ -208,6 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             walletAddress: userProfile.walletAddress || '',
                         });
                         setIsAuthenticated(true);
+                        syncHistoryWithServer();
                         
                         if (userProfile.walletAddress) {
                             setWallet({
@@ -314,6 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     photoURL: response.user.photoURL || null
                 });
                 setIsAuthenticated(true);
+                syncHistoryWithServer();
 
                 notify.success('Wallet authenticated successfully!');
             } catch (error: any) {
@@ -529,6 +533,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 displayName: response.user.displayName || ''
             });
             setIsAuthenticated(true);
+            syncHistoryWithServer();
 
             notify.success('Wallet authenticated successfully!');
         } catch (error: any) {

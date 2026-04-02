@@ -1,11 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
+import { useNavigate } from 'react-router-dom';
+import '../global.css';
 import {
   Clock01Icon,
   Delete01Icon,
   Wallet01Icon,
   Cancel01Icon,
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  UserIcon,
+  File01Icon,
+  GroupIcon,
+  Exchange01Icon,
+  Analytics01Icon,
+  EyeIcon,
+  Search01Icon,
 } from '@hugeicons/core-free-icons';
 import { HistoryItem, getHistory, removeFromHistory, clearHistory, syncHistoryWithServer } from '../utils/history';
 import { getLabel } from '../utils/addressBook';
@@ -17,6 +28,8 @@ import { WalletButton } from './WalletButton';
 interface HistoryPageProps {
   onSelectScan: (address: string, chain: string, type?: string) => void;
 }
+
+type PageType = 'wallet' | 'contract' | 'compare' | 'sybil' | 'polymarket';
 
 const CHAIN_COLORS: Record<string, string> = {
   ethereum: '#627eea',
@@ -49,15 +62,6 @@ function getRiskBg(level?: string): string {
   }
 }
 
-function getTypeLabel(type?: string): { label: string; color: string; bg: string } {
-  switch (type) {
-    case 'contract': return { label: 'Contract', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)' };
-    case 'compare': return { label: 'Compare', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)' };
-    case 'sybil': return { label: 'Sybil', color: '#ea580c', bg: 'rgba(234, 88, 12, 0.12)' };
-    default: return { label: 'Wallet', color: 'var(--color-text-muted)', bg: 'var(--color-bg-elevated)' };
-  }
-}
-
 function formatRelativeTime(timestamp: number): string {
   const now = Date.now();
   const diff = now - timestamp;
@@ -83,11 +87,14 @@ function formatEth(value?: number): string {
 
 const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [currentPage, setCurrentPage] = useState<PageType>('wallet');
   const [confirmClear, setConfirmClear] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [hoveredAddress, setHoveredAddress] = useState<{ address: string; x: number; y: number } | null>(null);
   const isMobile = useIsMobile();
   const { isAuthenticated } = useAuth();
   const hasSynced = useRef(false);
+  const navigate = useNavigate();
 
   const refreshHistory = useCallback(() => {
     setHistory(getHistory());
@@ -145,6 +152,22 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
     return CHAIN_COLORS[chainId || ''] || 'var(--color-text-muted)';
   };
 
+  const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+
+  const pages: PageType[] = ['wallet', 'contract', 'compare', 'sybil', 'polymarket'];
+  const currentIndex = pages.indexOf(currentPage);
+  const canGoBack = currentIndex > 0;
+  const canGoForward = currentIndex < pages.length - 1;
+
+  const filteredHistory = history.filter(item => {
+    if (currentPage === 'wallet') return !item.type || item.type === 'wallet';
+    if (currentPage === 'contract') return item.type === 'contract';
+    if (currentPage === 'compare') return item.type === 'compare';
+    if (currentPage === 'sybil') return item.type === 'sybil';
+    if (currentPage === 'polymarket') return item.type === 'polymarket';
+    return true;
+  });
+
   if (!isAuthenticated) {
     return (
       <motion.div 
@@ -183,48 +206,6 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
             Connect your wallet to view and track your scan history across sessions.
           </p>
           <WalletButton />
-        </motion.div>
-      </motion.div>
-    );
-  }
-
-  if (history.length === 0) {
-    return (
-      <motion.div 
-        className="page-container page-animate-enter"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <div className="page-header-flat">
-          <h1>Scan History</h1>
-          <p>Your recent wallet analysis scans</p>
-        </div>
-
-        <motion.div 
-          className="section-flat"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          style={{ textAlign: 'center', padding: isMobile ? '48px 16px' : '80px 32px' }}
-        >
-          <div style={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            background: 'var(--color-bg-elevated)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 20px',
-          }}>
-            <HugeiconsIcon icon={Clock01Icon} size={28} strokeWidth={1.5} color="var(--color-text-muted)" />
-          </div>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 8 }}>
-            No scan history yet
-          </h3>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9375rem', maxWidth: 360, margin: '0 auto' }}>
-            Analyze a wallet address on the Sybil tab to start building your scan history.
-          </p>
         </motion.div>
       </motion.div>
     );
@@ -278,159 +259,507 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectScan }) => {
         </motion.button>
       </motion.div>
 
-      <div className="card-list-flat">
-        <AnimatePresence>
-          {history.map((item, index) => {
-            const label = getLabel(item.address);
-            const hasSummary = item.riskScore !== undefined;
-            const typeInfo = getTypeLabel(item.type);
+      {/* Grid View Container */}
+      <div className="history-grid-container">
+        {/* Sidebar */}
+        <motion.div 
+          className="grid-sidebar"
+          initial={{ x: -50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        >
+          <div className="sidebar-icons">
+            <motion.button 
+              className={`sidebar-icon ${currentPage === 'wallet' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('wallet')}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              title="Wallet"
+            >
+              <HugeiconsIcon icon={UserIcon} size={20} strokeWidth={2} />
+            </motion.button>
+            <motion.button 
+              className={`sidebar-icon ${currentPage === 'contract' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('contract')}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              title="Contract"
+            >
+              <HugeiconsIcon icon={File01Icon} size={20} strokeWidth={2} />
+            </motion.button>
+            <motion.button 
+              className={`sidebar-icon ${currentPage === 'compare' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('compare')}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              title="Compare"
+            >
+              <HugeiconsIcon icon={Exchange01Icon} size={20} strokeWidth={2} />
+            </motion.button>
+            <motion.button 
+              className={`sidebar-icon ${currentPage === 'sybil' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('sybil')}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              title="Sybil"
+            >
+              <HugeiconsIcon icon={GroupIcon} size={20} strokeWidth={2} />
+            </motion.button>
+            <motion.button 
+              className={`sidebar-icon ${currentPage === 'polymarket' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('polymarket')}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              title="Polymarket"
+            >
+              <HugeiconsIcon icon={Analytics01Icon} size={20} strokeWidth={2} />
+            </motion.button>
+          </div>
+        </motion.div>
 
-            return (
+        {/* Main Content */}
+        <div className="grid-main">
+          {/* Navigation Arrows */}
+          <div className="grid-nav-arrows">
+            <motion.button 
+              className={`nav-arrow left ${!canGoBack ? 'disabled' : ''}`}
+              onClick={() => setCurrentPage(pages[currentIndex - 1])}
+              disabled={!canGoBack}
+              whileHover={canGoBack ? { scale: 1.1 } : {}}
+              whileTap={canGoBack ? { scale: 0.9 } : {}}
+            >
+              <HugeiconsIcon icon={ArrowLeftIcon} size={24} strokeWidth={2} />
+            </motion.button>
+            <motion.button 
+              className={`nav-arrow right ${!canGoForward ? 'disabled' : ''}`}
+              onClick={() => setCurrentPage(pages[currentIndex + 1])}
+              disabled={!canGoForward}
+              whileHover={canGoForward ? { scale: 1.1 } : {}}
+              whileTap={canGoForward ? { scale: 0.9 } : {}}
+            >
+              <HugeiconsIcon icon={ArrowRightIcon} size={24} strokeWidth={2} />
+            </motion.button>
+          </div>
+
+          {/* Page Content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPage}
+              className="history-content"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Page Header */}
+              <div className="history-page-header">
+                <h2>{currentPage.charAt(0).toUpperCase() + currentPage.slice(1)} History</h2>
+                <p>{filteredHistory.length} item{filteredHistory.length !== 1 ? 's' : ''}</p>
+              </div>
+
+              {/* History List */}
+              {filteredHistory.length === 0 ? (
+                <div className="empty-history">
+                  <HugeiconsIcon icon={Clock01Icon} size={48} strokeWidth={1.5} />
+                  <p>No {currentPage} history yet</p>
+                </div>
+              ) : (
+                <div className="history-list">
+                  <AnimatePresence>
+                    {filteredHistory.map((item, index) => {
+                      const label = getLabel(item.address);
+                      const hasSummary = item.riskScore !== undefined;
+
+                      return (
+                        <motion.div
+                          key={`${item.address}-${item.timestamp}`}
+                          className="history-item"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ delay: index * 0.03 }}
+                          onClick={() => onSelectScan(item.address, item.chain || 'ethereum', item.type)}
+                          whileHover={{ backgroundColor: 'var(--color-bg-hover)' }}
+                          onMouseEnter={(e) => setHoveredAddress({ address: item.address, x: e.clientX, y: e.clientY })}
+                          onMouseLeave={() => setHoveredAddress(null)}
+                        >
+                          <div className="history-item-chain">
+                            <div style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              background: getChainColor(item.chain),
+                              boxShadow: `0 0 8px ${getChainColor(item.chain)}40`,
+                            }} />
+                          </div>
+                          <div className="history-item-content">
+                            <div className="history-item-title">
+                              {label || (isMobile 
+                                ? `${item.address.slice(0, 8)}...${item.address.slice(-6)}`
+                                : item.type === 'compare'
+                                  ? `${item.address.split(',').length} wallets`
+                                  : item.address
+                              )}
+                            </div>
+                            <div className="history-item-subtitle">
+                              <span>{getChainName(item.chain)}</span>
+                              <span style={{ opacity: 0.4 }}>•</span>
+                              <span>{formatRelativeTime(item.timestamp)}</span>
+                            </div>
+                            {hasSummary && (
+                              <div className="history-item-stats">
+                                <span>TXs: {item.totalTransactions?.toLocaleString() ?? '--'}</span>
+                                <span>Sent: {formatEth(item.totalValueSentEth)} ETH</span>
+                                <span>Recv: {formatEth(item.totalValueReceivedEth)} ETH</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="history-item-meta">
+                            {hasSummary && item.riskLevel && (
+                              <span className={`risk-badge ${item.riskLevel}`}>
+                                {item.riskLevel}
+                              </span>
+                            )}
+                            <motion.button
+                              whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={(e) => handleDelete(e, item.address)}
+                              className="delete-btn"
+                            >
+                              <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={2} />
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Hover Tooltip */}
+          <AnimatePresence>
+            {hoveredAddress && (
               <motion.div
-                key={`${item.address}-${item.timestamp}`}
-                className="card-list-item"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ delay: index * 0.03 }}
-                onClick={() => onSelectScan(item.address, item.chain || 'ethereum', item.type)}
-                whileHover={{ backgroundColor: 'var(--color-bg-hover)' }}
+                className="hover-tooltip"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 16,
-                  padding: '16px 20px',
-                  borderBottom: '1px solid var(--color-border)',
+                  position: 'fixed',
+                  left: hoveredAddress.x + 10,
+                  top: hoveredAddress.y + 10,
+                  zIndex: 1000,
+                  background: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-surface-border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: 'var(--space-3)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  maxWidth: 300,
                 }}
               >
-                {/* Row Number */}
-                <div style={{
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 8,
-                  background: 'var(--color-bg-subtle)',
-                  border: '1px solid var(--color-border)',
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                  color: 'var(--color-text-muted)',
-                  fontFamily: 'var(--font-mono)',
-                  flexShrink: 0,
+                <div style={{ 
+                  fontFamily: 'var(--font-mono)', 
+                  fontSize: 'var(--text-xs)', 
+                  marginBottom: 'var(--space-2)',
+                  wordBreak: 'break-all' 
                 }}>
-                  {index + 1}
+                  {hoveredAddress.address}
                 </div>
-
-                <div className="card-list-item-icon">
-                  <div style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    background: getChainColor(item.chain),
-                    boxShadow: `0 0 8px ${getChainColor(item.chain)}40`,
-                  }} />
-                </div>
-
-                <div className="card-list-item-content" style={{ flex: 1, minWidth: 0 }}>
-                  <div className="card-list-item-title">
-                    {label || (isMobile 
-                      ? `${item.address.slice(0, 8)}...${item.address.slice(-6)}`
-                      : item.type === 'compare'
-                        ? `${item.address.split(',').length} wallets`
-                        : item.address
-                    )}
-                  </div>
-                  <div className="card-list-item-subtitle" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span>{getChainName(item.chain)}</span>
-                    <span style={{ opacity: 0.4 }}>•</span>
-                    <span>{formatRelativeTime(item.timestamp)}</span>
-                    {item.type && item.type !== 'wallet' && (
-                      <>
-                        <span style={{ opacity: 0.4 }}>•</span>
-                        <span style={{
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                          background: typeInfo.bg,
-                          color: typeInfo.color,
-                          fontSize: '0.6875rem',
-                          fontWeight: 600,
-                        }}>
-                          {typeInfo.label}
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  {hasSummary && (
-                    <div style={{
-                      display: 'flex',
-                      gap: isMobile ? 12 : 24,
-                      marginTop: 12,
-                      flexWrap: 'wrap',
-                    }}>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>TXs: </span>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          {item.totalTransactions?.toLocaleString() ?? '--'}
-                        </span>
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Sent: </span>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          {formatEth(item.totalValueSentEth)} ETH
-                        </span>
-                      </div>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Recv: </span>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                          {formatEth(item.totalValueReceivedEth)} ETH
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="card-list-item-meta">
-                  {hasSummary && item.riskLevel && (
-                    <span style={{
-                      padding: '4px 12px',
-                      borderRadius: 6,
-                      background: getRiskBg(item.riskLevel),
-                      color: getRiskColor(item.riskLevel),
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.03em',
-                    }}>
-                      {item.riskLevel} {item.riskScore !== undefined ? `(${item.riskScore})` : ''}
-                    </span>
-                  )}
-                  <motion.button
-                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={(e) => handleDelete(e, item.address)}
+                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                  <a
+                    href={`https://defigrascan.com/address/${hoveredAddress.address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      color: 'var(--color-text-muted)',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      flexShrink: 0,
+                      gap: 'var(--space-1)',
+                      padding: 'var(--space-1) var(--space-2)',
+                      background: 'var(--color-primary)',
+                      color: 'var(--color-primary-text)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--text-xs)',
+                      textDecoration: 'none',
                     }}
                   >
-                    <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={2} />
-                  </motion.button>
+                    <HugeiconsIcon icon={EyeIcon} size={12} strokeWidth={2} />
+                    View
+                  </a>
+                  <button
+                    onClick={() => navigate(`/app-evm?address=${hoveredAddress.address}`)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-1)',
+                      padding: 'var(--space-1) var(--space-2)',
+                      background: 'var(--color-bg-tertiary)',
+                      color: 'var(--color-text-primary)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--text-xs)',
+                      border: '1px solid var(--color-surface-border)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <HugeiconsIcon icon={Search01Icon} size={12} strokeWidth={2} />
+                    Scan
+                  </button>
                 </div>
               </motion.div>
-            );
-          })}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <style>{`
+          .history-grid-container {
+            display: flex;
+            height: calc(100vh - 250px);
+            min-height: 500px;
+            gap: var(--space-4);
+            padding: var(--space-4);
+          }
+
+          .grid-sidebar {
+            width: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--space-3) var(--space-2);
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-surface-border);
+          }
+
+          .sidebar-icons {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+          }
+
+          .sidebar-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-md);
+            color: var(--color-text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .sidebar-icon:hover,
+          .sidebar-icon.active {
+            background: var(--color-primary);
+            color: var(--color-primary-text);
+          }
+
+          .grid-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+          }
+
+          .grid-nav-arrows {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+            pointer-events: none;
+          }
+
+          .nav-arrow {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-bg-elevated);
+            border: 1px solid var(--color-surface-border);
+            border-radius: 50%;
+            color: var(--color-text-primary);
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          }
+
+          .nav-arrow:hover:not(.disabled) {
+            background: var(--color-primary);
+            color: var(--color-primary-text);
+          }
+
+          .nav-arrow.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+          }
+
+          .nav-arrow.left { margin-left: -22px; }
+          .nav-arrow.right { margin-right: -22px; }
+
+          .history-content {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+          }
+
+          .history-page-header {
+            margin-bottom: var(--space-4);
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid var(--color-surface-border);
+          }
+
+          .history-page-header h2 {
+            font-size: var(--text-lg);
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin: 0 0 var(--space-1) 0;
+          }
+
+          .history-page-header p {
+            font-size: var(--text-sm);
+            color: var(--color-text-muted);
+            margin: 0;
+          }
+
+          .empty-history {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            color: var(--color-text-muted);
+            gap: var(--space-4);
+          }
+
+          .history-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+          }
+
+          .history-item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-3);
+            padding: var(--space-3) var(--space-4);
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-surface-border);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .history-item:hover {
+            background: var(--color-bg-hover);
+          }
+
+          .history-item-chain {
+            padding-top: var(--space-1);
+          }
+
+          .history-item-content {
+            flex: 1;
+            min-width: 0;
+          }
+
+          .history-item-title {
+            font-family: var(--font-mono);
+            font-size: var(--text-sm);
+            font-weight: 500;
+            color: var(--color-text-primary);
+            word-break: break-all;
+          }
+
+          .history-item-subtitle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+            margin-top: var(--space-1);
+          }
+
+          .history-item-stats {
+            display: flex;
+            gap: var(--space-4);
+            margin-top: var(--space-2);
+            font-size: var(--text-xs);
+            color: var(--color-text-muted);
+          }
+
+          .history-item-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            flex-shrink: 0;
+          }
+
+          .risk-badge {
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+            font-size: var(--text-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+
+          .risk-badge.critical, .risk-badge.high {
+            background: var(--color-danger-bg);
+            color: var(--color-danger-text);
+          }
+
+          .risk-badge.medium {
+            background: var(--color-warning-bg);
+            color: var(--color-warning-text);
+          }
+
+          .risk-badge.low {
+            background: var(--color-success-bg);
+            color: var(--color-success-text);
+          }
+
+          .delete-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8;
+            color: var(--color-text-muted);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+          }
+
+          @media (max-width: 768px) {
+            .history-grid-container {
+              flex-direction: column;
+              height: auto;
+            }
+            .grid-sidebar {
+              width: 100%;
+              flex-direction: row;
+              justify-content: center;
+            }
+            .sidebar-icons {
+              flex-direction: row;
+            }
+            .grid-nav-arrows {
+              display: none;
+            }
+          }
+        `}</style>
       </div>
     </motion.div>
   );
