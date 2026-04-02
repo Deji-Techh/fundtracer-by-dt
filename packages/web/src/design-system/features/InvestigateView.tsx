@@ -16,6 +16,7 @@ import './InvestigateView.css';
 
 // Lazy load result views
 import AnalysisView from '../../components/AnalysisView';
+import WalletGridView from '../../components/WalletGridView';
 import MultiWalletView from '../../components/MultiWalletView';
 import ContractAnalysisView, { ContractAnalysisResult } from '../../components/ContractAnalysisView';
 import SybilDetector from '../../components/SybilDetector';
@@ -502,11 +503,11 @@ export function InvestigateView({
       return <SybilDetector />;
     }
 
-    // Wallet tab - show AnalysisView or SearchHistory
+    // Wallet tab - show WalletGridView or SearchHistory
     if (activeTab === 'wallet') {
       if (walletResult) {
         return (
-          <AnalysisView
+          <WalletGridView
             result={walletResult}
             pagination={pagination}
             loadingMore={loadingMore}
