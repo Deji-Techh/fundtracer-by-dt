@@ -44,11 +44,11 @@ interface SuiTransactionBlock {
                 fields: any;
             };
         }>;
-        balanceChanges?: Array<{
-            owner: string | { AddressOwner: string };
-            amount: string;
-            coinType: string;
-        }>;
+            balanceChanges?: Array<{
+                owner: string | { AddressOwner?: string; ObjectOwner?: string; SharedOwner?: string };
+                amount: string;
+                coinType: string;
+            }>;
     };
 }
 
@@ -282,30 +282,48 @@ export class SuiProvider implements ITransactionProvider {
 
                 // Extract from/to from transaction data
                 const from = tx.transaction?.data?.sender || address;
-                const to = this.extractRecipient(tx);
+                const to = this.extractRecipient(tx) || '';
 
                 // Extract value from balance changes if available
                 let value = '0';
                 let valueInEth = 0;
+                let isIncoming = false;
                 
                 // Try to get value from balance changes in effects
                 const balanceChanges = tx.effects?.balanceChanges || [];
+                
+                // Debug log balance changes
+                console.log('[SUI] Balance changes for tx:', tx.digest, JSON.stringify(balanceChanges).slice(0, 500));
+                
                 if (balanceChanges.length > 0) {
                     let netValue = BigInt(0);
                     for (const change of balanceChanges) {
                         const owner = change.owner;
-                        const isOwner = typeof owner === 'string' 
-                            ? owner === address 
-                            : owner?.AddressOwner === address;
+                        const ownerAddr = typeof owner === 'string' 
+                            ? owner 
+                            : owner?.AddressOwner || owner?.ObjectOwner || owner?.SharedOwner || '';
+                        
+                        // Check if this change is for our wallet
+                        const isOwner = ownerAddr.toLowerCase() === address.toLowerCase();
+                        
                         if (isOwner) {
-                            netValue += BigInt(change.amount || 0);
+                            const amount = BigInt(change.amount || '0');
+                            netValue += amount;
+                            console.log('[SUI] Owner change:', ownerAddr, 'amount:', change.amount, 'coinType:', change.coinType);
                         }
                     }
                     // Convert from mist (1e9 SUI) to actual SUI
                     valueInEth = Number(netValue) / 1e9;
                     value = netValue.toString();
+                    // Positive net = incoming, Negative net = outgoing
+                    isIncoming = netValue > 0;
+                    console.log('[SUI] Net value:', netValue.toString(), 'valueInEth:', valueInEth, 'isIncoming:', isIncoming);
                 } else {
-                    // Fallback to gas used as value - gasUsed is an object with computationCost, storageCost, etc.
+                    // Fallback: check if this is a send (from === address) or receive
+                    // If the tx sender is our address, it's outgoing
+                    isIncoming = from.toLowerCase() !== address.toLowerCase();
+                    
+                    // Use gas as fallback only if we can't determine value
                     const gasUsedObj = tx.effects?.gasUsed;
                     let totalGas = 0;
                     if (gasUsedObj) {
@@ -314,6 +332,7 @@ export class SuiProvider implements ITransactionProvider {
                     }
                     valueInEth = totalGas / 1e9;
                     value = totalGas.toString();
+                    console.log('[SUI] No balance changes, using gas fallback, isIncoming:', isIncoming);
                 }
 
                 // Null safety for valueInEth
@@ -335,7 +354,7 @@ export class SuiProvider implements ITransactionProvider {
                     blockNumber: 0,
                     timestamp: timestamp,
                     from: from,
-                    to: to || '',
+                    to: to,
                     value: value,
                     valueInEth: valueInEth,
                     gasUsed: gasUsedStr,
@@ -343,7 +362,7 @@ export class SuiProvider implements ITransactionProvider {
                     gasCostInEth: 0,
                     status: status,
                     category: category,
-                    isIncoming: from !== address,
+                    isIncoming: isIncoming,
                     tokenTransfers: [],
                 };
             });
