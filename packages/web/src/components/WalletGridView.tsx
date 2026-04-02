@@ -26,10 +26,13 @@ import {
   FlashlightIcon,
   WalletIcon,
   BlockchainIcon,
+  BitcoinIcon,
 } from '@hugeicons/core-free-icons';
 import { AnalysisResult, SuspiciousIndicator, FundingNode, CHAINS } from '@fundtracer/core';
+import FundingTree from './FundingTree';
 import TransactionList from './TransactionList';
 import AddressLabel from './AddressLabel';
+import { fetchFundingTree } from '../api';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { getChainTokenSymbol } from '../config/chains';
 
@@ -40,13 +43,18 @@ interface WalletGridViewProps {
     onLoadMore?: () => void;
 }
 
-type PageType = 'overview' | 'transactions' | 'funding-tree';
+type PageType = 'overview' | 'transactions' | 'funding-tree' | 'portfolio';
 type OverviewTab = 'stats' | 'suspicious' | 'sources' | 'destinations';
 
 export default function WalletGridView({ result, pagination, loadingMore, onLoadMore }: WalletGridViewProps) {
     const [currentPage, setCurrentPage] = useState<PageType>('overview');
     const [overviewTab, setOverviewTab] = useState<OverviewTab>('stats');
     const [hoveredAddress, setHoveredAddress] = useState<{ address: string; x: number; y: number } | null>(null);
+    const [fundingSources, setFundingSources] = useState<FundingNode | null>(null);
+    const [fundingDestinations, setFundingDestinations] = useState<FundingNode | null>(null);
+    const [treeLoading, setTreeLoading] = useState(false);
+    const [treeError, setTreeError] = useState<string | null>(null);
+    const [treeDepth, setTreeDepth] = useState(2);
     const isMobile = useIsMobile();
     const navigate = useNavigate();
 
@@ -54,10 +62,28 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
     const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
     const tokenSymbol = getChainTokenSymbol(chain);
 
+    const handleGenerateTree = async () => {
+        setTreeLoading(true);
+        setTreeError(null);
+        try {
+            const response = await fetchFundingTree(result.wallet.address, result.wallet.chain, treeDepth);
+            if (response.result) {
+                setFundingSources(response.result.fundingSources);
+                setFundingDestinations(response.result.fundingDestinations);
+            } else {
+                setTreeError(response.error || 'Failed to generate funding tree');
+            }
+        } catch (err: any) {
+            setTreeError(err.message || 'Failed to generate funding tree');
+        } finally {
+            setTreeLoading(false);
+        }
+    };
+
     const formatAddress = (addr: string) =>
         `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
-    const pages: PageType[] = ['overview', 'transactions', 'funding-tree'];
+    const pages: PageType[] = ['overview', 'transactions', 'funding-tree', 'portfolio'];
     const currentIndex = pages.indexOf(currentPage);
     const canGoBack = currentIndex > 0;
     const canGoForward = currentIndex < pages.length - 1;
@@ -125,6 +151,15 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                         title="Funding Tree"
                     >
                         <HugeiconsIcon icon={BlockchainIcon} size={20} strokeWidth={2} />
+                    </motion.button>
+                    <motion.button 
+                        className={`sidebar-icon ${currentPage === 'portfolio' ? 'active' : ''}`}
+                        onClick={() => setCurrentPage('portfolio')}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        title="Portfolio"
+                    >
+                        <HugeiconsIcon icon={WalletIcon} size={20} strokeWidth={2} />
                     </motion.button>
                 </div>
             </motion.div>
@@ -368,10 +403,161 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                             exit={{ opacity: 0, x: -300 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="coming-soon">
-                                <HugeiconsIcon icon={BlockchainIcon} size={48} strokeWidth={2} />
-                                <h3>Funding Tree Analysis</h3>
-                                <p>Comprehensive funding flow visualization coming soon.</p>
+                            <div className="funding-tree-controls">
+                                <div className="tree-depth-selector">
+                                    <label>Tree Depth:</label>
+                                    <select 
+                                        value={treeDepth} 
+                                        onChange={(e) => setTreeDepth(Number(e.target.value))}
+                                        disabled={treeLoading}
+                                    >
+                                        <option value={1}>1 hop</option>
+                                        <option value={2}>2 hops</option>
+                                        <option value={3}>3 hops</option>
+                                        <option value={4}>4 hops</option>
+                                    </select>
+                                </div>
+                                <button 
+                                    className="generate-tree-btn"
+                                    onClick={handleGenerateTree}
+                                    disabled={treeLoading}
+                                >
+                                    {treeLoading ? 'Generating...' : 'Generate Funding Tree'}
+                                </button>
+                            </div>
+                            
+                            {treeError && (
+                                <div className="tree-error">{treeError}</div>
+                            )}
+                            
+                            <FundingTree 
+                                sourceData={fundingSources || result.fundingSources}
+                                destData={fundingDestinations || result.fundingDestinations}
+                                targetAddress={result.wallet.address}
+                                chain={result.wallet.chain}
+                            />
+                        </motion.div>
+                    )}
+
+                    {currentPage === 'portfolio' && (
+                        <motion.div
+                            key="portfolio"
+                            className="portfolio-page"
+                            initial={{ opacity: 0, x: 300 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -300 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <div className="portfolio-grid">
+                                {/* Wallet Balance */}
+                                <div className="portfolio-box balance-box">
+                                    <div className="box-header">
+                                        <h3>Wallet Balance</h3>
+                                        <HugeiconsIcon icon={WalletIcon} size={16} strokeWidth={2} />
+                                    </div>
+                                    <div className="balance-info">
+                                        <div className="main-balance">
+                                            <span className="balance-value">{result.wallet.balanceInEth.toFixed(6)}</span>
+                                            <span className="balance-symbol">{tokenSymbol}</span>
+                                        </div>
+                                        <div className="balance-usd">
+                                            ≈ ${(result.wallet.balanceInEth * 3000).toFixed(2)} USD
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Token Holdings */}
+                                <div className="portfolio-box tokens-box">
+                                    <div className="box-header">
+                                        <h3>Token Holdings</h3>
+                                        <HugeiconsIcon icon={BitcoinIcon} size={16} strokeWidth={2} />
+                                    </div>
+                                    <div className="token-list">
+                                        <div className="token-item main">
+                                            <span className="token-name">{tokenSymbol}</span>
+                                            <span className="token-balance">{result.wallet.balanceInEth.toFixed(6)}</span>
+                                        </div>
+                                        {(result.projectsInteracted || []).slice(0, 5).map((project, i) => (
+                                            <div key={i} className="token-item">
+                                                <span className="token-name">{project.projectName || formatAddress(project.contractAddress)}</span>
+                                                <span className="token-balance">{project.totalValueInEth.toFixed(4)} {tokenSymbol}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Contracts Interacted */}
+                                <div className="portfolio-box contracts-box">
+                                    <div className="box-header">
+                                        <h3>Contracts Interacted</h3>
+                                        <HugeiconsIcon icon={Link01Icon} size={16} strokeWidth={2} />
+                                    </div>
+                                    <div className="contract-list">
+                                        {(result.projectsInteracted || []).length === 0 ? (
+                                            <div className="empty-list">
+                                                <p>No contracts found</p>
+                                            </div>
+                                        ) : (
+                                            (result.projectsInteracted || []).slice(0, 8).map((project, i) => (
+                                                <motion.div 
+                                                    key={i}
+                                                    className="contract-item"
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: i * 0.05 }}
+                                                >
+                                                    <div className="contract-info">
+                                                        <span className="contract-address">
+                                                            {formatAddress(project.contractAddress)}
+                                                        </span>
+                                                        <span className="contract-category">{project.category}</span>
+                                                    </div>
+                                                    <div className="contract-stats">
+                                                        <span className="interaction-count">{project.interactionCount} interactions</span>
+                                                    </div>
+                                                </motion.div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Activity Summary */}
+                                <div className="portfolio-box activity-box">
+                                    <div className="box-header">
+                                        <h3>Activity Summary</h3>
+                                        <HugeiconsIcon icon={Clock01Icon} size={16} strokeWidth={2} />
+                                    </div>
+                                    <div className="activity-stats">
+                                        <div className="activity-item">
+                                            <span className="activity-label">First Activity</span>
+                                            <span className="activity-value">
+                                                {result.wallet.firstTxTimestamp 
+                                                    ? new Date(result.wallet.firstTxTimestamp * 1000).toLocaleDateString()
+                                                    : 'Unknown'}
+                                            </span>
+                                        </div>
+                                        <div className="activity-item">
+                                            <span className="activity-label">Last Activity</span>
+                                            <span className="activity-value">
+                                                {result.wallet.lastTxTimestamp
+                                                    ? new Date(result.wallet.lastTxTimestamp * 1000).toLocaleDateString()
+                                                    : 'Unknown'}
+                                            </span>
+                                        </div>
+                                        <div className="activity-item">
+                                            <span className="activity-label">Avg Txs/Day</span>
+                                            <span className="activity-value">
+                                                {result.summary?.averageTxPerDay?.toFixed(1) || '0'}
+                                            </span>
+                                        </div>
+                                        <div className="activity-item">
+                                            <span className="activity-label">Risk Score</span>
+                                            <span className={`activity-value risk-${result.riskLevel}`}>
+                                                {result.overallRiskScore} ({result.riskLevel})
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                     )}
@@ -738,9 +924,154 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                 }
 
                 .transactions-page,
-                .funding-tree-page {
+                .funding-tree-page,
+                .portfolio-page {
                     flex: 1;
                     overflow: auto;
+                }
+
+                .portfolio-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: var(--space-4);
+                    height: 100%;
+                }
+
+                .portfolio-box {
+                    background: var(--color-bg-secondary);
+                    border: 1px solid var(--color-surface-border);
+                    border-radius: var(--radius-lg);
+                    padding: var(--space-4);
+                    min-height: 200px;
+                }
+
+                .balance-info {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--space-2);
+                    margin-top: var(--space-3);
+                }
+
+                .main-balance {
+                    display: flex;
+                    align-items: baseline;
+                    gap: var(--space-2);
+                }
+
+                .balance-value {
+                    font-size: var(--text-2xl);
+                    font-weight: 700;
+                    font-family: var(--font-mono);
+                    color: var(--color-text-primary);
+                }
+
+                .balance-symbol {
+                    font-size: var(--text-lg);
+                    color: var(--color-text-muted);
+                }
+
+                .balance-usd {
+                    font-size: var(--text-sm);
+                    color: var(--color-text-muted);
+                }
+
+                .token-list,
+                .contract-list,
+                .activity-stats {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--space-2);
+                    margin-top: var(--space-3);
+                }
+
+                .token-item {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: var(--space-2);
+                    background: var(--color-bg-tertiary);
+                    border-radius: var(--radius-sm);
+                }
+
+                .token-item.main {
+                    background: var(--color-primary);
+                    background: rgba(var(--color-primary-rgb), 0.1);
+                }
+
+                .token-name {
+                    font-weight: 500;
+                    font-size: var(--text-sm);
+                }
+
+                .token-balance {
+                    font-family: var(--font-mono);
+                    font-size: var(--text-sm);
+                }
+
+                .contract-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: var(--space-2) var(--space-3);
+                    background: var(--color-bg-tertiary);
+                    border-radius: var(--radius-sm);
+                }
+
+                .contract-info {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--space-1);
+                }
+
+                .contract-address {
+                    font-family: var(--font-mono);
+                    font-size: var(--text-xs);
+                }
+
+                .contract-category {
+                    font-size: var(--text-xs);
+                    color: var(--color-text-muted);
+                    text-transform: uppercase;
+                }
+
+                .contract-stats {
+                    text-align: right;
+                }
+
+                .interaction-count {
+                    font-size: var(--text-xs);
+                    color: var(--color-text-muted);
+                }
+
+                .activity-item {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: var(--space-2);
+                    background: var(--color-bg-tertiary);
+                    border-radius: var(--radius-sm);
+                }
+
+                .activity-label {
+                    font-size: var(--text-sm);
+                    color: var(--color-text-muted);
+                }
+
+                .activity-value {
+                    font-family: var(--font-mono);
+                    font-size: var(--text-sm);
+                    font-weight: 500;
+                }
+
+                .activity-value.risk-critical,
+                .activity-value.risk-high {
+                    color: var(--color-danger-text);
+                }
+
+                .activity-value.risk-medium {
+                    color: var(--color-warning-text);
+                }
+
+                .activity-value.risk-low {
+                    color: var(--color-success-text);
                 }
 
                 .coming-soon {
