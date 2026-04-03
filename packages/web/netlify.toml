@@ -1,0 +1,9 @@
+{
+  "build": {
+    "command": "npm run build",
+    "publish": "dist"
+  },
+  "trafficSplit": [
+    { "path": "/api/*", "origin": "https://fundtracer-by-dt-production.up.railway.app" }
+  ]
+}

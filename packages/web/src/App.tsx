@@ -141,7 +141,7 @@ function ApiKeysRoute() {
   );
 }
 
-const IS_MAINTENANCE_MODE = true;
+const IS_MAINTENANCE_MODE = false;
 
 function App() {
   if (IS_MAINTENANCE_MODE) {
