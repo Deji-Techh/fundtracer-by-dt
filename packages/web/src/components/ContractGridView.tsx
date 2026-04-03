@@ -383,54 +383,54 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                         </motion.div>
                     )}
 
-                    {currentPage === 'shared-funding' && (
-                        <motion.div
-                            key="shared-funding"
-                            className="shared-funding-page"
-                            initial={{ opacity: 0, x: 300 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -300 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            {result.sharedFundingGroups.length === 0 ? (
-                                <div className="empty-state">
-                                    <CheckmarkCircle02Icon size={48} />
-                                    <h3>No Shared Funding Detected</h3>
-                                    <p>This contract has no suspicious shared funding patterns.</p>
-                                </div>
-                            ) : (
-                                <div className="shared-groups">
-                                    {result.sharedFundingGroups.map((group, i) => (
-                                        <motion.div
-                                            key={i}
-                                            className="shared-group-card"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: i * 0.1 }}
-                                        >
-                                            <div className="group-header">
-                                                <span className="funding-source">{formatAddress(group.fundingSource)}</span>
-                                                <span className="wallet-count">{group.count} wallets</span>
-                                            </div>
-                                            <div className="wallets-list">
-                                                {group.wallets.slice(0, 5).map((wallet, j) => (
-                                                    <span key={j} className="wallet-chip" 
-                                                        onMouseEnter={(e) => setHoveredAddress({ address: wallet, x: e.clientX, y: e.clientY })}
-                                                        onMouseLeave={() => setHoveredAddress(null)}
-                                                    >
-                                                        {formatAddress(wallet)}
-                                                    </span>
-                                                ))}
-                                                {group.wallets.length > 5 && (
-                                                    <span className="more">+{group.wallets.length - 5} more</span>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
+                            {currentPage === 'shared-funding' && (
+                                <motion.div
+                                    key="shared-funding"
+                                    className="shared-funding-page"
+                                    initial={{ opacity: 0, x: 300 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -300 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    {(result.sharedFundingGroups || []).length === 0 ? (
+                                        <div className="empty-state">
+                                            <CheckmarkCircle02Icon size={48} />
+                                            <h3>No Shared Funding Detected</h3>
+                                            <p>This contract has no suspicious shared funding patterns.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="shared-groups">
+                                            {(result.sharedFundingGroups || []).map((group: any, i: number) => (
+                                                <motion.div
+                                                    key={i}
+                                                    className="shared-group-card"
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: i * 0.1 }}
+                                                >
+                                                    <div className="group-header">
+                                                        <span className="funding-source">{formatAddress(group.fundingSource || '')}</span>
+                                                        <span className="wallet-count">{group.count || 0} wallets</span>
+                                                    </div>
+                                                    <div className="wallets-list">
+                                                        {(group.wallets || []).slice(0, 5).map((wallet: string, j: number) => (
+                                                            <span key={j} className="wallet-chip" 
+                                                                onMouseEnter={(e) => setHoveredAddress({ address: wallet, x: e.clientX, y: e.clientY })}
+                                                                onMouseLeave={() => setHoveredAddress(null)}
+                                                            >
+                                                                {formatAddress(wallet)}
+                                                            </span>
+                                                        ))}
+                                                        {(group.wallets || []).length > 5 && (
+                                                            <span className="more">+{(group.wallets || []).length - 5} more</span>
+                                                        )}
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </motion.div>
                             )}
-                        </motion.div>
-                    )}
                 </AnimatePresence>
 
                 {/* Hover Tooltip */}

@@ -1,14 +1,21 @@
 const API_BASE = '';
 
+function getAuthToken(): string | null {
+  return localStorage.getItem('fundtracer_token');
+}
+
 async function authenticatedFetch(url: string, options?: RequestInit): Promise<Response> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
   const response = await fetch(url, {
     ...options,
+    headers: { ...headers, ...options?.headers },
     credentials: 'include',
   });
-  
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
   
   return response;
 }
