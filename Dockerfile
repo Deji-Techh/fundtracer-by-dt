@@ -4,14 +4,12 @@ WORKDIR /app
 
 COPY package.json packages/core/package.json packages/server/package.json ./
 
-RUN npm install && \
-    cd packages/core && npm install && \
-    cd ../server && npm install
+RUN npm install --workspaces
 
 COPY packages/core/ packages/core/
 COPY packages/server/ packages/server/
 
-RUN cd packages/core && npm run build
+RUN npm run build --workspace=fundtracer-core
 
 EXPOSE 3000
 
