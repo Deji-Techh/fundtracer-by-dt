@@ -1,2 +1,2 @@
-/api/*  https://fundtracer-by-dt-production.up.railway.app/:splat  307!
+/api/*  https://fundtracer-by-dt-production.up.railway.app/api/:splat  307!
 /*    /index.html   200

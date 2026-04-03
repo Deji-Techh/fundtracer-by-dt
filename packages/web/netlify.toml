@@ -4,6 +4,6 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://fundtracer-by-dt-production.up.railway.app/:splat"
+  to = "https://fundtracer-by-dt-production.up.railway.app/api/:splat"
   status = 307
   force = true
