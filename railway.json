@@ -2,11 +2,11 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd ../core && npm install && npm run build && cd ../server && npm install && npm run build",
-    "installCommand": "cd ../server && npm install"
+    "buildCommand": "cd ../.. && npm install --workspaces && npm run build --workspace=fundtracer-core",
+    "installCommand": "npm install --workspaces"
   },
   "deploy": {
-    "startCommand": "cd ../server && npm start",
+    "startCommand": "npm run start --workspace=@fundtracer/server",
     "healthcheckPath": "/health",
     "healthcheckInterval": 30
   }
