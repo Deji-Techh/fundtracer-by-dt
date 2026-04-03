@@ -5,6 +5,7 @@ import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
 import AppPage from './pages/AppPage';
 import { useAuth } from './contexts/AuthContext';
+import MaintenancePage from './pages/MaintenancePage';
 import './design-system/tokens.css';
 
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
@@ -140,7 +141,13 @@ function ApiKeysRoute() {
   );
 }
 
+const IS_MAINTENANCE_MODE = true;
+
 function App() {
+  if (IS_MAINTENANCE_MODE) {
+    return <MaintenancePage />;
+  }
+
   return (
     <Routes>
       <Route path="/" element={<IntelPage />} />
