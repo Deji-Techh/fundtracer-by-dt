@@ -5,6 +5,7 @@ WORKDIR /app
 COPY packages/server/package.json packages/server/
 COPY packages/core/package.json packages/core/
 COPY package.json ./
+COPY tsconfig.json ./
 
 RUN npm install --workspaces
 
