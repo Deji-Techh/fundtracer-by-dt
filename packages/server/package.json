@@ -9,7 +9,7 @@
         "dev": "tsx watch src/index.ts"
     },
     "dependencies": {
-        "@fundtracer/core": "*",
+        "fundtracer-core": "file:../core",
         "@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/nodemailer": "^7.0.11",
