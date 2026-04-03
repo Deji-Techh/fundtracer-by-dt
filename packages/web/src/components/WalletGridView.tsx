@@ -71,6 +71,9 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
         setTreeError(null);
         try {
             const response = await fetchFundingTree(result.wallet.address, result.wallet.chain, treeDepth);
+            console.log('[WalletGridView] Funding tree response:', response);
+            console.log('[WalletGridView] Funding sources:', response.result?.fundingSources);
+            console.log('[WalletGridView] Funding destinations:', response.result?.fundingDestinations);
             if (response.result) {
                 setFundingSources(response.result.fundingSources);
                 setFundingDestinations(response.result.fundingDestinations);
@@ -78,6 +81,7 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                 setTreeError(response.error || 'Failed to generate funding tree');
             }
         } catch (err: any) {
+            console.error('[WalletGridView] Funding tree error:', err);
             setTreeError(err.message || 'Failed to generate funding tree');
         } finally {
             setTreeLoading(false);

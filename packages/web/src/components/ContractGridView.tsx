@@ -290,22 +290,22 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                         <HugeiconsIcon icon={AlertDiamondIcon} size={16} strokeWidth={2} />
                                     </div>
                                     <div className="pattern-list">
-                                        {result.suspiciousPatterns.length === 0 ? (
+                                        {(result.suspiciousPatterns || []).length === 0 ? (
                                             <div className="no-patterns">
                                                 <CheckmarkCircle02Icon />
                                                 <p>No suspicious patterns detected</p>
                                             </div>
                                         ) : (
-                                            result.suspiciousPatterns.slice(0, 5).map((pattern, i) => (
+                                            (result.suspiciousPatterns || []).slice(0, 5).map((pattern: any, i: number) => (
                                                 <motion.div 
                                                     key={i}
-                                                    className={`pattern-item ${pattern.severity || 'low'}`}
+                                                    className={`pattern-item ${String(pattern.severity || 'low')}`}
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: 0.4 + i * 0.1 }}
                                                 >
-                                                    <span className="pattern-type">{(pattern.type || '').replace(/_/g, ' ')}</span>
-                                                    <span className="pattern-score">+{pattern.score || 0}</span>
+                                                    <span className="pattern-type">{(pattern.type || '').toString().replace(/_/g, ' ')}</span>
+                                                    <span className="pattern-score">+{Number(pattern.score || 0)}</span>
                                                 </motion.div>
                                             ))
                                         )}

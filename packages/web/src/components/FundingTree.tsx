@@ -9,7 +9,7 @@ interface FundingNode {
     address: string;
     label?: string;
     depth: number;
-    direction: 'source' | 'destination';
+    activeDirection: 'source' | 'destination';
     totalValue: string;
     totalValueInEth: number;
     txCount: number;
@@ -34,10 +34,10 @@ import {
 } from 'lucide-react';
 
 interface FundingTreeProps {
-    node: FundingNode;
-    direction: 'source' | 'destination';
+    sourceData?: FundingNode;
+    destData?: FundingNode;
+    targetAddress: string;
     chain?: ChainId;
-    title?: string;
 }
 
 // --- Entity type color helpers ---
@@ -85,12 +85,12 @@ function formatAddr(a: string): string {
 const NodeDetailPanel = ({
     node: detailNode,
     chainConfig,
-    direction,
+    activeDirection,
     onClose,
 }: {
     node: FundingNode;
     chainConfig: any;
-    direction: 'source' | 'destination';
+    activeDirection: 'source' | 'destination';
     onClose: () => void;
 }) => {
     const entityStyle = getEntityStyle(detailNode.entityType);
@@ -206,13 +206,13 @@ const NodeDetailPanel = ({
 
 const MobileTreeNode = ({
     treeNode,
-    direction,
+    activeDirection,
     chainConfig,
     onSelectNode,
     depth = 0
 }: {
     treeNode: FundingNode;
-    direction: 'source' | 'destination';
+    activeDirection: 'source' | 'destination';
     chainConfig: any;
     onSelectNode: (node: FundingNode) => void;
     depth?: number;
@@ -225,7 +225,7 @@ const MobileTreeNode = ({
         <div className="mobile-tree-node" style={{ marginLeft: depth * 12 }}>
             <div
                 onClick={() => hasChildren ? setExpanded(!expanded) : onSelectNode(treeNode)}
-                className={`mobile-tree-node-inner ${depth === 0 ? (direction === 'source' ? 'source-root' : 'destination-root') : ''}`}
+                className={`mobile-tree-node-inner ${depth === 0 ? (activeDirection === 'source' ? 'source-root' : 'destination-root') : ''}`}
                 style={{ borderLeft: `3px solid ${entityStyle.border}` }}
             >
                 {hasChildren && (
@@ -266,7 +266,7 @@ const MobileTreeNode = ({
                         <MobileTreeNode
                             key={`${child.address}-${idx}`}
                             treeNode={child}
-                            direction={direction}
+                            activeDirection={activeDirection}
                             chainConfig={chainConfig}
                             onSelectNode={onSelectNode}
                             depth={depth + 1}
@@ -288,15 +288,13 @@ const MobileTreeNode = ({
 
 const MobileTreeView = ({
     node: mobileNode,
-    direction,
-    title,
+    activeDirection,
     chainConfig,
     onShowGraph,
     onSelectNode,
 }: {
     node: FundingNode;
-    direction: 'source' | 'destination';
-    title?: string;
+    activeDirection: 'source' | 'destination';
     chainConfig: any;
     onShowGraph: () => void;
     onSelectNode: (node: FundingNode) => void;
@@ -308,10 +306,10 @@ const MobileTreeView = ({
         }}>
             <div style={{
                 fontSize: 14, fontWeight: 600,
-                color: direction === 'source' ? 'var(--color-success-text)' : 'var(--color-danger-text)',
+                color: activeDirection === 'source' ? 'var(--color-success-text)' : 'var(--color-danger-text)',
                 marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
-                <span>{title || (direction === 'source' ? 'Funding Sources' : 'Fund Destinations')}</span>
+                <span>{activeDirection === 'source' ? 'Funding Sources' : 'Fund Destinations'}</span>
                 <button
                     onClick={onShowGraph}
                     style={{
@@ -327,7 +325,7 @@ const MobileTreeView = ({
             </div>
             <MobileTreeNode
                 treeNode={mobileNode}
-                direction={direction}
+                activeDirection={activeDirection}
                 chainConfig={chainConfig}
                 onSelectNode={onSelectNode}
             />
@@ -337,7 +335,12 @@ const MobileTreeView = ({
 
 // --- Main Component ---
 
-function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTreeProps) {
+function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum' }: FundingTreeProps) {
+    const [activeDirection, setActiveDirection] = useState<'source' | 'destination'>('source');
+    
+    // Choose which node to display based on active activeDirection
+    const node = activeDirection === 'source' ? sourceData : destData;
+    
     const svgRef = useRef<SVGSVGElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -358,6 +361,8 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
     const chainConfig = CHAINS[chain] || { explorer: '#', name: 'Unknown' };
     const isMobile = useIsMobile();
 
+    console.log('[FundingTree] Rendering with sourceData:', sourceData, 'destData:', destData, 'targetAddress:', targetAddress);
+
     // Safety checks
     if (!chainConfig) {
         console.error('[FundingTree] Invalid chain config for chain:', chain);
@@ -367,7 +372,21 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
     if (!node || !node.address) {
         return (
             <div style={{ padding: 20, textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                No funding data available
+                <div style={{ marginBottom: 10 }}>
+                    <button 
+                        onClick={() => setActiveDirection('source')}
+                        style={{ marginRight: 10, padding: '8px 16px', background: activeDirection === 'source' ? 'var(--color-primary)' : 'var(--color-bg-tertiary)', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                    >
+                        Sources
+                    </button>
+                    <button 
+                        onClick={() => setActiveDirection('destination')}
+                        style={{ padding: '8px 16px', background: activeDirection === 'destination' ? 'var(--color-primary)' : 'var(--color-bg-tertiary)', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                    >
+                        Destinations
+                    </button>
+                </div>
+                No funding data available for {activeDirection === 'source' ? 'sources' : 'destinations'}
             </div>
         );
     }
@@ -429,7 +448,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
 
             // Arrow marker
             defs.append('marker')
-                .attr('id', `arrow-${direction}`)
+                .attr('id', `arrow-${activeDirection}`)
                 .attr('viewBox', '0 0 10 6')
                 .attr('refX', 10)
                 .attr('refY', 3)
@@ -438,7 +457,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 .attr('orient', 'auto')
                 .append('path')
                 .attr('d', 'M0,0 L10,3 L0,6 Z')
-                .attr('fill', direction === 'source' ? '#00ff88' : '#ff3366');
+                .attr('fill', activeDirection === 'source' ? '#00ff88' : '#ff3366');
 
             const g = svg.append('g')
                 .attr('class', 'tree-container')
@@ -499,11 +518,11 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 .style('fill', 'none')
                 .style('stroke', (d: any) => {
                     if (highlightedAddress && (d.source.data.address === highlightedAddress || d.target.data.address === highlightedAddress)) {
-                        return direction === 'source' ? '#00ff88' : '#ff6688';
+                        return activeDirection === 'source' ? '#00ff88' : '#ff6688';
                     }
                     const targetVal = d.target.data.totalValueInEth || 0;
                     const ratio = maxValue > 0 ? targetVal / maxValue : 0;
-                    if (ratio > 0.5) return direction === 'source' ? '#00ff88' : '#ff3366';
+                    if (ratio > 0.5) return activeDirection === 'source' ? '#00ff88' : '#ff3366';
                     return 'var(--color-surface-border)';
                 })
                 .style('stroke-width', (d: any) => {
@@ -512,7 +531,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                     return Math.max(1, Math.min(5, 1 + ratio * 4));
                 })
                 .style('opacity', 0.5)
-                .attr('marker-end', `url(#arrow-${direction})`);
+                .attr('marker-end', `url(#arrow-${activeDirection})`);
 
             // Nodes
             const nodes = g.selectAll('.tree-node')
@@ -532,14 +551,14 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 .attr('ry', 6)
                 .style('fill', (d: any) => {
                     const style = getEntityStyle(d.data.entityType);
-                    return d.depth === 0 ? (direction === 'source' ? '#051a0d' : '#1a0508') : style.bg;
+                    return d.depth === 0 ? (activeDirection === 'source' ? '#051a0d' : '#1a0508') : style.bg;
                 })
                 .style('stroke', (d: any) => {
                     if (selectedNode?.address === d.data.address) return '#ffffff';
                     if (d.data.address === highlightedAddress) return '#ffffff';
                     const style = getEntityStyle(d.data.entityType);
                     return d.depth === 0
-                        ? (direction === 'source' ? '#00ff88' : '#ff3366')
+                        ? (activeDirection === 'source' ? '#00ff88' : '#ff3366')
                         : style.border;
                 })
                 .style('stroke-width', (d: any) => {
@@ -578,7 +597,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 .style('font-size', '10px')
                 .style('font-weight', (d: any) => d.depth === 0 ? '600' : '500')
                 .style('fill', (d: any) => {
-                    if (d.depth === 0) return direction === 'source' ? '#00ff88' : '#ff6688';
+                    if (d.depth === 0) return activeDirection === 'source' ? '#00ff88' : '#ff6688';
                     const style = getEntityStyle(d.data.entityType);
                     return style.text;
                 })
@@ -627,7 +646,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
             console.error('FundingTree D3 Error:', err);
             setError(err.message || 'Error visualizing funding tree');
         }
-    }, [node, isFullscreen, showMobileGraph, isMobile, collapsedNodes, direction, highlightedAddress, showLabels, selectedNode]);
+    }, [node, isFullscreen, showMobileGraph, isMobile, collapsedNodes, activeDirection, highlightedAddress, showLabels, selectedNode]);
 
     // Render Logic
 
@@ -637,8 +656,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
             <div style={{ position: 'relative' }}>
                 <MobileTreeView
                     node={node}
-                    direction={direction}
-                    title={title}
+                    activeDirection={activeDirection}
                     chainConfig={chainConfig}
                     onShowGraph={() => setShowMobileGraph(true)}
                     onSelectNode={(n) => setSelectedNode(n)}
@@ -647,7 +665,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                     <NodeDetailPanel
                         node={selectedNode}
                         chainConfig={chainConfig}
-                        direction={direction}
+                        activeDirection={activeDirection}
                         onClose={() => setSelectedNode(null)}
                     />
                 )}
@@ -695,8 +713,8 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                             <ArrowLeft size={16} /> Back
                         </button>
                     )}
-                    <span className={`funding-tree-toolbar-badge ${direction === 'source' ? 'source' : 'destination'}`}>
-                        {direction === 'source' ? 'Funding Sources' : 'Destinations'}
+                    <span className={`funding-tree-toolbar-badge ${activeDirection === 'source' ? 'source' : 'destination'}`}>
+                        {activeDirection === 'source' ? 'Funding Sources' : 'Destinations'}
                     </span>
                     <span className="funding-tree-toolbar-hint">
                         Click node for details &middot; Double-click to collapse
@@ -728,7 +746,7 @@ function FundingTree({ node, direction, chain = 'ethereum', title }: FundingTree
                 <NodeDetailPanel
                     node={selectedNode}
                     chainConfig={chainConfig}
-                    direction={direction}
+                    activeDirection={activeDirection}
                     onClose={() => setSelectedNode(null)}
                 />
             )}
