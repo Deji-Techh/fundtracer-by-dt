@@ -34,22 +34,35 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
     const isMobile = useIsMobile();
     const navigate = useNavigate();
 
-    const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
-    const tokenSymbol = getChainTokenSymbol(chain);
+    try {
+        console.log('[CompareGridView] Rendering with result:', result);
+        console.log('[CompareGridView] Result keys:', result ? Object.keys(result) : 'null');
 
-    const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+        if (!result) {
+            return (
+                <div className="wallet-grid-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
+                    <p>No compare data available</p>
+                </div>
+            );
+        }
 
-    const pages: PageType[] = ['overview', 'common-funding', 'direct-transfers'];
-    const currentIndex = pages.indexOf(currentPage);
-    const canGoBack = currentIndex > 0;
-    const canGoForward = currentIndex < pages.length - 1;
+        const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
+        const tokenSymbol = getChainTokenSymbol(chain);
 
-    const hasNoFindings = (result.commonFundingSources?.length || 0) === 0 
-        && (result.commonDestinations?.length || 0) === 0 
-        && (result.directTransfers?.length || 0) === 0 
-        && (result.sharedProjects?.length || 0) === 0;
+        const formatAddress = (addr: string) => `${(addr || '').slice(0, 6)}...${(addr || '').slice(-4)}`;
 
-    const correlationLevel = result.correlationScore > 60 ? 'high' : result.correlationScore > 30 ? 'medium' : 'low';
+        const pages: PageType[] = ['overview', 'common-funding', 'direct-transfers'];
+        const currentIndex = pages.indexOf(currentPage);
+        const canGoBack = currentIndex > 0;
+        const canGoForward = currentIndex < pages.length - 1;
+
+        const hasNoFindings = (result.commonFundingSources?.length || 0) === 0 
+            && (result.commonDestinations?.length || 0) === 0 
+            && (result.directTransfers?.length || 0) === 0 
+            && (result.sharedProjects?.length || 0) === 0;
+
+        const correlationScore = result.correlationScore ?? 0;
+        const correlationLevel = correlationScore > 60 ? 'high' : correlationScore > 30 ? 'medium' : 'low';
 
     return (
         <div className="wallet-grid-container">
@@ -141,7 +154,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                     </div>
                                     <div className="correlation-content">
                                         <div className={`correlation-score ${correlationLevel}`}>
-                                            <span className="score-value">{result.correlationScore}%</span>
+                                            <span className="score-value">{correlationScore}%</span>
                                             <span className="score-label">Similarity</span>
                                         </div>
                                         {result.isSybilLikely && (
@@ -152,7 +165,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                         )}
                                         <div className="wallets-compared">
                                             <span className="label">Wallets Analyzed</span>
-                                            <span className="value">{result.wallets?.length || 0}</span>
+                                            <span className="value">{(result.wallets || []).length}</span>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -809,4 +822,13 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
             `}</style>
         </div>
     );
+    } catch (err: any) {
+        console.error('[CompareGridView] Render error:', err);
+        return (
+            <div className="wallet-grid-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '1rem' }}>
+                <p>Error loading compare data</p>
+                <p style={{ fontSize: '0.8rem' }}>{err?.message || 'Unknown error'}</p>
+            </div>
+        );
+    }
 }
