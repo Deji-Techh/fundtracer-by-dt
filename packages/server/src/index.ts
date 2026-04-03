@@ -239,7 +239,9 @@ app.use(helmet({
                 "'unsafe-inline'",
                 "https://*.google.com",
                 "https://*.googleapis.com",
-                "https://*.gstatic.com"
+                "https://*.gstatic.com",
+                "https://static.cloudflareinsights.com",
+                "https://*.cloudflareinsights.com"
             ],
             "style-src": [
                 "'self'",
