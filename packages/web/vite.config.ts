@@ -55,7 +55,6 @@ export default defineConfig({
         manualChunks: {
           'vendor': ['react', 'react-dom'],
           'firebase': ['firebase/app', 'firebase/auth'],
-          'appkit': ['@reown/appkit', '@reown/appkit-adapter-ethers'],
           'router': ['react-router-dom'],
           'charts': ['chart.js', 'react-chartjs-2', 'lightweight-charts'],
           'pdf': ['jspdf', 'jspdf-autotable', 'html2canvas'],
