@@ -1,4 +1,6 @@
 {
+  "buildCommand": "cd ../core && npm install && npm run build && cd ../web && npm install && npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://fundtracer-by-dt-production.up.railway.app/api/:path*" }
   ]
