@@ -2,7 +2,15 @@ FROM node:20-slim
 
 WORKDIR /app
 
-COPY package.json packages/*/package.json ./
+COPY package.json \
+      packages/core/package.json \
+      packages/server/package.json \
+      packages/cli/package.json \
+      packages/web/package.json \
+      packages/video/package.json \
+      packages/extension/package.json \
+      packages/api/package.json \
+      packages/admin/package.json ./
 
 RUN npm install --workspaces
 
