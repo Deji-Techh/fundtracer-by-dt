@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://fundtracer-by-dt-production.up.railway.app/api/:path*" }
+  ]
+}
