@@ -9,5 +9,8 @@
     "startCommand": "npm run start --workspace=@fundtracer/server",
     "healthcheckPath": "/health",
     "healthcheckInterval": 30
+  },
+  "runtime": {
+    "nodeVersion": "22"
   }
 }
