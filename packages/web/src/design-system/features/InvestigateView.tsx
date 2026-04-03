@@ -855,7 +855,7 @@ export function InvestigateView({
           )}
 
           {/* Address Input - show for wallet/contract/compare tabs */}
-          {activeTab !== 'sybil' && activeTab !== 'track' && activeTab !== 'graph' && (
+          {activeTab !== 'sybil' && activeTab !== 'track' && activeTab !== 'graph' && activeTab !== 'cex-flow' && (
             <>
               <div className="field-label">
                 {activeTab === 'wallet' && 'Wallet address'}

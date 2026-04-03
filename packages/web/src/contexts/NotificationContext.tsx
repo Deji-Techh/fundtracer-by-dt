@@ -238,6 +238,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...headers },
           body: JSON.stringify(newNotification),
+          credentials: 'include',
         }).catch(() => {});
       });
     }
@@ -248,7 +249,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     
     if (user) {
       getAuthHeaders().then(headers => {
-        fetch(`/api/notifications/${id}/read`, { method: 'PUT', headers }).catch(() => {});
+        fetch(`/api/notifications/${id}/read`, { method: 'PUT', headers, credentials: 'include' }).catch(() => {});
       });
     }
   }, [user]);
@@ -258,7 +259,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     
     if (user) {
       getAuthHeaders().then(headers => {
-        fetch('/api/notifications/read-all', { method: 'PUT', headers }).catch(() => {});
+        fetch('/api/notifications/read-all', { method: 'PUT', headers, credentials: 'include' }).catch(() => {});
       });
     }
   }, [user]);

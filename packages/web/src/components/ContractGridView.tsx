@@ -64,22 +64,30 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
     const [currentPage, setCurrentPage] = useState<PageType>('overview');
     const [sortBy, setSortBy] = useState<'interactions' | 'value' | 'recent'>('interactions');
     const [hoveredAddress, setHoveredAddress] = useState<{ address: string; x: number; y: number } | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const isMobile = useIsMobile();
     const navigate = useNavigate();
 
-    // Defensive: ensure result exists and has required fields
-    if (!result) {
-        return (
-            <div className="wallet-grid-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
-                <p>No contract data available</p>
-            </div>
-        );
-    }
+    try {
+        console.log('[ContractGridView] Rendering with result:', result);
+        console.log('[ContractGridView] Result keys:', result ? Object.keys(result) : 'null');
 
-    // Defensive: ensure arrays exist
-    const interactors = result?.interactors || [];
-    const sharedFundingGroups = result?.sharedFundingGroups || [];
-    const suspiciousPatterns = result?.suspiciousPatterns || [];
+        // Defensive: ensure result exists and has required fields
+        if (!result) {
+            console.log('[ContractGridView] No result, showing loading');
+            return (
+                <div className="wallet-grid-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
+                    <p>No contract data available</p>
+                </div>
+            );
+        }
+
+        // Defensive: ensure arrays exist
+        const interactors = result?.interactors || [];
+        const sharedFundingGroups = result?.sharedFundingGroups || [];
+        const suspiciousPatterns = result?.suspiciousPatterns || [];
+
+        console.log('[ContractGridView] interactors:', interactors?.length, 'sharedFundingGroups:', sharedFundingGroups?.length, 'suspiciousPatterns:', suspiciousPatterns?.length);
 
     const chain = result?.chain || 'linea';
     const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
@@ -212,21 +220,21 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                         <h3>Contract Details</h3>
                                         <HugeiconsIcon icon={Link01Icon} size={16} strokeWidth={2} />
                                     </div>
-                                    <div className="contract-details">
+                                        <div className="contract-details">
                                         <div className="detail-item">
                                             <span className="detail-label">Address</span>
                                             <a 
-                                                href={`${chainConfig.explorer}/address/${result.contractAddress}`}
+                                                href={`${chainConfig.explorer}/address/${result.contractAddress || ''}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="detail-address"
                                             >
-                                                {formatAddress(result.contractAddress)}
+                                                {formatAddress(result.contractAddress || '')}
                                             </a>
                                         </div>
                                         <div className="detail-item">
                                             <span className="detail-label">Chain</span>
-                                            <span className="detail-value">{result.chain}</span>
+                                            <span className="detail-value">{result.chain || 'unknown'}</span>
                                         </div>
                                         <div className="detail-item">
                                             <span className="detail-label">Risk Level</span>
@@ -248,21 +256,21 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                     <div className="stats-grid-compact">
                                         <div className="stat-item">
                                             <span className="stat-label">Total Interactors</span>
-                                            <span className="stat-value">{result.totalInteractors}</span>
+                                            <span className="stat-value">{result.totalInteractors ?? 0}</span>
                                         </div>
                                         <div className="stat-item">
                                             <span className="stat-label">Shared Funding Groups</span>
-                                            <span className="stat-value warning">{result.sharedFundingGroups.length}</span>
+                                            <span className="stat-value warning">{result.sharedFundingGroups?.length ?? 0}</span>
                                         </div>
                                         <div className="stat-item">
                                             <span className="stat-label">Risk Score</span>
                                             <span className={`stat-value ${riskLevel === 'critical' || riskLevel === 'high' ? 'negative' : riskLevel === 'medium' ? '' : 'positive'}`}>
-                                                {result.riskScore}
+                                                {result.riskScore ?? 0}
                                             </span>
                                         </div>
                                         <div className="stat-item">
                                             <span className="stat-label">Suspicious Patterns</span>
-                                            <span className="stat-value negative">{result.suspiciousPatterns.length}</span>
+                                            <span className="stat-value negative">{result.suspiciousPatterns?.length ?? 0}</span>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -279,7 +287,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                 >
                                     <div className="box-header">
                                         <h3>Suspicious Patterns</h3>
-                                        <AlertDiamondIcon />
+                                        <HugeiconsIcon icon={AlertDiamondIcon} size={16} strokeWidth={2} />
                                     </div>
                                     <div className="pattern-list">
                                         {result.suspiciousPatterns.length === 0 ? (
@@ -291,12 +299,12 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                             result.suspiciousPatterns.slice(0, 5).map((pattern, i) => (
                                                 <motion.div 
                                                     key={i}
-                                                    className={`pattern-item ${pattern.severity}`}
+                                                    className={`pattern-item ${pattern.severity || 'low'}`}
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: 0.4 + i * 0.1 }}
                                                 >
-                                                    <span className="pattern-type">{pattern.type.replace(/_/g, ' ')}</span>
+                                                    <span className="pattern-type">{(pattern.type || '').replace(/_/g, ' ')}</span>
                                                     <span className="pattern-score">+{pattern.score || 0}</span>
                                                 </motion.div>
                                             ))
@@ -881,4 +889,13 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
             `}</style>
         </div>
     );
+    } catch (err: any) {
+        console.error('[ContractGridView] Render error:', err);
+        return (
+            <div className="wallet-grid-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', flexDirection: 'column', gap: '1rem' }}>
+                <p>Error loading contract data</p>
+                <p style={{ fontSize: '0.8rem' }}>{err?.message || 'Unknown error'}</p>
+            </div>
+        );
+    }
 }
