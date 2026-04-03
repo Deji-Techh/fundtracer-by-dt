@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import './design-system/tokens.css';
+import '../design-system/tokens.css';
 
 const MaintenancePage: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(24 * 60 * 60);
