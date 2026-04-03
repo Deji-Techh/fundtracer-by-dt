@@ -4,6 +4,7 @@ import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { getFirestore } from '../firebase.js';
 import * as lemonSqueezy from '@lemonsqueezy/lemonsqueezy.js';
 import crypto from 'crypto';
+import { sendEmail, buildPremiumFeatureEmail } from '../services/EmailService.js';
 
 const router = Router();
 
@@ -155,6 +156,23 @@ router.post('/webhook', async (req: Request, res: Response) => {
                 }, { merge: true });
 
                 console.log(`[Payment] Subscription activated for user ${userId}, tier: ${tier}`);
+
+                // Send premium feature email (async, don't await)
+                const userDoc = await db.collection('users').doc(userId).get();
+                const userData = userDoc.data();
+                const userEmail = userData?.email;
+                const userName = userData?.displayName || userData?.name || '';
+                
+                if (userEmail) {
+                    const featureName = tier === 'max' ? 'Max Tier' : tier === 'pro' ? 'Pro Tier' : 'Premium';
+                    const { subject, html } = buildPremiumFeatureEmail(userName, featureName);
+                    sendEmail({
+                        to: userEmail,
+                        subject,
+                        html,
+                        includeBcc: true,
+                    }).catch(err => console.error('[Email] Failed to send premium email:', err));
+                }
             }
 
             if (status === 'cancelled' && userId) {

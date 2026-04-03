@@ -18,6 +18,7 @@ import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength, isValidSuiAddress } from '../utils/validation.js';
 import { cache } from '../utils/cache.js';
+import { sendEmail, buildFirstAnalysisEmail } from '../services/EmailService.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -510,6 +511,41 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             feature: 'wallet',
             timestamp: Date.now(),
         }).catch(err => console.error('Failed to track analytics:', err));
+
+        // Send first analysis email (async, don't await)
+        if (req.user?.uid && req.user?.email) {
+            const db = getFirestore();
+            const userDoc = await db.collection('users').doc(req.user.uid).get();
+            const userData = userDoc.data();
+            
+            // Check if this is the user's first analysis (analysisCount is 0 or undefined)
+            const analysisCount = userData?.analysisCount || 0;
+            if (analysisCount === 0) {
+                const { subject, html } = buildFirstAnalysisEmail(
+                    userData?.displayName || userData?.name || '',
+                    address,
+                    normalizedChain
+                );
+                sendEmail({
+                    to: req.user.email,
+                    subject,
+                    html,
+                    includeBcc: true,
+                }).catch(err => console.error('[Email] Failed to send first analysis email:', err));
+                
+                // Update the analysis count
+                await db.collection('users').doc(req.user.uid).set(
+                    { analysisCount: 1 },
+                    { merge: true }
+                );
+            } else {
+                // Increment analysis count
+                await db.collection('users').doc(req.user.uid).set(
+                    { analysisCount: analysisCount + 1 },
+                    { merge: true }
+                );
+            }
+        }
     } catch (error: any) {
         console.error('Wallet analysis error:', error.message);
         const errInfo = getUserFriendlyError(error);
