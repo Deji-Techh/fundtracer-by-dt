@@ -252,6 +252,10 @@ app.use(helmet({
                 "https://fonts.googleapis.com",
                 "https://fonts.reown.com"
             ],
+            "media-src": [
+                "'self'",
+                "data:"
+            ],
             "font-src": [
                 "'self'",
                 "https://fonts.gstatic.com",
@@ -263,13 +267,6 @@ app.use(helmet({
 
 // Request ID middleware - adds unique ID for distributed tracing
 app.use(requestIdMiddleware);
-
-// DEBUG LOGGING - Log every request
-app.use((req, res, next) => {
-    console.log(`[${req.requestId}] Request: ${req.method} ${req.url}`);
-    console.log(`[${req.requestId}] Path: ${req.path}`);
-    next();
-});
 
 // Serve Static Frontend
 // Try multiple possible paths (Pxxl runs from different locations)
