@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
-import { useAppKitAccount, useDisconnect } from '@reown/appkit/react';
-import { appKit } from '../reown.config';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Wallet01Icon, AlertCircleIcon } from '@hugeicons/core-free-icons';
 import { LogOut, RefreshCw } from 'lucide-react';
@@ -16,12 +14,8 @@ interface WalletButtonProps {
 export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
   const isMobile = useIsMobile();
   
-  // Privy hooks (mobile)
+  // Privy hooks
   const { login: privyLogin, logout: privyLogout, user: privyUser, ready: privyReady } = usePrivy();
-  
-  // AppKit hooks (desktop)
-  const { address: appKitAddress, isConnected: appKitIsConnected } = useAppKitAccount();
-  const { disconnect: appKitDisconnect } = useDisconnect();
   
   // Auth context
   const { wallet, signOut } = useAuth();
@@ -30,9 +24,8 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  // Determine connection state based on device
-  const privyAddress = privyUser?.wallet?.address || null;
-  const address = isMobile ? privyAddress : (appKitAddress || wallet?.address);
+  // Use Privy for all connections (both mobile and desktop)
+  const address = privyUser?.wallet?.address || wallet?.address || null;
   const isConnected = !!address;
 
   const handleConnect = async () => {
@@ -40,13 +33,8 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
     setIsConnecting(true);
     
     try {
-      if (isMobile) {
-        // Mobile: Use Privy
-        await privyLogin();
-      } else {
-        // Desktop: Use AppKit
-        (appKit as any)?.open?.();
-      }
+      // Use Privy for wallet connection
+      await privyLogin();
       onSuccess?.();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to connect wallet';
@@ -64,11 +52,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
 
   const handleConfirmSignOut = async () => {
     try {
-      if (isMobile) {
-        await privyLogout();
-      } else {
-        await appKitDisconnect();
-      }
+      await privyLogout();
     } catch (e) {
       // Silent fail
     }

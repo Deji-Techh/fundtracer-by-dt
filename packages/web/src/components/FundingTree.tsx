@@ -361,8 +361,6 @@ function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum' }
     const chainConfig = CHAINS[chain] || { explorer: '#', name: 'Unknown' };
     const isMobile = useIsMobile();
 
-    console.log('[FundingTree] Rendering with sourceData:', sourceData, 'destData:', destData, 'targetAddress:', targetAddress);
-
     // Safety checks
     if (!chainConfig) {
         console.error('[FundingTree] Invalid chain config for chain:', chain);

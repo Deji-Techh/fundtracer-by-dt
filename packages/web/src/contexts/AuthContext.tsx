@@ -8,7 +8,6 @@ import React, {
     useRef
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react';
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import {
@@ -97,33 +96,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Privy hooks
     const { user: privyUser } = usePrivy();
     
-    // AppKit hooks (fallback)
-    const { address: appKitAddress, isConnected: appKitIsConnected } = useAppKitAccount();
-    const { walletProvider } = useAppKitProvider('eip155');
-    const { disconnect: appKitDisconnect } = useDisconnect();
-    
     // Privy logout
     const { logout: privyLogout } = usePrivy();
 
-    // Use Privy address if available, otherwise fall back to AppKit
-    const address = privyUser?.wallet?.address || appKitAddress;
+    // Use Privy address 
+    const address = privyUser?.wallet?.address || null;
     const isConnected = !!address;
     
-    // Unified disconnect - handles both Privy (mobile) and AppKit (desktop)
+    // Disconnect from Privy
     const disconnect = useCallback(async () => {
-        // Disconnect from AppKit
-        try {
-            await appKitDisconnect();
-        } catch (e) {
-            // Silent fail
-        }
-        // Disconnect from Privy (if logged in)
         try {
             await privyLogout();
         } catch (e) {
             // Silent fail
         }
-    }, [appKitDisconnect, privyLogout]);
+    }, [privyLogout]);
 
     const setTokenWithExpiry = useCallback((token: string, keepSignedIn: boolean) => {
         setAuthToken(token);
@@ -260,78 +247,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [isConnected, address, wallet?.address]);
 
     // Auto-authenticate wallet when connected but not authenticated
+    // Note: Privy handles wallet auth internally via its login flow
+    // This effect is disabled for now as we rely on Privy's built-in auth
     useEffect(() => {
-        const authenticateWallet = async () => {
-            // Only proceed if:
-            // 1. Wallet is connected and has an address
-            // 2. No JWT token exists (not already authenticated)
-            // 3. Provider is available
-            // 4. We haven't already attempted authentication
-            if (!isConnected || !address || !walletProvider || walletAuthAttempted.current) return;
-
-            const existingToken = getAuthToken();
-            if (existingToken) return; // Already authenticated
-
-            // Mark as attempted to prevent loops
-            walletAuthAttempted.current = true;
-
-            try {
-                setLoading(true);
-
-                const provider = new ethers.BrowserProvider(walletProvider as any);
-                const signer = await provider.getSigner();
-                const walletAddress = await signer.getAddress();
-
-                // Create message for signing
-                const timestamp = Date.now();
-                const message = `FundTracer Wallet Login\nAddress: ${walletAddress}\nTimestamp: ${timestamp}`;
-
-                // Sign the message
-                const signature = await signer.signMessage(message);
-
-                // Call wallet login endpoint
-                const response = await apiLoginWithWallet(walletAddress, signature, message);
-
-                // Set auth token and user state
-                setTokenWithExpiry(response.token, true);
-                setUser({
-                    uid: response.user.address,
-                    walletAddress: walletAddress,
-                });
-                const userTier = response.user.tier || 'free';
-                const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
-                const profilePic = response.user.profilePicture || getStoredProfilePicture();
-                // Save profile picture to localStorage as backup
-                if (profilePic) {
-                    saveProfilePicture(profilePic);
-                }
-                setProfile({
-                    uid: response.user.address,
-                    hasCustomApiKey: false,
-                    usage: { today: 0, limit: tierLimit, remaining: tierLimit },
-                    walletAddress: walletAddress,
-                    isVerified: response.user.isVerified,
-                    tier: userTier,
-                    authProvider: 'wallet',
-                    profilePicture: profilePic,
-                    photoURL: response.user.photoURL || null
-                });
-                setIsAuthenticated(true);
-                syncHistoryWithServer();
-
-                notify.success('Wallet authenticated successfully!');
-            } catch (error: any) {
-                console.error('[AuthContext] Wallet auto-auth error:', error);
-                // Don't show error notification on auto-auth failure
-                // This prevents annoying popups on every connection
-                // User can manually authenticate if needed
-            } finally {
-                setLoading(false);
-            }
-        };
- 
-        authenticateWallet();
-    }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
+        // Wallet authentication is now handled by Privy
+        // This effect kept for potential future implementation
+    }, [isConnected, address]);
 
     // Sign out - disconnects wallet and clears all local data
     const signOut = useCallback(async () => {
@@ -370,62 +291,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [disconnect, clearAuthData, notify, navigate]);
 
-    // Connect wallet
-    const connectWallet = useCallback(async () => {
-        if (!user || !walletProvider || !address) {
-            notify.error('Please connect a wallet first');
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            const provider = new ethers.BrowserProvider(walletProvider as any);
-            const signer = await provider.getSigner();
-            const walletAddress = await signer.getAddress();
-
-            const timestamp = Date.now();
-            const message = `Link wallet to FundTracer account\nTimestamp: ${timestamp}`;
-            const signature = await signer.signMessage(message);
-
-            const response = await linkWalletToAccount(
-                user.uid,
-                walletAddress,
-                signature,
-                message
-            );
-
-            setWallet({
-                address: walletAddress,
-                isConnected: true
-            });
-
-            setProfile(prev => prev ? {
-                ...prev,
-                walletAddress: walletAddress,
-                isVerified: response.isVerified
-            } : null);
-
-            notify.success('Wallet connected successfully!');
-        } catch (error: any) {
-            console.error('[AuthContext] Connect wallet error:', error);
-            
-            // Detect wallet provider conflicts
-            const errorMessage = error.message || '';
-            if (errorMessage.includes('ethereum') && errorMessage.includes('read-only')) {
-                notify.error('Wallet conflict: Please disable other wallet extensions (Coinbase, Phantom) and use only MetaMask');
-            } else if (errorMessage.includes('user rejected') || errorMessage.includes('User rejected')) {
-                notify.error('Connection cancelled');
-            } else if (errorMessage.includes('already pending')) {
-                notify.error('Check your wallet - connection request pending');
-            } else {
-                notify.error(errorMessage || 'Failed to connect wallet');
-            }
-        } finally {
-            setLoading(false);
-        }
-    }, [user, walletProvider, address, notify]);
-
     // Unlink wallet
     const unlinkWallet = useCallback(async () => {
         if (!user) {
@@ -456,6 +321,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [user, disconnect, notify]);
 
+    // Connect wallet - using Privy
+    const connectWallet = useCallback(async () => {
+        // Wallet connection is handled via Privy's login flow
+        notify.info('Please use the Connect Wallet button');
+    }, [notify]);
+
     // Refresh profile
     const refreshProfile = useCallback(async () => {
         if (!isAuthenticated) return;
@@ -483,68 +354,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [isAuthenticated, wallet?.address]);
 
-    // Get Signer
-    const getSigner = useCallback(async (): Promise<ethers.Signer> => {
-        if (!walletProvider || !address) {
-            throw new Error('Wallet not connected');
-        }
-
-        const provider = new ethers.BrowserProvider(walletProvider as any);
-        return provider.getSigner();
-    }, [walletProvider, address]);
+    // Get Signer - using Privy
+    const getSigner = useCallback(async () => {
+        // With Privy, signers are handled internally via the wallet
+        // This is a placeholder for API compatibility
+        throw new Error('Please use Privy to authenticate');
+    }, [address]);
 
     // Manual wallet login (for retry or explicit auth)
     const loginWithWallet = useCallback(async () => {
-        if (!isConnected || !address || !walletProvider) {
-            notify.error('Please connect a wallet first');
-            throw new Error('Wallet not connected');
-        }
-
-        if (operationInProgress.current) return;
-        operationInProgress.current = true;
-        setLoading(true);
-
-        try {
-            const provider = new ethers.BrowserProvider(walletProvider as any);
-            const signer = await provider.getSigner();
-            const walletAddress = await signer.getAddress();
-
-            const timestamp = Date.now();
-            const message = `FundTracer Wallet Login\nAddress: ${walletAddress}\nTimestamp: ${timestamp}`;
-            const signature = await signer.signMessage(message);
-
-            const response = await apiLoginWithWallet(walletAddress, signature, message);
-
-            setTokenWithExpiry(response.token, true);
-            setUser({
-                uid: response.user.address,
-                walletAddress: walletAddress,
-            });
-            const userTier = response.user.tier || 'free';
-            const tierLimit = userTier === 'max' ? 'unlimited' : userTier === 'pro' ? 25 : 7;
-            setProfile({
-                uid: response.user.address,
-                hasCustomApiKey: false,
-                usage: { today: 0, limit: tierLimit, remaining: tierLimit },
-                walletAddress: walletAddress,
-                isVerified: response.user.isVerified,
-                tier: userTier,
-                authProvider: 'wallet',
-                displayName: response.user.displayName || ''
-            });
-            setIsAuthenticated(true);
-            syncHistoryWithServer();
-
-            notify.success('Wallet authenticated successfully!');
-        } catch (error: any) {
-            console.error('[AuthContext] Manual wallet login error:', error);
-            notify.error(error.message || 'Wallet authentication failed');
-            throw error;
-        } finally {
-            setLoading(false);
-            operationInProgress.current = false;
-        }
-    }, [isConnected, address, walletProvider, notify, setTokenWithExpiry]);
+        // Wallet auth is now handled by Privy login
+        notify.info('Please use the Connect Wallet button to authenticate');
+    }, [notify]);
 
     // OAuth login with Google - uses backend redirect
     const loginWithGoogle = useCallback(async () => {
