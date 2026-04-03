@@ -2,17 +2,16 @@ FROM node:20-slim
 
 WORKDIR /app
 
-COPY package*.json ./
-COPY packages/core/package.json packages/core/package.json
-COPY packages/server/package.json packages/server/package.json
+COPY package.json packages/core/package.json packages/server/package.json ./
 
-RUN npm ci --workspaces
+RUN npm install
 
 COPY packages/core/ packages/core/
-COPY packages/server/ packages/server/
+RUN cd packages/core && npm run build
 
-RUN npm run build --workspace=@fundtracer/server
+COPY packages/server/ packages/server/
+RUN cd packages/server && npm run build
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start", "--workspace=@fundtracer/server"]
+CMD ["node", "packages/server/dist/index.js"]
