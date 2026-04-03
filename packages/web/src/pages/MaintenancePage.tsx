@@ -2,8 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../design-system/tokens.css';
 
+const MAINTENANCE_DURATION = 24 * 60 * 60;
+const STORAGE_KEY = 'maintenance_start_time';
+
+const getTimeRemaining = () => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) {
+    const startTime = Date.now() + MAINTENANCE_DURATION * 1000;
+    localStorage.setItem(STORAGE_KEY, startTime.toString());
+    return MAINTENANCE_DURATION;
+  }
+  const startTime = parseInt(stored, 10);
+  const remaining = Math.floor((startTime - Date.now()) / 1000);
+  return Math.max(0, remaining);
+};
+
 const MaintenancePage: React.FC = () => {
-  const [timeLeft, setTimeLeft] = useState(24 * 60 * 60);
+  const [timeLeft, setTimeLeft] = useState(getTimeRemaining);
 
   useEffect(() => {
     const timer = setInterval(() => {

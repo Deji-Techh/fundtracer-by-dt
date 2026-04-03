@@ -592,14 +592,14 @@ server = app.listen(PORT, async () => {
     }
 
     // Start keep-alive pinger to prevent Render cold starts
-    const RENDER_URL = process.env.RENDER_URL || 'https://fundtracer-by-dt-654o.onrender.com';
+    const RAILWAY_URL = process.env.RAILWAY_URL || 'https://fundtracer-by-dt-production.up.railway.app';
     keepAliveInterval = setInterval(() => {
-        fetch(`${RENDER_URL}/keep-alive`)
+        fetch(`${RAILWAY_URL}/keep-alive`)
             .then(() => console.log('[Keep-alive] Ping successful'))
             .catch((err) => console.error('[Keep-alive] Ping failed:', err));
     }, 3 * 60 * 1000); // Every 3 minutes
 
-    console.log(`[Keep-alive] Pinger started for ${RENDER_URL}`);
+    console.log(`[Keep-alive] Pinger started for ${RAILWAY_URL}`);
 });
 
 export const handler = app;
