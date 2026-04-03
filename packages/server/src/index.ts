@@ -232,11 +232,14 @@ app.use(helmet({
                 "https://*.google.com",
                 "https://fonts.reown.com",
                 "https://nft-cdn.alchemy.com",
-                "https://*.alchemy.com"
+                "https://*.alchemy.com",
+                "https://www.fundtracer.xyz",
+                "https://fundtracer.xyz"
             ],
             "script-src": [
                 "'self'",
                 "'unsafe-inline'",
+                "'unsafe-eval'",
                 "https://*.google.com",
                 "https://*.googleapis.com",
                 "https://*.gstatic.com",

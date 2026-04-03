@@ -18,10 +18,10 @@ export default defineConfig({
     open: true,
     headers: {
       'Content-Security-Policy': [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "default-src 'self' https://*",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://static.cloudflareinsights.com",
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob: https:",
+        "img-src 'self' data: blob: https: https://www.fundtracer.xyz https://fundtracer.xyz",
         "connect-src 'self' https://* https://*.* wss://* ws://* https://auth.privy.io https://api.privy.io",
         "font-src 'self' data:",
         "frame-src 'self' https://auth.privy.io https://www.reown.com https://*.walletconnect.com",
@@ -31,10 +31,10 @@ export default defineConfig({
   preview: {
     headers: {
       'Content-Security-Policy': [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "default-src 'self' https://*",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://static.cloudflareinsights.com",
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob: https:",
+        "img-src 'self' data: blob: https: https://www.fundtracer.xyz https://fundtracer.xyz",
         "connect-src 'self' https://* https://*.* wss://* ws://* https://auth.privy.io https://api.privy.io",
         "font-src 'self' data:",
         "frame-src 'self' https://auth.privy.io https://www.reown.com https://*.walletconnect.com",
