@@ -31,16 +31,25 @@ export function getQuickNodeUrl(): string | null {
 }
 
 /**
- * Get Alchemy key pool from environment (supports up to 20 keys)
- * Uses ALCHEMY_KEY_1 through ALCHEMY_KEY_20
+ * Get Alchemy key pool from environment (supports existing Sybil keys + fallback)
+ * Uses existing SYBIL_CONTRACT_KEY_1-10 and SYBIL_WALLET_KEY_1-10
+ * Plus DEFAULT_ALCHEMY_API_KEY as final fallback
  */
 export function getAlchemyKeyPool(): string[] {
     const keys: string[] = [];
     
-    // Load keys ALCHEMY_KEY_1 through ALCHEMY_KEY_20
-    for (let i = 1; i <= 20; i++) {
-        const key = process.env[`ALCHEMY_KEY_${i}`];
+    // Load SYBIL_CONTRACT_KEY_1 through SYBIL_CONTRACT_KEY_10
+    for (let i = 1; i <= 10; i++) {
+        const key = process.env[`SYBIL_CONTRACT_KEY_${i}`];
         if (key && key.length > 0) {
+            keys.push(key);
+        }
+    }
+    
+    // Load SYBIL_WALLET_KEY_1 through SYBIL_WALLET_KEY_10
+    for (let i = 1; i <= 10; i++) {
+        const key = process.env[`SYBIL_WALLET_KEY_${i}`];
+        if (key && key.length > 0 && !keys.includes(key)) {
             keys.push(key);
         }
     }
