@@ -668,8 +668,8 @@ export class SybilAnalyzer {
         }
 
         const allKeys = this.keyPool.getAllWalletKeys();
-        // Limit to max 4 keys to avoid rate limiting (21 keys is too aggressive)
-        const MAX_PARALLEL_KEYS = 4;
+        // Limit to max 2 keys to avoid rate limiting
+        const MAX_PARALLEL_KEYS = 2;
         const numKeys = Math.min(allKeys.length, MAX_PARALLEL_KEYS, uncachedAddresses.length);
         const keys = allKeys.slice(0, numKeys);
         
@@ -717,37 +717,13 @@ export class SybilAnalyzer {
         
         for (const address of batch) {
             let data: any = null;
+            let consecutiveFailures = 0;
+            const MAX_CONSECUTIVE_FAILURES = 3;
             
-            try {
-                // Use Alchemy getAssetTransfers with chain-aware categories
-                const response = await fetch(`${baseUrl}/v2/${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        jsonrpc: '2.0',
-                        id: 1,
-                        method: 'alchemy_getAssetTransfers',
-                        params: [{
-                            fromBlock: '0x0',
-                            toBlock: 'latest',
-                            toAddress: address,
-                            category: categories,
-                            withMetadata: true,
-                            excludeZeroValue: false,
-                            maxCount: '0x64', // 100 max
-                            order: 'asc'
-                        }]
-                    })
-                });
-
-                // Check for non-JSON responses (rate limit HTML pages)
-                const contentType = response.headers.get('content-type') || '';
-                if (!contentType.includes('application/json')) {
-                    console.log(`[SybilAnalyzer] Non-JSON response for ${address}, status: ${response.status}`);
-                    // Treat as rate limit - wait longer and retry
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                    
-                    const retryResponse = await fetch(`${baseUrl}/v2/${apiKey}`, {
+            while (consecutiveFailures < MAX_CONSECUTIVE_FAILURES) {
+                try {
+                    // Use Alchemy getAssetTransfers with chain-aware categories
+                    const response = await fetch(`${baseUrl}/v2/${apiKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -761,82 +737,104 @@ export class SybilAnalyzer {
                                 category: categories,
                                 withMetadata: true,
                                 excludeZeroValue: false,
-                                maxCount: '0x64',
+                                maxCount: '0x64', // 100 max
                                 order: 'asc'
                             }]
                         })
                     });
+
+                    // Check for non-JSON responses (rate limit HTML pages)
+                    const contentType = response.headers.get('content-type') || '';
+                    const responseText = await response.text();
                     
-                    const retryContentType = retryResponse.headers.get('content-type') || '';
-                    if (!retryContentType.includes('application/json')) {
-                        // Still failing - skip this wallet
-                        const emptyResult: WalletFunding = {
-                            address,
-                            funder: null,
-                            fundingTxHash: null,
-                            fundingTimestamp: null,
-                            fundingAmount: 0,
-                            interactionCount: 1,
-                        };
-                        results.push(emptyResult);
-                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    if (!contentType.includes('application/json')) {
+                        console.log(`[SybilAnalyzer] Non-JSON response for ${address}, status: ${response.status}`);
+                        consecutiveFailures++;
+                        // Wait longer on failures
+                        await new Promise(resolve => setTimeout(resolve, 3000 * consecutiveFailures));
                         continue;
                     }
                     
-                    data = await retryResponse.json();
-                } else {
-                    data = await response.json();
-                }
-                
-                // Handle rate limiting (429)
-                if (response.status === 429 || data?.error?.code === 429) {
-                    console.log(`[SybilAnalyzer] Rate limited for ${address}, retrying after delay...`);
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    
-                    // Retry once
-                    const retryResponse = await fetch(`${baseUrl}/v2/${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            jsonrpc: '2.0',
-                            id: 1,
-                            method: 'alchemy_getAssetTransfers',
-                            params: [{
-                                fromBlock: '0x0',
-                                toBlock: 'latest',
-                                toAddress: address,
-                                category: categories,
-                                withMetadata: true,
-                                excludeZeroValue: false,
-                                maxCount: '0x64',
-                                order: 'asc'
-                            }]
-                        })
-                    });
-                    
-                    const retryData = await retryResponse.json();
-                    if (retryData.result) {
-                        data = retryData;
+                    // Parse the JSON
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch (parseError) {
+                        console.log(`[SybilAnalyzer] JSON parse error for ${address}`);
+                        consecutiveFailures++;
+                        await new Promise(resolve => setTimeout(resolve, 3000 * consecutiveFailures));
+                        continue;
                     }
+                    
+                    // Handle rate limiting (429)
+                    if (response.status === 429 || data?.error?.code === 429) {
+                        console.log(`[SybilAnalyzer] Rate limited for ${address}, retrying after delay...`);
+                        consecutiveFailures++;
+                        await new Promise(resolve => setTimeout(resolve, 2000 * consecutiveFailures));
+                        continue;
+                    }
+                    
+                    // Handle Alchemy errors
+                    if (data?.error) {
+                        console.log(`[SybilAnalyzer] Alchemy error for ${address}: ${JSON.stringify(data.error)}`);
+                        consecutiveFailures++;
+                        await new Promise(resolve => setTimeout(resolve, 1000 * consecutiveFailures));
+                        continue;
+                    }
+                    
+                    // Success - break out of retry loop
+                    consecutiveFailures = 0;
+                    break;
+                    
+                } catch (error: any) {
+                    console.log(`[SybilAnalyzer] Exception for ${address}: ${error?.message || error}`);
+                    consecutiveFailures++;
+                    await new Promise(resolve => setTimeout(resolve, 2000 * consecutiveFailures));
+                }
+            }
+            
+            // If we hit max consecutive failures, try Moralis fallback
+            if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+                console.log(`[SybilAnalyzer] Alchemy failing consistently for ${address}, trying Moralis fallback...`);
+                try {
+                    if (this.moralisKey) {
+                        const funding = await this.getFirstFunderMoralis(address);
+                        if (funding) {
+                            const result: WalletFunding = {
+                                address,
+                                funder: funding.funder,
+                                fundingTxHash: funding.txHash,
+                                fundingTimestamp: funding.timestamp,
+                                fundingAmount: funding.amount,
+                                interactionCount: 1,
+                            };
+                            this.fundingCache.set(address.toLowerCase(), result);
+                            results.push(result);
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                            continue;
+                        }
+                    }
+                } catch (e) {
+                    // Moralis fallback also failed
                 }
                 
-                if (data?.error) {
-                    console.log(`[SybilAnalyzer] Alchemy error for ${address}: ${JSON.stringify(data.error)}`);
-                    const emptyResult: WalletFunding = {
-                        address,
-                        funder: null,
-                        fundingTxHash: null,
-                        fundingTimestamp: null,
-                        fundingAmount: 0,
-                        interactionCount: 1,
-                    };
-                    results.push(emptyResult);
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    continue;
-                }
-                
-                // Debug: log response structure when no transfers found
-                if (!data?.result || !data?.result?.transfers || data.result.transfers.length === 0) {
+                // All methods failed
+                const emptyResult: WalletFunding = {
+                    address,
+                    funder: null,
+                    fundingTxHash: null,
+                    fundingTimestamp: null,
+                    fundingAmount: 0,
+                    interactionCount: 1,
+                };
+                this.fundingCache.set(address.toLowerCase(), emptyResult);
+                results.push(emptyResult);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                continue;
+            }
+            
+            // Process successful response
+            try {
+                if (!data?.result?.transfers || data.result.transfers.length === 0) {
                     // Try a different approach - query fromAddress as well
                     const fromResponse = await fetch(`${baseUrl}/v2/${apiKey}`, {
                         method: 'POST',
@@ -911,7 +909,7 @@ export class SybilAnalyzer {
                         };
                         this.fundingCache.set(address.toLowerCase(), result);
                         results.push(result);
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await new Promise(resolve => setTimeout(resolve, 150));
                         continue;
                     }
                 }
@@ -927,8 +925,8 @@ export class SybilAnalyzer {
                 };
                 this.fundingCache.set(address.toLowerCase(), emptyResult);
                 results.push(emptyResult);
-            } catch (error: any) {
-                console.log(`[SybilAnalyzer] Exception for ${address}: ${error?.message || error}`);
+            } catch (error) {
+                // Final fallback on any processing error
                 const emptyResult: WalletFunding = {
                     address,
                     funder: null,
@@ -941,7 +939,7 @@ export class SybilAnalyzer {
             }
             
             // Rate limit between requests
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 400));
         }
     }
 
