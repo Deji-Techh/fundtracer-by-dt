@@ -1,19 +1,9 @@
 // ============================================================
 // FundTracer by DT - QuickNode + Alchemy Fallback Provider
-// Uses QuickNode as primary, falls back to Alchemy key pool
+// Uses chain-specific QuickNode endpoints, falls back to Alchemy key pool
 // ============================================================
 
 import { ethers } from 'ethers';
-
-export interface QuickNodeConfig {
-    quicknodeUrl: string;
-    chainId: string;
-}
-
-export interface AlchemyKeyPoolConfig {
-    keys: string[];
-    chainId: string;
-}
 
 interface CachedKey {
     key: string;
@@ -23,11 +13,26 @@ interface CachedKey {
 const keyCache = new Map<string, CachedKey>();
 const KEY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// Chain to env var mapping
+const QUICKNODE_ENV_VARS: Record<string, string> = {
+    ethereum: 'ETHEREUM_QUICKNODE',
+    linea: 'LINEA_QUICKNODE',
+    arbitrum: 'ARBITRUM_QUICKNODE',
+    optimism: 'OPTIMISM_QUICKNODE',
+    polygon: 'POLYGON_QUICKNODE',
+    base: 'BASE_QUICKNODE',
+    bsc: 'BSC_QUICKNODE',
+};
+
 /**
- * Get QuickNode URL from environment
+ * Get QuickNode URL for a specific chain from environment
  */
-export function getQuickNodeUrl(): string | null {
-    return process.env.NEW_QUICKNODE_API_KEY || null;
+export function getQuickNodeUrl(chain: string): string | null {
+    const envVar = QUICKNODE_ENV_VARS[chain.toLowerCase()];
+    if (envVar) {
+        return process.env[envVar] || null;
+    }
+    return null;
 }
 
 /**
@@ -72,13 +77,11 @@ export function getKeyFromPool(keyPool: string[]): string {
         throw new Error('No Alchemy keys available in pool');
     }
     
-    // Simple round-robin - use current index
     const now = Date.now();
     const cacheKey = 'alchemy_pool';
     let cached = keyCache.get(cacheKey);
     
     if (!cached || now >= cached.expiresAt) {
-        // Initialize or refresh
         cached = {
             key: keyPool[0],
             expiresAt: now + KEY_CACHE_TTL_MS,
@@ -86,7 +89,6 @@ export function getKeyFromPool(keyPool: string[]): string {
         keyCache.set(cacheKey, cached);
     }
     
-    // Rotate through keys
     const currentIndex = keyPool.indexOf(cached.key);
     const nextIndex = (currentIndex + 1) % keyPool.length;
     const nextKey = keyPool[nextIndex];
@@ -100,30 +102,17 @@ export function getKeyFromPool(keyPool: string[]): string {
 }
 
 /**
- * Create a QuickNode provider
+ * Create a QuickNode provider for a specific chain
  */
 export function createQuickNodeProvider(chain: string): ethers.JsonRpcProvider | null {
-    const quicknodeUrl = getQuickNodeUrl();
+    const quicknodeUrl = getQuickNodeUrl(chain);
     if (!quicknodeUrl) {
-        console.warn('[QuickNode] No NEW_QUICKNODE_API_KEY found in environment');
+        const envVar = QUICKNODE_ENV_VARS[chain.toLowerCase()];
+        console.warn(`[QuickNode] No ${envVar} found in environment for ${chain}`);
         return null;
     }
     
-    // Build QuickNode URL with chain-specific endpoint
-    const chainEndpoints: Record<string, string> = {
-        ethereum: 'eth-mainnet',
-        linea: 'linea-mainnet',
-        arbitrum: 'arb-mainnet',
-        optimism: 'opt-mainnet',
-        polygon: 'polygon-mainnet',
-        base: 'base-mainnet',
-        bsc: 'bsc-mainnet',
-    };
-    
-    const endpoint = chainEndpoints[chain.toLowerCase()] || 'eth-mainnet';
-    const url = quicknodeUrl.replace('{CHAIN}', endpoint).replace('{endpoint}', endpoint);
-    
-    return new ethers.JsonRpcProvider(url);
+    return new ethers.JsonRpcProvider(quicknodeUrl);
 }
 
 /**
@@ -137,7 +126,6 @@ export function createAlchemyProviderWithFallback(chain: string): ethers.JsonRpc
         ethereum: 'eth-mainnet',
         linea: 'linea',
         arbitrum: 'arb-mainnet',
-        optimization: 'opt-mainnet',
         optimism: 'opt-mainnet',
         polygon: 'polygon',
         base: 'base',
@@ -157,10 +145,10 @@ export async function withQuickNodeFallback<T>(
     chain: string,
     operation: (provider: ethers.JsonRpcProvider) => Promise<T>
 ): Promise<T> {
-    const quicknodeUrl = getQuickNodeUrl();
+    const quicknodeUrl = getQuickNodeUrl(chain);
     const keyPool = getAlchemyKeyPool();
     
-    // Try QuickNode first if available
+    // Try QuickNode first if available for this chain
     if (quicknodeUrl) {
         try {
             const provider = createQuickNodeProvider(chain);
@@ -189,12 +177,11 @@ export async function withQuickNodeFallback<T>(
 }
 
 /**
- * Get block with timestamp - useful for fixing missing timestamps
+ * Get block timestamp using any available provider
  */
-export async function getBlockTimestamp(provider: ethers.JsonRpcProvider, blockNumber: number): Promise<number> {
-    const block = await provider.getBlock(blockNumber);
-    if (block) {
-        return block.timestamp;
-    }
-    return 0;
+export async function getBlockTimestamp(chain: string, blockNumber: number): Promise<number> {
+    return withQuickNodeFallback(chain, async (provider) => {
+        const block = await provider.getBlock(blockNumber);
+        return block ? block.timestamp : 0;
+    });
 }
