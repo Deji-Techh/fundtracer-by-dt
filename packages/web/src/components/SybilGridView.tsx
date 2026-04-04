@@ -34,8 +34,21 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
   const [currentPage, setCurrentPage] = useState<PageType>('analyze');
   const [sybilResult, setSybilResult] = useState<SybilResult | null>(null);
   const [hoveredAddress, setHoveredAddress] = useState<{ address: string; x: number; y: number } | null>(null);
+  const [expandedClusters, setExpandedClusters] = useState<Set<number>>(new Set());
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+
+  const toggleCluster = (index: number) => {
+    setExpandedClusters(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
 
   const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
   const tokenSymbol = getChainTokenSymbol(chain);
@@ -211,8 +224,24 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
                           </span>
                         ))}
                         {Array.isArray(cluster.wallets) && cluster.wallets.length > 5 && (
-                          <span className="wallet-tag more">+{cluster.wallets.length - 5} more</span>
+                          <span 
+                            className="wallet-tag more" 
+                            onClick={() => toggleCluster(i)}
+                            style={{ cursor: 'pointer', fontWeight: 600 }}
+                          >
+                            {expandedClusters.has(i) ? 'Show less' : `+${cluster.wallets.length - 5} more`}
+                          </span>
                         )}
+                        {expandedClusters.has(i) && Array.isArray(cluster.wallets) && cluster.wallets.slice(5).map((wallet, j) => (
+                          <span 
+                            key={j + 5} 
+                            className="wallet-tag"
+                            onMouseEnter={(e) => setHoveredAddress({ address: wallet.address || wallet, x: e.clientX, y: e.clientY })}
+                            onMouseLeave={() => setHoveredAddress(null)}
+                          >
+                            {formatAddress(wallet.address || wallet)}
+                          </span>
+                        ))}
                       </div>
                     </motion.div>
                   ))}
