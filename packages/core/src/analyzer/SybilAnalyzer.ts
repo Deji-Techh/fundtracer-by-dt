@@ -723,6 +723,21 @@ export class SybilAnalyzer {
 
                 const data = await response.json();
                 
+                if (data.error) {
+                    console.log(`[SybilAnalyzer] Alchemy error for ${address}: ${data.error.message}`);
+                    const emptyResult: WalletFunding = {
+                        address,
+                        funder: null,
+                        fundingTxHash: null,
+                        fundingTimestamp: null,
+                        fundingAmount: 0,
+                        interactionCount: 1,
+                    };
+                    results.push(emptyResult);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    continue;
+                }
+                
                 if (data.result && data.result.transfers && data.result.transfers.length > 0) {
                     // Sort by block number to find first
                     const transfers = data.result.transfers.sort((a: any, b: any) => 
@@ -731,19 +746,78 @@ export class SybilAnalyzer {
                     
                     const firstTransfer = transfers[0];
                     
-                    if (firstTransfer.value && parseFloat(firstTransfer.value) > 0) {
+                    // Check value - can be number or string, handle both
+                    const value = typeof firstTransfer.value === 'string' 
+                        ? parseFloat(firstTransfer.value) 
+                        : firstTransfer.value;
+                    
+                    if (value && value > 0) {
                         const result: WalletFunding = {
                             address,
                             funder: firstTransfer.from,
                             fundingTxHash: firstTransfer.hash,
                             fundingTimestamp: new Date(firstTransfer.metadata.blockTimestamp).getTime() / 1000,
-                            fundingAmount: parseFloat(firstTransfer.value) / 1e18,
+                            fundingAmount: value / 1e18,
                             interactionCount: 1,
                         };
                         this.fundingCache.set(address.toLowerCase(), result);
                         results.push(result);
+                        await new Promise(resolve => setTimeout(resolve, 50));
                         continue;
                     }
+                }
+
+                // Try ERC20 transfers if no ETH found
+                try {
+                    const erc20Response = await fetch(`${baseUrl}/v2/${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            method: 'alchemy_getAssetTransfers',
+                            params: [{
+                                fromBlock: '0x0',
+                                toBlock: 'latest',
+                                toAddress: address,
+                                category: ['erc20'],
+                                withMetadata: true,
+                                limit: 10
+                            }]
+                        })
+                    });
+
+                    const erc20Data = await erc20Response.json();
+                    if (erc20Data.result && erc20Data.result.transfers && erc20Data.result.transfers.length > 0) {
+                        const transfers = erc20Data.result.transfers.sort((a: any, b: any) => 
+                            parseInt(a.blockNum, 16) - parseInt(b.blockNum, 16)
+                        );
+                        const firstTransfer = transfers[0];
+                        const value = typeof firstTransfer.value === 'string' 
+                            ? parseFloat(firstTransfer.value) 
+                            : firstTransfer.value;
+                        
+                        if (value && value > 0) {
+                            // Get decimals from rawContract
+                            const decimals = firstTransfer.rawContract?.decimal 
+                                ? parseInt(firstTransfer.rawContract.decimal) 
+                                : 18;
+                            const result: WalletFunding = {
+                                address,
+                                funder: firstTransfer.from,
+                                fundingTxHash: firstTransfer.hash,
+                                fundingTimestamp: new Date(firstTransfer.metadata.blockTimestamp).getTime() / 1000,
+                                fundingAmount: value / Math.pow(10, decimals),
+                                interactionCount: 1,
+                            };
+                            this.fundingCache.set(address.toLowerCase(), result);
+                            results.push(result);
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                            continue;
+                        }
+                    }
+                } catch (e) {
+                    // ERC20 check failed, continue
                 }
 
                 // No funding found
@@ -757,7 +831,8 @@ export class SybilAnalyzer {
                 };
                 this.fundingCache.set(address.toLowerCase(), emptyResult);
                 results.push(emptyResult);
-            } catch (error) {
+            } catch (error: any) {
+                console.log(`[SybilAnalyzer] Exception for ${address}: ${error?.message || error}`);
                 const emptyResult: WalletFunding = {
                     address,
                     funder: null,
@@ -770,7 +845,7 @@ export class SybilAnalyzer {
             }
             
             // Rate limit between requests
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
 
