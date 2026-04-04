@@ -590,8 +590,8 @@ export const SybilAnalysis: React.FC<SybilAnalysisProps> = ({
                         color: '#4b5563',
                         fontFamily: 'monospace'
                       }}>
-                        {cluster.wallets.slice(0, 5).map(w => `${w.slice(0, 6)}...${w.slice(-4)}`).join(', ')}
-                        {cluster.wallets.length > 5 && ` +${cluster.wallets.length - 5} more`}
+                      {Array.isArray(cluster.wallets) && cluster.wallets.slice(0, 5).map(w => `${w.slice(0, 6)}...${w.slice(-4)}`).join(', ')}
+                      {Array.isArray(cluster.wallets) && cluster.wallets.length > 5 && ` +${cluster.wallets.length - 5} more`}
                       </div>
                     </div>
                   ))}

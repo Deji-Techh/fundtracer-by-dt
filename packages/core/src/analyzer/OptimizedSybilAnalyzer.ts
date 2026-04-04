@@ -736,10 +736,10 @@ export class OptimizedSybilAnalyzer {
             clusters.push({
                 fundingSource,
                 fundingSourceLabel: KNOWN_SOURCES[fundingSource.toLowerCase()],
-                wallets: clusterWallets,
-                totalWallets: clusterWallets.length,
-                totalInteractions: clusterWallets.reduce((sum, w) => sum + w.interactionCount, 0),
-                averageFundingAmount: avgFunding,
+                wallets: Array.isArray(clusterWallets) ? clusterWallets : [],
+                totalWallets: Array.isArray(clusterWallets) ? clusterWallets.length : 0,
+                totalInteractions: Array.isArray(clusterWallets) ? clusterWallets.reduce((sum, w) => sum + w.interactionCount, 0) : 0,
+                averageFundingAmount: Array.isArray(clusterWallets) && clusterWallets.length > 0 ? avgFunding : 0,
                 timeSpan: {
                     first,
                     last,

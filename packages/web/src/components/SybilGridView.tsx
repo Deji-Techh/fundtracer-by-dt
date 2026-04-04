@@ -196,21 +196,21 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
                         </span>
                       </div>
                       <div className="cluster-info">
-                        <span className="cluster-wallets">{cluster.wallets.length} wallets</span>
-                        <span className="cluster-common">{cluster.commonFundingSource || 'No common funding'}</span>
+                        <span className="cluster-wallets">{Array.isArray(cluster.wallets) ? cluster.wallets.length : 0} wallets</span>
+                        <span className="cluster-common">{cluster.fundingSourceLabel || cluster.fundingSource || 'No common funding'}</span>
                       </div>
                       <div className="cluster-wallets-list">
-                        {cluster.wallets.slice(0, 5).map((wallet, j) => (
+                        {(Array.isArray(cluster.wallets) ? cluster.wallets.slice(0, 5) : []).map((wallet, j) => (
                           <span 
                             key={j} 
                             className="wallet-tag"
-                            onMouseEnter={(e) => setHoveredAddress({ address: wallet, x: e.clientX, y: e.clientY })}
+                            onMouseEnter={(e) => setHoveredAddress({ address: wallet.address || wallet, x: e.clientX, y: e.clientY })}
                             onMouseLeave={() => setHoveredAddress(null)}
                           >
-                            {formatAddress(wallet)}
+                            {formatAddress(wallet.address || wallet)}
                           </span>
                         ))}
-                        {cluster.wallets.length > 5 && (
+                        {Array.isArray(cluster.wallets) && cluster.wallets.length > 5 && (
                           <span className="wallet-tag more">+{cluster.wallets.length - 5} more</span>
                         )}
                       </div>
@@ -274,7 +274,7 @@ export default function SybilGridView({ chain = 'linea' }: SybilGridViewProps) {
                         .map((cluster, i) => (
                           <div key={i} className="risk-item">
                             <span className="risk-rank">#{i + 1}</span>
-                            <span className="risk-wallets">{cluster.wallets.length} wallets</span>
+                            <span className="risk-wallets">{Array.isArray(cluster.wallets) ? cluster.wallets.length : 0} wallets</span>
                             <span className={`risk-score ${cluster.sybilScore >= 80 ? 'critical' : cluster.sybilScore >= 60 ? 'high' : 'medium'}`}>
                               {cluster.sybilScore}%
                             </span>

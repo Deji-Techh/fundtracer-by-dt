@@ -275,6 +275,10 @@ const NetworkGraph: React.FC<{
 
     sortedClusters.forEach((cluster) => {
       if (nodeCount >= limit) return;
+      
+      // Defensive: ensure wallets is an array
+      const walletList = Array.isArray(cluster.wallets) ? cluster.wallets : [];
+      if (walletList.length === 0) return;
 
       // Add funding source node
       if (!addedNodes.has(cluster.fundingSource)) {
@@ -288,17 +292,17 @@ const NetworkGraph: React.FC<{
           type: 'funding',
           score: cluster.sybilScore,
           color: RISK_LEVELS[riskLevel as keyof typeof RISK_LEVELS].color,
-          size: Math.min(40 + cluster.wallets.length * 2, 80),
-          clusterSize: cluster.wallets.length,
-          walletCount: cluster.wallets.length,
-          totalValue: cluster.averageFundingAmount * cluster.wallets.length,
+          size: Math.min(40 + walletList.length * 2, 80),
+          clusterSize: walletList.length,
+          walletCount: walletList.length,
+          totalValue: cluster.averageFundingAmount * walletList.length,
         });
         addedNodes.add(cluster.fundingSource);
         nodeCount++;
       }
 
       // Add wallet nodes (limited per cluster)
-      const walletsToShow = cluster.wallets.slice(0, Math.min(20, cluster.wallets.length));
+      const walletsToShow = walletList.slice(0, Math.min(20, walletList.length));
       
       walletsToShow.forEach((wallet) => {
         if (nodeCount >= limit) return;
@@ -1270,13 +1274,14 @@ const ExportDropdown: React.FC<{
       const riskLevel = cluster.sybilScore >= 80 ? 'Critical' :
                        cluster.sybilScore >= 60 ? 'High' :
                        cluster.sybilScore >= 40 ? 'Medium' : 'Low';
+      const walletList = Array.isArray(cluster.wallets) ? cluster.wallets : [];
       return [
         cluster.fundingSource,
         cluster.fundingSourceLabel || 'Unknown',
         cluster.totalWallets.toString(),
         cluster.sybilScore.toString(),
         riskLevel,
-        cluster.wallets.map(w => w.address).join('; '),
+        walletList.map(w => w.address).join('; '),
       ];
     });
 
@@ -1608,10 +1613,10 @@ const ClusterCard: React.FC<{
 
           <div>
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
-              Wallets ({cluster.wallets.length})
+              Wallets ({Array.isArray(cluster.wallets) ? cluster.wallets.length : 0})
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {cluster.wallets.map((wallet) => (
+              {(Array.isArray(cluster.wallets) ? cluster.wallets : []).map((wallet) => (
                 <div key={wallet.address} style={{
                   display: 'inline-flex',
                   alignItems: 'center',
