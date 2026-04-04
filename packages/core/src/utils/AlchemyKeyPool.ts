@@ -20,8 +20,8 @@ const ALCHEMY_URLS: Partial<Record<ChainId, string>> = {
 class KeyRateLimiter {
     private lastCall = 0;
     // Free tier: 330 CU/sec, getAssetTransfers = 150 CU
-    // So ~2 calls/sec per key to stay safe (500ms interval)
-    private minInterval = 500;
+    // So ~2 calls/sec per key to stay safe (600ms interval)
+    private minInterval = 600;
 
     async throttle(): Promise<void> {
         const now = Date.now();
