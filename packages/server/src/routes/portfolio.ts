@@ -1,18 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { moralisService } from '../services/MoralisService.js';
 import { coinGeckoService } from '../services/CoinGeckoService.js';
-import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/portfolio/:walletAddress
-router.get('/:walletAddress', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:walletAddress', async (req: Request, res: Response) => {
   try {
     const { walletAddress } = req.params;
     const chain = (req.query.chain as string) || 'linea';
 
     console.log('[Portfolio] Request - wallet:', walletAddress, 'chain:', chain);
-    console.log('[Portfolio] User:', req.user);
 
     if (!walletAddress || !walletAddress.startsWith('0x')) {
       return res.status(400).json({ error: 'Invalid wallet address' });
@@ -87,7 +85,7 @@ router.get('/:walletAddress', authMiddleware, async (req: Request, res: Response
 });
 
 // GET /api/portfolio/:walletAddress/nfts
-router.get('/:walletAddress/nfts', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:walletAddress/nfts', async (req: Request, res: Response) => {
   try {
     const { walletAddress } = req.params;
     const chain = (req.query.chain as string) || 'linea';

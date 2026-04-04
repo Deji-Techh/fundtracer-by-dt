@@ -463,8 +463,52 @@ export class AlchemyProvider {
         const transactions = Array.from(txMap.values())
             .sort((a, b) => b.timestamp - a.timestamp);
 
+        // Fetch missing timestamps for transactions where timestamp is 0
+        const txsNeedingTimestamp = transactions.filter(tx => tx.timestamp === 0);
+        if (txsNeedingTimestamp.length > 0) {
+            console.log(`[AlchemyProvider] Fetching timestamps for ${txsNeedingTimestamp.length} transactions with missing timestamps`);
+            await this.fetchMissingTimestamps(txsNeedingTimestamp);
+        }
+
         this.cache.set(cacheKey, transactions);
         return transactions;
+    }
+
+    /** Fetch timestamps for transactions that have missing timestamps */
+    private async fetchMissingTimestamps(transactions: Transaction[]): Promise<void> {
+        const blockTimestamps = new Map<number, number>();
+        
+        // Collect unique block numbers
+        const blockNumbers = [...new Set(transactions.map(tx => tx.blockNumber).filter(b => b > 0))];
+        
+        if (blockNumbers.length === 0) return;
+
+        // Fetch timestamps in batches using eth_getBlockByNumber
+        const BATCH_SIZE = 20;
+        for (let i = 0; i < blockNumbers.length; i += BATCH_SIZE) {
+            const batch = blockNumbers.slice(i, i + BATCH_SIZE);
+            const promises = batch.map(async (blockNum) => {
+                try {
+                    const block = await this.rpcRequest<{ timestamp: string }>('eth_getBlockByNumber', [
+                        `0x${blockNum.toString(16)}`, false
+                    ]);
+                    if (block && block.timestamp) {
+                        const timestamp = parseInt(block.timestamp, 16);
+                        blockTimestamps.set(blockNum, timestamp);
+                    }
+                } catch (error) {
+                    console.warn(`[AlchemyProvider] Failed to fetch block ${blockNum}:`, error);
+                }
+            });
+            await Promise.all(promises);
+        }
+
+        // Update transactions with missing timestamps
+        for (const tx of transactions) {
+            if (tx.timestamp === 0 && blockTimestamps.has(tx.blockNumber)) {
+                tx.timestamp = blockTimestamps.get(tx.blockNumber) || 0;
+            }
+        }
     }
 
     /** Get asset transfers from Alchemy */
