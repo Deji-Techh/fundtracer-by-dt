@@ -667,10 +667,13 @@ export class SybilAnalyzer {
             return results;
         }
 
-        const keys = this.keyPool.getAllWalletKeys();
-        const numKeys = Math.min(keys.length, uncachedAddresses.length);
+        const allKeys = this.keyPool.getAllWalletKeys();
+        // Limit to max 4 keys to avoid rate limiting (21 keys is too aggressive)
+        const MAX_PARALLEL_KEYS = 4;
+        const numKeys = Math.min(allKeys.length, MAX_PARALLEL_KEYS, uncachedAddresses.length);
+        const keys = allKeys.slice(0, numKeys);
         
-        console.log(`[SybilAnalyzer] Parallel processing ${uncachedAddresses.length} wallets across ${numKeys} keys`);
+        console.log(`[SybilAnalyzer] Parallel processing ${uncachedAddresses.length} wallets across ${numKeys} keys (limited from ${allKeys.length})`);
 
         // Divide addresses across keys and process in parallel
         const batchSize = Math.ceil(uncachedAddresses.length / numKeys);
@@ -713,6 +716,8 @@ export class SybilAnalyzer {
         const categories = this.getTransferCategories();
         
         for (const address of batch) {
+            let data: any = null;
+            
             try {
                 // Use Alchemy getAssetTransfers with chain-aware categories
                 const response = await fetch(`${baseUrl}/v2/${apiKey}`, {
@@ -735,12 +740,58 @@ export class SybilAnalyzer {
                     })
                 });
 
-                const data = await response.json();
+                // Check for non-JSON responses (rate limit HTML pages)
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    console.log(`[SybilAnalyzer] Non-JSON response for ${address}, status: ${response.status}`);
+                    // Treat as rate limit - wait longer and retry
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    const retryResponse = await fetch(`${baseUrl}/v2/${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            method: 'alchemy_getAssetTransfers',
+                            params: [{
+                                fromBlock: '0x0',
+                                toBlock: 'latest',
+                                toAddress: address,
+                                category: categories,
+                                withMetadata: true,
+                                excludeZeroValue: false,
+                                maxCount: '0x64',
+                                order: 'asc'
+                            }]
+                        })
+                    });
+                    
+                    const retryContentType = retryResponse.headers.get('content-type') || '';
+                    if (!retryContentType.includes('application/json')) {
+                        // Still failing - skip this wallet
+                        const emptyResult: WalletFunding = {
+                            address,
+                            funder: null,
+                            fundingTxHash: null,
+                            fundingTimestamp: null,
+                            fundingAmount: 0,
+                            interactionCount: 1,
+                        };
+                        results.push(emptyResult);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        continue;
+                    }
+                    
+                    data = await retryResponse.json();
+                } else {
+                    data = await response.json();
+                }
                 
                 // Handle rate limiting (429)
-                if (response.status === 429 || data.error?.code === 429) {
+                if (response.status === 429 || data?.error?.code === 429) {
                     console.log(`[SybilAnalyzer] Rate limited for ${address}, retrying after delay...`);
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                     
                     // Retry once
                     const retryResponse = await fetch(`${baseUrl}/v2/${apiKey}`, {
@@ -765,11 +816,11 @@ export class SybilAnalyzer {
                     
                     const retryData = await retryResponse.json();
                     if (retryData.result) {
-                        data.result = retryData.result;
+                        data = retryData;
                     }
                 }
                 
-                if (data.error) {
+                if (data?.error) {
                     console.log(`[SybilAnalyzer] Alchemy error for ${address}: ${JSON.stringify(data.error)}`);
                     const emptyResult: WalletFunding = {
                         address,
@@ -780,14 +831,12 @@ export class SybilAnalyzer {
                         interactionCount: 1,
                     };
                     results.push(emptyResult);
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await new Promise(resolve => setTimeout(resolve, 300));
                     continue;
                 }
                 
                 // Debug: log response structure when no transfers found
-                if (!data.result || !data.result.transfers || data.result.transfers.length === 0) {
-                    console.log(`[SybilAnalyzer] No transfers for ${address}`);
-                    
+                if (!data?.result || !data?.result?.transfers || data.result.transfers.length === 0) {
                     // Try a different approach - query fromAddress as well
                     const fromResponse = await fetch(`${baseUrl}/v2/${apiKey}`, {
                         method: 'POST',
@@ -811,11 +860,11 @@ export class SybilAnalyzer {
                     
                     const fromData = await fromResponse.json();
                     if (fromData.result?.transfers?.length > 0) {
-                        data.result = fromData.result;
+                        data = fromData;
                     }
                 }
                 
-                if (data.result && data.result.transfers && data.result.transfers.length > 0) {
+                if (data?.result?.transfers?.length > 0) {
                     // Sort by block number to find first
                     const transfers = data.result.transfers.sort((a: any, b: any) => 
                         parseInt(a.blockNum, 16) - parseInt(b.blockNum, 16)
@@ -862,7 +911,7 @@ export class SybilAnalyzer {
                         };
                         this.fundingCache.set(address.toLowerCase(), result);
                         results.push(result);
-                        await new Promise(resolve => setTimeout(resolve, 50));
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         continue;
                     }
                 }
@@ -891,8 +940,8 @@ export class SybilAnalyzer {
                 results.push(emptyResult);
             }
             
-            // Rate limit between requests (slower to avoid 429s)
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Rate limit between requests
+            await new Promise(resolve => setTimeout(resolve, 300));
         }
     }
 
@@ -1085,7 +1134,12 @@ export class SybilAnalyzer {
     private clusterByFundingSource(wallets: WalletFunding[], minSize: number): SybilCluster[] {
         const clusterMap = new Map<string, WalletFunding[]>();
 
-        for (const wallet of wallets) {
+        // First, filter out wallets with null/unknown funders to prevent fake clusters
+        const validWallets = wallets.filter(w => w.funder !== null && w.funder !== undefined);
+
+        console.log(`[SybilAnalyzer] Clustering ${validWallets.length} wallets (filtered ${wallets.length - validWallets.length} with null funder)`);
+
+        for (const wallet of validWallets) {
             const source = wallet.funder || 'unknown';
             if (!clusterMap.has(source)) {
                 clusterMap.set(source, []);
