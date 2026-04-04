@@ -7,6 +7,7 @@ import { ChainId } from '../types.js';
 import { ProviderFactory } from '../providers/ProviderFactory.js';
 import { AlchemyProvider } from '../providers/AlchemyProvider.js';
 import { CovalentProvider } from '../providers/CovalentProvider.js';
+import { AlchemyKeyPool, type SybilAlchemyConfig } from '../utils/AlchemyKeyPool.js';
 
 /** Individual wallet with its funding info */
 export interface WalletFunding {
@@ -77,14 +78,17 @@ export class SybilAnalyzer {
     private covalentProvider?: CovalentProvider;
     private chain: ChainId;
     private moralisKey: string;
+    private keyPool?: AlchemyKeyPool;
 
-    constructor(chain: ChainId, alchemyKey: string, moralisKey?: string, covalentKey?: string) {
+    constructor(chain: ChainId, config: SybilAlchemyConfig) {
         this.chain = chain;
-        this.provider = new AlchemyProvider(chain, alchemyKey, moralisKey);
-        this.moralisKey = moralisKey || '';
-        if (covalentKey) {
-            this.covalentProvider = new CovalentProvider(chain, covalentKey);
-        }
+        
+        // Initialize key pool for parallel requests
+        this.keyPool = new AlchemyKeyPool(config, chain);
+        this.moralisKey = config.moralisKey || '';
+        
+        // Create primary provider with default key
+        this.provider = new AlchemyProvider(chain, config.defaultKey, this.moralisKey);
     }
 
     /**
@@ -196,34 +200,50 @@ export class SybilAnalyzer {
 
     /**
      * Get all unique addresses that have sent transactions to the contract
-     * Uses Moralis API for fast, complete data
+     * Uses Alchemy with multi-key parallelization (primary) + Moralis (BSC fallback)
      */
     private async getContractInteractors(contractAddress: string, limit: number): Promise<string[]> {
         const interactors = new Set<string>();
         const contractLower = contractAddress.toLowerCase();
+        const isBsc = this.chain === 'bsc';
 
-        // Primary Method: Use Moralis API (fast and complete)
-        if (this.moralisKey) {
+        // BSC: Use Moralis only (Alchemy doesn't support BSC)
+        if (isBsc && this.moralisKey) {
             try {
-                console.log('[SybilAnalyzer] Using Moralis API...');
+                console.log('[SybilAnalyzer] BSC detected - using Moralis API...');
                 const moralisAddresses = await this.getInteractorsFromMoralis(contractAddress, limit);
                 for (const addr of moralisAddresses) {
                     interactors.add(addr.toLowerCase());
                 }
                 console.log(`[SybilAnalyzer] Moralis found ${interactors.size} interactors`);
-
-                if (interactors.size >= limit) {
-                    return Array.from(interactors).slice(0, limit);
-                }
+                return Array.from(interactors).slice(0, limit);
             } catch (e: any) {
                 console.log('[SybilAnalyzer] Moralis method failed:', e.message);
             }
         }
 
-        // Fallback: Alchemy asset transfers
+        // Non-BSC: Use Alchemy with multi-key parallelization (primary)
+        if (this.keyPool && this.keyPool.isChainSupported()) {
+            try {
+                console.log('[SybilAnalyzer] Using Alchemy with multi-key pool...');
+                const alchemyAddresses = await this.getInteractorsFromAlchemyParallel(contractAddress, limit);
+                for (const addr of alchemyAddresses) {
+                    interactors.add(addr.toLowerCase());
+                }
+                console.log(`[SybilAnalyzer] Alchemy parallel found ${interactors.size} interactors`);
+
+                if (interactors.size >= limit) {
+                    return Array.from(interactors).slice(0, limit);
+                }
+            } catch (e: any) {
+                console.log('[SybilAnalyzer] Alchemy parallel method failed:', e.message);
+            }
+        }
+
+        // Fallback: Single Alchemy provider
         if (interactors.size < limit) {
             try {
-                console.log('[SybilAnalyzer] Trying Alchemy asset transfers...');
+                console.log('[SybilAnalyzer] Trying single Alchemy provider...');
                 const transfers = await this.provider.getTransactions(contractAddress);
                 for (const tx of transfers) {
                     if (tx.to?.toLowerCase() === contractLower) {
@@ -235,12 +255,137 @@ export class SybilAnalyzer {
                     if (interactors.size >= limit) break;
                 }
             } catch (e: any) {
-                console.log('[SybilAnalyzer] Alchemy method failed:', e.message);
+                console.log('[SybilAnalyzer] Single Alchemy method failed:', e.message);
+            }
+        }
+
+        // Last resort: Moralis fallback for non-BSC
+        if (interactors.size < limit && this.moralisKey && !isBsc) {
+            try {
+                console.log('[SybilAnalyzer] Falling back to Moralis...');
+                const moralisAddresses = await this.getInteractorsFromMoralis(contractAddress, limit);
+                for (const addr of moralisAddresses) {
+                    interactors.add(addr.toLowerCase());
+                }
+            } catch (e: any) {
+                console.log('[SybilAnalyzer] Moralis fallback failed:', e.message);
             }
         }
 
         console.log(`[SybilAnalyzer] Total interactors found: ${interactors.size}`);
         return Array.from(interactors);
+    }
+
+    /**
+     * Get contract interactors using Alchemy with multi-key parallelization
+     */
+    private async getInteractorsFromAlchemyParallel(contractAddress: string, limit: number): Promise<string[]> {
+        const addresses = new Set<string>();
+        
+        if (!this.keyPool) {
+            return [];
+        }
+
+        const keys = this.keyPool.getAllContractKeys();
+        const baseUrl = this.keyPool.getRpcUrl(keys[0]).replace(/\/v2\/[^/]+$/, '');
+        
+        // Use block ranges to query in parallel
+        const currentBlock = await this.getCurrentBlockNumber(baseUrl + '/v2/' + keys[0]);
+        const chunkSize = 5000;
+        const maxBlocksToQuery = 50000;
+        
+        // Divide block ranges across keys
+        const numKeys = keys.length;
+        const rangesPerKey = Math.ceil(maxBlocksToQuery / chunkSize / numKeys);
+        
+        const promises: Promise<void>[] = [];
+        
+        for (let keyIdx = 0; keyIdx < numKeys; keyIdx++) {
+            const key = keys[keyIdx];
+            const startOffset = keyIdx * rangesPerKey;
+            
+            for (let r = 0; r < rangesPerKey; r++) {
+                const rangeIdx = startOffset + r;
+                const toBlock = currentBlock - (rangeIdx * chunkSize);
+                const fromBlock = Math.max(0, toBlock - chunkSize + 1);
+                
+                if (addresses.size >= limit) break;
+                
+                const promise = (async () => {
+                    await this.queryBlockRange(key, contractAddress, fromBlock, toBlock, addresses, limit);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                })();
+                promises.push(promise);
+            }
+        }
+        
+        await Promise.all(promises);
+        return Array.from(addresses);
+    }
+
+    private async getCurrentBlockNumber(rpcUrl: string): Promise<number> {
+        const response = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'eth_blockNumber',
+                params: []
+            })
+        });
+        const data = await response.json();
+        return parseInt(data.result, 16);
+    }
+
+    private async queryBlockRange(
+        key: string,
+        contractAddress: string,
+        fromBlock: number,
+        toBlock: number,
+        addresses: Set<string>,
+        limit: number
+    ): Promise<void> {
+        try {
+            const baseUrl = this.keyPool!.getRpcUrl(key).replace(/\/v2\/[^/]+$/, '');
+            const response = await fetch(`${baseUrl}/v2/${key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'eth_getLogs',
+                    params: [{
+                        address: contractAddress,
+                        fromBlock: '0x' + fromBlock.toString(16),
+                        toBlock: '0x' + toBlock.toString(16)
+                    }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.result && Array.isArray(data.result)) {
+                for (const log of data.result) {
+                    if (log.topics && log.topics.length > 1) {
+                        for (let i = 1; i < Math.min(log.topics.length, 4); i++) {
+                            const topic = log.topics[i];
+                            if (topic && topic.length === 66) {
+                                const potentialAddr = '0x' + topic.slice(26);
+                                if (potentialAddr !== '0x0000000000000000000000000000000000000000' &&
+                                    /^0x[a-fA-F0-9]{40}$/.test(potentialAddr)) {
+                                    addresses.add(potentialAddr.toLowerCase());
+                                }
+                            }
+                        }
+                    }
+                    if (addresses.size >= limit) break;
+                }
+            }
+        } catch (e) {
+            // Silently fail for individual range queries
+            return;
+        }
     }
 
     /**
@@ -470,17 +615,15 @@ export class SybilAnalyzer {
     }
 
     /**
-     * Optimized funding source lookup using Moralis API
-     * - 100 wallets per batch (vs 50)
-     * - In-memory cache for repeated addresses
-     * - Moralis API is faster than Alchemy for this
+     * Optimized funding source lookup using Alchemy with multi-key parallelization
+     * BSC uses Moralis fallback (Alchemy doesn't support BSC)
      */
     private fundingCache = new Map<string, WalletFunding>();
 
     private async findFundingSourcesFast(addresses: string[]): Promise<WalletFunding[]> {
         const results: WalletFunding[] = [];
-        const batchSize = 20; // Reduced to avoid Moralis rate limits (25 req/sec)
         const uncachedAddresses: string[] = [];
+        const isBsc = this.chain === 'bsc';
 
         // Check cache first
         for (const address of addresses) {
@@ -494,31 +637,159 @@ export class SybilAnalyzer {
 
         console.log(`[SybilAnalyzer] Cache hit: ${results.length}/${addresses.length}, fetching ${uncachedAddresses.length} new`);
 
-        // Process uncached addresses in smaller batches with delays
+        // BSC: Use Moralis single-threaded (no parallelization available)
+        if (isBsc && this.moralisKey) {
+            console.log('[SybilAnalyzer] BSC detected - using Moralis for funding sources');
+            return await this.findFundingSourcesMoralisSequential(uncachedAddresses, results);
+        }
+
+        // Non-BSC: Use Alchemy with multi-key parallelization
+        if (this.keyPool && this.keyPool.isChainSupported()) {
+            console.log('[SybilAnalyzer] Using Alchemy multi-key parallelization');
+            return await this.findFundingSourcesAlchemyParallel(uncachedAddresses, results);
+        }
+
+        // Fallback: Single provider
+        console.log('[SybilAnalyzer] Using single provider fallback');
+        return await this.findFundingSourcesSingleProvider(uncachedAddresses, results);
+    }
+
+    /**
+     * Find funding sources using Alchemy with parallel key pool
+     */
+    private async findFundingSourcesAlchemyParallel(
+        uncachedAddresses: string[],
+        cachedResults: WalletFunding[]
+    ): Promise<WalletFunding[]> {
+        const results = [...cachedResults];
+        
+        if (!this.keyPool || uncachedAddresses.length === 0) {
+            return results;
+        }
+
+        const keys = this.keyPool.getAllWalletKeys();
+        const numKeys = Math.min(keys.length, uncachedAddresses.length);
+        
+        console.log(`[SybilAnalyzer] Parallel processing ${uncachedAddresses.length} wallets across ${numKeys} keys`);
+
+        // Divide addresses across keys and process in parallel
+        const batchSize = Math.ceil(uncachedAddresses.length / numKeys);
+        
+        const promises = [];
+        for (let i = 0; i < numKeys; i++) {
+            const startIdx = i * batchSize;
+            const endIdx = Math.min(startIdx + batchSize, uncachedAddresses.length);
+            const batch = uncachedAddresses.slice(startIdx, endIdx);
+            const key = keys[i];
+            
+            const promise = this.processWalletBatchWithKey(batch, key, results);
+            promises.push(promise);
+        }
+
+        await Promise.all(promises);
+        
+        console.log(`[SybilAnalyzer] Completed funding lookup for ${results.length} wallets`);
+        return results;
+    }
+
+    private async processWalletBatchWithKey(
+        batch: string[],
+        apiKey: string,
+        results: WalletFunding[]
+    ): Promise<void> {
+        const chain = this.chain;
+        const baseUrl = this.keyPool!.getRpcUrl(apiKey).replace(/\/v2\/[^/]+$/, '');
+        
+        for (const address of batch) {
+            try {
+                // Use Alchemy getAssetTransfers to find first incoming transfer
+                const response = await fetch(`${baseUrl}/v2/${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'alchemy_getAssetTransfers',
+                        params: [{
+                            fromBlock: '0x0',
+                            toBlock: 'latest',
+                            toAddress: address,
+                            category: ['external', 'internal'],
+                            withMetadata: true,
+                            limit: 100
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.result && data.result.transfers && data.result.transfers.length > 0) {
+                    // Sort by block number to find first
+                    const transfers = data.result.transfers.sort((a: any, b: any) => 
+                        parseInt(a.blockNum, 16) - parseInt(b.blockNum, 16)
+                    );
+                    
+                    const firstTransfer = transfers[0];
+                    
+                    if (firstTransfer.value && parseFloat(firstTransfer.value) > 0) {
+                        const result: WalletFunding = {
+                            address,
+                            funder: firstTransfer.from,
+                            fundingTxHash: firstTransfer.hash,
+                            fundingTimestamp: new Date(firstTransfer.metadata.blockTimestamp).getTime() / 1000,
+                            fundingAmount: parseFloat(firstTransfer.value) / 1e18,
+                            interactionCount: 1,
+                        };
+                        this.fundingCache.set(address.toLowerCase(), result);
+                        results.push(result);
+                        continue;
+                    }
+                }
+
+                // No funding found
+                const emptyResult: WalletFunding = {
+                    address,
+                    funder: null,
+                    fundingTxHash: null,
+                    fundingTimestamp: null,
+                    fundingAmount: 0,
+                    interactionCount: 1,
+                };
+                this.fundingCache.set(address.toLowerCase(), emptyResult);
+                results.push(emptyResult);
+            } catch (error) {
+                const emptyResult: WalletFunding = {
+                    address,
+                    funder: null,
+                    fundingTxHash: null,
+                    fundingTimestamp: null,
+                    fundingAmount: 0,
+                    interactionCount: 1,
+                };
+                results.push(emptyResult);
+            }
+            
+            // Rate limit between requests
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    }
+
+    /**
+     * Find funding sources using Moralis (sequential for BSC)
+     */
+    private async findFundingSourcesMoralisSequential(
+        uncachedAddresses: string[],
+        cachedResults: WalletFunding[]
+    ): Promise<WalletFunding[]> {
+        const results = [...cachedResults];
+        const batchSize = 20;
+
         for (let i = 0; i < uncachedAddresses.length; i += batchSize) {
             const batch = uncachedAddresses.slice(i, i + batchSize);
 
             const batchResults = await Promise.all(
                 batch.map(async (address): Promise<WalletFunding> => {
                     try {
-                        // Try Covalent first (deep history, most reliable)
-                        if (this.covalentProvider) {
-                            const funding = await this.covalentProvider.getFirstFunder(address);
-                            if (funding && funding.firstTx) {
-                                const result: WalletFunding = {
-                                    address,
-                                    funder: funding.address,
-                                    fundingTxHash: funding.firstTx.hash,
-                                    fundingTimestamp: funding.firstTx.timestamp,
-                                    fundingAmount: funding.firstTx.valueInEth,
-                                    interactionCount: 1,
-                                };
-                                this.fundingCache.set(address.toLowerCase(), result);
-                                return result;
-                            }
-                        }
-
-                        // Try Moralis next (faster than Alchemy)
                         if (this.moralisKey) {
                             const funding = await this.getFirstFunderMoralis(address);
                             if (funding) {
@@ -533,21 +804,6 @@ export class SybilAnalyzer {
                                 this.fundingCache.set(address.toLowerCase(), result);
                                 return result;
                             }
-                        }
-
-                        // Fallback to Alchemy
-                        const funding = await this.provider.getFirstFunder(address);
-                        if (funding) {
-                            const result: WalletFunding = {
-                                address,
-                                funder: funding.address,
-                                fundingTxHash: funding.firstTx!.hash,
-                                fundingTimestamp: funding.firstTx!.timestamp,
-                                fundingAmount: funding.firstTx!.valueInEth,
-                                interactionCount: 1,
-                            };
-                            this.fundingCache.set(address.toLowerCase(), result);
-                            return result;
                         }
 
                         const emptyResult: WalletFunding = {
@@ -574,11 +830,70 @@ export class SybilAnalyzer {
             );
 
             results.push(...batchResults);
-            console.log(`[SybilAnalyzer] Fast processing: ${Math.min(i + batchSize, uncachedAddresses.length)}/${uncachedAddresses.length} wallets`);
-
-            // Add delay between batches to avoid rate limits
+            console.log(`[SybilAnalyzer] Moralis processed ${Math.min(i + batchSize, uncachedAddresses.length)}/${uncachedAddresses.length} wallets`);
+            
+            // Delay between batches
             if (i + batchSize < uncachedAddresses.length) {
                 await new Promise(r => setTimeout(r, 200));
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Fallback: Single provider (no parallelization)
+     */
+    private async findFundingSourcesSingleProvider(
+        uncachedAddresses: string[],
+        cachedResults: WalletFunding[]
+    ): Promise<WalletFunding[]> {
+        const results = [...cachedResults];
+        const batchSize = 20;
+
+        for (let i = 0; i < uncachedAddresses.length; i += batchSize) {
+            const batch = uncachedAddresses.slice(i, i + batchSize);
+
+            const batchResults = await Promise.all(
+                batch.map(async (address): Promise<WalletFunding> => {
+                    try {
+                        const funding = await this.provider.getFirstFunder(address);
+                        if (funding) {
+                            const result: WalletFunding = {
+                                address,
+                                funder: funding.address,
+                                fundingTxHash: funding.firstTx!.hash,
+                                fundingTimestamp: funding.firstTx!.timestamp,
+                                fundingAmount: funding.firstTx!.valueInEth,
+                                interactionCount: 1,
+                            };
+                            this.fundingCache.set(address.toLowerCase(), result);
+                            return result;
+                        }
+                        return {
+                            address,
+                            funder: null,
+                            fundingTxHash: null,
+                            fundingTimestamp: null,
+                            fundingAmount: 0,
+                            interactionCount: 1,
+                        };
+                    } catch (error) {
+                        return {
+                            address,
+                            funder: null,
+                            fundingTxHash: null,
+                            fundingTimestamp: null,
+                            fundingAmount: 0,
+                            interactionCount: 1,
+                        };
+                    }
+                })
+            );
+
+            results.push(...batchResults);
+            if (i + batchSize < uncachedAddresses.length) {
+                await new Promise(r => setTimeout(r, 100));
             }
         }
 

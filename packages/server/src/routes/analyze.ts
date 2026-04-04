@@ -19,6 +19,7 @@ import { trackAnalysis } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength, isValidSuiAddress } from '../utils/validation.js';
 import { cache } from '../utils/cache.js';
 import { sendEmail, buildFirstAnalysisEmail } from '../services/EmailService.js';
+import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -901,15 +902,13 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     try {
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
-        const moralisKey = process.env.MORALIS_API_KEY || '';
-        const covalentKey = process.env.COVALENT_API_KEY || '';
+        const alchemyConfig = getSybilAlchemyKeys();
 
-        if (!alchemyKey) {
+        if (!alchemyConfig.defaultKey) {
             return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
         }
 
-        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyKey, moralisKey, covalentKey);
+        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyConfig);
 
         console.log('[DEBUG] Starting sybil analysis with 300s timeout...');
         const result = await withTimeout(
