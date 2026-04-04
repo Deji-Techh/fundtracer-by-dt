@@ -702,7 +702,7 @@ export class SybilAnalyzer {
         
         for (const address of batch) {
             try {
-                // Use Alchemy getAssetTransfers to find first incoming transfer
+                // Use Alchemy getAssetTransfers - try ALL categories to catch bridge transfers
                 const response = await fetch(`${baseUrl}/v2/${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -714,9 +714,11 @@ export class SybilAnalyzer {
                             fromBlock: '0x0',
                             toBlock: 'latest',
                             toAddress: address,
-                            category: ['external', 'internal'],
+                            category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'],
                             withMetadata: true,
-                            limit: 100
+                            excludeZeroValue: false,
+                            maxCount: '0x64', // 100 max
+                            order: 'asc'
                         }]
                     })
                 });
@@ -724,7 +726,7 @@ export class SybilAnalyzer {
                 const data = await response.json();
                 
                 if (data.error) {
-                    console.log(`[SybilAnalyzer] Alchemy error for ${address}: ${data.error.message}`);
+                    console.log(`[SybilAnalyzer] Alchemy error for ${address}: ${JSON.stringify(data.error)}`);
                     const emptyResult: WalletFunding = {
                         address,
                         funder: null,
@@ -738,38 +740,12 @@ export class SybilAnalyzer {
                     continue;
                 }
                 
-                if (data.result && data.result.transfers && data.result.transfers.length > 0) {
-                    // Sort by block number to find first
-                    const transfers = data.result.transfers.sort((a: any, b: any) => 
-                        parseInt(a.blockNum, 16) - parseInt(b.blockNum, 16)
-                    );
+                // Debug: log response structure when no transfers found
+                if (!data.result || !data.result.transfers || data.result.transfers.length === 0) {
+                    console.log(`[SybilAnalyzer] No transfers for ${address}, checking rawContract...`);
                     
-                    const firstTransfer = transfers[0];
-                    
-                    // Check value - can be number or string, handle both
-                    const value = typeof firstTransfer.value === 'string' 
-                        ? parseFloat(firstTransfer.value) 
-                        : firstTransfer.value;
-                    
-                    if (value && value > 0) {
-                        const result: WalletFunding = {
-                            address,
-                            funder: firstTransfer.from,
-                            fundingTxHash: firstTransfer.hash,
-                            fundingTimestamp: new Date(firstTransfer.metadata.blockTimestamp).getTime() / 1000,
-                            fundingAmount: value / 1e18,
-                            interactionCount: 1,
-                        };
-                        this.fundingCache.set(address.toLowerCase(), result);
-                        results.push(result);
-                        await new Promise(resolve => setTimeout(resolve, 50));
-                        continue;
-                    }
-                }
-
-                // Try ERC20 transfers if no ETH found
-                try {
-                    const erc20Response = await fetch(`${baseUrl}/v2/${apiKey}`, {
+                    // Try a different approach - query fromAddress as well
+                    const fromResponse = await fetch(`${baseUrl}/v2/${apiKey}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -780,44 +756,76 @@ export class SybilAnalyzer {
                                 fromBlock: '0x0',
                                 toBlock: 'latest',
                                 toAddress: address,
-                                category: ['erc20'],
+                                category: ['external', 'internal', 'erc20'],
                                 withMetadata: true,
-                                limit: 10
+                                excludeZeroValue: false,
+                                maxCount: '0x64',
+                                order: 'asc'
                             }]
                         })
                     });
-
-                    const erc20Data = await erc20Response.json();
-                    if (erc20Data.result && erc20Data.result.transfers && erc20Data.result.transfers.length > 0) {
-                        const transfers = erc20Data.result.transfers.sort((a: any, b: any) => 
-                            parseInt(a.blockNum, 16) - parseInt(b.blockNum, 16)
-                        );
-                        const firstTransfer = transfers[0];
-                        const value = typeof firstTransfer.value === 'string' 
-                            ? parseFloat(firstTransfer.value) 
-                            : firstTransfer.value;
-                        
-                        if (value && value > 0) {
-                            // Get decimals from rawContract
-                            const decimals = firstTransfer.rawContract?.decimal 
-                                ? parseInt(firstTransfer.rawContract.decimal) 
-                                : 18;
-                            const result: WalletFunding = {
-                                address,
-                                funder: firstTransfer.from,
-                                fundingTxHash: firstTransfer.hash,
-                                fundingTimestamp: new Date(firstTransfer.metadata.blockTimestamp).getTime() / 1000,
-                                fundingAmount: value / Math.pow(10, decimals),
-                                interactionCount: 1,
-                            };
-                            this.fundingCache.set(address.toLowerCase(), result);
-                            results.push(result);
-                            await new Promise(resolve => setTimeout(resolve, 50));
-                            continue;
-                        }
+                    
+                    const fromData = await fromResponse.json();
+                    if (fromData.result?.transfers?.length > 0) {
+                        console.log(`[SybilAnalyzer] Found ${fromData.result.transfers.length} transfers via second query`);
+                        data.result = fromData.result;
+                    } else {
+                        console.log(`[SybilAnalyzer] Still no transfers for ${address}, raw response:`, JSON.stringify(fromData.result)?.slice(0, 500));
                     }
-                } catch (e) {
-                    // ERC20 check failed, continue
+                }
+                
+                if (data.result && data.result.transfers && data.result.transfers.length > 0) {
+                    // Sort by block number to find first
+                    const transfers = data.result.transfers.sort((a: any, b: any) => 
+                        parseInt(a.blockNum, 16) - parseInt(b.blockNum, 16)
+                    );
+                    
+                    console.log(`[SybilAnalyzer] Found ${transfers.length} transfers for ${address}, first:`, transfers[0]?.hash);
+                    
+                    const firstTransfer = transfers[0];
+                    
+                    // Check value - can be number or string, handle both
+                    let value: number;
+                    if (typeof firstTransfer.value === 'string') {
+                        value = parseFloat(firstTransfer.value);
+                    } else if (firstTransfer.value !== undefined && firstTransfer.value !== null) {
+                        value = Number(firstTransfer.value);
+                    } else if (firstTransfer.rawContract?.value) {
+                        // Fallback to rawContract value (hex string)
+                        value = parseInt(firstTransfer.rawContract.value, 16);
+                    } else {
+                        value = 0;
+                    }
+                    
+                    // Handle ERC20 transfers with decimals
+                    let fundingAmount = value;
+                    if (firstTransfer.category === 'erc20' && firstTransfer.rawContract?.decimal) {
+                        const decimals = parseInt(firstTransfer.rawContract.decimal, 16);
+                        fundingAmount = value / Math.pow(10, decimals);
+                    } else if (firstTransfer.category !== 'external') {
+                        // For non-ETH, value is already in token units
+                        fundingAmount = value;
+                    } else {
+                        // ETH transfers - divide by 1e18
+                        fundingAmount = value / 1e18;
+                    }
+                    
+                    if (fundingAmount > 0 || firstTransfer.category === 'erc20') {
+                        const result: WalletFunding = {
+                            address,
+                            funder: firstTransfer.from,
+                            fundingTxHash: firstTransfer.hash,
+                            fundingTimestamp: firstTransfer.metadata?.blockTimestamp 
+                                ? new Date(firstTransfer.metadata.blockTimestamp).getTime() / 1000 
+                                : (firstTransfer.blockNum ? parseInt(firstTransfer.blockNum, 16) * 12 : 0), // Fallback estimate
+                            fundingAmount: fundingAmount,
+                            interactionCount: 1,
+                        };
+                        this.fundingCache.set(address.toLowerCase(), result);
+                        results.push(result);
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                        continue;
+                    }
                 }
 
                 // No funding found
