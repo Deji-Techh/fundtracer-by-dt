@@ -453,7 +453,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                                 maxWidth: 300,
                             }}
-                            onMouseEnter={() => setHoveredAddress(hoveredAddress)}
+                            // Keep tooltip visible when mouse enters it (no state update needed)
                             onMouseLeave={() => setHoveredAddress(null)}
                         >
                             <div style={{ 

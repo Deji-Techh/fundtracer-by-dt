@@ -1138,41 +1138,31 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                     align-items: center;
                     justify-content: center;
                     gap: var(--space-2);
-                    padding: var(--space-3) var(--space-6);
-                    background: linear-gradient(135deg, var(--color-primary) 0%, #8b5cf6 100%);
-                    color: white;
-                    border: none;
-                    border-radius: var(--radius-lg);
+                    padding: var(--space-2) var(--space-4);
+                    background: transparent;
+                    color: var(--color-text-secondary);
+                    border: 1px solid var(--color-surface-border);
+                    border-radius: var(--radius-md);
                     font-size: var(--text-sm);
-                    font-weight: 600;
+                    font-weight: 500;
                     cursor: pointer;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
+                    transition: all 0.2s ease;
                 }
 
                 .generate-tree-btn:hover:not(:disabled) {
-                    opacity: 0.95;
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+                    background: var(--color-surface-hover);
+                    color: var(--color-text-primary);
+                    border-color: var(--color-primary);
                 }
 
                 .generate-tree-btn:disabled {
-                    opacity: 0.6;
+                    opacity: 0.5;
                     cursor: not-allowed;
-                    transform: none;
-                    box-shadow: none;
                 }
 
                 .generate-tree-btn.loading {
-                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-                    animation: pulse 1.5s infinite;
-                }
-
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.7; }
+                    color: var(--color-primary);
+                    border-color: var(--color-primary);
                 }
 
                 .tree-error {

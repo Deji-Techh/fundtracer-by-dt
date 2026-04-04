@@ -101,7 +101,7 @@ async function sendPushNotification(notification: AppNotification) {
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
-    const token = localStorage.getItem('fundtracer_auth_token');
+    const token = localStorage.getItem('fundtracer_token');
     if (token) {
       return { 'Authorization': `Bearer ${token}` };
     }

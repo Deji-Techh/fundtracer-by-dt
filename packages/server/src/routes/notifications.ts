@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getFirestore } from '../firebase.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -14,28 +15,16 @@ interface Notification {
   createdAt: Date;
 }
 
-// Get auth middleware
-const authMiddleware = async (req: Request, res: Response, next: Function) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-    
-    const token = authHeader.slice(7);
-    // In a real app, verify the JWT here
-    // For now, we'll extract userId from the token if present
-    (req as any).userId = token;
-    next();
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-};
+// Note: Auth middleware is applied at the router level in index.ts
+// All routes here expect req.user to be populated
 
 // Get all notifications for user
-router.get('/', authMiddleware, async (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const db = getFirestore();
     
     const snapshot = await db.collection('notifications')
@@ -57,9 +46,12 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // Create a new notification
-router.post('/', authMiddleware, async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const { type, title, message, data } = req.body;
     
     if (!type || !title || !message) {
@@ -85,9 +77,12 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // Mark notification as read
-router.put('/:id/read', authMiddleware, async (req: Request, res: Response) => {
+router.put('/:id/read', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const { id } = req.params;
     const db = getFirestore();
     
@@ -108,9 +103,12 @@ router.put('/:id/read', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // Mark all notifications as read
-router.put('/read-all', authMiddleware, async (req: Request, res: Response) => {
+router.put('/read-all', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const db = getFirestore();
     
     const batch = db.batch();
@@ -133,9 +131,12 @@ router.put('/read-all', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // Delete a notification
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const { id } = req.params;
     const db = getFirestore();
     
@@ -156,9 +157,12 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // Delete all notifications
-router.delete('/', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const db = getFirestore();
     
     const batch = db.batch();
