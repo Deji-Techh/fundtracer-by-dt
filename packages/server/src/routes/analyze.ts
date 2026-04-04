@@ -1079,17 +1079,15 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
     try {
         console.log('[DEBUG] Using original SybilAnalyzer for direct address analysis...');
         
-        // Get Alchemy key for user
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
-        const moralisKey = process.env.MORALIS_API_KEY || '';
-        const covalentKey = process.env.COVALENT_API_KEY || '';
+        // Get Alchemy key configuration for multi-key pool
+        const alchemyConfig = getSybilAlchemyKeys();
 
-        if (!alchemyKey) {
+        if (!alchemyConfig.defaultKey) {
             return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
         }
 
-        // Use original SybilAnalyzer (proven to work)
-        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyKey, moralisKey, covalentKey);
+        // Use SybilAnalyzer with multi-key pool
+        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyConfig);
 
         console.log(`[DEBUG] Starting sybil analysis on ${validAddresses.length} addresses...`);
         const startTime = Date.now();
