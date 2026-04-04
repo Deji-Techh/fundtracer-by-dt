@@ -692,6 +692,17 @@ export class SybilAnalyzer {
         return results;
     }
 
+    /**
+     * Get supported transfer categories per chain
+     * 'internal' category is only supported on ETH and MATIC
+     */
+    private getTransferCategories(): string[] {
+        const supportsInternal = ['ethereum', 'polygon'].includes(this.chain);
+        return supportsInternal
+            ? ['external', 'internal', 'erc20', 'erc721', 'erc1155']
+            : ['external', 'erc20', 'erc721', 'erc1155'];
+    }
+
     private async processWalletBatchWithKey(
         batch: string[],
         apiKey: string,
@@ -699,10 +710,11 @@ export class SybilAnalyzer {
     ): Promise<void> {
         const chain = this.chain;
         const baseUrl = this.keyPool!.getRpcUrl(apiKey).replace(/\/v2\/[^/]+$/, '');
+        const categories = this.getTransferCategories();
         
         for (const address of batch) {
             try {
-                // Use Alchemy getAssetTransfers - try ALL categories to catch bridge transfers
+                // Use Alchemy getAssetTransfers with chain-aware categories
                 const response = await fetch(`${baseUrl}/v2/${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -714,7 +726,7 @@ export class SybilAnalyzer {
                             fromBlock: '0x0',
                             toBlock: 'latest',
                             toAddress: address,
-                            category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'],
+                            category: categories,
                             withMetadata: true,
                             excludeZeroValue: false,
                             maxCount: '0x64', // 100 max
@@ -724,6 +736,38 @@ export class SybilAnalyzer {
                 });
 
                 const data = await response.json();
+                
+                // Handle rate limiting (429)
+                if (response.status === 429 || data.error?.code === 429) {
+                    console.log(`[SybilAnalyzer] Rate limited for ${address}, retrying after delay...`);
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    // Retry once
+                    const retryResponse = await fetch(`${baseUrl}/v2/${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            method: 'alchemy_getAssetTransfers',
+                            params: [{
+                                fromBlock: '0x0',
+                                toBlock: 'latest',
+                                toAddress: address,
+                                category: categories,
+                                withMetadata: true,
+                                excludeZeroValue: false,
+                                maxCount: '0x64',
+                                order: 'asc'
+                            }]
+                        })
+                    });
+                    
+                    const retryData = await retryResponse.json();
+                    if (retryData.result) {
+                        data.result = retryData.result;
+                    }
+                }
                 
                 if (data.error) {
                     console.log(`[SybilAnalyzer] Alchemy error for ${address}: ${JSON.stringify(data.error)}`);
@@ -736,13 +780,13 @@ export class SybilAnalyzer {
                         interactionCount: 1,
                     };
                     results.push(emptyResult);
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await new Promise(resolve => setTimeout(resolve, 200));
                     continue;
                 }
                 
                 // Debug: log response structure when no transfers found
                 if (!data.result || !data.result.transfers || data.result.transfers.length === 0) {
-                    console.log(`[SybilAnalyzer] No transfers for ${address}, checking rawContract...`);
+                    console.log(`[SybilAnalyzer] No transfers for ${address}`);
                     
                     // Try a different approach - query fromAddress as well
                     const fromResponse = await fetch(`${baseUrl}/v2/${apiKey}`, {
@@ -756,7 +800,7 @@ export class SybilAnalyzer {
                                 fromBlock: '0x0',
                                 toBlock: 'latest',
                                 toAddress: address,
-                                category: ['external', 'internal', 'erc20'],
+                                category: ['external', 'erc20'],
                                 withMetadata: true,
                                 excludeZeroValue: false,
                                 maxCount: '0x64',
@@ -767,10 +811,7 @@ export class SybilAnalyzer {
                     
                     const fromData = await fromResponse.json();
                     if (fromData.result?.transfers?.length > 0) {
-                        console.log(`[SybilAnalyzer] Found ${fromData.result.transfers.length} transfers via second query`);
                         data.result = fromData.result;
-                    } else {
-                        console.log(`[SybilAnalyzer] Still no transfers for ${address}, raw response:`, JSON.stringify(fromData.result)?.slice(0, 500));
                     }
                 }
                 
@@ -779,8 +820,6 @@ export class SybilAnalyzer {
                     const transfers = data.result.transfers.sort((a: any, b: any) => 
                         parseInt(a.blockNum, 16) - parseInt(b.blockNum, 16)
                     );
-                    
-                    console.log(`[SybilAnalyzer] Found ${transfers.length} transfers for ${address}, first:`, transfers[0]?.hash);
                     
                     const firstTransfer = transfers[0];
                     
@@ -817,7 +856,7 @@ export class SybilAnalyzer {
                             fundingTxHash: firstTransfer.hash,
                             fundingTimestamp: firstTransfer.metadata?.blockTimestamp 
                                 ? new Date(firstTransfer.metadata.blockTimestamp).getTime() / 1000 
-                                : (firstTransfer.blockNum ? parseInt(firstTransfer.blockNum, 16) * 12 : 0), // Fallback estimate
+                                : (firstTransfer.blockNum ? parseInt(firstTransfer.blockNum, 16) * 12 : 0),
                             fundingAmount: fundingAmount,
                             interactionCount: 1,
                         };
@@ -852,8 +891,8 @@ export class SybilAnalyzer {
                 results.push(emptyResult);
             }
             
-            // Rate limit between requests
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Rate limit between requests (slower to avoid 429s)
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
     }
 
