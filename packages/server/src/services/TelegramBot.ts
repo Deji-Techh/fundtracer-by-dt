@@ -22,22 +22,26 @@ interface LinkedUser {
     userId: string;
     telegramId: number;
     tier: 'free' | 'pro' | 'max';
-    walletAddress: string; // Connected wallet address
+    walletAddress: string;
     watches: WatchedWallet[];
     alertFrequency: 'realtime' | '20min' | '30min' | '1hr';
     linkedAt: number;
     step?: string;
     pendingCode?: string;
     pendingAddress?: string;
+    groupMode?: boolean;
 }
 
 interface PendingCode {
     code: string;
     userId: string;
     tier: string;
-    walletAddress: string; // Wallet address from site
+    walletAddress: string;
     expiresAt: number;
 }
+
+// Track group chats with group mode enabled
+const groupChats: Map<number, { groupMode: boolean; adminId: number }> = new Map();
 
 // Track users waiting to enter link code (before they're linked)
 const pendingLinkUsers: Map<number, { step: string }> = new Map();
@@ -286,10 +290,34 @@ function registerBotCommands() {
             await processLinkCode(ctx, code, true);
         });
 
-        // /scan - Quick wallet analysis (requires linked account)
+        // /scan - Quick wallet analysis (works in group mode without linking)
         bot.command('scan', async (ctx: any) => {
-            const linkedUser = await requireLinkedAccount(ctx);
-            if (!linkedUser) return;
+            const linkedUser = linkedUsers.get(ctx.from.id);
+            
+            // If no linked user and in group mode, we still allow scanning
+            // But we need to create a temporary user object for performScan
+            let userForScan = linkedUser;
+            const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+            const chatId = ctx.chat?.id;
+            const isGroupMode = isGroup && chatId && groupChats.get(chatId)?.groupMode;
+            
+            if (!linkedUser && !isGroupMode) {
+                const required = await requireLinkedAccount(ctx);
+                if (!required) return;
+            }
+            
+            // If in group mode without linking, create temp user
+            if (!linkedUser && isGroupMode) {
+                userForScan = {
+                    userId: 'group-mode',
+                    telegramId: ctx.from.id,
+                    tier: 'free',
+                    walletAddress: '',
+                    watches: [],
+                    alertFrequency: 'realtime',
+                    linkedAt: Date.now()
+                };
+            }
 
             const args = ctx.message.text.split(' ').slice(1);
             const address = args[0];
@@ -315,8 +343,8 @@ function registerBotCommands() {
 
             // If no chain specified, ask user to type it
             if (!chain) {
-                linkedUser.pendingAddress = address.toLowerCase();
-                linkedUser.step = 'select_scan_chain';
+                userForScan.pendingAddress = address.toLowerCase();
+                userForScan.step = 'select_scan_chain';
 
                 await sendReply(ctx, 
                     `Address: ${address.slice(0, 10)}...${address.slice(-4)}\n\nWhich chain do you want to scan on?\n\nType: linea, ethereum, polygon, arbitrum, base, optimism`
@@ -331,7 +359,7 @@ function registerBotCommands() {
                 return;
             }
 
-            await performScan(ctx, linkedUser, address.toLowerCase(), normalizedChain);
+            await performScan(ctx, userForScan, address.toLowerCase(), normalizedChain);
         });
 
         // Handle text input - both for scan chain selection AND link codes
@@ -378,6 +406,12 @@ function registerBotCommands() {
                 await performScan(ctx, linkedUser, address, normalizedChain);
                 return;
             }
+
+            // In group mode, don't process further steps
+            const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+            const chatId = ctx.chat?.id;
+            const isGroupMode = isGroup && chatId && groupChats.get(chatId)?.groupMode;
+            if (isGroupMode) return next();
 
             // Check if linked user is in other steps
             if (!linkedUser || !linkedUser.step) return next();
@@ -705,10 +739,42 @@ function registerBotCommands() {
             const linkedUser = linkedUsers.get(ctx.from.id);
             if (linkedUser) {
                 linkedUsers.delete(ctx.from.id);
-                await sendReply(ctx, '✅ Account unlinked. Use /link to connect again.');
+                await sendReply(ctx, 'Account unlinked. Use /link to connect again.');
             } else {
                 await sendReply(ctx, 'No account linked.');
             }
+        });
+
+        // /groupmode - Enable group mode for basic features without linking
+        bot.command('groupmode', async (ctx: any) => {
+            const chatId = ctx.chat?.id;
+            const userId = ctx.from.id;
+            
+            if (!chatId) {
+                await sendReply(ctx, 'This command only works in groups.');
+                return;
+            }
+            
+            const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
+            if (!isGroup) {
+                await sendReply(ctx, 'This command only works in group chats.');
+                return;
+            }
+            
+            // Check if user is admin (or check via bot API)
+            // For now, anyone who runs it enables it
+            groupChats.set(chatId, { groupMode: true, adminId: userId });
+            
+            await sendReply(ctx, 
+                'Group mode enabled! Everyone in this group can now use basic commands:\n\n' +
+                '- /scan <address> - Scan any wallet\n' +
+                '- /contract <addr> - Analyze contracts\n' +
+                '- /token <addr> - Token prices\n' +
+                '- /rugcheck <addr> - Check if token is scam\n' +
+                '- /trending - Top tokens\n' +
+                '- /pmarkets - Polymarket markets\n\n' +
+                'Commands that require linking: /link, /add, /list, /history, /ask'
+            );
         });
 
         // /ask - Ask AI about wallets, transactions, crypto (requires linked account)
@@ -2143,21 +2209,34 @@ async function processLinkCode(ctx: any, code: string, isButtonCallback: boolean
 }
 
 // Helper to check if user needs to link account first
+// In group mode, allows basic commands without linking
 async function requireLinkedAccount(ctx: any): Promise<LinkedUser | null> {
+    const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+    const chatId = ctx.chat?.id;
+    
+    // Check if group mode is enabled
+    if (isGroup && chatId && groupChats.get(chatId)?.groupMode) {
+        // In group mode with basic features allowed, don't require linked account
+        return null;
+    }
+    
     const linkedUser = linkedUsers.get(ctx.from.id);
     if (!linkedUser) {
         await sendReply(ctx, 
-            '🔒 *Account Required*\n\n' +
-            'You need to link your FundTracer account to use this feature.\n\n' +
-            '1. Go to fundtracer.xyz/telegram\n' +
-            '2. Connect your wallet\n' +
-            '3. Generate a link code\n' +
-            '4. Send /link here and enter the code',
-            { parse_mode: 'Markdown' }
+            'Account Required. ' +
+            'Go to fundtracer.xyz/telegram to link your account. ' +
+            'Or in groups, use /groupmode to allow basic features for everyone.'
         );
         return null;
     }
     return linkedUser;
+}
+
+// Helper to check if command can run in group mode (without linking)
+function isGroupModeCommand(command: string): boolean {
+    const basicCommands = ['scan', 'contract', 'token', 'rugcheck', 'trending', 'newtokens', 
+                          'pmarkets', 'ptrending', 'ptraders', 'ptrader', 'pask', 'help', 'start'];
+    return basicCommands.includes(command.toLowerCase());
 }
 
 async function showLinkAccount(ctx: any) {
