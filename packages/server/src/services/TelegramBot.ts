@@ -309,58 +309,72 @@ function registerBotCommands() {
             }
 
             if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-                await sendReply(ctx, '❌ Invalid address format. Must be 0x followed by 40 hex characters.');
+                await sendReply(ctx, 'Invalid address format. Must be 0x followed by 40 hex characters.');
                 return;
             }
 
-            // If no chain specified, show chain selection buttons
+            // If no chain specified, ask user to type it
             if (!chain) {
                 linkedUser.pendingAddress = address.toLowerCase();
                 linkedUser.step = 'select_scan_chain';
 
-                const buttons = chains.map(c => 
-                    Markup.button.callback(c.toUpperCase(), `scan_chain_${c}`)
-                );
-                
-                // Arrange buttons in 2 columns
-                const buttonRows = [];
-                for (let i = 0; i < buttons.length; i += 2) {
-                    buttonRows.push(buttons.slice(i, i + 2));
-                }
-
                 await sendReply(ctx, 
-                    `Select Chain\n\nAddress: ${address.slice(0, 10)}...${address.slice(-4)}\n\nWhich chain do you want to scan on?`,
-                    { parse_mode: 'Markdown', reply_markup: Markup.inlineKeyboard(buttonRows) }
+                    `Address: ${address.slice(0, 10)}...${address.slice(-4)}\n\nWhich chain do you want to scan on?\n\nType: linea, ethereum, polygon, arbitrum, base, optimism`
                 );
                 return;
             }
 
             // Validate chain
-            if (!chains.includes(chain)) {
-                await sendReply(ctx, `❌ Unknown chain: ${chain}\n\nSupported: ${chains.join(', ')}`);
+            const normalizedChain = normalizeChainInput(chain);
+            if (!normalizedChain) {
+                await sendReply(ctx, `Unknown chain: ${chain}\n\nSupported: linea, ethereum, polygon, arbitrum, base, optimism`);
                 return;
             }
 
-            await performScan(ctx, linkedUser, address.toLowerCase(), chain);
+            await performScan(ctx, linkedUser, address.toLowerCase(), normalizedChain);
         });
 
-        // Handle scan chain selection
-        bot.action(/scan_chain_(.+)/, async (ctx: any) => {
+        // Handle text input when user is selecting chain
+        bot.on('text', async (ctx: any) => {
             const linkedUser = linkedUsers.get(ctx.from.id);
-            if (!linkedUser || !linkedUser.pendingAddress || linkedUser.step !== 'select_scan_chain') {
-                await ctx.answerCbQuery('Session expired. Use /scan again.');
+            if (!linkedUser || linkedUser.step !== 'select_scan_chain') {
+                return; // Not in chain selection mode
+            }
+
+            const userInput = ctx.message.text.trim().toLowerCase();
+            const normalizedChain = normalizeChainInput(userInput);
+
+            if (!normalizedChain) {
+                await sendReply(ctx, `Unknown chain: ${userInput}\n\nType: linea, ethereum, polygon, arbitrum, base, optimism`);
                 return;
             }
 
-            const chain = ctx.match![1];
             const address = linkedUser.pendingAddress;
-            
             linkedUser.step = '';
             linkedUser.pendingAddress = undefined;
 
-            await ctx.editMessageText(`🔍 *Scanning wallet on ${chain.toUpperCase()}...*\n\nThis will take ~10 seconds.`, { parse_mode: 'Markdown' });
-            await performScan(ctx, linkedUser, address, chain);
+            await sendReply(ctx, `Scanning on ${normalizedChain.toUpperCase()}...`);
+            await performScan(ctx, linkedUser, address, normalizedChain);
         });
+
+        // Helper to normalize chain input aliases
+        function normalizeChainInput(input: string): string | null {
+            const aliasMap: Record<string, string> = {
+                'eth': 'ethereum',
+                'linea': 'linea',
+                'pol': 'polygon',
+                'polygon': 'polygon',
+                'matic': 'polygon',
+                'arb': 'arbitrum',
+                'arbitrum': 'arbitrum',
+                'base': 'base',
+                'opt': 'optimism',
+                'optimism': 'optimism',
+                'bsc': 'bsc',
+                'binance': 'bsc',
+            };
+            return aliasMap[input.toLowerCase()] || null;
+        }
 
         // /contract - Contract analysis (requires linked account)
         bot.command('contract', async (ctx: any) => {
