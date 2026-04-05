@@ -109,8 +109,8 @@ export class TokenService {
       throw new Error('No Alchemy API key configured');
     }
 
-    // Linea and some chains don't support alchemy_getNfts - return empty gracefully
-    const unsupportedChains = ['linea', 'bsc', 'avalanche_c', 'solana'];
+    // Linea, Base, BSC, Avalanche and Solana don't support alchemy_getNfts - return empty gracefully
+    const unsupportedChains = ['linea', 'base', 'bsc', 'avalanche_c', 'solana'];
     if (unsupportedChains.includes(chain.toLowerCase())) {
       console.warn(`[TokenService] NFT API not supported on ${chain}, returning empty`);
       return [];
