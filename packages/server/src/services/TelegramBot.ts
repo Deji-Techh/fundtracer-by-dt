@@ -2148,6 +2148,13 @@ export async function analyzeTransaction(tx: {
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
+async function sendReply(ctx: any, textOrOptions: string | any, options: any = {}) {
+    if (typeof textOrOptions === 'string') {
+        return ctx.reply(textOrOptions, { parse_mode: options.parse_mode || 'Markdown', ...options });
+    }
+    return ctx.reply(textOrOptions.text || '', { ...textOrOptions });
+}
+
 async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | 'HTML' = 'Markdown') {
     await sendReply(ctx, fullText, { parse_mode: parseMode });
 }
