@@ -43,6 +43,9 @@ interface PendingCode {
 // Track group chats with group mode enabled
 const groupChats: Map<number, { groupMode: boolean; adminId: number }> = new Map();
 
+// Track pending scans in group mode (chatId -> { address, step })
+const groupPendingScans: Map<number, { address: string; step: string }> = new Map();
+
 // Track users waiting to enter link code (before they're linked)
 const pendingLinkUsers: Map<number, { step: string }> = new Map();
 
@@ -343,8 +346,13 @@ function registerBotCommands() {
 
             // If no chain specified, ask user to type it
             if (!chain) {
-                userForScan.pendingAddress = address.toLowerCase();
-                userForScan.step = 'select_scan_chain';
+                // In group mode, store in groupPendingScans instead
+                if (isGroupMode && chatId) {
+                    groupPendingScans.set(chatId, { address: address.toLowerCase(), step: 'select_scan_chain' });
+                } else {
+                    userForScan.pendingAddress = address.toLowerCase();
+                    userForScan.step = 'select_scan_chain';
+                }
 
                 await sendReply(ctx, 
                     `Address: ${address.slice(0, 10)}...${address.slice(-4)}\n\nWhich chain do you want to scan on?\n\nType: linea, ethereum, polygon, arbitrum, base, optimism`
@@ -405,6 +413,42 @@ function registerBotCommands() {
                 await sendReply(ctx, `Scanning on ${normalizedChain.toUpperCase()}...`);
                 await performScan(ctx, linkedUser, address, normalizedChain);
                 return;
+            }
+
+            // Check if in group mode and waiting for chain input
+            const chatId = ctx.chat?.id;
+            const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+            const isGroupMode = isGroup && chatId && groupChats.get(chatId)?.groupMode;
+            
+            if (isGroupMode && chatId && groupPendingScans.has(chatId)) {
+                const pending = groupPendingScans.get(chatId);
+                if (pending && pending.step === 'select_scan_chain') {
+                    const userInput = text.toLowerCase();
+                    const normalizedChain = normalizeChainInput(userInput);
+
+                    if (!normalizedChain) {
+                        await sendReply(ctx, `Unknown chain: ${userInput}. Type: linea, ethereum, polygon, arbitrum, base, optimism`);
+                        return;
+                    }
+
+                    const address = pending.address;
+                    groupPendingScans.delete(chatId);
+
+                    // Create temp user for group mode scan
+                    const tempUser = {
+                        userId: 'group-mode',
+                        telegramId: ctx.from.id,
+                        tier: 'free',
+                        walletAddress: '',
+                        watches: [],
+                        alertFrequency: 'realtime',
+                        linkedAt: Date.now()
+                    };
+
+                    await sendReply(ctx, `Scanning on ${normalizedChain.toUpperCase()}...`);
+                    await performScan(ctx, tempUser, address, normalizedChain);
+                    return;
+                }
             }
 
             // In group mode, don't process further steps
