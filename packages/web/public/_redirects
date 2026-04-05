@@ -1,3 +1,5 @@
 /api/*  https://fundtracer-by-dt-production.up.railway.app/api/:splat  307
 https://www.fundtracer.xyz/*  https://fundtracer.xyz/:splat  301
+/sitemap.xml  /sitemap.xml  200
+/robots.txt  /robots.txt  200
 /*  /index.html  200
