@@ -457,6 +457,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
     try {
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        const sybilConfig = getSybilAlchemyKeys();
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -467,6 +468,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            sybilConfig: sybilConfig, // Enable multi-key timestamp fetching
         });
 
         // Pagination params - unlimited if not specified (fetch all)
@@ -594,6 +596,7 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
 
     try {
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        const sybilConfig = getSybilAlchemyKeys();
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -604,6 +607,7 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            sybilConfig: sybilConfig,
         });
 
         console.log(`[DEBUG] Building funding tree for ${address} on ${chain}...`);
@@ -701,6 +705,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
 
     try {
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        const sybilConfig = getSybilAlchemyKeys();
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -711,6 +716,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            sybilConfig: sybilConfig,
         });
 
         const result = await analyzer.compareWallets(addresses, chain as ChainId, options);
@@ -792,6 +798,7 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
 
     try {
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        const sybilConfig = getSybilAlchemyKeys();
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -802,6 +809,7 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            sybilConfig: sybilConfig,
         });
 
         // Try to fetch interactors from Dune first if configured
@@ -979,9 +987,11 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
 
     try {
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        const sybilConfig = getSybilAlchemyKeys();
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
+            sybilConfig: sybilConfig,
         });
 
         const results = await Promise.allSettled(
@@ -1146,6 +1156,7 @@ router.post('/cex-flow', async (req: AuthenticatedRequest, res: Response) => {
 
         // Get wallet analysis first (to get transactions)
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        const sybilConfig = getSybilAlchemyKeys();
         
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -1156,6 +1167,7 @@ router.post('/cex-flow', async (req: AuthenticatedRequest, res: Response) => {
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            sybilConfig: sybilConfig,
         });
         
         const walletResult = await withTimeout(

@@ -17,6 +17,7 @@ import {
     FundingNode,
 } from '../types.js';
 import { getChainConfig } from '../chains.js';
+import { AlchemyKeyPool, type SybilAlchemyConfig } from '../utils/AlchemyKeyPool.js';
 
 /** Debug flag - set FUNDTRACER_DEBUG=true to see verbose logs */
 const DEBUG = process.env.FUNDTRACER_DEBUG === 'true';
@@ -121,12 +122,20 @@ export class AlchemyProvider {
     private rateLimiter: AlchemyRateLimiter;
     private moralisRateLimiter: MoralisRateLimiter;
     private cache: ResponseCache;
+    private keyPool?: AlchemyKeyPool;
+    private useKeyPool: boolean = false;
 
-    constructor(chain: ChainId, apiKey: string, moralisKey?: string, explorerKey?: string) {
+    constructor(chain: ChainId, apiKey: string, moralisKey?: string, explorerKey?: string, sybilConfig?: SybilAlchemyConfig) {
         this.chainConfig = getChainConfig(chain);
         this.apiKey = apiKey;
         this.moralisKey = moralisKey;
         this.explorerKey = explorerKey;
+        
+        // Initialize key pool if config provided (for parallel timestamp fetching)
+        if (sybilConfig) {
+            this.keyPool = new AlchemyKeyPool(sybilConfig, chain);
+            this.useKeyPool = true;
+        }
         
         // BSC doesn't have Alchemy support - use Moralis only
         if (chain === 'bsc') {
@@ -483,7 +492,75 @@ export class AlchemyProvider {
         
         if (blockNumbers.length === 0) return;
 
-        // Fetch timestamps in batches using eth_getBlockByNumber
+        // Check if we have a key pool for distributed fetching
+        if (this.useKeyPool && this.keyPool) {
+            await this.fetchTimestampsWithKeyPool(blockNumbers, blockTimestamps);
+        } else {
+            // Fallback to original single-key approach
+            await this.fetchTimestampsSingleKey(blockNumbers, blockTimestamps);
+        }
+
+        // Update transactions with missing timestamps
+        for (const tx of transactions) {
+            if (tx.timestamp === 0 && blockTimestamps.has(tx.blockNumber)) {
+                tx.timestamp = blockTimestamps.get(tx.blockNumber) || 0;
+            }
+        }
+    }
+
+    /** Fetch timestamps using key pool - distributes requests across multiple keys */
+    private async fetchTimestampsWithKeyPool(
+        blockNumbers: number[],
+        blockTimestamps: Map<number, number>
+    ): Promise<void> {
+        const BATCH_SIZE = 20;
+        const allKeys = this.keyPool!.getAllContractKeys();
+        const numKeys = allKeys.length;
+        
+        if (DEBUG) console.log(`[AlchemyProvider] Using ${numKeys} keys for timestamp fetching`);
+
+        for (let i = 0; i < blockNumbers.length; i += BATCH_SIZE) {
+            const batch = blockNumbers.slice(i, i + BATCH_SIZE);
+            
+            // Distribute requests across keys (round-robin)
+            const promises = batch.map(async (blockNum, idx) => {
+                const key = allKeys[idx % numKeys];
+                const rpcUrl = this.keyPool!.getRpcUrl(key);
+                
+                try {
+                    const block = await this.rpcRequestWithUrl<{ timestamp: string }>(
+                        'eth_getBlockByNumber',
+                        [`0x${blockNum.toString(16)}`, false],
+                        rpcUrl
+                    );
+                    if (block && block.timestamp) {
+                        const timestamp = parseInt(block.timestamp, 16);
+                        blockTimestamps.set(blockNum, timestamp);
+                    }
+                } catch (error) {
+                    if (DEBUG) console.warn(`[AlchemyProvider] Failed to fetch block ${blockNum}:`, error);
+                }
+            });
+            
+            await Promise.all(promises);
+            
+            // Rate limit between batches to respect per-key limits
+            // 600ms * numKeys = ~600ms per full round (safe for 330 CU/sec)
+            await new Promise(resolve => setTimeout(resolve, 600));
+            
+            // Progress logging
+            const processed = Math.min(i + BATCH_SIZE, blockNumbers.length);
+            if (processed % 100 === 0 || processed === blockNumbers.length) {
+                console.log(`[AlchemyProvider] Timestamp progress: ${processed}/${blockNumbers.length}`);
+            }
+        }
+    }
+
+    /** Fetch timestamps using single key (fallback) */
+    private async fetchTimestampsSingleKey(
+        blockNumbers: number[],
+        blockTimestamps: Map<number, number>
+    ): Promise<void> {
         const BATCH_SIZE = 20;
         for (let i = 0; i < blockNumbers.length; i += BATCH_SIZE) {
             const batch = blockNumbers.slice(i, i + BATCH_SIZE);
@@ -501,13 +578,59 @@ export class AlchemyProvider {
                 }
             });
             await Promise.all(promises);
+            
+            // Add delay between batches to avoid rate limits
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
+    }
 
-        // Update transactions with missing timestamps
-        for (const tx of transactions) {
-            if (tx.timestamp === 0 && blockTimestamps.has(tx.blockNumber)) {
-                tx.timestamp = blockTimestamps.get(tx.blockNumber) || 0;
+    /** Make RPC request to specific URL (for key pool distribution) */
+    private async rpcRequestWithUrl<T>(
+        method: string,
+        params: unknown[],
+        rpcUrl: string,
+        retries = 3
+    ): Promise<T> {
+        const tempClient = axios.create({
+            baseURL: rpcUrl,
+            timeout: 30000,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept-Encoding': 'gzip, deflate',
+            },
+        });
+
+        try {
+            const response = await tempClient.post('', {
+                jsonrpc: '2.0',
+                id: 1,
+                method,
+                params,
+            });
+
+            if (response.data.error) {
+                const errMsg = response.data.error.message || '';
+                if ((response.data.error.code === 429 || errMsg.includes('rate limit') || errMsg.includes('Too Many Requests')) && retries > 0) {
+                    const backoff = 1000 * (4 - retries);
+                    if (DEBUG) console.warn(`[Alchemy] Rate limited on ${method}. Retrying in ${backoff}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, backoff));
+                    return this.rpcRequestWithUrl(method, params, rpcUrl, retries - 1);
+                }
+                throw new Error(`Alchemy error: ${response.data.error.message}`);
             }
+
+            return response.data.result;
+        } catch (error: any) {
+            if (error.response?.status === 429 && retries > 0) {
+                const backoff = 1000 * (4 - retries);
+                if (DEBUG) console.warn(`[Alchemy] 429 on ${method}. Retrying in ${backoff}ms...`);
+                await new Promise(resolve => setTimeout(resolve, backoff));
+                return this.rpcRequestWithUrl(method, params, rpcUrl, retries - 1);
+            }
+            if (error.response?.status === 401) {
+                throw new Error(`Invalid Alchemy API key. Please check your configuration.`);
+            }
+            throw error;
         }
     }
 

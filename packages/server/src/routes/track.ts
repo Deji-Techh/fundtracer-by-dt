@@ -8,6 +8,7 @@ import { getFirestore, admin } from '../firebase.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { GeckoTerminalService } from '../services/GeckoTerminalService.js';
 import { cache } from '../utils/cache.js';
+import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
 
 const router = Router();
 const getDb = () => getFirestore();
@@ -152,7 +153,11 @@ router.get('/track/:address/activity', async (req, res) => {
         const walletAddress = address.toLowerCase();
         
         const { WalletAnalyzer } = await import('@fundtracer/core');
-        const analyzer = new WalletAnalyzer();
+        const sybilConfig = getSybilAlchemyKeys();
+        const analyzer = new WalletAnalyzer({
+            alchemy: process.env.DEFAULT_ALCHEMY_API_KEY,
+            sybilConfig: sybilConfig,
+        });
         
         const result = await analyzer.analyze(
             walletAddress,
@@ -195,7 +200,11 @@ router.get('/track/:address/cluster', async (req, res) => {
         const walletAddress = address.toLowerCase();
         
         const { WalletAnalyzer } = await import('@fundtracer/core');
-        const analyzer = new WalletAnalyzer();
+        const sybilConfig = getSybilAlchemyKeys();
+        const analyzer = new WalletAnalyzer({
+            alchemy: process.env.DEFAULT_ALCHEMY_API_KEY,
+            sybilConfig: sybilConfig,
+        });
         
         const fundingTree = await analyzer.getFundingTree(walletAddress, 2);
         
@@ -247,7 +256,11 @@ router.get('/smart-money/compare', async (req, res) => {
         const walletAddress = (address as string).toLowerCase();
         
         const { WalletAnalyzer } = await import('@fundtracer/core');
-        const analyzer = new WalletAnalyzer();
+        const sybilConfig = getSybilAlchemyKeys();
+        const analyzer = new WalletAnalyzer({
+            alchemy: process.env.DEFAULT_ALCHEMY_API_KEY,
+            sybilConfig: sybilConfig,
+        });
         
         const result = await analyzer.analyze(walletAddress, 'ethereum', { transactionLimit: 100 });
         

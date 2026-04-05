@@ -7,6 +7,7 @@ import { ChainId } from '../types.js';
 import { ITransactionProvider } from './ITransactionProvider.js';
 import { AlchemyProvider } from './AlchemyProvider.js';
 import { SuiProvider } from './SuiProvider.js';
+import type { SybilAlchemyConfig } from '../utils/AlchemyKeyPool.js';
 
 export interface ApiKeyConfig {
     // Primary RPC provider (recommended)
@@ -24,6 +25,8 @@ export interface ApiKeyConfig {
     basescan?: string;      // Base
     optimism?: string;      // Optimism
     polygonscan?: string;   // Polygon
+    // Full Sybil config for multi-key support
+    sybilConfig?: SybilAlchemyConfig;
 }
 
 /** Factory for creating chain-specific providers with auto-selection */
@@ -99,7 +102,8 @@ export class ProviderFactory {
                 legacyChainId as any,
                 this.apiKeys.alchemy,
                 this.apiKeys.moralis,
-                this.getExplorerKeyForChain(chainId)
+                this.getExplorerKeyForChain(chainId),
+                this.apiKeys.sybilConfig // Pass sybil config for multi-key support
             );
             this.providers.set(chainId, provider);
             return provider;
