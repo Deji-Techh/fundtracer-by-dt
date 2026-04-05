@@ -1988,7 +1988,7 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
             result.projectsInteracted.slice(0, 10).forEach((p: any) => {
                 const cat = p.category || 'unknown';
                 if (!byCategory[cat]) byCategory[cat] = [];
-                const name = (p.projectName || p.contractAddress.slice(0, 8)).replace(/_/g, '');
+                const name = (p.projectName || p.contractAddress.slice(0, 8)).replace(/[_*`[\]()]/g, '');
                 byCategory[cat].push(name);
             });
             Object.entries(byCategory).forEach(([cat, projects]) => {
@@ -2001,7 +2001,7 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
         if (result.suspiciousIndicators?.length > 0) {
             msg += `\nRED FLAGS\n`;
             result.suspiciousIndicators.slice(0, 3).forEach((ind: any) => {
-                const desc = (ind.description || '').replace(/_/g, '');
+                const desc = (ind.description || '').replace(/[_*`[\]()]/g, '');
                 msg += `- ${ind.type || 'Alert'}: ${desc}\n`;
             });
         }
@@ -2199,10 +2199,11 @@ export async function analyzeTransaction(tx: {
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function sendReply(ctx: any, textOrOptions: string | any, options: any = {}) {
+    // Default to plain text (no markdown parsing) to avoid parse errors
     if (typeof textOrOptions === 'string') {
-        return ctx.reply(textOrOptions, { parse_mode: options.parse_mode || 'Markdown', ...options });
+        return ctx.reply(textOrOptions);
     }
-    return ctx.reply(textOrOptions.text || '', { ...textOrOptions });
+    return ctx.reply(textOrOptions.text || '');
 }
 
 async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | 'HTML' = 'Markdown') {
