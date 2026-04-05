@@ -545,8 +545,9 @@ export class AlchemyProvider {
             await Promise.all(promises);
             
             // Rate limit between batches to respect per-key limits
-            // 600ms * numKeys = ~600ms per full round (safe for 330 CU/sec)
-            await new Promise(resolve => setTimeout(resolve, 600));
+            // 50ms between batches = ~20 req/sec per key = 320 CU/sec per key (safe for 330 CU/sec)
+            // With 10 keys: ~3200 CU/sec total capacity
+            await new Promise(resolve => setTimeout(resolve, 50));
             
             // Progress logging
             const processed = Math.min(i + BATCH_SIZE, blockNumbers.length);
@@ -579,8 +580,8 @@ export class AlchemyProvider {
             });
             await Promise.all(promises);
             
-            // Add delay between batches to avoid rate limits
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Add delay between batches to avoid rate limits (50ms = ~20 req/sec)
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
     }
 
