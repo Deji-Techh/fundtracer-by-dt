@@ -1952,74 +1952,76 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
         const summary = result.summary || {};
         const wallet = result.wallet || {};
 
-        // Build comprehensive message
-        let msg = `📊 *Scan Result*\n\n`;
-        msg += `\`${address.slice(0, 10)}...${address.slice(-4)}\` ${chainEmoji} ${chain.toUpperCase()}\n`;
-        msg += `${riskEmoji} *Risk:* ${risk.toUpperCase()} (${result.overallRiskScore || 0}/100)\n\n`;
+        // Build comprehensive message - use HTML for safer parsing
+        let msg = `*Scan Result*\n\n`;
+        msg += `${address.slice(0, 10)}...${address.slice(-4)} ${chainEmoji} ${chain.toUpperCase()}\n`;
+        msg += `${riskEmoji} Risk: ${risk.toUpperCase()} (${result.overallRiskScore || 0}/100)\n\n`;
 
         // Wallet Stats
-        msg += `📊 *Stats*\n`;
-        msg += `💰 Balance: ${wallet.balanceInEth?.toFixed(4) || '0'} ${nativeToken}\n`;
-        msg += `📝 Txs: ${summary.totalTransactions || 0} (${summary.successfulTxs || 0} ✅ | ${summary.failedTxs || 0} ❌)\n`;
-        msg += `👥 Addresses: ${summary.uniqueInteractedAddresses || 0}\n`;
-        msg += `📈 Activity: ${summary.activityPeriodDays || 0} days (${(summary.averageTxPerDay || 0).toFixed(1)}/day)\n`;
-        msg += `💵 Sent: ${(summary.totalValueSentEth || 0).toFixed(4)} ${nativeToken}\n`;
-        msg += `💵 Received: ${(summary.totalValueReceivedEth || 0).toFixed(4)} ${nativeToken}\n`;
+        msg += `*Stats*\n`;
+        msg += `Balance: ${wallet.balanceInEth?.toFixed(4) || '0'} ${nativeToken}\n`;
+        msg += `Txs: ${summary.totalTransactions || 0} (${summary.successfulTxs || 0} ok | ${summary.failedTxs || 0} fail)\n`;
+        msg += `Addresses: ${summary.uniqueInteractedAddresses || 0}\n`;
+        msg += `Activity: ${summary.activityPeriodDays || 0} days (${(summary.averageTxPerDay || 0).toFixed(1)}/day)\n`;
+        msg += `Sent: ${(summary.totalValueSentEth || 0).toFixed(4)} ${nativeToken}\n`;
+        msg += `Received: ${(summary.totalValueReceivedEth || 0).toFixed(4)} ${nativeToken}\n`;
 
         // Top Funders
         if (summary.topFundingSources?.length > 0) {
-            msg += `\n📥 *Top Funders*\n`;
+            msg += `\n*Top Funders*\n`;
             summary.topFundingSources.slice(0, 5).forEach((f: any, i: number) => {
-                msg += `${i + 1}. \`${f.address.slice(0, 10)}...${f.address.slice(-4)}\` +${f.valueEth?.toFixed(4) || '0'} ${nativeToken}\n`;
+                msg += `${i + 1}. ${f.address.slice(0, 10)}...${f.address.slice(-4)} +${f.valueEth?.toFixed(4) || '0'} ${nativeToken}\n`;
             });
         }
 
         // Top Destinations
         if (summary.topFundingDestinations?.length > 0) {
-            msg += `\n📤 *Top Destinations*\n`;
+            msg += `\n*Top Destinations*\n`;
             summary.topFundingDestinations.slice(0, 5).forEach((f: any, i: number) => {
-                msg += `${i + 1}. \`${f.address.slice(0, 10)}...${f.address.slice(-4)}\` -${f.valueEth?.toFixed(4) || '0'} ${nativeToken}\n`;
+                msg += `${i + 1}. ${f.address.slice(0, 10)}...${f.address.slice(-4)} -${f.valueEth?.toFixed(4) || '0'} ${nativeToken}\n`;
             });
         }
 
         // Project Interactions
         if (result.projectsInteracted?.length > 0) {
-            msg += `\n🏦 *Protocols*\n`;
-            const byCategory: Record<string, { name: string; count: number }[]> = {};
+            msg += `\n*Protocols*\n`;
+            const byCategory: Record<string, string[]> = {};
             result.projectsInteracted.slice(0, 10).forEach((p: any) => {
                 const cat = p.category || 'unknown';
                 if (!byCategory[cat]) byCategory[cat] = [];
-                byCategory[cat].push({ name: p.projectName || p.contractAddress.slice(0, 10), count: p.interactionCount });
+                const name = (p.projectName || p.contractAddress.slice(0, 8)).replace(/_/g, '');
+                byCategory[cat].push(name);
             });
-            const catEmojis: Record<string, string> = { defi: '🦄', nft: '🎨', bridge: '🌉', dao: '🏛️', gaming: '🎮', unknown: '❓' };
+            const catEmojis: Record<string, string> = { defi: 'DEX', nft: 'NFT', bridge: 'Bridge', dao: 'DAO', gaming: 'Game', unknown: 'Other' };
             Object.entries(byCategory).forEach(([cat, projects]) => {
-                const projectNames = projects.slice(0, 3).map(p => p.name).join(', ');
-                msg += `${catEmojis[cat] || '📦'} ${cat}: ${projectNames}\n`;
+                const projectNames = projects.slice(0, 3).join(', ');
+                msg += `${catEmojis[cat] || '?'}: ${projectNames}\n`;
             });
         }
 
         // Suspicious Indicators
         if (result.suspiciousIndicators?.length > 0) {
-            msg += `\n⚠️ *Red Flags*\n`;
+            msg += `\n*Red Flags*\n`;
             result.suspiciousIndicators.slice(0, 3).forEach((ind: any) => {
-                msg += `• ${ind.type || 'Suspicious'}: ${ind.description || ''}\n`;
+                const desc = (ind.description || '').replace(/_/g, '').replace(/[\*`]/g, '');
+                msg += `- ${ind.type || 'Alert'}: ${desc}\n`;
             });
         }
 
         // First tx info
         if (wallet.firstTxTimestamp) {
             const firstDate = new Date(wallet.firstTxTimestamp * 1000).toLocaleDateString();
-            msg += `\n🕐 First TX: ${firstDate}`;
+            msg += `\nFirst TX: ${firstDate}`;
         }
 
-        msg += `\n\n🔗 [Full Report](https://fundtracer.xyz/app-evm?address=${address}&chain=${chain})`;
+        msg += `\n\n[Full Report](https://fundtracer.xyz/app-evm?address=${address}&chain=${chain})`;
 
         await sendReply(ctx, msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
 
         saveScanHistory(linkedUser.userId, address, chain, result.overallRiskScore || 0);
 
     } catch (e: any) {
-        await sendReply(ctx, `❌ Scan failed: ${e.message}`);
+        await sendReply(ctx, `Scan failed: ${e.message}`);
     }
 }
 
