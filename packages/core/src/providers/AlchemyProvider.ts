@@ -206,6 +206,11 @@ export class AlchemyProvider {
             if (error.response?.status === 401) {
                 throw new Error(`Invalid Alchemy API key. Please check your configuration.`);
             }
+            // Handle 403 errors (permissions issue) - key doesn't have access to this network
+            if (error.response?.status === 403) {
+                const errMsg = error.response?.data?.error?.message || '';
+                throw new Error(`Alchemy API key does not have access to ${this.chainConfig.id}. Ensure your key includes this network.`);
+            }
             throw error;
         }
     }
