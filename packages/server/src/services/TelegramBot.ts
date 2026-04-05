@@ -319,7 +319,7 @@ function registerBotCommands() {
                 linkedUser.step = 'select_scan_chain';
 
                 const buttons = chains.map(c => 
-                    Markup.button.callback(`${chainEmojis[c] || '🔗'} ${c.charAt(0).toUpperCase() + c.slice(1)}`, `scan_chain_${c}`)
+                    Markup.button.callback(c.toUpperCase(), `scan_chain_${c}`)
                 );
                 
                 // Arrange buttons in 2 columns
