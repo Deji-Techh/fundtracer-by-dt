@@ -329,8 +329,8 @@ function registerBotCommands() {
                 }
 
                 await sendReply(ctx, 
-                    `🔍 *Select Chain*\n\nAddress: \`${address.slice(0, 10)}...${address.slice(-4)}\`\n\nWhich chain do you want to scan on?`,
-                    { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttonRows) }
+                    `Select Chain\n\nAddress: ${address.slice(0, 10)}...${address.slice(-4)}\n\nWhich chain do you want to scan on?`,
+                    { parse_mode: 'Markdown', reply_markup: Markup.inlineKeyboard(buttonRows) }
                 );
                 return;
             }
@@ -564,7 +564,7 @@ function registerBotCommands() {
             );
 
             await sendReply(ctx, '❌ *Remove Wallet*\n\nSelect:',
-                { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+                { parse_mode: 'Markdown', reply_markup: Markup.inlineKeyboard(buttons) }
             );
         });
 
@@ -1115,7 +1115,7 @@ function registerBotCommands() {
             await sendReply(ctx, 
                 '⚙️ *Polymarket Notifications*\n\n' +
                 'Toggle notifications on/off:',
-                { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+                { parse_mode: 'Markdown', reply_markup: Markup.inlineKeyboard(buttons) }
             );
         } catch (error) {
             await sendReply(ctx, '❌ Failed to load settings.');
@@ -2199,9 +2199,18 @@ export async function analyzeTransaction(tx: {
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function sendReply(ctx: any, textOrOptions: string | any, options: any = {}) {
-    // Default to plain text (no markdown parsing) to avoid parse errors
     if (typeof textOrOptions === 'string') {
-        return ctx.reply(textOrOptions);
+        // Only use markdown if explicitly requested in options
+        if (options.parse_mode === 'Markdown' || options.parse_mode === 'HTML') {
+            const replyOpts: any = { parse_mode: options.parse_mode };
+            if (options.reply_markup) {
+                replyOpts.reply_markup = options.reply_markup;
+            }
+            return ctx.reply(textOrOptions, replyOpts);
+        }
+        // Default to plain text - strip any markdown chars to be safe
+        const cleanText = textOrOptions.replace(/[*_`\[\]()]/g, '');
+        return ctx.reply(cleanText);
     }
     return ctx.reply(textOrOptions.text || '');
 }
