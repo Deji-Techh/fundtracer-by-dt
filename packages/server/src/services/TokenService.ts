@@ -70,7 +70,7 @@ export class TokenService {
           params: [address],
           id: 1,
         },
-        { headers: { 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
       );
 
       if (response.data.error) {
@@ -109,6 +109,13 @@ export class TokenService {
       throw new Error('No Alchemy API key configured');
     }
 
+    // Linea and some chains don't support alchemy_getNfts - return empty gracefully
+    const unsupportedChains = ['linea', 'bsc', 'avalanche_c', 'solana'];
+    if (unsupportedChains.includes(chain.toLowerCase())) {
+      console.warn(`[TokenService] NFT API not supported on ${chain}, returning empty`);
+      return [];
+    }
+
     try {
       const response = await axios.post(
         `https://${network}.g.alchemy.com/v2/${apiKey}`,
@@ -121,7 +128,7 @@ export class TokenService {
           ],
           id: 1,
         },
-        { headers: { 'Content-Type': 'application/json' } }
+        { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
       );
 
       if (response.data.error) {
