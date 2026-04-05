@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { moralisService } from '../services/MoralisService.js';
+import { tokenService } from '../services/TokenService.js';
 import { coinGeckoService } from '../services/CoinGeckoService.js';
 
 const router = Router();
@@ -16,13 +16,13 @@ router.get('/:walletAddress', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid wallet address' });
     }
 
-    console.log('[Portfolio] Calling Moralis with chain:', chain);
+    console.log('[Portfolio] Fetching tokens from Alchemy for chain:', chain);
     
-    // Fetch tokens from Moralis
-    const tokensData = await moralisService.getWalletTokens(walletAddress, chain);
+    // Fetch tokens from Alchemy
+    const tokensData = await tokenService.getWalletTokens(walletAddress, chain);
     
-    // Fetch NFTs from Moralis
-    const nftsData = await moralisService.getWalletNFTs(walletAddress, chain);
+    // Fetch NFTs from Alchemy
+    const nftsData = await tokenService.getWalletNFTs(walletAddress, chain);
 
     // Get token prices from CoinGecko (for common tokens)
     const tokenIds = tokensData.map((t: any) => t.symbol?.toLowerCase()).filter(Boolean);
@@ -90,7 +90,7 @@ router.get('/:walletAddress/nfts', async (req: Request, res: Response) => {
     const { walletAddress } = req.params;
     const chain = (req.query.chain as string) || 'linea';
 
-    const nftsData = await moralisService.getWalletNFTs(walletAddress, chain);
+    const nftsData = await tokenService.getWalletNFTs(walletAddress, chain);
     
     const nfts = nftsData.map((nft: any) => ({
       contractAddress: nft.token_address,

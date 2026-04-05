@@ -176,37 +176,36 @@ export class DuneService {
      */
     async getCEXAddresses(): Promise<Array<{ address: string; name: string; blockchain: string }>> {
         // Use the labels.addresses table to get CEX-labeled addresses
-        const query = `
-            SELECT 
-                DISTINCT address,
-                name,
-                blockchain,
-                label_type,
-                label_subtype
-            FROM labels.addresses
-            WHERE label_type = 'institution'
-              AND label_subtype = 'cex'
-              AND blockchain IN ('ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'bsc', 'linea', 'avalanche_c', 'solana')
-            ORDER BY name, blockchain
-            LIMIT 2000
-        `;
+        // Try different query formats - Dune's labels table may have different column names
+        const queries = [
+            // Query 1: Try label_subtype = 'cex'
+            `SELECT DISTINCT address, name, blockchain FROM labels.addresses WHERE label_type = 'institution' AND label_subtype = 'cex' AND blockchain IN ('ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'bsc', 'linea') LIMIT 2000`,
+            // Query 2: Try using name pattern
+            `SELECT DISTINCT address, name, blockchain FROM labels.addresses WHERE blockchain = 'ethereum' AND (name LIKE '%binance%' OR name LIKE '%coinbase%' OR name LIKE '%kraken%' OR name LIKE '%bybit%' OR name LIKE '%okx%' OR name LIKE '%kucoin%') LIMIT 2000`,
+            // Query 3: Simple query without blockchain filter
+            `SELECT address, name, blockchain FROM labels.addresses WHERE label_type = 'institution' AND label_subtype = 'cex' LIMIT 1000`,
+        ];
 
-        try {
-            console.log('[DuneService] Fetching CEX addresses from Dune labels...');
-            const result = await this.executeQuery(query);
+        for (let i = 0; i < queries.length; i++) {
+            try {
+                console.log(`[DuneService] Trying CEX query ${i + 1}...`);
+                const result = await this.executeQuery(queries[i]);
 
-            if (result && result.result && result.result.rows) {
-                return result.result.rows.map((r: any) => ({
-                    address: r.address?.toLowerCase() || '',
-                    name: r.name || '',
-                    blockchain: r.blockchain || '',
-                })).filter((r: any) => r.address && r.name);
+                if (result && result.result && result.result.rows && result.result.rows.length > 0) {
+                    console.log(`[DuneService] Query ${i + 1} succeeded with ${result.result.rows.length} rows`);
+                    return result.result.rows.map((r: any) => ({
+                        address: r.address?.toLowerCase() || '',
+                        name: r.name || '',
+                        blockchain: r.blockchain || '',
+                    })).filter((r: any) => r.address && r.name);
+                }
+            } catch (queryError: any) {
+                console.warn(`[DuneService] Query ${i + 1} failed:`, queryError.message);
             }
-            return [];
-        } catch (error) {
-            console.error('[DuneService] Error fetching CEX addresses:', error);
-            return [];
         }
+
+        console.warn('[DuneService] All CEX queries failed, returning empty array');
+        return [];
     }
 }
 
