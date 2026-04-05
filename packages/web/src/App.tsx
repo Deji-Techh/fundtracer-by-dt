@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
 import IntelPage from './pages/IntelPage';
 import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
@@ -7,6 +7,69 @@ import AppPage from './pages/AppPage';
 import { useAuth } from './contexts/AuthContext';
 import MaintenancePage from './pages/MaintenancePage';
 import './design-system/tokens.css';
+
+// Map of route paths to page titles for dynamic SEO
+const PAGE_TITLES: Record<string, string> = {
+  '/': 'FundTracer | Professional Blockchain Wallet Analyzer',
+  '/about': 'About | FundTracer',
+  '/features': 'Features | FundTracer',
+  '/pricing': 'Pricing | FundTracer',
+  '/how-it-works': 'How It Works | FundTracer',
+  '/faq': 'FAQ | FundTracer',
+  '/terms': 'Terms of Service | FundTracer',
+  '/privacy': 'Privacy Policy | FundTracer',
+  '/ext-install': 'Chrome Extension | FundTracer',
+  '/telegram': 'Telegram Bot | FundTracer',
+  '/cli': 'CLI Tool | FundTracer',
+  '/auth': 'Sign In | FundTracer',
+  '/blog': 'Blog | FundTracer',
+  '/docs': 'Documentation | FundTracer',
+  '/docs/getting-started': 'Getting Started | FundTracer',
+  '/docs/ethereum-wallet-tracker': 'Ethereum Wallet Tracker | FundTracer',
+  '/docs/solana-wallet-tracker': 'Solana Wallet Tracker | FundTracer',
+  '/docs/multi-chain-wallet-tracker': 'Multi-Chain Wallet Tracker | FundTracer',
+  '/docs/contract-analytics': 'Contract Analytics | FundTracer',
+  '/docs/sybil-detection': 'Sybil Detection | FundTracer',
+  '/docs/funding-tree-analysis': 'Funding Tree Analysis | FundTracer',
+  '/docs/wallet-risk-score': 'Wallet Risk Score | FundTracer',
+  '/docs/api-reference': 'API Reference | FundTracer',
+  '/docs/cli-guide': 'CLI Guide | FundTracer',
+};
+
+// SEO Manager - sets dynamic meta tags for each page
+function SEOManager() {
+  const location = useLocation();
+  const canonicalUrl = `https://fundtracer.xyz${location.pathname}`;
+  const title = PAGE_TITLES[location.pathname] || 'FundTracer | Professional Blockchain Wallet Analyzer';
+
+  useEffect(() => {
+    // Update canonical URL
+    let canonicalEl = document.querySelector('link[rel="canonical"]');
+    if (!canonicalEl) {
+      canonicalEl = document.createElement('link');
+      canonicalEl.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalEl);
+    }
+    canonicalEl.setAttribute('href', canonicalUrl);
+
+    // Update title
+    document.title = title;
+
+    // Update og:url
+    let ogUrlEl = document.querySelector('meta[property="og:url"]');
+    if (ogUrlEl) {
+      ogUrlEl.setAttribute('content', canonicalUrl);
+    }
+
+    // Update twitter:url
+    let twitterUrlEl = document.querySelector('meta[property="twitter:url"]');
+    if (twitterUrlEl) {
+      twitterUrlEl.setAttribute('content', canonicalUrl);
+    }
+  }, [location.pathname, canonicalUrl, title]);
+
+  return null;
+}
 
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage').then(m => ({ default: m.FeaturesPage })));
@@ -149,7 +212,9 @@ function App() {
   }
 
   return (
-    <Routes>
+    <>
+      <SEOManager />
+      <Routes>
       <Route path="/" element={<IntelPage />} />
       <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
       <Route path="/features" element={<Suspense fallback={null}><FeaturesPage /></Suspense>} />
@@ -194,6 +259,7 @@ function App() {
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }
 
