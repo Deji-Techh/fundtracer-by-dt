@@ -463,7 +463,7 @@ apiRouter.use('/contact', publicLimiter, contactRoutes); // Contact/sales form
 apiRouter.use('/tx', apiKeyAuthMiddleware, transactionRoutes); // Transaction lookup
 apiRouter.use('/gas', apiKeyAuthMiddleware, gasRoutes); // Gas prices
 apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
-apiRouter.use('/track', authMiddleware, trackRoutes);
+apiRouter.use('/track', trackRoutes);
 import { smartMoneyRoutes } from './routes/smartMoney.js';
 apiRouter.use('/smart-money', smartMoneyRoutes); // Public smart money discovery
 apiRouter.use('/dune', authMiddleware, duneRoutes);
@@ -492,7 +492,7 @@ import { scanHistoryRoutes } from './routes/scanHistory.js';
 import { solanaRoutes } from './routes/solana.js';
 import notificationRoutes from './routes/notifications.js';
 
-apiRouter.use('/portfolio', apiKeyAuthMiddleware, authMiddleware, portfolioRoutes);
+apiRouter.use('/portfolio', portfolioRoutes);
 apiRouter.use('/history', apiKeyAuthMiddleware, authMiddleware, historyRoutes);
 apiRouter.use('/tokens', publicLimiter, tokenRoutes); // Public token search with rate limiting
 apiRouter.use('/market', publicLimiter, marketRoutes); // Public market stats with rate limiting
