@@ -73,3 +73,4 @@ README_CLI.md
 
 # Scripts (may contain sensitive configs)
 scripts/
+packages/web/public/videos/
