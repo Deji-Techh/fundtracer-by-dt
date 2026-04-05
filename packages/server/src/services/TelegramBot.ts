@@ -1945,30 +1945,29 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
         const result = await wa.analyze(address, chain, {});
 
         const risk = result.riskLevel || 'unknown';
-        const riskEmoji = risk === 'low' ? '✅' : risk === 'medium' ? '⚠️' : '❌';
-        const chainEmoji = chainEmojis[chain] || '🔗';
-        const nativeToken = chain === 'ethereum' ? 'ETH' : chain === 'polygon' ? 'MATIC' : chain === 'linea' ? 'ETH' : chain === 'arbitrum' ? 'ETH' : chain === 'base' ? 'ETH' : chain === 'optimism' ? 'ETH' : 'ETH';
+        const riskEmoji = risk === 'low' ? 'OK' : risk === 'medium' ? 'WARN' : 'DANGER';
+        const nativeToken = chain === 'ethereum' ? 'ETH' : chain === 'polygon' ? 'MATIC' : 'ETH';
 
         const summary = result.summary || {};
         const wallet = result.wallet || {};
 
-        // Build comprehensive message - use HTML for safer parsing
-        let msg = `*Scan Result*\n\n`;
-        msg += `${address.slice(0, 10)}...${address.slice(-4)} ${chainEmoji} ${chain.toUpperCase()}\n`;
+        // Build comprehensive message - plain text to avoid parse errors
+        let msg = `SCAN RESULT\n\n`;
+        msg += `${address.slice(0, 10)}...${address.slice(-4)} ${chain.toUpperCase()}\n`;
         msg += `${riskEmoji} Risk: ${risk.toUpperCase()} (${result.overallRiskScore || 0}/100)\n\n`;
 
         // Wallet Stats
-        msg += `*Stats*\n`;
+        msg += `STATS\n`;
         msg += `Balance: ${wallet.balanceInEth?.toFixed(4) || '0'} ${nativeToken}\n`;
         msg += `Txs: ${summary.totalTransactions || 0} (${summary.successfulTxs || 0} ok | ${summary.failedTxs || 0} fail)\n`;
         msg += `Addresses: ${summary.uniqueInteractedAddresses || 0}\n`;
-        msg += `Activity: ${summary.activityPeriodDays || 0} days (${(summary.averageTxPerDay || 0).toFixed(1)}/day)\n`;
+        msg += `Activity: ${summary.activityPeriodDays || 0} days\n`;
         msg += `Sent: ${(summary.totalValueSentEth || 0).toFixed(4)} ${nativeToken}\n`;
         msg += `Received: ${(summary.totalValueReceivedEth || 0).toFixed(4)} ${nativeToken}\n`;
 
         // Top Funders
         if (summary.topFundingSources?.length > 0) {
-            msg += `\n*Top Funders*\n`;
+            msg += `\nTOP FUNDERS\n`;
             summary.topFundingSources.slice(0, 5).forEach((f: any, i: number) => {
                 msg += `${i + 1}. ${f.address.slice(0, 10)}...${f.address.slice(-4)} +${f.valueEth?.toFixed(4) || '0'} ${nativeToken}\n`;
             });
@@ -1976,7 +1975,7 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
 
         // Top Destinations
         if (summary.topFundingDestinations?.length > 0) {
-            msg += `\n*Top Destinations*\n`;
+            msg += `\nTOP DESTINATIONS\n`;
             summary.topFundingDestinations.slice(0, 5).forEach((f: any, i: number) => {
                 msg += `${i + 1}. ${f.address.slice(0, 10)}...${f.address.slice(-4)} -${f.valueEth?.toFixed(4) || '0'} ${nativeToken}\n`;
             });
@@ -1984,7 +1983,7 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
 
         // Project Interactions
         if (result.projectsInteracted?.length > 0) {
-            msg += `\n*Protocols*\n`;
+            msg += `\nPROTOCOLS\n`;
             const byCategory: Record<string, string[]> = {};
             result.projectsInteracted.slice(0, 10).forEach((p: any) => {
                 const cat = p.category || 'unknown';
@@ -1992,18 +1991,17 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
                 const name = (p.projectName || p.contractAddress.slice(0, 8)).replace(/_/g, '');
                 byCategory[cat].push(name);
             });
-            const catEmojis: Record<string, string> = { defi: 'DEX', nft: 'NFT', bridge: 'Bridge', dao: 'DAO', gaming: 'Game', unknown: 'Other' };
             Object.entries(byCategory).forEach(([cat, projects]) => {
                 const projectNames = projects.slice(0, 3).join(', ');
-                msg += `${catEmojis[cat] || '?'}: ${projectNames}\n`;
+                msg += `${cat}: ${projectNames}\n`;
             });
         }
 
         // Suspicious Indicators
         if (result.suspiciousIndicators?.length > 0) {
-            msg += `\n*Red Flags*\n`;
+            msg += `\nRED FLAGS\n`;
             result.suspiciousIndicators.slice(0, 3).forEach((ind: any) => {
-                const desc = (ind.description || '').replace(/_/g, '').replace(/[\*`]/g, '');
+                const desc = (ind.description || '').replace(/_/g, '');
                 msg += `- ${ind.type || 'Alert'}: ${desc}\n`;
             });
         }
@@ -2014,9 +2012,10 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
             msg += `\nFirst TX: ${firstDate}`;
         }
 
-        msg += `\n\n[Full Report](https://fundtracer.xyz/app-evm?address=${address}&chain=${chain})`;
+        msg += `\n\nFull Report: https://fundtracer.xyz/app-evm?address=${address}&chain=${chain}`;
 
-        await sendReply(ctx, msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
+        // Use plain text to avoid markdown parse errors
+        await sendReply(ctx, msg);
 
         saveScanHistory(linkedUser.userId, address, chain, result.overallRiskScore || 0);
 
