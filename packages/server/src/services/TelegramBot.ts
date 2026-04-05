@@ -452,9 +452,6 @@ function registerBotCommands() {
             }
 
             // In group mode, don't process further steps
-            const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
-            const chatId = ctx.chat?.id;
-            const isGroupMode = isGroup && chatId && groupChats.get(chatId)?.groupMode;
             if (isGroupMode) return next();
 
             // Check if linked user is in other steps
