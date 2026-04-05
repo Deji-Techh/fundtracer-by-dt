@@ -1947,25 +1947,74 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
         const risk = result.riskLevel || 'unknown';
         const riskEmoji = risk === 'low' ? '✅' : risk === 'medium' ? '⚠️' : '❌';
         const chainEmoji = chainEmojis[chain] || '🔗';
-        const nativeToken = chain === 'ethereum' ? 'ETH' : chain === 'polygon' ? 'MATIC' : 'ETH';
+        const nativeToken = chain === 'ethereum' ? 'ETH' : chain === 'polygon' ? 'MATIC' : chain === 'linea' ? 'ETH' : chain === 'arbitrum' ? 'ETH' : chain === 'base' ? 'ETH' : chain === 'optimism' ? 'ETH' : 'ETH';
 
+        const summary = result.summary || {};
+        const wallet = result.wallet || {};
+
+        // Build comprehensive message
         let msg = `📊 *Scan Result*\n\n`;
-        msg += `Address: \`${address.slice(0, 10)}...${address.slice(-4)}\`\n`;
-        msg += `${chainEmoji} Chain: ${chain.toUpperCase()}\n\n`;
-        msg += `${riskEmoji} *Risk Level:* ${risk.toUpperCase()} (${result.overallRiskScore || 0}/100)\n`;
-        msg += `💰 Balance: ${result.wallet?.balanceInEth?.toFixed(4) || '0'} ${nativeToken}\n`;
-        msg += `📝 Transactions: ${result.summary?.totalTransactions || 0}\n`;
+        msg += `\`${address.slice(0, 10)}...${address.slice(-4)}\` ${chainEmoji} ${chain.toUpperCase()}\n`;
+        msg += `${riskEmoji} *Risk:* ${risk.toUpperCase()} (${result.overallRiskScore || 0}/100)\n\n`;
 
-        if (result.summary?.topFundingSources?.length > 0) {
-            msg += `\n📥 *Top Funder:*\n`;
-            const top = result.summary.topFundingSources[0];
-            msg += `\`${top.address.slice(0, 12)}...\`\n`;
-            msg += `+${top.valueEth?.toFixed(4)} ${nativeToken}\n`;
+        // Wallet Stats
+        msg += `📊 *Stats*\n`;
+        msg += `💰 Balance: ${wallet.balanceInEth?.toFixed(4) || '0'} ${nativeToken}\n`;
+        msg += `📝 Txs: ${summary.totalTransactions || 0} (${summary.successfulTxs || 0} ✅ | ${summary.failedTxs || 0} ❌)\n`;
+        msg += `👥 Addresses: ${summary.uniqueInteractedAddresses || 0}\n`;
+        msg += `📈 Activity: ${summary.activityPeriodDays || 0} days (${(summary.averageTxPerDay || 0).toFixed(1)}/day)\n`;
+        msg += `💵 Sent: ${(summary.totalValueSentEth || 0).toFixed(4)} ${nativeToken}\n`;
+        msg += `💵 Received: ${(summary.totalValueReceivedEth || 0).toFixed(4)} ${nativeToken}\n`;
+
+        // Top Funders
+        if (summary.topFundingSources?.length > 0) {
+            msg += `\n📥 *Top Funders*\n`;
+            summary.topFundingSources.slice(0, 5).forEach((f: any, i: number) => {
+                msg += `${i + 1}. \`${f.address.slice(0, 10)}...${f.address.slice(-4)}\` +${f.valueEth?.toFixed(4) || '0'} ${nativeToken}\n`;
+            });
         }
 
-        msg += `\n🔗 [View Full Report](https://fundtracer.xyz/app-evm?address=${address}&chain=${chain})`;
+        // Top Destinations
+        if (summary.topFundingDestinations?.length > 0) {
+            msg += `\n📤 *Top Destinations*\n`;
+            summary.topFundingDestinations.slice(0, 5).forEach((f: any, i: number) => {
+                msg += `${i + 1}. \`${f.address.slice(0, 10)}...${f.address.slice(-4)}\` -${f.valueEth?.toFixed(4) || '0'} ${nativeToken}\n`;
+            });
+        }
 
-        await sendReply(ctx, msg, { parse_mode: 'Markdown' });
+        // Project Interactions
+        if (result.projectsInteracted?.length > 0) {
+            msg += `\n🏦 *Protocols*\n`;
+            const byCategory: Record<string, { name: string; count: number }[]> = {};
+            result.projectsInteracted.slice(0, 10).forEach((p: any) => {
+                const cat = p.category || 'unknown';
+                if (!byCategory[cat]) byCategory[cat] = [];
+                byCategory[cat].push({ name: p.projectName || p.contractAddress.slice(0, 10), count: p.interactionCount });
+            });
+            const catEmojis: Record<string, string> = { defi: '🦄', nft: '🎨', bridge: '🌉', dao: '🏛️', gaming: '🎮', unknown: '❓' };
+            Object.entries(byCategory).forEach(([cat, projects]) => {
+                const projectNames = projects.slice(0, 3).map(p => p.name).join(', ');
+                msg += `${catEmojis[cat] || '📦'} ${cat}: ${projectNames}\n`;
+            });
+        }
+
+        // Suspicious Indicators
+        if (result.suspiciousIndicators?.length > 0) {
+            msg += `\n⚠️ *Red Flags*\n`;
+            result.suspiciousIndicators.slice(0, 3).forEach((ind: any) => {
+                msg += `• ${ind.type || 'Suspicious'}: ${ind.description || ''}\n`;
+            });
+        }
+
+        // First tx info
+        if (wallet.firstTxTimestamp) {
+            const firstDate = new Date(wallet.firstTxTimestamp * 1000).toLocaleDateString();
+            msg += `\n🕐 First TX: ${firstDate}`;
+        }
+
+        msg += `\n\n🔗 [Full Report](https://fundtracer.xyz/app-evm?address=${address}&chain=${chain})`;
+
+        await sendReply(ctx, msg, { parse_mode: 'Markdown', disable_web_page_preview: true });
 
         saveScanHistory(linkedUser.userId, address, chain, result.overallRiskScore || 0);
 
