@@ -76,7 +76,7 @@ export function EntityCard({
       >
         <div className="entity-card__avatar-mini">
           {avatar ? (
-            <img src={avatar} alt="" />
+            <img src={avatar} alt={name || 'Wallet avatar'} />
           ) : (
             <div className="entity-card__avatar-placeholder" />
           )}
@@ -109,7 +109,7 @@ export function EntityCard({
       <div className="entity-card__header">
         <div className="entity-card__avatar">
           {avatar ? (
-            <img src={avatar} alt="" />
+            <img src={avatar} alt={name || 'Wallet avatar'} />
           ) : (
             <div className="entity-card__avatar-placeholder">
               <span>{(name || address).charAt(0).toUpperCase()}</span>

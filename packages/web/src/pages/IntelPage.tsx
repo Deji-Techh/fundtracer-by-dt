@@ -266,7 +266,7 @@ export function IntelPage() {
     >
       {/* Arkham-style Watermark */}
       <div className="view-watermark">
-        <img src="/logo.png" alt="" className="watermark-logo" />
+        <img src="/logo.png" alt="FundTracer" className="watermark-logo" />
         <span className="watermark-text">FUNDTRACER</span>
       </div>
       <div className="intel-page">
