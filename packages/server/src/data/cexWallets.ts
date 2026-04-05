@@ -4,9 +4,32 @@
  * 
  * Manual: Known hot wallets from major CEXs
  * Auto-detect: Pattern-based detection for unknown CEX-like wallets
+ * 
+ * Synced from Dune on startup for comprehensive coverage
  */
 
 import { ChainId } from '@fundtracer/core';
+
+let cexDatabase: CEXWalletDatabase | null = null;
+
+/**
+ * Initialize CEX database - call on server startup
+ * Loads merged data from Dune + hardcoded wallets
+ */
+export async function initializeCEXDatabase(): Promise<void> {
+  const { cexAddressSync } = await import('../utils/cexAddressSync.js');
+  await cexAddressSync.initialize();
+  cexDatabase = cexAddressSync.getCEXDatabase();
+}
+
+/**
+ * Force refresh CEX addresses from Dune
+ */
+export async function refreshCEXDatabase(): Promise<void> {
+  const { cexAddressSync } = await import('../utils/cexAddressSync.js');
+  await cexAddressSync.refreshFromDune();
+  cexDatabase = cexAddressSync.getCEXDatabase();
+}
 
 export interface CEXWallet {
   address: string;
@@ -179,15 +202,20 @@ export const CEX_ALIASES: Record<string, string> = {
   'gemini': 'Gemini',
 };
 
+// Get the current database (merged Dune + hardcoded)
+function getCEXDatabase(): CEXWalletDatabase {
+  return cexDatabase || CEX_WALLETS;
+}
+
 // Get all CEX wallet addresses for a chain
 export function getCEXAddresses(chain: ChainId): string[] {
-  const groups = CEX_WALLETS[chain] || [];
+  const groups = getCEXDatabase()[chain] || [];
   return groups.flatMap(group => group.wallets.map(w => w.address.toLowerCase()));
 }
 
 // Get CEX info for a wallet address
 export function getCEXInfo(address: string, chain: ChainId): { cexName: string; type: string; isMain: boolean } | null {
-  const groups = CEX_WALLETS[chain] || [];
+  const groups = getCEXDatabase()[chain] || [];
   for (const group of groups) {
     const wallet = group.wallets.find(w => w.address.toLowerCase() === address.toLowerCase());
     if (wallet) {
@@ -208,7 +236,7 @@ export function isKnownCEX(address: string, chain: ChainId): boolean {
 
 // Get all CEX names for a chain
 export function getCEXNames(chain: ChainId): string[] {
-  const groups = CEX_WALLETS[chain] || [];
+  const groups = getCEXDatabase()[chain] || [];
   return groups.map(g => g.name);
 }
 

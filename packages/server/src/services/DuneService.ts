@@ -169,6 +169,45 @@ export class DuneService {
             throw error;
         }
     }
+
+    /**
+     * Fetch CEX addresses from Dune labels table
+     * Queries all chains and returns labeled CEX addresses
+     */
+    async getCEXAddresses(): Promise<Array<{ address: string; name: string; blockchain: string }>> {
+        // Use the labels.addresses table to get CEX-labeled addresses
+        const query = `
+            SELECT 
+                DISTINCT address,
+                name,
+                blockchain,
+                label_type,
+                label_subtype
+            FROM labels.addresses
+            WHERE label_type = 'institution'
+              AND label_subtype = 'cex'
+              AND blockchain IN ('ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'bsc', 'linea', 'avalanche_c', 'solana')
+            ORDER BY name, blockchain
+            LIMIT 2000
+        `;
+
+        try {
+            console.log('[DuneService] Fetching CEX addresses from Dune labels...');
+            const result = await this.executeQuery(query);
+
+            if (result && result.result && result.result.rows) {
+                return result.result.rows.map((r: any) => ({
+                    address: r.address?.toLowerCase() || '',
+                    name: r.name || '',
+                    blockchain: r.blockchain || '',
+                })).filter((r: any) => r.address && r.name);
+            }
+            return [];
+        } catch (error) {
+            console.error('[DuneService] Error fetching CEX addresses:', error);
+            return [];
+        }
+    }
 }
 
 export const duneService = new DuneService();

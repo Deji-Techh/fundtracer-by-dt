@@ -77,6 +77,12 @@ try {
     console.error('[Server] Firebase initialization failed:', error);
 }
 
+// Initialize CEX database from Dune (async, non-blocking)
+import { initializeCEXDatabase } from './data/cexWallets.js';
+initializeCEXDatabase()
+    .then(() => console.log('[Server] CEX database initialized'))
+    .catch(err => console.error('[Server] CEX database init failed:', err));
+
 import { authMiddleware, apiKeyAuthMiddleware } from './middleware/auth.js';
 import { usageMiddleware } from './middleware/usage.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
