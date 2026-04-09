@@ -43,7 +43,28 @@ const queryClient = new QueryClient({
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)
 
-root.render(
+const isPrerender = typeof window !== 'undefined' && document.querySelector('[data-snap="true"]');
+
+if (isPrerender) {
+    root.render(
+        <ErrorBoundary>
+            <BrowserRouter>
+                <QueryClientProvider client={queryClient}>
+                    <ThemeProvider>
+                        <ToastProvider>
+                            <AuthProvider>
+                                <NotificationProvider>
+                                    <App />
+                                </NotificationProvider>
+                            </AuthProvider>
+                        </ToastProvider>
+                    </ThemeProvider>
+                </QueryClientProvider>
+            </BrowserRouter>
+        </ErrorBoundary>
+    );
+} else {
+    root.render(
     <ErrorBoundary>
         <BrowserRouter>
             <QueryClientProvider client={queryClient}>
@@ -80,4 +101,5 @@ root.render(
             </QueryClientProvider>
         </BrowserRouter>
     </ErrorBoundary>,
-)
+    );
+}
