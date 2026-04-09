@@ -74,3 +74,4 @@ README_CLI.md
 # Scripts (may contain sensitive configs)
 scripts/
 packages/web/public/videos/
+packages/web/package-lock.json
