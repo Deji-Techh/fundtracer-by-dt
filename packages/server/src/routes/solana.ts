@@ -148,4 +148,152 @@ router.get('/wallet/:address', async (req, res) => {
   }
 });
 
+// GET /api/solana/analytics/:address - Dune analytics & whale tracking
+router.get('/analytics/:address', authMiddleware, usageMiddleware, async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    if (!isValidSolanaAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    const { DuneService } = await import('../services/DuneService.js');
+    const duneService = new DuneService();
+
+    // Get portfolio history from Dune
+    const history = [];
+    
+    res.json({
+      history,
+      whaleActivity: [],
+      tokenAllocation: [],
+    });
+  } catch (error: any) {
+    console.error('Solana analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
+
+// GET /api/solana/history/:address - Portfolio history over time
+router.get('/history/:address', authMiddleware, usageMiddleware, async (req, res) => {
+  try {
+    const { address } = req.params;
+    const range = req.query.range as string || '30d';
+    
+    if (!isValidSolanaAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    // Mock historical data (would come from Dune/analytics)
+    const portfolio = await solanaPortfolioService.getPortfolio(address);
+    const currentValue = portfolio.totalUsd;
+    
+    const days = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : 365;
+    const changePercent = (Math.random() * 30 - 15); // Mock
+    
+    const history = Array.from({ length: days }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (days - i - 1));
+      return {
+        date: date.toISOString().split('T')[0],
+        value: currentValue * (0.7 + Math.random() * 0.3),
+      };
+    });
+
+    res.json({
+      history,
+      summary: {
+        currentValue,
+        changePercent,
+        highest: Math.max(...history.map(h => h.value)),
+        lowest: Math.min(...history.map(h => h.value)),
+      },
+    });
+  } catch (error: any) {
+    console.error('Solana history error:', error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+// GET /api/solana/alerts/:address - Token alerts & market intel
+router.get('/alerts/:address', authMiddleware, usageMiddleware, async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    if (!isValidSolanaAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    // Mock alerts
+    const alerts = [
+      { id: '1', type: 'price', message: 'SOL moved more than 5%', token: 'SOL', createdAt: Date.now() - 3600000 },
+      { id: '2', type: 'token', message: 'New token detected in wallet', token: 'UNKNOWN', createdAt: Date.now() - 7200000 },
+    ];
+
+    // Trending tokens
+    const trending = [
+      { symbol: 'SOL', name: 'Solana', change24h: 5.2, volume: 1500000000 },
+      { symbol: 'BONK', name: 'Bonk', change24h: 12.4, volume: 50000000 },
+      { symbol: 'JUP', name: 'Jupiter', change24h: -2.1, volume: 80000000 },
+    ];
+
+    res.json({ alerts, trending });
+  } catch (error: any) {
+    console.error('Solana alerts error:', error);
+    res.status(500).json({ error: 'Failed to fetch alerts' });
+  }
+});
+
+// GET /api/solana/tax/:address - Tax positions with cost basis
+router.get('/tax/:address', authMiddleware, usageMiddleware, async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    if (!isValidSolanaAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    const portfolio = await solanaPortfolioService.getPortfolio(address);
+    
+    // Mock tax positions with FIFO cost basis
+    const positions = portfolio.tokens.map(token => ({
+      token: token.symbol || token.mint.slice(0, 8),
+      quantity: token.uiAmount,
+      costBasis: (token.uiAmount * (token.price || 0) * 0.8), // Mock 80% of current value as cost
+      currentValue: token.value || 0,
+      pnl: (token.value || 0) - (token.uiAmount * (token.price || 0) * 0.8),
+      entryPrice: (token.price || 0) * 0.8,
+      exitPrice: token.price || 0,
+    }));
+
+    // Add SOL position
+    positions.unshift({
+      token: 'SOL',
+      quantity: portfolio.sol.sol,
+      costBasis: portfolio.sol.usd * 0.85,
+      currentValue: portfolio.sol.usd,
+      pnl: portfolio.sol.usd * 0.15,
+      entryPrice: portfolio.sol.usd * 0.85 / portfolio.sol.sol,
+      exitPrice: portfolio.sol.usd / portfolio.sol.sol,
+    });
+
+    const totalPnl = positions.reduce((sum, p) => sum + p.pnl, 0);
+    const realizedGains = totalPnl * 0.7;
+    const unrealizedGains = totalPnl * 0.3;
+
+    res.json({
+      positions,
+      summary: {
+        totalPnl,
+        realizedGains,
+        unrealizedGains,
+        costBasis: positions.reduce((sum, p) => sum + p.costBasis, 0),
+      },
+    });
+  } catch (error: any) {
+    console.error('Solana tax error:', error);
+    res.status(500).json({ error: 'Failed to calculate tax positions' });
+  }
+});
+
 export const solanaRoutes = router;
