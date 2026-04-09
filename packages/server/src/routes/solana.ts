@@ -1,27 +1,14 @@
 // ============================================================
 // FundTracer Server - Solana Routes
-// API endpoints for Solana wallet analysis
+// Complete Solana wallet analysis API
 // ============================================================
 
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { usageMiddleware } from '../middleware/usage.js';
+import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
 
 const router = Router();
-
-const HELIUS_KEYS = [
-  process.env.HELIUS_KEY_1 || '77de5802-5beb-4647-bfbb-0ba215d47c81',
-  process.env.HELIUS_KEY_2 || 'b81bcc20-7710-40dc-b0f3-0865c03a8a1d',
-  process.env.HELIUS_KEY_3 || 'deae0411-c969-41ff-9420-f1a0f59d5639',
-];
-
-let keyIndex = 0;
-
-function getHeliusKey(): string {
-  const key = HELIUS_KEYS[keyIndex % HELIUS_KEYS.length];
-  keyIndex++;
-  return key;
-}
 
 function isValidSolanaAddress(address: string): boolean {
   if (!address) return false;
@@ -30,8 +17,8 @@ function isValidSolanaAddress(address: string): boolean {
   return [...address].every(c => base58Chars.includes(c));
 }
 
-// Get wallet info
-router.get('/wallet/:address', authMiddleware, usageMiddleware, async (req, res) => {
+// GET /api/solana/portfolio/:address - Full portfolio view
+router.get('/portfolio/:address', authMiddleware, usageMiddleware, async (req, res) => {
   try {
     const { address } = req.params;
     
@@ -39,45 +26,15 @@ router.get('/wallet/:address', authMiddleware, usageMiddleware, async (req, res)
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    const key = getHeliusKey();
-    const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
-    
-    const [balanceRes, accountRes, sigsRes] = await Promise.all([
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getBalance', params: [address] }),
-      }).then(r => r.json()),
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getAccountInfo', params: [address, { encoding: 'jsonParsed' }] }),
-      }).then(r => r.json()),
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getSignaturesForAddress', params: [address, { limit: 1 }] }),
-      }).then(r => r.json()),
-    ]);
-
-    const isProgram = accountRes.value?.executable ?? false;
-    const firstTx = sigsRes.value?.[0];
-
-    res.json({
-      address,
-      chain: 'solana',
-      balance: (balanceRes.value / 1e9).toString(),
-      nativeSymbol: 'SOL',
-      isContract: isProgram,
-      firstSeen: firstTx?.blockTime ? firstTx.blockTime * 1000 : null,
-    });
+    const portfolio = await solanaPortfolioService.getPortfolio(address);
+    res.json(portfolio);
   } catch (error: any) {
-    console.error('Solana wallet error:', error);
-    res.status(500).json({ error: 'Failed to fetch wallet info' });
+    console.error('Solana portfolio error:', error);
+    res.status(500).json({ error: 'Failed to fetch portfolio' });
   }
 });
 
-// Get transactions
+// GET /api/solana/transactions/:address - Transaction history
 router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req, res) => {
   try {
     const { address } = req.params;
@@ -87,18 +44,15 @@ router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    const key = getHeliusKey();
-    const url = `https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${key}&limit=${limit}`;
-
-    const txs = await fetch(url).then(r => r.json());
-    res.json({ transactions: txs });
+    const transactions = await solanaPortfolioService.getTransactions(address, limit);
+    res.json({ transactions, count: transactions.length });
   } catch (error: any) {
     console.error('Solana transactions error:', error);
     res.status(500).json({ error: 'Failed to fetch transactions' });
   }
 });
 
-// Get token balances
+// GET /api/solana/tokens/:address - Token holdings
 router.get('/tokens/:address', authMiddleware, usageMiddleware, async (req, res) => {
   try {
     const { address } = req.params;
@@ -107,32 +61,53 @@ router.get('/tokens/:address', authMiddleware, usageMiddleware, async (req, res)
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    const key = getHeliusKey();
-    const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 'token-balances',
-        method: 'searchAssets',
-        params: {
-          ownerAddress: address,
-          tokenType: 'fungible',
-          displayOptions: { showNativeBalance: true },
-        },
-      }),
-    }).then(r => r.json());
-
-    res.json({ tokens: response.result?.items || [] });
+    const portfolio = await solanaPortfolioService.getPortfolio(address);
+    res.json({ 
+      sol: portfolio.sol, 
+      tokens: portfolio.tokens, 
+      totalUsd: portfolio.totalUsd 
+    });
   } catch (error: any) {
     console.error('Solana tokens error:', error);
-    res.status(500).json({ error: 'Failed to fetch token balances' });
+    res.status(500).json({ error: 'Failed to fetch tokens' });
   }
 });
 
-// Get risk score (basic)
+// GET /api/solana/nfts/:address - NFT holdings
+router.get('/nfts/:address', authMiddleware, usageMiddleware, async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    if (!isValidSolanaAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    const nfts = await solanaPortfolioService.getNFTs(address);
+    res.json({ nfts, count: nfts.length });
+  } catch (error: any) {
+    console.error('Solana NFTs error:', error);
+    res.status(500).json({ error: 'Failed to fetch NFTs' });
+  }
+});
+
+// GET /api/solana/defi/:address - DeFi positions
+router.get('/defi/:address', authMiddleware, usageMiddleware, async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    if (!isValidSolanaAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    const positions = await solanaPortfolioService.getDeFiPositions(address);
+    res.json({ positions, count: positions.length });
+  } catch (error: any) {
+    console.error('Solana DeFi error:', error);
+    res.status(500).json({ error: 'Failed to fetch DeFi positions' });
+  }
+});
+
+// GET /api/solana/risk/:address - Risk analysis
 router.get('/risk/:address', authMiddleware, usageMiddleware, async (req, res) => {
   try {
     const { address } = req.params;
@@ -141,48 +116,35 @@ router.get('/risk/:address', authMiddleware, usageMiddleware, async (req, res) =
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    const key = getHeliusKey();
-    const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
-    
-    const [balanceRes, sigsRes] = await Promise.all([
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getBalance', params: [address] }),
-      }).then(r => r.json()),
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getSignaturesForAddress', params: [address, { limit: 100 }] }),
-      }).then(r => r.json()),
-    ]);
-
-    const signals: any[] = [];
-    let score = 0;
-
-    const balance = balanceRes.value / 1e9;
-    if (balance < 0.01) {
-      score += 5;
-      signals.push({ id: 'low_balance', name: 'Near-Zero SOL Balance', detected: true, severity: 'low' });
-    }
-
-    const firstTx = sigsRes.value?.[0];
-    if (firstTx?.blockTime) {
-      const age = Date.now() - firstTx.blockTime * 1000;
-      if (age < 30 * 24 * 60 * 60 * 1000) {
-        score += 10;
-        signals.push({ id: 'new_wallet', name: 'Wallet Created Recently', detected: true, severity: 'medium' });
-      }
-    }
-
-    res.json({
-      score: Math.min(score, 100),
-      signals,
-      chain: 'solana',
-    });
+    const risk = await solanaPortfolioService.getRiskAnalysis(address);
+    res.json(risk);
   } catch (error: any) {
     console.error('Solana risk error:', error);
     res.status(500).json({ error: 'Failed to calculate risk score' });
+  }
+});
+
+// GET /api/solana/wallet/:address - Basic wallet info (non-auth for public)
+router.get('/wallet/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    if (!isValidSolanaAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    const portfolio = await solanaPortfolioService.getPortfolio(address);
+    res.json({
+      address,
+      chain: 'solana',
+      sol: portfolio.sol.sol,
+      totalUsd: portfolio.totalUsd,
+      tokenCount: portfolio.tokens.length,
+      nftCount: 0,
+    });
+  } catch (error: any) {
+    console.error('Solana wallet error:', error);
+    res.status(500).json({ error: 'Failed to fetch wallet info' });
   }
 });
 

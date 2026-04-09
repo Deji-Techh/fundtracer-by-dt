@@ -14,6 +14,7 @@ const ALCHEMY_URLS: Partial<Record<ChainId, string>> = {
     base: 'https://base-mainnet.g.alchemy.com/v2/',
     optimism: 'https://opt-mainnet.g.alchemy.com/v2/',
     polygon: 'https://polygon-mainnet.g.alchemy.com/v2/',
+    solana: 'https://solana-mainnet.g.alchemy.com/v2/',
 };
 
 /** Rate limiter for a single Alchemy key - conservative for free tier */
