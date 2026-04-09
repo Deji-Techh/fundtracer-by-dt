@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "description": "FundTracer by DT - Blockchain wallet analysis tool",
   "private": true,
+  "workspaces": [
+    "packages/core",
+    "packages/server"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace=@fundtracer/web",
     "dev:server": "npm run dev --workspace=@fundtracer/server",
     "build": "cd packages/web && npm install && npm run build",
+    "build:server": "npm install && npm run build --workspace=fundtracer-core && npm run build --workspace=@fundtracer/server",
     "cli": "npm run start --workspace=fundtracer-cli",
     "video": "npm run start --workspace=@fundtracer/video",
     "test": "npm run test --workspaces --if-present",

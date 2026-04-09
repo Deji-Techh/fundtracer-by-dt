@@ -2,18 +2,16 @@ FROM node:20-slim
 
 WORKDIR /app
 
-COPY packages/server/package.json packages/server/
-COPY packages/core/package.json packages/core/
 COPY package.json ./
 COPY tsconfig.json ./
 
-RUN npm install --workspaces
+RUN npm install
 
 COPY packages/core/ packages/core/
 COPY packages/server/ packages/server/
 
-RUN npm run build --workspace=fundtracer-core && \
-    npm run build --workspace=@fundtracer/server
+RUN cd packages/core && npm install && npm run build && \
+    cd ../server && npm install && npm run build
 
 EXPOSE 3000
 
