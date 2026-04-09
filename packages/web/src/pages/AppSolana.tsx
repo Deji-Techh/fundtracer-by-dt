@@ -227,6 +227,10 @@ export default function AppSolana() {
                 token ? fetchWithAuth(`/api/solana/nfts/${addr}`, token) : Promise.resolve({ nfts: [] }),
                 token ? fetchWithAuth(`/api/solana/defi/${addr}`, token) : Promise.resolve({ positions: [] }),
                 token ? fetchWithAuth(`/api/solana/risk/${addr}`, token) : Promise.resolve(null),
+                token ? fetchWithAuth(`/api/solana/analytics/${addr}`, token) : Promise.resolve({}),
+                token ? fetchWithAuth(`/api/solana/tax/${addr}`, token) : Promise.resolve({}),
+                token ? fetchWithAuth(`/api/solana/alerts/${addr}`, token) : Promise.resolve({}),
+                token ? fetchWithAuth(`/api/solana/history/${addr}?range=30d`, token) : Promise.resolve({}),
             ]);
 
             if (results[0].status === 'fulfilled') setPortfolio(results[0].value);
@@ -234,26 +238,20 @@ export default function AppSolana() {
             if (results[2].status === 'fulfilled') setNfts(results[2].value.nfts || []);
             if (results[3].status === 'fulfilled') setDefi(results[3].value.positions || []);
             if (results[4].status === 'fulfilled' && results[4].value) setRisk(results[4].value);
+            if (results[5].status === 'fulfilled' && results[5].value) {
+                setWhaleTxs(results[5].value.whaleActivity || []);
+            }
+            if (results[6].status === 'fulfilled' && results[6].value) {
+                setTaxPositions(results[6].value.positions || []);
+            }
 
-            // Mock identity data (would come from backend)
+            // Identity from portfolio data
             setIdentity([
                 { id: 'early_adopter', name: 'Early Adopter', description: 'One of the first users', icon: '🚀', earned: true, earnedAt: Date.now() - 86400000 * 30 },
-                { id: 'whale', name: 'Whale', description: 'Portfolio over $100K', icon: '🐋', earned: portfolio && portfolio.totalUsd > 100000 },
-                { id: 'defi_user', name: 'DeFi User', description: 'Active on DeFi protocols', icon: '💰', earned: defi.length > 0 },
-                { id: 'nft_collector', name: 'NFT Collector', description: 'Owns 10+ NFTs', icon: '🎨', earned: nfts.length >= 10 },
-                { id: 'trader', name: 'Active Trader', description: '100+ transactions', icon: '📊', earned: transactions.length > 100 },
-            ]);
-
-            // Mock analytics data
-            setWhaleTxs([
-                { signature: 'tx1', amount: 50000, token: 'SOL', timestamp: Date.now() - 3600000, type: 'buy' as const },
-                { signature: 'tx2', amount: 25000, token: 'USDC', timestamp: Date.now() - 7200000, type: 'transfer' as const },
-            ]);
-
-            // Mock tax data
-            setTaxPositions([
-                { token: 'SOL', costBasis: 45000, currentValue: 52000, pnl: 7000, pnlPercent: 15.56, quantity: 100, entryPrice: 450, exitPrice: 520 },
-                { token: 'BONK', costBasis: 1000, currentValue: 2500, pnl: 1500, pnlPercent: 150, quantity: 10000000, entryPrice: 0.0001, exitPrice: 0.00025 },
+                { id: 'whale', name: 'Whale', description: 'Portfolio over $100K', icon: '🐋', earned: results[0].status === 'fulfilled' && results[0].value?.totalUsd > 100000 },
+                { id: 'defi_user', name: 'DeFi User', description: 'Active on DeFi protocols', icon: '💰', earned: results[3].status === 'fulfilled' && (results[3].value?.positions?.length || 0) > 0 },
+                { id: 'nft_collector', name: 'NFT Collector', description: 'Owns 10+ NFTs', icon: '🎨', earned: (results[2].value?.nfts?.length || 0) >= 10 },
+                { id: 'trader', name: 'Active Trader', description: '100+ transactions', icon: '📊', earned: (results[1].value?.transactions?.length || 0) > 100 },
             ]);
 
         } catch (err: any) {
@@ -262,7 +260,7 @@ export default function AppSolana() {
         } finally {
             setLoading(false);
         }
-    }, [address, token, setSearchParams, defi.length, nfts.length, transactions.length]);
+    }, [address, token, setSearchParams]);
 
     useEffect(() => {
         const addr = searchParams.get('address');
