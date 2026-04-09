@@ -190,6 +190,18 @@
 </head>
 
 <body>
+  <!-- Prerender.io bot detection -->
+  <script>
+    (function() {
+      var _prerender = window._prerender = {
+        protocol: 'https',
+        host: 'service.prerender.io'
+      };
+      var s = document.createElement('script');
+      s.src = _prerender.protocol + '://' + _prerender.host + '/prerender.js';
+      document.getElementsByTagName('head')[0].appendChild(s);
+    })();
+  </script>
   <noscript>
     <div style="padding: 20px; background: #1a1a2e; color: #fff; font-family: system-ui, sans-serif;">
       <h1 style="margin: 0 0 20px;">FundTracer - Blockchain Forensics Platform</h1>

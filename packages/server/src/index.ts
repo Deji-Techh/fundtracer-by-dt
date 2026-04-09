@@ -250,7 +250,8 @@ app.use(helmet({
                 "https://*.googleapis.com",
                 "https://*.gstatic.com",
                 "https://static.cloudflareinsights.com",
-                "https://*.cloudflareinsights.com"
+                "https://*.cloudflareinsights.com",
+                "https://service.prerender.io"
             ],
             "style-src": [
                 "'self'",
