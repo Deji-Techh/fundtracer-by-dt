@@ -4,6 +4,7 @@ import IntelPage from './pages/IntelPage';
 import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
 import AppPage from './pages/AppPage';
+import AppSolana from './pages/AppSolana';
 import { useAuth } from './contexts/AuthContext';
 import MaintenancePage from './pages/MaintenancePage';
 import './design-system/tokens.css';
@@ -252,9 +253,7 @@ function App() {
       } />
       <Route path="/app-solana/*" element={
         <ProtectedRoute>
-          <SolanaWalletProvider>
-            <SolanaPage />
-          </SolanaWalletProvider>
+          <AppSolana />
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
