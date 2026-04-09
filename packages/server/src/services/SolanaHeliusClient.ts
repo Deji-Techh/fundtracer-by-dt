@@ -1,31 +1,41 @@
 // ============================================================
-// FundTracer by DT - Solana QuickNode Client
-// DAS API for cNFTs and token metadata
+// FundTracer by DT - Solana Helius Client
+// DAS API for cNFTs and token metadata via Helius (FREE)
 // ============================================================
 
-export class SolanaQuickNodeClient {
-    private static instance: SolanaQuickNodeClient;
-    public rpcUrl: string;
-    public wssUrl: string;
+const HELIUS_KEYS = [
+    process.env.HELIUS_KEY_1 || '77de5802-5beb-4647-bfbb-0ba215d47c81',
+    process.env.HELIUS_KEY_2 || 'b81bcc20-7710-40dc-b0f3-0865c03a8a1d',
+    process.env.HELIUS_KEY_3 || 'deae0411-c969-41ff-9420-f1a0f59d5639',
+];
 
-    private constructor() {
-        this.rpcUrl = process.env.QUICKNODE_SOLANA || process.env.QUICKNODE_RPC_URL || '';
-        this.wssUrl = process.env.QUICKNODE_SOLANA_WSS || '';
+let keyIndex = 0;
 
-        if (!this.rpcUrl) {
-            console.warn('[SolanaQuickNode] No RPC URL provided');
+function getHeliusKey(): string {
+    const key = HELIUS_KEYS[keyIndex % HELIUS_KEYS.length];
+    keyIndex++;
+    return key;
+}
+
+export class SolanaHeliusClient {
+    private static instance: SolanaHeliusClient;
+
+    private constructor() {}
+
+    static getInstance(): SolanaHeliusClient {
+        if (!SolanaHeliusClient.instance) {
+            SolanaHeliusClient.instance = new SolanaHeliusClient();
         }
+        return SolanaHeliusClient.instance;
     }
 
-    static getInstance(): SolanaQuickNodeClient {
-        if (!SolanaQuickNodeClient.instance) {
-            SolanaQuickNodeClient.instance = new SolanaQuickNodeClient();
-        }
-        return SolanaQuickNodeClient.instance;
+    private getBaseUrl(): string {
+        const key = getHeliusKey();
+        return `https://mainnet.helius-rpc.com/?api-key=${key}`;
     }
 
     async dasRequest<T>(method: string, params: any[]): Promise<T> {
-        const res = await fetch(this.rpcUrl, {
+        const res = await fetch(this.getBaseUrl(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
@@ -44,7 +54,7 @@ export class SolanaQuickNodeClient {
         return this.dasRequest('getAsset', [{ id }]);
     }
 
-    async getAssetsByOwner({ owner, limit = 1000 }: { owner: string; limit?: number }) {
+    async getAssetsByOwner({ owner, limit = 100 }: { owner: string; limit?: number }) {
         return this.dasRequest('getAssetsByOwner', [{
             owner,
             limit,
@@ -52,7 +62,7 @@ export class SolanaQuickNodeClient {
         }]);
     }
 
-    async getAssetsByGroup({ groupKey, groupValue, limit = 1000 }: { groupKey: string; groupValue: string; limit?: number }) {
+    async getAssetsByGroup({ groupKey, groupValue, limit = 100 }: { groupKey: string; groupValue: string; limit?: number }) {
         return this.dasRequest('getAssetsByGroup', [{
             groupKey,
             groupValue,
@@ -70,4 +80,4 @@ export class SolanaQuickNodeClient {
     }
 }
 
-export const solanaQuickNode = SolanaQuickNodeClient.getInstance();
+export const solanaHeliusClient = SolanaHeliusClient.getInstance();

@@ -4,7 +4,7 @@
 // ============================================================
 
 import { solanaKeyPool } from './SolanaKeyPoolManager.js';
-import { solanaQuickNode } from './SolanaQuickNodeClient.js';
+import { solanaHeliusClient } from './SolanaHeliusClient.js';
 import { cache } from '../utils/cache.js';
 import fetch from 'node-fetch';
 
@@ -335,7 +335,7 @@ export class SolanaPortfolioService {
         if (cached) return cached as SolanaNFT[];
 
         try {
-            const assets = await solanaQuickNode.getAssetsByOwner({ owner: address, limit: 100 });
+            const assets = await solanaHeliusClient.getAssetsByOwner({ owner: address, limit: 100 });
             const nfts: SolanaNFT[] = ((assets as any).items || []).map((item: any) => ({
                 id: item.id,
                 mint: item.id,

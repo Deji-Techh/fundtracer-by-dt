@@ -77,6 +77,15 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
         apiUrl: 'https://sui-mainnet.alchemy-blast.com',
         enabled: true,
     },
+    solana: {
+        id: 'solana',
+        chainId: 0,
+        name: 'Solana',
+        symbol: 'SOL',
+        explorer: 'https://solscan.io',
+        apiUrl: 'https://api.mainnet-beta.solana.com',
+        enabled: true,
+    },
 };
 
 export const getEnabledChains = (): ChainConfig[] =>
