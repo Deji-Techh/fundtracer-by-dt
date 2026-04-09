@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "FundTracer by DT - Blockchain wallet analysis tool",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
     "dev": "npm run dev --workspace=@fundtracer/web",
     "dev:server": "npm run dev --workspace=@fundtracer/server",
@@ -34,5 +31,6 @@
     "uuid": "^9.0.0",
     "viem": "^2.0.0",
     "wagmi": "^2.5.0"
-  }
+  },
+  "workspaces": []
 }
