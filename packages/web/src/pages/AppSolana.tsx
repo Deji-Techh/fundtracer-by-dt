@@ -247,11 +247,11 @@ export default function AppSolana() {
 
             // Identity from portfolio data
             setIdentity([
-                { id: 'early_adopter', name: 'Early Adopter', description: 'One of the first users', icon: '🚀', earned: true, earnedAt: Date.now() - 86400000 * 30 },
-                { id: 'whale', name: 'Whale', description: 'Portfolio over $100K', icon: '🐋', earned: results[0].status === 'fulfilled' && results[0].value?.totalUsd > 100000 },
-                { id: 'defi_user', name: 'DeFi User', description: 'Active on DeFi protocols', icon: '💰', earned: results[3].status === 'fulfilled' && (results[3].value?.positions?.length || 0) > 0 },
-                { id: 'nft_collector', name: 'NFT Collector', description: 'Owns 10+ NFTs', icon: '🎨', earned: (results[2].value?.nfts?.length || 0) >= 10 },
-                { id: 'trader', name: 'Active Trader', description: '100+ transactions', icon: '📊', earned: (results[1].value?.transactions?.length || 0) > 100 },
+                { id: 'early_adopter', name: 'Early Adopter', description: 'One of the first users', icon: 'Star', earned: true, earnedAt: Date.now() - 86400000 * 30 },
+                { id: 'whale', name: 'Whale', description: 'Portfolio over $100K', icon: 'Crown', earned: results[0].status === 'fulfilled' && results[0].value?.totalUsd > 100000 },
+                { id: 'defi_user', name: 'DeFi User', description: 'Active on DeFi protocols', icon: 'Layers', earned: results[3].status === 'fulfilled' && (results[3].value?.positions?.length || 0) > 0 },
+                { id: 'nft_collector', name: 'NFT Collector', description: 'Owns 10+ NFTs', icon: 'Image', earned: (results[2].value?.nfts?.length || 0) >= 10 },
+                { id: 'trader', name: 'Active Trader', description: '100+ transactions', icon: 'Activity', earned: (results[1].value?.transactions?.length || 0) > 100 },
             ]);
 
         } catch (err: any) {
@@ -561,19 +561,26 @@ export default function AppSolana() {
                                 </div>
 
                                 <div className="badges-grid">
-                                    {identity.map((badge, idx) => (
-                                        <div key={idx} className={`badge-card ${badge.earned ? 'earned' : 'locked'}`}>
-                                            <span className="badge-icon">{badge.icon}</span>
-                                            <div className="badge-info">
-                                                <span className="badge-name">{badge.name}</span>
-                                                <span className="badge-desc">{badge.description}</span>
-                                                {badge.earned && badge.earnedAt && (
-                                                    <span className="badge-earned">Earned {formatTime(badge.earnedAt)}</span>
-                                                )}
+                                    {identity.map((badge, idx) => {
+                                        const IconComponent = badge.icon === 'Star' ? Star : 
+                                            badge.icon === 'Crown' ? Crown : 
+                                            badge.icon === 'Layers' ? Layers : 
+                                            badge.icon === 'Image' ? Image : 
+                                            badge.icon === 'Activity' ? Activity : Star;
+                                        return (
+                                            <div key={idx} className={`badge-card ${badge.earned ? 'earned' : 'locked'}`}>
+                                                <span className="badge-icon"><IconComponent size={20} /></span>
+                                                <div className="badge-info">
+                                                    <span className="badge-name">{badge.name}</span>
+                                                    <span className="badge-desc">{badge.description}</span>
+                                                    {badge.earned && badge.earnedAt && (
+                                                        <span className="badge-earned">Earned {formatTime(badge.earnedAt)}</span>
+                                                    )}
+                                                </div>
+                                                {badge.earned ? <BadgeCheck size={20} className="badge-check" /> : <EyeOff size={20} className="badge-locked" />}
                                             </div>
-                                            {badge.earned ? <BadgeCheck size={20} className="badge-check" /> : <EyeOff size={20} className="badge-locked" />}
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
 
                                 <div className="reputation-section">
