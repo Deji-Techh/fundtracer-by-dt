@@ -1,32 +1,12 @@
 /**
  * FundTracer API Cache Service
- * In-memory caching with optional Redis support
- * Falls back to in-memory if Redis is unavailable
+ * Uses @upstash/redis for persistent caching
  */
 
-// In-memory cache
+import { initRedis, cacheGet, cacheSet, cacheDel, cacheDelPattern, isRedisConnected } from '../utils/redis';
+
+// In-memory cache (fallback when Redis unavailable)
 const memoryCache = new Map<string, { value: string; expires: number }>();
-
-// Check if Redis is available
-let isRedisAvailable = false;
-let redisClient: any = null;
-
-async function connectRedis() {
-  if (!process.env.REDIS_URL) {
-    return null;
-  }
-  
-  try {
-    const { createClient } = await import('redis');
-    const client = createClient({ url: process.env.REDIS_URL });
-    await client.connect();
-    isRedisAvailable = true;
-    return client;
-  } catch {
-    isRedisAvailable = false;
-    return null;
-  }
-}
 
 // Cache TTLs in seconds
 export const CACHE_TTL = {
@@ -42,16 +22,9 @@ export const CACHE_TTL = {
 
 // Initialize cache
 export async function initializeCache(): Promise<void> {
-  if (process.env.REDIS_URL) {
-    redisClient = await connectRedis();
-    if (redisClient) {
-      console.log('[Cache] Connected to Redis');
-    } else {
-      console.log('[Cache] Using in-memory cache');
-    }
-  } else {
-    console.log('[Cache] Using in-memory cache');
-  }
+  await initRedis();
+  const connected = isRedisConnected();
+  console.log(connected ? '[Cache] Redis connected via Upstash' : '[Cache] Using in-memory fallback');
 }
 
 // Check if cache is available
@@ -60,8 +33,14 @@ export function isCacheAvailable(): boolean {
 }
 
 // Get from cache
-export async function cacheGet<T>(key: string): Promise<T | null> {
-  // Try memory cache first
+export async function cacheGetCached<T>(key: string): Promise<T | null> {
+  // Try Redis first
+  const redisResult = await cacheGet<T>(key);
+  if (redisResult !== null) {
+    return redisResult;
+  }
+  
+  // Fallback to memory
   const memEntry = memoryCache.get(key);
   if (memEntry) {
     if (memEntry.expires > Date.now()) {
@@ -75,74 +54,40 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
     }
   }
   
-  // Try Redis if available
-  if (isRedisAvailable && redisClient) {
-    try {
-      const data = await redisClient.get(key);
-      if (data) {
-        memoryCache.set(key, { value: data, expires: Date.now() + 60000 });
-        return JSON.parse(data) as T;
-      }
-    } catch (error) {
-      console.error('[Cache] Redis get error:', error);
-    }
-  }
-  
   return null;
 }
 
 // Set in cache with TTL
-export async function cacheSet<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
+export async function cacheSetCached<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
   const data = JSON.stringify(value);
   const ttl = ttlSeconds || 60;
   
-  memoryCache.set(key, { value: data, expires: Date.now() + ttl * 1000 });
+  // Set in Redis (also writes to memory fallback internally in redis.ts)
+  await cacheSet(key, value, ttl);
   
-  if (isRedisAvailable && redisClient) {
-    try {
-      await redisClient.setEx(key, ttl, data);
-    } catch (error) {
-      console.error('[Cache] Redis set error:', error);
-    }
-  }
+  // Also update memory fallback directly
+  memoryCache.set(key, { value: data, expires: Date.now() + ttl * 1000 });
 }
 
 // Delete from cache
-export async function cacheDel(key: string): Promise<void> {
+export async function cacheDelCached(key: string): Promise<void> {
+  await cacheDel(key);
   memoryCache.delete(key);
-  
-  if (isRedisAvailable && redisClient) {
-    try {
-      await redisClient.del(key);
-    } catch (error) {
-      console.error('[Cache] Redis delete error:', error);
-    }
-  }
 }
 
-// Delete keys by pattern (Redis only)
-export async function cacheDelPattern(pattern: string): Promise<void> {
+// Delete keys by pattern
+export async function cacheDelPatternCached(pattern: string): Promise<void> {
+  await cacheDelPattern(pattern);
+  
+  // Memory fallback cleanup
   const patternRegex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
   const keysToDelete: string[] = [];
-  
   memoryCache.forEach((_, key) => {
     if (patternRegex.test(key)) {
       keysToDelete.push(key);
     }
   });
-  
   keysToDelete.forEach(key => memoryCache.delete(key));
-  
-  if (isRedisAvailable && redisClient) {
-    try {
-      const redisKeys = await redisClient.keys(pattern);
-      if (redisKeys.length > 0) {
-        await redisClient.del(redisKeys);
-      }
-    } catch (error) {
-      console.error('[Cache] Redis delete pattern error:', error);
-    }
-  }
 }
 
 // Get or set from cache
@@ -151,13 +96,13 @@ export async function cacheGetOrSet<T>(
   fetcher: () => Promise<T>,
   ttlSeconds?: number
 ): Promise<T> {
-  const cached = await cacheGet<T>(key);
+  const cached = await cacheGetCached<T>(key);
   if (cached !== null) {
     return cached;
   }
   
   const data = await fetcher();
-  await cacheSet(key, data, ttlSeconds);
+  await cacheSetCached(key, data, ttlSeconds);
   
   return data;
 }
@@ -165,17 +110,12 @@ export async function cacheGetOrSet<T>(
 // Invalidate address-related cache
 export async function invalidateAddressCache(address: string, chain: string): Promise<void> {
   const prefix = `api:${chain}:${address.toLowerCase()}`;
-  await cacheDelPattern(`${prefix}*`);
+  await cacheDelPatternCached(`${prefix}*`);
 }
 
-// Close cache connection
+// Close cache connection - handled by redis.ts
 export async function closeCache(): Promise<void> {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
-  }
   memoryCache.clear();
-  isRedisAvailable = false;
 }
 
 // Cache stats
@@ -185,8 +125,8 @@ export async function getCacheStats(): Promise<{
   keys: number;
 }> {
   return {
-    connected: true,
-    backend: isRedisAvailable ? 'redis' : 'memory',
+    connected: isRedisConnected(),
+    backend: isRedisConnected() ? 'redis' : 'memory',
     keys: memoryCache.size,
   };
 }
@@ -196,7 +136,7 @@ export function buildCacheKey(...parts: (string | number)[]): string {
   return `api:${parts.join(':')}`;
 }
 
-// Cleanup expired entries every minute
+// Cleanup expired memory entries every minute
 setInterval(() => {
   const now = Date.now();
   const entries = Array.from(memoryCache.entries());
@@ -206,3 +146,6 @@ setInterval(() => {
     }
   });
 }, 60000);
+
+// Re-export functions with original names for backward compatibility
+export { cacheGet as cacheGetOld, cacheSet as cacheSetOld, cacheDel as cacheDelOld, cacheDelPattern as cacheDelPatternOld };

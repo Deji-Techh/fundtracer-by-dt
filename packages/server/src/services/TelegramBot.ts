@@ -5,6 +5,13 @@
 
 import fetch from 'node-fetch';
 import { Telegraf, Markup } from 'telegraf';
+import { initRedis } from '../utils/redis';
+import { 
+    linkedUsers, pendingCodes, groupChats, groupPendingScans, pendingLinkUsers,
+    loadFromRedis, startSyncInterval, deleteLinkedUser, deletePendingCode,
+    saveGroupChat, deleteGroupPendingScan, savePendingLinkUser, deletePendingLinkUser,
+    isUsingRedis, getMemoryStats
+} from '../utils/telegramRedis';
 
 (globalThis as any).fetch = fetch;
 
@@ -39,15 +46,6 @@ interface PendingCode {
     walletAddress: string;
     expiresAt: number;
 }
-
-// Track group chats with group mode enabled
-const groupChats: Map<number, { groupMode: boolean; adminId: number }> = new Map();
-
-// Track pending scans in group mode (chatId -> { address, step })
-const groupPendingScans: Map<number, { address: string; step: string }> = new Map();
-
-// Track users waiting to enter link code (before they're linked)
-const pendingLinkUsers: Map<number, { step: string }> = new Map();
 
 const chains = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon'];
 const chainEmojis: Record<string, string> = {
@@ -102,21 +100,24 @@ function saveData(data: { linkedUsers: Record<string, any>, pendingCodes: Record
     }
 }
 
-let linkedUsers: Map<number, LinkedUser>;
-let pendingCodes: Map<string, PendingCode>;
-
-function initializeData() {
-    const data = loadData();
-    linkedUsers = new Map(Object.entries(data.linkedUsers).map(([k, v]) => [parseInt(k), v as LinkedUser]));
-    pendingCodes = new Map(Object.entries(data.pendingCodes).map(([k, v]) => [k, v as PendingCode]));
+async function initializeData() {
+    // Try to load from Redis first, fallback to file
+    await loadFromRedis();
     
-    setInterval(() => {
-        const dataToSave = {
-            linkedUsers: Object.fromEntries(linkedUsers),
-            pendingCodes: Object.fromEntries(pendingCodes)
-        };
-        saveData(dataToSave);
-    }, 30000);
+    const data = loadData();
+    if (linkedUsers.size === 0 && pendingCodes.size === 0) {
+        // First load - populate from file if Redis is empty
+        for (const [k, v] of Object.entries(data.linkedUsers)) {
+            linkedUsers.set(parseInt(k), v as LinkedUser);
+        }
+        for (const [k, v] of Object.entries(data.pendingCodes)) {
+            pendingCodes.set(k, v as PendingCode);
+        }
+    }
+    
+    // Start periodic sync to Redis
+    startSyncInterval();
+    console.log(`[Telegram] Data initialized. Redis: ${isUsingRedis()}, Stats: ${JSON.stringify(getMemoryStats())}`);
 }
 
 async function getAnalyzer() {
@@ -131,7 +132,7 @@ async function getAnalyzer() {
 }
 
 export async function createTelegramBot() {
-    initializeData();
+    await initializeData();
     
     if (!BOT_TOKEN) {
         console.log('[Telegram] Bot token not configured, skipping...');

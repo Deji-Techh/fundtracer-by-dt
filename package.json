@@ -5,7 +5,8 @@
   "private": true,
   "workspaces": [
     "packages/core",
-    "packages/server"
+    "packages/server",
+    "packages/web"
   ],
   "scripts": {
     "dev": "npm run dev --workspace=@fundtracer/web",
@@ -36,6 +37,5 @@
     "uuid": "^9.0.0",
     "viem": "^2.0.0",
     "wagmi": "^2.5.0"
-  },
-  "workspaces": []
+  }
 }

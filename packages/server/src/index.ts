@@ -580,6 +580,23 @@ server = app.listen(PORT, async () => {
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Health check: http://localhost:${PORT}/health`);
     
+    // Initialize Redis and Cache
+    try {
+        const { initRedis } = await import('./utils/redis.js');
+        await initRedis();
+        console.log('[Server] Redis initialized');
+    } catch (error) {
+        console.error('[Server] Failed to initialize Redis:', error);
+    }
+    
+    try {
+        const { initializeCache } = await import('./services/apiCache.js');
+        await initializeCache();
+        console.log('[Server] Cache initialized');
+    } catch (error) {
+        console.error('[Server] Failed to initialize cache:', error);
+    }
+    
     // Mark server as ready
     isReady = true;
 
