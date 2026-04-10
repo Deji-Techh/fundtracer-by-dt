@@ -64,7 +64,8 @@
 .solana-search {
     flex: 1;
     display: flex;
-    max-width: 500px;
+    max-width: 600px;
+    min-width: 300px;
 }
 }
 
@@ -78,19 +79,16 @@
     border-radius: 8px;
     padding: 0 12px;
     transition: border-color 0.15s;
+    max-width: 100%;
 }
 
 .solana-search-bar:focus-within {
     border-color: var(--muted);
 }
 
-.search-icon {
-    color: var(--sub);
-    flex-shrink: 0;
-}
-
 .solana-search-bar input {
     flex: 1;
+    min-width: 200px;
     background: transparent;
     border: none;
     outline: none;
@@ -115,6 +113,36 @@
 
 .clear-btn:hover {
     color: var(--body);
+}
+
+.process-btn {
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.process-btn:hover:not(:disabled) {
+    opacity: 0.85;
+    transform: scale(1.05);
+}
+
+.process-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.process-btn.loading {
+    background: var(--surface3);
+    color: var(--green);
 }
 
 /* User avatar */

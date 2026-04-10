@@ -3,12 +3,13 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Loader2, Copy, ExternalLink, X, Search, Wallet, Receipt, 
+    Loader2, Copy, ExternalLink, X, Wallet, Receipt, 
     Image, Shield, Layers, TrendingUp, BarChart3, PieChart,
-    Activity, Clock, Flame, Droplets, Hexagon, BadgeCheck,
+    Activity, Clock, Hexagon, BadgeCheck,
     DollarSign, FileText, Zap, Bell, Crown, Star, ArrowUpRight,
-    ChevronRight, RefreshCw, Filter, Download, Eye, EyeOff
+    ChevronRight, RefreshCw, Filter, Download, Eye, EyeOff, Play
 } from 'lucide-react';
+import { Spinner, useSpinner } from '../utils/spinner';
 import './AppSolana.css';
 
 interface SolanaToken {
@@ -809,7 +810,6 @@ export default function AppSolana() {
 
                     <div className="solana-search">
                         <div className="solana-search-bar">
-                            <Search size={16} className="search-icon" />
                             <input
                                 type="text"
                                 placeholder="Enter wallet address..."
@@ -822,6 +822,13 @@ export default function AppSolana() {
                                     <X size={14} />
                                 </button>
                             )}
+                            <button 
+                                className={`process-btn ${loading ? 'loading' : ''}`}
+                                onClick={handleSearch}
+                                disabled={loading || !address}
+                            >
+                                {loading ? <Spinner name="helix" /> : <Play size={16} />}
+                            </button>
                         </div>
                     </div>
 
