@@ -64,22 +64,22 @@
 .solana-search {
     flex: 1;
     display: flex;
-    max-width: 600px;
-    min-width: 300px;
-}
+    max-width: 700px;
+    min-width: 400px;
 }
 
 .solana-search-bar {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     background: var(--surface2);
     border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 0 12px;
+    border-radius: 10px;
+    padding: 0 14px;
     transition: border-color 0.15s;
     max-width: 100%;
+    height: 46px;
 }
 
 .solana-search-bar:focus-within {
@@ -88,13 +88,14 @@
 
 .solana-search-bar input {
     flex: 1;
-    min-width: 200px;
+    min-width: 250px;
     background: transparent;
     border: none;
     outline: none;
     color: var(--primary);
-    font-size: 13px;
+    font-size: 15px;
     padding: 10px 0;
+    height: 100%;
 }
 
 .solana-search-bar input::placeholder {
@@ -106,28 +107,33 @@
     border: none;
     color: var(--sub);
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
     display: flex;
     transition: color 0.15s;
+    border-radius: 4px;
 }
 
 .clear-btn:hover {
     color: var(--body);
+    background: var(--surface1);
 }
 
 .process-btn {
     background: var(--green);
     color: #000;
     border: none;
-    border-radius: 6px;
-    width: 36px;
-    height: 36px;
+    border-radius: 8px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
     flex-shrink: 0;
+    margin-right: -2px;
+    margin-top: -2px;
+    margin-bottom: -2px;
 }
 
 .process-btn:hover:not(:disabled) {
@@ -161,7 +167,6 @@
     font-weight: 600;
     font-size: 14px;
     color: var(--primary);
-}
 }
 
 .analyze-btn:disabled {

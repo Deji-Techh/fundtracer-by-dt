@@ -174,7 +174,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     const syncNotifications = async () => {
-      // Check if we have a valid token before making request
+      // Wait for token to be available in localStorage
+      // Use a small delay to ensure auth has initialized
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const token = localStorage.getItem('fundtracer_token');
       if (!token) return;
       
@@ -200,9 +203,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    syncNotifications();
+    // Initial sync after a short delay
+    const timeout = setTimeout(syncNotifications, 500);
     const interval = setInterval(syncNotifications, 60000);
-    return () => clearInterval(interval);
+    return () => { clearTimeout(timeout); clearInterval(interval); };
   }, [user]);
 
   useEffect(() => {

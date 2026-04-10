@@ -54,12 +54,12 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor': ['react', 'react-dom'],
-          'firebase': ['firebase/app', 'firebase/auth'],
-          'router': ['react-router-dom'],
-          'charts': ['chart.js', 'react-chartjs-2', 'lightweight-charts'],
-          'pdf': ['jspdf', 'jspdf-autotable', 'html2canvas'],
+        manualChunks(id: string) {
+          if (id.includes('react') || id.includes('react-dom')) return 'vendor';
+          if (id.includes('firebase')) return 'firebase';
+          if (id.includes('react-router') || id.includes('react-router-dom')) return 'router';
+          if (id.includes('chart') || id.includes('lightweight-charts')) return 'charts';
+          if (id.includes('jspdf') || id.includes('html2canvas')) return 'pdf';
         },
       },
     },

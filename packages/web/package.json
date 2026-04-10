@@ -10,7 +10,6 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "fundtracer-core": "*",
         "@hugeicons/core-free-icons": "^3.1.1",
         "@hugeicons/react": "^1.1.4",
         "@privy-io/react-auth": "^3.17.0",
@@ -31,6 +30,7 @@
         "ethers": "^6.16.0",
         "firebase": "^10.7.1",
         "framer-motion": "^12.30.0",
+        "fundtracer-core": "*",
         "html2canvas": "^1.4.1",
         "jspdf": "^4.1.0",
         "jspdf-autotable": "^5.0.7",
@@ -42,7 +42,7 @@
         "react-dom": "^18.2.0",
         "react-router-dom": "^6.30.3",
         "uuid": "^9.0.0",
-        "vite": "^5.0.10"
+        "vite": "^8.0.8"
     },
     "devDependencies": {
         "@types/d3": "^7.4.3",
