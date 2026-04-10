@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useNavigate } from 'react-router-dom';
@@ -33,9 +33,9 @@ import FundingTree from './FundingTree';
 import TransactionList from './TransactionList';
 import AddressLabel from './AddressLabel';
 import { fetchFundingTree } from '../api';
-import { portfolioApi, type PortfolioData } from '../services/api/portfolioApi';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { getChainTokenSymbol } from '../config/chains';
+import { getChainTokenSymbol, CHAIN_CONFIG } from '../config/chains';
+import { keyManager, fetchWithTimeout, executeBatches } from '../utils/alchemyHelpers';
 
 interface WalletGridViewProps {
     result: AnalysisResult;
@@ -46,6 +46,51 @@ interface WalletGridViewProps {
 
 type PageType = 'overview' | 'transactions' | 'funding-tree' | 'portfolio';
 type OverviewTab = 'stats' | 'suspicious' | 'sources' | 'destinations';
+
+// Portfolio data interface
+interface PortfolioData {
+  wallet: string;
+  chain: string;
+  totalValue: number;
+  tokens: TokenItem[];
+  nfts: NFTItem[];
+  lastUpdated: string;
+  attribution?: { text: string; url?: string };
+}
+
+interface TokenItem {
+  address: string;
+  symbol: string;
+  name: string;
+  balance: string;
+  decimals: number;
+  price: number;
+  value: number;
+  logoUrl?: string;
+}
+
+interface NFTItem {
+  contractAddress: string;
+  tokenId: string;
+  name: string;
+  imageUrl?: string;
+  collectionName?: string;
+}
+
+// Chain to Alchemy network mapping
+const CHAIN_TO_ALCHEMY: Record<string, string> = {
+  ethereum: 'eth-mainnet',
+  eth: 'eth-mainnet',
+  linea: 'linea-mainnet',
+  arbitrum: 'arb-mainnet',
+  arb: 'arb-mainnet',
+  base: 'base-mainnet',
+  optimism: 'opt-mainnet',
+  opt: 'opt-mainnet',
+  polygon: 'polygon-mainnet',
+  matic: 'polygon-mainnet',
+  bsc: 'bsc-mainnet',
+};
 
 export default function WalletGridView({ result, pagination, loadingMore, onLoadMore }: WalletGridViewProps) {
     const [currentPage, setCurrentPage] = useState<PageType>('overview');
@@ -91,10 +136,147 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
     const handleFetchPortfolio = async () => {
         setPortfolioLoading(true);
         setPortfolioError(null);
+
+        const walletAddress = result.wallet.address;
+        const chainKey = result.wallet.chain as keyof typeof CHAIN_CONFIG;
+        const chainConfig2 = CHAIN_CONFIG[chainKey] || { id: 'linea' };
+        const alchemyNetwork = CHAIN_TO_ALCHEMY[chainConfig2.id] || 'linea-mainnet';
+
         try {
-            const data = await portfolioApi.getPortfolio(result.wallet.address, result.wallet.chain);
-            setPortfolioData(data);
+            const key = keyManager.getWalletKey();
+            if (!key) {
+                throw new Error('No Alchemy API key available');
+            }
+
+            // 1. Fetch ETH balance
+            let ethBalance = '0';
+            try {
+                const ethResponse = await fetchWithTimeout(
+                    `https://${alchemyNetwork}.g.alchemy.com/v2/${key}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            method: 'eth_getBalance',
+                            params: [walletAddress, 'latest']
+                        })
+                    },
+                    10000
+                );
+                const ethData = await ethResponse.json();
+                ethBalance = ethData.result || '0';
+            } catch (ethErr) {
+                console.error('[WalletGridView] ETH balance error:', ethErr);
+            }
+
+            // 2. Fetch token balances
+            let tokens: TokenItem[] = [];
+            try {
+                const tokenResponse = await fetchWithTimeout(
+                    `https://${alchemyNetwork}.g.alchemy.com/v2/${key}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            method: 'alchemy_getTokenBalances',
+                            params: [walletAddress]
+                        })
+                    },
+                    15000
+                );
+                const tokenData = await tokenResponse.json();
+                const rawTokens = (tokenData.result?.tokenBalances || [])
+                    .filter((t: any) => parseInt(t.tokenBalance) > 0)
+                    .slice(0, 50);
+
+                if (rawTokens.length > 0) {
+                    // Fetch metadata in parallel
+                    const metadataResults = await executeBatches(rawTokens, 10, async (token: any) => {
+                        try {
+                            const metaResponse = await fetchWithTimeout(
+                                `https://${alchemyNetwork}.g.alchemy.com/v2/${key}`,
+                                {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        jsonrpc: '2.0',
+                                        id: 1,
+                                        method: 'alchemy_getTokenMetadata',
+                                        params: [token.contractAddress]
+                                    })
+                                },
+                                5000
+                            );
+                            const metaData = await metaResponse.json();
+                            const meta = metaData.result || {};
+                            const rawBal = parseInt(token.tokenBalance);
+                            const decimals = meta.decimals || 18;
+                            const balance = rawBal / Math.pow(10, decimals);
+
+                            return {
+                                contractAddress: token.contractAddress,
+                                name: meta.name || 'Unknown Token',
+                                symbol: meta.symbol || '?',
+                                balance: balance.toString(),
+                                decimals: decimals,
+                                logoUrl: meta.logo || undefined
+                            };
+                        } catch (e) {
+                            return null;
+                        }
+                    });
+
+                    // Get prices from CoinGecko
+                    const symbols = metadataResults.filter(Boolean).map((t: any) => t.symbol).filter(Boolean);
+                    let prices: Record<string, any> = {};
+                    if (symbols.length > 0) {
+                        try {
+                            const cgResponse = await fetch(
+                                `https://api.coingecko.com/api/v3/simple/price?ids=${symbols.slice(0, 10).join(',')}&vs_currencies=usd`
+                            );
+                            const cgData = await cgResponse.json();
+                            prices = cgData;
+                        } catch (priceErr) {
+                            console.warn('[WalletGridView] Price fetch error:', priceErr);
+                        }
+                    }
+
+                    // Calculate values
+                    tokens = (metadataResults.filter(Boolean) as any[]).map((token) => {
+                        const priceData = prices[token.symbol?.toLowerCase()];
+                        const price = priceData?.usd || 0;
+                        const value = parseFloat(token.balance) * price;
+                        return {
+                            ...token,
+                            price: price,
+                            value: value
+                        };
+                    });
+                }
+            } catch (tokenErr) {
+                console.error('[WalletGridView] Token fetch error:', tokenErr);
+            }
+
+            // 3. Calculate total value (ETH + tokens)
+            const ethValue = parseInt(ethBalance) / Math.pow(10, 18);
+            const tokensValue = tokens.reduce((sum, t) => sum + t.value, 0);
+            const totalValue = ethValue * 2500 + tokensValue; // Assume $2500 ETH price
+
+            setPortfolioData({
+                wallet: walletAddress,
+                chain: result.wallet.chain,
+                totalValue: totalValue,
+                tokens: tokens,
+                nfts: [],
+                lastUpdated: new Date().toISOString()
+            });
+
         } catch (err: any) {
+            console.error('[WalletGridView] Portfolio error:', err);
             setPortfolioError(err.message || 'Failed to fetch portfolio');
         } finally {
             setPortfolioLoading(false);
