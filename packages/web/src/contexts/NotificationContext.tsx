@@ -174,6 +174,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     
     const syncNotifications = async () => {
+      // Check if we have a valid token before making request
+      const token = localStorage.getItem('fundtracer_token');
+      if (!token) return;
+      
       try {
         const response = await authenticatedFetch('/api/notifications');
         
@@ -233,14 +237,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
     
     if (user) {
-      getAuthHeaders().then(headers => {
-        fetch('/api/notifications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...headers },
-          body: JSON.stringify(newNotification),
-          credentials: 'include',
-        }).catch(() => {});
-      });
+      const token = localStorage.getItem('fundtracer_token');
+      if (token) {
+        getAuthHeaders().then(headers => {
+          fetch('/api/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...headers },
+            body: JSON.stringify(newNotification),
+            credentials: 'include',
+          }).catch(() => {});
+        });
+      }
     }
   }, [preferences.soundEnabled, preferences.pushEnabled, isTypeSnoozed, user]);
 
