@@ -44,6 +44,7 @@
         "react-dom": "^18.2.0",
         "react-router-dom": "^6.30.3",
         "rgbcolor": "^1.0.1",
+        "svg-pathdata": "^6.0.3",
         "uuid": "^9.0.0",
         "vite": "^8.0.8"
     },
