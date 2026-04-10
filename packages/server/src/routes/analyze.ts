@@ -336,82 +336,56 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: strin
     ]);
 }
 
-// Helper to sanitize compare results - convert BigInt to strings for JSON serialization
-function sanitizeCompareResult(result: any): any {
-    // Track visited objects to handle circular references
-    const seen = new WeakSet();
+// More thorough sanitization that also strips complex nested objects
+function sanitizeCompareResultDeep(result: any): any {
+    if (result === null || result === undefined) return result;
     
-    function sanitizeInternal(obj: any): any {
-        // Handle null/undefined
-        if (obj === null || obj === undefined) return obj;
-        
-        // Handle primitives
-        const type = typeof obj;
-        if (type === 'bigint') return obj.toString();
-        if (type === 'symbol') return obj.toString();
-        if (type === 'function') return undefined;
-        if (type !== 'object') return obj;
-        
-        // Check for circular reference
-        if (seen.has(obj)) return '[Circular]';
-        
-        // Handle arrays
-        if (Array.isArray(obj)) {
-            seen.add(obj);
-            return obj.map(item => sanitizeInternal(item));
-        }
-        
-        // Handle Date
-        if (obj instanceof Date) {
-            return obj.toISOString();
-        }
-        
-        // Handle Map - convert to plain object
-        if (obj instanceof Map) {
-            seen.add(obj);
-            const resultObj: any = {};
-            obj.forEach((value, key) => {
-                resultObj[String(key)] = sanitizeInternal(value);
-            });
-            return resultObj;
-        }
-        
-        // Handle Set - convert to array
-        if (obj instanceof Set) {
-            seen.add(obj);
-            return Array.from(obj).map(item => sanitizeInternal(item));
-        }
-        
-        // Handle Buffer
-        if (Buffer.isBuffer(obj)) {
-            return obj.toString('base64');
-        }
-        
-        // Handle Uint8Array
-        if (obj instanceof Uint8Array) {
-            return Buffer.from(obj).toString('base64');
-        }
-        
-        // Handle plain object - recursively sanitize all values
-        seen.add(obj);
-        const sanitized: any = {};
-        try {
-            const entries = Object.entries(obj);
-            for (const [key, value] of entries) {
-                try {
-                    sanitized[key] = sanitizeInternal(value);
-                } catch (e) {
-                    sanitized[key] = undefined;
-                }
-            }
-        } catch (e) {
-            return undefined;
-        }
-        
-        return sanitized;
+    const type = typeof result;
+    if (type === 'bigint') return result.toString();
+    if (type === 'symbol') return result.toString();
+    if (type === 'function') return undefined;
+    if (type !== 'object') return result;
+    
+    if (Array.isArray(result)) {
+        return result.map(item => sanitizeCompareResultDeep(item));
     }
     
-    return sanitizeInternal(result);
+    // For objects, only keep primitive/simple values
+    const sanitized: any = {};
+    try {
+        for (const [key, value] of Object.entries(result)) {
+            if (value === null || value === undefined) {
+                sanitized[key] = null;
+            } else if (typeof value === 'bigint') {
+                sanitized[key] = value.toString();
+            } else if (typeof value === 'symbol') {
+                sanitized[key] = value.toString();
+            } else if (typeof value === 'function') {
+                sanitized[key] = undefined;
+            } else if (Array.isArray(value)) {
+                sanitized[key] = value.map(item => sanitizeCompareResultDeep(item));
+            } else if (typeof value === 'object') {
+                // Recursively process nested objects but skip if it's a complex type
+                if (value instanceof Date) {
+                    sanitized[key] = value.toISOString();
+                } else if (value instanceof Map || value instanceof Set) {
+                    sanitized[key] = undefined;
+                } else if (Buffer.isBuffer(value) || value instanceof Uint8Array) {
+                    sanitized[key] = '[Binary]';
+                } else {
+                    // For nested objects, only keep if they look like simple data
+                    const nested = sanitizeCompareResultDeep(value);
+                    sanitized[key] = typeof nested === 'object' && nested !== null ? nested : nested;
+                }
+            } else {
+                sanitized[key] = value;
+            }
+        }
+    } catch (e) {
+        return undefined;
+    }
+    
+    return sanitized;
 }
 
 // Helper to validate Free Tier transaction
@@ -780,7 +754,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
     const compareCacheKey = `compare:${compareChain}:${addresses.map(a => a.toLowerCase()).sort().join(',')}`;
     const compareCached = await cacheGetCached<any>(compareCacheKey);
     if (compareCached) {
-        const sanitizedCached = sanitizeCompareResult(compareCached);
+        const sanitizedCached = sanitizeCompareResultDeep(compareCached);
         return res.json({ success: true, result: sanitizedCached, usageRemaining: res.locals.usageRemaining, cached: true });
     }
 
@@ -819,7 +793,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
 
         const result = await analyzer.compareWallets(addresses, chain as ChainId, options);
 
-        const sanitizedResult = sanitizeCompareResult(result);
+        const sanitizedResult = sanitizeCompareResultDeep(result);
 
         res.json({
             success: true,
