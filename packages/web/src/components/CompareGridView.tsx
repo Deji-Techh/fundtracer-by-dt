@@ -51,6 +51,19 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
 
         const formatAddress = (addr: string) => `${(addr || '').slice(0, 6)}...${(addr || '').slice(-4)}`;
 
+        // Safe number formatter - handles any input type
+        const safeNumber = (val: any, decimals = 4): string => {
+            if (val === null || val === undefined) return '0';
+            const num = typeof val === 'number' ? val : parseFloat(String(val));
+            return isNaN(num) ? '0' : num.toFixed(decimals);
+        };
+
+        // Safe string formatter - handles null/undefined
+        const safeString = (val: any): string => {
+            if (val === null || val === undefined) return '';
+            return String(val);
+        };
+
         const pages: PageType[] = ['overview', 'common-funding', 'direct-transfers'];
         const currentIndex = pages.indexOf(currentPage);
         const canGoBack = currentIndex > 0;
@@ -387,15 +400,15 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                                 <ArrowRightIcon size={16} />
                                                 <span 
                                                     className="wallet"
-                                                    onMouseEnter={(e) => setHoveredAddress({ address: transfer.to, x: e.clientX, y: e.clientY })}
+                                                    onMouseEnter={(e) => setHoveredAddress({ address: safeString(transfer.to), x: e.clientX, y: e.clientY })}
                                                     onMouseLeave={() => setHoveredAddress(null)}
                                                 >
-                                                    {formatAddress(transfer.to)}
+                                                    {formatAddress(safeString(transfer.to))}
                                                 </span>
                                             </div>
                                             <div className="transfer-info">
-                                                <span className="tx-count">{transfer.transferCount} transfers</span>
-                                                <span className="total-value">{transfer.totalValueEth.toFixed(4)} {tokenSymbol}</span>
+                                                <span className="tx-count">{safeNumber(transfer.transferCount, 0)} transfers</span>
+                                                <span className="total-value">{safeNumber(transfer.totalValueEth)} {tokenSymbol}</span>
                                             </div>
                                         </motion.div>
                                     ))
