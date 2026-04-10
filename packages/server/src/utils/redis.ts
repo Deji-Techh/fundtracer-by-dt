@@ -19,8 +19,16 @@ export async function initRedis(): Promise<Redis | null> {
   }
   
   try {
+    const redisToken = process.env.REDIS_TOKEN;
+    
+    if (!redisToken) {
+      console.log('[Redis] REDIS_TOKEN not set, using in-memory fallback');
+      return null;
+    }
+    
     redis = new Redis({
       url: redisUrl,
+      token: redisToken,
       enableAutoPipelining: true,
     });
     
