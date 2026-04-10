@@ -812,7 +812,7 @@ export default function AppSolana() {
                             <Search size={16} className="search-icon" />
                             <input
                                 type="text"
-                                placeholder="Search Solana address..."
+                                placeholder="Enter wallet address..."
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -823,9 +823,6 @@ export default function AppSolana() {
                                 </button>
                             )}
                         </div>
-                        <button className="analyze-btn" onClick={handleSearch} disabled={loading}>
-                            {loading ? <Loader2 size={16} className="spin" /> : 'Analyze'}
-                        </button>
                     </div>
 
                     <div className="solana-user">
@@ -847,8 +844,8 @@ export default function AppSolana() {
                     </div>
                 )}
 
-                {portfolio && !loading && (
-                    <div className="solana-content">
+                <div className="solana-content">
+                    {portfolio && (
                         <div className="wallet-header-bar">
                             <div className="wallet-info-bar">
                                 <div className="wallet-address-row">
@@ -867,34 +864,34 @@ export default function AppSolana() {
                                 <RefreshCw size={16} />
                             </button>
                         </div>
+                    )}
 
-                        <div className="features-grid">
-                            {features.map((feature) => (
-                                <motion.button
-                                    key={feature.id}
-                                    className="feature-box"
-                                    onClick={() => setActiveFeature(feature.id as FeatureType)}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                >
-                                    <div className="feature-icon">
-                                        <feature.icon size={24} />
-                                    </div>
-                                    <span className="feature-label">{feature.label}</span>
-                                    <span className="feature-desc">{feature.desc}</span>
-                                    <ChevronRight size={16} className="feature-arrow" />
-                                </motion.button>
-                            ))}
-                        </div>
+                    <div className="features-grid">
+                        {features.map((feature) => (
+                            <motion.button
+                                key={feature.id}
+                                className="feature-box"
+                                onClick={() => setActiveFeature(feature.id as FeatureType)}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <div className="feature-icon">
+                                    <feature.icon size={24} />
+                                </div>
+                                <span className="feature-label">{feature.label}</span>
+                                <span className="feature-desc">{feature.desc}</span>
+                                <ChevronRight size={16} className="feature-arrow" />
+                            </motion.button>
+                        ))}
                     </div>
-                )}
+                </div>
 
                 {!portfolio && !loading && (
                     <div className="solana-empty">
                         <div className="empty-content">
                             <Wallet size={48} />
                             <h2>Solana Wallet Analyzer</h2>
-                            <p>Enter a Solana wallet address to analyze portfolio, transactions, NFTs, DeFi positions, and risk score.</p>
+                            <p>Enter a wallet address to analyze portfolio, transactions, NFTs, DeFi positions, and risk score.</p>
                             <div className="sample-addresses">
                                 <span>Try:</span>
                                 <button onClick={() => setAddress('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU')}>7xKX...sAsU</button>
