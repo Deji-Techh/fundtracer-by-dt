@@ -62,8 +62,8 @@ export async function cacheSetCached<T>(key: string, value: T, ttlSeconds?: numb
   const data = JSON.stringify(value);
   const ttl = ttlSeconds || 60;
   
-  // Set in Redis (also writes to memory fallback internally in redis.ts)
-  await cacheSet(key, value, ttl);
+  // Set in Redis with stringified value
+  await cacheSet(key, data, ttl);
   
   // Also update memory fallback directly
   memoryCache.set(key, { value: data, expires: Date.now() + ttl * 1000 });

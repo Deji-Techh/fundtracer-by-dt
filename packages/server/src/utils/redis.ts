@@ -108,7 +108,13 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
     try {
       const cached = await redis.get<string>(key);
       if (cached) {
-        return JSON.parse(cached) as T;
+        try {
+          return JSON.parse(cached) as T;
+        } catch (parseError) {
+          console.error('[Redis] JSON parse error, deleting corrupted key:', key);
+          await redis.del(key);
+          return null;
+        }
       }
     } catch (error) {
       console.error('[Redis] Get error:', error);
