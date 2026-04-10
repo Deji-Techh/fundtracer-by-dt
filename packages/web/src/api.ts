@@ -5,6 +5,19 @@
 import { ChainId, AnalysisResult, MultiWalletResult, FundingNode } from '@fundtracer/core';
 import type { ApiKeyData } from './firebase';
 
+// Normalize chain ID from frontend format to server format
+function normalizeChainForApi(chain: ChainId): string {
+    const mapping: Record<string, string> = {
+        'eth': 'ethereum',
+        'arb': 'arbitrum',
+        'opt': 'optimism',
+        'polygon_pos': 'polygon',
+        'matic': 'polygon',
+        'binance': 'bsc',
+    };
+    return mapping[chain] || chain;
+}
+
 // In production, assume the API is on the same domain if not specified (e.g., via proxy)
 // Or use a hardcoded production URL if frontend/backend are separate
 // In production, endpoints already include '/api' prefix, so base should be empty
@@ -241,7 +254,8 @@ export async function analyzeWallet(
     chain: ChainId,
     options?: { limit?: number; offset?: number;[key: string]: any }
 ): Promise<ApiResponse<AnalysisResult & { pagination?: { total: number; offset: number; limit: number; hasMore: boolean } }>> {
-    return apiRequest('/api/analyze/wallet', 'POST', { address, chain, options });
+    const normalizedChain = normalizeChainForApi(chain);
+    return apiRequest('/api/analyze/wallet', 'POST', { address, chain: normalizedChain, options });
 }
 
 // Load more transactions (for infinite scroll)
@@ -251,9 +265,10 @@ export async function loadMoreTransactions(
     offset: number,
     limit: number = 100
 ): Promise<{ transactions: any[]; pagination: { total: number; offset: number; limit: number; hasMore: boolean } }> {
+    const normalizedChain = normalizeChainForApi(chain);
     const response = await apiRequest<any>('/api/analyze/wallet', 'POST', {
         address,
-        chain,
+        chain: normalizedChain,
         options: { offset, limit }
     });
     return {
@@ -267,7 +282,8 @@ export async function compareWallets(
     chain: ChainId,
     options?: { txHash?: string }
 ): Promise<ApiResponse<MultiWalletResult>> {
-    return apiRequest('/api/analyze/compare', 'POST', { addresses, chain, txHash: options?.txHash });
+    const normalizedChain = normalizeChainForApi(chain);
+    return apiRequest('/api/analyze/compare', 'POST', { addresses, chain: normalizedChain, txHash: options?.txHash });
 }
 
 // Fetch funding tree on-demand (separate from initial wallet analysis for speed)
@@ -276,7 +292,8 @@ export async function fetchFundingTree(
     chain: ChainId,
     maxDepth?: number
 ): Promise<ApiResponse<{ fundingSources: FundingNode; fundingDestinations: FundingNode }>> {
-    const body: any = { address, chain };
+    const normalizedChain = normalizeChainForApi(chain);
+    const body: any = { address, chain: normalizedChain };
     if (maxDepth !== undefined) {
         body.options = { treeConfig: { maxDepth } };
     }
@@ -288,7 +305,8 @@ export async function analyzeContract(
     chain: ChainId,
     options?: { maxInteractors?: number; analyzeFunding?: boolean; txHash?: string }
 ): Promise<ApiResponse<any>> {
-    return apiRequest('/api/analyze/contract', 'POST', { contractAddress, chain, options });
+    const normalizedChain = normalizeChainForApi(chain);
+    return apiRequest('/api/analyze/contract', 'POST', { contractAddress, chain: normalizedChain, options });
 }
 
 // CEX Flow Analysis
@@ -328,9 +346,10 @@ export async function analyzeCEXFlow(
     chain: ChainId,
     options?: { cexName?: string; depth?: number }
 ): Promise<ApiResponse<CEXFlowResult>> {
+    const normalizedChain = normalizeChainForApi(chain);
     return apiRequest('/api/analyze/cex-flow', 'POST', { 
         walletAddress, 
-        chain,
+        chain: normalizedChain,
         ...options 
     });
 }
@@ -341,7 +360,8 @@ export async function searchContract(query: string): Promise<{ address: string |
 }
 
 export async function getContractInfo(address: string, chain: ChainId): Promise<any> {
-    return apiRequest('/api/contracts/info', 'POST', { address, chain });
+    const normalizedChain = normalizeChainForApi(chain);
+    return apiRequest('/api/contracts/info', 'POST', { address, chain: normalizedChain });
 }
 
 // Contract search for ContractSearch component
@@ -369,9 +389,10 @@ export async function fetchDuneInteractors(
     chain: ChainId,
     options?: { limit?: number; customApiKey?: string }
 ): Promise<{ success: boolean; wallets?: string[]; error?: string }> {
+    const normalizedChain = normalizeChainForApi(chain);
     return apiRequest('/api/dune/fetch', 'POST', {
         contractAddress,
-        chain,
+        chain: normalizedChain,
         ...options
     });
 }
@@ -382,7 +403,8 @@ export async function analyzeSybilAddresses(
     chain: ChainId,
     options?: { txHash?: string }
 ): Promise<{ success: boolean; result?: any; error?: string }> {
-    return apiRequest('/api/analyze/sybil-addresses', 'POST', { addresses, chain, txHash: options?.txHash });
+    const normalizedChain = normalizeChainForApi(chain);
+    return apiRequest('/api/analyze/sybil-addresses', 'POST', { addresses, chain: normalizedChain, txHash: options?.txHash });
 }
 
 // Search tokens via CoinGecko
