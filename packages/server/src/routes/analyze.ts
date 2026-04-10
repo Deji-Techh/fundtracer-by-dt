@@ -338,44 +338,80 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: strin
 
 // Helper to sanitize compare results - convert BigInt to strings for JSON serialization
 function sanitizeCompareResult(result: any): any {
-    if (result === null || result === undefined) return result;
+    // Track visited objects to handle circular references
+    const seen = new WeakSet();
     
-    // Handle primitives
-    if (typeof result === 'bigint') return result.toString();
-    if (typeof result === 'symbol') return result.toString();
-    if (typeof result === 'function') return undefined;
-    if (typeof result !== 'object') return result;
-    
-    // Handle Map - convert to plain object or array
-    if (result instanceof Map) {
-        return Object.fromEntries(result);
+    function sanitizeInternal(obj: any): any {
+        // Handle null/undefined
+        if (obj === null || obj === undefined) return obj;
+        
+        // Handle primitives
+        const type = typeof obj;
+        if (type === 'bigint') return obj.toString();
+        if (type === 'symbol') return obj.toString();
+        if (type === 'function') return undefined;
+        if (type !== 'object') return obj;
+        
+        // Check for circular reference
+        if (seen.has(obj)) return '[Circular]';
+        
+        // Handle arrays
+        if (Array.isArray(obj)) {
+            seen.add(obj);
+            return obj.map(item => sanitizeInternal(item));
+        }
+        
+        // Handle Date
+        if (obj instanceof Date) {
+            return obj.toISOString();
+        }
+        
+        // Handle Map - convert to plain object
+        if (obj instanceof Map) {
+            seen.add(obj);
+            const resultObj: any = {};
+            obj.forEach((value, key) => {
+                resultObj[String(key)] = sanitizeInternal(value);
+            });
+            return resultObj;
+        }
+        
+        // Handle Set - convert to array
+        if (obj instanceof Set) {
+            seen.add(obj);
+            return Array.from(obj).map(item => sanitizeInternal(item));
+        }
+        
+        // Handle Buffer
+        if (Buffer.isBuffer(obj)) {
+            return obj.toString('base64');
+        }
+        
+        // Handle Uint8Array
+        if (obj instanceof Uint8Array) {
+            return Buffer.from(obj).toString('base64');
+        }
+        
+        // Handle plain object - recursively sanitize all values
+        seen.add(obj);
+        const sanitized: any = {};
+        try {
+            const entries = Object.entries(obj);
+            for (const [key, value] of entries) {
+                try {
+                    sanitized[key] = sanitizeInternal(value);
+                } catch (e) {
+                    sanitized[key] = undefined;
+                }
+            }
+        } catch (e) {
+            return undefined;
+        }
+        
+        return sanitized;
     }
     
-    // Handle Set - convert to array
-    if (result instanceof Set) {
-        return Array.from(result).map(item => sanitizeCompareResult(item));
-    }
-    
-    // Handle Date
-    if (result instanceof Date) {
-        return result.toISOString();
-    }
-    
-    // Handle Buffer/Uint8Array
-    if (result instanceof Uint8Array || (result.type === 'Buffer' && Array.isArray(result.data))) {
-        return Buffer.from(result).toString('base64');
-    }
-    
-    if (Array.isArray(result)) {
-        return result.map(item => sanitizeCompareResult(item));
-    }
-    
-    // Handle plain object
-    const sanitized: any = {};
-    for (const [key, value] of Object.entries(result)) {
-        sanitized[key] = sanitizeCompareResult(value);
-    }
-    return sanitized;
+    return sanitizeInternal(result);
 }
 
 // Helper to validate Free Tier transaction
