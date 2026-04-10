@@ -11,7 +11,9 @@ import {
     SybilAnalyzer,
     ChainId,
     FilterOptions,
-    SuiProvider
+    SuiProvider,
+    setCallerContext,
+    clearCallerContext
 } from '@fundtracer/core';
 import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
@@ -476,12 +478,14 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         const offset = options?.offset || 0;
 
         console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 180s timeout...`);
+        setCallerContext('wallet-analyze');
         const txLimit = options?.limit || 100000;
         const result = await withTimeout(
             analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: txLimit, skipFundingTree: true }),
             180000, // Increased to 180s for large wallets
             'Wallet analysis'
         );
+        clearCallerContext();
 
         // Paginate transactions - return up to limit
         const totalTransactions = result.transactions.length;
@@ -832,6 +836,7 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         }
 
         console.log('[DEBUG] Starting contract analysis with 180s timeout...');
+        setCallerContext('contract-analyze');
         const result = await withTimeout(
             analyzer.analyzeContract(contractAddress, chain as ChainId, {
                 maxInteractors: options?.maxInteractors || 100,
@@ -841,6 +846,7 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
             180000, // 180 second timeout for complete contract analysis
             'Contract analysis'
         );
+        clearCallerContext();
 
         console.log('[DEBUG] Contract analysis complete, sending response');
         res.json({
@@ -919,6 +925,7 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
         const analyzer = new SybilAnalyzer(chain as ChainId, alchemyConfig);
 
         console.log('[DEBUG] Starting sybil analysis with 300s timeout...');
+        setCallerContext('sybil-analyze');
         const result = await withTimeout(
             analyzer.analyzeContract(contractAddress, {
                 maxInteractors: options?.maxInteractors || 500,
@@ -927,6 +934,7 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
             600000, // 10 minute timeout for sybil analysis
             'Sybil analysis'
         );
+        clearCallerContext();
 
         console.log('[DEBUG] Sybil analysis complete, sending response');
         res.json({
@@ -994,6 +1002,7 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
             sybilConfig: sybilConfig,
         });
 
+        setCallerContext('batch-analyze');
         const results = await Promise.allSettled(
             validAddresses.map(addr =>
                 analyzer.analyze(addr, normalizedChain as ChainId, {
@@ -1002,6 +1011,7 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
                 })
             )
         );
+        clearCallerContext();
 
         const batchResults = results.map((result, i) => {
             if (result.status === 'fulfilled') {
@@ -1102,6 +1112,7 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
         console.log(`[DEBUG] Starting sybil analysis on ${validAddresses.length} addresses...`);
         const startTime = Date.now();
         
+        setCallerContext('sybil-addresses');
         const result = await withTimeout(
             analyzer.analyzeAddresses(validAddresses, {
                 minClusterSize: options?.minClusterSize || 3,
@@ -1109,6 +1120,7 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
             600000, // 10 minute timeout
             'Sybil analysis'
         );
+        clearCallerContext();
         
         const duration = (Date.now() - startTime) / 1000;
         console.log(`[DEBUG] Sybil analysis complete in ${duration}s`);
@@ -1170,11 +1182,13 @@ router.post('/cex-flow', async (req: AuthenticatedRequest, res: Response) => {
             sybilConfig: sybilConfig,
         });
         
+        setCallerContext('cex-flow-analyze');
         const walletResult = await withTimeout(
             analyzer.analyze(walletAddress, normalizedChain as ChainId, { transactionLimit: 500, skipFundingTree: true }),
             180000,
             'Wallet analysis for CEX flow'
         );
+        clearCallerContext();
         
         // Get transactions from the result
         const transactions = (walletResult.transactions || []).map((tx: any) => ({

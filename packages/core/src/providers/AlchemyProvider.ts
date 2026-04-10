@@ -22,6 +22,21 @@ import { AlchemyKeyPool, type SybilAlchemyConfig } from '../utils/AlchemyKeyPool
 /** Debug flag - set FUNDTRACER_DEBUG=true to see verbose logs */
 const DEBUG = process.env.FUNDTRACER_DEBUG === 'true';
 
+/** Context tracking - identifies what triggered timestamp fetching */
+let currentCallerContext = 'unknown';
+
+export function setCallerContext(context: string) {
+    currentCallerContext = context;
+}
+
+export function getCallerContext(): string {
+    return currentCallerContext;
+}
+
+export function clearCallerContext() {
+    currentCallerContext = 'unknown';
+}
+
 /** Alchemy RPC URLs per chain - BSC not supported by Alchemy, use Moralis */
 const ALCHEMY_URLS: Partial<Record<ChainId, string>> = {
     ethereum: 'https://eth-mainnet.g.alchemy.com/v2/',
@@ -480,7 +495,7 @@ export class AlchemyProvider {
         // Fetch missing timestamps for transactions where timestamp is 0
         const txsNeedingTimestamp = transactions.filter(tx => tx.timestamp === 0);
         if (txsNeedingTimestamp.length > 0) {
-            console.log(`[AlchemyProvider] Fetching timestamps for ${txsNeedingTimestamp.length} transactions with missing timestamps`);
+            console.log(`[AlchemyProvider] Wallet Fetch: Fetching timestamps for ${txsNeedingTimestamp.length} transactions (txs need timestamp: ${txsNeedingTimestamp.length}, total txs: ${transactions.length})`);
             await this.fetchMissingTimestamps(txsNeedingTimestamp);
         }
 
@@ -522,7 +537,7 @@ export class AlchemyProvider {
         const allKeys = this.keyPool!.getAllContractKeys();
         const numKeys = allKeys.length;
         
-        if (DEBUG) console.log(`[AlchemyProvider] Using ${numKeys} keys for timestamp fetching`);
+        console.log(`[AlchemyProvider] fetchTimestampsWithKeyPool: Fetching timestamps for ${blockNumbers.length} unique blocks using ${numKeys} keys (caller: ${getCallerContext()})`);
 
         for (let i = 0; i < blockNumbers.length; i += BATCH_SIZE) {
             const batch = blockNumbers.slice(i, i + BATCH_SIZE);
