@@ -20,6 +20,7 @@ import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength, isValidSuiAddress } from '../utils/validation.js';
 import { cache } from '../utils/cache.js';
+import { cacheGetCached, cacheSetCached } from '../services/apiCache.js';
 import { sendEmail, buildFirstAnalysisEmail } from '../services/EmailService.js';
 import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
 
@@ -443,18 +444,11 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
-    // Handle Sui using SuiProvider
-    if (normalizedChain === 'sui') {
-        // Validate Sui address
-        if (!SUI_ADDRESS_REGEX.test(address)) {
-            return res.status(400).json({ error: 'Invalid Sui wallet address format. Expected 64 hex characters starting with 0x.' });
-        }
-        return handleSuiAnalysis(req, res, address, options);
-    }
-
-    // EVM address validation
-    if (!ETH_ADDRESS_REGEX.test(address)) {
-        return res.status(400).json({ error: 'Invalid wallet address format' });
+    // Contract Redis cache check (4 day TTL)
+    const contractCacheKey = `contract:${normalizedChain}:${contractAddress.toLowerCase()}`;
+    const contractCached = await cacheGetCached<any>(contractCacheKey);
+    if (contractCached) {
+        return res.json({ success: true, result: contractCached, usageRemaining: res.locals.usageRemaining, cached: true });
     }
 
     try {
@@ -509,6 +503,22 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             },
             usageRemaining: res.locals.usageRemaining,
         });
+
+        // Save wallet result to Redis (4 day TTL)
+        const walletEnriched = {
+            ...enrichAnalysisResult({
+                ...result,
+                transactions: paginatedTransactions,
+            }),
+            pagination: {
+                offset,
+                limit,
+                total: totalTransactions,
+                hasMore,
+                returned: paginatedTransactions.length,
+            },
+        };
+        cacheSetCached(walletCacheKey, walletEnriched, 345600).catch(() => {});
 
         // Track analytics (async, don't await to avoid slowing response)
         trackAnalysis({
@@ -687,6 +697,14 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         });
     }
 
+    // Compare Redis cache check (4 day TTL)
+    const compareChain = chain?.toLowerCase();
+    const compareCacheKey = `compare:${compareChain}:${addresses.map(a => a.toLowerCase()).sort().join(',')}`;
+    const compareCached = await cacheGetCached<any>(compareCacheKey);
+    if (compareCached) {
+        return res.json({ success: true, result: compareCached, usageRemaining: res.locals.usageRemaining, cached: true });
+    }
+
     // Validate all addresses
     for (const addr of addresses) {
         if (!ETH_ADDRESS_REGEX.test(addr)) {
@@ -694,14 +712,11 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         }
     }
 
-    // Normalize chain to lowercase
-    const normalizedChainCompare = chain?.toLowerCase();
-
     // Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(normalizedChainCompare)) {
-        if (UNSUPPORTED_CHAINS.includes(normalizedChainCompare)) {
+    if (!ALLOWED_CHAINS.includes(compareChain)) {
+        if (UNSUPPORTED_CHAINS.includes(compareChain)) {
             return res.status(400).json({ 
-                error: `${normalizedChainCompare.charAt(0).toUpperCase() + normalizedChainCompare.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+                error: `${compareChain.charAt(0).toUpperCase() + compareChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
             });
         }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
@@ -851,9 +866,12 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         console.log('[DEBUG] Contract analysis complete, sending response');
         res.json({
             success: true,
-            result: enrichAnalysisResult(result),
+            result,
             usageRemaining: res.locals.usageRemaining,
         });
+
+        // Save compare result to Redis (4 day TTL)
+        cacheSetCached(compareCacheKey, result, 345600).catch(() => {});
 
         // Track analytics
         trackAnalysis({
