@@ -340,37 +340,42 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: strin
 function sanitizeCompareResult(result: any): any {
     if (result === null || result === undefined) return result;
     
-    if (typeof result === 'bigint') {
-        return result.toString();
+    // Handle primitives
+    if (typeof result === 'bigint') return result.toString();
+    if (typeof result === 'symbol') return result.toString();
+    if (typeof result === 'function') return undefined;
+    if (typeof result !== 'object') return result;
+    
+    // Handle Map - convert to plain object or array
+    if (result instanceof Map) {
+        return Object.fromEntries(result);
+    }
+    
+    // Handle Set - convert to array
+    if (result instanceof Set) {
+        return Array.from(result).map(item => sanitizeCompareResult(item));
+    }
+    
+    // Handle Date
+    if (result instanceof Date) {
+        return result.toISOString();
+    }
+    
+    // Handle Buffer/Uint8Array
+    if (result instanceof Uint8Array || (result.type === 'Buffer' && Array.isArray(result.data))) {
+        return Buffer.from(result).toString('base64');
     }
     
     if (Array.isArray(result)) {
         return result.map(item => sanitizeCompareResult(item));
     }
     
-    if (typeof result === 'object') {
-        const sanitized: any = {};
-        for (const [key, value] of Object.entries(result)) {
-            if (value === null || value === undefined) {
-                sanitized[key] = value;
-            } else if (typeof value === 'bigint') {
-                sanitized[key] = value.toString();
-            } else if (typeof value === 'object' && !Array.isArray(value)) {
-                sanitized[key] = sanitizeCompareResult(value);
-            } else if (Array.isArray(value)) {
-                sanitized[key] = value.map(item => {
-                    if (typeof item === 'bigint') return item.toString();
-                    if (typeof item === 'object') return sanitizeCompareResult(item);
-                    return item;
-                });
-            } else {
-                sanitized[key] = value;
-            }
-        }
-        return sanitized;
+    // Handle plain object
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(result)) {
+        sanitized[key] = sanitizeCompareResult(value);
     }
-    
-    return result;
+    return sanitized;
 }
 
 // Helper to validate Free Tier transaction
@@ -739,7 +744,8 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
     const compareCacheKey = `compare:${compareChain}:${addresses.map(a => a.toLowerCase()).sort().join(',')}`;
     const compareCached = await cacheGetCached<any>(compareCacheKey);
     if (compareCached) {
-        return res.json({ success: true, result: compareCached, usageRemaining: res.locals.usageRemaining, cached: true });
+        const sanitizedCached = sanitizeCompareResult(compareCached);
+        return res.json({ success: true, result: sanitizedCached, usageRemaining: res.locals.usageRemaining, cached: true });
     }
 
     // Validate all addresses
