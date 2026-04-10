@@ -167,9 +167,16 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                 );
                 const ethData = await ethResponse.json();
                 ethBalance = ethData.result || '0';
+                console.log('[WalletGridView] ETH balance raw:', ethBalance);
             } catch (ethErr) {
                 console.error('[WalletGridView] ETH balance error:', ethErr);
             }
+
+            // Convert hex to decimal
+            const ethValue = ethBalance.startsWith('0x') 
+                ? parseInt(ethBalance, 16) / Math.pow(10, 18)
+                : parseFloat(ethBalance) / Math.pow(10, 18);
+            console.log('[WalletGridView] ETH value:', ethValue);
 
             // 2. Fetch token balances
             let tokens: TokenItem[] = [];
@@ -262,9 +269,9 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
             }
 
             // 3. Calculate total value (ETH + tokens)
-            const ethValue = parseInt(ethBalance) / Math.pow(10, 18);
             const tokensValue = tokens.reduce((sum, t) => sum + t.value, 0);
             const totalValue = ethValue * 2500 + tokensValue; // Assume $2500 ETH price
+            console.log('[WalletGridView] Total value:', totalValue, 'ETH:', ethValue, 'Tokens:', tokensValue);
 
             setPortfolioData({
                 wallet: walletAddress,
