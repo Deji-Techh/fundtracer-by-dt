@@ -1,6 +1,6 @@
 // ============================================================
 // FundTracer by DT - Solana Key Pool Manager
-// Manages 20 Alchemy keys + QuickNode for Solana operations
+// Manages Helius keys for Solana operations
 // ============================================================
 
 import { cache } from '../utils/cache.js';
@@ -36,11 +36,36 @@ export class SolanaKeyPoolManager {
     private initKeys() {
         const keyCount = 20;
         for (let i = 1; i <= keyCount; i++) {
-            const envKey = `ALCHEMY_SOLANA_KEY_${String(i).padStart(2, '0')}`;
+            const envKey = `HELIUS_KEY_${String(i).padStart(2, '0')}`;
             const key = process.env[envKey];
             
             if (key) {
-                const endpoint = `https://solana-mainnet.g.alchemy.com/v2/${key}`;
+                const endpoint = `https://mainnet.helius-rpc.com/?api-key=${key}`;
+                this.keys.push({
+                    key,
+                    endpoint,
+                    requestsThisMinute: 0,
+                    requestsThisMonth: 0,
+                    totalCUs: 0,
+                    consecutiveErrors: 0,
+                    lastErrorAt: null,
+                    circuitOpen: false,
+                    circuitOpenUntil: null,
+                    avgLatencyMs: 0,
+                });
+            }
+        }
+
+        // Fallback: check for older HELIUS_KEY_1, _2, _3
+        const fallbackKeys = [
+            process.env.HELIUS_KEY_1,
+            process.env.HELIUS_KEY_2,
+            process.env.HELIUS_KEY_3,
+        ].filter(Boolean);
+
+        for (const key of fallbackKeys) {
+            if (key && !this.keys.find(k => k.key === key)) {
+                const endpoint = `https://mainnet.helius-rpc.com/?api-key=${key}`;
                 this.keys.push({
                     key,
                     endpoint,
@@ -57,7 +82,7 @@ export class SolanaKeyPoolManager {
         }
 
         if (this.keys.length === 0) {
-            console.warn('[SolanaKeyPool] No Alchemy keys found, using fallback');
+            console.warn('[SolanaKeyPool] No Helius keys found, using fallback');
             const fallbackKey = process.env.ALCHEMY_SOLANA_KEY || process.env.ALCHEMY_KEY_01;
             if (fallbackKey) {
                 this.keys.push({
