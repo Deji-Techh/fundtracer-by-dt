@@ -336,6 +336,43 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: strin
     ]);
 }
 
+// Helper to sanitize compare results - convert BigInt to strings for JSON serialization
+function sanitizeCompareResult(result: any): any {
+    if (result === null || result === undefined) return result;
+    
+    if (typeof result === 'bigint') {
+        return result.toString();
+    }
+    
+    if (Array.isArray(result)) {
+        return result.map(item => sanitizeCompareResult(item));
+    }
+    
+    if (typeof result === 'object') {
+        const sanitized: any = {};
+        for (const [key, value] of Object.entries(result)) {
+            if (value === null || value === undefined) {
+                sanitized[key] = value;
+            } else if (typeof value === 'bigint') {
+                sanitized[key] = value.toString();
+            } else if (typeof value === 'object' && !Array.isArray(value)) {
+                sanitized[key] = sanitizeCompareResult(value);
+            } else if (Array.isArray(value)) {
+                sanitized[key] = value.map(item => {
+                    if (typeof item === 'bigint') return item.toString();
+                    if (typeof item === 'object') return sanitizeCompareResult(item);
+                    return item;
+                });
+            } else {
+                sanitized[key] = value;
+            }
+        }
+        return sanitized;
+    }
+    
+    return result;
+}
+
 // Helper to validate Free Tier transaction
 import { JsonRpcProvider } from 'ethers';
 
@@ -740,15 +777,17 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
 
         const result = await analyzer.compareWallets(addresses, chain as ChainId, options);
 
+        const sanitizedResult = sanitizeCompareResult(result);
+
         res.json({
             success: true,
-            result,
+            result: sanitizedResult,
             usageRemaining: res.locals.usageRemaining,
         });
 
         // Save compare result to Redis (4 day TTL)
         const compareCacheKey = `compare:${compareChain}:${addresses.map(a => a.toLowerCase()).sort().join(',')}`;
-        cacheSetCached(compareCacheKey, result, 345600).catch(() => {});
+        cacheSetCached(compareCacheKey, sanitizedResult, 345600).catch(() => {});
 
         // Track analytics
         trackAnalysis({
