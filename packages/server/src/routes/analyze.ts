@@ -746,6 +746,10 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
             usageRemaining: res.locals.usageRemaining,
         });
 
+        // Save compare result to Redis (4 day TTL)
+        const compareCacheKey = `compare:${compareChain}:${addresses.map(a => a.toLowerCase()).sort().join(',')}`;
+        cacheSetCached(compareCacheKey, result, 345600).catch(() => {});
+
         // Track analytics
         trackAnalysis({
             userId: req.user?.uid,
