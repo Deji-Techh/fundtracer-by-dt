@@ -88,7 +88,7 @@ export async function getOrSet<T>(
   // Store in Redis
   if (redis && isConnected) {
     try {
-      await redis.setEx(key, ttlSeconds, JSON.stringify(data));
+      await redis.setex(key, ttlSeconds, JSON.stringify(data));
     } catch (error) {
       console.error('[Redis] Set error:', error);
     }
@@ -133,7 +133,7 @@ export async function cacheSet<T>(key: string, value: T, ttlSeconds: number = 60
   
   if (redis && isConnected) {
     try {
-      await redis.setEx(key, ttlSeconds, serialized);
+      await redis.setex(key, ttlSeconds, serialized);
     } catch (error) {
       console.error('[Redis] Set error:', error);
     }
