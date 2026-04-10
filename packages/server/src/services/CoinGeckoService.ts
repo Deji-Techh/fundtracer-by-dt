@@ -1,11 +1,11 @@
-import { cache } from '../utils/cache.js';
+import { cacheGetCached, cacheSetCached } from './apiCache.js';
 
 const COINGECKO_BASE_URL = 'https://api.coingecko.com/api/v3';
 
 export class CoinGeckoService {
   async getTokenPrices(ids: string[], currencies: string[] = ['usd']) {
     const cacheKey = `coingecko:prices:${ids.join(',')}:${currencies.join(',')}`;
-    const cached = cache.get(cacheKey);
+    const cached = await cacheGetCached<any>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -29,7 +29,7 @@ export class CoinGeckoService {
       }
 
       const data = await response.json();
-      cache.set(cacheKey, data, 60); // 60 second cache
+      await cacheSetCached(cacheKey, data, 60);
       return data;
     } catch (error) {
       console.error('[CoinGeckoService] Error fetching prices:', error);
@@ -39,7 +39,7 @@ export class CoinGeckoService {
 
   async getTokenMarketData(id: string) {
     const cacheKey = `coingecko:market:${id}`;
-    const cached = cache.get(cacheKey);
+    const cached = await cacheGetCached<any>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -57,7 +57,7 @@ export class CoinGeckoService {
       }
 
       const data = await response.json();
-      cache.set(cacheKey, data, 300); // 5 minute cache
+      await cacheSetCached(cacheKey, data, 300);
       return data;
     } catch (error) {
       console.error('[CoinGeckoService] Error fetching market data:', error);
@@ -67,7 +67,7 @@ export class CoinGeckoService {
 
   async getMarketChart(id: string, days: number = 7) {
     const cacheKey = `coingecko:chart:${id}:${days}`;
-    const cached = cache.get(cacheKey);
+    const cached = await cacheGetCached<any>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -85,7 +85,7 @@ export class CoinGeckoService {
       }
 
       const data = await response.json();
-      cache.set(cacheKey, data, 300); // 5 minute cache
+      await cacheSetCached(cacheKey, data, 300);
       return data;
     } catch (error) {
       console.error('[CoinGeckoService] Error fetching market chart:', error);
@@ -95,7 +95,7 @@ export class CoinGeckoService {
 
   async searchTokens(query: string) {
     const cacheKey = `coingecko:search:${query}`;
-    const cached = cache.get(cacheKey);
+    const cached = await cacheGetCached<any>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -113,7 +113,7 @@ export class CoinGeckoService {
       }
 
       const data = await response.json();
-      cache.set(cacheKey, data, 300); // 5 minute cache
+      await cacheSetCached(cacheKey, data, 300);
       return data;
     } catch (error) {
       console.error('[CoinGeckoService] Error searching tokens:', error);
@@ -124,7 +124,7 @@ export class CoinGeckoService {
   // Get coins with market data (coins/markets endpoint)
   async getCoinsMarkets(perPage: number = 100, page: number = 1) {
     const cacheKey = `coingecko:markets:${perPage}:${page}`;
-    const cached = cache.get(cacheKey);
+    const cached = await cacheGetCached<any>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -167,7 +167,7 @@ export class CoinGeckoService {
         })
       );
       
-      cache.set(cacheKey, coinsWithPlatforms, 300); // 5 minute cache
+      await cacheSetCached(cacheKey, coinsWithPlatforms, 300);
       return coinsWithPlatforms;
     } catch (error) {
       console.error('[CoinGeckoService] Error fetching coins markets:', error);

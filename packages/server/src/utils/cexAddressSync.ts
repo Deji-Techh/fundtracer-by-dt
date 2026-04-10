@@ -8,9 +8,11 @@ import * as path from 'path';
 import { ChainId } from '@fundtracer/core';
 import { CEX_WALLETS, CEXWalletDatabase, CEXGroup, CEXWallet } from '../data/cexWallets.js';
 import { DuneService } from '../services/DuneService.js';
+import { cacheGet, cacheSet, isRedisConnected } from './redis.js';
 
 const CACHE_FILE = path.join(process.cwd(), 'data', 'cex_addresses_cache.json');
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const REDIS_KEY = 'cex:addresses:merged';
 
 const CHAIN_ALIASES: Record<string, ChainId> = {
     ethereum: 'ethereum',
@@ -48,7 +50,7 @@ class CEXAddressSync {
 
         try {
             // Try to load from cache first
-            const cachedData = this.loadFromCache();
+            const cachedData = await this.loadFromCache();
 
             if (cachedData && this.isCacheValid(cachedData)) {
                 console.log('[CEXAddressSync] Using cached CEX addresses');
@@ -83,7 +85,7 @@ class CEXAddressSync {
                     addresses: duneAddresses,
                     timestamp: Date.now(),
                 };
-                this.saveToCache(cacheData);
+                await this.saveToCache(cacheData);
 
                 // Merge with existing
                 this.mergedCEX = this.mergeCEXData(duneAddresses);
@@ -234,9 +236,23 @@ class CEXAddressSync {
     }
 
     /**
-     * Load cached data from file
+     * Load data from cache (Redis first, then file)
      */
-    private loadFromCache(): CachedCEXData | null {
+    private async loadFromCache(): Promise<CachedCEXData | null> {
+        // Try Redis first
+        if (isRedisConnected()) {
+            try {
+                const redisData = await cacheGet<CachedCEXData>(REDIS_KEY);
+                if (redisData && this.isCacheValid(redisData)) {
+                    console.log('[CEXAddressSync] Loaded from Redis cache');
+                    return redisData;
+                }
+            } catch (error) {
+                console.warn('[CEXAddressSync] Redis load failed, trying file:', error);
+            }
+        }
+
+        // Fallback to file cache
         try {
             if (!fs.existsSync(CACHE_FILE)) return null;
             const content = fs.readFileSync(CACHE_FILE, 'utf-8');
@@ -248,16 +264,27 @@ class CEXAddressSync {
     }
 
     /**
-     * Save data to cache file
+     * Save data to cache (Redis + file)
      */
-    private saveToCache(data: CachedCEXData): void {
+    private async saveToCache(data: CachedCEXData): Promise<void> {
+        // Save to Redis with 24h TTL
+        if (isRedisConnected()) {
+            try {
+                await cacheSet(REDIS_KEY, data, 86400);
+                console.log('[CEXAddressSync] Cached data saved to Redis');
+            } catch (error) {
+                console.warn('[CEXAddressSync] Redis save failed:', error);
+            }
+        }
+
+        // Always save to file as backup
         try {
             const dir = path.dirname(CACHE_FILE);
             if (!fs.existsSync(dir)) {
                 fs.mkdirSync(dir, { recursive: true });
             }
             fs.writeFileSync(CACHE_FILE, JSON.stringify(data, null, 2));
-            console.log('[CEXAddressSync] Cached data saved');
+            console.log('[CEXAddressSync] Cached data saved to file');
         } catch (error) {
             console.error('[CEXAddressSync] Failed to save cache:', error);
         }

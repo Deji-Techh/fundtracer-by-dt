@@ -1,4 +1,4 @@
-import { cache } from '../utils/cache.js';
+import { cacheGetCached, cacheSetCached } from './apiCache.js';
 import { coinGeckoService } from './CoinGeckoService.js';
 
 export interface ChartDataPoint {
@@ -23,7 +23,7 @@ export interface ChartDataset {
 export class ChartService {
   async getTokenPriceChart(coinId: string, timeframe: string): Promise<ChartDataset> {
     const cacheKey = `chart:price:${coinId}:${timeframe}`;
-    const cached = cache.get(cacheKey);
+    const cached = await cacheGetCached<ChartDataset>(cacheKey);
     if (cached) return cached;
 
     // Map timeframe to days for CoinGecko
@@ -76,7 +76,7 @@ export class ChartService {
       };
 
       // Cache for 5 minutes
-      cache.set(cacheKey, chartData, 300);
+      await cacheSetCached(cacheKey, chartData, 300);
       return chartData;
     } catch (error) {
       console.error('[ChartService] Error fetching chart data:', error);
