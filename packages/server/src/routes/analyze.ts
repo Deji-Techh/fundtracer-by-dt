@@ -444,11 +444,11 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
-    // Contract Redis cache check (4 day TTL)
-    const contractCacheKey = `contract:${normalizedChain}:${contractAddress.toLowerCase()}`;
-    const contractCached = await cacheGetCached<any>(contractCacheKey);
-    if (contractCached) {
-        return res.json({ success: true, result: contractCached, usageRemaining: res.locals.usageRemaining, cached: true });
+    // Wallet Redis cache check (4 day TTL)
+    const walletCacheKey = `wallet:${normalizedChain}:${address.toLowerCase()}`;
+    const walletCached = await cacheGetCached<any>(walletCacheKey);
+    if (walletCached) {
+        return res.json({ success: true, result: walletCached, usageRemaining: res.locals.usageRemaining, cached: true });
     }
 
     try {
@@ -713,10 +713,10 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(compareChain)) {
-        if (UNSUPPORTED_CHAINS.includes(compareChain)) {
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
             return res.status(400).json({ 
-                error: `${compareChain.charAt(0).toUpperCase() + compareChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
+                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, Polygon, BSC.` 
             });
         }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
@@ -815,6 +815,13 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
+    // Contract Redis cache check (4 day TTL)
+    const contractCacheKey = `contract:${normalizedChain}:${contractAddress.toLowerCase()}`;
+    const contractCached = await cacheGetCached<any>(contractCacheKey);
+    if (contractCached) {
+        return res.json({ success: true, result: contractCached, usageRemaining: res.locals.usageRemaining, cached: true });
+    }
+
     try {
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
         const sybilConfig = getSybilAlchemyKeys();
@@ -870,8 +877,8 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
             usageRemaining: res.locals.usageRemaining,
         });
 
-        // Save compare result to Redis (4 day TTL)
-        cacheSetCached(compareCacheKey, result, 345600).catch(() => {});
+        // Save contract result to Redis (4 day TTL)
+        cacheSetCached(contractCacheKey, result, 345600).catch(() => {});
 
         // Track analytics
         trackAnalysis({
