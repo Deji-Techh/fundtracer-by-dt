@@ -10,6 +10,8 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@farcaster/mini-app-solana": "^2.0.0",
+        "@farcaster/miniapp-sdk": "^0.3.0",
         "@hugeicons/core-free-icons": "^3.1.1",
         "@hugeicons/react": "^1.1.4",
         "@privy-io/react-auth": "^3.17.0",
