@@ -336,56 +336,36 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: strin
     ]);
 }
 
-// More thorough sanitization that also strips complex nested objects
-function sanitizeCompareResultDeep(result: any): any {
-    if (result === null || result === undefined) return result;
+// Create a minimal compare result with only the fields needed by the frontend
+function createMinimalCompareResult(result: any): any {
+    if (!result) return null;
     
-    const type = typeof result;
-    if (type === 'bigint') return result.toString();
-    if (type === 'symbol') return result.toString();
-    if (type === 'function') return undefined;
-    if (type !== 'object') return result;
-    
-    if (Array.isArray(result)) {
-        return result.map(item => sanitizeCompareResultDeep(item));
-    }
-    
-    // For objects, only keep primitive/simple values
-    const sanitized: any = {};
-    try {
-        for (const [key, value] of Object.entries(result)) {
-            if (value === null || value === undefined) {
-                sanitized[key] = null;
-            } else if (typeof value === 'bigint') {
-                sanitized[key] = value.toString();
-            } else if (typeof value === 'symbol') {
-                sanitized[key] = value.toString();
-            } else if (typeof value === 'function') {
-                sanitized[key] = undefined;
-            } else if (Array.isArray(value)) {
-                sanitized[key] = value.map(item => sanitizeCompareResultDeep(item));
-            } else if (typeof value === 'object') {
-                // Recursively process nested objects but skip if it's a complex type
-                if (value instanceof Date) {
-                    sanitized[key] = value.toISOString();
-                } else if (value instanceof Map || value instanceof Set) {
-                    sanitized[key] = undefined;
-                } else if (Buffer.isBuffer(value) || value instanceof Uint8Array) {
-                    sanitized[key] = '[Binary]';
-                } else {
-                    // For nested objects, only keep if they look like simple data
-                    const nested = sanitizeCompareResultDeep(value);
-                    sanitized[key] = typeof nested === 'object' && nested !== null ? nested : nested;
-                }
-            } else {
-                sanitized[key] = value;
-            }
-        }
-    } catch (e) {
-        return undefined;
-    }
-    
-    return sanitized;
+    // Extract only what CompareGridView actually uses
+    return {
+        wallets: result.wallets?.map((wallet: any) => ({
+            wallet: wallet.wallet ? {
+                address: wallet.wallet.address,
+                totalBalance: wallet.wallet.totalBalance,
+            } : undefined,
+            summary: wallet.summary ? {
+                totalTransactions: wallet.summary.totalTransactions,
+                totalValueReceivedEth: wallet.summary.totalValueReceivedEth,
+                totalValueSentEth: wallet.summary.totalValueSentEth,
+                uniqueInteractedAddresses: wallet.summary.uniqueInteractedAddresses,
+            } : undefined,
+        })) || [],
+        commonFundingSources: result.commonFundingSources || [],
+        commonDestinations: result.commonDestinations || [],
+        sharedProjects: result.sharedProjects || [],
+        directTransfers: result.directTransfers?.map((tx: any) => ({
+            from: tx.from,
+            to: tx.to,
+            valueInEth: tx.valueInEth,
+            timestamp: tx.timestamp,
+        })) || [],
+        correlationScore: result.correlationScore ?? 0,
+        isSybilLikely: result.isSybilLikely ?? false,
+    };
 }
 
 // Helper to validate Free Tier transaction
@@ -754,7 +734,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
     const compareCacheKey = `compare:${compareChain}:${addresses.map(a => a.toLowerCase()).sort().join(',')}`;
     const compareCached = await cacheGetCached<any>(compareCacheKey);
     if (compareCached) {
-        const sanitizedCached = sanitizeCompareResultDeep(compareCached);
+        const sanitizedCached = createMinimalCompareResult(compareCached);
         return res.json({ success: true, result: sanitizedCached, usageRemaining: res.locals.usageRemaining, cached: true });
     }
 
@@ -793,7 +773,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
 
         const result = await analyzer.compareWallets(addresses, chain as ChainId, options);
 
-        const sanitizedResult = sanitizeCompareResultDeep(result);
+        const sanitizedResult = createMinimalCompareResult(result);
 
         res.json({
             success: true,
