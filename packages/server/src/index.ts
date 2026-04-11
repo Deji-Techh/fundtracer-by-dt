@@ -276,74 +276,21 @@ app.use(helmet({
 app.use(requestIdMiddleware);
 
 // Serve Static Frontend
-// Try multiple possible paths (Railway/Pxxl runs from different locations)
+// Try multiple possible paths (Pxxl runs from different locations)
 let webDistPath: string;
 const possiblePaths = [
-    // Relative paths from CWD
-    path.join(process.cwd(), '../web/dist'),
-    path.join(process.cwd(), 'packages/web/dist'),
-    path.join(process.cwd(), '../../packages/web/dist'),
-    path.join(process.cwd(), '../../web/dist'),
-    path.join(process.cwd(), '../packages/web/dist'),
-    // Railway absolute paths
-    '/web/dist',
-    '/app/packages/web/dist',
-    '/app/web/dist',
-    '/app/packages/server/../web/dist',
-    // From parent directories
-    path.join(process.cwd(), '..', 'packages/web/dist'),
-    path.join(process.cwd(), '..', 'web/dist'),
-    // Try looking in current directory
-    path.join(process.cwd(), 'web/dist'),
+    path.join(process.cwd(), '../web/dist'),           // When CWD is /app/packages/server
+    path.join(process.cwd(), 'packages/web/dist'),     // When CWD is /app (root)
+    path.join(process.cwd(), '../../packages/web/dist') // When CWD is /app/packages/server/dist
 ];
 
-// Find the first valid path
-for (const p of possiblePaths) {
-    if (!p) continue;
+webDistPath = possiblePaths.find(p => {
     try {
-        const indexPath = path.join(p, 'index.html');
-        if (fs.existsSync(indexPath)) {
-            webDistPath = p;
-            console.log(`[WEB_DIST] Found valid web dist at: ${p}`);
-            break;
-        } else {
-            console.log(`[WEB_DIST] Path exists but no index.html: ${p}`);
-        }
-    } catch (e: any) {
-        console.log(`[WEB_DIST] Error checking ${p}: ${e.code || e.message}`);
+        return fs.existsSync(path.join(p, 'index.html'));
+    } catch {
+        return false;
     }
-}
-
-// Last resort: use the current directory's parent to look for web
-if (!webDistPath) {
-    const parentPath = path.join(process.cwd(), '..');
-    try {
-        const files = fs.readdirSync(parentPath);
-        console.log(`[WEB_DIST] Parent directory contents: ${files.join(', ')}`);
-        
-        // Check if web folder exists in parent
-        const webInParent = path.join(parentPath, 'web', 'dist');
-        if (fs.existsSync(path.join(webInParent, 'index.html'))) {
-            webDistPath = webInParent;
-            console.log(`[WEB_DIST] Found web dist in parent: ${webInParent}`);
-        }
-    } catch (e: any) {
-        console.log(`[WEB_DIST] Could not read parent directory: ${e.code || e.message}`);
-    }
-}
-
-if (!webDistPath) {
-    // Hard-coded Railway fallback
-    webDistPath = '/app/packages/web/dist';
-    const hasIndex = fs.existsSync(path.join(webDistPath, 'index.html'));
-    console.log(`[WEB_DIST] Using fallback path: ${webDistPath}, checking if exists: ${hasIndex}`);
-    
-    // If no web dist, set to null to skip static serving
-    if (!hasIndex) {
-        webDistPath = '';
-        console.log('[WEB_DIST] No web dist found, skipping frontend serving');
-    }
-}
+}) || possiblePaths[0]; // Default to first if none found
 
 // Serve whitepaper - multiple routes for flexibility
 app.get('/whitepaper.pdf', (req, res) => {
@@ -368,10 +315,8 @@ app.get('/fundtracer.pdf', (req, res) => {
     });
 });
 
-// Static files serving configured (skip if no web dist)
-if (webDistPath) {
-    app.use(express.static(webDistPath));
-}
+// Static files serving configured
+app.use(express.static(webDistPath));
 
 // Explicitly handle sitemap and robots to avoid SPA fallback
 app.get('/sitemap.xml', (req, res) => {
@@ -600,27 +545,18 @@ createTelegramBot().catch(err => {
 });
 
 // Frontend routes that start with /api (must be handled by SPA)
-const frontendApiRoutes = ['/api/docs'];
+const frontendApiRoutes = ['/api/keys', '/api/docs'];
 
 // Fallback for SPA routing - MUST BE LAST
 app.all('*', (req, res) => {
     // Serve SPA for non-API routes OR for specific frontend routes that start with /api
     const isFrontendApiRoute = frontendApiRoutes.includes(req.path);
-    
-    // If no web dist (Railway without web build), just return 404 for non-API routes
-    if (!webDistPath) {
-        if (req.path.startsWith('/api/')) {
-            return res.status(404).json({ error: 'API endpoint not found' });
-        }
-        return res.status(404).send('Page not found');
-    }
-    
     if (!req.path.startsWith('/api/') || isFrontendApiRoute) {
         const indexPath = path.join(webDistPath, 'index.html');
         res.sendFile(indexPath, (err) => {
             if (err) {
                 console.error('[DEBUG] Failed to serve index.html:', err);
-                res.status(404).send('Page not found');
+                res.status(500).send('Failed to load application');
             }
         });
     } else {
