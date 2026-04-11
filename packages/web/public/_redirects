@@ -1,4 +1,4 @@
-/api/keys /index.html 200
+/api/keys/*  /index.html  200
 https://www.fundtracer.xyz/*  https://fundtracer.xyz/:splat  301
 /sitemap.xml  /sitemap.xml  200
 /sitemap.xml/  /sitemap.xml  200
