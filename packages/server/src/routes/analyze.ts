@@ -340,31 +340,33 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: strin
 function createMinimalCompareResult(result: any): any {
     if (!result) return null;
     
-    // Extract only what CompareGridView actually uses
+    // Only keep the comparison data - not full wallet objects
+    const minimalDirectTransfers = (result.directTransfers || []).map((tx: any) => ({
+        from: String(tx.from || ''),
+        to: String(tx.to || ''),
+        valueInEth: Number(tx.valueInEth) || 0,
+        timestamp: Number(tx.timestamp) || 0,
+    }));
+    
+    const minimalSharedProjects = (result.sharedProjects || []).map((p: any) => ({
+        contractAddress: String(p.contractAddress || ''),
+        projectName: p.projectName ? String(p.projectName) : null,
+        category: p.category ? String(p.category) : 'unknown',
+        interactionCount: Number(p.interactionCount) || 0,
+        totalValueInEth: Number(p.totalValueInEth) || 0,
+        firstInteraction: Number(p.firstInteraction) || 0,
+        lastInteraction: Number(p.lastInteraction) || 0,
+    }));
+    
     return {
-        wallets: result.wallets?.map((wallet: any) => ({
-            wallet: wallet.wallet ? {
-                address: wallet.wallet.address,
-                totalBalance: wallet.wallet.totalBalance,
-            } : undefined,
-            summary: wallet.summary ? {
-                totalTransactions: wallet.summary.totalTransactions,
-                totalValueReceivedEth: wallet.summary.totalValueReceivedEth,
-                totalValueSentEth: wallet.summary.totalValueSentEth,
-                uniqueInteractedAddresses: wallet.summary.uniqueInteractedAddresses,
-            } : undefined,
-        })) || [],
-        commonFundingSources: result.commonFundingSources || [],
-        commonDestinations: result.commonDestinations || [],
-        sharedProjects: result.sharedProjects || [],
-        directTransfers: result.directTransfers?.map((tx: any) => ({
-            from: tx.from,
-            to: tx.to,
-            valueInEth: tx.valueInEth,
-            timestamp: tx.timestamp,
-        })) || [],
-        correlationScore: result.correlationScore ?? 0,
-        isSybilLikely: result.isSybilLikely ?? false,
+        // Only include wallet count, not full wallet objects
+        wallets: (result.wallets || []).map((_: any, i: number) => ({ index: i })),
+        commonFundingSources: (result.commonFundingSources || []).map(String),
+        commonDestinations: (result.commonDestinations || []).map(String),
+        sharedProjects: minimalSharedProjects,
+        directTransfers: minimalDirectTransfers,
+        correlationScore: Number(result.correlationScore) || 0,
+        isSybilLikely: Boolean(result.isSybilLikely),
     };
 }
 

@@ -64,17 +64,29 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
             return String(val);
         };
 
+        // Safe array helper
+        const safeArray = (val: any): any[] => {
+            return Array.isArray(val) ? val : [];
+        };
+
         const pages: PageType[] = ['overview', 'common-funding', 'direct-transfers'];
         const currentIndex = pages.indexOf(currentPage);
         const canGoBack = currentIndex > 0;
         const canGoForward = currentIndex < pages.length - 1;
 
-        const hasNoFindings = (result.commonFundingSources?.length || 0) === 0 
-            && (result.commonDestinations?.length || 0) === 0 
-            && (result.directTransfers?.length || 0) === 0 
-            && (result.sharedProjects?.length || 0) === 0;
+        // Use safe array access everywhere
+        const commonFundingSources = safeArray(result?.commonFundingSources);
+        const commonDestinations = safeArray(result?.commonDestinations);
+        const sharedProjects = safeArray(result?.sharedProjects);
+        const directTransfers = safeArray(result?.directTransfers);
+        const wallets = safeArray(result?.wallets);
 
-        const correlationScore = result.correlationScore ?? 0;
+        const hasNoFindings = commonFundingSources.length === 0 
+            && commonDestinations.length === 0 
+            && directTransfers.length === 0 
+            && sharedProjects.length === 0;
+
+        const correlationScore = typeof result?.correlationScore === 'number' ? result.correlationScore : 0;
         const correlationLevel = correlationScore > 60 ? 'high' : correlationScore > 30 ? 'medium' : 'low';
 
     return (
