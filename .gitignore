@@ -71,7 +71,6 @@ LINEA_REVIEW_INFO.md
 SECRETS.md
 README_CLI.md
 
-# Scripts (may contain sensitive configs)
-scripts/
-packages/web/public/videos/
-packages/web/package-lock.json
+# Default ignores
+# Dependencies
+node_modules/
