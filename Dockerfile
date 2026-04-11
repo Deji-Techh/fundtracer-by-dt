@@ -14,7 +14,7 @@ COPY packages/web/ packages/web/
 
 RUN cd packages/core && npm install && npm run build && \
     cd ../server && npm install && npm run build && \
-    cd ../web && npm install && npm run build
+    cd ../web && npm install --legacy-peer-deps && npm run build
 
 EXPOSE 8080
 
