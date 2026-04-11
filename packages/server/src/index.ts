@@ -286,15 +286,49 @@ const possiblePaths = [
     '/web/dist',                                        // Absolute path on Railway
     '/app/packages/web/dist',                           // Railway absolute path
     '/app/web/dist',                                    // Alternative Railway path
+    '/app/packages/server/../web/dist',                  // Railway relative
+    path.resolve(__dirname, '../../web/dist'),         // Using __dirname
+    path.resolve(__dirname, '../web/dist'),             // Using __dirname one level up
+    process.env.WEB_DIST_PATH || '',                     // From environment variable
 ];
 
-webDistPath = possiblePaths.find(p => {
+// Find the first valid path
+for (const p of possiblePaths) {
+    if (!p) continue;
     try {
-        return fs.existsSync(path.join(p, 'index.html'));
-    } catch {
-        return false;
+        const indexPath = path.join(p, 'index.html');
+        if (fs.existsSync(indexPath)) {
+            webDistPath = p;
+            console.log(`[WEB_DIST] Found valid web dist at: ${p}`);
+            break;
+        }
+    } catch (e) {
+        // Continue to next path
     }
-}) || possiblePaths[0]; // Default to first if none found
+}
+
+// Fallback: if still not found, try to find it
+if (!webDistPath) {
+    // Last resort: search for index.html in common locations
+    const searchPaths = ['/app', '/'];
+    for (const searchDir of searchPaths) {
+        try {
+            const possibleIndex = path.join(searchDir, 'packages/web/dist/index.html');
+            if (fs.existsSync(possibleIndex)) {
+                webDistPath = path.dirname(possibleIndex);
+                console.log(`[WEB_DIST] Found web dist via search at: ${webDistPath}`);
+                break;
+            }
+        } catch (e) {
+            // Continue
+        }
+    }
+}
+
+if (!webDistPath) {
+    console.error('[WEB_DIST] Could not find web dist folder!');
+    webDistPath = '/app/packages/web/dist'; // Last resort fallback
+}
 
 // Serve whitepaper - multiple routes for flexibility
 app.get('/whitepaper.pdf', (req, res) => {
