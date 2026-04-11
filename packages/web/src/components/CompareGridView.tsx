@@ -396,13 +396,13 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                         >
                             <h3>Direct Transfers Between Wallets</h3>
                             <div className="transfers-list">
-                                {(result.directTransfers || []).length === 0 ? (
+                                {directTransfers.length === 0 ? (
                                     <div className="empty-state">
                                         <CheckmarkCircle02Icon size={48} />
                                         <p>No direct transfers found</p>
                                     </div>
                                 ) : (
-                                    result.directTransfers?.map((transfer, i) => (
+                                    directTransfers.map((transfer: any, i: number) => (
                                         <motion.div
                                             key={i}
                                             className="transfer-item"
@@ -413,23 +413,22 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                             <div className="transfer-wallets">
                                                 <span 
                                                     className="wallet"
-                                                    onMouseEnter={(e) => setHoveredAddress({ address: transfer.from, x: e.clientX, y: e.clientY })}
+                                                    onMouseEnter={(e: any) => setHoveredAddress({ address: safeString(transfer.from), x: e.clientX, y: e.clientY })}
                                                     onMouseLeave={() => setHoveredAddress(null)}
                                                 >
-                                                    {formatAddress(transfer.from)}
+                                                    {formatAddress(safeString(transfer.from))}
                                                 </span>
                                                 <ArrowRightIcon size={16} />
                                                 <span 
                                                     className="wallet"
-                                                    onMouseEnter={(e) => setHoveredAddress({ address: safeString(transfer.to), x: e.clientX, y: e.clientY })}
+                                                    onMouseEnter={(e: any) => setHoveredAddress({ address: safeString(transfer.to), x: e.clientX, y: e.clientY })}
                                                     onMouseLeave={() => setHoveredAddress(null)}
                                                 >
                                                     {formatAddress(safeString(transfer.to))}
                                                 </span>
                                             </div>
                                             <div className="transfer-info">
-                                                <span className="tx-count">{safeNumber(transfer.transferCount, 0)} transfers</span>
-                                                <span className="total-value">{safeNumber(transfer.totalValueEth)} {tokenSymbol}</span>
+                                                <span className="tx-count">{safeNumber(transfer.valueInEth)} {tokenSymbol}</span>
                                             </div>
                                         </motion.div>
                                     ))
