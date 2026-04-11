@@ -335,7 +335,14 @@ if (!webDistPath) {
 if (!webDistPath) {
     // Hard-coded Railway fallback
     webDistPath = '/app/packages/web/dist';
-    console.log(`[WEB_DIST] Using fallback path: ${webDistPath}, checking if exists: ${fs.existsSync(path.join(webDistPath, 'index.html'))}`);
+    const hasIndex = fs.existsSync(path.join(webDistPath, 'index.html'));
+    console.log(`[WEB_DIST] Using fallback path: ${webDistPath}, checking if exists: ${hasIndex}`);
+    
+    // If no web dist, set to null to skip static serving
+    if (!hasIndex) {
+        webDistPath = '';
+        console.log('[WEB_DIST] No web dist found, skipping frontend serving');
+    }
 }
 
 // Serve whitepaper - multiple routes for flexibility
@@ -361,8 +368,10 @@ app.get('/fundtracer.pdf', (req, res) => {
     });
 });
 
-// Static files serving configured
-app.use(express.static(webDistPath));
+// Static files serving configured (skip if no web dist)
+if (webDistPath) {
+    app.use(express.static(webDistPath));
+}
 
 // Explicitly handle sitemap and robots to avoid SPA fallback
 app.get('/sitemap.xml', (req, res) => {
@@ -597,12 +606,21 @@ const frontendApiRoutes = ['/api/docs'];
 app.all('*', (req, res) => {
     // Serve SPA for non-API routes OR for specific frontend routes that start with /api
     const isFrontendApiRoute = frontendApiRoutes.includes(req.path);
+    
+    // If no web dist (Railway without web build), just return 404 for non-API routes
+    if (!webDistPath) {
+        if (req.path.startsWith('/api/')) {
+            return res.status(404).json({ error: 'API endpoint not found' });
+        }
+        return res.status(404).send('Page not found');
+    }
+    
     if (!req.path.startsWith('/api/') || isFrontendApiRoute) {
         const indexPath = path.join(webDistPath, 'index.html');
         res.sendFile(indexPath, (err) => {
             if (err) {
                 console.error('[DEBUG] Failed to serve index.html:', err);
-                res.status(500).send('Failed to load application');
+                res.status(404).send('Page not found');
             }
         });
     } else {
