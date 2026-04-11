@@ -279,17 +279,22 @@ app.use(requestIdMiddleware);
 // Try multiple possible paths (Railway/Pxxl runs from different locations)
 let webDistPath: string;
 const possiblePaths = [
-    path.join(process.cwd(), '../web/dist'),           // When CWD is /app/packages/server
-    path.join(process.cwd(), 'packages/web/dist'),     // When CWD is /app (root)
-    path.join(process.cwd(), '../../packages/web/dist'), // When CWD is /app/packages/server/dist
-    path.join(process.cwd(), '../../web/dist'),         // When CWD is /app/packages/server
-    '/web/dist',                                        // Absolute path on Railway
-    '/app/packages/web/dist',                           // Railway absolute path
-    '/app/web/dist',                                    // Alternative Railway path
-    '/app/packages/server/../web/dist',                  // Railway relative
-    path.resolve(__dirname, '../../web/dist'),         // Using __dirname
-    path.resolve(__dirname, '../web/dist'),             // Using __dirname one level up
-    process.env.WEB_DIST_PATH || '',                     // From environment variable
+    // Relative paths from CWD
+    path.join(process.cwd(), '../web/dist'),
+    path.join(process.cwd(), 'packages/web/dist'),
+    path.join(process.cwd(), '../../packages/web/dist'),
+    path.join(process.cwd(), '../../web/dist'),
+    path.join(process.cwd(), '../packages/web/dist'),
+    // Railway absolute paths
+    '/web/dist',
+    '/app/packages/web/dist',
+    '/app/web/dist',
+    '/app/packages/server/../web/dist',
+    // From parent directories
+    path.join(process.cwd(), '..', 'packages/web/dist'),
+    path.join(process.cwd(), '..', 'web/dist'),
+    // Try looking in current directory
+    path.join(process.cwd(), 'web/dist'),
 ];
 
 // Find the first valid path
@@ -301,33 +306,36 @@ for (const p of possiblePaths) {
             webDistPath = p;
             console.log(`[WEB_DIST] Found valid web dist at: ${p}`);
             break;
+        } else {
+            console.log(`[WEB_DIST] Path exists but no index.html: ${p}`);
         }
-    } catch (e) {
-        // Continue to next path
+    } catch (e: any) {
+        console.log(`[WEB_DIST] Error checking ${p}: ${e.code || e.message}`);
     }
 }
 
-// Fallback: if still not found, try to find it
+// Last resort: use the current directory's parent to look for web
 if (!webDistPath) {
-    // Last resort: search for index.html in common locations
-    const searchPaths = ['/app', '/'];
-    for (const searchDir of searchPaths) {
-        try {
-            const possibleIndex = path.join(searchDir, 'packages/web/dist/index.html');
-            if (fs.existsSync(possibleIndex)) {
-                webDistPath = path.dirname(possibleIndex);
-                console.log(`[WEB_DIST] Found web dist via search at: ${webDistPath}`);
-                break;
-            }
-        } catch (e) {
-            // Continue
+    const parentPath = path.join(process.cwd(), '..');
+    try {
+        const files = fs.readdirSync(parentPath);
+        console.log(`[WEB_DIST] Parent directory contents: ${files.join(', ')}`);
+        
+        // Check if web folder exists in parent
+        const webInParent = path.join(parentPath, 'web', 'dist');
+        if (fs.existsSync(path.join(webInParent, 'index.html'))) {
+            webDistPath = webInParent;
+            console.log(`[WEB_DIST] Found web dist in parent: ${webInParent}`);
         }
+    } catch (e: any) {
+        console.log(`[WEB_DIST] Could not read parent directory: ${e.code || e.message}`);
     }
 }
 
 if (!webDistPath) {
-    console.error('[WEB_DIST] Could not find web dist folder!');
-    webDistPath = '/app/packages/web/dist'; // Last resort fallback
+    // Hard-coded Railway fallback
+    webDistPath = '/app/packages/web/dist';
+    console.log(`[WEB_DIST] Using fallback path: ${webDistPath}, checking if exists: ${fs.existsSync(path.join(webDistPath, 'index.html'))}`);
 }
 
 // Serve whitepaper - multiple routes for flexibility
