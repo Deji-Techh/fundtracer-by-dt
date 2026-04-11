@@ -1,5 +1,3 @@
-/api/*  https://api.fundtracer.xyz/api/:splat  200
-/api/auth/*  https://api.fundtracer.xyz/api/auth/:splat  301
 https://www.fundtracer.xyz/*  https://fundtracer.xyz/:splat  301
 /sitemap.xml  /sitemap.xml  200
 /sitemap.xml/  /sitemap.xml  200
