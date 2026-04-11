@@ -276,19 +276,12 @@ app.use(helmet({
 app.use(requestIdMiddleware);
 
 // Serve Static Frontend
-// Try multiple possible paths (Pxxl/Railway runs from different locations)
+// Try multiple possible paths (Pxxl runs from different locations)
 let webDistPath: string;
 const possiblePaths = [
-    // When Railway builds from /app with all packages
-    path.join(process.cwd(), 'packages/web/dist'),
-    path.join(process.cwd(), '../web/dist'),
-    path.join(process.cwd(), '../../packages/web/dist'),
-    // Additional absolute paths for Railway
-    '/app/packages/web/dist',
-    '/app/web/dist',
-    // Fallback to parent directories
-    path.join(process.cwd(), '..', 'packages/web/dist'),
-    path.join(process.cwd(), '..', 'web/dist'),
+    path.join(process.cwd(), '../web/dist'),           // When CWD is /app/packages/server
+    path.join(process.cwd(), 'packages/web/dist'),     // When CWD is /app (root)
+    path.join(process.cwd(), '../../packages/web/dist') // When CWD is /app/packages/server/dist
 ];
 
 webDistPath = possiblePaths.find(p => {
@@ -298,8 +291,6 @@ webDistPath = possiblePaths.find(p => {
         return false;
     }
 }) || possiblePaths[0]; // Default to first if none found
-
-console.log('[WEB_DIST] Using path:', webDistPath);
 
 // Serve whitepaper - multiple routes for flexibility
 app.get('/whitepaper.pdf', (req, res) => {
@@ -359,6 +350,7 @@ app.use(cors({
         /^https:\/\/.*\.onrender\.com$/,
         'https://fundtracer.xyz',
         'https://www.fundtracer.xyz',
+        'https://api.fundtracer.xyz',
         /^https:\/\/.*\.fundtracer\.xyz$/
     ],
     credentials: true,
@@ -555,6 +547,23 @@ createTelegramBot().catch(err => {
 
 // Frontend routes that start with /api (must be handled by SPA)
 const frontendApiRoutes = ['/api/keys', '/api/docs'];
+
+// Serve the API keys page for root when accessed via api.fundtracer.xyz custom domain
+app.get('/', (req, res) => {
+    // Check if this is the custom domain
+    const host = req.get('host') || '';
+    if (host.includes('api.fundtracer.xyz')) {
+        // Serve the SPA which will handle routing to /api/keys
+        const indexPath = path.join(webDistPath, 'index.html');
+        return res.sendFile(indexPath, (err) => {
+            if (err) {
+                res.status(404).send('Page not found');
+            }
+        });
+    }
+    // For other domains, continue to SPA fallback
+    next();
+});
 
 // Fallback for SPA routing - MUST BE LAST
 app.all('*', (req, res) => {
