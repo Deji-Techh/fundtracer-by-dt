@@ -45,22 +45,14 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
             );
         }
 
-        // Deep sanitize the result to ensure no non-renderable values
-        const sanitizeForRender = (val: any): any => {
-            if (val === null || val === undefined) return null;
-            if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return val;
-            if (Array.isArray(val)) return val.map(sanitizeForRender).filter((x: any) => x !== undefined);
-            if (typeof val === 'object') {
-                const obj: any = {};
-                for (const [k, v] of Object.entries(val)) {
-                    obj[k] = sanitizeForRender(v);
-                }
-                return obj;
-            }
-            return String(val);
-        };
-        
-        const safeResult = sanitizeForRender(result);
+        // Force JSON serialization to remove all non-serializable values
+        let safeResult: any;
+        try {
+            safeResult = JSON.parse(JSON.stringify(result));
+        } catch (e) {
+            console.error('[CompareGridView] JSON parse failed:', e);
+            safeResult = { error: 'Failed to parse result' };
+        }
         
         // Safe array helper
         const safeArray = (val: any): any[] => {

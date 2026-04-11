@@ -7,6 +7,7 @@ import AppPage from './pages/AppPage';
 import AppSolana from './pages/AppSolana';
 import { useAuth } from './contexts/AuthContext';
 import MaintenancePage from './pages/MaintenancePage';
+import ErrorBoundary from './components/ErrorBoundary';
 import './design-system/tokens.css';
 
 // Map of route paths to page titles for dynamic SEO
@@ -213,7 +214,7 @@ function App() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <SEOManager />
       <Routes>
       <Route path="/" element={<IntelPage />} />
@@ -257,8 +258,8 @@ function App() {
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-    </>
+      </Routes>
+    </ErrorBoundary>
   );
 }
 
