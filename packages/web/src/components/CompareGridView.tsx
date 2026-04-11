@@ -81,13 +81,16 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
         const directTransfers = safeArray(result?.directTransfers);
         const wallets = safeArray(result?.wallets);
 
+        // Safe access for all primitive fields
+        const correlationScore = typeof result?.correlationScore === 'number' ? result.correlationScore : 0;
+        const isSybilLikely = typeof result?.isSybilLikely === 'boolean' ? result.isSybilLikely : false;
+
+        const correlationLevel = correlationScore > 60 ? 'high' : correlationScore > 30 ? 'medium' : 'low';
+
         const hasNoFindings = commonFundingSources.length === 0 
             && commonDestinations.length === 0 
             && directTransfers.length === 0 
             && sharedProjects.length === 0;
-
-        const correlationScore = typeof result?.correlationScore === 'number' ? result.correlationScore : 0;
-        const correlationLevel = correlationScore > 60 ? 'high' : correlationScore > 30 ? 'medium' : 'low';
 
     return (
         <div className="wallet-grid-container">
@@ -182,7 +185,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                             <span className="score-value">{correlationScore}%</span>
                                             <span className="score-label">Similarity</span>
                                         </div>
-                                        {result.isSybilLikely && (
+                                        {isSybilLikely && (
                                             <div className="sybil-warning">
                                                 <AlertDiamondIcon size={20} />
                                                 <span>Potential Sybil Activity Detected</span>
@@ -190,7 +193,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                         )}
                                         <div className="wallets-compared">
                                             <span className="label">Wallets Analyzed</span>
-                                            <span className="value">{(result.wallets || []).length}</span>
+                                            <span className="value">{wallets.length}</span>
                                         </div>
                                     </div>
                                 </motion.div>
