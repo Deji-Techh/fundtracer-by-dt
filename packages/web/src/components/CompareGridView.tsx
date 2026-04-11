@@ -36,7 +36,6 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
 
     try {
         console.log('[CompareGridView] Rendering with result:', result);
-        console.log('[CompareGridView] Result keys:', result ? Object.keys(result) : 'null');
 
         if (!result) {
             return (
@@ -46,44 +45,59 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
             );
         }
 
+        // Deep sanitize the result to ensure no non-renderable values
+        const sanitizeForRender = (val: any): any => {
+            if (val === null || val === undefined) return null;
+            if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return val;
+            if (Array.isArray(val)) return val.map(sanitizeForRender).filter((x: any) => x !== undefined);
+            if (typeof val === 'object') {
+                const obj: any = {};
+                for (const [k, v] of Object.entries(val)) {
+                    obj[k] = sanitizeForRender(v);
+                }
+                return obj;
+            }
+            return String(val);
+        };
+        
+        const safeResult = sanitizeForRender(result);
+        
+        // Safe array helper
+        const safeArray = (val: any): any[] => {
+            return Array.isArray(val) ? val : [];
+        };
+        
+        // Safe primitive access
+        const wallets = safeArray(safeResult?.wallets);
+        const commonFundingSources = safeArray(safeResult?.commonFundingSources);
+        const commonDestinations = safeArray(safeResult?.commonDestinations);
+        const sharedProjects = safeArray(safeResult?.sharedProjects);
+        const directTransfers = safeArray(safeResult?.directTransfers);
+        const correlationScore = typeof safeResult?.correlationScore === 'number' ? safeResult.correlationScore : 0;
+        const isSybilLikely = typeof safeResult?.isSybilLikely === 'boolean' ? safeResult.isSybilLikely : false;
+
         const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
         const tokenSymbol = getChainTokenSymbol(chain);
 
         const formatAddress = (addr: string) => `${(addr || '').slice(0, 6)}...${(addr || '').slice(-4)}`;
 
-        // Safe number formatter - handles any input type
+        // Safe number formatter
         const safeNumber = (val: any, decimals = 4): string => {
             if (val === null || val === undefined) return '0';
             const num = typeof val === 'number' ? val : parseFloat(String(val));
             return isNaN(num) ? '0' : num.toFixed(decimals);
         };
 
-        // Safe string formatter - handles null/undefined
+        // Safe string formatter
         const safeString = (val: any): string => {
             if (val === null || val === undefined) return '';
             return String(val);
-        };
-
-        // Safe array helper
-        const safeArray = (val: any): any[] => {
-            return Array.isArray(val) ? val : [];
         };
 
         const pages: PageType[] = ['overview', 'common-funding', 'direct-transfers'];
         const currentIndex = pages.indexOf(currentPage);
         const canGoBack = currentIndex > 0;
         const canGoForward = currentIndex < pages.length - 1;
-
-        // Use safe array access everywhere
-        const commonFundingSources = safeArray(result?.commonFundingSources);
-        const commonDestinations = safeArray(result?.commonDestinations);
-        const sharedProjects = safeArray(result?.sharedProjects);
-        const directTransfers = safeArray(result?.directTransfers);
-        const wallets = safeArray(result?.wallets);
-
-        // Safe access for all primitive fields
-        const correlationScore = typeof result?.correlationScore === 'number' ? result.correlationScore : 0;
-        const isSybilLikely = typeof result?.isSybilLikely === 'boolean' ? result.isSybilLikely : false;
 
         const correlationLevel = correlationScore > 60 ? 'high' : correlationScore > 30 ? 'medium' : 'low';
 
@@ -211,19 +225,19 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                     <div className="stats-grid-compact">
                                         <div className="stat-item">
                                             <span className="stat-label">Common Sources</span>
-                                            <span className="stat-value">{result.commonFundingSources?.length || 0}</span>
+                                            <span className="stat-value">{commonFundingSources.length}</span>
                                         </div>
                                         <div className="stat-item">
                                             <span className="stat-label">Common Destinations</span>
-                                            <span className="stat-value">{result.commonDestinations?.length || 0}</span>
+                                            <span className="stat-value">{commonDestinations.length}</span>
                                         </div>
                                         <div className="stat-item">
                                             <span className="stat-label">Direct Transfers</span>
-                                            <span className="stat-value">{result.directTransfers?.length || 0}</span>
+                                            <span className="stat-value">{directTransfers.length}</span>
                                         </div>
                                         <div className="stat-item">
                                             <span className="stat-label">Shared Projects</span>
-                                            <span className="stat-value">{result.sharedProjects?.length || 0}</span>
+                                            <span className="stat-value">{sharedProjects.length}</span>
                                         </div>
                                     </div>
                                 </motion.div>
