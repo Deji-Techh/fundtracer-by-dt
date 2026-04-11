@@ -24,7 +24,7 @@ function normalizeChainForApi(chain: ChainId): string {
 const API_BASE = import.meta.env.VITE_API_URL ||
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://localhost:3001'
-        : 'https://fundtracer-by-dt-production.up.railway.app');
+        : 'https://api.fundtracer.xyz');
 
 interface ApiResponse<T> {
     success: boolean;
