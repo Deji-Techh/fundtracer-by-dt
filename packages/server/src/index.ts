@@ -276,12 +276,16 @@ app.use(helmet({
 app.use(requestIdMiddleware);
 
 // Serve Static Frontend
-// Try multiple possible paths (Pxxl runs from different locations)
+// Try multiple possible paths (Railway/Pxxl runs from different locations)
 let webDistPath: string;
 const possiblePaths = [
     path.join(process.cwd(), '../web/dist'),           // When CWD is /app/packages/server
     path.join(process.cwd(), 'packages/web/dist'),     // When CWD is /app (root)
-    path.join(process.cwd(), '../../packages/web/dist') // When CWD is /app/packages/server/dist
+    path.join(process.cwd(), '../../packages/web/dist'), // When CWD is /app/packages/server/dist
+    path.join(process.cwd(), '../../web/dist'),         // When CWD is /app/packages/server
+    '/web/dist',                                        // Absolute path on Railway
+    '/app/packages/web/dist',                           // Railway absolute path
+    '/app/web/dist',                                    // Alternative Railway path
 ];
 
 webDistPath = possiblePaths.find(p => {
