@@ -419,7 +419,7 @@ Fetch detailed information about a specific transaction including logs, gas cost
 
 ### cURL
 \`\`\`bash
-curl -X POST "https://www.fundtracer.xyz/api/analyze/wallet" \\
+curl -X POST "https://api.fundtracer.xyz/api/analyze/wallet" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
   -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum"}'
@@ -428,7 +428,7 @@ curl -X POST "https://www.fundtracer.xyz/api/analyze/wallet" \\
 ### JavaScript
 \`\`\`javascript
 const response = await fetch(
-  'https://www.fundtracer.xyz/api/analyze/wallet',
+  'https://api.fundtracer.xyz/api/analyze/wallet',
   {
     method: 'POST',
     headers: {
@@ -449,7 +449,7 @@ const data = await response.json();
 import requests
 
 response = requests.post(
-    'https://www.fundtracer.xyz/api/analyze/wallet',
+    'https://api.fundtracer.xyz/api/analyze/wallet',
     headers={
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ft_live_YOUR_API_KEY'
@@ -479,7 +479,7 @@ func main() {
         "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
         "chain": "ethereum",
     })
-    req, _ := http.NewRequest("POST", "https://www.fundtracer.xyz/api/analyze/wallet", bytes.NewBuffer(reqBody))
+    req, _ := http.NewRequest("POST", "https://api.fundtracer.xyz/api/analyze/wallet", bytes.NewBuffer(reqBody))
     req.Header.Set("Content-Type", "application/json")
     req.Header.Set("Authorization", "Bearer ft_live_YOUR_API_KEY")
     resp, _ := client.Do(req)
@@ -600,8 +600,8 @@ func main() {
 
                   <h3>Base URL</h3>
                   <div className="api-code-block">
-                    <code>https://www.fundtracer.xyz/api</code>
-                    {copyBtn('https://www.fundtracer.xyz/api', 'base-url')}
+                    <code>https://api.fundtracer.xyz/api</code>
+                    {copyBtn('https://api.fundtracer.xyz/api', 'base-url')}
                   </div>
                 </motion.div>
               )}
@@ -1333,7 +1333,7 @@ X-RateLimit-Reset: 1640000060  // Unix timestamp when limit resets`}</code></pre
                   <h3>JavaScript / Node.js</h3>
                   <div className="api-code-block">
                     <pre><code>{`const response = await fetch(
-  'https://www.fundtracer.xyz/api/analyze/wallet',
+  'https://api.fundtracer.xyz/api/analyze/wallet',
   {
     method: 'POST',
     headers: {
@@ -1349,7 +1349,7 @@ X-RateLimit-Reset: 1640000060  // Unix timestamp when limit resets`}</code></pre
 
 const data = await response.json();`}</code></pre>
                     {copyBtn(`const response = await fetch(
-  'https://www.fundtracer.xyz/api/analyze/wallet',
+  'https://api.fundtracer.xyz/api/analyze/wallet',
   {
     method: 'POST',
     headers: {
@@ -1371,7 +1371,7 @@ const data = await response.json();`, 'js-example')}
                     <pre><code>{`import requests
 
 response = requests.post(
-    'https://www.fundtracer.xyz/api/analyze/wallet',
+    'https://api.fundtracer.xyz/api/analyze/wallet',
     headers={
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ft_live_YOUR_API_KEY'
@@ -1387,7 +1387,7 @@ print(data['result'])`}</code></pre>
                     {copyBtn(`import requests
 
 response = requests.post(
-    'https://www.fundtracer.xyz/api/analyze/wallet',
+    'https://api.fundtracer.xyz/api/analyze/wallet',
     headers={
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ft_live_YOUR_API_KEY'
@@ -1404,11 +1404,11 @@ print(data['result'])`, 'python-example')}
 
                   <h3>cURL</h3>
                   <div className="api-code-block">
-                    <pre><code>{`curl -X POST "https://www.fundtracer.xyz/api/analyze/wallet" \\
+                    <pre><code>{`curl -X POST "https://api.fundtracer.xyz/api/analyze/wallet" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
   -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum"}'`}</code></pre>
-                    {copyBtn(`curl -X POST "https://www.fundtracer.xyz/api/analyze/wallet" \\
+                    {copyBtn(`curl -X POST "https://api.fundtracer.xyz/api/analyze/wallet" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ft_live_YOUR_API_KEY" \\
   -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1", "chain": "ethereum"}'`, 'curl-example')}
