@@ -7,7 +7,7 @@ export default defineConfig({
     global: 'globalThis',
     'process.env': {},
     React: 'React',
-    'React.Fragment': 'React.Fragment',
+    'ReactDOM': 'ReactDOM',
   },
   plugins: [react()],
   resolve: {
