@@ -1,5 +1,10 @@
 import { Buffer } from 'buffer';
 
+// Polyfill React global for vendor bundles
+if (typeof window !== 'undefined' && typeof (window as any).React === 'undefined') {
+    (window as any).React = require('react');
+}
+
 // Polyfill Buffer
 if (typeof window !== 'undefined') {
     window.Buffer = window.Buffer || Buffer;
