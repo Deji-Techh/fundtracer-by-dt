@@ -558,20 +558,12 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve the API keys page for root when accessed via api.fundtracer.xyz custom domain
+// Redirect root on api.fundtracer.xyz to fundtracer.xyz
 app.get('/', (req, res) => {
-    // Check if this is the custom domain
     const host = req.get('host') || '';
     if (host.includes('api.fundtracer.xyz')) {
-        // Serve the SPA which will handle routing to /api/keys
-        const indexPath = path.join(webDistPath, 'index.html');
-        return res.sendFile(indexPath, (err) => {
-            if (err) {
-                res.status(404).send('Page not found');
-            }
-        });
+        return res.redirect(301, 'https://fundtracer.xyz');
     }
-    // For other domains, continue to SPA fallback
     next();
 });
 
