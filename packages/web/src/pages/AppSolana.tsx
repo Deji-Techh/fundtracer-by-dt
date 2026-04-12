@@ -204,7 +204,7 @@ export default function AppSolana() {
     const [whaleTxs, setWhaleTxs] = useState<WhaleTransaction[]>([]);
     const [taxPositions, setTaxPositions] = useState<TaxPosition[]>([]);
 
-    const token = localStorage.getItem('auth_token') || '';
+    const token = localStorage.getItem('fundtracer_token') || '';
 
     const handleSearch = useCallback(async () => {
         if (!address.trim()) {
