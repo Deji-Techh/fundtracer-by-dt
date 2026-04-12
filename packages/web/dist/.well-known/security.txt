@@ -1,0 +1,25 @@
+# FundTracer Security Policy
+# https://fundtracer.xyz/.well-known/security.txt
+
+# Contact
+Contact: mailto:fundtracerbydt@gmail.com
+
+# Encryption
+Encryption: https://keybase.io/fundtracer
+
+# Preferred Languages
+Preferred-Languages: en
+
+# Scope
+Scope: https://fundtracer.xyz
+Scope: https://www.fundtracer.xyz
+Scope: https://api.fundtracer.xyz
+
+# Policy
+Policy: https://fundtracer.xyz/privacy
+
+# Hiring
+Hiring: https://fundtracer.xyz/careers
+
+# Acknowledgments
+# Submit vulnerabilities responsibly through email

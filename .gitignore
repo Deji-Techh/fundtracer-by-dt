@@ -50,6 +50,7 @@ Thumbs.db
 
 # Project specific
 packages/*/dist
+!packages/web/dist
 packages/*/node_modules
 packages/*/build
 .env.vercel

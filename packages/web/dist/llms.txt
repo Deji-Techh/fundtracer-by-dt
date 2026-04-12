@@ -1,0 +1,84 @@
+# FundTracer by DT - LLM/AI Full Text Search
+
+## Site Overview
+FundTracer is a professional blockchain forensics and intelligence platform for analyzing wallet addresses, detecting Sybil patterns, comparing multiple wallets, and tracing funding sources across multiple blockchains.
+
+## Supported Blockchains
+Ethereum, Linea, Arbitrum, Base, Polygon, Optimism, BSC
+
+## Core Features
+
+### Wallet Analysis
+Deep dive into any wallet address across multiple chains. Analyze transaction history, token holdings, funding sources, NFT collections, and risk scores (0-100 scale).
+
+### Contract Analytics
+Analyze any smart contract to understand its functionality, owner permissions, and potential risks. Check for honeypot patterns.
+
+### Wallet Comparison
+Compare multiple wallets side-by-side to identify connections, shared transactions, and coordinated behaviors.
+
+### Sybil Detection
+Detect coordinated bot networks and fake accounts by analyzing transaction patterns, funding sources, and behavioral similarities. Identify same-block transactions and common funders.
+
+### Funding Tree
+Visualize the complete funding chain from any origin wallet to trace where funds came from and where they're going.
+
+### Portfolio Tracking
+Track multiple wallets with real-time alerts via Telegram. View token balances, NFT collections, and price changes.
+
+### Telegram Bot Integration
+Get real-time wallet alerts directly on Telegram. Commands include:
+- /scan <address> [chain] - Quick wallet analysis
+- /add - Add wallet to watchlist  
+- /token <addr> - Check token prices
+- /rugcheck <addr> - Check token safety
+- /trending - View trending tokens
+- /pmarkets - Polymarket markets
+- /groupmode - Enable for group chats
+
+### Chrome Extension
+Quick wallet analysis from any webpage. Right-click any address to instantly analyze it with FundTracer.
+
+### CLI Tool
+Developer access via command line for automated workflows.
+
+## Use Cases
+- Cryptocurrency traders analyzing whale movements
+- Security researchers investigating scam addresses
+- Project teams auditing token holders
+- Law enforcement tracking illicit funds
+- DeFi users checking protocol safety
+- Investors conducting due diligence
+- Compliance teams (KYC/AML)
+
+## Supported Chains
+- Ethereum (ETH)
+- Linea
+- Arbitrum
+- Base
+- Optimism
+- Polygon (MATIC)
+- BSC (BNB Chain)
+
+## Pricing
+- Free: 7 analyses per 4 hours, basic wallet analysis
+- Pro ($29/month): 25 analyses per 4 hours, all chains, export features
+- Max ($99/month): Unlimited analyses, API access, priority support
+
+## Contact
+- Email: fundtracerbydt@gmail.com
+- Website: https://fundtracer.xyz
+- Twitter: @fundtracer
+- Telegram: t.me/fundtracer_bot
+- GitHub: github.com/fundtracer
+- Chrome Extension: https://fundtracer.xyz/ext-install
+
+## Legal
+- Privacy Policy: https://fundtracer.xyz/privacy
+- Terms of Service: https://fundtracer.xyz/terms
+- FAQ: https://fundtracer.xyz/faq
+- Features: https://fundtracer.xyz/features
+- How It Works: https://fundtracer.xyz/how-it-works
+
+---
+Generated for AI/LLM indexing. Last updated: April 2026
