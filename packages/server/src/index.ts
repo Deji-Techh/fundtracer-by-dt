@@ -548,6 +548,16 @@ createTelegramBot().catch(err => {
 // Frontend routes that start with /api (must be handled by SPA)
 const frontendApiRoutes = ['/api/keys', '/api/docs'];
 
+// Redirect non-API routes on api.fundtracer.xyz to fundtracer.xyz
+app.use((req, res, next) => {
+    const host = req.get('host') || '';
+    if (host.includes('api.fundtracer.xyz') && !req.path.startsWith('/api/')) {
+        const targetUrl = `https://fundtracer.xyz${req.path}`;
+        return res.redirect(301, targetUrl);
+    }
+    next();
+});
+
 // Serve the API keys page for root when accessed via api.fundtracer.xyz custom domain
 app.get('/', (req, res) => {
     // Check if this is the custom domain
