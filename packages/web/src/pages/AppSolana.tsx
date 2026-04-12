@@ -11,6 +11,7 @@ import {
     Droplets
 } from 'lucide-react';
 import { Spinner, useSpinner } from '../utils/spinner';
+import ThemeToggle from '../components/common/ThemeToggle';
 import './AppSolana.css';
 
 interface SolanaToken {
@@ -194,6 +195,7 @@ export default function AppSolana() {
     const [activeFeature, setActiveFeature] = useState<FeatureType | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [txFilter, setTxFilter] = useState('all');
 
     // Individual loading states for each feature
     const [featureLoading, setFeatureLoading] = useState<Record<string, boolean>>({
@@ -233,6 +235,15 @@ export default function AppSolana() {
     const [taxPositions, setTaxPositions] = useState<TaxPosition[]>([]);
 
     const token = localStorage.getItem('fundtracer_token') || '';
+
+    const filteredTransactions = transactions.filter(tx => {
+        if (txFilter === 'all') return true;
+        if (txFilter === 'transfers') return tx.type?.includes('transfer');
+        if (txFilter === 'swaps') return tx.type?.includes('swap') || tx.type === 'unknown';
+        if (txFilter === 'nfts') return tx.token || tx.tokenAmount;
+        if (txFilter === 'staking') return tx.type === 'staking';
+        return true;
+    });
 
     // Fetch individual feature
     const fetchFeature = async (featureId: string, endpoint: string, setter: (data: any) => void) => {
@@ -451,21 +462,21 @@ export default function AppSolana() {
                         {activeFeature === 'transactions' && (
                             <div className="transactions-detail">
                                 <div className="tx-filters">
-                                    <button className="filter-btn active">All</button>
-                                    <button className="filter-btn">Transfers</button>
-                                    <button className="filter-btn">Swaps</button>
-                                    <button className="filter-btn">NFTs</button>
-                                    <button className="filter-btn">Staking</button>
+                                    <button className={`filter-btn ${txFilter === 'all' ? 'active' : ''}`} onClick={() => setTxFilter('all')}>All</button>
+                                    <button className={`filter-btn ${txFilter === 'transfers' ? 'active' : ''}`} onClick={() => setTxFilter('transfers')}>Transfers</button>
+                                    <button className={`filter-btn ${txFilter === 'swaps' ? 'active' : ''}`} onClick={() => setTxFilter('swaps')}>Swaps</button>
+                                    <button className={`filter-btn ${txFilter === 'nfts' ? 'active' : ''}`} onClick={() => setTxFilter('nfts')}>NFTs</button>
+                                    <button className={`filter-btn ${txFilter === 'staking' ? 'active' : ''}`} onClick={() => setTxFilter('staking')}>Staking</button>
                                 </div>
 
                                 <div className="tx-list">
-                                    {transactions.map((tx, idx) => (
+                                    {filteredTransactions.map((tx, idx) => (
                                         <div key={idx} className={`tx-row ${tx.status}`}>
                                             <div className="tx-icon-wrap">
                                                 {tx.amount && tx.amount > 0 ? <ArrowUpRight size={16} /> : <Activity size={16} />}
                                             </div>
                                             <div className="tx-main">
-                                                <span className="tx-type">{tx.type || 'Transaction'}</span>
+                                                <span className="tx-type">{tx.type === 'unknown' ? 'Transfer' : tx.type || 'Transaction'}</span>
                                                 <span className="tx-time">{formatTime(tx.blockTime)}</span>
                                             </div>
                                             <div className="tx-meta">
@@ -474,7 +485,7 @@ export default function AppSolana() {
                                                         {tx.amount > 0 ? '+' : ''}{formatSol(tx.amount * 1e9)} SOL
                                                     </span>
                                                 )}
-                                                <span className="tx-fee">Fee: {(tx.fee / 1e9).toFixed(6)} SOL</span>
+                                                {tx.fee && <span className="tx-fee">Fee: {formatSol(tx.fee)} SOL</span>}
                                             </div>
                                             <a href={`${SOLANA_EXPLORER}/tx/${tx.signature}`} target="_blank" rel="noopener noreferrer" className="tx-link">
                                                 <ExternalLink size={14} />
@@ -747,10 +758,10 @@ export default function AppSolana() {
                                         {taxPositions.map((pos, idx) => (
                                             <div key={idx} className="table-row">
                                                 <span>{pos.token}</span>
-                                                <span>{pos.quantity.toLocaleString()}</span>
-                                                <span>{formatUsd(pos.costBasis)}</span>
-                                                <span>{formatUsd(pos.currentValue)}</span>
-                                                <span className={pos.pnl >= 0 ? 'positive' : 'negative'}>{pos.pnl >= 0 ? '+' : ''}{formatUsd(pos.pnl)} ({formatPercent(pos.pnlPercent)})</span>
+                                                <span>{pos.quantity ?? 0}</span>
+                                                <span>{formatUsd(pos.costBasis ?? 0)}</span>
+                                                <span>{formatUsd(pos.currentValue ?? 0)}</span>
+                                                <span className={(pos.pnl ?? 0) >= 0 ? 'positive' : 'negative'}>{(pos.pnl ?? 0) >= 0 ? '+' : ''}{formatUsd(pos.pnl ?? 0)} ({formatPercent(pos.pnlPercent ?? 0)})</span>
                                             </div>
                                         ))}
                                     </div>
@@ -901,6 +912,7 @@ export default function AppSolana() {
                     </div>
 
                     <div className="solana-user">
+                        <ThemeToggle />
                         <button className="evm-link-btn" onClick={() => navigate('/app-evm')}>
                             Go to EVM
                         </button>
@@ -911,13 +923,6 @@ export default function AppSolana() {
                     <div className="solana-error">
                         <span>{error}</span>
                         <button onClick={() => setError('')}><X size={14} /></button>
-                    </div>
-                )}
-
-                {loading && (
-                    <div className="solana-loading">
-                        <Loader2 size={32} className="spin" />
-                        <span>Analyzing wallet...</span>
                     </div>
                 )}
 
@@ -943,7 +948,8 @@ export default function AppSolana() {
                         </div>
                     )}
 
-                    <div className="features-grid">
+                    {portfolio && (
+                        <div className="features-grid">
                         {features.map((feature) => {
                             const isLoading = featureLoading[feature.id];
                             const isComplete = completedFeatures[feature.id];
@@ -977,24 +983,25 @@ export default function AppSolana() {
                             );
                         })}
                     </div>
-                </div>
+                    )}
 
-                {!portfolio && !loading && (
-                    <div className="solana-empty">
-                        <div className="empty-content">
-                            <Wallet size={48} />
-                            <h2>Solana Wallet Analyzer</h2>
-                            <p>Enter a wallet address to analyze portfolio, transactions, NFTs, DeFi positions, and risk score.</p>
-                            <div className="sample-addresses">
-                                <span>Try:</span>
-                                <button onClick={() => setAddress('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU')}>7xKX...sAsU</button>
-                                <button onClick={() => setAddress('JUPyiwrYJFskUPiHa7hkeR8VUtkqjberbSOWd91pbT2')}>JUPy...bT2</button>
+                    {!portfolio && !loading && (
+                        <div className="solana-empty">
+                            <div className="empty-content">
+                                <Wallet size={48} />
+                                <h2>Solana Wallet Analyzer</h2>
+                                <p>Enter a wallet address to analyze portfolio, transactions, NFTs, DeFi positions, and risk score.</p>
+                                <div className="sample-addresses">
+                                    <span>Try:</span>
+                                    <button onClick={() => setAddress('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU')}>7xKX...sAsU</button>
+                                    <button onClick={() => setAddress('JUPyiwrYJFskUPiHa7hkeR8VUtkqjberbSOWd91pbT2')}>JUPy...bT2</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {renderFeaturePanel()}
+                    {renderFeaturePanel()}
+                </div>
             </div>
         </div>
     );
