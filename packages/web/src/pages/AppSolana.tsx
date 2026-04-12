@@ -195,6 +195,34 @@ export default function AppSolana() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Individual loading states for each feature
+    const [featureLoading, setFeatureLoading] = useState<Record<string, boolean>>({
+        portfolio: false,
+        transactions: false,
+        nfts: false,
+        defi: false,
+        risk: false,
+        identity: false,
+        analytics: false,
+        tax: false,
+        market: false,
+        history: false,
+    });
+
+    // Track which features have completed loading
+    const [completedFeatures, setCompletedFeatures] = useState<Record<string, boolean>>({
+        portfolio: false,
+        transactions: false,
+        nfts: false,
+        defi: false,
+        risk: false,
+        identity: false,
+        analytics: false,
+        tax: false,
+        market: false,
+        history: false,
+    });
+
     const [portfolio, setPortfolio] = useState<any>(null);
     const [transactions, setTransactions] = useState<SolanaTransaction[]>([]);
     const [nfts, setNfts] = useState<SolanaNFT[]>([]);
@@ -205,6 +233,21 @@ export default function AppSolana() {
     const [taxPositions, setTaxPositions] = useState<TaxPosition[]>([]);
 
     const token = localStorage.getItem('fundtracer_token') || '';
+
+    // Fetch individual feature
+    const fetchFeature = async (featureId: string, endpoint: string, setter: (data: any) => void) => {
+        setFeatureLoading(prev => ({ ...prev, [featureId]: true }));
+        setCompletedFeatures(prev => ({ ...prev, [featureId]: false }));
+        try {
+            const data = await fetchWithAuth(endpoint, token);
+            setter(data);
+            setCompletedFeatures(prev => ({ ...prev, [featureId]: true }));
+        } catch (err: any) {
+            console.error(`Error fetching ${featureId}:`, err);
+        } finally {
+            setFeatureLoading(prev => ({ ...prev, [featureId]: false }));
+        }
+    };
 
     const handleSearch = useCallback(async () => {
         if (!address.trim()) {
@@ -220,49 +263,73 @@ export default function AppSolana() {
         setLoading(true);
         setSearchParams({ address: address.trim() });
 
-        try {
-            const addr = address.trim();
+        // Reset all states
+        setFeatureLoading({
+            portfolio: true,
+            transactions: true,
+            nfts: true,
+            defi: true,
+            risk: true,
+            identity: true,
+            analytics: true,
+            tax: true,
+            market: true,
+            history: true,
+        });
+        setCompletedFeatures({
+            portfolio: false,
+            transactions: false,
+            nfts: false,
+            defi: false,
+            risk: false,
+            identity: false,
+            analytics: false,
+            tax: false,
+            market: false,
+            history: false,
+        });
+        setPortfolio(null);
+        setTransactions([]);
+        setNfts([]);
+        setDefi([]);
+        setRisk(null);
+        setIdentity([]);
+        setWhaleTxs([]);
+        setTaxPositions([]);
 
-            const results = await Promise.allSettled([
-                token ? fetchWithAuth(`/api/solana/portfolio/${addr}`, token) : Promise.reject(new Error('Not authenticated')),
-                token ? fetchWithAuth(`/api/solana/transactions/${addr}?limit=100`, token) : Promise.resolve({ transactions: [] }),
-                token ? fetchWithAuth(`/api/solana/nfts/${addr}`, token) : Promise.resolve({ nfts: [] }),
-                token ? fetchWithAuth(`/api/solana/defi/${addr}`, token) : Promise.resolve({ positions: [] }),
-                token ? fetchWithAuth(`/api/solana/risk/${addr}`, token) : Promise.resolve(null),
-                token ? fetchWithAuth(`/api/solana/analytics/${addr}`, token) : Promise.resolve({}),
-                token ? fetchWithAuth(`/api/solana/tax/${addr}`, token) : Promise.resolve({}),
-                token ? fetchWithAuth(`/api/solana/alerts/${addr}`, token) : Promise.resolve({}),
-                token ? fetchWithAuth(`/api/solana/history/${addr}?range=30d`, token) : Promise.resolve({}),
-            ]);
+        if (!token) {
+            setError('Please sign in to analyze wallets');
+            setLoading(false);
+            return;
+        }
 
-            if (results[0].status === 'fulfilled') setPortfolio(results[0].value);
-            if (results[1].status === 'fulfilled') setTransactions(results[1].value.transactions || []);
-            if (results[2].status === 'fulfilled') setNfts(results[2].value.nfts || []);
-            if (results[3].status === 'fulfilled') setDefi(results[3].value.positions || []);
-            if (results[4].status === 'fulfilled' && results[4].value) setRisk(results[4].value);
-            if (results[5].status === 'fulfilled' && results[5].value) {
-                setWhaleTxs(results[5].value.whaleActivity || []);
-            }
-            if (results[6].status === 'fulfilled' && results[6].value) {
-                setTaxPositions(results[6].value.positions || []);
-            }
+        const addr = address.trim();
 
-            // Identity from portfolio data
+        // Fetch all features in parallel
+        await Promise.allSettled([
+            fetchFeature('portfolio', `/api/solana/portfolio/${addr}`, setPortfolio),
+            fetchFeature('transactions', `/api/solana/transactions/${addr}?limit=100`, (data) => setTransactions(data.transactions || [])),
+            fetchFeature('nfts', `/api/solana/nfts/${addr}`, (data) => setNfts(data.nfts || [])),
+            fetchFeature('defi', `/api/solana/defi/${addr}`, (data) => setDefi(data.positions || [])),
+            fetchFeature('risk', `/api/solana/risk/${addr}`, setRisk),
+            fetchFeature('analytics', `/api/solana/analytics/${addr}`, (data) => setWhaleTxs(data.whaleActivity || [])),
+            fetchFeature('tax', `/api/solana/tax/${addr}`, (data) => setTaxPositions(data.positions || [])),
+        ]);
+
+        // Set identity based on portfolio
+        if (portfolio) {
             setIdentity([
                 { id: 'early_adopter', name: 'Early Adopter', description: 'One of the first users', icon: 'Star', earned: true, earnedAt: Date.now() - 86400000 * 30 },
-                { id: 'whale', name: 'Whale', description: 'Portfolio over $100K', icon: 'Crown', earned: results[0].status === 'fulfilled' && results[0].value?.totalUsd > 100000 },
-                { id: 'defi_user', name: 'DeFi User', description: 'Active on DeFi protocols', icon: 'Layers', earned: results[3].status === 'fulfilled' && (results[3].value?.positions?.length || 0) > 0 },
-                { id: 'nft_collector', name: 'NFT Collector', description: 'Owns 10+ NFTs', icon: 'Image', earned: (results[2].value?.nfts?.length || 0) >= 10 },
-                { id: 'trader', name: 'Active Trader', description: '100+ transactions', icon: 'Activity', earned: (results[1].value?.transactions?.length || 0) > 100 },
+                { id: 'whale', name: 'Whale', description: 'Portfolio over $100K', icon: 'Crown', earned: portfolio?.totalUsd > 100000 },
+                { id: 'defi_user', name: 'DeFi User', description: 'Active on DeFi protocols', icon: 'Layers', earned: defi.length > 0 },
+                { id: 'nft_collector', name: 'NFT Collector', description: 'Owns 10+ NFTs', icon: 'Image', earned: nfts.length >= 10 },
+                { id: 'trader', name: 'Active Trader', description: '100+ transactions', icon: 'Activity', earned: transactions.length > 100 },
             ]);
-
-        } catch (err: any) {
-            console.error('Solana analysis error:', err);
-            setError(err.message || 'Failed to analyze wallet');
-        } finally {
-            setLoading(false);
+            setCompletedFeatures(prev => ({ ...prev, identity: true }));
         }
-    }, [address, token, setSearchParams]);
+
+        setLoading(false);
+    }, [address, token, setSearchParams, portfolio, defi, nfts, transactions]);
 
     useEffect(() => {
         const addr = searchParams.get('address');
@@ -877,22 +944,38 @@ export default function AppSolana() {
                     )}
 
                     <div className="features-grid">
-                        {features.map((feature) => (
-                            <motion.button
-                                key={feature.id}
-                                className="feature-box"
-                                onClick={() => setActiveFeature(feature.id as FeatureType)}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                            >
-                                <div className="feature-icon">
-                                    <feature.icon size={24} />
-                                </div>
-                                <span className="feature-label">{feature.label}</span>
-                                <span className="feature-desc">{feature.desc}</span>
-                                <ChevronRight size={16} className="feature-arrow" />
-                            </motion.button>
-                        ))}
+                        {features.map((feature) => {
+                            const isLoading = featureLoading[feature.id];
+                            const isComplete = completedFeatures[feature.id];
+                            return (
+                                <motion.button
+                                    key={feature.id}
+                                    className={`feature-box ${isLoading ? 'loading' : ''} ${isComplete ? 'complete' : ''}`}
+                                    onClick={() => isComplete && setActiveFeature(feature.id as FeatureType)}
+                                    whileHover={isComplete ? { scale: 1.02 } : {}}
+                                    whileTap={isComplete ? { scale: 0.98 } : {}}
+                                    disabled={isLoading || !isComplete}
+                                >
+                                    {isLoading && (
+                                        <div className="feature-skeleton">
+                                            <div className="skeleton-icon"></div>
+                                            <div className="skeleton-text"></div>
+                                            <div className="skeleton-text short"></div>
+                                        </div>
+                                    )}
+                                    {!isLoading && (
+                                        <>
+                                            <div className="feature-icon">
+                                                <feature.icon size={24} />
+                                            </div>
+                                            <span className="feature-label">{feature.label}</span>
+                                            <span className="feature-desc">{feature.desc}</span>
+                                            <ChevronRight size={16} className="feature-arrow" />
+                                        </>
+                                    )}
+                                </motion.button>
+                            );
+                        })}
                     </div>
                 </div>
 

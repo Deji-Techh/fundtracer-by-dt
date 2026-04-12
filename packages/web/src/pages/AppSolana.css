@@ -375,6 +375,55 @@
     color: var(--primary);
 }
 
+/* Feature box loading state */
+.feature-box.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.feature-box.complete {
+    cursor: pointer;
+}
+
+.feature-box.complete:hover {
+    background: var(--surface2);
+}
+
+/* Feature skeleton loading */
+.feature-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.skeleton-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+}
+
+.skeleton-text {
+    height: 14px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    width: 80%;
+}
+
+.skeleton-text.short {
+    width: 50%;
+}
+
+@keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
 /* Feature Panel Overlay */
 .feature-overlay {
     position: fixed;
