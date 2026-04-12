@@ -833,7 +833,7 @@ export default function AppSolana() {
                     </div>
 
                     <div className="solana-user">
-                        <button className="evm-link-btn" onClick={() => navigate('/app')}>
+                        <button className="evm-link-btn" onClick={() => navigate('/app-evm')}>
                             Go to EVM
                         </button>
                     </div>
