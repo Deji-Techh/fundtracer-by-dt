@@ -7,7 +7,8 @@ import {
     Image, Shield, Layers, TrendingUp, BarChart3, PieChart,
     Activity, Clock, Hexagon, BadgeCheck,
     DollarSign, FileText, Zap, Bell, Crown, Star, ArrowUpRight,
-    ChevronRight, RefreshCw, Filter, Download, Eye, EyeOff, Play
+    ChevronRight, RefreshCw, Filter, Download, Eye, EyeOff, Play,
+    Droplets
 } from 'lucide-react';
 import { Spinner, useSpinner } from '../utils/spinner';
 import './AppSolana.css';
