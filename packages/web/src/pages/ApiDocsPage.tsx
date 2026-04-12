@@ -28,7 +28,7 @@ export function ApiDocsPage() {
     const markdown = `# FundTracer API Documentation
 
 ## Base URL
-\`https://www.fundtracer.xyz/api\`
+\`https://api.fundtracer.xyz/api\`
 
 ## Authentication
 All API requests require authentication using an API key. Include your API key in the Authorization header.
@@ -183,12 +183,12 @@ Compare multiple wallets to find shared interactions and connections.
 - \`options.minTxCount\`: Minimum transactions to consider (default: 3)
 
 ### POST /analyze/sybil
-Detect Sybil attack patterns and coordinated behavior.
+Detect Sybil attack patterns and coordinated behavior. Provide a contract address to analyze its interactors for sybil patterns.
 
 **Request Body:**
 \`\`\`json
 {
-  "contractAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1",
+  "contractAddress": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
   "chain": "ethereum"
 }
 \`\`\`
