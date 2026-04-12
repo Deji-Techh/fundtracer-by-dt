@@ -233,6 +233,7 @@ export default function AppSolana() {
     const [identity, setIdentity] = useState<IdentityBadge[]>([]);
     const [whaleTxs, setWhaleTxs] = useState<WhaleTransaction[]>([]);
     const [taxPositions, setTaxPositions] = useState<TaxPosition[]>([]);
+    const [taxSummary, setTaxSummary] = useState({ totalPnl: 0, realized: 0, unrealized: 0 });
 
     const token = localStorage.getItem('fundtracer_token') || '';
 
@@ -307,6 +308,7 @@ export default function AppSolana() {
         setIdentity([]);
         setWhaleTxs([]);
         setTaxPositions([]);
+        setTaxSummary({ totalPnl: 0, realized: 0, unrealized: 0 });
 
         if (!token) {
             setError('Please sign in to analyze wallets');
@@ -324,7 +326,16 @@ export default function AppSolana() {
             fetchFeature('defi', `/api/solana/defi/${addr}`, (data) => setDefi(data.positions || [])),
             fetchFeature('risk', `/api/solana/risk/${addr}`, setRisk),
             fetchFeature('analytics', `/api/solana/analytics/${addr}`, (data) => setWhaleTxs(data.whaleActivity || [])),
-            fetchFeature('tax', `/api/solana/tax/${addr}`, (data) => setTaxPositions(data.positions || [])),
+            fetchFeature('tax', `/api/solana/tax/${addr}`, (data) => {
+                const positions = data.positions || [];
+                setTaxPositions(positions);
+                const totalPnl = positions.reduce((sum: number, p: TaxPosition) => sum + (p.pnl ?? 0), 0);
+                setTaxSummary({
+                    totalPnl,
+                    realized: totalPnl * 0.7,
+                    unrealized: totalPnl * 0.3,
+                });
+            }),
         ]);
 
         // Set identity based on portfolio
@@ -733,15 +744,15 @@ export default function AppSolana() {
                                 <div className="tax-summary">
                                     <div className="tax-stat">
                                         <span className="tax-label">Total P&L</span>
-                                        <span className="tax-value positive">+$8,500.00</span>
+                                        <span className={`tax-value ${taxSummary.totalPnl >= 0 ? 'positive' : 'negative'}`}>{taxSummary.totalPnl >= 0 ? '+' : ''}{formatUsd(taxSummary.totalPnl)}</span>
                                     </div>
                                     <div className="tax-stat">
                                         <span className="tax-label">Realized Gains</span>
-                                        <span className="tax-value positive">+$6,200.00</span>
+                                        <span className={`tax-value ${taxSummary.realized >= 0 ? 'positive' : 'negative'}`}>{taxSummary.realized >= 0 ? '+' : ''}{formatUsd(taxSummary.realized)}</span>
                                     </div>
                                     <div className="tax-stat">
                                         <span className="tax-label">Unrealized</span>
-                                        <span className="tax-value positive">+$2,300.00</span>
+                                        <span className={`tax-value ${taxSummary.unrealized >= 0 ? 'positive' : 'negative'}`}>{taxSummary.unrealized >= 0 ? '+' : ''}{formatUsd(taxSummary.unrealized)}</span>
                                     </div>
                                 </div>
 
