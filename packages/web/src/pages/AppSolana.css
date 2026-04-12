@@ -151,22 +151,26 @@
     color: var(--green);
 }
 
-/* User avatar */
+/* User area */
 .solana-user {
     flex-shrink: 0;
 }
 
-.user-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--surface3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--primary);
+.evm-link-btn {
+    background: transparent;
+    border: 1px solid var(--color-surface-border);
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: var(--color-text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.evm-link-btn:hover {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-primary);
 }
 
 .analyze-btn:disabled {

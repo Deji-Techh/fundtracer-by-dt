@@ -833,7 +833,9 @@ export default function AppSolana() {
                     </div>
 
                     <div className="solana-user">
-                        <div className="user-avatar">{user?.walletAddress?.[0]?.toUpperCase() || 'U'}</div>
+                        <button className="evm-link-btn" onClick={() => navigate('/app')}>
+                            Go to EVM
+                        </button>
                     </div>
                 </div>
 
