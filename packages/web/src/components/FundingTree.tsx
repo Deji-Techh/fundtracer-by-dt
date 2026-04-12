@@ -38,6 +38,11 @@ interface FundingTreeProps {
     destData?: FundingNode;
     targetAddress: string;
     chain?: ChainId;
+    treeDepth?: number;
+    onDepthChange?: (depth: number) => void;
+    onGenerate?: () => void;
+    isLoading?: boolean;
+    error?: string | null;
 }
 
 // --- Entity type color helpers ---
@@ -335,7 +340,7 @@ const MobileTreeView = ({
 
 // --- Main Component ---
 
-function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum' }: FundingTreeProps) {
+function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum', treeDepth = 2, onDepthChange, onGenerate, isLoading, error: externalError }: FundingTreeProps) {
     const [activeDirection, setActiveDirection] = useState<'source' | 'destination'>('source');
     
     // Choose which node to display based on active activeDirection
@@ -369,22 +374,37 @@ function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum' }
 
     if (!node || !node.address) {
         return (
-            <div style={{ padding: 20, textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                <div style={{ marginBottom: 10 }}>
+            <div className="funding-tree-empty">
+                <div className="funding-tree-controls">
+                    <div className="tree-depth-selector">
+                        <label>Tree Depth:</label>
+                        <select 
+                            value={treeDepth} 
+                            onChange={(e) => onDepthChange?.(Number(e.target.value))}
+                            disabled={isLoading}
+                        >
+                            <option value={1}>1 hop</option>
+                            <option value={2}>2 hops</option>
+                            <option value={3}>3 hops</option>
+                            <option value={4}>4 hops</option>
+                        </select>
+                    </div>
                     <button 
-                        onClick={() => setActiveDirection('source')}
-                        style={{ marginRight: 10, padding: '8px 16px', background: activeDirection === 'source' ? 'var(--color-primary)' : 'var(--color-bg-tertiary)', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                        className={`generate-tree-btn ${isLoading ? 'loading' : ''}`}
+                        onClick={onGenerate}
+                        disabled={isLoading}
                     >
-                        Sources
-                    </button>
-                    <button 
-                        onClick={() => setActiveDirection('destination')}
-                        style={{ padding: '8px 16px', background: activeDirection === 'destination' ? 'var(--color-primary)' : 'var(--color-bg-tertiary)', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-                    >
-                        Destinations
+                        {isLoading ? 'Generating...' : 'Generate Funding Tree'}
                     </button>
                 </div>
-                No funding data available for {activeDirection === 'source' ? 'sources' : 'destinations'}
+                
+                {externalError && (
+                    <div className="tree-error">{externalError}</div>
+                )}
+                
+                <div className="funding-tree-placeholder">
+                    <p>Click "Generate Funding Tree" to visualize fund sources and destinations</p>
+                </div>
             </div>
         );
     }
@@ -715,8 +735,31 @@ function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum' }
                         {activeDirection === 'source' ? 'Funding Sources' : 'Destinations'}
                     </span>
                     <span className="funding-tree-toolbar-hint">
-                        Click node for details &middot; Double-click to collapse
+                        Click node for details · Double-click to collapse
                     </span>
+                </div>
+
+                <div className="funding-tree-toolbar-center">
+                    <div className="tree-depth-selector">
+                        <label>Tree Depth:</label>
+                        <select 
+                            value={treeDepth} 
+                            onChange={(e) => onDepthChange?.(Number(e.target.value))}
+                            disabled={isLoading}
+                        >
+                            <option value={1}>1 hop</option>
+                            <option value={2}>2 hops</option>
+                            <option value={3}>3 hops</option>
+                            <option value={4}>4 hops</option>
+                        </select>
+                    </div>
+                    <button 
+                        className={`generate-tree-btn ${isLoading ? 'loading' : ''}`}
+                        onClick={onGenerate}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Generating...' : 'Generate'}
+                    </button>
                 </div>
 
                 <div className="funding-tree-toolbar-right">

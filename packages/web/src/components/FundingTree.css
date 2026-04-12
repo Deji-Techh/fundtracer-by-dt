@@ -49,6 +49,62 @@
   gap: 6px;
 }
 
+.funding-tree-toolbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.funding-tree-toolbar-center .tree-depth-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.funding-tree-toolbar-center .tree-depth-selector label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.funding-tree-toolbar-center .tree-depth-selector select {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--color-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.funding-tree-toolbar-center .generate-tree-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.funding-tree-toolbar-center .generate-tree-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.funding-tree-toolbar-center .generate-tree-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.funding-tree-toolbar-center .generate-tree-btn.loading {
+  opacity: 0.7;
+}
+
 .funding-tree-toolbar-badge {
   background: rgba(0, 0, 0, 0.6);
   padding: 4px 10px;
@@ -356,13 +412,91 @@
 }
 
 /* Loading/Error States */
-.funding-tree-error {
-  padding: 40px;
+.funding-tree-empty {
+  padding: 20px;
   text-align: center;
-  color: var(--color-danger-text);
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-lg);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.funding-tree-empty .funding-tree-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.funding-tree-empty .tree-depth-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.funding-tree-empty .tree-depth-selector label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.funding-tree-empty .tree-depth-selector select {
+  background: var(--color-bg-tertiary);
   border: 1px solid var(--color-surface-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.funding-tree-empty .generate-tree-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.funding-tree-empty .generate-tree-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.funding-tree-empty .generate-tree-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.funding-tree-empty .generate-tree-btn.loading {
+  opacity: 0.7;
+}
+
+.funding-tree-empty .tree-error {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid var(--color-danger);
+  border-radius: 6px;
+  color: var(--color-danger-text);
+  font-size: 13px;
+}
+
+.funding-tree-empty .funding-tree-placeholder {
+  padding: 60px 40px;
+  background: var(--color-bg-tertiary);
+  border: 2px dashed var(--color-surface-border);
+  border-radius: 12px;
+  color: var(--color-text-muted);
+}
+
+.funding-tree-empty .funding-tree-placeholder p {
+  margin: 0;
+  font-size: 14px;
 }
 
 .no-data {

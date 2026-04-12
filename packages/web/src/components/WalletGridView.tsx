@@ -620,38 +620,16 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                             exit={{ opacity: 0, x: -300 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="funding-tree-controls">
-                                <div className="tree-depth-selector">
-                                    <label>Tree Depth:</label>
-                                    <select 
-                                        value={treeDepth} 
-                                        onChange={(e) => setTreeDepth(Number(e.target.value))}
-                                        disabled={treeLoading}
-                                    >
-                                        <option value={1}>1 hop</option>
-                                        <option value={2}>2 hops</option>
-                                        <option value={3}>3 hops</option>
-                                        <option value={4}>4 hops</option>
-                                    </select>
-                                </div>
-                                <button 
-                                    className={`generate-tree-btn ${treeLoading ? 'loading' : ''}`}
-                                    onClick={handleGenerateTree}
-                                    disabled={treeLoading}
-                                >
-                                    {treeLoading ? 'Generating...' : 'Generate Funding Tree'}
-                                </button>
-                            </div>
-                            
-                            {treeError && (
-                                <div className="tree-error">{treeError}</div>
-                            )}
-                            
                             <FundingTree 
-                                sourceData={fundingSources || result.fundingSources}
-                                destData={fundingDestinations || result.fundingDestinations}
+                                sourceData={fundingSources}
+                                destData={fundingDestinations}
                                 targetAddress={result.wallet.address}
                                 chain={result.wallet.chain}
+                                treeDepth={treeDepth}
+                                onDepthChange={setTreeDepth}
+                                onGenerate={handleGenerateTree}
+                                isLoading={treeLoading}
+                                error={treeError}
                             />
                         </motion.div>
                     )}
