@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Wallet, Send, Image, BarChart3, Shield, User, TrendingUp, History,
     GitCompare, ChevronRight, Loader2, X, Copy, ExternalLink, ArrowUpRight,
-    Activity, Download, FileText, Zap, Crown, Droplets, Scale
+    Activity, Download, FileText, Zap, Crown, Droplets, Scale, Receipt
 } from 'lucide-react';
 import { Spinner, useSpinner } from '../utils/spinner';
 import ThemeToggle from '../components/common/ThemeToggle';
