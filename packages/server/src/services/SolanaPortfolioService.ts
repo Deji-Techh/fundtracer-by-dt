@@ -122,7 +122,11 @@ export class SolanaPortfolioService {
             };
         }).filter(t => t.uiAmount > 0);
 
-        const solPrice = prices['So11111111111111111111111111111111111111112'] || 0;
+        let solPrice = prices['So11111111111111111111111111111111111111112'] || 0;
+        if (solPrice === 0) {
+            solPrice = await this.getSolPrice();
+        }
+        
         const totalUsd = (balance / LAMPORTS_PER_SOL) * solPrice + tokens.reduce((sum, t) => sum + (t.value || 0), 0);
 
         const portfolio: SolanaPortfolio = {
@@ -334,26 +338,63 @@ export class SolanaPortfolioService {
         const cached = cache.get(cacheKey);
         if (cached) return cached as SolanaNFT[];
 
+        const nfts: SolanaNFT[] = [];
+
         try {
             const assets = await solanaHeliusClient.getAssetsByOwner({ owner: address, limit: 100 });
-            const nfts: SolanaNFT[] = ((assets as any).items || []).map((item: any) => ({
-                id: item.id,
-                mint: item.id,
-                owner: address,
-                name: item.content?.metadata?.name || 'Unknown',
-                symbol: item.content?.metadata?.symbol,
-                imageUrl: item.content?.links?.image,
-                collection: item.grouping?.find((g: any) => g.groupKey === 'collection')?.groupValue,
-                collectionImage: item.content?.links?.image,
-                attributes: item.content?.metadata?.attributes,
-            }));
-
-            cache.set(cacheKey, nfts, 300);
-            return nfts;
+            const items = (assets as any)?.items || [];
+            if (items.length > 0) {
+                nfts.push(...items.map((item: any) => ({
+                    id: item.id,
+                    mint: item.id,
+                    owner: address,
+                    name: item.content?.metadata?.name || 'Unknown',
+                    symbol: item.content?.metadata?.symbol,
+                    imageUrl: item.content?.links?.image,
+                    collection: item.grouping?.find((g: any) => g.groupKey === 'collection')?.groupValue,
+                    collectionImage: item.content?.links?.image,
+                    attributes: item.content?.metadata?.attributes,
+                })));
+            }
         } catch (e) {
-            console.error('[SolanaPortfolio] Error fetching NFTs:', e);
-            return [];
+            console.error('[SolanaPortfolio] Helius NFT fetch failed, trying Alchemy:', e);
+            try {
+                const alchemyKey = process.env.ALCHEMY_SOLANA_KEY || process.env.ALCHEMY_KEY_01;
+                if (alchemyKey) {
+                    const res = await fetch(`https://solana-mainnet.g.alchemy.com/v2/${alchemyKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            method: 'getAssetsByOwner',
+                            params: [{
+                                owner: address,
+                                options: { limit: 100 }
+                            }]
+                        })
+                    });
+                    const data = await res.json();
+                    const alchemyNfts = data.result?.assets || [];
+                    nfts.push(...alchemyNfts.map((item: any) => ({
+                        id: item.id,
+                        mint: item.id,
+                        owner: address,
+                        name: item.metadata?.name || item.name || 'Unknown',
+                        symbol: item.metadata?.symbol,
+                        imageUrl: item.metadata?.image || item.imageUrl,
+                        collection: item.collection || '',
+                        collectionImage: item.metadata?.image,
+                        attributes: item.metadata?.attributes,
+                    })));
+                }
+            } catch (e2) {
+                console.error('[SolanaPortfolio] Alchemy NFT fetch also failed:', e2);
+            }
         }
+
+        cache.set(cacheKey, nfts, 300);
+        return nfts;
     }
 
     async getDeFiPositions(address: string): Promise<DeFiPosition[]> {
@@ -494,6 +535,19 @@ export class SolanaPortfolioService {
             prices[mint] = this.priceCache.get(mint) || 0;
         }
         return prices;
+    }
+
+    private async getSolPrice(): Promise<number> {
+        try {
+            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+            const data = await res.json();
+            const price = data.solana?.usd || 0;
+            this.priceCache.set('So11111111111111111111111111111111111111112', price);
+            return price;
+        } catch (e) {
+            console.error('[SolanaPortfolio] Error fetching SOL price:', e);
+            return 0;
+        }
     }
 
     private chunk<T>(arr: T[], size: number): T[][] {
