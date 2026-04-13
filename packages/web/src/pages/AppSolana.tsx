@@ -2,13 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Loader2, Copy, ExternalLink, X, Wallet, Receipt, 
-    Image, Shield, Layers, TrendingUp, BarChart3, PieChart,
-    Activity, Clock, Hexagon, BadgeCheck,
-    DollarSign, FileText, Zap, Bell, Crown, Star, ArrowUpRight,
-    ChevronRight, RefreshCw, Filter, Download, Eye, EyeOff, Play,
-    Droplets
+import {
+    Wallet, Send, Image, BarChart3, Shield, User, TrendingUp, History,
+    GitCompare, ChevronRight, Loader2, X, Copy, ExternalLink, ArrowUpRight,
+    Activity, Download, FileText, Zap, Crown, Droplets, Scale
 } from 'lucide-react';
 import { Spinner, useSpinner } from '../utils/spinner';
 import ThemeToggle from '../components/common/ThemeToggle';
@@ -107,7 +104,7 @@ interface TaxPosition {
     exitPrice?: number;
 }
 
-type FeatureType = 'portfolio' | 'transactions' | 'nfts' | 'defi' | 'risk' | 'identity' | 'analytics' | 'tax' | 'market' | 'history';
+type FeatureType = 'portfolio' | 'transactions' | 'nfts' | 'defi' | 'risk' | 'identity' | 'analytics' | 'tax' | 'compare' | 'history';
 
 const SOLANA_EXPLORER = 'https://solscan.io';
 
@@ -182,7 +179,7 @@ const features = [
     { id: 'identity', label: 'Identity', icon: BadgeCheck, desc: 'Badges & reputation' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, desc: 'Dune data & trends' },
     { id: 'tax', label: 'Tax', icon: DollarSign, desc: 'P&L & cost basis' },
-    { id: 'market', label: 'Market', icon: TrendingUp, desc: 'Token launches & alerts' },
+    { id: 'compare', label: 'Compare', icon: GitCompare, desc: 'Compare multiple wallets' },
     { id: 'history', label: 'History', icon: Clock, desc: 'Portfolio over time' },
 ];
 
@@ -207,7 +204,7 @@ export default function AppSolana() {
         identity: false,
         analytics: false,
         tax: false,
-        market: false,
+        compare: false,
         history: false,
     });
 
@@ -221,7 +218,7 @@ export default function AppSolana() {
         identity: false,
         analytics: false,
         tax: false,
-        market: false,
+        compare: false,
         history: false,
     });
 
@@ -234,6 +231,9 @@ export default function AppSolana() {
     const [whaleTxs, setWhaleTxs] = useState<WhaleTransaction[]>([]);
     const [taxPositions, setTaxPositions] = useState<TaxPosition[]>([]);
     const [taxSummary, setTaxSummary] = useState({ totalPnl: 0, realized: 0, unrealized: 0 });
+    const [compareAddress, setCompareAddress] = useState('');
+    const [compareData, setCompareData] = useState<{ sharedTxs?: number; commonTokens?: number; firstCommon?: string } | null>(null);
+    const [comparing, setComparing] = useState(false);
 
     const token = localStorage.getItem('fundtracer_token') || '';
 
@@ -285,7 +285,7 @@ export default function AppSolana() {
             identity: true,
             analytics: true,
             tax: true,
-            market: true,
+            compare: true,
             history: true,
         });
         setCompletedFeatures({
@@ -297,7 +297,7 @@ export default function AppSolana() {
             identity: false,
             analytics: false,
             tax: false,
-            market: false,
+            compare: false,
             history: false,
         });
         setPortfolio(null);
@@ -364,6 +364,26 @@ export default function AppSolana() {
     const copyAddress = () => {
         navigator.clipboard.writeText(address);
     };
+
+    const handleCompare = useCallback(async () => {
+        if (!compareAddress.trim() || !token) return;
+        if (!isValidSolanaAddress(compareAddress.trim())) {
+            setError('Invalid Solana address format');
+            return;
+        }
+        setComparing(true);
+        setError('');
+        
+        try {
+            const data = await fetchWithAuth(`/api/solana/compare/${address}/${compareAddress.trim()}`, token);
+            setCompareData(data);
+        } catch (err: any) {
+            console.error('Compare error:', err);
+            setCompareData({ sharedTxs: 0, commonTokens: 0, firstCommon: 'Error fetching comparison' });
+        } finally {
+            setComparing(false);
+        }
+    }, [address, compareAddress, token]);
 
     const closeFeature = () => {
         setActiveFeature(null);
@@ -791,51 +811,52 @@ export default function AppSolana() {
                             </div>
                         )}
 
-                        {activeFeature === 'market' && (
-                            <div className="market-detail">
-                                <div className="market-header">
-                                    <Zap size={24} />
-                                    <span>Market Intelligence</span>
+                        {activeFeature === 'compare' && (
+                            <div className="compare-detail">
+                                <div className="compare-header">
+                                    <GitCompare size={24} />
+                                    <span>Wallet Comparison</span>
                                 </div>
-
-                                <div className="alerts-section">
-                                    <h3>Token Alerts</h3>
-                                    <div className="alert-list">
-                                        <div className="alert-item new">
-                                            <Bell size={16} />
-                                            <span>Pump.fun new token detected</span>
-                                        </div>
-                                        <div className="alert-item">
-                                            <Bell size={16} />
-                                            <span>SOL price action alert</span>
-                                        </div>
-                                    </div>
-                                    <button className="add-alert-btn">
-                                        <Zap size={16} />
-                                        Create Alert
+                                <div className="compare-input-section">
+                                    <input
+                                        type="text"
+                                        placeholder="Enter second wallet address to compare..."
+                                        value={compareAddress}
+                                        onChange={(e) => setCompareAddress(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleCompare()}
+                                    />
+                                    <button className="compare-btn" onClick={handleCompare} disabled={!compareAddress.trim()}>
+                                        <GitCompare size={16} />
+                                        Compare
                                     </button>
                                 </div>
-
-                                <div className="trending-section">
-                                    <h3>Trending Tokens</h3>
-                                    <div class-name="trending-list">
-                                        <div className="trending-item">
-                                            <Star size={16} className="trending-icon" />
-                                            <span className="trending-name">SOL</span>
-                                            <span className="trending-change positive">+5.2%</span>
-                                        </div>
-                                        <div className="trending-item">
-                                            <Star size={16} className="trending-icon" />
-                                            <span className="trending-name">BONK</span>
-                                            <span className="trending-change positive">+12.4%</span>
-                                        </div>
-                                        <div className="trending-item">
-                                            <Star size={16} className="trending-icon" />
-                                            <span className="trending-name">JUP</span>
-                                            <span className="trending-change negative">-2.1%</span>
+                                {compareData && (
+                                    <div className="compare-results">
+                                        <div className="comparison-summary">
+                                            <h3>Comparison Summary</h3>
+                                            <div className="comparison-stats">
+                                                <div className="comp-stat">
+                                                    <span className="comp-label">Shared Transactions</span>
+                                                    <span className="comp-value">{compareData.sharedTxs || 0}</span>
+                                                </div>
+                                                <div className="comp-stat">
+                                                    <span className="comp-label">Common Tokens</span>
+                                                    <span className="comp-value">{compareData.commonTokens || 0}</span>
+                                                </div>
+                                                <div className="comp-stat">
+                                                    <span className="comp-label">First Common Interaction</span>
+                                                    <span className="comp-value">{compareData.firstCommon || 'None'}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
+                                {!compareData && !comparing && (
+                                    <div className="compare-empty">
+                                        <GitCompare size={48} />
+                                        <p>Enter another wallet address to compare holdings, transactions, and interactions.</p>
+                                    </div>
+                                )}
                             </div>
                         )}
 

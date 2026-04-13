@@ -14,7 +14,7 @@ function isValidSolanaAddress(address: string): boolean {
   if (!address) return false;
   if (address.length < 32 || address.length > 44) return false;
   const base58Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-  return [...address].every(c => base58Chars.includes(c));
+  return Array.from(address).every(c => base58Chars.includes(c));
 }
 
 // GET /api/solana/portfolio/:address - Full portfolio view
@@ -293,6 +293,42 @@ router.get('/tax/:address', authMiddleware, usageMiddleware, async (req, res) =>
   } catch (error: any) {
     console.error('Solana tax error:', error);
     res.status(500).json({ error: 'Failed to calculate tax positions' });
+  }
+});
+
+// GET /api/solana/compare/:address1/:address2 - Compare two Solana wallets
+router.get('/compare/:address1/:address2', authMiddleware, usageMiddleware, async (req, res) => {
+  try {
+    const { address1, address2 } = req.params;
+    
+    if (!isValidSolanaAddress(address1) || !isValidSolanaAddress(address2)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    const [portfolio1, portfolio2, txs1, txs2] = await Promise.all([
+      solanaPortfolioService.getPortfolio(address1),
+      solanaPortfolioService.getPortfolio(address2),
+      solanaPortfolioService.getTransactions(address1, 100),
+      solanaPortfolioService.getTransactions(address2, 100),
+    ]);
+
+    const tokens1 = new Set(portfolio1.tokens.map(t => t.mint));
+    const tokens2 = new Set(portfolio2.tokens.map(t => t.mint));
+    const commonTokens = Array.from(tokens1).filter(t => tokens2.has(t)).length;
+
+    const sigs1 = new Set(txs1.map(t => t.signature));
+    const sharedTxs = txs2.filter(t => sigs1.has(t.signature)).length;
+
+    res.json({
+      wallet1: { address: address1, totalUsd: portfolio1.totalUsd },
+      wallet2: { address: address2, totalUsd: portfolio2.totalUsd },
+      commonTokens,
+      sharedTxs,
+      firstCommon: sharedTxs > 0 ? 'Found' : 'None',
+    });
+  } catch (error: any) {
+    console.error('Solana compare error:', error);
+    res.status(500).json({ error: 'Failed to compare wallets' });
   }
 });
 
