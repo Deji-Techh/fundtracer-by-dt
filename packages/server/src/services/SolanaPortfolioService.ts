@@ -164,12 +164,43 @@ export class SolanaPortfolioService {
     }
 
     private async getTokenAccounts(address: string): Promise<SolanaToken[]> {
-        const [token2022, token2022Program] = await Promise.all([
-            this.getTokensByProgram(address, 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-            this.getTokensByProgram(address, 'TokenzQdBNbLqP5VEhdkAS6dFvwzYqE8hpzEfb9Kh'),
-        ]);
+        const tokens: SolanaToken[] = [];
 
-        return [...token2022, ...token2022Program];
+        try {
+            const heliusTokens = await this.getTokensFromHelius(address);
+            tokens.push(...heliusTokens);
+        } catch (e) {
+            console.error('[SolanaPortfolio] Helius token fetch failed:', e);
+        }
+
+        if (tokens.length === 0) {
+            try {
+                const [token2022, token2022Program] = await Promise.all([
+                    this.getTokensByProgram(address, 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+                    this.getTokensByProgram(address, 'TokenzQdBNbLqP5VEhdkAS6dFvwzYqE8hpzEfb9Kh'),
+                ]);
+                tokens.push(...token2022, ...token2022Program);
+            } catch (e) {
+                console.error('[SolanaPortfolio] Alchemy token fetch failed:', e);
+            }
+        }
+
+        return tokens;
+    }
+
+    private async getTokensFromHelius(address: string): Promise<SolanaToken[]> {
+        const assets = await solanaHeliusClient.getAssetsByOwner({ owner: address, limit: 100 });
+        const items = (assets as any)?.items || [];
+        
+        return items
+            .filter((item: any) => item.interface === 'Token' || item.tokenStandard === 'Fungible')
+            .map((item: any) => ({
+                mint: item.id,
+                amount: BigInt(item.tokenInfo?.amount || 0),
+                decimals: item.tokenInfo?.decimals || 0,
+                uiAmount: item.tokenInfo?.amount ? parseFloat(item.tokenInfo.amount) : 0,
+            }))
+            .filter((t: SolanaToken) => t.uiAmount > 0);
     }
 
     private async getTokensByProgram(address: string, programId: string): Promise<SolanaToken[]> {
@@ -357,44 +388,50 @@ export class SolanaPortfolioService {
                 })));
             }
         } catch (e) {
-            console.error('[SolanaPortfolio] Helius NFT fetch failed, trying Alchemy:', e);
+            console.error('[SolanaPortfolio] Helius NFT fetch failed, trying RPC:', e);
+        }
+
+        if (nfts.length === 0) {
             try {
-                const alchemyKey = process.env.ALCHEMY_SOLANA_KEY || process.env.ALCHEMY_KEY_01;
-                if (alchemyKey) {
-                    const res = await fetch(`https://solana-mainnet.g.alchemy.com/v2/${alchemyKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            jsonrpc: '2.0',
-                            id: 1,
-                            method: 'getAssetsByOwner',
-                            params: [{
-                                owner: address,
-                                options: { limit: 100 }
-                            }]
-                        })
-                    });
-                    const data = await res.json();
-                    const alchemyNfts = data.result?.assets || [];
-                    nfts.push(...alchemyNfts.map((item: any) => ({
-                        id: item.id,
-                        mint: item.id,
-                        owner: address,
-                        name: item.metadata?.name || item.name || 'Unknown',
-                        symbol: item.metadata?.symbol,
-                        imageUrl: item.metadata?.image || item.imageUrl,
-                        collection: item.collection || '',
-                        collectionImage: item.metadata?.image,
-                        attributes: item.metadata?.attributes,
-                    })));
-                }
+                nfts.push(...await this.getNFTsFromAlchemyRPC(address));
             } catch (e2) {
-                console.error('[SolanaPortfolio] Alchemy NFT fetch also failed:', e2);
+                console.error('[SolanaPortfolio] Alchemy RPC NFT fetch also failed:', e2);
             }
         }
 
         cache.set(cacheKey, nfts, 300);
         return nfts;
+    }
+
+    private async getNFTsFromAlchemyRPC(address: string): Promise<SolanaNFT[]> {
+        return solanaKeyPool.execute(async (endpoint) => {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'getAssetsByOwner',
+                    params: [{
+                        owner: address,
+                        options: { limit: 100 }
+                    }]
+                })
+            });
+            const data = await res.json();
+            const alchemyNfts = data.result?.assets || [];
+            return alchemyNfts.map((item: any) => ({
+                id: item.id,
+                mint: item.id,
+                owner: address,
+                name: item.metadata?.name || item.name || 'Unknown',
+                symbol: item.metadata?.symbol,
+                imageUrl: item.metadata?.image || item.imageUrl,
+                collection: item.collection || '',
+                collectionImage: item.metadata?.image,
+                attributes: item.metadata?.attributes,
+            }));
+        }, 10);
     }
 
     async getDeFiPositions(address: string): Promise<DeFiPosition[]> {
