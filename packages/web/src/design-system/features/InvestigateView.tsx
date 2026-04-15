@@ -21,6 +21,7 @@ import WalletGridView from '../../components/WalletGridView';
 import CompareGridView from '../../components/CompareGridView';
 import MultiWalletView from '../../components/MultiWalletView';
 import ContractGridView from '../../components/ContractGridView';
+import ErrorBoundary from '../../components/ErrorBoundary';
 import ContractAnalysisView, { ContractAnalysisResult } from '../../components/ContractAnalysisView';
 import SybilGridView from '../../components/SybilGridView';
 import SybilDetector from '../../components/SybilDetector';
@@ -552,7 +553,11 @@ export function InvestigateView({
     // Contract tab - show ContractGridView
     if (activeTab === 'contract') {
       if (contractResult) {
-        return <ContractGridView result={contractResult} />;
+        return (
+          <ErrorBoundary>
+            <ContractGridView result={contractResult} />
+          </ErrorBoundary>
+        );
       }
       return (
         <div className="investigate-empty">
