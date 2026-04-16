@@ -31,8 +31,7 @@ class TorqueService {
 
   constructor() {
     this.apiKey = process.env.TORQUE_API_KEY || '';
-    // Torque ingestion endpoint - uses x-api-key header
-    this.ingestUrl = process.env.TORQUE_INGEST_URL || 'https://ingest.torque.so';
+    this.ingestUrl = process.env.TORQUE_INGEST_URL || 'https://ingest.torque.so/events';
     this.isEnabled = !!this.apiKey;
     
     if (this.isEnabled) {
@@ -44,21 +43,12 @@ class TorqueService {
 
   private async sendEvent(event: {
     userPubkey: string;
-    event: string;
-    str_val_1?: string;
-    str_val_2?: string;
-    str_val_3?: string;
-    num_val_1?: number;
-    num_val_2?: number;
-    num_val_3?: number;
-    num_val_4?: number;
-    num_val_5?: number;
-    bool_val_1?: boolean;
-    bool_val_2?: boolean;
+    eventName: string;
     timestamp: number;
+    data: Record<string, string | number | boolean>;
   }): Promise<boolean> {
     if (!this.isEnabled) {
-      console.log(`[Torque] Event tracked (simulated): ${event.event} - ${event.userPubkey}`);
+      console.log(`[Torque] Event tracked (simulated): ${event.eventName} - ${event.userPubkey}`);
       return true;
     }
 
@@ -78,7 +68,7 @@ class TorqueService {
         return false;
       }
 
-      console.log(`[Torque] Event sent: ${event.event} from ${event.userPubkey}`);
+      console.log(`[Torque] Event sent: ${event.eventName} from ${event.userPubkey}`);
       return true;
     } catch (error) {
       console.error('[Torque] Event request failed:', error);
@@ -88,65 +78,51 @@ class TorqueService {
 
   // Track custom events - maps to Torque's custom event field schema
   async trackEvent(event: TorqueEvent): Promise<boolean> {
-    // Map metadata to Torque's custom event fields
     const metadata = event.metadata || {};
     
-    const eventPayload: {
-      userPubkey: string;
-      event: string;
-      str_val_1?: string;
-      str_val_2?: string;
-      str_val_3?: string;
-      num_val_1?: number;
-      num_val_2?: number;
-      num_val_3?: number;
-      num_val_4?: number;
-      num_val_5?: number;
-      bool_val_1?: boolean;
-      bool_val_2?: boolean;
-      timestamp: number;
-    } = {
-      userPubkey: event.userId,
-      event: event.event,
-      timestamp: event.timestamp
-    };
-
-    // Map event-specific fields based on event type
+    const data: Record<string, string | number | boolean> = {};
+    
     switch (event.event) {
       case 'wallet_analyzed':
-        eventPayload.str_val_1 = metadata.chain as string;                    // chain
-        eventPayload.num_val_1 = metadata.risk_score as number;            // risk_score
-        eventPayload.num_val_2 = metadata.tx_count as number;            // tx_count
-        eventPayload.bool_val_1 = metadata.has_suspicious as boolean;      // has_suspicious
+        data.chain = metadata.chain as string;
+        data.risk_score = metadata.risk_score as number;
+        data.tx_count = metadata.tx_count as number;
+        data.has_suspicious = metadata.has_suspicious as boolean;
         break;
         
       case 'sybil_detected':
-        eventPayload.num_val_1 = metadata.flagged_addresses as number;     // flagged_addresses
-        eventPayload.num_val_2 = metadata.cluster_count as number;        // cluster_count
+        data.flagged_addresses = metadata.flagged_addresses as number;
+        data.cluster_count = metadata.cluster_count as number;
         break;
         
       case 'contract_analyzed':
-        eventPayload.str_val_1 = metadata.chain as string;                 // chain
-        eventPayload.num_val_1 = metadata.interactor_count as number;    // interactor_count
+        data.chain = metadata.chain as string;
+        data.interactor_count = metadata.interactor_count as number;
         break;
         
       case 'compare_wallets':
-        eventPayload.num_val_1 = metadata.wallet_count as number;         // wallet_count
-        eventPayload.num_val_2 = metadata.correlation_score as number;   // correlation_score
+        data.wallet_count = metadata.wallet_count as number;
+        data.correlation_score = metadata.correlation_score as number;
         break;
         
       case 'first_analysis':
-        eventPayload.str_val_1 = metadata.chain as string;
-        eventPayload.num_val_1 = metadata.risk_score as number;
+        data.chain = metadata.chain as string;
+        data.risk_score = metadata.risk_score as number;
         break;
         
       default:
-        // For other events, try to map generically
-        if (metadata.chain) eventPayload.str_val_1 = metadata.chain as string;
-        if (metadata.risk_score) eventPayload.num_val_1 = metadata.risk_score as number;
-        if (metadata.tx_count) eventPayload.num_val_2 = metadata.tx_count as number;
-        if (metadata.has_suspicious) eventPayload.bool_val_1 = metadata.has_suspicious as boolean;
+        if (metadata.chain) data.chain = metadata.chain as string;
+        if (metadata.risk_score) data.risk_score = metadata.risk_score as number;
+        if (metadata.tx_count) data.tx_count = metadata.tx_count as number;
+        if (metadata.has_suspicious) data.has_suspicious = metadata.has_suspicious as boolean;
     }
+
+    const eventPayload = {
+      userPubkey: event.userId,
+      eventName: event.event,
+      timestamp: event.timestamp,
+      data
+    };
 
     return this.sendEvent(eventPayload);
   }
