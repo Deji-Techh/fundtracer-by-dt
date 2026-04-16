@@ -598,9 +598,9 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     {
                         chain: normalizedChain,
                         address: address,
-                        riskScore: result.overallRiskScore,
-                        txCount: result.summary?.totalTransactions,
-                        hasSuspicious: (result.suspiciousIndicators?.length || 0) > 0,
+                        risk_score: result.overallRiskScore,
+                        tx_count: result.summary?.totalTransactions,
+                        has_suspicious: (result.suspiciousIndicators?.length || 0) > 0,
                     }
                 ).catch(err => console.error('[Torque] Failed to track first analysis:', err));
             } else {
@@ -617,9 +617,9 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     {
                         chain: normalizedChain,
                         address: address,
-                        riskScore: result.overallRiskScore,
-                        txCount: result.summary?.totalTransactions,
-                        hasSuspicious: (result.suspiciousIndicators?.length || 0) > 0,
+                        risk_score: result.overallRiskScore,
+                        tx_count: result.summary?.totalTransactions,
+                        has_suspicious: (result.suspiciousIndicators?.length || 0) > 0,
                     }
                 ).catch(err => console.error('[Torque] Failed to track wallet analyzed:', err));
             }
