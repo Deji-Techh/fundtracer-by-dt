@@ -30,13 +30,29 @@ export default function TorqueLeaderboard({
 
   const fetchLeaderboard = async () => {
     try {
+      const token = localStorage.getItem('fundtracer_token');
+      if (!token) {
+        setError('Sign in to view leaderboard');
+        setLoading(false);
+        return;
+      }
+      
       const response = await fetch(`/api/torque/leaderboard/${campaignId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       
-      if (!response.ok) throw new Error('Failed to fetch leaderboard');
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          setError('Sign in to view leaderboard');
+        } else {
+          setError(errData.error || 'Failed to fetch leaderboard');
+        }
+        setLoading(false);
+        return;
+      }
       
       const data = await response.json();
       setEntries(data.entries || []);

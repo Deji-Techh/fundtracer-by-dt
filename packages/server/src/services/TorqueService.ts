@@ -375,3 +375,99 @@ export async function trackAnalysisEvent(
     timestamp: Date.now()
   });
 }
+
+// Get real-time campaign statistics
+export async function getCampaignStats(campaignId: string): Promise<{
+  participants: number;
+  totalEvents: number;
+  rewardsClaimed: string;
+}> {
+  try {
+    const db = getDb();
+    
+    let eventTypeFilter: string | null = null;
+    switch (campaignId) {
+      case 'top-analyzer':
+        eventTypeFilter = 'wallet_analyzed';
+        break;
+      case 'sybil-hunter':
+        eventTypeFilter = 'sybil_detected';
+        break;
+      default:
+        eventTypeFilter = null;
+    }
+
+    // Count unique participants who have events
+    const eventsSnapshot = await db.collection('torque_events')
+      .orderBy('timestamp', 'desc')
+      .limit(1000)
+      .get();
+
+    const uniqueUsers = new Set<string>();
+    let totalEvents = 0;
+    
+    for (const doc of eventsSnapshot.docs) {
+      const data = doc.data();
+      if (eventTypeFilter && data.event !== eventTypeFilter) continue;
+      
+      uniqueUsers.add(data.userId);
+      totalEvents++;
+    }
+
+    // Calculate rewards claimed (simplified - just calc 0.3% as placeholder)
+    const participants = uniqueUsers.size || 0;
+    const rewardsClaimed = participants > 0 ? '0.3%' : '0%';
+
+    return {
+      participants,
+      totalEvents,
+      rewardsClaimed
+    };
+  } catch (error) {
+    console.error('[Torque] Failed to get campaign stats:', error);
+    return {
+      participants: 0,
+      totalEvents: 0,
+      rewardsClaimed: '0%'
+    };
+  }
+}
+
+// Get overall stats
+export async function getOverallStats(): Promise<{
+  totalEquityPool: string;
+  activeParticipants: number;
+  eventsTracked: number;
+  rewardsClaimed: string;
+}> {
+  try {
+    const db = getDb();
+    
+    // Get all events count
+    const eventsSnapshot = await db.collection('torque_events')
+      .count()
+      .get();
+    const eventsTracked = eventsSnapshot.data().count || 0;
+
+    // Get unique users who have events
+    const userStatsSnapshot = await db.collection('torque_user_stats')
+      .count()
+      .get();
+    const activeParticipants = userStatsSnapshot.data().count || 0;
+
+    return {
+      totalEquityPool: '5%',
+      activeParticipants,
+      eventsTracked,
+      rewardsClaimed: '0.3%'
+    };
+  } catch (error) {
+    console.error('[Torque] Failed to get overall stats:', error);
+    return {
+      totalEquityPool: '5%',
+      activeParticipants: 0,
+      eventsTracked: 0,
+      rewardsClaimed: '0%'
+    };
+  }
+}

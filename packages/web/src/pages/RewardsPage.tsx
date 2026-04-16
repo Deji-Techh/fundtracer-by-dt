@@ -114,11 +114,11 @@ const campaigns = [
   }
 ];
 
-const stats = [
-  { label: 'Total Equity Pool', value: '5%', icon: Infinity, color: '#f59e0b' },
-  { label: 'Active Participants', value: '1,247', icon: Wallet, color: '#8b5cf6' },
-  { label: 'Events Tracked', value: '48.2K', icon: Zap, color: '#06b6d4' },
-  { label: 'Rewards Claimed', value: '0.3%', icon: Award, color: '#10b981' },
+const defaultStats = [
+  { label: 'Total Equity Pool', value: '5%', icon: Infinity },
+  { label: 'Active Participants', value: '—', icon: Wallet },
+  { label: 'Events Tracked', value: '—', icon: Zap },
+  { label: 'Rewards Claimed', value: '0%', icon: Award },
 ];
 
 const howItWorks = [
@@ -159,8 +159,43 @@ export default function RewardsPage() {
   const [activeTab, setActiveTab] = useState('campaigns');
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [showClaimModal, setShowClaimModal] = useState(false);
+  const [overallStats, setOverallStats] = useState({
+    totalEquityPool: '5%',
+    activeParticipants: 0,
+    eventsTracked: 0,
+    rewardsClaimed: '0%'
+  });
+  const [campaignStats, setCampaignStats] = useState<Record<string, { participants: number; totalEvents: number }>>({});
 
   const isLightTheme = theme === 'light';
+
+  // Fetch real-time stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch overall stats
+        const overallRes = await fetch('/api/torque/overall-stats');
+        if (overallRes.ok) {
+          const data = await overallRes.json();
+          setOverallStats(data);
+        }
+
+        // Fetch campaign-specific stats
+        const campaignIds = ['top-analyzer', 'sybil-hunter', 'early-adopter', 'streak', 'viral', 'referral'];
+        for (const id of campaignIds) {
+          const res = await fetch(`/api/torque/campaign-stats/${id}`);
+          if (res.ok) {
+            const data = await res.json();
+            setCampaignStats(prev => ({ ...prev, [id]: data }));
+          }
+        }
+      } catch (error) {
+        console.error('[RewardsPage] Failed to fetch stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <LandingLayout navItems={navItems}>
@@ -268,23 +303,33 @@ export default function RewardsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              {stats.map((stat, index) => (
-                <motion.div 
-                  key={stat.label}
-                  className="stat-card"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 + index * 0.1 }}
-                >
-                  <div className="stat-icon" style={{ background: stat.color }}>
-                    <stat.icon size={20} />
-                  </div>
-                  <div className="stat-content">
-                    <span className="stat-value">{stat.value}</span>
-                    <span className="stat-label">{stat.label}</span>
-                  </div>
-                </motion.div>
-              ))}
+              {defaultStats.map((stat, index) => {
+                let value = stat.value;
+                if (stat.label === 'Active Participants' && overallStats.activeParticipants > 0) {
+                  value = overallStats.activeParticipants.toLocaleString();
+                } else if (stat.label === 'Events Tracked' && overallStats.eventsTracked > 0) {
+                  value = overallStats.eventsTracked.toLocaleString();
+                } else if (stat.label === 'Rewards Claimed') {
+                  value = overallStats.rewardsClaimed;
+                }
+                return (
+                  <motion.div 
+                    key={stat.label}
+                    className="stat-card"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 + index * 0.1 }}
+                  >
+                    <div className="stat-icon">
+                      <stat.icon size={20} />
+                    </div>
+                    <div className="stat-content">
+                      <span className="stat-value">{value}</span>
+                      <span className="stat-label">{stat.label}</span>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </motion.div>
           </motion.div>
         </section>

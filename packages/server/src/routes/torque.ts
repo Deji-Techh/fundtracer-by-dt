@@ -5,7 +5,7 @@
 
 import { Router, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { torqueService, TORQUE_CAMPAIGNS } from '../services/TorqueService.js';
+import { torqueService, TORQUE_CAMPAIGNS, getCampaignStats, getOverallStats } from '../services/TorqueService.js';
 
 const router = Router();
 
@@ -171,6 +171,38 @@ router.post('/referral', authMiddleware, async (req: AuthenticatedRequest, res: 
   } catch (error: any) {
     console.error('[Torque] Referral error:', error);
     res.status(500).json({ error: 'Failed to record referral' });
+  }
+});
+
+// Get campaign stats (public - no auth required)
+router.get('/campaign-stats/:campaignId', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { campaignId } = req.params;
+    const stats = await getCampaignStats(campaignId);
+    
+    res.json({
+      success: true,
+      campaignId,
+      ...stats
+    });
+  } catch (error: any) {
+    console.error('[Torque] Campaign stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch campaign stats' });
+  }
+});
+
+// Get overall stats (public - no auth required)
+router.get('/overall-stats', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const stats = await getOverallStats();
+    
+    res.json({
+      success: true,
+      ...stats
+    });
+  } catch (error: any) {
+    console.error('[Torque] Overall stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch overall stats' });
   }
 });
 

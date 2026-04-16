@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../styles/AppShell.css';
 import { NotificationBell, NotificationPanel } from './notifications';
 
@@ -29,9 +30,15 @@ export function AppShell({
   onConnectWallet
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
 
   const closeSidebar = () => {
     setSidebarOpen(false);
+  };
+
+  const goToLanding = () => {
+    navigate('/');
+    closeSidebar();
   };
 
   return (
@@ -44,7 +51,7 @@ export function AppShell({
 
       {/* Sidebar */}
       <aside className={`ft-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="ft-wordmark">
+        <div className="ft-wordmark" onClick={goToLanding} style={{ cursor: 'pointer' }}>
           <img 
             src="/logo.png" 
             alt="FundTracer" 
@@ -111,7 +118,7 @@ export function AppShell({
             </svg>
           </button>
 
-          <div className="ft-topbar-wordmark">
+          <div className="ft-topbar-wordmark" onClick={goToLanding} style={{ cursor: 'pointer' }}>
             <img 
               src="/logo.png" 
               alt="FundTracer"
