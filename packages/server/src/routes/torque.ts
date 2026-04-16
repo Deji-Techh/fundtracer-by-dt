@@ -3,7 +3,7 @@
 // Leaderboard and rewards endpoints
 // ============================================================
 
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { torqueService, TORQUE_CAMPAIGNS, getCampaignStats, getOverallStats } from '../services/TorqueService.js';
 
@@ -175,7 +175,7 @@ router.post('/referral', authMiddleware, async (req: AuthenticatedRequest, res: 
 });
 
 // Get campaign stats (public - no auth required)
-router.get('/campaign-stats/:campaignId', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/campaign-stats/:campaignId', async (req: Request, res: Response) => {
   try {
     const { campaignId } = req.params;
     const stats = await getCampaignStats(campaignId);
@@ -192,7 +192,7 @@ router.get('/campaign-stats/:campaignId', async (req: AuthenticatedRequest, res:
 });
 
 // Get overall stats (public - no auth required)
-router.get('/overall-stats', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/overall-stats', async (req: Request, res: Response) => {
   try {
     const stats = await getOverallStats();
     
