@@ -99,6 +99,7 @@ const SybilDetectionPage = lazy(() => import('./pages/DocsSybilDetectionPage').t
 const FundingTreeAnalysisPage = lazy(() => import('./pages/DocsFundingTreePage').then(m => ({ default: m.FundingTreeAnalysisPage })));
 const WalletRiskScorePage = lazy(() => import('./pages/DocsRiskScorePage').then(m => ({ default: m.WalletRiskScorePage })));
 const CliGuidePage = lazy(() => import('./pages/DocsCliGuidePage').then(m => ({ default: m.CliGuidePage })));
+const RewardsPage = lazy(() => import('./pages/RewardsPage').then(m => ({ default: m.default })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -221,6 +222,7 @@ function App() {
       <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
       <Route path="/features" element={<Suspense fallback={null}><FeaturesPage /></Suspense>} />
       <Route path="/pricing" element={<Suspense fallback={null}><PricingPage /></Suspense>} />
+      <Route path="/rewards" element={<Suspense fallback={null}><RewardsPage /></Suspense>} />
       <Route path="/how-it-works" element={<Suspense fallback={null}><HowItWorksPage /></Suspense>} />
       <Route path="/faq" element={<Suspense fallback={null}><FaqPage /></Suspense>} />
       <Route path="/terms" element={<Suspense fallback={null}><TermsPage /></Suspense>} />
