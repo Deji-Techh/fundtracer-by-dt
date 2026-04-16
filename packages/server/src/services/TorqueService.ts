@@ -1,7 +1,13 @@
 // ============================================================
 // FundTracer by DT - Torque Integration Service
 // Growth primitives: leaderboards, raffles, rewards
+// Stores analytics locally in Firestore since no REST API available
 // ============================================================
+
+import { getFirestore } from '../firebase.js';
+import { FieldValue } from 'firebase-admin/firestore';
+
+const getDb = () => getFirestore();
 
 interface TorqueEvent {
   userId: string;
@@ -124,6 +130,9 @@ class TorqueService {
       data
     };
 
+    // Also store locally for leaderboard queries
+    await this.storeEventLocally(event);
+
     return this.sendEvent(eventPayload);
   }
 
@@ -133,10 +142,138 @@ class TorqueService {
     return true;
   }
 
-  // Get leaderboard rankings
+  // Store event locally in Firestore for leaderboard queries
+  private async storeEventLocally(event: TorqueEvent): Promise<void> {
+    try {
+      const db = getDb();
+      
+      // Store in events collection
+      await db.collection('torque_events').add({
+        userId: event.userId,
+        event: event.event,
+        metadata: event.metadata,
+        timestamp: event.timestamp,
+        createdAt: new Date()
+      });
+
+      // Update user stats based on event type
+      await this.updateUserStats(event.userId, event.event, event.metadata);
+    } catch (error) {
+      console.error('[Torque] Failed to store event locally:', error);
+    }
+  }
+
+  // Update user's point totals based on event type
+  private async updateUserStats(userId: string, eventType: string, metadata: Record<string, unknown>): Promise<void> {
+    try {
+      const db = getDb();
+      const userStatsRef = db.collection('torque_user_stats').doc(userId);
+      const userStatsDoc = await userStatsRef.get();
+
+      let pointsToAdd = 0;
+      switch (eventType) {
+        case 'wallet_analyzed':
+          pointsToAdd = 10;
+          break;
+        case 'sybil_detected':
+          pointsToAdd = 50;
+          break;
+        case 'contract_analyzed':
+          pointsToAdd = 15;
+          break;
+        case 'compare_wallets':
+          pointsToAdd = 20;
+          break;
+        case 'first_analysis':
+          pointsToAdd = 100;
+          break;
+        case 'share_on_twitter':
+          pointsToAdd = 25;
+          break;
+        case 'invite_friend':
+          pointsToAdd = 30;
+          break;
+      }
+
+      if (pointsToAdd > 0) {
+        if (userStatsDoc.exists) {
+          await userStatsRef.update({
+            points: FieldValue.increment(pointsToAdd),
+            totalEvents: FieldValue.increment(1),
+            lastEventType: eventType,
+            lastEventAt: new Date()
+          });
+        } else {
+          await userStatsRef.set({
+            userId,
+            points: pointsToAdd,
+            totalEvents: 1,
+            lastEventType: eventType,
+            lastEventAt: new Date(),
+            createdAt: new Date()
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[Torque] Failed to update user stats:', error);
+    }
+  }
+
+  // Get leaderboard rankings from Firestore
   async getLeaderboard(campaignId: string): Promise<LeaderboardEntry[]> {
-    console.log(`[Torque] Get leaderboard: ${campaignId} (requires separate API)`);
-    return [];
+    try {
+      const db = getDb();
+      
+      // Map campaignId to event type
+      let eventTypeFilter: string | null = null;
+      switch (campaignId) {
+        case 'sybil-hunter-leaderboard':
+        case 'sybil-hunter':
+          eventTypeFilter = 'sybil_detected';
+          break;
+        case 'top-analyzer-championship':
+        case 'top-analyzer':
+          eventTypeFilter = 'wallet_analyzed';
+          break;
+        case 'active-analyst-streak':
+        case 'streak':
+          eventTypeFilter = null; // All events count
+          break;
+        default:
+          eventTypeFilter = null;
+      }
+
+      // Query user stats ordered by points
+      const snapshot = await db.collection('torque_user_stats')
+        .orderBy('points', 'desc')
+        .limit(50)
+        .get();
+
+      const entries: LeaderboardEntry[] = [];
+      let rank = 1;
+      
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        
+        // Filter by event type if needed
+        if (eventTypeFilter && data.lastEventType !== eventTypeFilter) {
+          continue;
+        }
+
+        entries.push({
+          rank,
+          userId: data.userId,
+          score: data.points || 0,
+          change: 0
+        });
+        rank++;
+      }
+
+      return entries;
+    } catch (error) {
+      console.error('[Torque] Failed to get leaderboard:', error);
+      return [];
+    }
   }
 
   // Submit score to leaderboard
@@ -145,10 +282,55 @@ class TorqueService {
     return true;
   }
 
-  // Get user points/rank
+  // Get user points/rank from Firestore
   async getUserStats(userId: string): Promise<{ points: number; rank: number; streak: number } | null> {
-    console.log(`[Torque] Get user stats: ${userId} (requires separate API)`);
-    return null;
+    try {
+      const db = getDb();
+      
+      // Get user's stats
+      const userStatsDoc = await db.collection('torque_user_stats').doc(userId).get();
+      
+      if (!userStatsDoc.exists) {
+        return { points: 0, rank: 0, streak: 0 };
+      }
+
+      const userData = userStatsDoc.data()!;
+      const points = userData.points || 0;
+
+      // Calculate rank by counting users with more points
+      const higherRanked = await db.collection('torque_user_stats')
+        .where('points', '>', points)
+        .count()
+        .get();
+      
+      const rank = (higherRanked.data().count || 0) + 1;
+
+      // Calculate streak (simplified - count consecutive days with activity)
+      let streak = 0;
+      const today = new Date();
+      for (let i = 0; i < 30; i++) {
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+        
+        const activitySnapshot = await db.collection('torque_events')
+          .where('userId', '==', userId)
+          .where('timestamp', '>=', checkDate.getTime())
+          .where('timestamp', '<', checkDate.getTime() + 86400000)
+          .limit(1)
+          .get();
+
+        if (activitySnapshot.empty) {
+          break;
+        }
+        streak++;
+      }
+
+      return { points, rank, streak };
+    } catch (error) {
+      console.error('[Torque] Failed to get user stats:', error);
+      return null;
+    }
   }
 }
 
