@@ -14,17 +14,12 @@ import {
 } from 'lucide-react';
 import TorqueLeaderboard from '../components/TorqueLeaderboard';
 import { useAuth } from '../contexts/AuthContext';
+import { LANDING_NAV_ITEMS } from '../constants/navigation';
 import './RewardsPage.css';
 
-const navItems = [
-  { label: 'About', href: '/about' },
-  { label: 'Features', href: '/features' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'Rewards', href: '/rewards', active: true },
-  { label: 'How It Works', href: '/how-it-works' },
-  { label: 'FAQ', href: '/faq' },
-  { label: 'API', href: '/api-docs' },
-];
+const navItems = LANDING_NAV_ITEMS.map(item => 
+  item.href === '/rewards' ? { ...item, active: true } : item
+);
 
 const campaigns = [
   {

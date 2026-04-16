@@ -3,16 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Code, Copy, Check, ExternalLink, Key, Zap, Shield, Database, Clock, GitBranch, X, Send, AlertCircle } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './ApiPage.css';
+import { LANDING_NAV_ITEMS } from '../constants/navigation';
 
-const navItems = [
-  { label: 'About', href: '/about' },
-  { label: 'Features', href: '/features' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'How It Works', href: '/how-it-works' },
-  { label: 'FAQ', href: '/faq' },
-  { label: 'API', href: '/api-docs', active: true },
-  { label: 'CLI', href: '/cli' },
-];
+const navItems = LANDING_NAV_ITEMS.map(item => 
+  item.href === '/api-docs' ? { ...item, active: true } : item
+);
 
 export function ApiPage() {
   const [copied, setCopied] = useState<string | null>(null);

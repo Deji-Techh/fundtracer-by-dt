@@ -229,6 +229,7 @@ export function IntelPage() {
     { label: 'Blog', href: '/blog' },
     { label: 'Docs', href: '/docs/getting-started' },
     { label: 'Features', href: '/features' },
+    { label: 'Rewards', href: '/rewards' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'How It Works', href: '/how-it-works' },
     { label: 'FAQ', href: '/faq' },

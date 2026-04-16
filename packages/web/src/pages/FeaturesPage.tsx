@@ -10,13 +10,17 @@ import { Badge, Panel } from '../design-system/primitives';
 import './FeaturesPage.css';
 
 const navItems = [
-  { label: 'About', href: '/about' },
+  { label: 'Intel', href: '/' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'Docs', href: '/docs/getting-started' },
   { label: 'Features', href: '/features', active: true },
+  { label: 'Rewards', href: '/rewards' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'How It Works', href: '/how-it-works' },
   { label: 'FAQ', href: '/faq' },
   { label: 'API', href: '/api-docs' },
   { label: 'CLI', href: '/cli' },
+  { label: 'About', href: '/about' },
 ];
 
 const mainFeatures = [

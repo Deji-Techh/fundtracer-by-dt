@@ -8,16 +8,11 @@ import { useNavigate } from 'react-router-dom';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { Badge, Panel } from '../design-system/primitives';
 import './HowItWorksPage.css';
+import { LANDING_NAV_ITEMS } from '../constants/navigation';
 
-const navItems = [
-  { label: 'About', href: '/about' },
-  { label: 'Features', href: '/features' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'How It Works', href: '/how-it-works', active: true },
-  { label: 'FAQ', href: '/faq' },
-  { label: 'API', href: '/api-docs' },
-  { label: 'CLI', href: '/cli' },
-];
+const navItems = LANDING_NAV_ITEMS.map(item => 
+  item.href === '/how-it-works' ? { ...item, active: true } : item
+);
 
 const steps = [
   {

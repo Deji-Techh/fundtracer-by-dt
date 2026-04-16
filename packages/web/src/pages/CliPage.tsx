@@ -3,16 +3,11 @@ import { motion } from 'framer-motion';
 import { Search, Users, GitBranch, BarChart2, Check } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './CliPage.css';
+import { LANDING_NAV_ITEMS } from '../constants/navigation';
 
-const navItems = [
-  { label: 'About', href: '/about' },
-  { label: 'Features', href: '/features' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'How It Works', href: '/how-it-works' },
-  { label: 'FAQ', href: '/faq' },
-  { label: 'API', href: '/api-docs' },
-  { label: 'CLI', href: '/cli', active: true },
-];
+const navItems = LANDING_NAV_ITEMS.map(item => 
+  item.href === '/cli' ? { ...item, active: true } : item
+);
 
 export function CliPage() {
   const [copied, setCopied] = useState(false);
