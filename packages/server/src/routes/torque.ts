@@ -9,18 +9,18 @@ import { torqueService, TORQUE_CAMPAIGNS, getCampaignStats, getOverallStats } fr
 
 const router = Router();
 
-// Get leaderboard for a campaign
-router.get('/leaderboard/:campaignId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// Get leaderboard for a campaign (public - no auth required)
+router.get('/leaderboard/:campaignId', async (req: Request, res: Response) => {
   try {
     const { campaignId } = req.params;
     
     const entries = await torqueService.getLeaderboard(campaignId);
     
-    // Mark current user's entry
-    const userId = req.user?.uid;
+    // Mark current user's entry if authenticated
+    const userId = (req as any).user?.uid;
     const entriesWithUserFlag = entries.map(entry => ({
       ...entry,
-      isCurrentUser: entry.userId === userId
+      isCurrentUser: userId ? entry.userId === userId : false
     }));
     
     res.json({
