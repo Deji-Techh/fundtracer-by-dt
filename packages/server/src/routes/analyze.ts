@@ -23,6 +23,7 @@ import { cache } from '../utils/cache.js';
 import { cacheGetCached, cacheSetCached } from '../services/apiCache.js';
 import { sendEmail, buildFirstAnalysisEmail } from '../services/EmailService.js';
 import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
+import { trackAnalysisEvent, TORQUE_EVENTS, TORQUE_CAMPAIGNS } from '../services/TorqueService.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -589,12 +590,38 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     { analysisCount: 1 },
                     { merge: true }
                 );
+
+                // Track Torque first analysis event (async, don't await)
+                trackAnalysisEvent(
+                    req.user.uid,
+                    TORQUE_EVENTS.FIRST_ANALYSIS,
+                    {
+                        chain: normalizedChain,
+                        address: address,
+                        riskScore: result.overallRiskScore,
+                        txCount: result.summary?.totalTransactions,
+                        hasSuspicious: (result.suspiciousIndicators?.length || 0) > 0,
+                    }
+                ).catch(err => console.error('[Torque] Failed to track first analysis:', err));
             } else {
                 // Increment analysis count
                 await db.collection('users').doc(req.user.uid).set(
                     { analysisCount: analysisCount + 1 },
                     { merge: true }
                 );
+
+                // Track Torque wallet analyzed event (async, don't await)
+                trackAnalysisEvent(
+                    req.user.uid,
+                    TORQUE_EVENTS.WALLET_ANALYZED,
+                    {
+                        chain: normalizedChain,
+                        address: address,
+                        riskScore: result.overallRiskScore,
+                        txCount: result.summary?.totalTransactions,
+                        hasSuspicious: (result.suspiciousIndicators?.length || 0) > 0,
+                    }
+                ).catch(err => console.error('[Torque] Failed to track wallet analyzed:', err));
             }
         }
     } catch (error: any) {

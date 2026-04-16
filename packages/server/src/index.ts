@@ -88,6 +88,7 @@ import { usageMiddleware } from './middleware/usage.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { analyzeRoutes } from './routes/analyze.js';
 import trackRoutes from './routes/track.js';
+import { torqueRoutes } from './routes/torque.js';
 import { userRoutes } from './routes/user.js';
 import { duneRoutes } from './routes/dune.js';
 import contractRoutes from './routes/contracts.js';
@@ -511,6 +512,9 @@ apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (pub
 apiRouter.use('/scan-history', apiKeyAuthMiddleware, authMiddleware, scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
 apiRouter.use('/solana', apiKeyAuthMiddleware, authMiddleware, solanaRoutes); // Solana wallet analysis
 apiRouter.use('/notifications', apiKeyAuthMiddleware, authMiddleware, notificationRoutes); // User notifications
+
+// NEW: Torque Routes (growth & rewards)
+apiRouter.use('/torque', authMiddleware, torqueRoutes);
 
 // NEW: Contract Scanner Routes
 import contractScannerRoutes from './routes/contractRoutes.js';
