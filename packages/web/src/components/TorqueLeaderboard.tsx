@@ -180,10 +180,10 @@ export default function TorqueLeaderboard({
 
       <style>{`
         .torque-leaderboard {
-          background: var(--color-bg-elevated, #1a1a2e);
+          background: var(--color-bg-elevated);
           border-radius: 12px;
           padding: 16px;
-          border: 1px solid var(--color-surface-border, #333);
+          border: 1px solid var(--color-border);
         }
 
         .leaderboard-header {
@@ -203,16 +203,17 @@ export default function TorqueLeaderboard({
           margin: 0;
           font-size: 16px;
           font-weight: 600;
+          color: var(--color-text-primary);
         }
 
         .trophy-icon {
-          color: #fbbf24;
+          color: var(--color-warning);
         }
 
         .refresh-btn {
           background: transparent;
           border: none;
-          color: var(--color-text-muted, #888);
+          color: var(--color-text-muted);
           cursor: pointer;
           padding: 4px;
           border-radius: 4px;
@@ -220,8 +221,8 @@ export default function TorqueLeaderboard({
         }
 
         .refresh-btn:hover {
-          background: var(--color-bg-tertiary, #2a2a3e);
-          color: var(--color-text-primary, #fff);
+          background: var(--color-bg-hover);
+          color: var(--color-text-primary);
         }
 
         .refresh-btn .spinning {
@@ -235,7 +236,7 @@ export default function TorqueLeaderboard({
 
         .last-updated {
           font-size: 11px;
-          color: var(--color-text-muted, #666);
+          color: var(--color-text-muted);
           margin-bottom: 12px;
         }
 
@@ -244,14 +245,14 @@ export default function TorqueLeaderboard({
         .leaderboard-empty {
           text-align: center;
           padding: 24px;
-          color: var(--color-text-muted, #666);
+          color: var(--color-text-muted);
         }
 
         .leaderboard-error button {
           margin-top: 8px;
           padding: 8px 16px;
-          background: var(--color-primary, #3b82f6);
-          color: white;
+          background: var(--color-accent);
+          color: #000;
           border: none;
           border-radius: 6px;
           cursor: pointer;
@@ -268,29 +269,29 @@ export default function TorqueLeaderboard({
           align-items: center;
           gap: 12px;
           padding: 10px 12px;
-          background: var(--color-bg-tertiary, #252538);
+          background: var(--color-bg);
           border-radius: 8px;
           transition: all 0.2s;
         }
 
         .leaderboard-entry:hover {
-          background: var(--color-bg-quaternary, #2d2d44);
+          background: var(--color-bg-hover);
         }
 
         .leaderboard-entry.current-user {
-          border: 1px solid var(--color-primary, #3b82f6);
+          border: 1px solid var(--color-accent);
         }
 
         .leaderboard-entry.rank-1 {
-          background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.05) 100%);
+          background: linear-gradient(135deg, var(--color-warning-muted) 0%, transparent 100%);
         }
 
         .leaderboard-entry.rank-2 {
-          background: linear-gradient(135deg, rgba(192, 192, 192, 0.1) 0%, rgba(192, 192, 192, 0.02) 100%);
+          background: linear-gradient(135deg, rgba(192, 192, 192, 0.1) 0%, transparent 100%);
         }
 
         .leaderboard-entry.rank-3 {
-          background: linear-gradient(135deg, rgba(205, 127, 50, 0.1) 0%, rgba(205, 127, 50, 0.02) 100%);
+          background: linear-gradient(135deg, rgba(205, 127, 50, 0.1) 0%, transparent 100%);
         }
 
         .entry-rank {
@@ -316,7 +317,7 @@ export default function TorqueLeaderboard({
         .rank-number {
           font-size: 14px;
           font-weight: 600;
-          color: var(--color-text-muted, #666);
+          color: var(--color-text-muted);
         }
 
         .entry-address {
@@ -327,9 +328,9 @@ export default function TorqueLeaderboard({
         }
 
         .entry-address .address {
-          font-family: var(--font-mono, monospace);
+          font-family: var(--font-mono);
           font-size: 13px;
-          color: var(--color-text-primary, #fff);
+          color: var(--color-text-primary);
         }
 
         .entry-address .change {
@@ -340,11 +341,11 @@ export default function TorqueLeaderboard({
         }
 
         .entry-address .change.up {
-          color: var(--color-success, #10b981);
+          color: var(--color-success);
         }
 
         .entry-address .change.down {
-          color: var(--color-danger, #ef4444);
+          color: var(--color-danger);
         }
 
         .entry-score {
@@ -357,12 +358,12 @@ export default function TorqueLeaderboard({
         .entry-score .score {
           font-size: 14px;
           font-weight: 700;
-          color: var(--color-text-primary, #fff);
+          color: var(--color-text-primary);
         }
 
         .entry-score .label {
           font-size: 10px;
-          color: var(--color-text-muted, #666);
+          color: var(--color-text-muted);
           text-transform: uppercase;
         }
       `}</style>

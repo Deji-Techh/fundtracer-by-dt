@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
+import { useTheme } from '../contexts/ThemeContext';
 import { 
   Trophy, Medal, Crown, Zap, Flame, Star, Gift, TrendingUp, 
   ChevronRight, RefreshCw, Share2, Wallet, Target, Shield,
@@ -154,9 +155,12 @@ const howItWorks = [
 export default function RewardsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('campaigns');
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [showClaimModal, setShowClaimModal] = useState(false);
+
+  const isLightTheme = theme === 'light';
 
   return (
     <LandingLayout navItems={navItems}>
