@@ -383,6 +383,7 @@ class TorqueService {
           points: 0,
           walletsAnalyzed: 0,
           streakDays: 0,
+          sybilCount: 0,
           referralCount,
           signupDate,
           totalEvents: 0,

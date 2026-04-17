@@ -258,7 +258,18 @@ router.get('/referrals', async (req: Request, res: Response) => {
 // Admin: Initialize user stats from existing Google users
 router.post('/admin/init-users', async (req: Request, res: Response) => {
   try {
-    // For now, allow without key (can add auth later)
+    // Accept either auth header OR a secret key for admin initialization
+    const secretKey = req.query.secret as string;
+    const ADMIN_SECRET = process.env.ADMIN_SECRET || 'fundtracer-admin-2024';
+    
+    // Allow if authenticated OR if secret key matches
+    const isAuthenticated = (req as any).user?.uid;
+    const isAuthorized = isAuthenticated || secretKey === ADMIN_SECRET;
+    
+    if (!isAuthorized) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
     const count = await torqueService.initializeFromExistingUsers();
     res.json({ success: true, initialized: count });
   } catch (error: any) {
