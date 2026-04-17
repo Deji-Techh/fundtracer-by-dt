@@ -35,7 +35,9 @@ router.get('/google/start', (req: Request, res: Response) => {
   
   // Support redirect URL for post-login redirect
   const redirectUrl = (req.query.redirect as string) || '/auth';
-  const state = jwt.sign({ timestamp: Date.now(), redirectUrl }, getJwtSecret(), { expiresIn: '10m' });
+  // Include ref param in state for referral tracking
+  const refParam = req.query.ref as string;
+  const state = jwt.sign({ timestamp: Date.now(), redirectUrl, ref: refParam || null }, getJwtSecret(), { expiresIn: '10m' });
   
   const scopes = ['openid', 'email', 'profile'].join(' ');
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -82,13 +84,15 @@ router.get('/google/callback', async (req: Request, res: Response) => {
   // Default redirect after OAuth
   let redirectUrl = `${FRONTEND_URL}/auth`;
   
-  // Try to extract redirect URL from state
+  // Try to extract redirect URL and ref from state
+  let refParam: string | null = null;
   if (state) {
     try {
-      const decoded = jwt.verify(state as string, getJwtSecret()) as { redirectUrl?: string };
+      const decoded = jwt.verify(state as string, getJwtSecret()) as { redirectUrl?: string; ref?: string | null };
       if (decoded.redirectUrl) {
         redirectUrl = `${FRONTEND_URL}${decoded.redirectUrl}`;
       }
+      refParam = decoded.ref || null;
     } catch (e) {
       console.log('[AUTH] Could not decode state redirect:', e);
     }
@@ -215,8 +219,9 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       sendWelcomeEmail(email, name || '', 'google').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
     }
     
-    // Redirect to the original page with token
-    res.redirect(`${redirectUrl}?token=${token}`);
+    // Redirect to the original page with token and ref param
+    const refQuery = refParam ? `&ref=${refParam}` : '';
+    res.redirect(`${redirectUrl}?token=${token}${refQuery}`);
     
   } catch (err) {
     console.error('[AUTH] Google callback error:', err);

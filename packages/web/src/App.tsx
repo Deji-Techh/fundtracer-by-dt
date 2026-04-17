@@ -162,6 +162,12 @@ function ApiKeysRoute() {
   useEffect(() => {
     const token = searchParams.get('token');
     const authError = searchParams.get('error');
+    const refParam = searchParams.get('ref');
+    
+    // Store ref param for referral tracking
+    if (refParam) {
+      localStorage.setItem('referral_ref', refParam);
+    }
     
     if (token && !tokenProcessed) {
       setTokenProcessed(true);

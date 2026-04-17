@@ -374,8 +374,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
 
         try {
+            // Check for stored referral ref
+            const refParam = localStorage.getItem('referral_ref');
+            const oauthUrl = refParam 
+                ? `/api/auth/google/start?ref=${encodeURIComponent(refParam)}`
+                : '/api/auth/google/start';
             // Redirect to backend OAuth
-            window.location.href = '/api/auth/google/start';
+            window.location.href = oauthUrl;
         } catch (error: any) {
             console.error('[AuthContext] Google login error:', error);
             notify.error(error.message || 'Google sign in failed');
