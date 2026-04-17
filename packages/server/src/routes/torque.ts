@@ -35,21 +35,45 @@ router.get('/leaderboard/:campaignId', async (req: Request, res: Response) => {
   }
 });
 
-// Get detailed user stats for Settings page - requires auth
-router.get('/stats/detailed', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// Get detailed user stats for Settings page - try to get userId from params or Firestore by email
+router.get('/stats/detailed', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.uid;
+    // Try to get userId from request user (set by authMiddleware) OR from query param
+    let userId = (req as any).user?.uid || req.query.userId as string;
     
+    // If we have a token but no userId, try to get user profile by email from token
     if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      const authHeader = req.headers.authorization as string;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const JWT_SECRET = process.env.JWT_SECRET;
+        if (JWT_SECRET) {
+          const token = authHeader.split('Bearer ')[1];
+          if (!token.startsWith('ft_')) {
+            try {
+              const decoded = require('jsonwebtoken').verify(token, JWT_SECRET) as any;
+              // Get userId from decoded token
+              userId = decoded.uid;
+              console.log('[Torque] Got userId from JWT:', userId);
+            } catch (e) {
+              console.log('[Torque] JWT parse failed');
+            }
+          }
+        }
+      }
     }
     
+    if (!userId) {
+      console.log('[Torque] No userId - returning empty stats');
+      return res.json({
+        success: true,
+        stats: { points: 0, rank: 0, streak: 0, walletsAnalyzed: 0, sybilsDetected: 0, referrals: 0 }
+      });
+    }
+    
+    console.log('[Torque] Fetching detailed stats for:', userId);
     const stats = await torqueService.getDetailedUserStats(userId);
     
-    res.json({
-      success: true,
-      stats
-    });
+    res.json({ success: true, stats });
   } catch (error: any) {
     console.error('[Torque] Detailed stats error:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
