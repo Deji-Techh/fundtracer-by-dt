@@ -247,25 +247,6 @@ class TorqueService {
   async getLeaderboard(campaignId: string): Promise<LeaderboardEntry[]> {
     try {
       const db = getDb();
-      
-      // Map campaignId to event type
-      let eventTypeFilter: string | null = null;
-      switch (campaignId) {
-        case 'sybil-hunter-leaderboard':
-        case 'sybil-hunter':
-          eventTypeFilter = 'sybil_detected';
-          break;
-        case 'top-analyzer-championship':
-        case 'top-analyzer':
-          eventTypeFilter = 'wallet_analyzed';
-          break;
-        case 'active-analyst-streak':
-        case 'streak':
-          eventTypeFilter = null; // All events count
-          break;
-        default:
-          eventTypeFilter = null;
-      }
 
       // Query user stats ordered by points
       const snapshot = await db.collection('torque_user_stats')
@@ -278,11 +259,6 @@ class TorqueService {
       
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        
-        // Filter by event type if needed
-        if (eventTypeFilter && data.lastEventType !== eventTypeFilter) {
-          continue;
-        }
 
         // Try to get user display name from Firestore
         let displayName: string | undefined;

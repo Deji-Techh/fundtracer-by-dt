@@ -124,15 +124,7 @@ export function SettingsView() {
 
   const fetchTwoFactorStatus = async () => {
     try {
-      const token = getAuthToken();
-      if (!token) return;
-      const res = await fetch('/api/user/2fa/status', {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
+      const data = await apiRequest<{ enabled: boolean }>('/api/user/2fa/status');
       setTwoFactorEnabled(data.enabled || false);
     } catch (err) {
       console.error('Failed to fetch 2FA status:', err);
@@ -142,22 +134,9 @@ export function SettingsView() {
   const handleStart2FA = async () => {
     setTwoFactorLoading(true);
     try {
-      const token = getAuthToken();
-      if (!token) {
-        notifyError('Please log in again');
-        setTwoFactorLoading(false);
-        return;
-      }
-      const res = await fetch('/api/user/2fa/setup', {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await res.json();
+      const data = await apiRequest<{ success: boolean; setup?: TwoFactorSetup; error?: string }>('/api/user/2fa/setup', 'POST');
       
-      if (data.success) {
+      if (data.success && data.setup) {
         setTwoFactorSetup(data.setup);
         setSecurityAction('verify');
         notifySuccess('2FA setup initiated');
@@ -179,21 +158,7 @@ export function SettingsView() {
 
     setTwoFactorLoading(true);
     try {
-      const token = getAuthToken();
-      if (!token) {
-        notifyError('Please log in again');
-        setTwoFactorLoading(false);
-        return;
-      }
-      const res = await fetch('/api/user/2fa/verify', {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ code: verificationCode })
-      });
-      const data = await res.json();
+      const data = await apiRequest<{ success: boolean; backupCodes?: string[]; error?: string }>('/api/user/2fa/verify', 'POST', { code: verificationCode });
       
       if (data.success) {
         setBackupCodes(data.backupCodes || []);
@@ -226,12 +191,6 @@ export function SettingsView() {
 
     setIsDeleting(true);
     try {
-      const token = getAuthToken();
-      if (!token) {
-        notifyError('Please log in again to delete your account');
-        setIsDeleting(false);
-        return;
-      }
       const data = await apiRequest<{ success: boolean; error?: string; message?: string }>('/api/user/account', 'DELETE', { code: verificationCode });
       
       if (data.success) {
@@ -260,21 +219,7 @@ export function SettingsView() {
 
     setTwoFactorLoading(true);
     try {
-      const token = getAuthToken();
-      if (!token) {
-        notifyError('Please log in again');
-        setTwoFactorLoading(false);
-        return;
-      }
-      const res = await fetch('/api/user/2fa/disable', {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ code: verificationCode })
-      });
-      const data = await res.json();
+      const data = await apiRequest<{ success: boolean; error?: string }>('/api/user/2fa/disable', 'POST', { code: verificationCode });
       
       if (data.success) {
         setTwoFactorEnabled(false);
@@ -299,16 +244,7 @@ export function SettingsView() {
     
     setIsSaving(true);
     try {
-      const token = getAuthToken();
-      const res = await fetch('/api/user/profile', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ displayName: name.trim() })
-      });
-      const data = await res.json();
+      const data = await apiRequest<{ success: boolean; error?: string }>('/api/user/profile', 'POST', { displayName: name.trim() });
       
       if (data.success) {
         await refreshProfile();
