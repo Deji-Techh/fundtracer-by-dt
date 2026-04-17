@@ -810,7 +810,7 @@ export function SettingsView() {
               
               {torqueLoading ? (
                 <div className="loading-state">Loading stats...</div>
-              ) : torqueStats ? (
+              ) : torqueStats && torqueStats.points > 0 ? (
                 <>
                   <div className="rewards-grid">
                     <div className="reward-stat">
@@ -847,9 +847,9 @@ export function SettingsView() {
                 </>
               ) : (
                 <div className="empty-state">
-                  <p>No rewards data yet. Start analyzing wallets to earn points!</p>
-                  <a href="/investigates" className="btn-primary">
-                    Start Analyzing
+                  <p>You are on the leaderboard! Keep analyzing wallets to earn points.</p>
+                  <a href="/investigate" className="btn-primary">
+                    Analyze a Wallet
                   </a>
                 </div>
               )}
@@ -862,20 +862,16 @@ export function SettingsView() {
               </div>
               <ul className="earn-list">
                 <li>
-                  <span className="earn-icon">📊</span>
-                  <span><strong>Analyze wallets</strong> — Earn 10 points per wallet</span>
+                  <strong>Analyze wallets</strong> - Earn 10 points per wallet
                 </li>
                 <li>
-                  <span className="earn-icon">🚨</span>
-                  <span><strong>Detect sybils</strong> — Earn 50 points per sybil identified</span>
+                  <strong>Detect sybils</strong> - Earn 50 points per sybil identified
                 </li>
                 <li>
-                  <span className="earn-icon">🔥</span>
-                  <span><strong>Maintain streaks</strong> — Bonus points for daily activity</span>
+                  <strong>Maintain streaks</strong> - Bonus points for daily activity
                 </li>
                 <li>
-                  <span className="earn-icon">👥</span>
-                  <span><strong>Refer friends</strong> — Earn 100 points per referral</span>
+                  <strong>Refer friends</strong> - Earn 100 points per referral
                 </li>
               </ul>
             </div>
