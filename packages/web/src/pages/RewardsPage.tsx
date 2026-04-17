@@ -444,7 +444,7 @@ export default function RewardsPage() {
 
                     <div className="campaign-participants">
                       <Wallet size={14} />
-                      <span>{campaign.participants} analyzing</span>
+                      <span>{campaignStats[campaign.id]?.participants || '—'} analyzing</span>
                     </div>
 
                     <div className="campaign-prizes">
@@ -496,7 +496,7 @@ export default function RewardsPage() {
                         </div>
                         <div className="lb-info">
                           <h4>{campaign.title}</h4>
-                          <span>{campaign.participants} competitors</span>
+                          <span>{campaignStats[campaign.id]?.participants || '—'} competitors</span>
                         </div>
                         <div className="lb-prize">
                           <span>{campaign.reward}</span>
