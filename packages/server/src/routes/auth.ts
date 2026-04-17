@@ -204,6 +204,29 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     
     console.log(`[AUTH] User saved to Firestore: ${email} (${uid})`);
 
+    // Initialize Torque stats for new users immediately on signup
+    if (isNewUser) {
+      try {
+        const userStatsRef = db.collection('torque_user_stats').doc(uid);
+        await userStatsRef.set({
+          userId: uid,
+          points: 0,
+          walletsAnalyzed: 0,
+          streakDays: 0,
+          sybilCount: 0,
+          referralCount: 0,
+          signupDate: Date.now(),
+          totalEvents: 0,
+          lastEventType: null,
+          lastEventAt: null,
+          createdAt: new Date()
+        });
+        console.log(`[AUTH] Torque stats initialized for new user: ${uid}`);
+      } catch (statsErr) {
+        console.error('[AUTH] Failed to initialize torque stats:', statsErr);
+      }
+    }
+
     // Credit referrer if ref param exists and user isn't already referred
     if (refParam && refParam !== uid) {
       const userData = userDoc.exists ? userDoc.data() : null;
