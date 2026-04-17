@@ -125,8 +125,12 @@ export function SettingsView() {
   const fetchTwoFactorStatus = async () => {
     try {
       const token = getAuthToken();
+      if (!token) return;
       const res = await fetch('/api/user/2fa/status', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       const data = await res.json();
       setTwoFactorEnabled(data.enabled || false);
@@ -139,9 +143,17 @@ export function SettingsView() {
     setTwoFactorLoading(true);
     try {
       const token = getAuthToken();
+      if (!token) {
+        notifyError('Please log in again');
+        setTwoFactorLoading(false);
+        return;
+      }
       const res = await fetch('/api/user/2fa/setup', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       const data = await res.json();
       
@@ -168,6 +180,11 @@ export function SettingsView() {
     setTwoFactorLoading(true);
     try {
       const token = getAuthToken();
+      if (!token) {
+        notifyError('Please log in again');
+        setTwoFactorLoading(false);
+        return;
+      }
       const res = await fetch('/api/user/2fa/verify', {
         method: 'POST',
         headers: { 
@@ -215,7 +232,7 @@ export function SettingsView() {
         setIsDeleting(false);
         return;
       }
-      const data = await apiRequest<{ success: boolean; error?: string }>('/api/user/account', 'DELETE', { code: verificationCode });
+      const data = await apiRequest<{ success: boolean; error?: string; message?: string }>('/api/user/account', 'DELETE', { code: verificationCode });
       
       if (data.success) {
         notifySuccess('Account deleted successfully');
@@ -223,11 +240,13 @@ export function SettingsView() {
         await signOutAccount();
         window.location.href = '/';
       } else {
-        notifyError(data.error || 'Failed to delete account');
+        notifyError(data.message || data.error || 'Failed to delete account');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[Delete Account] Error:', err);
-      notifyError('Failed to delete account');
+      // Show the actual error message from the API if available
+      const errorMsg = err?.message || err?.error?.message || 'Two-factor authentication is required. Please enable 2FA in your account settings.';
+      notifyError(errorMsg);
     } finally {
       setIsDeleting(false);
     }
@@ -242,6 +261,11 @@ export function SettingsView() {
     setTwoFactorLoading(true);
     try {
       const token = getAuthToken();
+      if (!token) {
+        notifyError('Please log in again');
+        setTwoFactorLoading(false);
+        return;
+      }
       const res = await fetch('/api/user/2fa/disable', {
         method: 'POST',
         headers: { 
