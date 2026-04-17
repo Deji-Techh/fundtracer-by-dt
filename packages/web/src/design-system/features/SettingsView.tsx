@@ -55,6 +55,11 @@ export function SettingsView() {
   // Torque Stats State
   const [torqueStats, setTorqueStats] = useState<TorqueUserStats | null>(null);
   const [torqueLoading, setTorqueLoading] = useState(false);
+  const [referralData, setReferralData] = useState<{
+    referredBy: string | null;
+    referralCount: number;
+    referredUsers: string[];
+  } | null>(null);
   const rewardsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,6 +102,25 @@ export function SettingsView() {
   useEffect(() => {
     if (activeTab === 'rewards' && !torqueStats) {
       fetchTorqueStats();
+    }
+  }, [activeTab]);
+
+  const fetchReferralData = async () => {
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/torque/referrals', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setReferralData(data);
+    } catch (err) {
+      console.error('Failed to fetch referral data:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'rewards' && !referralData) {
+      fetchReferralData();
     }
   }, [activeTab]);
 
@@ -848,6 +872,34 @@ export function SettingsView() {
                     <a href="/rewards" className="btn-primary">
                       View Leaderboard
                     </a>
+                  </div>
+
+                  <div className="referral-section">
+                    <h3>Refer Friends</h3>
+                    <p>Share your link and earn 100 points per referral</p>
+                    <div className="referral-link-container">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${window.location.origin}?ref=${user?.uid}`}
+                        className="referral-link-input"
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}?ref=${user?.uid}`);
+                          notifySuccess('Link copied!');
+                        }}
+                        className="btn-secondary"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    {referralData && (
+                      <div className="referral-stats">
+                        <p>Referred by: {referralData.referredBy || 'None'}</p>
+                        <p>Your referrals: {referralData.referralCount}</p>
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (

@@ -3,11 +3,13 @@ import { verifyMessage } from 'ethers';
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import { getFirestore } from '../firebase.js';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import { sendEmail, buildWelcomeEmail } from '../services/EmailService.js';
+import { torqueService } from '../services/TorqueService.js';
 
 const router = Router();
 
@@ -57,7 +59,9 @@ router.get('/twitter/start', (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Twitter OAuth not configured' });
   }
   
-  const state = jwt.sign({ timestamp: Date.now() }, getJwtSecret(), { expiresIn: '10m' });
+  // Include ref param for referral tracking
+  const refParam = req.query.ref as string;
+  const state = jwt.sign({ timestamp: Date.now(), ref: refParam || null }, getJwtSecret(), { expiresIn: '10m' });
   
   const scopes = 'tweet.read users.read';
   const authUrl = `https://twitter.com/i/oauth2/authorize?` +
@@ -645,6 +649,23 @@ router.post('/google-login', async (req: Request, res: Response) => {
       lastLogin: Date.now(),
       authProvider: 'google'
     }, { merge: true });
+
+    // Handle referral from ref query param for Google login
+    const googleRefParam = req.query.ref as string;
+    if (googleRefParam && isNewUser && googleRefParam !== uid) {
+      const referrerRef = db.collection('users').doc(googleRefParam);
+      const referrerDoc = await referrerRef.get();
+      
+      if (referrerDoc.exists) {
+        await referrerRef.update({
+          referralCount: FieldValue.increment(1),
+          referredUsers: FieldValue.arrayUnion(uid)
+        });
+        await torqueService.creditReferralBonus(googleRefParam, uid);
+        await userRef.update({ referredBy: googleRefParam });
+        console.log(`[AUTH] Google referral credited: ${googleRefParam} referred ${uid}`);
+      }
+    }
 
     // Generate JWT
     const token = jwt.sign({

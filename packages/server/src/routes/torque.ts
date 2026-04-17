@@ -224,4 +224,35 @@ router.get('/overall-stats', async (req: Request, res: Response) => {
   }
 });
 
+// Get user's referral data
+router.get('/referrals', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+    
+    const db = require('../firebase.js').getFirestore();
+    const userDoc = await db.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      return res.json({
+        referredBy: null,
+        referralCount: 0,
+        referredUsers: []
+      });
+    }
+    
+    const data = userDoc.data();
+    res.json({
+      referredBy: data?.referredBy || null,
+      referralCount: data?.referralCount || 0,
+      referredUsers: data?.referredUsers || []
+    });
+  } catch (error: any) {
+    console.error('[Torque] Referral fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch referrals' });
+  }
+});
+
 export { router as torqueRoutes };

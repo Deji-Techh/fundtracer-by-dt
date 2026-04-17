@@ -406,6 +406,44 @@ class TorqueService {
       };
     }
   }
+
+  // Credit referral bonus points to referrer
+  async creditReferralBonus(referrerId: string, refereeId: string): Promise<boolean> {
+    const REFERRAL_BONUS_POINTS = 100;
+    
+    try {
+      const db = getDb();
+      const userStatsRef = db.collection('torque_user_stats').doc(referrerId);
+      const userStatsDoc = await userStatsRef.get();
+      
+      if (userStatsDoc.exists) {
+        await userStatsRef.update({
+          points: FieldValue.increment(REFERRAL_BONUS_POINTS),
+          referralCount: FieldValue.increment(1),
+          referredUsers: FieldValue.arrayUnion(refereeId),
+          lastEventType: 'invite_friend',
+          lastEventAt: new Date()
+        });
+      } else {
+        await userStatsRef.set({
+          userId: referrerId,
+          points: REFERRAL_BONUS_POINTS,
+          totalEvents: 1,
+          referralCount: 1,
+          referredUsers: [refereeId],
+          lastEventType: 'invite_friend',
+          lastEventAt: new Date(),
+          createdAt: new Date()
+        });
+      }
+      
+      console.log(`[Torque] Credited ${REFERRAL_BONUS_POINTS} points to referrer ${referrerId}`);
+      return true;
+    } catch (error) {
+      console.error('[Torque] Failed to credit referral bonus:', error);
+      return false;
+    }
+  }
 }
 
 export const torqueService = new TorqueService();
