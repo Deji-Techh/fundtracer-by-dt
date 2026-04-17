@@ -74,8 +74,8 @@ export function SettingsView() {
   const fetchTorqueStats = async () => {
     setTorqueLoading(true);
     try {
-      // Use profile email as userId query param
-      const userId = profile?.email;
+      // Use profile uid as userId query param
+      const userId = profile?.uid;
       const url = userId 
         ? `/api/torque/stats/detailed?userId=${encodeURIComponent(userId)}`
         : '/api/torque/stats/detailed';
