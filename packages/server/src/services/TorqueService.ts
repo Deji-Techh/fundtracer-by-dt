@@ -574,37 +574,44 @@ export async function getCampaignStats(campaignId: string): Promise<{
   try {
     const db = getDb();
     
-    let eventTypeFilter: string | null = null;
-    switch (campaignId) {
-      case 'top-analyzer':
-        eventTypeFilter = 'wallet_analyzed';
-        break;
-      case 'sybil-hunter':
-        eventTypeFilter = 'sybil_detected';
-        break;
-      default:
-        eventTypeFilter = null;
-    }
-
-    // Count unique participants who have events
-    const eventsSnapshot = await db.collection('torque_events')
-      .orderBy('timestamp', 'desc')
-      .limit(1000)
-      .get();
-
-    const uniqueUsers = new Set<string>();
-    let totalEvents = 0;
+    // Count total users in torque_user_stats collection
+    const statsSnapshot = await db.collection('torque_user_stats').get();
+    const participants = statsSnapshot.size || 0;
     
-    for (const doc of eventsSnapshot.docs) {
-      const data = doc.data();
-      if (eventTypeFilter && data.event !== eventTypeFilter) continue;
-      
-      uniqueUsers.add(data.userId);
-      totalEvents++;
+    // For specific campaigns, count by event type
+    let totalEvents = 0;
+    if (campaignId === 'top-analyzer') {
+      // Sum all wallets analyzed
+      for (const doc of statsSnapshot.docs) {
+        const data = doc.data();
+        totalEvents += data.walletsAnalyzed || 0;
+      }
+    } else if (campaignId === 'sybil-hunter') {
+      // Count sybil detections
+      for (const doc of statsSnapshot.docs) {
+        const data = doc.data();
+        totalEvents += data.sybilCount || 0;
+      }
+    } else if (campaignId === 'streak') {
+      // Sum streak days
+      for (const doc of statsSnapshot.docs) {
+        const data = doc.data();
+        totalEvents += data.streakDays || 0;
+      }
+    } else if (campaignId === 'referral') {
+      // Sum referrals
+      for (const doc of statsSnapshot.docs) {
+        const data = doc.data();
+        totalEvents += data.referralCount || 0;
+      }
+    } else if (campaignId === 'early-adopter') {
+      // Count users with signupDate (all initialized users)
+      for (const doc of statsSnapshot.docs) {
+        const data = doc.data();
+        if (data.signupDate) totalEvents++;
+      }
     }
 
-    // Calculate rewards claimed (simplified - just calc 0.3% as placeholder)
-    const participants = uniqueUsers.size || 0;
     const rewardsClaimed = participants > 0 ? '0.3%' : '0%';
 
     return {
