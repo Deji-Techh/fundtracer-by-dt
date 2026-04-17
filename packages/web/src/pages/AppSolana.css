@@ -1628,20 +1628,33 @@
     
     .solana-header {
         flex-wrap: wrap;
-        gap: 12px;
-        padding: 12px;
+        gap: 8px;
+        padding: 10px;
     }
-    
+
+    .solana-logo {
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .solana-logo-text {
+        display: none;
+    }
+
+    .solana-chain-badge {
+        font-size: 9px;
+        padding: 2px 4px;
+    }
+
     .solana-search {
         order: 3;
-        max-width: 100%;
         flex-basis: 100%;
-        min-width: 0;
+        width: 100%;
     }
 
     .solana-search-bar {
-        height: 42px;
-        padding: 0 12px;
+        height: 38px;
+        padding: 0 8px;
     }
 
     .solana-search-bar input {
@@ -1650,9 +1663,14 @@
     }
 
     .solana-user {
-        flex-direction: column;
-        gap: 8px;
-        text-align: center;
+        display: flex;
+        flex-shrink: 0;
+        gap: 6px;
+    }
+
+    .evm-link-btn {
+        padding: 6px 10px;
+        font-size: 12px;
     }
 
     .feature-panel {
@@ -1668,7 +1686,7 @@
     }
 
     .solana-content {
-        padding: 12px;
+        padding: 10px;
         overflow-x: hidden;
     }
 
