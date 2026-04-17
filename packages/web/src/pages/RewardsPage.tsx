@@ -167,8 +167,62 @@ export default function RewardsPage() {
   });
   const [campaignStats, setCampaignStats] = useState<Record<string, { participants: number; totalEvents: number }>>({});
   const [userStats, setUserStats] = useState<{ points: number; rank: number; streak: number } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const isLightTheme = theme === 'light';
+
+  // Handle search
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      // Search campaigns by title
+      const campaignMatches = campaigns
+        .filter(c => c.title.toLowerCase().includes(query.toLowerCase()) || c.description.toLowerCase().includes(query.toLowerCase()))
+        .map(c => ({ type: 'campaign' as const, id: c.id, title: c.title, subtitle: c.description }));
+
+      // Search leaderboard if a campaign is selected
+      let userMatches: any[] = [];
+      if (selectedCampaign) {
+        try {
+          const res = await fetch(`/api/torque/leaderboard/${selectedCampaign}`);
+          if (res.ok) {
+            const data = await res.json();
+            const q = query.toLowerCase();
+            userMatches = (data.entries || [])
+              .filter((e: any) => e.userId.toLowerCase().includes(q) || (e.displayName && e.displayName.toLowerCase().includes(q)))
+              .slice(0, 5)
+              .map((e: any) => ({ type: 'user' as const, id: e.userId, title: e.displayName || e.userId, subtitle: `Rank #${e.rank} - ${e.score} points` }));
+          }
+        } catch {}
+      }
+
+      setSearchResults([...campaignMatches, ...userMatches]);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Handle search result selection
+  const handleSearchSelect = (result: any) => {
+    setSearchQuery('');
+    setSearchResults([]);
+    if (result.type === 'campaign') {
+      setSelectedCampaign(result.id);
+      setActiveTab('leaderboard');
+    } else {
+      // User result - scroll to them on leaderboard
+      setActiveTab('leaderboard');
+    }
+  };
 
   // Fetch real-time stats
   useEffect(() => {
@@ -212,7 +266,14 @@ export default function RewardsPage() {
   }, []);
 
   return (
-    <LandingLayout navItems={navItems}>
+    <LandingLayout 
+      navItems={navItems}
+      onSearch={handleSearch}
+      onSearchSelect={handleSearchSelect}
+      searchResults={searchResults}
+      searchLoading={searchLoading}
+      showSearch={true}
+    >
       <div className="rewards-page">
         {/* Hero Section */}
         <section className="rewards-hero">
