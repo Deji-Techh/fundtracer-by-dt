@@ -25,12 +25,15 @@ export async function requireTwoFactor(
 
         // Check if 2FA is enabled
         const has2FA = userData?.twoFactorEnabled === true;
+        
+        // Get custom message from request if provided
+        const customMessage = (req as any).twoFactorMessage || 'Two-factor authentication is required. Please enable 2FA in your account settings.';
 
         if (!has2FA) {
             // No 2FA enabled - return specific error so frontend can show popup
             return res.status(403).json({ 
                 error: '2FA required',
-                message: 'Two-factor authentication is required to create API keys. Please enable 2FA in your account settings.',
+                message: customMessage,
                 twoFactorEnabled: false,
                 settingsUrl: '/app-evm?tab=settings'
             });
