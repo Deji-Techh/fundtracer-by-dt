@@ -65,7 +65,7 @@
     flex: 1;
     display: flex;
     max-width: 700px;
-    min-width: 400px;
+    min-width: 0;
 }
 
 .solana-search-bar {
@@ -88,7 +88,7 @@
 
 .solana-search-bar input {
     flex: 1;
-    min-width: 250px;
+    min-width: 0;
     background: transparent;
     border: none;
     outline: none;
@@ -1629,12 +1629,30 @@
     .solana-header {
         flex-wrap: wrap;
         gap: 12px;
+        padding: 12px;
     }
     
     .solana-search {
         order: 3;
         max-width: 100%;
         flex-basis: 100%;
+        min-width: 0;
+    }
+
+    .solana-search-bar {
+        height: 42px;
+        padding: 0 12px;
+    }
+
+    .solana-search-bar input {
+        min-width: 0;
+        font-size: 14px;
+    }
+
+    .solana-user {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
     }
 
     .feature-panel {
@@ -1647,5 +1665,21 @@
 
     .risk-factors-grid, .checks-grid {
         grid-template-columns: 1fr;
+    }
+
+    .solana-content {
+        padding: 12px;
+        overflow-x: hidden;
+    }
+
+    .token-grid, .nft-grid, .tx-grid, .defi-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .token-card, .nft-card, .tx-card, .defi-card {
+        width: 100%;
+        min-width: 0;
     }
 }
