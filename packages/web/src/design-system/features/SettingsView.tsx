@@ -76,11 +76,14 @@ export function SettingsView() {
     try {
       // Use profile uid as userId query param
       const userId = profile?.uid;
+      console.log('[Torque] Fetching stats, userId:', userId);
       const url = userId 
         ? `/api/torque/stats/detailed?userId=${encodeURIComponent(userId)}`
         : '/api/torque/stats/detailed';
+      console.log('[Torque] URL:', url);
       const res = await fetch(url);
       const data = await res.json();
+      console.log('[Torque] Response:', data);
       if (data.success) {
         setTorqueStats(data.stats);
       }
