@@ -84,20 +84,6 @@ const campaigns = [
     ]
   },
   {
-    id: 'viral',
-    title: 'Viral Share Bonus',
-    description: 'Share your analysis on X and earn equity',
-    icon: Share2,
-    color: '#06b6d4',
-    reward: '0.25%',
-    type: 'instant',
-    participants: 76,
-    endsIn: 'Always',
-    prize: [
-      { place: 'Per share', amount: '0.05%', icon: Gift },
-    ]
-  },
-  {
     id: 'referral',
     title: 'Referral Program',
     description: 'Invite friends and earn equity for both of you',
@@ -246,7 +232,7 @@ export default function RewardsPage() {
         }
 
         // Fetch campaign-specific stats
-        const campaignIds = ['top-analyzer', 'sybil-hunter', 'early-adopter', 'streak', 'viral', 'referral'];
+        const campaignIds = ['top-analyzer', 'sybil-hunter', 'early-adopter', 'streak', 'referral'];
         for (const id of campaignIds) {
           const res = await fetch(`/api/torque/campaign-stats/${id}`);
           if (res.ok) {
