@@ -204,19 +204,28 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     
     console.log(`[AUTH] User saved to Firestore: ${email} (${uid})`);
 
-    // Credit referrer if ref param exists and this is a new user
-    if (refParam && isNewUser && refParam !== uid) {
-      const referrerRef = db.collection('users').doc(refParam);
-      const referrerDoc = await referrerRef.get();
+    // Credit referrer if ref param exists and user isn't already referred
+    if (refParam && refParam !== uid) {
+      const userData = userDoc.exists ? userDoc.data() : null;
+      const existingReferredBy = userData?.referredBy;
       
-      if (referrerDoc.exists) {
-        await referrerRef.update({
-          referralCount: FieldValue.increment(1),
-          referredUsers: FieldValue.arrayUnion(uid)
-        });
-        await torqueService.creditReferralBonus(refParam, uid);
-        await userRef.update({ referredBy: refParam });
-        console.log(`[AUTH] OAuth referral credited: ${refParam} referred ${uid}`);
+      // Only credit if not already referred (or is new user)
+      if (!existingReferredBy || isNewUser) {
+        const referrerRef = db.collection('users').doc(refParam);
+        const referrerDoc = await referrerRef.get();
+        
+        if (referrerDoc.exists) {
+          // Only increment referrer's count if this is a NEW user being referred
+          if (isNewUser) {
+            await referrerRef.update({
+              referralCount: FieldValue.increment(1),
+              referredUsers: FieldValue.arrayUnion(uid)
+            });
+            await torqueService.creditReferralBonus(refParam, uid);
+          }
+          await userRef.update({ referredBy: refParam });
+          console.log(`[AUTH] OAuth referral credited: ${refParam} referred ${uid}, newUser: ${isNewUser}`);
+        }
       }
     }
 

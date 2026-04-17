@@ -442,10 +442,10 @@ class TorqueService {
       return {
         points,
         rank,
-        streak: 0, // Would need separate streak tracking
-        walletsAnalyzed: Math.floor(totalEvents * 0.7), // Rough estimate
-        sybilsDetected: 0,
-        referrals: 0
+        streak: userData.streakDays || 0,
+        walletsAnalyzed: userData.walletsAnalyzed || 0,
+        sybilsDetected: userData.sybilCount || 0,
+        referrals: userData.referralCount || 0
       };
     } catch (error) {
       console.error('[Torque] Failed to get detailed stats:', error);
