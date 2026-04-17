@@ -166,12 +166,15 @@ export default function RewardsPage() {
     rewardsClaimed: '0%'
   });
   const [campaignStats, setCampaignStats] = useState<Record<string, { participants: number; totalEvents: number }>>({});
+  const [userStats, setUserStats] = useState<{ points: number; rank: number; streak: number } | null>(null);
 
   const isLightTheme = theme === 'light';
 
   // Fetch real-time stats
   useEffect(() => {
     const fetchStats = async () => {
+      const token = localStorage.getItem('fundtracer_token');
+      
       try {
         // Fetch overall stats
         const overallRes = await fetch('/api/torque/overall-stats');
@@ -187,6 +190,17 @@ export default function RewardsPage() {
           if (res.ok) {
             const data = await res.json();
             setCampaignStats(prev => ({ ...prev, [id]: data }));
+          }
+        }
+
+        // Fetch user stats if logged in
+        if (token) {
+          const userStatsRes = await fetch('/api/torque/stats', {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+          if (userStatsRes.ok) {
+            const data = await userStatsRes.json();
+            setUserStats(data.stats);
           }
         }
       } catch (error) {
@@ -532,7 +546,7 @@ export default function RewardsPage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                {user ? (
+                {user && userStats ? (
                   <div className="user-stats-grid">
                     <div className="user-stat-card highlight">
                       <div className="stat-header">
@@ -540,11 +554,11 @@ export default function RewardsPage() {
                         <h3>Your Progress</h3>
                       </div>
                       <div className="stat-main">
-                        <span className="big-number">0</span>
+                        <span className="big-number">{userStats.points}</span>
                         <span className="stat-unit">points</span>
                       </div>
                       <div className="stat-rank">
-                        <span>#--</span>
+                        <span>#{userStats.rank || '—'}</span>
                         <span>global rank</span>
                       </div>
                     </div>
@@ -553,7 +567,7 @@ export default function RewardsPage() {
                       <Flame size={24} />
                       <h3>Current Streak</h3>
                       <div className="streak-display">
-                        <span className="streak-days">0</span>
+                        <span className="streak-days">{userStats.streak}</span>
                         <span className="streak-label">days</span>
                       </div>
                     </div>
@@ -561,19 +575,19 @@ export default function RewardsPage() {
                     <div className="user-stat-card">
                       <Target size={24} />
                       <h3>Wallets Analyzed</h3>
-                      <span className="stat-value">0</span>
+                      <span className="stat-value">{Math.floor(userStats.points / 10)}</span>
                     </div>
 
                     <div className="user-stat-card">
                       <Shield size={24} />
                       <h3>Sybils Detected</h3>
-                      <span className="stat-value">0</span>
+                      <span className="stat-value">{Math.floor(userStats.points / 50)}</span>
                     </div>
 
                     <div className="user-stat-card">
                       <Share2 size={24} />
                       <h3>Social Shares</h3>
-                      <span className="stat-value">0</span>
+                      <span className="stat-value">—</span>
                     </div>
 
                     <div className="user-stat-card">

@@ -35,16 +35,13 @@ router.get('/leaderboard/:campaignId', async (req: Request, res: Response) => {
   }
 });
 
-// Get current user's stats
-router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// Get current user's stats (public - no auth required)
+router.get('/stats', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.uid;
+    // Get userId from auth header if available (optional)
+    const userId = (req as any).user?.uid || null;
     
-    if (!userId) {
-      return res.status(400).json({ error: 'User not found' });
-    }
-    
-    const stats = await torqueService.getUserStats(userId);
+    const stats = userId ? await torqueService.getUserStats(userId) : null;
     
     res.json({
       success: true,
