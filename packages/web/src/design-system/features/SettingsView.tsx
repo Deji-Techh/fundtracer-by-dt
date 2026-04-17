@@ -824,31 +824,31 @@ export function SettingsView() {
               
               {torqueLoading ? (
                 <div className="loading-state">Loading stats...</div>
-              ) : torqueStats && torqueStats.points > 0 ? (
+              ) : torqueStats ? (
                 <>
                   <div className="rewards-grid">
                     <div className="reward-stat">
-                      <div className="reward-stat-value">{torqueStats.points.toLocaleString()}</div>
+                      <div className="reward-stat-value">{(torqueStats.points || 0).toLocaleString()}</div>
                       <div className="reward-stat-label">Total Points</div>
                     </div>
                     <div className="reward-stat">
-                      <div className="reward-stat-value">#{torqueStats.rank}</div>
+                      <div className="reward-stat-value">#{torqueStats.rank || '—'}</div>
                       <div className="reward-stat-label">Rank</div>
                     </div>
                     <div className="reward-stat">
-                      <div className="reward-stat-value">{torqueStats.streak}</div>
+                      <div className="reward-stat-value">{torqueStats.streak || 0}</div>
                       <div className="reward-stat-label">Day Streak</div>
                     </div>
                     <div className="reward-stat">
-                      <div className="reward-stat-value">{torqueStats.walletsAnalyzed}</div>
+                      <div className="reward-stat-value">{torqueStats.walletsAnalyzed || 0}</div>
                       <div className="reward-stat-label">Wallets Analyzed</div>
                     </div>
                     <div className="reward-stat">
-                      <div className="reward-stat-value">{torqueStats.sybilsDetected}</div>
+                      <div className="reward-stat-value">{torqueStats.sybilsDetected || 0}</div>
                       <div className="reward-stat-label">Sybils Detected</div>
                     </div>
                     <div className="reward-stat">
-                      <div className="reward-stat-value">{torqueStats.referrals}</div>
+                      <div className="reward-stat-value">{torqueStats.referrals || 0}</div>
                       <div className="reward-stat-label">Referrals</div>
                     </div>
                   </div>
@@ -888,12 +888,62 @@ export function SettingsView() {
                   </div>
                 </>
               ) : (
-                <div className="empty-state">
-                  <p>You are on the leaderboard! Keep analyzing wallets to earn points.</p>
-                  <a href="/investigate" className="btn-primary">
-                    Analyze a Wallet
-                  </a>
-                </div>
+                <>
+                  <div className="rewards-grid">
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">0</div>
+                      <div className="reward-stat-label">Total Points</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">—</div>
+                      <div className="reward-stat-label">Rank</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">0</div>
+                      <div className="reward-stat-label">Day Streak</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">0</div>
+                      <div className="reward-stat-label">Wallets Analyzed</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">0</div>
+                      <div className="reward-stat-label">Sybils Detected</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">0</div>
+                      <div className="reward-stat-label">Referrals</div>
+                    </div>
+                  </div>
+
+                  <div className="rewards-cta">
+                    <a href="/rewards" className="btn-primary">
+                      View Leaderboard
+                    </a>
+                  </div>
+
+                  <div className="referral-section">
+                    <h3>Refer Friends</h3>
+                    <p>Share your link and earn 100 points per referral</p>
+                    <div className="referral-link-container">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${window.location.origin}?ref=${user?.uid}`}
+                        className="referral-link-input"
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}?ref=${user?.uid}`);
+                          notifySuccess('Link copied!');
+                        }}
+                        className="btn-secondary"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 
