@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotify } from '../../contexts/ToastContext';
 import { usePrivy } from '@privy-io/react-auth';
-import { getAuthToken } from '../../api';
+import { getAuthToken, apiRequest } from '../../api';
 import './SettingsView.css';
 
 type SettingsTab = 'profile' | 'account' | 'preferences' | 'security' | 'rewards';
@@ -215,15 +215,7 @@ export function SettingsView() {
         setIsDeleting(false);
         return;
       }
-      const res = await fetch('/api/user/account', {
-        method: 'DELETE',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ code: verificationCode })
-      });
-      const data = await res.json();
+      const data = await apiRequest<{ success: boolean; error?: string }>('/api/user/account', 'DELETE', { code: verificationCode });
       
       if (data.success) {
         notifySuccess('Account deleted successfully');
@@ -231,7 +223,7 @@ export function SettingsView() {
         await signOutAccount();
         window.location.href = '/';
       } else {
-        notifyError(data.error || data.message || 'Failed to delete account');
+        notifyError(data.error || 'Failed to delete account');
       }
     } catch (err) {
       console.error('[Delete Account] Error:', err);
