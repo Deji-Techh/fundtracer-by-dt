@@ -124,8 +124,8 @@
 
 /* Panel Section */
 .panel-section {
-  background: #15151f;
-  border: 1px solid #252535;
+  background: var(--intel-bg-surface);
+  border: 1px solid var(--intel-border-subtle);
   border-radius: var(--radius-md);
   padding: var(--space-4);
 }
@@ -1205,8 +1205,8 @@
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-4);
-  background: #1a1a24;
-  border: 1px solid #2a2a3a;
+  background: var(--intel-bg-elevated);
+  border: 1px solid var(--intel-border-subtle);
   border-radius: var(--radius-md);
   text-align: center;
 }
@@ -1229,7 +1229,7 @@
   display: flex;
   justify-content: center;
   padding-top: var(--space-4);
-  border-top: 1px solid #2a2a3a;
+  border-top: 1px solid var(--intel-border-subtle);
 }
 
 .earn-list {
@@ -1285,8 +1285,7 @@
 .referral-section {
   margin-top: var(--space-6);
   padding: var(--space-4);
-  background: #1a1a24;
-  border: 1px solid #2a2a3a;
+  background: var(--intel-bg-secondary);
   border-radius: var(--radius-lg);
 }
 
