@@ -164,8 +164,8 @@ class TorqueService {
     }
   }
 
-  // Update user's point totals based on event type
-  private async updateUserStats(userId: string, eventType: string, metadata: Record<string, unknown>): Promise<void> {
+  // Update user's point totals based on event type (public for direct calls)
+  async updateUserStats(userId: string, eventType: string, metadata: Record<string, unknown>): Promise<void> {
     try {
       const db = getDb();
       const userStatsRef = db.collection('torque_user_stats').doc(userId);
