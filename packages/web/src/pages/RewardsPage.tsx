@@ -3,7 +3,7 @@
  * Insane animations and premium UI
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
@@ -170,6 +170,7 @@ export default function RewardsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const leaderboardRef = useRef<HTMLDivElement>(null);
 
   const isLightTheme = theme === 'light';
 
@@ -219,9 +220,16 @@ export default function RewardsPage() {
       setSelectedCampaign(result.id);
       setActiveTab('leaderboard');
     } else {
-      // User result - scroll to them on leaderboard
+      // User result - make sure a campaign is selected, default to top-analyzer
+      if (!selectedCampaign) {
+        setSelectedCampaign('top-analyzer');
+      }
       setActiveTab('leaderboard');
     }
+    // Scroll to leaderboard section after state updates
+    setTimeout(() => {
+      leaderboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   // Fetch real-time stats
@@ -561,11 +569,12 @@ export default function RewardsPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                ref={leaderboardRef}
               >
                 <div className="leaderboard-tabs">
-                  <h3>Active Leaderboards</h3>
+                  <h3>Active Leaderboards & Campaigns</h3>
                   <div className="leaderboard-list">
-                    {campaigns.filter(c => c.type === 'leaderboard').map((campaign, index) => (
+                    {campaigns.map((campaign, index) => (
                       <motion.div
                         key={campaign.id}
                         className={`leaderboard-card ${selectedCampaign === campaign.id ? 'selected' : ''}`}
