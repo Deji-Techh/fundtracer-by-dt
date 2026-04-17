@@ -35,14 +35,33 @@ router.get('/leaderboard/:campaignId', async (req: Request, res: Response) => {
   }
 });
 
-// Get detailed user stats for Settings page - try auth, fall back to userId param
+// Get detailed user stats for Settings page - try to get userId from token
 router.get('/stats/detailed', async (req: Request, res: Response) => {
   try {
-    // Try to get userId from auth, or from query param
-    let userId = (req as any).user?.uid || req.query.userId as string;
+    const JWT_SECRET = process.env.JWT_SECRET;
+    let userId: string | undefined;
+    
+    // Try to get userId from token in Authorization header
+    const authHeader = req.headers.authorization as string;
+    if (authHeader && authHeader.startsWith('Bearer ') && JWT_SECRET) {
+      const token = authHeader.split('Bearer ')[1];
+      try {
+        // Skip API key tokens (ft_ prefix)
+        if (!token.startsWith('ft_')) {
+          const decoded = require('jsonwebtoken').verify(token, JWT_SECRET) as any;
+          userId = decoded.uid;
+        }
+      } catch (e) {
+        // Invalid token - ignore
+      }
+    }
+    
+    // Fall back to query param
+    if (!userId) {
+      userId = req.query.userId as string;
+    }
     
     if (!userId) {
-      // Return empty stats structure so frontend can handle it
       return res.json({
         success: true,
         stats: {
