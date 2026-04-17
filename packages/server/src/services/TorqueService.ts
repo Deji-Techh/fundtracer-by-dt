@@ -172,9 +172,13 @@ class TorqueService {
       const userStatsDoc = await userStatsRef.get();
 
       let pointsToAdd = 0;
+      let walletsToAdd = 0;
+      let streakDaysToAdd = 0;
+      
       switch (eventType) {
         case 'wallet_analyzed':
           pointsToAdd = 10;
+          walletsToAdd = 1;
           break;
         case 'sybil_detected':
           pointsToAdd = 50;
@@ -194,20 +198,39 @@ class TorqueService {
         case 'invite_friend':
           pointsToAdd = 30;
           break;
+        case 'daily_login':
+          streakDaysToAdd = 1;
+          pointsToAdd = 5;
+          break;
       }
 
-      if (pointsToAdd > 0) {
+      if (pointsToAdd > 0 || walletsToAdd > 0 || streakDaysToAdd > 0) {
+        const updateData: Record<string, any> = {
+          lastEventType: eventType,
+          lastEventAt: new Date()
+        };
+        
+        if (pointsToAdd > 0) {
+          updateData.points = FieldValue.increment(pointsToAdd);
+          updateData.totalEvents = FieldValue.increment(1);
+        }
+        if (walletsToAdd > 0) {
+          updateData.walletsAnalyzed = FieldValue.increment(walletsToAdd);
+        }
+        if (streakDaysToAdd > 0) {
+          updateData.streakDays = FieldValue.increment(streakDaysToAdd);
+        }
+        
         if (userStatsDoc.exists) {
-          await userStatsRef.update({
-            points: FieldValue.increment(pointsToAdd),
-            totalEvents: FieldValue.increment(1),
-            lastEventType: eventType,
-            lastEventAt: new Date()
-          });
+          await userStatsRef.update(updateData);
         } else {
           await userStatsRef.set({
             userId,
             points: pointsToAdd,
+            walletsAnalyzed: walletsToAdd,
+            streakDays: streakDaysToAdd,
+            referralCount: 0,
+            signupDate: Date.now(),
             totalEvents: 1,
             lastEventType: eventType,
             lastEventAt: new Date(),
@@ -294,6 +317,60 @@ class TorqueService {
   async submitScore(campaignId: string, userId: string, score: number): Promise<boolean> {
     console.log(`[Torque] Score submitted (simulated): ${userId} - ${score} points`);
     return true;
+  }
+
+  // Initialize user stats from existing Google users (run once to populate leaderboard)
+  async initializeFromExistingUsers(): Promise<number> {
+    try {
+      const db = getDb();
+      
+      // Get all users who signed up with Google (have authProvider: 'google')
+      const usersSnapshot = await db.collection('users')
+        .where('authProvider', '==', 'google')
+        .get();
+      
+      let initialized = 0;
+      for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data();
+        const userId = userDoc.id;
+        
+        // Check if already has stats
+        const existingStats = await db.collection('torque_user_stats').doc(userId).get();
+        if (existingStats.exists) {
+          continue; // Already initialized
+        }
+        
+        // Get signup date (createdAt) or use lastLogin as fallback
+        const signupDate = userData.createdAt || userData.lastLogin || Date.now();
+        
+        // Get referral count from user data
+        const referralCount = userData.referralCount || 0;
+        
+        // Initialize user with 0 points (they haven't analyzed yet)
+        // But sort by signupDate for early-adopter leaderboard
+        await db.collection('torque_user_stats').doc(userId).set({
+          userId,
+          points: 0,
+          walletsAnalyzed: 0,
+          streakDays: 0,
+          referralCount,
+          signupDate,
+          totalEvents: 0,
+          lastEventType: null,
+          lastEventAt: null,
+          createdAt: new Date()
+        });
+        
+        initialized++;
+        console.log(`[Torque] Initialized user: ${userId} (${userData.displayName})`);
+      }
+      
+      console.log(`[Torque] Initialized ${initialized} existing users`);
+      return initialized;
+    } catch (error) {
+      console.error('[Torque] Failed to initialize users:', error);
+      return 0;
+    }
   }
 
   // Get user points/rank from Firestore

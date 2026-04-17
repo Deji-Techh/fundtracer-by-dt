@@ -315,7 +315,7 @@ router.get('/twitter/callback', async (req: Request, res: Response) => {
       tier = 'max';
     }
     
-    await userRef.set({
+await userRef.set({
       uid,
       email,
       displayName: name,
@@ -323,7 +323,8 @@ router.get('/twitter/callback', async (req: Request, res: Response) => {
       tier,
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
-      authProvider: 'twitter'
+      authProvider: 'google',
+      createdAt: isNewUser ? Date.now() : (await userRef.get()).data()?.createdAt || Date.now()
     }, { merge: true });
     
     const token = jwt.sign({

@@ -249,9 +249,25 @@ router.get('/referrals', async (req: Request, res: Response) => {
       referralCount: data?.referralCount || 0,
       referredUsers: data?.referredUsers || []
     });
-  } catch (error: any) {
+} catch (error: any) {
     console.error('[Torque] Referral fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch referrals' });
+  } 
+});
+
+// Admin: Initialize user stats from existing Google users
+router.post('/admin/init-users', async (req: Request, res: Response) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] as string;
+    if (adminKey !== process.env.ADMIN_API_KEY) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const count = await torqueService.initializeFromExistingUsers();
+    res.json({ success: true, initialized: count });
+  } catch (error: any) {
+    console.error('[Torque] Init error:', error);
+    res.status(500).json({ error: 'Failed to initialize users' });
   }
 });
 
