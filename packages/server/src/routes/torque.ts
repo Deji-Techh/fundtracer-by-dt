@@ -224,12 +224,12 @@ router.get('/overall-stats', async (req: Request, res: Response) => {
   }
 });
 
-// Get user's referral data
-router.get('/referrals', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// Get user's referral data - public with userId query param
+router.get('/referrals', async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.uid;
+    const userId = req.query.userId as string;
     if (!userId) {
-      return res.status(400).json({ error: 'User not found' });
+      return res.status(400).json({ error: 'User ID required' });
     }
     
     const db = require('../firebase.js').getFirestore();
