@@ -74,10 +74,12 @@ export function SettingsView() {
   const fetchTorqueStats = async () => {
     setTorqueLoading(true);
     try {
-      const token = getAuthToken();
-      const res = await fetch('/api/torque/stats/detailed', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      // Use profile email as userId query param
+      const userId = profile?.email;
+      const url = userId 
+        ? `/api/torque/stats/detailed?userId=${encodeURIComponent(userId)}`
+        : '/api/torque/stats/detailed';
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setTorqueStats(data.stats);

@@ -35,42 +35,18 @@ router.get('/leaderboard/:campaignId', async (req: Request, res: Response) => {
   }
 });
 
-// Get detailed user stats for Settings page - try to get userId from params or Firestore by email
+// Get detailed user stats for Settings page - userId passed as query param
 router.get('/stats/detailed', async (req: Request, res: Response) => {
   try {
-    // Try to get userId from request user (set by authMiddleware) OR from query param
-    let userId = (req as any).user?.uid || req.query.userId as string;
-    
-    // If we have a token but no userId, try to get user profile by email from token
-    if (!userId) {
-      const authHeader = req.headers.authorization as string;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const JWT_SECRET = process.env.JWT_SECRET;
-        if (JWT_SECRET) {
-          const token = authHeader.split('Bearer ')[1];
-          if (!token.startsWith('ft_')) {
-            try {
-              const decoded = require('jsonwebtoken').verify(token, JWT_SECRET) as any;
-              // Get userId from decoded token
-              userId = decoded.uid;
-              console.log('[Torque] Got userId from JWT:', userId);
-            } catch (e) {
-              console.log('[Torque] JWT parse failed');
-            }
-          }
-        }
-      }
-    }
+    const userId = req.query.userId as string;
     
     if (!userId) {
-      console.log('[Torque] No userId - returning empty stats');
       return res.json({
         success: true,
         stats: { points: 0, rank: 0, streak: 0, walletsAnalyzed: 0, sybilsDetected: 0, referrals: 0 }
       });
     }
     
-    console.log('[Torque] Fetching detailed stats for:', userId);
     const stats = await torqueService.getDetailedUserStats(userId);
     
     res.json({ success: true, stats });
