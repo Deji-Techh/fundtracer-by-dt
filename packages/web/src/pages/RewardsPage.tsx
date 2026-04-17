@@ -143,7 +143,7 @@ export default function RewardsPage() {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('campaigns');
-  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('top-analyzer');
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [overallStats, setOverallStats] = useState({
     totalEquityPool: '5%',
@@ -257,6 +257,10 @@ export default function RewardsPage() {
     };
 
     fetchStats();
+    
+    // Refresh stats every 10 seconds
+    const interval = setInterval(fetchStats, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -591,6 +595,7 @@ export default function RewardsPage() {
                       campaignId={selectedCampaign}
                       title={campaigns.find(c => c.id === selectedCampaign)?.title || 'Leaderboard'}
                       showPoints={true}
+                      refreshInterval={10000}
                     />
                   ) : (
                     <div className="leaderboard-empty">
