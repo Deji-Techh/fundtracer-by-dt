@@ -210,6 +210,11 @@ export function SettingsView() {
     setIsDeleting(true);
     try {
       const token = getAuthToken();
+      if (!token) {
+        notifyError('Please log in again to delete your account');
+        setIsDeleting(false);
+        return;
+      }
       const res = await fetch('/api/user/account', {
         method: 'DELETE',
         headers: { 
