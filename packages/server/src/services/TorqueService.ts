@@ -174,6 +174,7 @@ class TorqueService {
       let pointsToAdd = 0;
       let walletsToAdd = 0;
       let streakDaysToAdd = 0;
+      let sybilsToAdd = 0;
       
       switch (eventType) {
         case 'wallet_analyzed':
@@ -182,6 +183,7 @@ class TorqueService {
           break;
         case 'sybil_detected':
           pointsToAdd = 50;
+          sybilsToAdd = 1;
           break;
         case 'contract_analyzed':
           pointsToAdd = 15;
@@ -204,7 +206,7 @@ class TorqueService {
           break;
       }
 
-      if (pointsToAdd > 0 || walletsToAdd > 0 || streakDaysToAdd > 0) {
+      if (pointsToAdd > 0 || walletsToAdd > 0 || streakDaysToAdd > 0 || sybilsToAdd > 0) {
         const updateData: Record<string, any> = {
           lastEventType: eventType,
           lastEventAt: new Date()
@@ -220,6 +222,9 @@ class TorqueService {
         if (streakDaysToAdd > 0) {
           updateData.streakDays = FieldValue.increment(streakDaysToAdd);
         }
+        if (sybilsToAdd > 0) {
+          updateData.sybilCount = FieldValue.increment(sybilsToAdd);
+        }
         
         if (userStatsDoc.exists) {
           await userStatsRef.update(updateData);
@@ -229,6 +234,7 @@ class TorqueService {
             points: pointsToAdd,
             walletsAnalyzed: walletsToAdd,
             streakDays: streakDaysToAdd,
+            sybilCount: sybilsToAdd,
             referralCount: 0,
             signupDate: Date.now(),
             totalEvents: 1,
@@ -243,14 +249,39 @@ class TorqueService {
     }
   }
 
-  // Get leaderboard rankings from Firestore
+  // Get leaderboard rankings from Firestore - campaign-specific sorting
   async getLeaderboard(campaignId: string): Promise<LeaderboardEntry[]> {
     try {
       const db = getDb();
 
-      // Query user stats ordered by points
+      // Determine which field to sort by based on campaign
+      let sortField = 'points';
+      switch (campaignId) {
+        case 'top-analyzer':
+        case 'top-analyzer-championship':
+          sortField = 'walletsAnalyzed';
+          break;
+        case 'sybil-hunter':
+        case 'sybil-hunter-leaderboard':
+          sortField = 'sybilCount';
+          break;
+        case 'streak':
+        case 'active-analyst-streak':
+          sortField = 'streakDays';
+          break;
+        case 'referral':
+          sortField = 'referralCount';
+          break;
+        case 'early-adopter':
+          sortField = 'signupDate';
+          break;
+        default:
+          sortField = 'points';
+      }
+
+      // Query user stats ordered by campaign-specific field
       const snapshot = await db.collection('torque_user_stats')
-        .orderBy('points', 'desc')
+        .orderBy(sortField, 'desc')
         .limit(50)
         .get();
 
@@ -272,11 +303,34 @@ class TorqueService {
           // Ignore - use truncated address as fallback
         }
 
+        // Get campaign-specific score
+        let score = data.points || 0;
+        switch (campaignId) {
+          case 'top-analyzer':
+          case 'top-analyzer-championship':
+            score = data.walletsAnalyzed || 0;
+            break;
+          case 'sybil-hunter':
+          case 'sybil-hunter-leaderboard':
+            score = data.sybilCount || 0;
+            break;
+          case 'streak':
+          case 'active-analyst-streak':
+            score = data.streakDays || 0;
+            break;
+          case 'referral':
+            score = data.referralCount || 0;
+            break;
+          case 'early-adopter':
+            score = data.signupDate || 0;
+            break;
+        }
+
         entries.push({
           rank,
           userId: data.userId,
           displayName,
-          score: data.points || 0,
+          score,
           change: 0
         });
         rank++;
