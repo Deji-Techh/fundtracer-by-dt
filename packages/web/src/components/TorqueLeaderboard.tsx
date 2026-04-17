@@ -5,6 +5,7 @@ import { Trophy, Medal, Crown, TrendingUp, RefreshCw } from 'lucide-react';
 interface LeaderboardEntry {
   rank: number;
   userId: string;
+  displayName?: string;
   score: number;
   change: number;
   isCurrentUser?: boolean;
@@ -159,7 +160,7 @@ export default function TorqueLeaderboard({
                   {getRankIcon(entry.rank)}
                 </div>
                 <div className="entry-address">
-                  <span className="address">{formatAddress(entry.userId)}</span>
+                  <span className="address">{entry.displayName || formatAddress(entry.userId)}</span>
                   {entry.change !== 0 && (
                     <span className={`change ${entry.change > 0 ? 'up' : 'down'}`}>
                       <TrendingUp size={12} />

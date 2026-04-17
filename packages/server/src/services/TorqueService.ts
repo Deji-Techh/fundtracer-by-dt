@@ -26,6 +26,7 @@ interface TorqueReward {
 interface LeaderboardEntry {
   rank: number;
   userId: string;
+  displayName?: string;
   score: number;
   change: number;
 }
@@ -260,9 +261,22 @@ class TorqueService {
           continue;
         }
 
+        // Try to get user display name from Firestore
+        let displayName: string | undefined;
+        try {
+          const userDoc = await db.collection('users').doc(data.userId).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            displayName = userData?.displayName || userData?.name || undefined;
+          }
+        } catch (e) {
+          // Ignore - use truncated address as fallback
+        }
+
         entries.push({
           rank,
           userId: data.userId,
+          displayName,
           score: data.points || 0,
           change: 0
         });
