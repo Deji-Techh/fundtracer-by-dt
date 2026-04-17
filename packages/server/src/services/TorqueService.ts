@@ -362,27 +362,22 @@ class TorqueService {
       // Get base stats
       const stats = await this.getUserStats(userId);
       
-      // Get event counts by type
-      const walletEventsSnap = await db.collection('torque_events')
+      // Get all events for user (single query, filter in memory)
+      const eventsSnap = await db.collection('torque_events')
         .where('userId', '==', userId)
-        .where('event', '==', 'wallet_analyzed')
-        .count()
+        .limit(500)
         .get();
-      const walletsAnalyzed = walletEventsSnap.data().count || 0;
-
-      const sybilEventsSnap = await db.collection('torque_events')
-        .where('userId', '==', userId)
-        .where('event', '==', 'sybil_detected')
-        .count()
-        .get();
-      const sybilsDetected = sybilEventsSnap.data().count || 0;
-
-      const referralEventsSnap = await db.collection('torque_events')
-        .where('userId', '==', userId)
-        .where('event', '==', 'invite_friend')
-        .count()
-        .get();
-      const referrals = referralEventsSnap.data().count || 0;
+      
+      let walletsAnalyzed = 0;
+      let sybilsDetected = 0;
+      let referrals = 0;
+      
+      for (const doc of eventsSnap.docs) {
+        const event = doc.data().event;
+        if (event === 'wallet_analyzed') walletsAnalyzed++;
+        else if (event === 'sybil_detected') sybilsDetected++;
+        else if (event === 'invite_friend') referrals++;
+      }
 
       return {
         points: stats?.points || 0,
