@@ -57,6 +57,27 @@ router.get('/stats', async (req: Request, res: Response) => {
   }
 });
 
+// Get detailed user stats for Settings page (requires auth)
+router.get('/stats/detailed', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const stats = await torqueService.getDetailedUserStats(userId);
+    
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error: any) {
+    console.error('[Torque] Detailed stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
 // Get all available campaigns
 router.get('/campaigns', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   res.json({

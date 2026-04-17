@@ -3,7 +3,7 @@
  * Full redesign to match InvestigateView layout
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotify } from '../../contexts/ToastContext';
@@ -11,7 +11,16 @@ import { usePrivy } from '@privy-io/react-auth';
 import { getAuthToken } from '../../api';
 import './SettingsView.css';
 
-type SettingsTab = 'profile' | 'account' | 'preferences' | 'security';
+type SettingsTab = 'profile' | 'account' | 'preferences' | 'security' | 'rewards';
+
+interface TorqueUserStats {
+  points: number;
+  rank: number;
+  streak: number;
+  walletsAnalyzed: number;
+  sybilsDetected: number;
+  referrals: number;
+}
 type SecurityAction = 'none' | 'enable' | 'verify' | 'disable';
 
 interface TwoFactorSetup {
@@ -43,9 +52,48 @@ export function SettingsView() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Torque Stats State
+  const [torqueStats, setTorqueStats] = useState<TorqueUserStats | null>(null);
+  const [torqueLoading, setTorqueLoading] = useState(false);
+  const rewardsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     fetchTwoFactorStatus();
   }, []);
+
+  // Handle #torque-stats anchor to switch to rewards tab
+  useEffect(() => {
+    if (window.location.hash === '#torque-stats') {
+      setActiveTab('rewards');
+      setTimeout(() => {
+        rewardsRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, []);
+
+  const fetchTorqueStats = async () => {
+    setTorqueLoading(true);
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/torque/stats/detailed', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTorqueStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Failed to fetch Torque stats:', err);
+    } finally {
+      setTorqueLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'rewards' && !torqueStats) {
+      fetchTorqueStats();
+    }
+  }, [activeTab]);
 
   const fetchTwoFactorStatus = async () => {
     try {
@@ -325,6 +373,16 @@ export function SettingsView() {
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
           Security
+        </button>
+        <button 
+          className={`tab ${activeTab === 'rewards' ? 'active' : ''}`}
+          onClick={() => setActiveTab('rewards')}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="8" r="7"/>
+            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+          </svg>
+          My Rewards
         </button>
       </div>
 
@@ -738,6 +796,89 @@ export function SettingsView() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Rewards Tab */}
+        {activeTab === 'rewards' && (
+          <div className="panel-content" ref={rewardsRef}>
+            <div className="panel-section">
+              <div className="panel-section-header">
+                <h3>My Rewards</h3>
+                <p>Track your loyalty program progress</p>
+              </div>
+              
+              {torqueLoading ? (
+                <div className="loading-state">Loading stats...</div>
+              ) : torqueStats ? (
+                <>
+                  <div className="rewards-grid">
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">{torqueStats.points.toLocaleString()}</div>
+                      <div className="reward-stat-label">Total Points</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">#{torqueStats.rank}</div>
+                      <div className="reward-stat-label">Rank</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">{torqueStats.streak}</div>
+                      <div className="reward-stat-label">Day Streak</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">{torqueStats.walletsAnalyzed}</div>
+                      <div className="reward-stat-label">Wallets Analyzed</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">{torqueStats.sybilsDetected}</div>
+                      <div className="reward-stat-label">Sybils Detected</div>
+                    </div>
+                    <div className="reward-stat">
+                      <div className="reward-stat-value">{torqueStats.referrals}</div>
+                      <div className="reward-stat-label">Referrals</div>
+                    </div>
+                  </div>
+
+                  <div className="rewards-cta">
+                    <a href="/rewards" className="btn-primary">
+                      View Leaderboard
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <div className="empty-state">
+                  <p>No rewards data yet. Start analyzing wallets to earn points!</p>
+                  <a href="/investigates" className="btn-primary">
+                    Start Analyzing
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="panel-section">
+              <div className="panel-section-header">
+                <h3>How to Earn</h3>
+                <p>Earn equity through the loyalty program</p>
+              </div>
+              <ul className="earn-list">
+                <li>
+                  <span className="earn-icon">📊</span>
+                  <span><strong>Analyze wallets</strong> — Earn 10 points per wallet</span>
+                </li>
+                <li>
+                  <span className="earn-icon">🚨</span>
+                  <span><strong>Detect sybils</strong> — Earn 50 points per sybil identified</span>
+                </li>
+                <li>
+                  <span className="earn-icon">🔥</span>
+                  <span><strong>Maintain streaks</strong> — Bonus points for daily activity</span>
+                </li>
+                <li>
+                  <span className="earn-icon">👥</span>
+                  <span><strong>Refer friends</strong> — Earn 100 points per referral</span>
+                </li>
+              </ul>
+            </div>
           </div>
         )}
       </div>

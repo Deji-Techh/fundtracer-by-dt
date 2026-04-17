@@ -1191,3 +1191,92 @@
   border-radius: 4px;
   background: linear-gradient(90deg, #21262d 0%, #161b22 100%);
 }
+
+/* Rewards Tab */
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.reward-stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--intel-bg-elevated);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.reward-stat-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--intel-cyan);
+}
+
+.reward-stat-label {
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rewards-cta {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--intel-border-subtle);
+}
+
+.earn-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.earn-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--intel-text-secondary);
+}
+
+.earn-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--intel-bg-elevated);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+}
+
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--intel-text-muted);
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .rewards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

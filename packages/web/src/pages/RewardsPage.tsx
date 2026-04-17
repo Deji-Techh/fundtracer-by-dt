@@ -401,7 +401,7 @@ export default function RewardsPage() {
           </motion.h2>
 
           <div className="campaigns-tabs">
-            {['campaigns', 'leaderboard', 'my-stats'].map(tab => (
+            {['campaigns', 'leaderboard'].map(tab => (
               <motion.button
                 key={tab}
                 className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
@@ -411,10 +411,18 @@ export default function RewardsPage() {
               >
                 {tab === 'campaigns' && <Gift size={16} />}
                 {tab === 'leaderboard' && <Trophy size={16} />}
-                {tab === 'my-stats' && <Wallet size={16} />}
                 {tab.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </motion.button>
             ))}
+            <motion.button
+              className="tab-btn"
+              onClick={() => window.open('/app-evm?tab=settings#torque-stats', '_blank')}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Wallet size={16} />
+              My Stats
+            </motion.button>
           </div>
 
           <AnimatePresence mode="wait">
@@ -536,81 +544,6 @@ export default function RewardsPage() {
                     </div>
                   )}
                 </div>
-              </motion.div>
-            )}
-
-            {activeTab === 'my-stats' && (
-              <motion.div 
-                className="my-stats-view"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {user && userStats ? (
-                  <div className="user-stats-grid">
-                    <div className="user-stat-card highlight">
-                      <div className="stat-header">
-                        <Crown size={24} />
-                        <h3>Your Progress</h3>
-                      </div>
-                      <div className="stat-main">
-                        <span className="big-number">{userStats.points}</span>
-                        <span className="stat-unit">points</span>
-                      </div>
-                      <div className="stat-rank">
-                        <span>#{userStats.rank || '—'}</span>
-                        <span>global rank</span>
-                      </div>
-                    </div>
-
-                    <div className="user-stat-card">
-                      <Flame size={24} />
-                      <h3>Current Streak</h3>
-                      <div className="streak-display">
-                        <span className="streak-days">{userStats.streak}</span>
-                        <span className="streak-label">days</span>
-                      </div>
-                    </div>
-
-                    <div className="user-stat-card">
-                      <Target size={24} />
-                      <h3>Wallets Analyzed</h3>
-                      <span className="stat-value">{Math.floor(userStats.points / 10)}</span>
-                    </div>
-
-                    <div className="user-stat-card">
-                      <Shield size={24} />
-                      <h3>Sybils Detected</h3>
-                      <span className="stat-value">{Math.floor(userStats.points / 50)}</span>
-                    </div>
-
-                    <div className="user-stat-card">
-                      <Share2 size={24} />
-                      <h3>Social Shares</h3>
-                      <span className="stat-value">—</span>
-                    </div>
-
-                    <div className="user-stat-card">
-                      <Wallet2 size={24} />
-                      <h3>Referrals</h3>
-                      <span className="stat-value">0</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="login-prompt">
-                    <Unlock size={48} />
-                    <h3>Sign In to Track Progress</h3>
-                    <p>Connect your wallet to track your rewards and climb the leaderboards</p>
-                    <motion.button 
-                      className="btn-primary"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate('/auth')}
-                    >
-                      Sign In
-                    </motion.button>
-                  </div>
-                )}
               </motion.div>
             )}
           </AnimatePresence>

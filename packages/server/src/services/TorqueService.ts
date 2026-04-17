@@ -346,6 +346,64 @@ class TorqueService {
       return null;
     }
   }
+
+  // Get detailed user stats for Settings page
+  async getDetailedUserStats(userId: string): Promise<{
+    points: number;
+    rank: number;
+    streak: number;
+    walletsAnalyzed: number;
+    sybilsDetected: number;
+    referrals: number;
+  }> {
+    try {
+      const db = getDb();
+      
+      // Get base stats
+      const stats = await this.getUserStats(userId);
+      
+      // Get event counts by type
+      const walletEventsSnap = await db.collection('torque_events')
+        .where('userId', '==', userId)
+        .where('event', '==', 'wallet_analyzed')
+        .count()
+        .get();
+      const walletsAnalyzed = walletEventsSnap.data().count || 0;
+
+      const sybilEventsSnap = await db.collection('torque_events')
+        .where('userId', '==', userId)
+        .where('event', '==', 'sybil_detected')
+        .count()
+        .get();
+      const sybilsDetected = sybilEventsSnap.data().count || 0;
+
+      const referralEventsSnap = await db.collection('torque_events')
+        .where('userId', '==', userId)
+        .where('event', '==', 'invite_friend')
+        .count()
+        .get();
+      const referrals = referralEventsSnap.data().count || 0;
+
+      return {
+        points: stats?.points || 0,
+        rank: stats?.rank || 0,
+        streak: stats?.streak || 0,
+        walletsAnalyzed,
+        sybilsDetected,
+        referrals
+      };
+    } catch (error) {
+      console.error('[Torque] Failed to get detailed stats:', error);
+      return {
+        points: 0,
+        rank: 0,
+        streak: 0,
+        walletsAnalyzed: 0,
+        sybilsDetected: 0,
+        referrals: 0
+      };
+    }
+  }
 }
 
 export const torqueService = new TorqueService();
