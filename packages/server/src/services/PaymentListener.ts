@@ -2,9 +2,9 @@
 import { JsonRpcProvider, Contract, formatUnits } from 'ethers';
 import { getFirestore } from '../firebase.js';
 
-const LINEA_RPC = 'https://rpc.linea.build'; // Public RPC
+const LINEA_RPC = 'https://rpc.linea.build';
 const USDT_ADDRESS = '0xA219439258ca9da29E9Cc4cE5596924745e12B93';
-const TARGET_WALLET = '0xFF1A1D11CB6bad91C6d9250082D1DF44d84e4b87';
+const TARGET_WALLET = process.env.PAYMENT_WALLET || '0xFF1A1D11CB6bad91C6d9250082D1DF44d84e4b87';
 
 const USDT_ABI = [
     "event Transfer(address indexed from, address indexed to, uint256 value)"
