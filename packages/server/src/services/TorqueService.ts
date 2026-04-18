@@ -6,7 +6,7 @@
 
 import { getFirestore } from '../firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
-import { isRedisConnected, cacheGet, cacheSet } from '../utils/redis.js';
+import { isRedisConnected, cacheGet, cacheSet, cacheDel } from '../utils/redis.js';
 
 const getDb = () => getFirestore();
 
@@ -257,27 +257,43 @@ class TorqueService {
       const db = getDb();
 
       let sortField = 'points';
+      let cacheTtl = 60;
       switch (campaignId) {
         case 'top-analyzer':
         case 'top-analyzer-championship':
           sortField = 'walletsAnalyzed';
+          cacheTtl = 120;
           break;
         case 'sybil-hunter':
         case 'sybil-hunter-leaderboard':
           sortField = 'sybilCount';
+          cacheTtl = 120;
           break;
         case 'streak':
         case 'active-analyst-streak':
           sortField = 'streakDays';
+          cacheTtl = 120;
           break;
         case 'referral':
           sortField = 'referralCount';
+          cacheTtl = 120;
           break;
         case 'early-adopter':
           sortField = 'signupDate';
+          cacheTtl = 120;
           break;
         default:
           sortField = 'points';
+          cacheTtl = 60;
+      }
+
+      // CACHE: Leaderboard sorted results (saves ~39k reads/day)
+      const cacheKey = `torque:leaderboard:${campaignId}`;
+      if (isRedisConnected()) {
+        const cached = await cacheGet<LeaderboardEntry[]>(cacheKey);
+        if (cached && cached.length > 0) {
+          return cached;
+        }
       }
 
       const snapshot = await db.collection('torque_user_stats')
@@ -347,6 +363,11 @@ class TorqueService {
         rank++;
       }
 
+      // Cache the leaderboard
+      if (isRedisConnected() && entries.length > 0) {
+        await cacheSet(cacheKey, entries, cacheTtl);
+      }
+
       return entries;
     } catch (error) {
       console.error('[Torque] Failed to get leaderboard:', error);
@@ -357,6 +378,14 @@ class TorqueService {
   // Submit score to leaderboard
   async submitScore(campaignId: string, userId: string, score: number): Promise<boolean> {
     console.log(`[Torque] Score submitted (simulated): ${userId} - ${score} points`);
+    
+    // Invalidate leaderboard cache on score submission
+    if (isRedisConnected()) {
+      const cacheKey = `torque:leaderboard:${campaignId}`;
+      await cacheDel(cacheKey).catch(() => {});
+      // Also invalidate overall stats cache
+      await cacheDel('torque:overall:stats').catch(() => {});
+    }
     return true;
   }
 
@@ -610,34 +639,49 @@ export async function getCampaignStats(campaignId: string): Promise<{
         return cached;
       }
     }
+
+    // CACHE: Full collection scan result (saves ~39k reads/day)
+    const allStatsCacheKey = 'torque:leaderboard:all';
+    let statsData: Record<string, any>[] = [];
     
-    const statsSnapshot = await db.collection('torque_user_stats').get();
-    const participants = statsSnapshot.size || 0;
+    if (isRedisConnected()) {
+      const cachedDocs = await cacheGet<Record<string, any>[]>(allStatsCacheKey);
+      if (cachedDocs && cachedDocs.length > 0) {
+        statsData = cachedDocs;
+      }
+    }
+
+    if (statsData.length === 0) {
+      const statsSnapshot = await db.collection('torque_user_stats').get();
+      statsData = statsSnapshot.docs.map(doc => doc.data());
+      
+      // Cache the full collection
+      if (isRedisConnected() && statsData.length > 0) {
+        await cacheSet(allStatsCacheKey, statsData, 60).catch(() => {});
+      }
+    }
+
+    const participants = statsData.length || 0;
     
     let totalEvents = 0;
     if (campaignId === 'top-analyzer') {
-      for (const doc of statsSnapshot.docs) {
-        const data = doc.data();
+      for (const data of statsData) {
         totalEvents += data.walletsAnalyzed || 0;
       }
     } else if (campaignId === 'sybil-hunter') {
-      for (const doc of statsSnapshot.docs) {
-        const data = doc.data();
+      for (const data of statsData) {
         totalEvents += data.sybilCount || 0;
       }
     } else if (campaignId === 'streak') {
-      for (const doc of statsSnapshot.docs) {
-        const data = doc.data();
+      for (const data of statsData) {
         totalEvents += data.streakDays || 0;
       }
     } else if (campaignId === 'referral') {
-      for (const doc of statsSnapshot.docs) {
-        const data = doc.data();
+      for (const data of statsData) {
         totalEvents += data.referralCount || 0;
       }
     } else if (campaignId === 'early-adopter') {
-      for (const doc of statsSnapshot.docs) {
-        const data = doc.data();
+      for (const data of statsData) {
         if (data.signupDate) totalEvents++;
       }
     }
