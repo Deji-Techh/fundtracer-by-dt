@@ -4,14 +4,17 @@
 // ============================================================
 
 const HELIUS_KEYS = [
-    process.env.HELIUS_KEY_1 || '77de5802-5beb-4647-bfbb-0ba215d47c81',
-    process.env.HELIUS_KEY_2 || 'b81bcc20-7710-40dc-b0f3-0865c03a8a1d',
-    process.env.HELIUS_KEY_3 || 'deae0411-c969-41ff-9420-f1a0f59d5639',
-];
+    process.env.HELIUS_KEY_1,
+    process.env.HELIUS_KEY_2,
+    process.env.HELIUS_KEY_3,
+].filter(Boolean);
 
 let keyIndex = 0;
 
 function getHeliusKey(): string {
+    if (HELIUS_KEYS.length === 0) {
+        throw new Error('CRITICAL: No HELIUS_KEY_* environment variables configured');
+    }
     const key = HELIUS_KEYS[keyIndex % HELIUS_KEYS.length];
     keyIndex++;
     return key;
