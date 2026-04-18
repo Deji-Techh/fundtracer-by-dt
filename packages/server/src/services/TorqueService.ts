@@ -1,11 +1,12 @@
 // ============================================================
 // FundTracer by DT - Torque Integration Service
 // Growth primitives: leaderboards, raffles, rewards
-// Stores analytics locally in Firestore since no REST API available
+// OPTIMIZED: Uses Redis caching, fixes N+1 queries, uses getAll() batch
 // ============================================================
 
 import { getFirestore } from '../firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import { isRedisConnected, cacheGet, cacheSet } from '../utils/redis.js';
 
 const getDb = () => getFirestore();
 
@@ -250,11 +251,11 @@ class TorqueService {
   }
 
   // Get leaderboard rankings from Firestore - campaign-specific sorting
+  // OPTIMIZED: Uses getAll() for batch fetch (reduces 51 reads to 2)
   async getLeaderboard(campaignId: string): Promise<LeaderboardEntry[]> {
     try {
       const db = getDb();
 
-      // Determine which field to sort by based on campaign
       let sortField = 'points';
       switch (campaignId) {
         case 'top-analyzer':
@@ -279,11 +280,28 @@ class TorqueService {
           sortField = 'points';
       }
 
-      // Query user stats ordered by campaign-specific field
       const snapshot = await db.collection('torque_user_stats')
         .orderBy(sortField, 'desc')
         .limit(50)
         .get();
+
+      if (snapshot.empty) return [];
+
+      // Get all user IDs for batch fetch
+      const userIds = snapshot.docs.map(doc => doc.id);
+      
+      // OPTIMIZATION: Use getAll() for batch fetch (2 reads instead of 51)
+      const userRefs = userIds.map(id => db.collection('users').doc(id));
+      const userDocs = await db.getAll(...userRefs);
+      
+      // Build user ID to displayName map
+      const displayNameMap: Record<string, string> = {};
+      userDocs.forEach(userDoc => {
+        if (userDoc?.exists) {
+          const userData = userDoc.data();
+          displayNameMap[userDoc.id] = userData?.displayName || userData?.name || '';
+        }
+      });
 
       const entries: LeaderboardEntry[] = [];
       let rank = 1;
@@ -291,19 +309,12 @@ class TorqueService {
       for (const doc of snapshot.docs) {
         const data = doc.data();
 
-        // Try to get user display name from Firestore
-        let displayName: string | undefined;
-        try {
-          const userDoc = await db.collection('users').doc(data.userId).get();
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            displayName = userData?.displayName || userData?.name || undefined;
-          }
-        } catch (e) {
-          // Ignore - use truncated address as fallback
+        // Try prefetched name first, then fall back to stored name
+        let displayName: string | undefined = displayNameMap[data.userId];
+        if (!displayName && data.displayName) {
+          displayName = data.displayName;
         }
 
-        // Get campaign-specific score
         let score = data.points || 0;
         switch (campaignId) {
           case 'top-analyzer':
@@ -350,11 +361,11 @@ class TorqueService {
   }
 
   // Initialize user stats from existing Google users (run once to populate leaderboard)
+  // OPTIMIZED: Stores displayName to eliminate N+1 queries on leaderboard
   async initializeFromExistingUsers(): Promise<number> {
     try {
       const db = getDb();
       
-      // Get all users who signed up with Google (have authProvider: 'google')
       const usersSnapshot = await db.collection('users')
         .where('authProvider', '==', 'google')
         .get();
@@ -364,22 +375,25 @@ class TorqueService {
         const userData = userDoc.data();
         const userId = userDoc.id;
         
-        // Check if already has stats
         const existingStats = await db.collection('torque_user_stats').doc(userId).get();
         if (existingStats.exists) {
-          continue; // Already initialized
+          // OPTIMIZATION: Add displayName to existing entries if missing
+          if (!existingStats.data()?.displayName && userData.displayName) {
+            await db.collection('torque_user_stats').doc(userId).update({
+              displayName: userData.displayName || userData.name || null
+            });
+            console.log(`[Torque] Added displayName to existing user: ${userId}`);
+          }
+          continue;
         }
         
-        // Get signup date (createdAt) or use lastLogin as fallback
         const signupDate = userData.createdAt || userData.lastLogin || Date.now();
-        
-        // Get referral count from user data
         const referralCount = userData.referralCount || 0;
         
-        // Initialize user with 0 points (they haven't analyzed yet)
-        // But sort by signupDate for early-adopter leaderboard
+        // OPTIMIZATION: Store displayName to avoid leaderboard N+1 queries
         await db.collection('torque_user_stats').doc(userId).set({
           userId,
+          displayName: userData.displayName || userData.name || null, // IMPORTANT: Store for leaderboard
           points: 0,
           walletsAnalyzed: 0,
           streakDays: 0,
@@ -427,26 +441,9 @@ class TorqueService {
       
       const rank = (higherRanked.data().count || 0) + 1;
 
-      // Calculate streak (simplified - count consecutive days with activity)
-      let streak = 0;
-      const today = new Date();
-      for (let i = 0; i < 30; i++) {
-        const checkDate = new Date(today);
-        checkDate.setDate(checkDate.getDate() - i);
-        const dateStr = checkDate.toISOString().split('T')[0];
-        
-        const activitySnapshot = await db.collection('torque_events')
-          .where('userId', '==', userId)
-          .where('timestamp', '>=', checkDate.getTime())
-          .where('timestamp', '<', checkDate.getTime() + 86400000)
-          .limit(1)
-          .get();
-
-        if (activitySnapshot.empty) {
-          break;
-        }
-        streak++;
-      }
+      // OPTIMIZATION: Use stored streakDays instead of 30 Firestore queries
+      // streakDays is maintained by updateUserStats when events are tracked
+      const streak = userData.streakDays || 0;
 
       return { points, rank, streak };
     } catch (error) {
@@ -605,38 +602,40 @@ export async function getCampaignStats(campaignId: string): Promise<{
   try {
     const db = getDb();
     
-    // Count total users in torque_user_stats collection
+    // OPTIMIZATION: Cache campaign stats for 5 minutes
+    const cacheKey = `torque:campaign:${campaignId}`;
+    if (isRedisConnected()) {
+      const cached = await cacheGet<{ participants: number; totalEvents: number; rewardsClaimed: string }>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+    
     const statsSnapshot = await db.collection('torque_user_stats').get();
     const participants = statsSnapshot.size || 0;
     
-    // For specific campaigns, count by event type
     let totalEvents = 0;
     if (campaignId === 'top-analyzer') {
-      // Sum all wallets analyzed
       for (const doc of statsSnapshot.docs) {
         const data = doc.data();
         totalEvents += data.walletsAnalyzed || 0;
       }
     } else if (campaignId === 'sybil-hunter') {
-      // Count sybil detections
       for (const doc of statsSnapshot.docs) {
         const data = doc.data();
         totalEvents += data.sybilCount || 0;
       }
     } else if (campaignId === 'streak') {
-      // Sum streak days
       for (const doc of statsSnapshot.docs) {
         const data = doc.data();
         totalEvents += data.streakDays || 0;
       }
     } else if (campaignId === 'referral') {
-      // Sum referrals
       for (const doc of statsSnapshot.docs) {
         const data = doc.data();
         totalEvents += data.referralCount || 0;
       }
     } else if (campaignId === 'early-adopter') {
-      // Count users with signupDate (all initialized users)
       for (const doc of statsSnapshot.docs) {
         const data = doc.data();
         if (data.signupDate) totalEvents++;
@@ -645,18 +644,17 @@ export async function getCampaignStats(campaignId: string): Promise<{
 
     const rewardsClaimed = participants > 0 ? '0.3%' : '0%';
 
-    return {
-      participants,
-      totalEvents,
-      rewardsClaimed
-    };
+    const result = { participants, totalEvents, rewardsClaimed };
+    
+    // Cache result
+    if (isRedisConnected()) {
+      await cacheSet(cacheKey, result, 300);
+    }
+
+    return result;
   } catch (error) {
     console.error('[Torque] Failed to get campaign stats:', error);
-    return {
-      participants: 0,
-      totalEvents: 0,
-      rewardsClaimed: '0%'
-    };
+    return { participants: 0, totalEvents: 0, rewardsClaimed: '0%' };
   }
 }
 
@@ -668,33 +666,42 @@ export async function getOverallStats(): Promise<{
   rewardsClaimed: string;
 }> {
   try {
+    // OPTIMIZATION: Cache overall stats for 5 minutes
+    const cacheKey = 'torque:overall:stats';
+    if (isRedisConnected()) {
+      const cached = await cacheGet<{ totalEquityPool: string; activeParticipants: number; eventsTracked: number; rewardsClaimed: string }>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+    
     const db = getDb();
     
-    // Get all events count
     const eventsSnapshot = await db.collection('torque_events')
       .count()
       .get();
     const eventsTracked = eventsSnapshot.data().count || 0;
 
-    // Get unique users who have events
     const userStatsSnapshot = await db.collection('torque_user_stats')
       .count()
       .get();
     const activeParticipants = userStatsSnapshot.data().count || 0;
 
-    return {
+    const result = {
       totalEquityPool: '5%',
       activeParticipants,
       eventsTracked,
       rewardsClaimed: '0.3%'
     };
+    
+    // Cache result
+    if (isRedisConnected()) {
+      await cacheSet(cacheKey, result, 300);
+    }
+
+    return result;
   } catch (error) {
     console.error('[Torque] Failed to get overall stats:', error);
-    return {
-      totalEquityPool: '5%',
-      activeParticipants: 0,
-      eventsTracked: 0,
-      rewardsClaimed: '0%'
-    };
+    return { totalEquityPool: '5%', activeParticipants: 0, eventsTracked: 0, rewardsClaimed: '0%' };
   }
 }
