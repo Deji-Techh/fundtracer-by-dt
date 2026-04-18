@@ -75,3 +75,4 @@ README_CLI.md
 # Default ignores
 # Dependencies
 node_modules/
+packages/web/.env.production
