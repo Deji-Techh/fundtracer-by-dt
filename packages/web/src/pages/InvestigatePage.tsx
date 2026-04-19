@@ -199,29 +199,21 @@ function InvestigateMainApp() {
   // Track visit
   useEffect(() => { trackVisit(); }, []);
   
-  // Onboarding check - immediate check on mount
+  // Onboarding check - ALWAYS check API for authenticated users (handles deleted account case)
   useEffect(() => {
-    // Check localStorage first
-    const localComplete = localStorage.getItem('fundtracer_onboarding_complete');
-    
-    // If not complete, show onboarding immediately
-    if (localComplete !== 'true') {
-      console.log('[Onboarding-Investigate] Showing modal - not complete');
-      setShowOnboarding(true);
-      return;
-    }
-    
-    // If complete in localStorage, verify via API (handles deleted account case)
     if (user) {
       fetch('/api/user/profile')
         .then(res => res.json())
         .then(data => {
+          console.log('[Onboarding-Investigate] Profile fetched, onboardingCompleted:', data.onboardingCompleted);
           if (!data.onboardingCompleted) {
-            console.log('[Onboarding-Investigate] Showing modal - API not complete');
+            console.log('[Onboarding-Investigate] Showing modal - not complete');
             setShowOnboarding(true);
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          console.log('[Onboarding-Investigate] Profile fetch error');
+        });
     }
   }, [user]);
   
