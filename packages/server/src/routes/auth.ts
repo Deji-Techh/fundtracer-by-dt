@@ -200,7 +200,8 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       tier,
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
-      authProvider: 'google'
+      authProvider: 'google',
+      onboardingCompleted: isNewUser ? false : userDoc.data()?.onboardingCompleted ?? false
     }, { merge: true });
     
     console.log(`[AUTH] User saved to Firestore: ${email} (${uid})`);

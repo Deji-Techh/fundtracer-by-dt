@@ -122,29 +122,23 @@ function EVMMainApp() {
 
   useEffect(() => { trackVisit(); }, []);
   
+  // Run on mount - ALWAYS check onboarding status when component mounts
   useEffect(() => {
-    // Show onboarding for authenticated users - check API as source of truth
     if (isAuthenticated) {
       fetch('/api/user/profile')
         .then(res => res.json())
         .then(data => {
           console.log('[Onboarding] Profile fetched, onboardingCompleted:', data.onboardingCompleted);
-          // Show modal if NOT completed OR if localStorage is somehow wrong
-          const localComplete = localStorage.getItem('fundtracer_onboarding_complete');
-          if (!data.onboardingCompleted || localComplete !== 'true') {
-            console.log('[Onboarding] Showing modal - API says not complete');
+          if (!data.onboardingCompleted) {
+            console.log('[Onboarding] Showing modal - not complete');
             setShowOnboarding(true);
           }
         })
         .catch(err => {
-          console.log('[Onboarding] Profile fetch error, checking localStorage:', err);
-          // Fallback to localStorage
-          if (localStorage.getItem('fundtracer_onboarding_complete') !== 'true') {
-            setShowOnboarding(true);
-          }
+          console.log('[Onboarding] Profile fetch error:', err);
         });
     }
-  }, [isAuthenticated]);
+  }, []); // Empty deps = run once on mount
   
   useEffect(() => {
     if (isAuthenticated && profile?.uid) {

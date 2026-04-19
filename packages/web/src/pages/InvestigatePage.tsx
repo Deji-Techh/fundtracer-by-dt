@@ -199,7 +199,7 @@ function InvestigateMainApp() {
   // Track visit
   useEffect(() => { trackVisit(); }, []);
   
-  // Onboarding check - ALWAYS check API for authenticated users (handles deleted account case)
+  // Run on mount - ALWAYS check onboarding status when component mounts
   useEffect(() => {
     if (user) {
       fetch('/api/user/profile')
@@ -211,11 +211,11 @@ function InvestigateMainApp() {
             setShowOnboarding(true);
           }
         })
-        .catch(() => {
-          console.log('[Onboarding-Investigate] Profile fetch error');
+        .catch(err => {
+          console.log('[Onboarding-Investigate] Profile fetch error:', err);
         });
     }
-  }, [user]);
+  }, []); // Empty deps = run once on mount
   
   // PoH verification check
   useEffect(() => {
