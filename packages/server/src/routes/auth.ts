@@ -10,6 +10,7 @@ import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import { sendEmail, buildWelcomeEmail } from '../services/EmailService.js';
 import { torqueService } from '../services/TorqueService.js';
+import { processReferral, getReferralCodeOwner, ensureUserHasReferralCode } from '../utils/referral.js';
 
 const router = Router();
 
@@ -228,27 +229,46 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     }
 
     // Credit referrer if ref param exists and user isn't already referred
+    // Supports both new referral codes (FUNDxxx) and legacy user IDs
     if (refParam && refParam !== uid) {
       const userData = userDoc.exists ? userDoc.data() : null;
       const existingReferredBy = userData?.referredBy;
       
       // Only credit if not already referred (or is new user)
       if (!existingReferredBy || isNewUser) {
-        const referrerRef = db.collection('users').doc(refParam);
-        const referrerDoc = await referrerRef.get();
+        let referrerId: string | null = null;
         
-        if (referrerDoc.exists) {
-          // Only increment referrer's count if this is a NEW user being referred
-          if (isNewUser) {
-            await referrerRef.update({
-              referralCount: FieldValue.increment(1),
-              referredUsers: FieldValue.arrayUnion(uid)
-            });
-            await torqueService.creditReferralBonus(refParam, uid);
+        // Check if it's a new-style referral code (e.g., FUNDABC) or legacy user ID
+        if (refParam.startsWith('FUND')) {
+          referrerId = await getReferralCodeOwner(refParam);
+          console.log(`[AUTH] Referral code look-up: ${refParam} -> ${referrerId}`);
+        } else {
+          // Legacy: assume it's a user ID, verify the user exists
+          const referrerRef = db.collection('users').doc(refParam);
+          const referrerDoc = await referrerRef.get();
+          if (referrerDoc.exists) {
+            referrerId = refParam;
           }
-          await userRef.update({ referredBy: refParam });
-          console.log(`[AUTH] OAuth referral credited: ${refParam} referred ${uid}, newUser: ${isNewUser}`);
         }
+        
+        if (referrerId) {
+          // Only credit if this is a NEW user being referred
+          if (isNewUser) {
+            await processReferral(referrerId, uid);
+          }
+          await userRef.update({ referredBy: referrerId });
+          console.log(`[AUTH] Referral credited: ${referrerId} referred ${uid}, newUser: ${isNewUser}`);
+        }
+      }
+    }
+    
+    // Ensure new users have a referral code for their own sharing
+    if (isNewUser) {
+      try {
+        const userReferralCode = await ensureUserHasReferralCode(uid);
+        console.log(`[AUTH] User referral code: ${userReferralCode}`);
+      } catch (codeErr) {
+        console.error('[AUTH] Failed to create referral code:', codeErr);
       }
     }
 
@@ -704,20 +724,36 @@ router.post('/google-login', async (req: Request, res: Response) => {
       authProvider: 'google'
     }, { merge: true });
 
-    // Handle referral from ref query param for Google login
+    // Handle referral from ref query param for Google login (supports both new codes and legacy IDs)
     const googleRefParam = req.query.ref as string;
     if (googleRefParam && isNewUser && googleRefParam !== uid) {
-      const referrerRef = db.collection('users').doc(googleRefParam);
-      const referrerDoc = await referrerRef.get();
+      let referrerId: string | null = null;
       
-      if (referrerDoc.exists) {
-        await referrerRef.update({
-          referralCount: FieldValue.increment(1),
-          referredUsers: FieldValue.arrayUnion(uid)
-        });
-        await torqueService.creditReferralBonus(googleRefParam, uid);
-        await userRef.update({ referredBy: googleRefParam });
-        console.log(`[AUTH] Google referral credited: ${googleRefParam} referred ${uid}`);
+      if (googleRefParam.startsWith('FUND')) {
+        referrerId = await getReferralCodeOwner(googleRefParam);
+        console.log(`[AUTH] Google referral code lookup: ${googleRefParam} -> ${referrerId}`);
+      } else {
+        const referrerRef = db.collection('users').doc(googleRefParam);
+        const referrerDoc = await referrerRef.get();
+        if (referrerDoc.exists) {
+          referrerId = googleRefParam;
+        }
+      }
+      
+      if (referrerId) {
+        await processReferral(referrerId, uid);
+        await userRef.update({ referredBy: referrerId });
+        console.log(`[AUTH] Google referral credited: ${referrerId} referred ${uid}`);
+      }
+    }
+    
+    // Ensure new users have a referral code for their own sharing
+    if (isNewUser) {
+      try {
+        const userReferralCode = await ensureUserHasReferralCode(uid);
+        console.log(`[AUTH] User referral code: ${userReferralCode}`);
+      } catch (codeErr) {
+        console.error('[AUTH] Failed to create referral code:', codeErr);
       }
     }
 

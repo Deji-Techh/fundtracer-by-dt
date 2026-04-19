@@ -19,6 +19,7 @@ import PaymentModal from './components/PaymentModal';
 import FirstTimeModal from './components/FirstTimeModal';
 import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import { PoHVerificationModal } from './components/PoHVerificationModal';
+import ReferralWelcomeModal from './components/ReferralWelcomeModal';
 
 import './global.css';
 import './styles/ios-glass.css';
@@ -114,6 +115,8 @@ function EVMMainApp() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showFirstTime, setShowFirstTime] = useState(false);
   const [showPoHModal, setShowPoHModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referralData, setReferralData] = useState<{ referralCode: string | null; referredBy: string | null }>({ referralCode: null, referredBy: null });
   const pohCheckDone = useRef(false);
   const wasJustConnected = useRef(false);
 
@@ -121,6 +124,21 @@ function EVMMainApp() {
   useEffect(() => {
     if (user && !localStorage.getItem('fundtracer_onboarding_complete')) setShowOnboarding(true);
   }, [user]);
+  
+  useEffect(() => {
+    if (isAuthenticated && profile?.uid) {
+      fetch(`/api/torque/referrals?userId=${encodeURIComponent(profile.uid)}`)
+        .then(res => res.json())
+        .then(data => {
+          setReferralData(data);
+          const hasSeenReferral = localStorage.getItem('fundtracer_referral_onboarding');
+          if (!hasSeenReferral && (data.referralCode || data.referredBy)) {
+            setShowReferralModal(true);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [isAuthenticated, profile]);
   useEffect(() => {
     if (isAuthenticated && profile && profile.isVerified === false && !pohCheckDone.current && wasJustConnected.current) {
       pohCheckDone.current = true;
@@ -199,6 +217,15 @@ function EVMMainApp() {
       <FeedbackModal isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
       {showFirstTime && <FirstTimeModal onClose={() => setShowFirstTime(false)} />}
       <PoHVerificationModal isOpen={showPoHModal} onClose={() => setShowPoHModal(false)} walletAddress={walletAddress} />
+      <ReferralWelcomeModal 
+        isOpen={showReferralModal} 
+        onClose={() => {
+          setShowReferralModal(false);
+          localStorage.setItem('fundtracer_referral_onboarding', 'true');
+        }}
+        referralCode={referralData.referralCode}
+        referredBy={referralData.referredBy}
+      />
       <KeyboardShortcuts isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
     </div>
   );

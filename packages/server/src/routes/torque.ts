@@ -6,6 +6,7 @@
 import { Router, Response, Request } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { torqueService, TORQUE_CAMPAIGNS, getCampaignStats, getOverallStats } from '../services/TorqueService.js';
+import { ensureUserHasReferralCode } from '../utils/referral.js';
 
 const router = Router();
 
@@ -247,7 +248,8 @@ router.get('/referrals', async (req: Request, res: Response) => {
     res.json({
       referredBy: data?.referredBy || null,
       referralCount: data?.referralCount || 0,
-      referredUsers: data?.referredUsers || []
+      referredUsers: data?.referredUsers || [],
+      referralCode: data?.referralCode || null
     });
 } catch (error: any) {
     console.error('[Torque] Referral fetch error:', error);
@@ -275,6 +277,38 @@ router.post('/admin/init-users', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[Torque] Init error:', error);
     res.status(500).json({ error: 'Failed to initialize users' });
+  }
+});
+
+// Admin: Generate referral codes for existing users who don't have one
+router.post('/admin/generate-referral-codes', async (req: Request, res: Response) => {
+  try {
+    const secretKey = req.query.secret as string;
+    const ADMIN_SECRET = process.env.ADMIN_SECRET || 'fundtracer-admin-2024';
+    
+    const isAuthorized = secretKey === ADMIN_SECRET;
+    if (!isAuthorized) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const db = require('../firebase.js').getFirestore();
+    const usersSnapshot = await db.collection('users')
+      .where('referralCode', '==', null)
+      .limit(100)
+      .get();
+    
+    let count = 0;
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      const code = await ensureUserHasReferralCode(userId);
+      console.log(`[Admin] Generated referral code ${code} for user ${userId}`);
+      count++;
+    }
+    
+    res.json({ success: true, generated: count });
+  } catch (error: any) {
+    console.error('[Admin] Referral code generation error:', error);
+    res.status(500).json({ error: 'Failed to generate referral codes' });
   }
 });
 

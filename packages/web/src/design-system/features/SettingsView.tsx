@@ -58,6 +58,7 @@ export function SettingsView() {
     referredBy: string | null;
     referralCount: number;
     referredUsers: string[];
+    referralCode: string | null;
   } | null>(null);
   const rewardsRef = useRef<HTMLDivElement>(null);
 
@@ -797,17 +798,22 @@ export function SettingsView() {
 
                   <div className="referral-section">
                     <h3>Refer Friends</h3>
-                    <p>Share your link and earn 100 points per referral</p>
+                    <p>Share your unique link and earn 100 points per referral</p>
                     <div className="referral-link-container">
                       <input
                         type="text"
                         readOnly
-                        value={`${window.location.origin}?ref=${user?.uid}`}
+                        value={referralData?.referralCode 
+                          ? `${window.location.origin}?ref=${referralData.referralCode}`
+                          : `${window.location.origin}?ref=${user?.uid}`}
                         className="referral-link-input"
                       />
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}?ref=${user?.uid}`);
+                          const link = referralData?.referralCode 
+                            ? `${window.location.origin}?ref=${referralData.referralCode}`
+                            : `${window.location.origin}?ref=${user?.uid}`;
+                          navigator.clipboard.writeText(link);
                           notifySuccess('Link copied!');
                         }}
                         className="btn-secondary"
@@ -817,7 +823,7 @@ export function SettingsView() {
                     </div>
                     {referralData && (
                       <div className="referral-stats">
-                        <p>Referred by: {referralData.referredBy || 'None'}</p>
+                        <p>Referred by: {referralData.referredBy ? 'Someone' : 'No one yet'}</p>
                         <p>Your referrals: {referralData.referralCount}</p>
                       </div>
                     )}
