@@ -226,6 +226,7 @@ router.get('/overall-stats', async (req: Request, res: Response) => {
 });
 
 // Get user's referral data - public with userId query param
+// Auto-generates referral code if user doesn't have one
 router.get('/referrals', async (req: Request, res: Response) => {
   try {
     const userId = req.query.userId as string;
@@ -245,13 +246,22 @@ router.get('/referrals', async (req: Request, res: Response) => {
     }
     
     const data = userDoc.data();
+    let referralCode = data?.referralCode;
+    
+    // Auto-generate referral code if user doesn't have one
+    if (!referralCode) {
+      referralCode = await ensureUserHasReferralCode(userId);
+      await db.collection('users').doc(userId).update({ referralCode });
+      console.log(`[Referral] Auto-generated code ${referralCode} for existing user ${userId}`);
+    }
+    
     res.json({
       referredBy: data?.referredBy || null,
       referralCount: data?.referralCount || 0,
       referredUsers: data?.referredUsers || [],
-      referralCode: data?.referralCode || null
+      referralCode
     });
-} catch (error: any) {
+  } catch (error: any) {
     console.error('[Torque] Referral fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch referrals' });
   } 
