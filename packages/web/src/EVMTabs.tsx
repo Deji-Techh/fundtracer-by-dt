@@ -125,27 +125,36 @@ function EVMMainApp() {
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   
   useEffect(() => {
-    if (user) {
-      // Check localStorage first as fallback
+    // Show onboarding for new users - check both localStorage AND API
+    if (isAuthenticated && profile?.uid) {
       const localComplete = localStorage.getItem('fundtracer_onboarding_complete');
-      // Fetch from API to check Firestore (source of truth)
+      
+      // If localStorage says not complete, show onboarding immediately
+      if (localComplete !== 'true') {
+        console.log('[Onboarding] Showing modal - localStorage not complete');
+        setShowOnboarding(true);
+        return;
+      }
+      
+      // Also check API as source of truth (in case of fresh account after deletion)
       fetch('/api/user/profile')
         .then(res => res.json())
         .then(data => {
-          // Firestore field is source of truth
-          setOnboardingCompleted(data.onboardingCompleted ?? false);
+          console.log('[Onboarding] Profile fetched, onboardingCompleted:', data.onboardingCompleted);
+          if (!data.onboardingCompleted) {
+            console.log('[Onboarding] Showing modal - API says not complete');
+            setShowOnboarding(true);
+          }
         })
-        .catch(() => {
-          // Fallback to localStorage on error
-          setOnboardingCompleted(localComplete === 'true');
+        .catch(err => {
+          console.log('[Onboarding] Profile fetch error:', err);
+          // Fallback to localStorage
+          if (localComplete !== 'true') {
+            setShowOnboarding(true);
+          }
         });
     }
-  }, [user]);
-  
-  useEffect(() => {
-    // Show onboarding if check is done and onboarding is NOT completed
-    if (onboardingCompleted === false) setShowOnboarding(true);
-  }, [onboardingCompleted]);
+  }, [isAuthenticated, profile]);
   
   useEffect(() => {
     if (isAuthenticated && profile?.uid) {
