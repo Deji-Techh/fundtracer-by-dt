@@ -199,26 +199,31 @@ function InvestigateMainApp() {
   // Track visit
   useEffect(() => { trackVisit(); }, []);
   
-  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
-  
-  // Onboarding check - use Firestore as source of truth
+  // Onboarding check - immediate check on mount
   useEffect(() => {
+    // Check localStorage first
+    const localComplete = localStorage.getItem('fundtracer_onboarding_complete');
+    
+    // If not complete, show onboarding immediately
+    if (localComplete !== 'true') {
+      console.log('[Onboarding-Investigate] Showing modal - not complete');
+      setShowOnboarding(true);
+      return;
+    }
+    
+    // If complete in localStorage, verify via API (handles deleted account case)
     if (user) {
-      const localComplete = localStorage.getItem('fundtracer_onboarding_complete');
       fetch('/api/user/profile')
         .then(res => res.json())
         .then(data => {
-          setOnboardingCompleted(data.onboardingCompleted ?? false);
+          if (!data.onboardingCompleted) {
+            console.log('[Onboarding-Investigate] Showing modal - API not complete');
+            setShowOnboarding(true);
+          }
         })
-        .catch(() => {
-          setOnboardingCompleted(localComplete === 'true');
-        });
+        .catch(() => {});
     }
   }, [user]);
-  
-  useEffect(() => {
-    if (onboardingCompleted === false) setShowOnboarding(true);
-  }, [onboardingCompleted]);
   
   // PoH verification check
   useEffect(() => {
