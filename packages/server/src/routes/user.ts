@@ -508,7 +508,7 @@ router.delete('/api-keys/:keyId', requireTwoFactor, async (req: AuthenticatedReq
     }
 });
 
-// Delete user account
+// Delete user account - COMPLETE deletion including all related data
 router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
@@ -518,10 +518,11 @@ router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, re
     console.log('[User] Account deletion requested for:', userId);
 
     try {
+        const { FieldValue } = await import('firebase-admin/firestore');
         const db = getFirestore();
         const userRef = db.collection('users').doc(userId);
 
-        // Delete scanHistory subcollection (user's search/investigate history)
+        // 1. Delete scanHistory subcollection (user's search/investigate history)
         const scanHistoryRef = db.collection('scanHistory').doc(userId).collection('items');
         const scanHistorySnapshot = await scanHistoryRef.limit(500).get();
         if (scanHistorySnapshot.size > 0) {
@@ -533,7 +534,7 @@ router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, re
         // Delete the scanHistory user document itself
         await db.collection('scanHistory').doc(userId).delete().catch(() => {});
 
-        // Delete user's notifications
+        // 2. Delete user's notifications
         const notificationsSnapshot = await db.collection('notifications')
             .where('userId', '==', userId)
             .limit(500)
@@ -544,7 +545,7 @@ router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, re
             console.log('[User] Deleted notifications:', notificationsSnapshot.size);
         }
 
-        // Delete user's API keys subcollection
+        // 3. Delete user's API keys subcollection
         const apiKeysSnapshot = await userRef.collection('apiKeys').get();
         if (apiKeysSnapshot.size > 0) {
             const apiKeyDeletePromises = apiKeysSnapshot.docs.map(doc => doc.ref.delete());
@@ -552,25 +553,66 @@ router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, re
             console.log('[User] Deleted API keys:', apiKeysSnapshot.size);
         }
 
-        // Delete user document
+        // 4. Delete torque_user_stats (points, rank, streak, referrals)
+        await db.collection('torque_user_stats').doc(userId).delete().catch(() => {});
+        console.log('[User] Deleted torque_user_stats');
+
+        // 5. Delete torque_events (all events tracked by this user)
+        const torqueEventsSnapshot = await db.collection('torque_events')
+            .where('userId', '==', userId)
+            .limit(500)
+            .get();
+        if (torqueEventsSnapshot.size > 0) {
+            const eventDeletePromises = torqueEventsSnapshot.docs.map(doc => doc.ref.delete());
+            await Promise.all(eventDeletePromises);
+            console.log('[User] Deleted torque_events:', torqueEventsSnapshot.size);
+        }
+
+        // 6. Clean up referral data - remove this user from other users' referredUsers arrays
+        const referredByMeSnapshot = await db.collection('users')
+            .where('referredBy', '==', userId)
+            .limit(500)
+            .get();
+        const referredByMeCleanup: any[] = [];
+        for (const doc of referredByMeSnapshot.docs) {
+            referredByMeCleanup.push(doc.ref.update({
+                referredBy: FieldValue.delete(),
+                referralCount: FieldValue.increment(-1)
+            }));
+        }
+        if (referredByMeCleanup.length > 0) {
+            await Promise.all(referredByMeCleanup);
+            console.log('[User] Cleaned up referral references for:', referredByMeSnapshot.size, 'users');
+        }
+
+        // 7. Delete referral codes associated with this user
+        const referralCodesSnapshot = await db.collection('referral_codes')
+            .where('userId', '==', userId)
+            .limit(10)
+            .get();
+        for (const doc of referralCodesSnapshot.docs) {
+            await doc.ref.delete();
+        }
+        console.log('[User] Deleted referral codes');
+
+        // 8. Delete user document
         await userRef.delete();
         console.log('[User] Deleted user document');
 
-        // Delete Firebase Auth account
+        // 9. Delete Firebase Auth account
         try {
             const auth = getAuth();
             await auth.deleteUser(userId);
             console.log('[User] Deleted Firebase Auth account');
         } catch (authError: any) {
             console.error('[User] Error deleting Firebase Auth:', authError.message);
-            // Continue even if auth deletion fails (user might not exist in Firebase Auth)
         }
 
-        console.log('[User] Account fully deleted:', userId);
+        console.log('[User] Account fully deleted - fresh start ready:', userId);
 
         res.json({ 
             success: true, 
-            message: 'Account deleted successfully' 
+            message: 'Account deleted successfully - fresh start ready!' 
         });
     } catch (error: any) {
         console.error('[User] deleteAccount error:', error);
