@@ -119,8 +119,29 @@ export default function TorqueLeaderboard({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <RefreshCw className="spinning" size={24} />
-            <span>Loading leaderboard...</span>
+            <div className="skeleton-container">
+              {[...Array(5)].map((_, i) => (
+                <motion.div 
+                  key={i}
+                  className="skeleton-row"
+                  initial={{ opacity: 0.3 }}
+                  animate={{ opacity: [0.3, 0.6, 0.3] }}
+                  transition={{ 
+                    duration: 1.2, 
+                    repeat: Infinity, 
+                    delay: i * 0.15 
+                  }}
+                >
+                  <div className="skeleton-rank"></div>
+                  <div className="skeleton-name">
+                    <div className="skeleton-name-bar"></div>
+                  </div>
+                  <div className="skeleton-score">
+                    <div className="skeleton-score-bar"></div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         ) : error ? (
           <motion.div 
@@ -139,7 +160,17 @@ export default function TorqueLeaderboard({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <p>No data yet. Be the first to analyze!</p>
+            <div className="empty-content">
+              <Trophy className="empty-icon" size={32} />
+              <p className="empty-title">No rankings yet</p>
+              <p className="empty-subtitle">Be the first to analyze wallets and claim the top spot!</p>
+              <button 
+                className="empty-cta"
+                onClick={() => window.location.href = '/app'}
+              >
+                Start Analyzing
+              </button>
+            </div>
           </motion.div>
         ) : (
           <motion.div 
@@ -248,6 +279,91 @@ export default function TorqueLeaderboard({
           text-align: center;
           padding: 24px;
           color: var(--color-text-muted);
+        }
+
+        .empty-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          padding: 20px;
+        }
+
+        .empty-icon {
+          color: var(--color-text-muted);
+          opacity: 0.5;
+        }
+
+        .empty-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--color-text-primary);
+          margin: 0;
+        }
+
+        .empty-subtitle {
+          font-size: 14px;
+          color: var(--color-text-muted);
+          margin: 0;
+        }
+
+        .empty-cta {
+          margin-top: 8px;
+          padding: 10px 20px;
+          background: var(--color-accent);
+          color: #000;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .empty-cta:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .skeleton-container {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .skeleton-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 0;
+        }
+
+        .skeleton-rank {
+          width: 28px;
+          height: 20px;
+          background: var(--color-bg);
+          border-radius: 4px;
+        }
+
+        .skeleton-name {
+          flex: 1;
+        }
+
+        .skeleton-name-bar {
+          height: 16px;
+          width: 60%;
+          background: var(--color-bg);
+          border-radius: 4px;
+        }
+
+        .skeleton-score {
+          width: 60px;
+        }
+
+        .skeleton-score-bar {
+          height: 16px;
+          width: 100%;
+          background: var(--color-bg);
+          border-radius: 4px;
         }
 
         .leaderboard-error button {
