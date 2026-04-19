@@ -121,9 +121,31 @@ function EVMMainApp() {
   const wasJustConnected = useRef(false);
 
   useEffect(() => { trackVisit(); }, []);
+  
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  
   useEffect(() => {
-    if (user && !localStorage.getItem('fundtracer_onboarding_complete')) setShowOnboarding(true);
+    if (user) {
+      // Check localStorage first as fallback
+      const localComplete = localStorage.getItem('fundtracer_onboarding_complete');
+      // Fetch from API to check Firestore (source of truth)
+      fetch('/api/user/profile')
+        .then(res => res.json())
+        .then(data => {
+          // Firestore field is source of truth
+          setOnboardingCompleted(data.onboardingCompleted ?? false);
+        })
+        .catch(() => {
+          // Fallback to localStorage on error
+          setOnboardingCompleted(localComplete === 'true');
+        });
+    }
   }, [user]);
+  
+  useEffect(() => {
+    // Show onboarding if check is done and onboarding is NOT completed
+    if (onboardingCompleted === false) setShowOnboarding(true);
+  }, [onboardingCompleted]);
   
   useEffect(() => {
     if (isAuthenticated && profile?.uid) {

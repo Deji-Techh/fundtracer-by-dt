@@ -90,7 +90,8 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
             profilePicture: userData?.profilePicture || req.user.photoURL || null,
             photoURL: userData?.profilePicture || req.user.photoURL || null,
             walletAddress: userData?.walletAddress || req.user.walletAddress || null,
-            authProvider: userData?.authProvider || 'wallet'
+            authProvider: userData?.authProvider || 'wallet',
+            onboardingCompleted: userData?.onboardingCompleted ?? false
         });
 
         //Track login (async, don't await)
@@ -99,6 +100,23 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
     } catch (error) {
         console.error('Profile fetch error:', error);
         res.status(500).json({ error: 'Failed to fetch profile' });
+    }
+});
+
+// Mark onboarding as complete
+router.put('/onboarding-complete', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const db = getFirestore();
+        const userRef = db.collection('users').doc(req.user.uid);
+        await userRef.update({ onboardingCompleted: true });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Onboarding complete error:', error);
+        res.status(500).json({ error: 'Failed to update onboarding status' });
     }
 });
 

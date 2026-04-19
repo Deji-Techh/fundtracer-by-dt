@@ -55,6 +55,7 @@ export interface UserProfile {
     profilePicture?: string | null;
     photoURL?: string | null;
     authProvider?: 'wallet' | 'google' | 'twitter' | 'email';
+    onboardingCompleted?: boolean;
 }
 
 // Token management

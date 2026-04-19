@@ -39,6 +39,7 @@ firebase-credentials.json
 .firebase/
 *-firebase-adminsdk-*.json
 serviceAccountKey.json
+firebase-service-account.json
 
 # OS specific files
 .DS_Store

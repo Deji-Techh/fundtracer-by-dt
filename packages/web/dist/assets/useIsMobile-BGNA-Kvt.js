@@ -1,0 +1,1 @@
+import{o as n}from"./rolldown-runtime-MddlTo9B.js";import{Tc as o}from"./vendor-ZFsBW_sc.js";var t=n(o(),1);function w(){const[i,r]=(0,t.useState)(()=>typeof window<"u"&&window.innerWidth<768);return(0,t.useEffect)(()=>{const e=()=>{r(window.innerWidth<768)};return e(),window.addEventListener("resize",e),()=>window.removeEventListener("resize",e)},[]),i}export{w as t};

@@ -20,8 +20,13 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
 
     if (!isOpen) return null;
 
-    const handleComplete = () => {
+    const handleComplete = async () => {
         localStorage.setItem('fundtracer_onboarding_complete', 'true');
+        try {
+            await fetch('/api/user/onboarding-complete', { method: 'PUT' });
+        } catch (e: any) {
+            console.error('Failed to mark onboarding complete:', e);
+        }
         onClose();
     };
 
@@ -230,7 +235,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
         <div className="onboarding-overlay" onClick={handleComplete}>
             <motion.div 
                 className="onboarding-container"
-                onClick={e => e.stopPropagation()}
+                onClick={(e: any) => e.stopPropagation()}
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}

@@ -376,7 +376,8 @@ await userRef.set({
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
       authProvider: 'google',
-      createdAt: isNewUser ? Date.now() : (await userRef.get()).data()?.createdAt || Date.now()
+      createdAt: isNewUser ? Date.now() : (await userRef.get()).data()?.createdAt || Date.now(),
+      onboardingCompleted: isNewUser ? false : (await userRef.get()).data()?.onboardingCompleted ?? false
     }, { merge: true });
     
     const token = jwt.sign({
@@ -622,7 +623,8 @@ const userDoc = await userRef.get();
       tier,
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
-      authProvider: 'wallet'
+      authProvider: 'wallet',
+      onboardingCompleted: isNewUser ? false : userDoc.data()?.onboardingCompleted ?? false
     }, { merge: true });
 
     // Generate JWT
@@ -708,11 +710,11 @@ router.post('/google-login', async (req: Request, res: Response) => {
       walletAddress = data?.walletAddress || '';
     }
 
-    // Check if subscription expired - still give max tier
+// Check if subscription expired - still give max tier
     if (expiry > 0 && Date.now() > expiry) {
       tier = 'max';
     }
-
+    
     await userRef.set({
       uid,
       email,
@@ -721,9 +723,10 @@ router.post('/google-login', async (req: Request, res: Response) => {
       tier,
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
-      authProvider: 'google'
+      authProvider: 'google',
+      onboardingCompleted: isNewUser ? false : userDoc.data()?.onboardingCompleted ?? false
     }, { merge: true });
-
+    
     // Handle referral from ref query param for Google login (supports both new codes and legacy IDs)
     const googleRefParam = req.query.ref as string;
     if (googleRefParam && isNewUser && googleRefParam !== uid) {
@@ -851,15 +854,16 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
       tier = 'max';
     }
 
-    await userRef.set({
+await userRef.set({
       uid,
-      email: email || null,
-      displayName: twitterDisplayName || '',
-      profilePicture: twitterProfilePic || '',
+      email,
+      displayName: name,
+      profilePicture: picture,
       tier,
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
-      authProvider: 'twitter'
+      authProvider: 'google',
+      onboardingCompleted: isNewUser ? false : (userDoc.data()?.onboardingCompleted ?? false)
     }, { merge: true });
 
     // Generate JWT

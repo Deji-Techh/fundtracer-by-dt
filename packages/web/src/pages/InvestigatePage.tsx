@@ -199,12 +199,26 @@ function InvestigateMainApp() {
   // Track visit
   useEffect(() => { trackVisit(); }, []);
   
-  // Onboarding check
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  
+  // Onboarding check - use Firestore as source of truth
   useEffect(() => {
-    if (user && !localStorage.getItem('fundtracer_onboarding_complete')) {
-      setShowOnboarding(true);
+    if (user) {
+      const localComplete = localStorage.getItem('fundtracer_onboarding_complete');
+      fetch('/api/user/profile')
+        .then(res => res.json())
+        .then(data => {
+          setOnboardingCompleted(data.onboardingCompleted ?? false);
+        })
+        .catch(() => {
+          setOnboardingCompleted(localComplete === 'true');
+        });
     }
   }, [user]);
+  
+  useEffect(() => {
+    if (onboardingCompleted === false) setShowOnboarding(true);
+  }, [onboardingCompleted]);
   
   // PoH verification check
   useEffect(() => {
