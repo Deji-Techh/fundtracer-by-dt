@@ -54,17 +54,12 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
             safeResult = { error: 'Failed to parse result' };
         }
         
-        // Safe array helper
-        const safeArray = (val: any): any[] => {
-            return Array.isArray(val) ? val : [];
-        };
-        
-        // Safe primitive access
-        const wallets = safeArray(safeResult?.wallets);
-        const commonFundingSources = safeArray(safeResult?.commonFundingSources);
-        const commonDestinations = safeArray(safeResult?.commonDestinations);
-        const sharedProjects = safeArray(safeResult?.sharedProjects);
-        const directTransfers = safeArray(safeResult?.directTransfers);
+        // Use safeResult everywhere instead of result
+        const wallets = safeResult?.wallets || [];
+        const commonFundingSources = safeResult?.commonFundingSources || [];
+        const commonDestinations = safeResult?.commonDestinations || [];
+        const sharedProjects = safeResult?.sharedProjects || [];
+        const directTransfers = safeResult?.directTransfers || [];
         const correlationScore = typeof safeResult?.correlationScore === 'number' ? safeResult.correlationScore : 0;
         const isSybilLikely = typeof safeResult?.isSybilLikely === 'boolean' ? safeResult.isSybilLikely : false;
 
@@ -254,13 +249,13 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                         </button>
                                     </div>
                                     <div className="address-list">
-                                        {(result.commonFundingSources || []).length === 0 ? (
+                                        {commonFundingSources.length === 0 ? (
                                             <div className="empty-list">
                                                 <CheckmarkCircle02Icon />
                                                 <p>No common funding sources found</p>
                                             </div>
                                         ) : (
-                                            (showAllSources ? result.commonFundingSources : (result.commonFundingSources || []).slice(0, 5)).map((addr, i) => (
+                                            (showAllSources ? commonFundingSources : commonFundingSources.slice(0, 5)).map((addr: string, i: number) => (
                                                 <motion.div
                                                     key={addr}
                                                     className="address-item"
@@ -295,13 +290,13 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                         </button>
                                     </div>
                                     <div className="address-list">
-                                        {(result.commonDestinations || []).length === 0 ? (
+                                        {commonDestinations.length === 0 ? (
                                             <div className="empty-list">
                                                 <CheckmarkCircle02Icon />
                                                 <p>No common destinations found</p>
                                             </div>
                                         ) : (
-                                            (showAllDestinations ? result.commonDestinations : (result.commonDestinations || []).slice(0, 5)).map((addr, i) => (
+                                            (showAllDestinations ? commonDestinations : commonDestinations.slice(0, 5)).map((addr: string, i: number) => (
                                                 <motion.div
                                                     key={addr}
                                                     className="address-item"
@@ -333,13 +328,13 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                         >
                             <h3>All Common Funding Sources</h3>
                             <div className="full-list">
-                                {(result.commonFundingSources || []).length === 0 ? (
+                                {commonFundingSources.length === 0 ? (
                                     <div className="empty-state">
                                         <CheckmarkCircle02Icon size={48} />
                                         <p>No common funding sources found</p>
                                     </div>
                                 ) : (
-                                    result.commonFundingSources?.map((addr, i) => (
+                                    commonFundingSources.map((addr: string, i: number) => (
                                         <motion.div
                                             key={addr}
                                             className="full-address-item"
@@ -359,13 +354,13 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
 
                             <h3>All Common Destinations</h3>
                             <div className="full-list">
-                                {(result.commonDestinations || []).length === 0 ? (
+                                {commonDestinations.length === 0 ? (
                                     <div className="empty-state">
                                         <CheckmarkCircle02Icon size={48} />
                                         <p>No common destinations found</p>
                                     </div>
                                 ) : (
-                                    result.commonDestinations?.map((addr, i) => (
+                                    commonDestinations.map((addr: string, i: number) => (
                                         <motion.div
                                             key={addr}
                                             className="full-address-item"
