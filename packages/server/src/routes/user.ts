@@ -6,6 +6,7 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest, requireWallet } from '../middleware/auth.js';
 import { requireTwoFactor } from '../middleware/twoFactor.js';
 import { getFirestore, getAuth } from '../firebase.js';
+import { cacheDel, cacheDelPattern } from '../utils/redis.js';
 import axios from 'axios';
 
 const router = Router();
@@ -616,6 +617,11 @@ router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, re
         // 8. Delete user document
         await userRef.delete();
         console.log('[User] Deleted user document');
+
+        // 8b. Clear Redis cache for this user (so fresh signup gets fresh data)
+        await cacheDel(`auth:user:${userId}`).catch(() => {});
+        await cacheDelPattern(`referral:code:${userId}*`).catch(() => {}); // Clear referral code cache
+        console.log('[User] Cleared Redis cache');
 
         // 9. Delete Firebase Auth account
         try {
