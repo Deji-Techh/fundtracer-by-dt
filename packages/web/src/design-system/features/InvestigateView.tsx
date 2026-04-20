@@ -41,6 +41,9 @@ interface InvestigateViewProps {
 // Tab types matching reference HTML
 type TabType = 'wallet' | 'contract' | 'compare' | 'sybil' | 'graph' | 'track' | 'sui-grid' | 'cex-flow';
 
+// TEMP: Disable these tabs temporarily
+const DISABLED_TABS = ['track', 'cex-flow', 'graph'];
+
 type SuiFeature = 'wallet' | 'contract' | 'compare' | 'sybil' | 'track';
 
 interface Stats {
@@ -793,8 +796,9 @@ export function InvestigateView({
             Sybil Detector
           </div>
           <div 
-            className={`tab ${activeTab === 'track' ? 'active' : ''}`}
-            onClick={() => setActiveTab('track')}
+            className={`tab ${activeTab === 'track' ? 'active' : ''} ${DISABLED_TABS.includes('track') ? 'tab-disabled' : ''}`}
+            onClick={() => !DISABLED_TABS.includes('track') && setActiveTab('track')}
+            style={DISABLED_TABS.includes('track') ? { pointerEvents: 'none', opacity: 0.5 } : undefined}
           >
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M4 4h8v8H4z"/>
@@ -805,8 +809,9 @@ export function InvestigateView({
           </div>
           {!suiMode && (
             <div 
-              className={`tab ${activeTab === 'cex-flow' ? 'active' : ''} tab-cex`}
-              onClick={() => setActiveTab('cex-flow')}
+              className={`tab ${activeTab === 'cex-flow' ? 'active' : ''} tab-cex ${DISABLED_TABS.includes('cex-flow') ? 'tab-disabled' : ''}`}
+              onClick={() => !DISABLED_TABS.includes('cex-flow') && setActiveTab('cex-flow')}
+              style={DISABLED_TABS.includes('cex-flow') ? { pointerEvents: 'none', opacity: 0.5 } : undefined}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
@@ -816,8 +821,9 @@ export function InvestigateView({
           )}
           {isDesktop && (
             <div 
-              className={`tab ${activeTab === 'graph' ? 'active' : ''} tab-graph`}
-              onClick={() => setActiveTab('graph')}
+              className={`tab ${activeTab === 'graph' ? 'active' : ''} tab-graph ${DISABLED_TABS.includes('graph') ? 'tab-disabled' : ''}`}
+              onClick={() => !DISABLED_TABS.includes('graph') && setActiveTab('graph')}
+              style={DISABLED_TABS.includes('graph') ? { pointerEvents: 'none', opacity: 0.5 } : undefined}
             >
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <circle cx="6" cy="4" r="2"/>
