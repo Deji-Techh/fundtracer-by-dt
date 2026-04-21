@@ -4,6 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
 import AppShell from '../components/AppShell';
 import Loader from '../components/Loader';
+import OnboardingModal from '../components/OnboardingModal';
 import InvestigateView from '../design-system/features/InvestigateView';
 import './AppPage.css';
 
@@ -72,6 +73,7 @@ export function AppPage() {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
   const [showLoader, setShowLoader] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     if (authLoading) {
@@ -80,6 +82,24 @@ export function AppPage() {
       setShowLoader(false);
     }
   }, [authLoading, isAuthenticated]);
+
+  // Check onboarding status on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetch('/api/user/profile')
+        .then(res => res.json())
+        .then(data => {
+          console.log('[AppPage] Profile fetched, onboardingCompleted:', data.onboardingCompleted);
+          if (!data.onboardingCompleted) {
+            console.log('[AppPage] Showing onboarding modal');
+            setShowOnboarding(true);
+          }
+        })
+        .catch(err => {
+          console.log('[AppPage] Profile fetch error:', err);
+        });
+    }
+  }, []); // Run once on mount
 
   useEffect(() => {
     if (isConnected && address) {
@@ -200,6 +220,7 @@ export function AppPage() {
   return (
     <>
       {showLoader && isAuthenticated && <Loader onComplete={() => setShowLoader(false)} />}
+      <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
       <AppShell
         activeNav={activeTab}
         onNavChange={(id) => {
