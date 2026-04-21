@@ -12,6 +12,7 @@ import {
     saveGroupChat, deleteGroupPendingScan, savePendingLinkUser, deletePendingLinkUser,
     isUsingRedis, getMemoryStats
 } from '../utils/telegramRedis';
+import { torqueService } from './TorqueService.js';
 
 (globalThis as any).fetch = fetch;
 
@@ -177,6 +178,8 @@ export async function createTelegramBot() {
             { command: 'pask', description: 'AI analysis of markets' },
             // Settings
             { command: 'frequency', description: 'Set alert frequency' },
+            { command: 'rewardslb', description: 'View rewards leaderboard' },
+            { command: 'personalrewardslb', description: 'Your personal rewards' },
         ]);
         console.log('[Telegram] Commands registered with menu');
 
@@ -259,7 +262,111 @@ function registerBotCommands() {
         );
     });
 
-        // /link - Connect account
+    const CAMPAIGNS = [
+        { id: 'all', label: 'All-Time', key: 'points' },
+        { id: 'top-analyzer', label: 'Wallets Analyzed', key: 'walletsAnalyzed' },
+        { id: 'sybil-hunter', label: 'Sybil Hunter', key: 'sybilCount' },
+        { id: 'streak', label: 'Streak', key: 'streakDays' },
+        { id: 'referral', label: 'Referral', key: 'referralCount' },
+    ];
+
+    async function showLeaderboardPicker(ctx: any) {
+        const keyboard = [
+            CAMPAIGNS.map(c => Markup.button.callback(c.label, `lb_${c.id}`)),
+        ];
+        await sendReply(ctx,
+            'Rewards Leaderboard\n\nSelect a category to view:',
+            { reply_markup: Markup.inlineKeyboard(keyboard) }
+        );
+    }
+
+    async function showLeaderboard(ctx: any, campaignId: string) {
+        const campaign = CAMPAIGNS.find(c => c.id === campaignId) || CAMPAIGNS[0];
+        const entries = await torqueService.getLeaderboard(campaignId);
+        
+        const labels: Record<string, string> = {
+            points: 'All-Time Points',
+            walletsAnalyzed: 'Top Wallets Analyzed',
+            sybilCount: 'Sybil Hunter',
+            streakDays: 'Active Streak',
+            referralCount: 'Referral Leaders',
+        };
+        let text = `${labels[campaign.key] || campaign.label} Leaderboard\n\n`;
+        text += '--------------------------------\n';
+        
+        if (entries.length === 0) {
+            text += 'No entries yet. Be the first!';
+        } else {
+            for (const entry of entries.slice(0, 10)) {
+                const name = entry.displayName || entry.userId?.slice(0, 8) || '?';
+                text += `${entry.rank}. ${name}  ${entry.score} pts\n`;
+            }
+        }
+        
+        text += '\n--------------------------------\n';
+        text += 'Powered by FundTracer + Torque';
+        
+        const keyboard = [
+            CAMPAIGNS.map(c => Markup.button.callback(c.label, `lb_${c.id}`)),
+        ];
+        await ctx.editMessageText(text, {
+            reply_markup: Markup.inlineKeyboard(keyboard),
+            parse_mode: 'Markdown'
+        }).catch(() => {});
+    }
+
+    async function showPersonalRewards(ctx: any, user: LinkedUser) {
+        const stats = await torqueService.getUserStats(user.userId);
+        if (!stats) {
+            await sendReply(ctx, 'Stats unavailable. Try again later.');
+            return;
+        }
+        
+        const entries = await torqueService.getLeaderboard('all');
+        const position = entries.findIndex(e => e.userId === user.userId);
+        const rank = position >= 0 ? position + 1 : stats.rank;
+        
+        const detailed = await torqueService.getDetailedUserStats(user.userId);
+        
+        let text = 'Your Rewards Stats\n\n';
+        text += '--------------------------------\n';
+        text += `Points: ${stats.points}\n`;
+        text += `Rank: #${rank}\n`;
+        text += `Wallets Analyzed: ${detailed.walletsAnalyzed}\n`;
+        text += `Sybils Found: ${detailed.sybilsDetected}\n`;
+        text += `Streak: ${stats.streak} days\n`;
+        text += `Referrals: ${detailed.referrals}\n`;
+        text += '\n--------------------------------\n';
+        text += 'View leaderboard: /rewardslb\n';
+        
+        await sendReply(ctx, text);
+    }
+
+    bot.command('rewardslb', async (ctx: any) => {
+        await showLeaderboardPicker(ctx);
+    });
+
+    bot.command('personalrewardslb', async (ctx: any) => {
+        const linkedUser = linkedUsers.get(ctx.from.id);
+        if (!linkedUser) {
+            await sendReply(ctx,
+                'Link your FundTracer account first.\n' +
+                '1. fundtracer.xyz/telegram\n' +
+                '2. Connect your wallet\n' +
+                '3. Get a link code\n' +
+                '4. /link <code>'
+            );
+            return;
+        }
+        await showPersonalRewards(ctx, linkedUser);
+    });
+
+    bot.action(/lb_(.+)/, async (ctx: any) => {
+        const campaignId = ctx.match![1];
+        await showLeaderboard(ctx, campaignId);
+    });
+
+    // /link - Connect account
         bot.command('link', async (ctx: any) => {
             const linkedUser = linkedUsers.get(ctx.from.id);
             if (linkedUser) {
@@ -2277,7 +2384,8 @@ async function requireLinkedAccount(ctx: any): Promise<LinkedUser | null> {
 // Helper to check if command can run in group mode (without linking)
 function isGroupModeCommand(command: string): boolean {
     const basicCommands = ['scan', 'contract', 'token', 'rugcheck', 'trending', 'newtokens', 
-                          'pmarkets', 'ptrending', 'ptraders', 'ptrader', 'pask', 'help', 'start'];
+                          'pmarkets', 'ptrending', 'ptraders', 'ptrader', 'pask', 'help', 'start',
+                          'rewardslb', 'personalrewardslb'];
     return basicCommands.includes(command.toLowerCase());
 }
 
