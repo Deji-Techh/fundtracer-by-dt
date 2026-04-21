@@ -244,6 +244,16 @@ class TorqueService {
             createdAt: new Date()
           });
         }
+        
+        // Invalidate Redis caches on stats update
+        if (isRedisConnected()) {
+          await cacheDel(`torque:user:${userId}:stats`).catch(() => {});
+          // Invalidate all leaderboard caches (user might appear in any campaign)
+          await cacheDel('torque:leaderboard:top-analyzer').catch(() => {});
+          await cacheDel('torque:leaderboard:sybil-hunter').catch(() => {});
+          await cacheDel('torque:leaderboard:streak').catch(() => {});
+          await cacheDel('torque:leaderboard:referral').catch(() => {});
+        }
       }
     } catch (error) {
       console.error('[Torque] Failed to update user stats:', error);
@@ -292,16 +302,64 @@ class TorqueService {
       if (isRedisConnected()) {
         const cached = await cacheGet<LeaderboardEntry[]>(cacheKey);
         if (cached && cached.length > 0) {
+          console.log(`[Torque] LB cache hit: ${campaignId} (${cached.length} entries)`);
           return cached;
         }
       }
 
-      const snapshot = await db.collection('torque_user_stats')
-        .orderBy(sortField, 'desc')
-        .limit(50)
-        .get();
+      // CAMPAIGN FILTER: Only show users with actual activity in this campaign
+      // Build dynamic "has activity" filter based on campaign type
+      let hasActivityFilter = 'points > 0'; // Default: need points
+      
+      switch (campaignId) {
+        case 'top-analyzer':
+        case 'top-analyzer-championship':
+          hasActivityFilter = 'walletsAnalyzed > 0'; // Only users who analyzed wallets
+          break;
+        case 'sybil-hunter':
+        case 'sybil-hunter-leaderboard':
+          hasActivityFilter = 'sybilCount > 0'; // Only users who detected sybils
+          break;
+        case 'streak':
+        case 'active-analyst-streak':
+          hasActivityFilter = 'streakDays > 0'; // Only users with active streak
+          break;
+        case 'referral':
+          hasActivityFilter = 'referralCount > 0'; // Only users who referred others
+          break;
+        case 'early-adopter':
+          hasActivityFilter = 'totalEvents > 0'; // Only users with any activity
+          break;
+      }
 
-      if (snapshot.empty) return [];
+      // For compound queries with WHERE conditions, we need to use where() instead of orderBy().limit()
+      // Firestore requires: where clause before orderBy if both present
+      let query = db.collection('torque_user_stats').limit(100); // Fetch more to filter
+      
+      switch (campaignId) {
+        case 'top-analyzer':
+        case 'top-analyzer-championship':
+          query = db.collection('torque_user_stats').where('walletsAnalyzed', '>', 0);
+          break;
+        case 'sybil-hunter':
+        case 'sybil-hunter-leaderboard':
+          query = db.collection('torque_user_stats').where('sybilCount', '>', 0);
+          break;
+        case 'streak':
+        case 'active-analyst-streak':
+          query = db.collection('torque_user_stats').where('streakDays', '>', 0);
+          break;
+        case 'referral':
+          query = db.collection('torque_user_stats').where('referralCount', '>', 0);
+          break;
+        case 'early-adopter':
+          query = db.collection('torque_user_stats').where('totalEvents', '>', 0);
+          break;
+        default:
+          query = db.collection('torque_user_stats').where('points', '>', 0);
+      }
+
+      const snapshot = await query.orderBy(sortField, 'desc').limit(50).get();
 
       // Get all user IDs for batch fetch
       const userIds = snapshot.docs.map(doc => doc.id);
@@ -452,6 +510,15 @@ class TorqueService {
     try {
       const db = getDb();
       
+      // REDIS CACHE: Try cache first (60s TTL)
+      const cacheKey = `torque:user:${userId}:stats`;
+      if (isRedisConnected()) {
+        const cached = await cacheGet<{ points: number; rank: number; streak: number }>(cacheKey);
+        if (cached) {
+          return cached;
+        }
+      }
+      
       // Get user's stats
       const userStatsDoc = await db.collection('torque_user_stats').doc(userId).get();
       
@@ -474,7 +541,14 @@ class TorqueService {
       // streakDays is maintained by updateUserStats when events are tracked
       const streak = userData.streakDays || 0;
 
-      return { points, rank, streak };
+      const stats = { points, rank, streak };
+      
+      // Cache in Redis (60s TTL)
+      if (isRedisConnected()) {
+        await cacheSet(cacheKey, stats, 60).catch(() => {});
+      }
+      
+      return stats;
     } catch (error) {
       console.error('[Torque] Failed to get user stats:', error);
       return null;
