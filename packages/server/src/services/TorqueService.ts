@@ -261,43 +261,37 @@ class TorqueService {
   }
 
   // Get leaderboard rankings from Firestore - campaign-specific sorting
-  // OPTIMIZED: Uses getAll() for batch fetch (reduces 51 reads to 2)
+  // OPTIMIZED: Uses getAll() for batch fetch, long TTL cache
   async getLeaderboard(campaignId: string): Promise<LeaderboardEntry[]> {
     try {
       const db = getDb();
 
       let sortField = 'points';
-      let cacheTtl = 60;
+      let cacheTtl = 1800; // 30 min cache
       switch (campaignId) {
         case 'top-analyzer':
         case 'top-analyzer-championship':
           sortField = 'walletsAnalyzed';
-          cacheTtl = 120;
           break;
         case 'sybil-hunter':
         case 'sybil-hunter-leaderboard':
           sortField = 'sybilCount';
-          cacheTtl = 120;
           break;
         case 'streak':
         case 'active-analyst-streak':
           sortField = 'streakDays';
-          cacheTtl = 120;
           break;
         case 'referral':
           sortField = 'referralCount';
-          cacheTtl = 120;
           break;
         case 'early-adopter':
           sortField = 'signupDate';
-          cacheTtl = 120;
           break;
         default:
           sortField = 'points';
-          cacheTtl = 60;
       }
 
-      // CACHE: Leaderboard sorted results (saves ~39k reads/day)
+      // CACHE: Leaderboard sorted results (30 min TTL)
       const cacheKey = `torque:leaderboard:${campaignId}`;
       if (isRedisConnected()) {
         const cached = await cacheGet<LeaderboardEntry[]>(cacheKey);
@@ -307,35 +301,7 @@ class TorqueService {
         }
       }
 
-      // CAMPAIGN FILTER: Only show users with actual activity in this campaign
-      // Build dynamic "has activity" filter based on campaign type
-      let hasActivityFilter = 'points > 0'; // Default: need points
-      
-      switch (campaignId) {
-        case 'top-analyzer':
-        case 'top-analyzer-championship':
-          hasActivityFilter = 'walletsAnalyzed > 0'; // Only users who analyzed wallets
-          break;
-        case 'sybil-hunter':
-        case 'sybil-hunter-leaderboard':
-          hasActivityFilter = 'sybilCount > 0'; // Only users who detected sybils
-          break;
-        case 'streak':
-        case 'active-analyst-streak':
-          hasActivityFilter = 'streakDays > 0'; // Only users with active streak
-          break;
-        case 'referral':
-          hasActivityFilter = 'referralCount > 0'; // Only users who referred others
-          break;
-        case 'early-adopter':
-          hasActivityFilter = 'totalEvents > 0'; // Only users with any activity
-          break;
-      }
-
-      // For compound queries with WHERE conditions, we need to use where() instead of orderBy().limit()
-      // Firestore requires: where clause before orderBy if both present
-      let query = db.collection('torque_user_stats').limit(100); // Fetch more to filter
-      
+      let query = db.collection('torque_user_stats').limit(100);
       switch (campaignId) {
         case 'top-analyzer':
         case 'top-analyzer-championship':
@@ -360,15 +326,12 @@ class TorqueService {
       }
 
       const snapshot = await query.orderBy(sortField, 'desc').limit(50).get();
-
-      // Get all user IDs for batch fetch
       const userIds = snapshot.docs.map(doc => doc.id);
       
       // OPTIMIZATION: Use getAll() for batch fetch (2 reads instead of 51)
       const userRefs = userIds.map(id => db.collection('users').doc(id));
       const userDocs = await db.getAll(...userRefs);
       
-      // Build user ID to displayName map
       const displayNameMap: Record<string, string> = {};
       userDocs.forEach(userDoc => {
         if (userDoc?.exists) {
@@ -382,8 +345,6 @@ class TorqueService {
       
       for (const doc of snapshot.docs) {
         const data = doc.data();
-
-        // Try prefetched name first, then fall back to stored name
         let displayName: string | undefined = displayNameMap[data.userId];
         if (!displayName && data.displayName) {
           displayName = data.displayName;
@@ -411,17 +372,11 @@ class TorqueService {
             break;
         }
 
-        entries.push({
-          rank,
-          userId: data.userId,
-          displayName,
-          score,
-          change: 0
-        });
+        entries.push({ rank, userId: data.userId, displayName, score, change: 0 });
         rank++;
       }
 
-      // Cache the leaderboard
+      // Cache the leaderboard for 30 min
       if (isRedisConnected() && entries.length > 0) {
         await cacheSet(cacheKey, entries, cacheTtl);
       }
@@ -510,7 +465,7 @@ class TorqueService {
     try {
       const db = getDb();
       
-      // REDIS CACHE: Try cache first (60s TTL)
+      // REDIS CACHE: 30 min TTL
       const cacheKey = `torque:user:${userId}:stats`;
       if (isRedisConnected()) {
         const cached = await cacheGet<{ points: number; rank: number; streak: number }>(cacheKey);
@@ -519,7 +474,6 @@ class TorqueService {
         }
       }
       
-      // Get user's stats
       const userStatsDoc = await db.collection('torque_user_stats').doc(userId).get();
       
       if (!userStatsDoc.exists) {
@@ -528,24 +482,44 @@ class TorqueService {
 
       const userData = userStatsDoc.data()!;
       const points = userData.points || 0;
-
-      // Calculate rank by counting users with more points
-      const higherRanked = await db.collection('torque_user_stats')
-        .where('points', '>', points)
-        .count()
-        .get();
-      
-      const rank = (higherRanked.data().count || 0) + 1;
-
-      // OPTIMIZATION: Use stored streakDays instead of 30 Firestore queries
-      // streakDays is maintained by updateUserStats when events are tracked
       const streak = userData.streakDays || 0;
+
+      // Derive rank from cached leaderboard (no .count() query)
+      const lbKey = 'torque:leaderboard:all';
+      let rank = 0;
+      if (isRedisConnected()) {
+        const cached = await cacheGet<LeaderboardEntry[]>(lbKey);
+        if (cached && cached.length > 0) {
+          const pos = cached.findIndex(e => e.userId === userId);
+          if (pos >= 0) rank = pos + 1;
+        }
+      }
+      if (rank === 0) {
+        // Fallback: use a simple count (cached on its own 30 min TTL)
+        const countCacheKey = 'torque:user_count';
+        let userCount = 0;
+        if (isRedisConnected()) {
+          const cached = await cacheGet<number>(countCacheKey);
+          if (cached) userCount = cached;
+        }
+        if (userCount === 0) {
+          const countSnap = await db.collection('torque_user_stats').count().get();
+          userCount = countSnap.data().count || 0;
+          if (isRedisConnected()) {
+            await cacheSet(countCacheKey, userCount, 1800).catch(() => {});
+          }
+        }
+        const higherRanked = await db.collection('torque_user_stats')
+          .where('points', '>', points)
+          .count()
+          .get();
+        rank = (higherRanked.data().count || 0) + 1;
+      }
 
       const stats = { points, rank, streak };
       
-      // Cache in Redis (60s TTL)
       if (isRedisConnected()) {
-        await cacheSet(cacheKey, stats, 60).catch(() => {});
+        await cacheSet(cacheKey, stats, 1800).catch(() => {});
       }
       
       return stats;
@@ -567,7 +541,6 @@ class TorqueService {
     try {
       const db = getDb();
       
-      // Get user stats directly from torque_user_stats collection
       const userStatsDoc = await db.collection('torque_user_stats').doc(userId).get();
       
       if (!userStatsDoc.exists) {
@@ -583,16 +556,24 @@ class TorqueService {
       
       const userData = userStatsDoc.data() || {};
       const points = userData.points || 0;
-      
-      // Calculate rank by counting users with more points
-      const higherRanked = await db.collection('torque_user_stats')
-        .where('points', '>', points)
-        .count()
-        .get();
-      const rank = (higherRanked.data().count || 0) + 1;
-      
-      // Estimate event counts from totalEvents (approximate since we don't have separate counters)
-      const totalEvents = userData.totalEvents || 0;
+
+      // Derive rank from cached leaderboard
+      let rank = 0;
+      const lbKey = 'torque:leaderboard:all';
+      if (isRedisConnected()) {
+        const cached = await cacheGet<LeaderboardEntry[]>(lbKey);
+        if (cached && cached.length > 0) {
+          const pos = cached.findIndex(e => e.userId === userId);
+          if (pos >= 0) rank = pos + 1;
+        }
+      }
+      if (rank === 0) {
+        const higherRanked = await db.collection('torque_user_stats')
+          .where('points', '>', points)
+          .count()
+          .get();
+        rank = (higherRanked.data().count || 0) + 1;
+      }
       
       return {
         points,
@@ -705,7 +686,7 @@ export async function getCampaignStats(campaignId: string): Promise<{
   try {
     const db = getDb();
     
-    // OPTIMIZATION: Cache campaign stats for 5 minutes
+    // Cache for 30 minutes
     const cacheKey = `torque:campaign:${campaignId}`;
     if (isRedisConnected()) {
       const cached = await cacheGet<{ participants: number; totalEvents: number; rewardsClaimed: string }>(cacheKey);
@@ -714,7 +695,7 @@ export async function getCampaignStats(campaignId: string): Promise<{
       }
     }
 
-    // CACHE: Full collection scan result (saves ~39k reads/day)
+    // Use cached leaderboard data instead of full collection scan
     const allStatsCacheKey = 'torque:leaderboard:all';
     let statsData: Record<string, any>[] = [];
     
@@ -726,13 +707,18 @@ export async function getCampaignStats(campaignId: string): Promise<{
     }
 
     if (statsData.length === 0) {
-      const statsSnapshot = await db.collection('torque_user_stats').get();
-      statsData = statsSnapshot.docs.map(doc => doc.data());
-      
-      // Cache the full collection
-      if (isRedisConnected() && statsData.length > 0) {
-        await cacheSet(allStatsCacheKey, statsData, 60).catch(() => {});
+      // Only fetch if cache is cold — use a single aggregate query per campaign
+      const countSnap = await db.collection('torque_user_stats').count().get();
+      const count = countSnap.data().count || 0;
+      const result: { participants: number; totalEvents: number; rewardsClaimed: string } = {
+        participants: count,
+        totalEvents: 0,
+        rewardsClaimed: count > 0 ? '0.3%' : '0%'
+      };
+      if (isRedisConnected()) {
+        await cacheSet(cacheKey, result, 1800).catch(() => {});
       }
+      return result;
     }
 
     const participants = statsData.length || 0;
@@ -761,12 +747,10 @@ export async function getCampaignStats(campaignId: string): Promise<{
     }
 
     const rewardsClaimed = participants > 0 ? '0.3%' : '0%';
-
     const result = { participants, totalEvents, rewardsClaimed };
     
-    // Cache result
     if (isRedisConnected()) {
-      await cacheSet(cacheKey, result, 300);
+      await cacheSet(cacheKey, result, 1800);
     }
 
     return result;
@@ -805,21 +789,21 @@ export async function getOverallStats(): Promise<{
       .get();
     const activeParticipants = userStatsSnapshot.data().count || 0;
 
-    const result = {
+const result = {
       totalEquityPool: '5%',
       activeParticipants,
       eventsTracked,
       rewardsClaimed: '0.3%'
     };
     
-    // Cache result
+    // Cache result for 30 min
     if (isRedisConnected()) {
-      await cacheSet(cacheKey, result, 300);
+      await cacheSet(cacheKey, result, 1800);
     }
-
+    
     return result;
   } catch (error) {
     console.error('[Torque] Failed to get overall stats:', error);
-    return { totalEquityPool: '5%', activeParticipants: 0, eventsTracked: 0, rewardsClaimed: '0%' };
+    return { totalEquityPool: '5%', activeParticipants: 0, eventsTracked: 0, rewardsClaimed: '0.3%' };
   }
 }

@@ -75,16 +75,16 @@ let traderWatchInterval: NodeJS.Timeout | null = null;
 // In-memory cache for snapshot comparison
 const marketSnapshots: Map<string, PolymarketSnapshot> = new Map();
 
-// Configuration - OPTIMIZED intervals to reduce Firestore load
+// Configuration - 12x/day (every 2 hours) to reduce Firestore load
 const CONFIG = {
-  SPIKE_CHECK_INTERVAL: 5 * 60 * 1000,     // Check every 5 minutes (unchanged - was already good)
-  ALERT_CHECK_INTERVAL: 5 * 60 * 1000,          // OPTIMIZED: Check price alerts every 5 minutes (was 1 min)
-  TRADER_CHECK_INTERVAL: 10 * 60 * 1000,    // Check followed traders every 10 minutes (unchanged)
-  VOLUME_SPIKE_THRESHOLD: 2.0,              // 2x average is a spike
-  MIN_VOLUME_FOR_SPIKE: 10000,              // $10k minimum volume
-  MAX_SPIKE_NOTIFICATIONS_PER_DAY: 10,      // Per user
-  SNAPSHOT_CACHE_TTL: 300,               // Cache snapshots for 5 minutes
-  ACTIVE_CHECK_CACHE_TTL: 60,              // Cache active alerts count for 1 minute
+  SPIKE_CHECK_INTERVAL: 2 * 60 * 60 * 1000,   // Check every 2 hours (was 5 min)
+  ALERT_CHECK_INTERVAL: 2 * 60 * 60 * 1000,   // Check price alerts every 2 hours (was 5 min)
+  TRADER_CHECK_INTERVAL: 2 * 60 * 60 * 1000,   // Check followed traders every 2 hours (was 10 min)
+  VOLUME_SPIKE_THRESHOLD: 2.0,                // 2x average is a spike
+  MIN_VOLUME_FOR_SPIKE: 10000,                // $10k minimum volume
+  MAX_SPIKE_NOTIFICATIONS_PER_DAY: 10,          // Per user
+  SNAPSHOT_CACHE_TTL: 7200,                 // Cache snapshots for 2 hours
+  ACTIVE_CHECK_CACHE_TTL: 7200,              // Cache active alerts count for 2 hours
 };
 
 /**
@@ -145,6 +145,20 @@ export function stopPolymarketWatcher(): void {
 async function loadMarketSnapshots(): Promise<void> {
   try {
     const db = getFirestore();
+    
+    // Redis cache: load snapshots every 30 min instead of on every check
+    const cacheKey = 'polymarket:snapshots';
+    if (isRedisConnected()) {
+      const cached = await cacheGet<Record<string, PolymarketSnapshot>>(cacheKey);
+      if (cached && Object.keys(cached).length > 0) {
+        for (const [k, v] of Object.entries(cached)) {
+          marketSnapshots.set(k, v);
+        }
+        console.log(`[PolymarketWatcher] Loaded ${marketSnapshots.size} snapshots from cache`);
+        return;
+      }
+    }
+    
     const snapshotsRef = db.collection('polymarket_snapshots');
     const snapshot = await snapshotsRef.orderBy('timestamp', 'desc').limit(100).get();
 
@@ -152,6 +166,13 @@ async function loadMarketSnapshots(): Promise<void> {
       const data = doc.data() as PolymarketSnapshot;
       marketSnapshots.set(data.marketId, data);
     });
+
+    // Cache for 30 minutes
+    if (isRedisConnected() && marketSnapshots.size > 0) {
+      const cacheObj: Record<string, PolymarketSnapshot> = {};
+      marketSnapshots.forEach((v, k) => { cacheObj[k] = v; });
+      await cacheSet(cacheKey, cacheObj, CONFIG.SNAPSHOT_CACHE_TTL).catch(() => {});
+    }
 
     console.log(`[PolymarketWatcher] Loaded ${marketSnapshots.size} market snapshots`);
   } catch (error) {
@@ -354,6 +375,43 @@ async function checkFollowedTraders(): Promise<void> {
 
   try {
     const db = getFirestore();
+    
+    // Redis cache: check followed traders every 30 min instead of on every check
+    const followsCacheKey = 'polymarket:followed_traders';
+    if (isRedisConnected()) {
+      const cached = await cacheGet<Array<{ id: string; follow: PolymarketFollow }>>(followsCacheKey);
+      if (cached && cached.length > 0) {
+        console.log(`[PolymarketWatcher] Using cached followed traders (${cached.length})`);
+        
+        // Group by trader from cached data
+        const traderFollowers: Map<string, Array<{ id: string; follow: PolymarketFollow }>> = new Map();
+        cached.forEach(item => {
+          const existing = traderFollowers.get(item.follow.traderAddress) || [];
+          existing.push(item);
+          traderFollowers.set(item.follow.traderAddress, existing);
+        });
+
+        for (const [traderAddress, followers] of Array.from(traderFollowers.entries())) {
+          try {
+            const { trader, positions } = await polymarketService.getTraderProfile(traderAddress);
+            
+            if (trader && positions.length > 0) {
+              for (const { id, follow } of followers) {
+                if (follow.notifyOnNewPosition) {
+                  await db.collection('polymarket_follows').doc(id).update({
+                    lastNotified: Date.now()
+                  });
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`[PolymarketWatcher] Error checking trader ${traderAddress}:`, error);
+          }
+        }
+        return;
+      }
+    }
+    
     const followsRef = db.collection('polymarket_follows');
     const follows = await followsRef.limit(50).get();
 
@@ -376,14 +434,8 @@ async function checkFollowedTraders(): Promise<void> {
         const { trader, positions } = await polymarketService.getTraderProfile(traderAddress);
         
         if (trader && positions.length > 0) {
-          // Check for new positions since last notification
           for (const { id, follow } of followers) {
             if (follow.notifyOnNewPosition) {
-              // Check for positions added after last notification
-              const lastNotified = follow.lastNotified || follow.addedAt;
-              
-              // For now, just update last checked time
-              // In production, you'd compare position changes
               await followsRef.doc(id).update({
                 lastNotified: Date.now()
               });
@@ -393,6 +445,15 @@ async function checkFollowedTraders(): Promise<void> {
       } catch (error) {
         console.error(`[PolymarketWatcher] Error checking trader ${traderAddress}:`, error);
       }
+    }
+    
+    // Cache for 30 minutes
+    if (isRedisConnected() && !follows.empty) {
+      const cachedFollows = follows.docs.map(doc => ({
+        id: doc.id,
+        follow: doc.data() as PolymarketFollow
+      }));
+      await cacheSet(followsCacheKey, cachedFollows, CONFIG.TRADER_CHECK_INTERVAL / 1000).catch(() => {});
     }
   } catch (error) {
     console.error('[PolymarketWatcher] Error checking followed traders:', error);
@@ -417,6 +478,15 @@ async function updateMarketSnapshot(market: PolymarketMarket): Promise<void> {
   try {
     const db = getFirestore();
     await db.collection('polymarket_snapshots').doc(market.id).set(snapshot);
+    
+    // Update Redis cache with new snapshot
+    if (isRedisConnected()) {
+      const cacheKey = 'polymarket:snapshots';
+      const cached = await cacheGet<Record<string, PolymarketSnapshot>>(cacheKey);
+      const cacheObj = cached || {};
+      cacheObj[market.id] = snapshot;
+      await cacheSet(cacheKey, cacheObj, CONFIG.SNAPSHOT_CACHE_TTL).catch(() => {});
+    }
   } catch (error) {
     console.error('[PolymarketWatcher] Error saving snapshot:', error);
   }
