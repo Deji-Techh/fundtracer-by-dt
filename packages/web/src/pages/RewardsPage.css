@@ -266,6 +266,102 @@
 }
 
 /* Campaigns */
+/* Rewards Table Section */
+.rewards-table-section {
+  padding: 80px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.rewards-intro {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin-bottom: 32px;
+  font-size: 15px;
+}
+
+.rewards-table-wrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.rewards-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-elevated);
+}
+
+.rewards-table th,
+.rewards-table td {
+  padding: 14px 20px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rewards-table th {
+  background: var(--color-bg-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rewards-table td {
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.rewards-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rewards-table tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.points-cell {
+  text-align: center !important;
+}
+
+.points-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, var(--color-accent) 0%, #f59e0b 100%);
+  color: #000;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+}
+
+.torque-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 32px;
+  padding: 12px 24px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 30px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.torque-badge strong {
+  color: var(--color-accent);
+}
+
+.torque-badge svg {
+  color: var(--color-warning);
+}
+
+/* Campaigns Section */
 .campaigns-section {
   padding: 60px 24px;
   max-width: 1200px;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Medal, Crown, TrendingUp, RefreshCw } from 'lucide-react';
+import { Trophy, Medal, Crown, TrendingUp, RefreshCw, Zap } from 'lucide-react';
 
 interface LeaderboardEntry {
   rank: number;
@@ -211,12 +211,38 @@ export default function TorqueLeaderboard({
         )}
       </AnimatePresence>
 
+      <div className="leaderboard-footer">
+        <span className="powered-by">Powered by</span>
+        <strong>Torque</strong>
+        <Zap size={12} />
+      </div>
+
       <style>{`
         .torque-leaderboard {
           background: var(--color-bg-elevated);
           border-radius: 12px;
           padding: 16px;
           border: 1px solid var(--color-border);
+        }
+
+        .leaderboard-footer {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          margin-top: 16px;
+          padding-top: 12px;
+          border-top: 1px solid var(--color-border);
+          font-size: 11px;
+          color: var(--color-text-muted);
+        }
+
+        .leaderboard-footer strong {
+          color: var(--color-accent);
+        }
+
+        .leaderboard-footer svg {
+          color: var(--color-warning);
         }
 
         .leaderboard-header {

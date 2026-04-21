@@ -34,6 +34,15 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
   {
+    id: '0',
+    title: 'FundTracer x Torque: Earn Equity for Analyzing Wallets',
+    excerpt: 'We\'ve integrated Torque to power our equity-based loyalty program. Learn how to earn 5% equity ownership by analyzing wallets.',
+    category: 'Announcement',
+    date: '2026-04-21',
+    readTime: '4 min read',
+    slug: 'fundtracer-torque-equity-rewards',
+  },
+  {
     id: '1',
     title: 'What is Sybil Detection in Crypto',
     excerpt: 'Learn how Sybil detection works in cryptocurrency and how it helps identify coordinated bot networks and fake accounts.',

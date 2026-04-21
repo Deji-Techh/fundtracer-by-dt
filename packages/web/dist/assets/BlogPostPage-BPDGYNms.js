@@ -1,50 +1,4 @@
-/**
- * BlogPostPage - Individual blog post template
- * SEO-optimized blog post with JSON-LD Article schema
- */
-
-import React, { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { Badge } from '../design-system/primitives';
-import './BlogPostPage.css';
-
-interface BlogPost {
-  id: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  category: string;
-  date: string;
-  readTime: string;
-  author: string;
-  slug: string;
-}
-
-const navItems = [
-  { label: 'Intel', href: '/' },
-  { label: 'Blog', href: '/blog', active: true },
-  { label: 'Docs', href: '/docs/getting-started' },
-  { label: 'Features', href: '/features' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'How It Works', href: '/how-it-works' },
-  { label: 'FAQ', href: '/faq' },
-  { label: 'API', href: '/api-docs' },
-  { label: 'CLI', href: '/cli' },
-  { label: 'About', href: '/about' },
-];
-
-const blogPostsData: Record<string, BlogPost> = {
-  'fundtracer-torque-equity-rewards': {
-    id: '0',
-    title: 'FundTracer x Torque: Earn Equity for Analyzing Wallets',
-    excerpt: 'We\'ve integrated Torque to power our equity-based loyalty program. Learn how to earn 5% equity ownership by analyzing wallets.',
-    category: 'Announcement',
-    date: '2026-04-21',
-    readTime: '4 min read',
-    author: 'FundTracer Team',
-    slug: 'fundtracer-torque-equity-rewards',
-    content: `
+import{o as c}from"./rolldown-runtime-MddlTo9B.js";import{Cc as d,Ec as u,gc as h}from"./vendor-DItE0IDC.js";import{s as m}from"./primitives-Dt55kyOx.js";import{t as s}from"./LandingLayout-DEo0Ucq3.js";var p=c(u(),1),e=h(),o=[{label:"Intel",href:"/"},{label:"Blog",href:"/blog",active:!0},{label:"Docs",href:"/docs/getting-started"},{label:"Features",href:"/features"},{label:"Pricing",href:"/pricing"},{label:"How It Works",href:"/how-it-works"},{label:"FAQ",href:"/faq"},{label:"API",href:"/api-docs"},{label:"CLI",href:"/cli"},{label:"About",href:"/about"}],g={"fundtracer-torque-equity-rewards":{id:"0",title:"FundTracer x Torque: Earn Equity for Analyzing Wallets",excerpt:"We've integrated Torque to power our equity-based loyalty program. Learn how to earn 5% equity ownership by analyzing wallets.",category:"Announcement",date:"2026-04-21",readTime:"4 min read",author:"FundTracer Team",slug:"fundtracer-torque-equity-rewards",content:`
 ## Earn Equity While Analyzing Wallets
 
 We're excited to announce our integration with **Torque** - the programmable retention layer for onchain products. This partnership powers our new equity-based loyalty program where you can earn ownership in FundTracer just by using the platform.
@@ -90,18 +44,7 @@ Rewards are distributed manually by our team to ensure proper legal documentatio
 4. Earn equity ownership
 
 Ready to start? Head to fundtracer.xyz/rewards to see the leaderboards and start earning!
-    `,
-  },
-  'what-is-sybil-detection': {
-    id: '1',
-    title: 'What is Sybil Detection in Crypto',
-    excerpt: 'Learn how Sybil detection works in cryptocurrency and how it helps identify coordinated bot networks and fake accounts.',
-    category: 'Security',
-    date: '2026-03-15',
-    readTime: '5 min read',
-    author: 'FundTracer Team',
-    slug: 'what-is-sybil-detection',
-    content: `
+    `},"what-is-sybil-detection":{id:"1",title:"What is Sybil Detection in Crypto",excerpt:"Learn how Sybil detection works in cryptocurrency and how it helps identify coordinated bot networks and fake accounts.",category:"Security",date:"2026-03-15",readTime:"5 min read",author:"FundTracer Team",slug:"what-is-sybil-detection",content:`
 ## What is Sybil Attack?
 
 A Sybil attack occurs when a single entity creates multiple fake identities (called Sybils) to manipulate a blockchain network. In the context of cryptocurrency, this often means creating numerous wallet addresses to:
@@ -153,18 +96,7 @@ Detecting Sybil activity is crucial for:
 FundTracer provides a comprehensive Sybil detection feature that analyzes wallet clusters and provides risk scores. Simply input wallet addresses to identify potential Sybil activity.
 
 Learn more about our [Sybil Detection](/docs/sybil-detection) feature.
-    `
-  },
-  'how-to-trace-ethereum-wallet-funds': {
-    id: '2',
-    title: 'How to Trace Ethereum Wallet Funds',
-    excerpt: 'A comprehensive guide to tracing funds on the Ethereum blockchain using block explorers and analytics tools.',
-    category: 'Tutorial',
-    date: '2026-03-10',
-    readTime: '8 min read',
-    author: 'FundTracer Team',
-    slug: 'how-to-trace-ethereum-wallet-funds',
-    content: `
+    `},"how-to-trace-ethereum-wallet-funds":{id:"2",title:"How to Trace Ethereum Wallet Funds",excerpt:"A comprehensive guide to tracing funds on the Ethereum blockchain using block explorers and analytics tools.",category:"Tutorial",date:"2026-03-10",readTime:"8 min read",author:"FundTracer Team",slug:"how-to-trace-ethereum-wallet-funds",content:`
 ## Why Trace Wallet Funds?
 
 Tracing Ethereum wallet funds is essential for:
@@ -221,18 +153,7 @@ Our platform provides:
 - [Funding Tree Analysis](/docs/funding-tree-analysis) for visual fund flows
 - [Risk Scoring](/docs/wallet-risk-score) to assess wallet safety
 - Cross-chain analysis for multi-chain portfolios
-    `
-  },
-  'how-airdrop-farmers-get-caught': {
-    id: '3',
-    title: 'How Airdrop Farmers Get Caught',
-    excerpt: 'Understanding how blockchain analytics detects airdrop farming and coordinated wallet activity.',
-    category: 'Security',
-    date: '2026-03-05',
-    readTime: '6 min read',
-    author: 'FundTracer Team',
-    slug: 'how-airdrop-farmers-get-caught',
-    content: `
+    `},"how-airdrop-farmers-get-caught":{id:"3",title:"How Airdrop Farmers Get Caught",excerpt:"Understanding how blockchain analytics detects airdrop farming and coordinated wallet activity.",category:"Security",date:"2026-03-05",readTime:"6 min read",author:"FundTracer Team",slug:"how-airdrop-farmers-get-caught",content:`
 ## What is Airdrop Farming?
 
 Airdrop farming involves creating multiple wallet addresses to maximize airdrop rewards from blockchain projects. Projects use these rewards to incentivize early adoption, but farmers exploit this by creating fake activity.
@@ -303,18 +224,7 @@ If you're farming (not recommended), consider:
 Projects are increasingly sophisticated in detecting farming. The best strategy is to be a genuine user rather than trying to game the system.
 
 Learn more about [Sybil Detection](/docs/sybil-detection) and [Wallet Risk Scores](/docs/wallet-risk-score).
-    `
-  },
-  'top-blockchain-forensics-tools-2026': {
-    id: '4',
-    title: 'Top Blockchain Forensics Tools 2026',
-    excerpt: 'A comparison of the best blockchain forensics and on-chain analytics tools available today.',
-    category: 'Tools',
-    date: '2026-02-28',
-    readTime: '7 min read',
-    author: 'FundTracer Team',
-    slug: 'top-blockchain-forensics-tools-2026',
-    content: `
+    `},"top-blockchain-forensics-tools-2026":{id:"4",title:"Top Blockchain Forensics Tools 2026",excerpt:"A comparison of the best blockchain forensics and on-chain analytics tools available today.",category:"Tools",date:"2026-02-28",readTime:"7 min read",author:"FundTracer Team",slug:"top-blockchain-forensics-tools-2026",content:`
 ## Why Blockchain Forensics Tools Matter
 
 Blockchain forensics tools are essential for anyone working in cryptocurrency - from investors conducting due diligence to security researchers investigating fraud. These tools help you analyze wallet addresses, trace fund flows, detect suspicious patterns, and make informed decisions.
@@ -458,18 +368,7 @@ Many researchers use multiple tools in combination. FundTracer provides an excel
 The blockchain forensics landscape has matured significantly. Whether you're conducting due diligence, investigating fraud, or simply want to understand wallet activity, there's a tool for every use case and budget.
 
 Start with FundTracer for free at fundtracer.xyz and explore our documentation to learn more about wallet analysis.
-    `
-  },
-  'what-is-wallet-risk-score': {
-    id: '5',
-    title: 'What is a Wallet Risk Score',
-    excerpt: 'Understanding how wallet risk scores are calculated and how to use them for safer crypto transactions.',
-    category: 'Education',
-    date: '2026-02-20',
-    readTime: '5 min read',
-    author: 'FundTracer Team',
-    slug: 'what-is-wallet-risk-score',
-    content: `
+    `},"what-is-wallet-risk-score":{id:"5",title:"What is a Wallet Risk Score",excerpt:"Understanding how wallet risk scores are calculated and how to use them for safer crypto transactions.",category:"Education",date:"2026-02-20",readTime:"5 min read",author:"FundTracer Team",slug:"what-is-wallet-risk-score",content:`
 ## Understanding Wallet Risk Scores
 
 A wallet risk score is a numerical assessment that indicates the potential risk level associated with a cryptocurrency wallet address. Think of it as a credit score for blockchain wallets - it helps you quickly evaluate whether a wallet is trustworthy before making transactions.
@@ -595,18 +494,7 @@ Try it free at fundtracer.xyz and learn more about our Risk Scoring documentatio
 Wallet risk scores are a powerful tool for making informed decisions in the crypto space. They provide a quick way to assess potential risks, but should be used as part of a broader due diligence process.
 
 Understanding how these scores work helps you make better decisions and avoid common pitfalls in cryptocurrency transactions.
-    `
-  },
-  'how-to-read-blockchain-funding-tree': {
-    id: '6',
-    title: 'How to Read a Blockchain Funding Tree',
-    excerpt: 'Learn to interpret funding tree visualizations and trace the origin of crypto assets.',
-    category: 'Tutorial',
-    date: '2026-02-15',
-    readTime: '10 min read',
-    author: 'FundTracer Team',
-    slug: 'how-to-read-blockchain-funding-tree',
-    content: `
+    `},"how-to-read-blockchain-funding-tree":{id:"6",title:"How to Read a Blockchain Funding Tree",excerpt:"Learn to interpret funding tree visualizations and trace the origin of crypto assets.",category:"Tutorial",date:"2026-02-15",readTime:"10 min read",author:"FundTracer Team",slug:"how-to-read-blockchain-funding-tree",content:`
 ## What is a Funding Tree?
 
 A funding tree (also called a funding graph or transaction tree) is a visual representation of how funds flow into and out of a cryptocurrency wallet. It shows the origin of funds, the intermediaries they passed through, and where they ultimately ended up.
@@ -755,18 +643,7 @@ Funding tree analysis is one of the most powerful techniques in blockchain foren
 Mastering this skill helps with due diligence, investigations, and understanding on-chain activity. FundTracers visualization makes it accessible to anyone - no technical background required.
 
 Start analyzing funding trees at fundtracer.xyz.
-    `
-  },
-  'evm-vs-solana-transaction-tracing': {
-    id: '7',
-    title: 'EVM vs Solana Transaction Tracing',
-    excerpt: 'Comparing transaction tracing and wallet analysis across Ethereum Virtual Machine chains and Solana.',
-    category: 'Comparison',
-    date: '2026-02-10',
-    readTime: '6 min read',
-    author: 'FundTracer Team',
-    slug: 'evm-vs-solana-transaction-tracing',
-    content: `
+    `},"evm-vs-solana-transaction-tracing":{id:"7",title:"EVM vs Solana Transaction Tracing",excerpt:"Comparing transaction tracing and wallet analysis across Ethereum Virtual Machine chains and Solana.",category:"Comparison",date:"2026-02-10",readTime:"6 min read",author:"FundTracer Team",slug:"evm-vs-solana-transaction-tracing",content:`
 ## Understanding EVM vs Solana Architecture
 
 The two largest smart contract platforms in crypto - Ethereum (and its EVM-compatible chains) and Solana - have fundamentally different architectures that affect how we trace transactions and analyze wallets.
@@ -906,18 +783,7 @@ The most important factor is using tools built for each specific chain. FundTrac
 Try it at fundtracer.xyz - analyze EVM chains at /app-evm and Solana at /app-solana.
 
 For more details, see our documentation on Ethereum Wallet Tracker and Solana Wallet Tracker.
-    `
-  },
-  'how-to-use-fundtracer-api': {
-    id: '8',
-    title: 'How to Use FundTracer API',
-    excerpt: 'A complete guide to integrating FundTracer API into your applications for wallet analysis.',
-    category: 'Development',
-    date: '2026-02-05',
-    readTime: '12 min read',
-    author: 'FundTracer Team',
-    slug: 'how-to-use-fundtracer-api',
-    content: `
+    `},"how-to-use-fundtracer-api":{id:"8",title:"How to Use FundTracer API",excerpt:"A complete guide to integrating FundTracer API into your applications for wallet analysis.",category:"Development",date:"2026-02-05",readTime:"12 min read",author:"FundTracer Team",slug:"how-to-use-fundtracer-api",content:`
 ## Introduction to FundTracer API
 
 The FundTracer API allows developers to integrate our powerful blockchain forensics capabilities directly into their applications, services, and workflows. Whether you are building a crypto portfolio tracker, compliance tool, or research dashboard, our API provides the data you need.
@@ -1132,18 +998,7 @@ Full API documentation is available at fundtracer.xyz/docs/api-reference.
 The FundTracer API provides powerful blockchain forensics capabilities for developers. Whether you are building compliance tools, research dashboards, or consumer apps, our API has you covered.
 
 Get started with a free account at fundtracer.xyz and generate your API key today.
-    `
-  },
-  'detect-coordinated-wallet-activity': {
-    id: '9',
-    title: 'How to Detect Coordinated Wallet Activity',
-    excerpt: 'Technical deep-dive into methods used to detect coordinated wallet behavior and Sybil attacks.',
-    category: 'Security',
-    date: '2026-01-30',
-    readTime: '8 min read',
-    author: 'FundTracer Team',
-    slug: 'detect-coordinated-wallet-activity',
-    content: `
+    `},"detect-coordinated-wallet-activity":{id:"9",title:"How to Detect Coordinated Wallet Activity",excerpt:"Technical deep-dive into methods used to detect coordinated wallet behavior and Sybil attacks.",category:"Security",date:"2026-01-30",readTime:"8 min read",author:"FundTracer Team",slug:"detect-coordinated-wallet-activity",content:`
 ## Understanding Coordinated Wallet Activity
 
 Coordinated wallet activity occurs when multiple wallets act in concert, whether intentionally (like a trading bot) or maliciously (like a Sybil attack). Detecting this coordination is crucial for security, compliance, and research.
@@ -1328,108 +1183,8 @@ Detecting coordinated wallet activity requires analyzing multiple dimensions: ti
 FundTracers Sybil detection does this automatically, scoring wallets based on multiple factors and identifying clusters of related addresses.
 
 For more on this topic, see our articles on What is Sybil Detection and How Airdrop Farmers Get Caught.
-    `
-  }
-};
+    `}};function k(){const t=g[d().pathname.split("/").pop()||""];if((0,p.useEffect)(()=>{if(t){document.title=`${t.title} | FundTracer Blog`;const a=document.createElement("script");return a.type="application/ld+json",a.textContent=JSON.stringify({"@context":"https://schema.org","@type":"Article",headline:t.title,description:t.excerpt,author:{"@type":"Organization",name:t.author},datePublished:t.date,readTime:t.readTime,url:`https://www.fundtracer.xyz/blog/${t.slug}`}),document.head.appendChild(a),()=>{document.head.removeChild(a)}}},[t]),!t)return(0,e.jsx)(s,{navItems:o,showSearch:!1,children:(0,e.jsxs)("div",{className:"blog-post-error",children:[(0,e.jsx)("h1",{children:"Post Not Found"}),(0,e.jsx)("p",{children:"The blog post you're looking for doesn't exist."}),(0,e.jsx)("a",{href:"/blog",children:"Back to Blog"})]})});const l=t.content.split(`
 
-export function BlogPostPage() {
-  const location = useLocation();
-  const slug = location.pathname.split('/').pop() || '';
-  const post = blogPostsData[slug];
-
-  useEffect(() => {
-    if (post) {
-      document.title = `${post.title} | FundTracer Blog`;
-      
-      const script = document.createElement('script');
-      script.type = 'application/ld+json';
-      script.textContent = JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "Article",
-        "headline": post.title,
-        "description": post.excerpt,
-        "author": {
-          "@type": "Organization",
-          "name": post.author
-        },
-        "datePublished": post.date,
-        "readTime": post.readTime,
-        "url": `https://www.fundtracer.xyz/blog/${post.slug}`
-      });
-      document.head.appendChild(script);
-      
-      return () => {
-        document.head.removeChild(script);
-      };
-    }
-  }, [post]);
-
-  if (!post) {
-    return (
-      <LandingLayout navItems={navItems} showSearch={false}>
-        <div className="blog-post-error">
-          <h1>Post Not Found</h1>
-          <p>The blog post you're looking for doesn't exist.</p>
-          <a href="/blog">Back to Blog</a>
-        </div>
-      </LandingLayout>
-    );
-  }
-
-  const contentSections = post.content.split('\n\n').filter(s => s.trim());
-
-  return (
-    <LandingLayout navItems={navItems} showSearch={false}>
-      <article className="blog-post">
-        <header className="blog-post__header">
-          <Badge variant="info">{post.category}</Badge>
-          <div className="blog-post__meta">
-            <span>{post.date}</span>
-            <span>{post.readTime}</span>
-          </div>
-        </header>
-        
-        <h1 className="blog-post__title">{post.title}</h1>
-        <p className="blog-post__excerpt">{post.excerpt}</p>
-
-        <div className="blog-post__content">
-          {contentSections.map((section, index) => {
-            if (section.startsWith('## ')) {
-              return <h2 key={index}>{section.replace('## ', '')}</h2>;
-            }
-            if (section.startsWith('### ')) {
-              return <h3 key={index}>{section.replace('### ', '')}</h3>;
-            }
-            if (section.startsWith('- ')) {
-              const items = section.split('\n').filter(s => s.startsWith('- '));
-              return (
-                <ul key={index}>
-                  {items.map((item, i) => (
-                    <li key={i}>{item.replace('- ', '')}</li>
-                  ))}
-                </ul>
-              );
-            }
-            if (/^\d+\./.test(section)) {
-              const items = section.split('\n').filter(s => /^\d+\./.test(s));
-              return (
-                <ol key={index}>
-                  {items.map((item, i) => (
-                    <li key={i}>{item.replace(/^\d+\.\s*/, '')}</li>
-                  ))}
-                </ol>
-              );
-            }
-            return <p key={index}>{section}</p>;
-          })}
-        </div>
-
-        <footer className="blog-post__footer">
-          <a href="/blog" className="blog-post__back">Back to Blog</a>
-        </footer>
-      </article>
-    </LandingLayout>
-  );
-}
-
-export default BlogPostPage;
+`).filter(a=>a.trim());return(0,e.jsx)(s,{navItems:o,showSearch:!1,children:(0,e.jsxs)("article",{className:"blog-post",children:[(0,e.jsxs)("header",{className:"blog-post__header",children:[(0,e.jsx)(m,{variant:"info",children:t.category}),(0,e.jsxs)("div",{className:"blog-post__meta",children:[(0,e.jsx)("span",{children:t.date}),(0,e.jsx)("span",{children:t.readTime})]})]}),(0,e.jsx)("h1",{className:"blog-post__title",children:t.title}),(0,e.jsx)("p",{className:"blog-post__excerpt",children:t.excerpt}),(0,e.jsx)("div",{className:"blog-post__content",children:l.map((a,n)=>a.startsWith("## ")?(0,e.jsx)("h2",{children:a.replace("## ","")},n):a.startsWith("### ")?(0,e.jsx)("h3",{children:a.replace("### ","")},n):a.startsWith("- ")?(0,e.jsx)("ul",{children:a.split(`
+`).filter(i=>i.startsWith("- ")).map((i,r)=>(0,e.jsx)("li",{children:i.replace("- ","")},r))},n):/^\d+\./.test(a)?(0,e.jsx)("ol",{children:a.split(`
+`).filter(i=>/^\d+\./.test(i)).map((i,r)=>(0,e.jsx)("li",{children:i.replace(/^\d+\.\s*/,"")},r))},n):(0,e.jsx)("p",{children:a},n))}),(0,e.jsx)("footer",{className:"blog-post__footer",children:(0,e.jsx)("a",{href:"/blog",className:"blog-post__back",children:"Back to Blog"})})]})})}export{k as BlogPostPage,k as default};

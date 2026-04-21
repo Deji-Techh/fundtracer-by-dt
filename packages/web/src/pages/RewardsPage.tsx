@@ -138,6 +138,16 @@ const howItWorks = [
   }
 ];
 
+const REWARDS_TABLE = [
+  { action: 'Analyze a wallet', event: 'wallet_analyzed', points: 10, description: 'Per wallet analyzed' },
+  { action: 'First analysis', event: 'first_analysis', points: 100, description: 'One-time bonus' },
+  { action: 'Detect sybil attack', event: 'sybil_detected', points: 50, description: 'Per sybil cluster identified' },
+  { action: 'Compare wallets', event: 'compare_wallets', points: 20, description: 'Per comparison' },
+  { action: 'Analyze contract', event: 'contract_analyzed', points: 15, description: 'Per contract analyzed' },
+  { action: 'Share on X', event: 'share_on_twitter', points: 25, description: 'One-time bonus' },
+  { action: 'Refer a friend', event: 'invite_friend', points: 30, description: 'Per successful referral' },
+];
+
 export default function RewardsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -445,6 +455,57 @@ export default function RewardsPage() {
                 )}
               </motion.div>
             ))}
+          </div>
+        </section>
+
+        {/* How Rewards Are Calculated */}
+        <section className="rewards-table-section">
+          <motion.h2 
+            className="section-title"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            How Rewards Are Calculated
+          </motion.h2>
+          
+          <p className="rewards-intro">
+            Earn points for every action on FundTracer. Points determine your rank on leaderboards.
+          </p>
+
+          <div className="rewards-table-wrapper">
+            <table className="rewards-table">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Points</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {REWARDS_TABLE.map((reward, index) => (
+                  <motion.tr
+                    key={reward.event}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <td>{reward.action}</td>
+                    <td className="points-cell">
+                      <span className="points-badge">+{reward.points}</span>
+                    </td>
+                    <td>{reward.description}</td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="torque-badge">
+            <span>Powered by</span>
+            <strong>Torque</strong>
+            <Zap size={14} />
           </div>
         </section>
 
