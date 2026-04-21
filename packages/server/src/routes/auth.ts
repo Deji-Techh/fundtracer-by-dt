@@ -204,7 +204,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       onboardingCompleted: isNewUser ? false : userDoc.data()?.onboardingCompleted ?? false
     }, { merge: true });
     
-    console.log(`[AUTH] User saved to Firestore: ${email} (${uid}), isNewUser: ${isNewUser}`);
+    console.log(`[AUTH] User saved to Firestore: ${email} (${uid})`);
 
     // Initialize Torque stats for new users immediately on signup
     if (isNewUser) {

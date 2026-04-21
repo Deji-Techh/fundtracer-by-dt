@@ -94,7 +94,6 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
             authProvider: userData?.authProvider || 'wallet',
             onboardingCompleted: userData?.onboardingCompleted ?? false
         });
-        console.log(`[Profile] Returning onboardingCompleted: ${userData?.onboardingCompleted ?? false} for user: ${req.user.uid}`);
 
         //Track login (async, don't await)
         const { trackVisitor } = await import('../utils/analytics.js');
