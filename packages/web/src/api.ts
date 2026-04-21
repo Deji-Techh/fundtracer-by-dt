@@ -72,7 +72,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function apiRequestWithRetry<T>(
     endpoint: string,
-    method: 'GET' | 'POST' | 'DELETE' = 'GET',
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     body?: any,
     retryCount = 0
 ): Promise<T> {

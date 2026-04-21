@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Wallet, Shield, GitBranch, Zap, BarChart3, Users, Check, X } from 'lucide-react';
+import { apiRequest } from '../api';
 
 interface OnboardingModalProps {
     isOpen: boolean;
@@ -23,7 +24,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onClose }) =>
     const handleComplete = async () => {
         localStorage.setItem('fundtracer_onboarding_complete', 'true');
         try {
-            await fetch('/api/user/onboarding-complete', { method: 'PUT' });
+            await apiRequest('/api/user/onboarding-complete', 'PUT');
         } catch (e: any) {
             console.error('Failed to mark onboarding complete:', e);
         }
