@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { AlertTriangle, TrendingUp, Shield, CheckCircle } from 'lucide-react';
 import { DocsPage } from './DocsPage';
 
 const sections = [

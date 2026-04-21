@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { AlertTriangle, Network, Users, Shield } from 'lucide-react';
 import { DocsPage } from './DocsPage';
 
 const sections = [

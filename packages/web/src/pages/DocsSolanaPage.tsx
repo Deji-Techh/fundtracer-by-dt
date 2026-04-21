@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { Clock, TrendingUp, DollarSign, Shield } from 'lucide-react';
 import { DocsPage } from './DocsPage';
 
 const sections = [
