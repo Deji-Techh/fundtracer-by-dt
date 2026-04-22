@@ -85,6 +85,35 @@ router.post('/v2/scan', authMiddleware, async (req: AuthenticatedRequest, res: R
   }
 });
 
+// Get groups leaderboard (public)
+router.get('/v2/groups', async (req: Request, res: Response) => {
+  try {
+    const db = require('../firebase.js').getFirestore();
+    const snapshot = await db.collection('torque_groups')
+      .orderBy('totalPoints', 'desc')
+      .limit(20)
+      .get();
+    
+    const groups = snapshot.docs.map(doc => ({
+      groupId: doc.id,
+      groupName: doc.data().groupName,
+      totalScans: doc.data().totalScans || 0,
+      totalPoints: doc.data().totalPoints || 0,
+      memberCount: doc.data().memberCount || 0,
+      members: doc.data().members || []
+    }));
+    
+    res.json({
+      success: true,
+      groups,
+      timestamp: Date.now()
+    });
+  } catch (error: any) {
+    console.error('[TorqueV2] Groups error:', error);
+    res.status(500).json({ error: 'Failed to fetch groups' });
+  }
+});
+
 // Admin: Reset all data
 router.post('/v2/admin/reset', async (req: Request, res: Response) => {
   try {
