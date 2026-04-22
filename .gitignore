@@ -12,6 +12,11 @@ build/
 out/
 .vite/
 
+# Documentation & private content
+torque-thread.md
+video-scripts.md
+*.private.md
+
 # Environment variables (CRITICAL: Never push these)
 .env
 .env.local
