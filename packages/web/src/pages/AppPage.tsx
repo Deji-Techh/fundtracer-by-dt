@@ -6,6 +6,7 @@ import AppShell from '../components/AppShell';
 import Loader from '../components/Loader';
 import OnboardingModal from '../components/OnboardingModal';
 import InvestigateView from '../design-system/features/InvestigateView';
+import { getAuthToken } from '../api';
 import './AppPage.css';
 
 type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'solana' | 'history' | 'settings';
@@ -83,12 +84,17 @@ export function AppPage() {
     }
   }, [authLoading, isAuthenticated]);
 
-  // TEMPORARILY DISABLED - onboarding check
-  /*
-  // Check onboarding status on mount
+  // Check onboarding status on mount - use proper auth
   useEffect(() => {
     if (isAuthenticated) {
-      fetch('/api/user/profile')
+      const token = getAuthToken();
+      if (!token) return;
+      
+      fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
         .then(res => res.json())
         .then(data => {
           console.log('[AppPage] Profile fetched, onboardingCompleted:', data.onboardingCompleted);
@@ -101,10 +107,7 @@ export function AppPage() {
           console.log('[AppPage] Profile fetch error:', err);
         });
     }
-  }, []); // Run once on mount
-  */
-
-  // End temporarily disabled
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isConnected && address) {

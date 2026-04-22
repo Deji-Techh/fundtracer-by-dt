@@ -325,20 +325,26 @@ class TorqueService {
           query = db.collection('torque_user_stats').where('points', '>', 0);
       }
 
-      const snapshot = await query.orderBy(sortField, 'desc').limit(50).get();
+const snapshot = await query.orderBy(sortField, 'desc').limit(50).get();
       const userIds = snapshot.docs.map(doc => doc.id);
       
-      // OPTIMIZATION: Use getAll() for batch fetch (2 reads instead of 51)
-      const userRefs = userIds.map(id => db.collection('users').doc(id));
-      const userDocs = await db.getAll(...userRefs);
+      console.log('[TorqueService] Leaderboard query result:', { userIdsCount: userIds.length, campaignId, sortField });
       
       const displayNameMap: Record<string, string> = {};
-      userDocs.forEach(userDoc => {
-        if (userDoc?.exists) {
-          const userData = userDoc.data();
-          displayNameMap[userDoc.id] = userData?.displayName || userData?.name || '';
-        }
-      });
+      
+      // getAll() requires at least 1 document reference - skip if no users
+      if (userIds.length > 0) {
+        // OPTIMIZATION: Use getAll() for batch fetch (2 reads instead of 51)
+        const userRefs = userIds.map(id => db.collection('users').doc(id));
+        const userDocs = await db.getAll(...userRefs);
+        
+        userDocs.forEach(userDoc => {
+          if (userDoc?.exists) {
+            const userData = userDoc.data();
+            displayNameMap[userDoc.id] = userData?.displayName || userData?.name || '';
+          }
+        });
+      }
 
       const entries: LeaderboardEntry[] = [];
       let rank = 1;

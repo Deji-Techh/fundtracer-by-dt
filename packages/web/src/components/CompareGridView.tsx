@@ -49,10 +49,25 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
         let safeResult: any;
         try {
             safeResult = JSON.parse(JSON.stringify(result));
+            console.log('[CompareGridView] JSON serialization successful');
         } catch (e) {
             console.error('[CompareGridView] JSON parse failed:', e);
             safeResult = { error: 'Failed to parse result' };
         }
+        
+        // Validate and log the structure
+        console.log('[CompareGridView] Result structure:', {
+            hasWallets: Array.isArray(safeResult?.wallets),
+            walletCount: safeResult?.wallets?.length,
+            commonFundingSourcesType: typeof safeResult?.commonFundingSources,
+            commonFundingSourcesIsArray: Array.isArray(safeResult?.commonFundingSources),
+            commonFundingSources: safeResult?.commonFundingSources,
+            commonDestinationsIsArray: Array.isArray(safeResult?.commonDestinations),
+            sharedProjectsIsArray: Array.isArray(safeResult?.sharedProjects),
+            directTransfersIsArray: Array.isArray(safeResult?.directTransfers),
+            correlationScore: safeResult?.correlationScore,
+            isSybilLikely: safeResult?.isSybilLikely,
+        });
         
         // Use safeResult everywhere instead of result
         const wallets = safeResult?.wallets || [];

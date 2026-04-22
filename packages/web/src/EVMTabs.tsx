@@ -3,7 +3,7 @@ import { useLocation, useSearchParams } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
-import { trackVisit } from './api';
+import { trackVisit, getAuthToken } from './api';
 
 import TopNav from './components/CoinGecko/TopNav';
 import HomePage from './components/CoinGecko/HomePage';
@@ -125,7 +125,14 @@ function EVMMainApp() {
   // Run on mount - ALWAYS check onboarding status when component mounts
   useEffect(() => {
     if (isAuthenticated) {
-      fetch('/api/user/profile')
+      const token = getAuthToken();
+      if (!token) return;
+      
+      fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
         .then(res => res.json())
         .then(data => {
           console.log('[Onboarding] Profile fetched, onboardingCompleted:', data.onboardingCompleted);

@@ -8,7 +8,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { trackVisit } from '../api';
+import { trackVisit, getAuthToken } from '../api';
 import {
   IntelLayout,
   Badge,
@@ -202,7 +202,14 @@ function InvestigateMainApp() {
   // Run on mount - ALWAYS check onboarding status when component mounts
   useEffect(() => {
     if (user) {
-      fetch('/api/user/profile')
+      const token = getAuthToken();
+      if (!token) return;
+      
+      fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
         .then(res => res.json())
         .then(data => {
           console.log('[Onboarding-Investigate] Profile fetched, onboardingCompleted:', data.onboardingCompleted);
