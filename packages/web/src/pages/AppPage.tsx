@@ -83,6 +83,8 @@ export function AppPage() {
     }
   }, [authLoading, isAuthenticated]);
 
+  // TEMPORARILY DISABLED - onboarding check
+  /*
   // Check onboarding status on mount
   useEffect(() => {
     if (isAuthenticated) {
@@ -100,6 +102,9 @@ export function AppPage() {
         });
     }
   }, []); // Run once on mount
+  */
+
+  // End temporarily disabled
 
   useEffect(() => {
     if (isConnected && address) {
