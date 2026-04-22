@@ -344,14 +344,15 @@ export default function RewardsPage() {
             >
               {defaultStats.map((stat, index) => {
                 let value = stat.value;
-                if (stat.label === 'Active Participants' && overallStats?.activeParticipants > 0) {
-                  value = (overallStats.activeParticipants || 0).toLocaleString();
-                } else if (stat.label === 'Events Tracked' && overallStats?.eventsTracked > 0) {
-                  value = (overallStats.eventsTracked || 0).toLocaleString();
+                const stats = overallStats || { totalEquityPool: '5%', activeParticipants: 0, eventsTracked: 0, rewardsClaimed: '0%' };
+                if (stat.label === 'Active Participants') {
+                  value = (stats.activeParticipants || 0).toLocaleString();
+                } else if (stat.label === 'Events Tracked') {
+                  value = (stats.eventsTracked || 0).toLocaleString();
                 } else if (stat.label === 'Total Equity Pool') {
-                  value = overallStats?.totalEquityPool || '5%';
+                  value = stats.totalEquityPool || '5%';
                 } else if (stat.label === 'Rewards Claimed') {
-                  value = overallStats?.rewardsClaimed || '0%';
+                  value = stats.rewardsClaimed || '0%';
                 }
                 return (
                   <motion.div 
