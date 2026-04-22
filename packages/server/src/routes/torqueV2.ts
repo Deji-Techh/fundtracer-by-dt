@@ -114,6 +114,23 @@ router.get('/v2/groups', async (req: Request, res: Response) => {
   }
 });
 
+// Get activity feed (public)
+router.get('/v2/activity', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+    const activities = await torqueServiceV2.getActivity(Math.min(limit, 20));
+    
+    res.json({
+      success: true,
+      activities,
+      timestamp: Date.now()
+    });
+  } catch (error: any) {
+    console.error('[TorqueV2] Activity error:', error);
+    res.status(500).json({ error: 'Failed to fetch activity' });
+  }
+});
+
 // Admin: Reset all data
 router.post('/v2/admin/reset', async (req: Request, res: Response) => {
   try {

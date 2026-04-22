@@ -1,0 +1,128 @@
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.activity-feed.loading,
+.activity-feed.empty,
+.activity-feed.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.activity-feed.empty svg,
+.activity-feed-error svg {
+  opacity: 0.5;
+  margin-bottom: 8px;
+}
+
+.activity-feed-empty small {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.activity-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--color-bg-elevated);
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  transition: border-color 0.2s;
+}
+
+.activity-item:hover {
+  border-color: var(--color-primary);
+}
+
+.activity-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--color-primary-alpha);
+  border-radius: 6px;
+  color: var(--color-primary);
+}
+
+.activity-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.activity-user {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.activity-wallet {
+  font-family: monospace;
+  color: var(--color-text-secondary);
+}
+
+.activity-chain {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: var(--color-bg-tertiary);
+  border-radius: 4px;
+  color: var(--color-text-muted);
+}
+
+.activity-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.activity-points {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.activity-time {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 600px) {
+  .activity-item {
+    padding: 8px 12px;
+  }
+  
+  .activity-content {
+    font-size: 12px;
+  }
+  
+  .activity-chain {
+    display: none;
+  }
+}

@@ -30,11 +30,23 @@ interface LeaderboardEntry {
   totalPoints: number;
 }
 
+interface ActivityEntry {
+  id: string;
+  userId: string;
+  displayName: string;
+  walletAddress: string;
+  chain: string;
+  points: number;
+  timestamp: number;
+}
+
 class TorqueServiceV2 {
   private apiKey: string;
   private ingestUrl: string;
   private isEnabled: boolean;
   private collection = 'torque_wallets';
+  private activityCollection = 'torque_activity';
+  private maxActivityEntries = 20;
 
   constructor() {
     this.apiKey = process.env.TORQUE_API_KEY || '';
@@ -327,6 +339,76 @@ class TorqueServiceV2 {
       });
     } catch (error) {
       console.error('[TorqueV2] API error:', error);
+    }
+  }
+
+  // Add activity entry (called after group scans)
+  async addActivity(userId: string, displayName: string, walletAddress: string, chain: string): Promise<void> {
+    try {
+      const db = getDb();
+      
+      // Add new activity entry
+      await db.collection(this.activityCollection).add({
+        userId,
+        displayName: displayName || 'Anonymous',
+        walletAddress: walletAddress.toLowerCase(),
+        chain: chain.toLowerCase(),
+        points: 10,
+        timestamp: Date.now()
+      });
+      
+      // Clean up old entries - keep only last 20
+      const snapshot = await db.collection(this.activityCollection)
+        .orderBy('timestamp', 'desc')
+        .get();
+      
+      if (snapshot.size > this.maxActivityEntries) {
+        const toDelete = snapshot.docs.slice(this.maxActivityEntries);
+        const batch = db.batch();
+        toDelete.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      }
+      
+      console.log(`[TorqueV2] Activity added: ${displayName} scanned ${walletAddress.slice(0, 10)}...`);
+    } catch (error) {
+      console.error('[TorqueV2] Add activity error:', error);
+    }
+  }
+
+  // Get recent activity (for web and Telegram)
+  async getActivity(limit: number = 10): Promise<ActivityEntry[]> {
+    try {
+      const cacheKey = 'torque:v2:activity';
+      
+      // Redis cache first (short TTL)
+      if (isRedisConnected()) {
+        const cached = await cacheGet<ActivityEntry[]>(cacheKey);
+        if (cached && cached.length > 0) {
+          return cached;
+        }
+      }
+      
+      const db = getDb();
+      const snapshot = await db.collection(this.activityCollection)
+        .orderBy('timestamp', 'desc')
+        .limit(limit)
+        .get();
+      
+      const activities: ActivityEntry[] = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        walletAddress: doc.data().walletAddress || ''
+      })) as ActivityEntry[];
+      
+      // Cache for 15 seconds
+      if (isRedisConnected() && activities.length > 0) {
+        await cacheSet(cacheKey, activities, 15);
+      }
+      
+      return activities;
+    } catch (error) {
+      console.error('[TorqueV2] Get activity error:', error);
+      return [];
     }
   }
 }

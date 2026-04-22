@@ -11,9 +11,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { 
   Trophy, Medal, Crown, Zap, Flame, Star, Gift, TrendingUp, 
   ChevronRight, RefreshCw, Share2, Wallet, Target, Shield,
-  Rocket, Sparkles, Award, Lock, Unlock, Infinity, Wallet2, Users
+  Rocket, Sparkles, Award, Lock, Unlock, Infinity, Wallet2, Users, Activity
 } from 'lucide-react';
 import TorqueLeaderboard from '../components/TorqueLeaderboard';
+import ActivityFeed from '../components/ActivityFeed';
 import { useAuth } from '../contexts/AuthContext';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 import './RewardsPage.css';
@@ -492,7 +493,7 @@ export default function RewardsPage() {
           </motion.h2>
 
           <div className="campaigns-tabs">
-            {['campaigns', 'leaderboard', 'groups'].map(tab => (
+            {['campaigns', 'leaderboard', 'activity', 'groups'].map(tab => (
               <motion.button
                 key={tab}
                 className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
@@ -502,6 +503,7 @@ export default function RewardsPage() {
               >
                 {tab === 'campaigns' && <Gift size={16} />}
                 {tab === 'leaderboard' && <Trophy size={16} />}
+                {tab === 'activity' && <Activity size={16} />}
                 {tab === 'groups' && <Users size={16} />}
                 {tab.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </motion.button>
@@ -641,7 +643,7 @@ export default function RewardsPage() {
               </motion.div>
             )}
 
-            {activeTab === 'groups' && (
+{activeTab === 'groups' && (
               <motion.div 
                 className="groups-view"
                 initial={{ opacity: 0 }}
@@ -675,13 +677,26 @@ export default function RewardsPage() {
                           <span>{(group.memberCount || 0)} members</span>
                         </div>
                         <div className="group-stats">
-                          <span className="group-points">{group.totalPoints || 0}</span>
+                          <span className="group-points">{(group.totalPoints || 0).toLocaleString()}</span>
                           <small>points</small>
                         </div>
                       </motion.div>
                     ))}
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {activeTab === 'activity' && (
+              <motion.div 
+                className="activity-view"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <h3>Live Activity</h3>
+                <p className="activity-subtitle">Real-time scans across all groups</p>
+                <ActivityFeed refreshInterval={20000} />
               </motion.div>
             )}
           </AnimatePresence>

@@ -36,6 +36,45 @@ function normalizeChainInput(input: string): string | null {
     return aliasMap[input.toLowerCase()] || null;
 }
 
+// Broadcast activity to all registered Telegram groups
+async function broadcastActivity(ctx: any, displayName: string, address: string, chain: string) {
+    try {
+        if (registeredGroups.size === 0) return;
+        
+        // Get recent activity to show trend
+        const recent = await torqueServiceV2.getActivity(1);
+        const isFirst = recent.length === 1 && recent[0].userId !== 'unknown';
+        
+        // Build activity message
+        const shortAddr = address.slice(0, 8) + '...' + address.slice(-4);
+        const activityMsg = `🔍 ${displayName} scanned ${shortAddr} on ${chain.toUpperCase()} (+10 pts)`;
+        
+        // Send to all registered groups (skip the group where scan happened)
+        const scanChatId = ctx.chat?.id;
+        const bot = ctx.telegram;
+        
+        let sent = 0;
+        for (const [chatId, group] of registeredGroups) {
+            // Skip the group where scan happened to avoid duplicate
+            if (scanChatId && chatId === scanChatId) continue;
+            
+            try {
+                await bot.sendMessage(chatId, activityMsg, { parse_mode: 'Markdown' });
+                sent++;
+            } catch (e) {
+                // Group may have left or bot was kicked
+                console.log(`[Telegram] Could not broadcast to ${chatId}`);
+            }
+        }
+        
+        if (sent > 0) {
+            console.log(`[Telegram] Broadcast activity to ${sent} groups`);
+        }
+    } catch (err) {
+        console.error('[Telegram] Broadcast error:', err);
+    }
+}
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
@@ -58,6 +97,7 @@ interface LinkedUser {
     pendingCode?: string;
     pendingAddress?: string;
     groupMode?: boolean;
+    displayName?: string;
 }
 
 interface PendingCode {
@@ -2552,6 +2592,11 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
                     totalScans: FieldValue.increment(1),
                     totalPoints: FieldValue.increment(10)
                 });
+                
+                // Add to activity feed and broadcast to all groups
+                const displayName = linkedUser.displayName || ctx.from.first_name || ctx.from.username || linkedUser.walletAddress.slice(0, 8) + '...';
+                await torqueServiceV2.addActivity(linkedUser.userId, displayName, address, chain);
+                await broadcastActivity(ctx, displayName, address, chain);
             } catch (err) {
                 console.error('[Telegram] Failed to update group stats:', err);
             }
