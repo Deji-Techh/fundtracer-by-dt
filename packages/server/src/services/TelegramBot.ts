@@ -359,7 +359,7 @@ function registerBotCommands() {
         
         if (!chatId) return;
         
-        // Check if already registered
+        // Check if already registered in memory
         if (registeredGroups.has(chatId)) {
             const existing = registeredGroups.get(chatId)!;
             await sendReply(ctx, 
@@ -368,6 +368,30 @@ function registerBotCommands() {
                 { parse_mode: 'Markdown' }
             );
             return;
+        }
+        
+        // Check if already registered in Firestore (prevents duplicate groups)
+        try {
+            const db = require('../firebase.js').getFirestore();
+            const existingGroup = await db.collection('torque_groups')
+                .where('chatId', '==', String(chatId))
+                .limit(1)
+                .get();
+            
+            if (existingGroup.size > 0) {
+                const data = existingGroup.docs[0].data();
+                const groupId = existingGroup.docs[0].id;
+                registeredGroups.set(chatId, { groupId, groupName: data.groupName, adminId: data.adminId });
+                
+                await sendReply(ctx, 
+                    `Group already registered as: *${data.groupName}*\n` +
+                    'Use /groupstats to view stats.',
+                    { parse_mode: 'Markdown' }
+                );
+                return;
+            }
+        } catch (err) {
+            console.error('[Telegram] Failed to check existing group:', err);
         }
         
         // Ask for group name - use Telegram'sConversation middleware approach
