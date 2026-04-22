@@ -79,18 +79,26 @@ export function SettingsView() {
   const fetchTorqueStats = async () => {
     setTorqueLoading(true);
     try {
-      // Use profile uid as userId query param
       const userId = profile?.uid;
-      console.log('[Torque] Fetching stats, userId:', userId);
+      console.log('[Torque] Fetching v2 stats, userId:', userId);
       const url = userId 
-        ? `/api/torque/stats/detailed?userId=${encodeURIComponent(userId)}`
-        : '/api/torque/stats/detailed';
+        ? `/api/torque/v2/mystats`
+        : '/api/torque/v2/mystats';
       console.log('[Torque] URL:', url);
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: userId ? { 'Authorization': `Bearer ${localStorage.getItem('fundtracer_token')}` } : {}
+      });
       const data = await res.json();
       console.log('[Torque] Response:', data);
       if (data.success) {
-        setTorqueStats(data.stats);
+        setTorqueStats({
+          points: data.stats?.totalPoints || 0,
+          rank: data.stats?.rank || 0,
+          walletsAnalyzed: data.stats?.walletsScanned || 0,
+          sybilsDetected: 0,
+          referrals: 0,
+          streak: 0
+        });
       }
     } catch (err) {
       console.error('Failed to fetch Torque stats:', err);
