@@ -13,6 +13,30 @@ Multi-chain blockchain forensics platform for tracing wallet funds, detecting Sy
 
 ---
 
+## Rewards Program
+
+FundTracer uses Torque for growth primitives - leaderboards, event tracking, and equity rewards.
+
+| Feature | Status |
+|---------|--------|
+| Wallet Analyzer Leaderboard | Active |
+| Sybil Hunter | Coming Soon |
+| Streak Rewards | Coming Soon |
+| Referral Program | Coming Soon |
+
+**How it works:**
+- Analyze wallets → earn 10 points per scan
+- Points determine your rank on the leaderboard
+- Top performers earn equity in FundTracer
+
+**API:**
+- Leaderboard: `GET /api/torque/v2/leaderboard`
+- My Stats: `GET /api/torque/v2/mystats` (auth required)
+
+See [TORQUE.md](./TORQUE.md) for full technical documentation.
+
+---
+
 ## Products
 
 ### Web App
