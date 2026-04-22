@@ -188,7 +188,7 @@ export default function RewardsPage() {
       let userMatches: any[] = [];
       if (selectedCampaign) {
         try {
-          const res = await fetch(`/api/torque/leaderboard/${selectedCampaign}`);
+          const res = await fetch('/api/torque/v2/leaderboard');
           if (res.ok) {
             const data = await res.json();
             const q = query.toLowerCase();

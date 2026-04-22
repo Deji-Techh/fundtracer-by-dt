@@ -29,9 +29,9 @@ export default function TorqueLeaderboard({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLeaderboard = async () => {
+const fetchLeaderboard = async () => {
     try {
-      const response = await fetch(`/api/torque/leaderboard/${campaignId}`);
+      const response = await fetch('/api/torque/v2/leaderboard');
       
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
@@ -52,11 +52,13 @@ export default function TorqueLeaderboard({
     }
   };
 
+  const getPointsLabel = () => 'Wallets Scanned';
+
   useEffect(() => {
     fetchLeaderboard();
     const interval = setInterval(fetchLeaderboard, refreshInterval);
     return () => clearInterval(interval);
-  }, [campaignId, refreshInterval]);
+  }, [refreshInterval]);
 
   const formatAddress = (addr: string) => {
     if (!addr) return 'Unknown';
@@ -73,19 +75,6 @@ export default function TorqueLeaderboard({
         return <Medal className="rank-icon bronze" size={18} />;
       default:
         return <span className="rank-number">{rank}</span>;
-    }
-  };
-
-  const getPointsLabel = () => {
-    switch (campaignId) {
-      case 'sybil-hunter':
-        return 'Sybils Found';
-      case 'top-analyzer':
-        return 'Wallets Analyzed';
-      case 'streak':
-        return 'Day Streak';
-      default:
-        return 'Points';
     }
   };
 

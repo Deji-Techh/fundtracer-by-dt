@@ -12,7 +12,7 @@ import {
     saveGroupChat, deleteGroupPendingScan, savePendingLinkUser, deletePendingLinkUser,
     isUsingRedis, getMemoryStats
 } from '../utils/telegramRedis';
-import { torqueService } from './TorqueService.js';
+import { torqueServiceV2 } from './TorqueServiceV2.js';
 
 (globalThis as any).fetch = fetch;
 
@@ -263,70 +263,39 @@ function registerBotCommands() {
     });
 
     async function showLeaderboardAll(ctx: any) {
-        const [allEntries, analyzerEntries, sybilEntries] = await Promise.all([
-            torqueService.getLeaderboard('all'),
-            torqueService.getLeaderboard('top-analyzer'),
-            torqueService.getLeaderboard('sybil-hunter'),
-        ]);
+        const entries = await torqueServiceV2.getLeaderboard();
+        const total = await torqueServiceV2.getTotalScanned();
         
-        let text = 'Rewards Leaderboard\n\n';
+        let text = 'Wallet Analyzer Leaderboard\n\n';
         text += '--------------------------------\n';
-        text += 'POINTS\n';
-        if (allEntries.length === 0) {
-            text += 'No entries yet.\n';
+        text += `Total Wallets Scanned: ${total}\n\n`;
+        if (entries.length === 0) {
+            text += 'No entries yet. Be the first!\n';
         } else {
-            for (const entry of allEntries.slice(0, 5)) {
+            for (const entry of entries.slice(0, 10)) {
                 const name = entry.displayName || entry.userId?.slice(0, 8) || '?';
-                text += `${entry.rank}. ${name}  ${entry.score} pts\n`;
-            }
-        }
-        text += '\nWALLETS ANALYZED\n';
-        if (analyzerEntries.length === 0) {
-            text += 'No entries yet.\n';
-        } else {
-            for (const entry of analyzerEntries.slice(0, 5)) {
-                const name = entry.displayName || entry.userId?.slice(0, 8) || '?';
-                text += `${entry.rank}. ${name}  ${entry.score}\n`;
-            }
-        }
-        text += '\nSYBIL HUNTER\n';
-        if (sybilEntries.length === 0) {
-            text += 'No entries yet.\n';
-        } else {
-            for (const entry of sybilEntries.slice(0, 5)) {
-                const name = entry.displayName || entry.userId?.slice(0, 8) || '?';
-                text += `${entry.rank}. ${name}  ${entry.score}\n`;
+                text += `${entry.rank}. ${name}  ${entry.walletsScanned} scans, ${entry.totalPoints} pts\n`;
             }
         }
         text += '\n--------------------------------\n';
-        text += 'Powered by FundTracer + Torque\n';
+        text += 'Powered by Torque\n';
         
         await sendReply(ctx, text);
     }
 
     async function showPersonalStats(ctx: any, user: LinkedUser) {
-        const [stats, entries] = await Promise.all([
-            torqueService.getUserStats(user.userId),
-            torqueService.getLeaderboard('all'),
-        ]);
+        const stats = await torqueServiceV2.getMyStats(user.userId);
         
         if (!stats) {
             await sendReply(ctx, 'Stats unavailable. Try again later.');
             return;
         }
         
-        const position = entries.findIndex(e => e.userId === user.userId);
-        const rank = position >= 0 ? position + 1 : stats.rank;
-        const detailed = await torqueService.getDetailedUserStats(user.userId);
-        
-        let text = 'Your Rewards\n\n';
+        let text = 'Your Stats\n\n';
         text += '--------------------------------\n';
-        text += `Points: ${stats.points}\n`;
-        text += `Rank: #${rank}\n`;
-        text += `Wallets: ${detailed.walletsAnalyzed}\n`;
-        text += `Sybils: ${detailed.sybilsDetected}\n`;
-        text += `Streak: ${stats.streak} days\n`;
-        text += `Referrals: ${detailed.referrals}\n`;
+        text += `Wallets Scanned: ${stats.walletsScanned}\n`;
+        text += `Points: ${stats.totalPoints}\n`;
+        text += `Rank: #${stats.rank}\n`;
         text += '\n--------------------------------\n';
         text += 'Refresh: /personalrewardslb';
         

@@ -24,6 +24,7 @@ import { cacheGetCached, cacheSetCached } from '../services/apiCache.js';
 import { sendEmail, buildFirstAnalysisEmail } from '../services/EmailService.js';
 import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
 import { trackAnalysisEvent, TORQUE_EVENTS, TORQUE_CAMPAIGNS, torqueService } from '../services/TorqueService.js';
+import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -604,8 +605,8 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     }
                 ).catch(err => console.error('[Torque] Failed to track first analysis:', err));
                 
-                // Direct stats update for first analysis (100 points)
-                await torqueService.updateUserStats(req.user.uid, 'first_analysis', {}).catch(err => console.error('[Torque] Direct stats update failed:', err));
+                // V2: Increment scan count
+                await torqueServiceV2.incrementScan(req.user.uid).catch(err => console.error('[TorqueV2] Scan increment failed:', err));
             } else {
                 // Increment analysis count
                 await db.collection('users').doc(req.user.uid).set(
@@ -626,8 +627,8 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     }
                 ).catch(err => console.error('[Torque] Failed to track wallet analyzed:', err));
                 
-                // Direct stats update (10 points per wallet)
-                await torqueService.updateUserStats(req.user.uid, 'wallet_analyzed', {}).catch(err => console.error('[Torque] Direct stats update failed:', err));
+                // V2: Increment scan count
+                await torqueServiceV2.incrementScan(req.user.uid).catch(err => console.error('[TorqueV2] Scan increment failed:', err));
             }
         }
     } catch (error: any) {
