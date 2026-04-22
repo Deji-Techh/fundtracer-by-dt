@@ -84,6 +84,8 @@ export function AppPage() {
     }
   }, [authLoading, isAuthenticated]);
 
+  // DISABLED - onboarding modal removed
+/*
   // Check onboarding status on mount - use proper auth
   useEffect(() => {
     if (isAuthenticated) {
@@ -108,6 +110,7 @@ export function AppPage() {
         });
     }
   }, [isAuthenticated]);
+*/
 
   useEffect(() => {
     if (isConnected && address) {

@@ -122,6 +122,8 @@ function EVMMainApp() {
 
   useEffect(() => { trackVisit(); }, []);
   
+  // DISABLED - onboarding modal removed
+/*
   // Run on mount - ALWAYS check onboarding status when component mounts
   useEffect(() => {
     if (isAuthenticated) {
@@ -146,6 +148,7 @@ function EVMMainApp() {
         });
     }
   }, []); // Empty deps = run once on mount
+*/
   
   useEffect(() => {
     if (isAuthenticated && profile?.uid) {

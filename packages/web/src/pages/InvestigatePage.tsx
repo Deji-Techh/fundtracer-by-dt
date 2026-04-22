@@ -199,6 +199,8 @@ function InvestigateMainApp() {
   // Track visit
   useEffect(() => { trackVisit(); }, []);
   
+  // DISABLED - onboarding modal removed
+/*
   // Run on mount - ALWAYS check onboarding status when component mounts
   useEffect(() => {
     if (user) {
@@ -223,6 +225,7 @@ function InvestigateMainApp() {
         });
     }
   }, []); // Empty deps = run once on mount
+*/
   
   // PoH verification check
   useEffect(() => {
