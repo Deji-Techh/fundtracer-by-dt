@@ -839,3 +839,88 @@
   .campaigns-grid { grid-template-columns: 1fr; }
   .cta-content h2 { font-size: 22px; }
 }
+
+/* Groups View */
+.groups-view {
+  padding: 20px 0;
+}
+
+.groups-view h3 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.groups-subtitle {
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+}
+
+.groups-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-text-muted);
+}
+
+.groups-empty h3 {
+  margin-top: 16px;
+}
+
+.groups-empty p {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--color-bg-elevated);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.group-rank {
+  width: 40px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.group-rank svg:first-child {
+  color: #f59e0b;
+}
+
+.group-info {
+  flex: 1;
+}
+
+.group-info h4 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.group-info span {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.group-stats {
+  text-align: right;
+}
+
+.group-points {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.group-stats small {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}

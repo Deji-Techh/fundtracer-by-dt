@@ -11,7 +11,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { 
   Trophy, Medal, Crown, Zap, Flame, Star, Gift, TrendingUp, 
   ChevronRight, RefreshCw, Share2, Wallet, Target, Shield,
-  Rocket, Sparkles, Award, Lock, Unlock, Infinity, Wallet2
+  Rocket, Sparkles, Award, Lock, Unlock, Infinity, Wallet2, Users
 } from 'lucide-react';
 import TorqueLeaderboard from '../components/TorqueLeaderboard';
 import { useAuth } from '../contexts/AuthContext';
@@ -120,6 +120,7 @@ export default function RewardsPage() {
   });
   const [campaignStats, setCampaignStats] = useState<Record<string, { participants: number; totalEvents: number }>>({});
   const [userStats, setUserStats] = useState<{ points: number; rank: number; streak: number } | null>(null);
+  const [groupStats, setGroupStats] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -216,6 +217,17 @@ export default function RewardsPage() {
               streak: 0
             });
           }
+        }
+
+        // Fetch groups leaderboard
+        try {
+          const groupsRes = await fetch('/api/torque/v2/groups');
+          if (groupsRes.ok) {
+            const data = await groupsRes.json();
+            setGroupStats(data.groups || []);
+          }
+        } catch (groupsError) {
+          console.error('[RewardsPage] Failed to fetch groups:', groupsError);
         }
       } catch (error) {
         console.error('[RewardsPage] Failed to fetch stats:', error);
@@ -480,7 +492,7 @@ export default function RewardsPage() {
           </motion.h2>
 
           <div className="campaigns-tabs">
-            {['campaigns', 'leaderboard'].map(tab => (
+            {['campaigns', 'leaderboard', 'groups'].map(tab => (
               <motion.button
                 key={tab}
                 className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
@@ -490,6 +502,7 @@ export default function RewardsPage() {
               >
                 {tab === 'campaigns' && <Gift size={16} />}
                 {tab === 'leaderboard' && <Trophy size={16} />}
+                {tab === 'groups' && <Users size={16} />}
                 {tab.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </motion.button>
             ))}
@@ -625,6 +638,50 @@ export default function RewardsPage() {
                     </div>
                   )}
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'groups' && (
+              <motion.div 
+                className="groups-view"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <h3>Group Leaderboards</h3>
+                <p className="groups-subtitle">Compete with your Telegram group!</p>
+                
+                {groupStats.length === 0 ? (
+                  <div className="groups-empty">
+                    <Users size={48} />
+                    <h3>No Groups Yet</h3>
+                    <p>Use /registergroup in Telegram to start a group leaderboard</p>
+                  </div>
+                ) : (
+                  <div className="groups-list">
+                    {groupStats.map((group, index) => (
+                      <motion.div
+                        key={group.groupId}
+                        className="group-card"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <div className="group-rank">
+                          {index === 0 ? <Crown size={24} /> : index === 1 ? <Medal size={24} /> : <span>#{index + 1}</span>}
+                        </div>
+                        <div className="group-info">
+                          <h4>{group.groupName}</h4>
+                          <span>{(group.memberCount || 0)} members</span>
+                        </div>
+                        <div className="group-stats">
+                          <span className="group-points">{group.totalPoints || 0}</span>
+                          <small>points</small>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
