@@ -15,9 +15,20 @@ router.get('/v2/leaderboard', async (req: Request, res: Response) => {
     const entries = await torqueServiceV2.getLeaderboard();
     const total = await torqueServiceV2.getTotalScanned();
     
+    // Map backend fields to frontend fields
+    const mappedEntries = entries.map(entry => ({
+      rank: entry.rank,
+      userId: entry.userId,
+      displayName: entry.displayName,
+      score: entry.totalPoints || 0,
+      walletsScanned: entry.walletsScanned || 0,
+      change: 0,
+      isCurrentUser: false
+    }));
+    
     res.json({
       success: true,
-      entries,
+      entries: mappedEntries,
       totalScanned: total,
       timestamp: Date.now()
     });
