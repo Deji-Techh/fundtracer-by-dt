@@ -5,6 +5,7 @@
 
 import fetch from 'node-fetch';
 import { Telegraf, Markup } from 'telegraf';
+import { FieldValue } from 'firebase-admin/firestore';
 import { initRedis } from '../utils/redis';
 import { 
     linkedUsers, pendingCodes, groupChats, groupPendingScans, pendingLinkUsers,
@@ -49,6 +50,10 @@ interface PendingCode {
 }
 
 const chains = ['ethereum', 'linea', 'arbitrum', 'base', 'optimism', 'polygon'];
+
+// Registered groups for Torque group stats
+const registeredGroups = new Map<number, { groupId: string; groupName: string; adminId: number }>();
+
 const chainEmojis: Record<string, string> = {
     ethereum: '🔷', linea: '⚫', arbitrum: '🔵', base: '🔵', optimism: '🔴', polygon: '🟣'
 };
@@ -180,6 +185,8 @@ export async function createTelegramBot() {
             { command: 'frequency', description: 'Set alert frequency' },
             { command: 'rewardslb', description: 'View rewards leaderboard' },
             { command: 'personalrewardslb', description: 'Your personal rewards' },
+            { command: 'registergroup', description: 'Register this group (admin)' },
+            { command: 'groupstats', description: 'View group stats' },
         ]);
         console.log('[Telegram] Commands registered with menu');
 
@@ -321,6 +328,86 @@ function registerBotCommands() {
         await showPersonalStats(ctx, linkedUser);
     });
 
+    // /registergroup - Register this group with a name
+    bot.command('registergroup', async (ctx: any) => {
+        const chatId = ctx.chat?.id;
+        const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+        
+        if (!isGroup) {
+            await sendReply(ctx, 'This command only works in groups.');
+            return;
+        }
+        
+        if (!chatId) return;
+        
+        // Check if already registered
+        if (registeredGroups.has(chatId)) {
+            const existing = registeredGroups.get(chatId)!;
+            await sendReply(ctx, 
+                `Group already registered as: *${existing.groupName}*\n` +
+                'Use /groupstats to view stats.',
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
+        
+        // Ask for group name - use Telegram'sConversation middleware approach
+        await sendReply(ctx, 
+            'What name would you like to register this group with?'
+        );
+        
+        // Set user state to awaiting group name
+        pendingLinkUsers.set(ctx.from.id, { step: 'awaiting_group_name', chatId });
+    });
+
+    // /groupstats - Show group stats
+    bot.command('groupstats', async (ctx: any) => {
+        const chatId = ctx.chat?.id;
+        const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+        
+        if (!isGroup) {
+            await sendReply(ctx, 'This command only works in groups.');
+            return;
+        }
+        
+        if (!chatId) return;
+        
+        const group = registeredGroups.get(chatId);
+        if (!group) {
+            await sendReply(ctx, 
+                'Group not registered.\n' +
+                'Admins: Use /registergroup to register.'
+            );
+            return;
+        }
+        
+        // Get group stats from Firestore
+        try {
+            const db = require('../firebase.js').getFirestore();
+            const groupDoc = await db.collection('torque_groups').doc(group.groupId).get();
+            const data = groupDoc.data();
+            
+            if (!data) {
+                await sendReply(ctx, `Group: *${group.groupName}*\nNo scans yet.`);
+                return;
+            }
+            
+            const text = [
+                `Group: *${group.groupName}*`,
+                `--------------------------------`,
+                `Total Scans: ${data.totalScans || 0}`,
+                `Total Points: ${data.totalPoints || 0}`,
+                `Members: ${data.memberCount || 0}`,
+                `--------------------------------`,
+                `Use /registergroup to update name`
+            ].join('\n');
+            
+            await sendReply(ctx, text, { parse_mode: 'Markdown' });
+        } catch (err) {
+            await sendReply(ctx, `Group: *${group.groupName}*\nUnable to fetch stats.`);
+        }
+    });
+
     // /link - Connect account
         bot.command('link', async (ctx: any) => {
             const linkedUser = linkedUsers.get(ctx.from.id);
@@ -456,6 +543,49 @@ function registerBotCommands() {
                     );
                     return;
                 }
+            }
+            
+            // Check if user is registering a group name
+            if (pendingLink && pendingLink.step === 'awaiting_group_name') {
+                const groupName = text.trim();
+                const chatId = pendingLink.chatId;
+                
+                if (groupName.length < 2 || groupName.length > 50) {
+                    await sendReply(ctx, 'Group name must be 2-50 characters.');
+                    return;
+                }
+                
+                // Generate unique group ID
+                const groupId = `group_${chatId}_${Date.now()}`;
+                
+                // Store in memory
+                registeredGroups.set(chatId, { groupId, groupName, adminId: telegramId });
+                
+                // Store in Firestore
+                try {
+                    const db = require('../firebase.js').getFirestore();
+                    await db.collection('torque_groups').doc(groupId).set({
+                        groupId,
+                        groupName,
+                        adminId: telegramId,
+                        chatId,
+                        totalScans: 0,
+                        totalPoints: 0,
+                        memberCount: 0,
+                        createdAt: Date.now()
+                    });
+                } catch (err) {
+                    console.error('[Telegram] Failed to save group:', err);
+                }
+                
+                pendingLinkUsers.delete(telegramId);
+                
+                await sendReply(ctx, 
+                    `Group registered as: *${groupName}*\n` +
+                    'All wallet scans by members will count toward this group!',
+                    { parse_mode: 'Markdown' }
+                );
+                return;
             }
 
             // Check if linked user is selecting chain for scan
@@ -2262,7 +2392,24 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
         // Use plain text to avoid markdown parse errors
         await sendReply(ctx, msg);
 
+        // Save to history and update group stats if in registered group
         saveScanHistory(linkedUser.userId, address, chain, result.overallRiskScore || 0);
+        
+        // Update group stats if user is in a registered group
+        const chatId = ctx.chat?.id;
+        if (chatId && registeredGroups.has(chatId)) {
+            const group = registeredGroups.get(chatId)!;
+            try {
+                const db = require('../firebase.js').getFirestore();
+                const groupRef = db.collection('torque_groups').doc(group.groupId);
+                await groupRef.update({
+                    totalScans: FieldValue.increment(1),
+                    totalPoints: FieldValue.increment(10)
+                });
+            } catch (err) {
+                console.error('[Telegram] Failed to update group stats:', err);
+            }
+        }
 
     } catch (e: any) {
         await sendReply(ctx, `Scan failed: ${e.message}`);
