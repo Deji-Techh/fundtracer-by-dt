@@ -35,6 +35,15 @@ interface BlogPost {
 const blogPosts: BlogPost[] = [
   {
     id: '0',
+    title: 'FundTracer v2: The Leaderboard That Actually Works',
+    excerpt: 'We rebuilt our rewards system from scratch. See how we achieved 98% Firestore read reduction and built a leaderboard that scales.',
+    category: 'Engineering',
+    date: '2026-04-22',
+    readTime: '5 min read',
+    slug: 'fundtracer-v2-leaderboard-rebuilt',
+  },
+  {
+    id: '1',
     title: 'FundTracer x Torque: Earn Equity for Analyzing Wallets',
     excerpt: 'We\'ve integrated Torque to power our equity-based loyalty program. Learn how to earn 5% equity ownership by analyzing wallets.',
     category: 'Announcement',

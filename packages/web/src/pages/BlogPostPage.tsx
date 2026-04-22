@@ -35,6 +35,93 @@ const navItems = [
 ];
 
 const blogPostsData: Record<string, BlogPost> = {
+  'fundtracer-v2-leaderboard-rebuilt': {
+    id: '0',
+    title: 'FundTracer v2: The Leaderboard That Actually Works',
+    excerpt: 'We rebuilt our rewards system from scratch. See how we achieved 98% Firestore read reduction and built a leaderboard that scales.',
+    category: 'Engineering',
+    date: '2026-04-22',
+    readTime: '5 min read',
+    author: 'FundTracer Team',
+    slug: 'fundtracer-v2-leaderboard-rebuilt',
+    content: `
+## Why We Rebuilt Everything
+
+Our v1 leaderboard had potential but hit real problems:
+- Multiple campaigns created confusion
+- Expensive rank queries (full collection scans)
+- Firebase quota issues (49K reads/day)
+- N+1 query problems
+
+We needed something simpler. One leaderboard. One metric. Production-ready.
+
+## The v2 Architecture
+
+### Firestore Schema (New)
+\`\`\`javascript
+// Collection: torque_wallets/{userId}
+{
+  walletsScanned: number,    // THE metric
+  totalPoints: number,     // scanned * 10
+  rank: number,          // calculated ON WRITE
+  displayName: string
+}
+\`\`\`
+
+### Key Innovation: Rank on Write, Not Read
+
+**Old (v1):** Calculate rank every time a user checks stats
+\`\`\`javascript
+const rank = await db.collection('torque_user_stats')
+  .where('points', '>', userPoints)
+  .count()  // Full collection scan = expensive!
+\`\`\`
+
+**New (v2):** Calculate rank when user scans
+\`\`\`javascript
+await incrementScan(userId);
+await recalculateRanks();  // One-time batch update
+\`\`\`
+
+This shifts O(read requests) to O(write events). Since writes are rare (~100/day) vs reads (~1000/day), we save ~95% of Firestore reads.
+
+## Performance Results
+
+| Metric | v1 | v2 | Reduction |
+|--------|-----|-----|-----------|
+| Daily Firestore Reads | ~49,000 | ~700 | **98%** |
+| Leaderboard Queries | ~5,000 | ~96 | **98%** |
+| Rank Calculations | Expensive each time | Cached | **100%** |
+
+## What Changed
+
+1. **Single leaderboard** - Wallet Analyzer only
+2. **Clean API** - /api/torque/v2/*
+3. **Redis caching** - 5 min TTL
+4. **Telegram commands** - /rewardslb and /personalrewardslb
+5. **Stable refresh** - 60 seconds (won't hit quota)
+
+## The Result
+
+A leaderboard that:
+- Updates in real-time
+- Works in Telegram groups
+- Doesn't hit Firebase quotas
+- Scales with more users
+
+## Try It Out
+
+1. Scan a wallet at fundtracer.xyz
+2. Check your rank: /personalrewardslb in Telegram
+3. View the leaderboard: /rewardslb
+
+The leaderboard updates within 5 seconds of your scan.
+
+---
+
+*Engineering by Deji Tech*
+`,
+  },
   'fundtracer-torque-equity-rewards': {
     id: '0',
     title: 'FundTracer x Torque: Earn Equity for Analyzing Wallets',
