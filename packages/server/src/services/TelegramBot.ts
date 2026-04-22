@@ -17,6 +17,25 @@ import { torqueServiceV2 } from './TorqueServiceV2.js';
 
 (globalThis as any).fetch = fetch;
 
+// Helper to normalize chain input aliases
+function normalizeChainInput(input: string): string | null {
+    const aliasMap: Record<string, string> = {
+        'eth': 'ethereum',
+        'linea': 'linea',
+        'pol': 'polygon',
+        'polygon': 'polygon',
+        'matic': 'polygon',
+        'arb': 'arbitrum',
+        'arbitrum': 'arbitrum',
+        'base': 'base',
+        'opt': 'optimism',
+        'optimism': 'optimism',
+        'bsc': 'bsc',
+        'binance': 'bsc',
+    };
+    return aliasMap[input.toLowerCase()] || null;
+}
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
@@ -408,6 +427,146 @@ function registerBotCommands() {
         }
     });
 
+    // /join - Join a group's leaderboard
+    bot.command('join', async (ctx: any) => {
+        const chatId = ctx.chat?.id;
+        const telegramId = ctx.from?.id;
+        const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+        
+        if (!isGroup) {
+            await sendReply(ctx, 'This command only works in groups.');
+            return;
+        }
+        
+        if (!chatId || !telegramId) return;
+        
+        // Get group from /registergroup or warn
+        const group = registeredGroups.get(chatId);
+        if (!group) {
+            await sendReply(ctx, 
+                'Group not registered yet.\nAsk admin to use /registergroup first!',
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
+        
+        // Add member to group
+        try {
+            const db = require('../firebase.js').getFirestore();
+            const groupRef = db.collection('torque_groups').doc(group.groupId);
+            const groupDoc = await groupRef.get();
+            const data = groupDoc.data();
+            
+            const members = data?.members || [];
+            const telegramIdStr = String(telegramId);
+            
+            if (!members.includes(telegramIdStr)) {
+                members.push(telegramIdStr);
+                await groupRef.update({
+                    members,
+                    memberCount: members.length
+                });
+                
+                await sendReply(ctx, 
+                    `✅ Joined *${group.groupName}*!\n` +
+                    `You are member #${members.length}`,
+                    { parse_mode: 'Markdown' }
+                );
+            } else {
+                await sendReply(ctx, `You're already a member!`);
+            }
+        } catch (err) {
+            await sendReply(ctx, 'Failed to join. Try again.');
+        }
+    });
+
+    // /leave - Leave a group's leaderboard
+    bot.command('leave', async (ctx: any) => {
+        const chatId = ctx.chat?.id;
+        const telegramId = ctx.from?.id;
+        const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+        
+        if (!isGroup) {
+            await sendReply(ctx, 'This command only works in groups.');
+            return;
+        }
+        
+        if (!chatId || !telegramId) return;
+        
+        const group = registeredGroups.get(chatId);
+        if (!group) {
+            await sendReply(ctx, 'Group not registered.');
+            return;
+        }
+        
+        try {
+            const db = require('../firebase.js').getFirestore();
+            const groupRef = db.collection('torque_groups').doc(group.groupId);
+            const groupDoc = await groupRef.get();
+            const data = groupDoc.data();
+            
+            const members = data?.members || [];
+            const telegramIdStr = String(telegramId);
+            
+            const idx = members.indexOf(telegramIdStr);
+            if (idx > -1) {
+                members.splice(idx, 1);
+                await groupRef.update({
+                    members,
+                    memberCount: members.length
+                });
+                
+                await sendReply(ctx, `Left *${group.groupName}*!`, { parse_mode: 'Markdown' });
+            } else {
+                await sendReply(ctx, `You're not a member!`);
+            }
+        } catch (err) {
+            await sendReply(ctx, 'Failed to leave. Try again.');
+        }
+    });
+
+    // /groupleaderboard - Show group members ranked
+    bot.command('groupleaderboard', async (ctx: any) => {
+        const chatId = ctx.chat?.id;
+        
+        if (!chatId) return;
+        
+        const group = registeredGroups.get(chatId);
+        if (!group) {
+            await sendReply(ctx, 'Group not registered. Ask admin to use /registergroup');
+            return;
+        }
+        
+        try {
+            const db = require('../firebase.js').getFirestore();
+            const groupDoc = await db.collection('torque_groups').doc(group.groupId).get();
+            const data = groupDoc.data();
+            
+            if (!data || !data.members?.length) {
+                await sendReply(ctx, `No members yet. Use /join to join!`);
+                return;
+            }
+            
+            // Get members' stats from torque_wallets
+            const members = data.members;
+            
+            let text = `*${group.groupName} Leaderboard*\n--------------------------------\n`;
+            
+            for (let i = 0; i < Math.min(members.length, 10); i++) {
+                const tid = members[i];
+                // Note: we'd need to map telegram ID to user wallet to get points
+                // For now, just show member count
+            }
+            
+            text += `Members: ${members.length}\n`;
+            text += `--------------------------------\n`;
+            
+            await sendReply(ctx, text, { parse_mode: 'Markdown' });
+        } catch (err) {
+            await sendReply(ctx, 'Unable to load leaderboard.');
+        }
+    });
+
     // /link - Connect account
         bot.command('link', async (ctx: any) => {
             const linkedUser = linkedUsers.get(ctx.from.id);
@@ -571,6 +730,7 @@ function registerBotCommands() {
                         chatId,
                         totalScans: 0,
                         totalPoints: 0,
+                        members: [],
                         memberCount: 0,
                         createdAt: Date.now()
                     });
@@ -666,44 +826,6 @@ function registerBotCommands() {
                 await sendReply(ctx, 'Select blockchain:', { parse_mode: 'Markdown', reply_markup: Markup.inlineKeyboard(buttons) });
             }
         });
-
-        // Helper to normalize chain input aliases
-        function normalizeChainInput(input: string): string | null {
-            const aliasMap: Record<string, string> = {
-                'eth': 'ethereum',
-                'linea': 'linea',
-                'pol': 'polygon',
-                'polygon': 'polygon',
-                'matic': 'polygon',
-                'arb': 'arbitrum',
-                'arbitrum': 'arbitrum',
-                'base': 'base',
-                'opt': 'optimism',
-                'optimism': 'optimism',
-                'bsc': 'bsc',
-                'binance': 'bsc',
-            };
-            return aliasMap[input.toLowerCase()] || null;
-        }
-
-        // Helper to normalize chain input aliases
-        function normalizeChainInput(input: string): string | null {
-            const aliasMap: Record<string, string> = {
-                'eth': 'ethereum',
-                'linea': 'linea',
-                'pol': 'polygon',
-                'polygon': 'polygon',
-                'matic': 'polygon',
-                'arb': 'arbitrum',
-                'arbitrum': 'arbitrum',
-                'base': 'base',
-                'opt': 'optimism',
-                'optimism': 'optimism',
-                'bsc': 'bsc',
-                'binance': 'bsc',
-            };
-            return aliasMap[input.toLowerCase()] || null;
-        }
 
         // /contract - Contract analysis (requires linked account)
         bot.command('contract', async (ctx: any) => {
