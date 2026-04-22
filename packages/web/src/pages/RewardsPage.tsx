@@ -346,9 +346,9 @@ export default function RewardsPage() {
                 let value = stat.value;
                 const stats = overallStats || { totalEquityPool: '5%', activeParticipants: 0, eventsTracked: 0, rewardsClaimed: '0%' };
                 if (stat.label === 'Active Participants') {
-                  value = (stats.activeParticipants || 0).toLocaleString();
+                  value = (stats?.activeParticipants ?? 0).toLocaleString();
                 } else if (stat.label === 'Events Tracked') {
-                  value = (stats.eventsTracked || 0).toLocaleString();
+                  value = (stats?.eventsTracked ?? 0).toLocaleString();
                 } else if (stat.label === 'Total Equity Pool') {
                   value = stats.totalEquityPool || '5%';
                 } else if (stat.label === 'Rewards Claimed') {

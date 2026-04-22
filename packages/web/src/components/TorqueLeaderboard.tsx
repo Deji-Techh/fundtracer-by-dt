@@ -190,7 +190,7 @@ const fetchLeaderboard = async () => {
                 </div>
                 {showPoints && (
                   <div className="entry-score">
-                    <span className="score">{entry.score.toLocaleString()}</span>
+                    <span className="score">{(entry.score ?? 0).toLocaleString()}</span>
                     <span className="label">{getPointsLabel()}</span>
                   </div>
                 )}
