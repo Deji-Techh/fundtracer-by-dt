@@ -24,79 +24,42 @@ const navItems = LANDING_NAV_ITEMS.map(item =>
 
 const campaigns = [
   {
-    id: 'top-analyzer',
-    title: 'Top Analyzer Championship',
-    description: 'Most wallets analyzed wins the biggest equity share',
+    id: 'wallet-analyzer',
+    title: 'Wallet Analyzer',
+    description: 'Analyze wallets to earn equity',
     icon: Target,
     color: '#f59e0b',
-    reward: '2.7%',
+    reward: '5%',
     type: 'leaderboard',
-    participants: 847,
+    participants: 0,
     endsIn: null,
     prize: [
-      { place: '1st', amount: '1.5%', icon: Crown },
-      { place: '2nd', amount: '0.75%', icon: Medal },
-      { place: '3rd', amount: '0.35%', icon: Medal },
-    ]
-  },
+      { place: '1st', amount: '2.5%', icon: Crown },
+      { place: '2nd', amount: '1.5%', icon: Medal },
+      { place: '3rd', amount: '1.0%', icon: Medal },
+    ],
+    active: true
+  }
+];
+
+const comingSoon = [
   {
     id: 'sybil-hunter',
-    title: 'Sybil Hunter League',
-    description: 'Detect the most sybil attacks and earn equity',
+    title: 'Sybil Hunter',
     icon: Shield,
-    color: '#ef4444',
-    reward: '1.75%',
-    type: 'leaderboard',
-    participants: 523,
-    endsIn: 'Weekly',
-    prize: [
-      { place: '1st', amount: '1.0%', icon: Crown },
-      { place: '2nd', amount: '0.5%', icon: Medal },
-      { place: '3rd', amount: '0.25%', icon: Medal },
-    ]
-  },
-  {
-    id: 'early-adopter',
-    title: 'Early Adopter Rewards',
-    description: 'First 50 users to analyze wallets get equity rewards',
-    icon: Rocket,
-    color: '#8b5cf6',
-    reward: '0.5%',
-    type: 'raffle',
-    participants: 42,
-    endsIn: 'Open',
-    prize: [
-      { place: 'Winners', amount: '0.01% each', icon: Star },
-    ]
+    color: '#6b7280',
   },
   {
     id: 'streak',
-    title: 'Active Analyst Streak',
-    description: 'Maintain a 7-day analysis streak for weekly rewards',
+    title: 'Streak Rewards',
     icon: Flame,
-    color: '#f97316',
-    reward: '0.5%',
-    type: 'streak',
-    participants: 189,
-    endsIn: 'Weekly',
-    prize: [
-      { place: '5 winners', amount: '0.1% each', icon: Award },
-    ]
+    color: '#6b7280',
   },
   {
     id: 'referral',
-    title: 'Referral Program',
-    description: 'Invite friends and earn equity for both of you',
+    title: 'Referral',
     icon: Wallet2,
-    color: '#10b981',
-    reward: '0.3%',
-    type: 'referral',
-    participants: 134,
-    endsIn: 'Always',
-    prize: [
-      { place: 'Referrer', amount: '0.15%', icon: Gift },
-      { place: 'Referee', amount: '0.10%', icon: Gift },
-    ]
+    color: '#6b7280',
   }
 ];
 
@@ -139,13 +102,7 @@ const howItWorks = [
 ];
 
 const REWARDS_TABLE = [
-  { action: 'Analyze a wallet', event: 'wallet_analyzed', points: 10, description: 'Per wallet analyzed' },
-  { action: 'First analysis', event: 'first_analysis', points: 100, description: 'One-time bonus' },
-  { action: 'Detect sybil attack', event: 'sybil_detected', points: 50, description: 'Per sybil cluster identified' },
-  { action: 'Compare wallets', event: 'compare_wallets', points: 20, description: 'Per comparison' },
-  { action: 'Analyze contract', event: 'contract_analyzed', points: 15, description: 'Per contract analyzed' },
-  { action: 'Share on X', event: 'share_on_twitter', points: 25, description: 'One-time bonus' },
-  { action: 'Refer a friend', event: 'invite_friend', points: 30, description: 'Per successful referral' },
+  { action: 'Analyze a wallet', points: 10, description: 'Per wallet analyzed' },
 ];
 
 export default function RewardsPage() {
@@ -485,7 +442,7 @@ export default function RewardsPage() {
               <tbody>
                 {REWARDS_TABLE.map((reward, index) => (
                   <motion.tr
-                    key={reward.event}
+                    key={reward.action}
                     initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
