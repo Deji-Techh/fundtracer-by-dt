@@ -191,31 +191,30 @@ export default function RewardsPage() {
       const token = localStorage.getItem('fundtracer_token');
       
       try {
-        // Fetch overall stats
-        const overallRes = await fetch('/api/torque/overall-stats');
+        // Fetch v2 leaderboard (includes totalScanned count)
+        const overallRes = await fetch('/api/torque/v2/leaderboard');
         if (overallRes.ok) {
           const data = await overallRes.json();
-          setOverallStats(data);
+          setOverallStats({
+            totalEquityPool: '5%',
+            activeParticipants: data.totalScanned || 0,
+            eventsTracked: data.totalScanned || 0,
+            rewardsClaimed: '0%'
+          });
         }
 
-        // Fetch campaign-specific stats
-        const campaignIds = ['top-analyzer', 'sybil-hunter', 'early-adopter', 'streak', 'referral'];
-        for (const id of campaignIds) {
-          const res = await fetch(`/api/torque/campaign-stats/${id}`);
-          if (res.ok) {
-            const data = await res.json();
-            setCampaignStats(prev => ({ ...prev, [id]: data }));
-          }
-        }
-
-        // Fetch user stats if logged in
+        // Fetch user stats if logged in (v2)
         if (token) {
-          const userStatsRes = await fetch('/api/torque/stats', {
-            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          const userStatsRes = await fetch('/api/torque/v2/mystats', {
+            headers: { 'Authorization': `Bearer ${token}` }
           });
           if (userStatsRes.ok) {
             const data = await userStatsRes.json();
-            setUserStats(data.stats);
+            setUserStats({
+              points: data.stats?.totalPoints || 0,
+              rank: data.stats?.rank || 0,
+              streak: 0
+            });
           }
         }
       } catch (error) {
@@ -225,8 +224,8 @@ export default function RewardsPage() {
 
     fetchStats();
     
-    // Refresh stats every 10 seconds
-    const interval = setInterval(fetchStats, 10000);
+    // Refresh stats every 60 seconds (stable)
+    const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -345,12 +344,14 @@ export default function RewardsPage() {
             >
               {defaultStats.map((stat, index) => {
                 let value = stat.value;
-                if (stat.label === 'Active Participants' && overallStats.activeParticipants > 0) {
-                  value = overallStats.activeParticipants.toLocaleString();
-                } else if (stat.label === 'Events Tracked' && overallStats.eventsTracked > 0) {
-                  value = overallStats.eventsTracked.toLocaleString();
+                if (stat.label === 'Active Participants' && overallStats?.activeParticipants > 0) {
+                  value = (overallStats.activeParticipants || 0).toLocaleString();
+                } else if (stat.label === 'Events Tracked' && overallStats?.eventsTracked > 0) {
+                  value = (overallStats.eventsTracked || 0).toLocaleString();
+                } else if (stat.label === 'Total Equity Pool') {
+                  value = overallStats?.totalEquityPool || '5%';
                 } else if (stat.label === 'Rewards Claimed') {
-                  value = overallStats.rewardsClaimed;
+                  value = overallStats?.rewardsClaimed || '0%';
                 }
                 return (
                   <motion.div 
