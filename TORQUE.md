@@ -1,64 +1,58 @@
-# FundTracer x Torque — Equity Rewards Engine (v2 Fresh Start)
+# FundTracer x Torque — Equity Rewards Engine (v3)
 
-> How FundTracer uses Torque for growth primitives — simplified, optimized, ready for production.
+> How FundTracer uses Torque for growth primitives — now with groups, activity feed, and Telegram broadcast.
 
-## The Old Problem
+## The Evolution
 
-The v1 implementation had:
-- Multiple campaigns (5 leaderboards)
-- Complex filtering logic
-- Expensive `.count()` queries for rank
-- N+1 query issues
-- Redis cache key complexity
-- Firebase quota issues (49K reads/day)
+| Version | Key Feature | Limitation |
+|---------|-----------|----------|
+| v1 | Multiple campaigns | 49K reads/day quota issues |
+| v2 | Single leaderboard, rank on write | No groups, no live feed |
+| **v3** | Group leaderboards + Live activity feed | Production-ready |
 
-## The v2 Solution
-
-One leaderboard. One metric. Clean architecture.
-
----
-
-## Architecture
+## Architecture (v3)
 
 ```
-User scans a wallet
+User scans wallet (Telegram group)
         |
         v
-  POST /api/analyze/wallet
-        |
-        v
-  torqueServiceV2.incrementScan()
+  performScan() in TelegramBot
         |
         +---> Firestore: torque_wallets/{uid}
-        |     - walletsScanned +1
-        |     - totalPoints +10
-        |     - rank updated (on write)
+        |     walletsScanned +1, totalPoints +10
+        |     rank recalculated (on write)
+        |
+        +---> Firestore: torque_groups/{groupId}
+        |     totalScans +1, totalPoints +10
+        |
+        +---> Firestore: torque_activity (NEW)
+        |     userId, displayName, walletAddress, chain, timestamp
+        |     (auto-cleanup: keep last 20)
         |
         +---> Torque Ingest API (async)
         |
+        +---> Telegram broadcast (NEW)
+              Broadcast to all registered groups
+              "🔍 username scanned 0x1234... on LINEA (+10 pts)"
+        
         v
-  GET /api/torque/v2/leaderboard
-        |
-        +---> Redis cache (5 min TTL)
-        |     key: torque:v2:leaderboard
-        |
-        +---> Firestore query (if cache miss)
-        |
-        v
-  Frontend displays
+  GET /api/torque/v2/leaderboard → Leaderboard display
+  GET /api/torque/v2/activity  → Live activity feed
+  GET /api/torque/v2/groups    → Group leaderboards
 ```
 
 ---
 
-## Firestore Schema (v2)
+## Firestore Schema (v3)
+
+### Collection: `torque_wallets/{userId}`
 
 ```javascript
-// Collection: torque_wallets/{userId}
 {
   userId: string,           // doc ID
   walletsScanned: number,   // THE metric
   totalPoints: number,     // walletsScanned * 10
-  rank: number,             // calculated on write
+  rank: number,         // calculated on write
   firstScanAt: timestamp,
   lastScanAt: timestamp,
   displayName: string,
@@ -67,41 +61,73 @@ User scans a wallet
 }
 ```
 
-**Key insight:** Rank is calculated on WRITE, not on read. No more expensive `.count()` queries.
+### Collection: `torque_groups/{groupId}` (NEW)
+
+```javascript
+{
+  groupId: string,         // Telegram chat ID
+  groupName: string,
+  adminId: string,        // Telegram user ID of admin
+  chatId: string,
+  totalScans: number,
+  totalPoints: number,
+  members: string[],     // Array of Telegram IDs who joined
+  memberCount: number,
+  createdAt: timestamp
+}
+```
+
+### Collection: `torque_activity/{docId}` (NEW)
+
+```javascript
+{
+  userId: string,
+  displayName: string,
+  walletAddress: string,
+  chain: string,
+  points: number,
+  timestamp: number
+}
+```
+
+**Auto-cleanup:** Keep last 20 entries. Delete older on each new insert.
 
 ---
 
-## Redis Keys (v2)
+## Redis Keys (v3)
 
 | Key | Data | TTL |
 |-----|------|-----|
 | `torque:v2:leaderboard` | Top 50 entries | 5 min |
 | `torque:v2:user:{uid}` | User's stats | 5 min |
+| `torque:v2:activity` | Last 10 activities | 15 sec |
 | `torque:v2:total` | Total scanned count | 5 min |
 
 ---
 
-## API Endpoints (v2)
+## API Endpoints (v3)
 
 | Method | Route | Auth | Description |
-|--------|-------|------|------|
+|--------|-------|------|-------|
 | GET | `/api/torque/v2/leaderboard` | No | Top 50 leaderboard |
 | GET | `/api/torque/v2/mystats` | Yes | User's stats + rank |
+| GET | `/api/torque/v2/activity` | No | Last 10 activities (NEW) |
+| GET | `/api/torque/v2/groups` | No | Group leaderboards (NEW) |
 | POST | `/api/torque/v2/scan` | Yes | Increment on each scan |
 | POST | `/api/torque/v2/admin/reset` | Admin | Wipe all data |
 
 ---
 
-## Points System (v2)
+## Points System (v3)
 
-| Action | Points | How it's tracked |
-|--------|--------|------------------|
+| Action | Points | Tracking |
+|--------|--------|----------|
 | Wallet scanned | 10 pts | Auto on scan |
-| First scan | +100 (one-time) | In wallet scan logic |
+| Group member scan | +group points | Broadcast to all groups |
 
 ---
 
-## Rank Calculation (v2)
+## Rank Calculation
 
 **Before (v1):** Expensive on every read
 ```javascript
@@ -110,68 +136,161 @@ const rank = await db.collection('torque_user_stats')
   .count()  // Full collection scan!
 ```
 
-**After (v2):** Efficient on write only
+**After (v2+):** Efficient on write only
 ```javascript
 // Called only when user scans
 await recalculateRanks()  // One-time batch update
 await docRef.update({ rank: newRank })
 ```
 
-This changes the query pattern from O(read requests) to O(write events). Since writes are rare compared to reads, this saves ~95% of Firestore reads.
-
 ---
 
 ## Read Reduction Results
 
-| Metric | v1 | v2 |
-|--------|-----|-----|
-| Reads per leaderboard view | ~5K/day | ~96/day |
-| Rank calculation | `.count()` each time | Cached, derived from leaderboard |
-| Leaderboard cache | 60-120s | 5 min (stable) |
-| **Total estimated** | ~49K/day | ~700/day |
+| Metric | v1 | v2 | v3 |
+|--------|-----|-----|-----|
+| Reads per leaderboard view | ~5K/day | ~96/day | ~96/day |
+| Activity feed polls | - | - | ~2K/day |
+| Rank calculation | `.count()` | Cached | Cached |
+| Leaderboard cache | 60-120s | 5 min | 5 min |
+| **Total estimated** | ~49K/day | ~700/day | ~2.7K/day |
+
+**v3 Firebase read estimate:**
+- Leaderboard: 100 users × 4 polls/hour × 24h = 9,600/day ÷ 50 cache ratio = ~192
+- Activity: 100 users × 3 polls/hour × 24h = 7,200/day ÷ 15s cache = ~480
+- Groups: Minimal polling
+
+**Well within free tier (50K/day).**
 
 ---
 
-## Frontend (v2)
+## Frontend Components (v3)
 
-- `<TorqueLeaderboard>` component fetches from `/api/torque/v2/leaderboard`
-- 60-second auto-refresh (stable, won't hit quota)
-- Manual refresh button
-- "Powered by Torque" badge
-- Coming Soon grid for future campaigns
+| Component | Location | Refresh | Description |
+|-----------|---------|---------|-----------|
+| `<TorqueLeaderboard>` | `components/TorqueLeaderboard.tsx` | 30s | Top 50 |
+| `<ActivityFeed>` | `components/ActivityFeed.tsx` | 20s | Live feed (NEW) |
+| RewardsPage tabs | `pages/RewardsPage.tsx` | - | campaigns / leaderboard / **activity** / groups |
+
+**Activity Feed Features:**
+- Real-time updates (20s poll interval)
+- Animate in new entries
+- Shows: username, wallet (shortened), chain, +10 pts, time ago
+- Max 8 visible, scroll for more
+- Empty state: "No recent scans yet"
 
 ---
 
-## Telegram (v2)
+## Telegram Commands (v3)
 
+### Personal
 ```
 /rewardslb → Shows top 10 + total scanned count
 /personalrewardslb → Your scans, points, rank
 ```
 
-Clean text output, no button pickers.
+### Group Setup
+```
+/registergroup → Register this group (admin only)
+/groupstats → View group stats
+/join → Join group leaderboard
+/leave → Leave group leaderboard
+```
+
+### Group Scanning
+```
+/groupmode → Enable basic commands for everyone
+/scan <address> → Scan any wallet
+/contract <addr> → Analyze contracts
+/token <addr> → Token prices
+/rugcheck <addr> → Check if token is scam
+/trending → Top tokens
+/pmarkets → Polymarket markets
+```
+
+### Activity Broadcast
+When a user scans in a registered group:
+1. Points increment in `torque_wallets`
+2. Activity saved to `torque_activity`
+3. **Broadcast to all other registered groups:**
+   ```
+   🔍 username scanned 0x1234... on LINEA (+10 pts)
+   ```
 
 ---
 
-## API Routes Connected
+## Live Activity Feed Architecture
 
-| Route | File | What's Updated |
-|-------|------|----------------|
-| `/api/analyze/wallet` | `analyze.ts` | Calls `torqueServiceV2.incrementScan()` |
+```
+User scans in group
+        |
+        v
+  torqueServiceV2.addActivity()
+        |
+        +---> Firestore: torque_activity (add)
+        |     +---> Cleanup old entries (keep 20)
+        |
+        +---> broadcastActivity() (Telegram)
+              |
+              +---> Get recent activity
+              +---> For each registered group:
+                    +---> Skip originating group
+                    +---> Send: "🔍 {name} scanned {addr}..."
+              |
+              v
+        Web polls: GET /api/torque/v2/activity
+              |
+              +---> Redis cache (15s)
+              +---> Return last 10
+              +---> Frontend renders
+```
+
+### Why Broadcast to All Groups?
+- Creates FOMO and social proof
+- Users see activity across ecosystem
+- Encourages more scanning
+- Telegram groups get real-time updates without polling
+
+### Quota Safety
+- Activity writes: 1 per scan
+- Activity reads: ~480/day (polling)
+- Telegram sends: Free (server to server)
+
+---
+
+## Group Features
+
+### Registration Flow
+1. Admin runs `/registergroup`
+2. Bot asks for group name
+3. Group saved to `torque_groups`
+4. Check Firestore first (prevents duplicates)
+
+### Member Tracking
+1. Members run `/join` in the group
+2. Telegram ID added to `members` array
+3. `memberCount` updated
+4. Can run `/leave` to remove
+
+### Duplicate Prevention (v3 fix)
+```javascript
+// Check Firestore before /registergroup
+const existing = await db.collection('torque_groups')
+  .where('chatId', '==', chatId)
+  .get();
+
+if (existing.size > 0) {
+  // Show existing group, don't create new
+}
+```
 
 ---
 
 ## Manual Reset (Admin)
 
-To wipe all data and start fresh:
-
+To wipe all data:
 ```bash
 curl -X POST "https://your-api.com/api/torque/v2/admin/reset?secret=fundtracer-admin-2024"
-```
-
-Response:
-```json
-{ "success": true, "deleted": 47, "cleared": 2 }
 ```
 
 ---
@@ -179,10 +298,11 @@ Response:
 ## Environment Variables
 
 ```
-TORQUE_API_KEY        # Torque ingest API key (optional - runs local without)
-TORQUE_INGEST_URL     # https://ingest.torque.so/events
-REDIS_URL            # Redis for caching
+TORQUE_API_KEY        # Torque ingest API key
+TORQUE_INGEST_URL    # https://ingest.torque.so/events
+REDIS_URL           # Redis for caching
 ADMIN_SECRET        # For admin reset endpoint
+TELEGRAM_BOT_TOKEN   # Telegram bot token
 ```
 
 ---
@@ -193,8 +313,20 @@ ADMIN_SECRET        # For admin reset endpoint
 |--------|-----------|
 | Works reliably | No quota issues |
 | Telegram integration | Most won't integrate TG |
+| Group features | Community-building angle |
+| Live activity feed | Real-time excitement |
 | Clean UI | Professional, not AI-looking |
-| One metric that updates | Confusing multi-campaign vs. simple |
+| One metric | Confusing multi-campaign vs. simple |
 | Production-ready caching | Others hit Firebase limits |
 
-The biggest differentiator: **It just works.** Half-baked leaderboards lose. FundTracer's leaderboard definitively updates without hitting quota.
+The biggest differentiator: **It just works.** Plus groups create community, and activity feed creates FOMO.
+
+---
+
+## What's Next (Roadmap)
+
+- [ ] Rank change alerts (Telegram DM when overtaken)
+- [ ] Achievement badges
+- [ ] Shareable stats card
+- [ ] Group vs group challenges
+- [ ] Torque campaign leaderboards (when available)
