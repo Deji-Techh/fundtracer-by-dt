@@ -13,6 +13,8 @@ import './SettingsView.css';
 
 type SettingsTab = 'profile' | 'account' | 'preferences' | 'security' | 'rewards';
 
+const DISABLED_TABS = ['rewards'];
+
 interface TorqueUserStats {
   points: number;
   rank: number;
@@ -80,20 +82,10 @@ export function SettingsView() {
     setTorqueLoading(true);
     try {
       const token = localStorage.getItem('fundtracer_token');
-      console.log('[Torque] Token exists:', !!token);
-      console.log('[Torque] Token value (first 20 chars):', token?.substring(0, 20));
-      console.log('[Torque] Token length:', token?.length);
-      console.log('[Torque] All localStorage keys:', Object.keys(localStorage).filter(k => k.includes('token')));
-      
-      const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
-      console.log('[Torque] Headers being sent:', Object.keys(headers));
-      
-      const res = await fetch('/api/torque-v2/mystats', {
-        headers: Object.keys(headers).length > 0 ? headers : undefined
+      const res = await fetch('/api/torque/v2/mystats', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
-      console.log('[Torque] Response status:', res.status);
       const data = await res.json();
-      console.log('[Torque] Response:', data);
       if (data.success) {
         setTorqueStats({
           points: data.stats?.totalPoints || 0,
@@ -358,8 +350,9 @@ export function SettingsView() {
           Security
         </button>
         <button 
-          className={`tab ${activeTab === 'rewards' ? 'active' : ''}`}
-          onClick={() => setActiveTab('rewards')}
+          className={`tab ${activeTab === 'rewards' ? 'active' : ''} ${DISABLED_TABS.includes('rewards') ? 'tab-disabled' : ''}`}
+          onClick={() => !DISABLED_TABS.includes('rewards') && setActiveTab('rewards')}
+          style={DISABLED_TABS.includes('rewards') ? { pointerEvents: 'none', opacity: 0.5 } : undefined}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="8" r="7"/>

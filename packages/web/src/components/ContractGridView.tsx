@@ -69,12 +69,8 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
     const navigate = useNavigate();
 
     try {
-        console.log('[ContractGridView] Rendering with result:', result);
-        console.log('[ContractGridView] Result keys:', result ? Object.keys(result) : 'null');
-
         // Defensive: ensure result exists and has required fields
         if (!result) {
-            console.log('[ContractGridView] No result, showing loading');
             return (
                 <div className="wallet-grid-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
                     <p>No contract data available</p>
@@ -86,8 +82,6 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
         const interactors = result?.interactors || [];
         const sharedFundingGroups = result?.sharedFundingGroups || [];
         const suspiciousPatterns = result?.suspiciousPatterns || [];
-
-        console.log('[ContractGridView] interactors:', interactors?.length, 'sharedFundingGroups:', sharedFundingGroups?.length, 'suspiciousPatterns:', suspiciousPatterns?.length);
 
     const chain = result?.chain || 'linea';
     const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };

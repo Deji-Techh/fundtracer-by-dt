@@ -286,10 +286,8 @@ export function InvestigateView({
 
     try {
       const response = await analyzeWallet(address, selectedChain, { limit: 100, offset: 0 });
-      console.log('[SUI] Wallet analysis response:', JSON.stringify(response).substring(0, 500));
       
       if (response?.result) {
-        console.log('[SUI] Setting wallet result, has transactions:', response.result.transactions?.length);
         setWalletResult(response.result);
         setResultsCache(prev => ({ ...prev, [cacheKey]: response.result }));
         saveResultToCache('wallet', response.result);
