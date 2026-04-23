@@ -220,15 +220,23 @@ export async function createTelegramBot() {
             { command: 'link', description: 'Connect FundTracer account' },
             { command: 'unlink', description: 'Disconnect account' },
             { command: 'status', description: 'View account status' },
+            // Analysis
+            { command: 'scan', description: 'Quick wallet scan' },
+            { command: 'contract', description: 'Scan a contract' },
+            { command: 'groupmode', description: 'Enable in groups' },
+            // Rewards
+            { command: 'rewardslb', description: 'View rewards leaderboard' },
+            { command: 'personalrewardslb', description: 'Your personal rewards' },
+            // Groups
+            { command: 'registergroup', description: 'Register this group (admin)' },
+            { command: 'groupstats', description: 'View group stats' },
+            { command: 'join', description: 'Join group leaderboard' },
+            { command: 'leave', description: 'Leave group leaderboard' },
+            { command: 'groupleaderboard', description: 'View group members' },
             // Watchlist
             { command: 'add', description: 'Add wallet to watchlist' },
             { command: 'list', description: 'View watched wallets' },
             { command: 'remove', description: 'Remove wallet from watchlist' },
-            // Analysis
-            { command: 'scan', description: 'Quick wallet scan' },
-            { command: 'contract', description: 'Scan a contract' },
-            { command: 'ask', description: 'Ask AI anything' },
-            { command: 'history', description: 'View scan history' },
             // Memecoin / Token
             { command: 'token', description: 'Token price & stats' },
             { command: 'rugcheck', description: 'Token safety check' },
@@ -242,10 +250,9 @@ export async function createTelegramBot() {
             { command: 'pask', description: 'AI analysis of markets' },
             // Settings
             { command: 'frequency', description: 'Set alert frequency' },
-            { command: 'rewardslb', description: 'View rewards leaderboard' },
-            { command: 'personalrewardslb', description: 'Your personal rewards' },
-            { command: 'registergroup', description: 'Register this group (admin)' },
-            { command: 'groupstats', description: 'View group stats' },
+            // AI
+            { command: 'ask', description: 'Ask AI anything' },
+            { command: 'history', description: 'View scan history' },
         ]);
         console.log('[Telegram] Commands registered with menu');
 
@@ -294,38 +301,54 @@ function registerBotCommands() {
 
     // /help - Show commands
     bot.command('help', async (ctx: any) => {
-        await sendReply(ctx, 
-            '📚 *Commands*\n\n' +
-            '🔗 *Account*\n' +
-            '/link - Connect FundTracer account\n' +
-            '/unlink - Disconnect account\n\n' +
-            '👀 *Watchlist*\n' +
-            '/add - Add wallet to watch\n' +
-            '/list - View watched wallets\n' +
-            '/remove - Remove wallet\n\n' +
-            '🔍 *Analysis*\n' +
-            '/scan <address> - Quick wallet scan\n' +
-            '/contract <address> [chain] - Scan contract\n\n' +
-            '🪙 *Memecoin/Tokens*\n' +
-            '/token <addr> - Token price & stats\n' +
-            '/rugcheck <addr> - Safety analysis\n' +
-            '/trending - Top gainers & losers\n' +
-            '/newtokens - New launches\n\n' +
-            '📊 *Polymarket*\n' +
-            '/pmarkets [search] - Browse markets\n' +
-            '/ptrending - Volume spikes & hot\n' +
-            '/ptraders - Top traders\n' +
-            '/palerts - Your price alerts\n' +
-            '/pask <query> - AI analysis\n\n' +
-            '🤖 *AI Assistant*\n' +
-            '/ask <question> - Ask anything\n' +
-            '/history - View scan history\n\n' +
-            '⚙️ *Settings*\n' +
-            '/frequency - Set alert frequency\n' +
-            '/psettings - Polymarket alerts\n' +
-            '/status - View status',
-            { parse_mode: 'Markdown' }
-        );
+        const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
+        
+        let helpText = `📚 *Commands*\n\n`;
+        
+        helpText += `🔗 *Account*\n`;
+        helpText += `/link - Connect FundTracer account\n`;
+        helpText += `/unlink - Disconnect account\n\n`;
+        
+        helpText += `👀 *Watchlist*\n`;
+        helpText += `/add - Add wallet to watch\n`;
+        helpText += `/list - View watched wallets\n`;
+        helpText += `/remove - Remove wallet\n\n`;
+        
+        helpText += `🔍 *Analysis*\n`;
+        helpText += `/scan <address> - Quick wallet scan\n`;
+        helpText += `/contract <address> - Analyze contract\n`;
+        helpText += `/groupmode - Enable in groups (no link)\n\n`;
+        
+        helpText += `🏆 *Rewards & Equity*\n`;
+        helpText += `/rewardslb - View leaderboard\n`;
+        helpText += `/personalrewardslb - Your stats\n`;
+        
+        if (isGroup) {
+            helpText += `\n👥 *Group (Admin)*\n`;
+            helpText += `/registergroup - Register this group\n`;
+            helpText += `/groupstats - View group stats\n`;
+            helpText += `/join - Join group leaderboard\n`;
+            helpText += `/leave - Leave group\n`;
+            helpText += `/groupleaderboard - Group members\n`;
+        }
+        
+        helpText += `\n🪙 *Memecoin/Tokens*\n`;
+        helpText += `/token <addr> - Token price & stats\n`;
+        helpText += `/rugcheck <addr> - Safety analysis\n`;
+        helpText += `/trending - Top gainers & losers\n`;
+        helpText += `/newtokens - New launches\n\n`;
+        
+        helpText += `📊 *Polymarket*\n`;
+        helpText += `/pmarkets [search] - Browse markets\n`;
+        helpText += `/ptrending - Volume spikes\n`;
+        helpText += `/ptraders - Top traders\n`;
+        helpText += `/pask <query> - AI analysis\n\n`;
+        
+        helpText += `⚙️ *Settings*\n`;
+        helpText += `/frequency - Set alert frequency\n`;
+        helpText += `/status - View status`;
+        
+        await sendReply(ctx, helpText, { parse_mode: 'Markdown' });
     });
 
     async function showLeaderboardAll(ctx: any) {
