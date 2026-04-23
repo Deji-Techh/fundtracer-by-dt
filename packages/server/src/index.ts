@@ -513,9 +513,12 @@ apiRouter.use('/scan-history', apiKeyAuthMiddleware, authMiddleware, scanHistory
 apiRouter.use('/solana', apiKeyAuthMiddleware, authMiddleware, solanaRoutes); // Solana wallet analysis
 apiRouter.use('/notifications', apiKeyAuthMiddleware, authMiddleware, notificationRoutes); // User notifications
 
+// OLD: Torque Routes (has /referrals endpoint)
+apiRouter.use('/torque', authMiddleware, torqueRoutes);
+
 // NEW: Torque Routes v2 (fresh start)
 import { torqueRoutesV2 } from './routes/torqueV2.js';
-apiRouter.use('/torque', torqueRoutesV2);
+apiRouter.use('/torque/v2', authMiddleware, torqueRoutesV2);
 
 // NEW: Contract Scanner Routes
 import contractScannerRoutes from './routes/contractRoutes.js';
