@@ -79,15 +79,12 @@ export function SettingsView() {
   const fetchTorqueStats = async () => {
     setTorqueLoading(true);
     try {
-      const userId = profile?.uid;
-      console.log('[Torque] Fetching v2 stats, userId:', userId);
-      const url = userId 
-        ? `/api/torque/v2/mystats`
-        : '/api/torque/v2/mystats';
-      console.log('[Torque] URL:', url);
-      const res = await fetch(url, {
-        headers: userId ? { 'Authorization': `Bearer ${localStorage.getItem('fundtracer_token')}` } : {}
+      const token = localStorage.getItem('fundtracer_token');
+      console.log('[Torque] Token exists:', !!token);
+      const res = await fetch('/api/torque/v2/mystats', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
+      console.log('[Torque] Response status:', res.status);
       const data = await res.json();
       console.log('[Torque] Response:', data);
       if (data.success) {
