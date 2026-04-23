@@ -10,7 +10,7 @@ import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 const router = Router();
 
 // Get leaderboard (public)
-router.get('/v2/leaderboard', async (req: Request, res: Response) => {
+router.get('/leaderboard', async (req: Request, res: Response) => {
   try {
     const entries = await torqueServiceV2.getLeaderboard();
     const total = await torqueServiceV2.getTotalScanned();
@@ -39,7 +39,7 @@ router.get('/v2/leaderboard', async (req: Request, res: Response) => {
 });
 
 // Get my stats (requires auth)
-router.get('/v2/mystats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/mystats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.uid;
     
@@ -60,7 +60,7 @@ router.get('/v2/mystats', authMiddleware, async (req: AuthenticatedRequest, res:
 });
 
 // Increment scan (called after wallet analysis)
-router.post('/v2/scan', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/scan', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.uid;
     
@@ -86,7 +86,7 @@ router.post('/v2/scan', authMiddleware, async (req: AuthenticatedRequest, res: R
 });
 
 // Get groups leaderboard (public)
-router.get('/v2/groups', async (req: Request, res: Response) => {
+router.get('/groups', async (req: Request, res: Response) => {
   try {
     const db = require('../firebase.js').getFirestore();
     const snapshot = await db.collection('torque_groups')
@@ -115,7 +115,7 @@ router.get('/v2/groups', async (req: Request, res: Response) => {
 });
 
 // Get activity feed (public)
-router.get('/v2/activity', async (req: Request, res: Response) => {
+router.get('/activity', async (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const activities = await torqueServiceV2.getActivity(Math.min(limit, 20));
@@ -132,7 +132,7 @@ router.get('/v2/activity', async (req: Request, res: Response) => {
 });
 
 // Admin: Reset all data
-router.post('/v2/admin/reset', async (req: Request, res: Response) => {
+router.post('/admin/reset', async (req: Request, res: Response) => {
   try {
     const secretKey = req.query.secret as string;
     const ADMIN_SECRET = process.env.ADMIN_SECRET || 'fundtracer-admin-2024';

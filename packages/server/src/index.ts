@@ -514,11 +514,13 @@ apiRouter.use('/solana', apiKeyAuthMiddleware, authMiddleware, solanaRoutes); //
 apiRouter.use('/notifications', apiKeyAuthMiddleware, authMiddleware, notificationRoutes); // User notifications
 
 // OLD: Torque Routes (has /referrals endpoint)
-apiRouter.use('/torque', authMiddleware, torqueRoutes);
+// NOTE: Auth is handled inside torque.ts routes - each route handles its own auth
+apiRouter.use('/torque', torqueRoutes);
 
 // NEW: Torque Routes v2 (fresh start, mounted at /api/torque-v2 to avoid conflict)
+// NOTE: Auth is handled inside torqueV2.ts routes - only /v2/mystats and /v2/scan require auth
 import { torqueRoutesV2 } from './routes/torqueV2.js';
-apiRouter.use('/torque-v2', authMiddleware, torqueRoutesV2);
+apiRouter.use('/torque-v2', torqueRoutesV2);
 
 // NEW: Contract Scanner Routes
 import contractScannerRoutes from './routes/contractRoutes.js';

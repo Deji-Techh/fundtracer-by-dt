@@ -82,7 +82,7 @@ export function SettingsView() {
     setTorqueLoading(true);
     try {
       const token = localStorage.getItem('fundtracer_token');
-      const res = await fetch('/api/torque/v2/mystats', {
+      const res = await fetch('/api/torque-v2/mystats', {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       const data = await res.json();
