@@ -1,6 +1,6 @@
 # FundTracer x Torque — Equity Rewards Engine (v3)
 
-> How FundTracer uses Torque for growth primitives — now with groups, activity feed, and Telegram broadcast.
+> How FundTracer uses Torque for growth primitives — now with groups, activity feed, Telegram broadcast, and Web + Telegram scanning.
 
 ## The Evolution
 
@@ -8,12 +8,36 @@
 |---------|-----------|----------|
 | v1 | Multiple campaigns | 49K reads/day quota issues |
 | v2 | Single leaderboard, rank on write | No groups, no live feed |
-| **v3** | Group leaderboards + Live activity feed | Production-ready |
+| **v3** | Groups + Live activity + Web/TG scanning | Production-ready |
 
 ## Architecture (v3)
 
+### Web Scanning Flow
 ```
-User scans wallet (Telegram group)
+User scans on fundtracer.xyz
+        |
+        v
+  POST /api/analyze/wallet
+        |
+        v
+  torqueServiceV2.incrementScan(userId)
+        |
+        +---> Firestore: torque_wallets/{uid}
+        |     walletsScanned +1, totalPoints +10
+        |     rank recalculated (on write)
+        |
+        +---> Firestore: torque_activity
+        |     activity entry added
+        |
+        +---> Torque Ingest API (async)
+        |
+        v
+  Live activity feed updates
+```
+
+### Telegram Group Scanning Flow
+```
+User scans in Telegram group
         |
         v
   performScan() in TelegramBot
@@ -25,20 +49,18 @@ User scans wallet (Telegram group)
         +---> Firestore: torque_groups/{groupId}
         |     totalScans +1, totalPoints +10
         |
-        +---> Firestore: torque_activity (NEW)
-        |     userId, displayName, walletAddress, chain, timestamp
-        |     (auto-cleanup: keep last 20)
+        +---> Firestore: torque_activity
+        |     activity entry added
         |
         +---> Torque Ingest API (async)
         |
-        +---> Telegram broadcast (NEW)
-              Broadcast to all registered groups
+        +---> Telegram broadcast
               "🔍 username scanned 0x1234... on LINEA (+10 pts)"
+              (broadcasts to all OTHER registered groups)
         
         v
-  GET /api/torque/v2/leaderboard → Leaderboard display
-  GET /api/torque/v2/activity  → Live activity feed
-  GET /api/torque/v2/groups    → Group leaderboards
+  Live activity feed updates
+  Telegram groups notified
 ```
 
 ---
@@ -169,12 +191,15 @@ await docRef.update({ rank: newRank })
 | Component | Location | Refresh | Description |
 |-----------|---------|---------|-----------|
 | `<TorqueLeaderboard>` | `components/TorqueLeaderboard.tsx` | 30s | Top 50 |
-| `<ActivityFeed>` | `components/ActivityFeed.tsx` | 20s | Live feed (NEW) |
-| RewardsPage tabs | `pages/RewardsPage.tsx` | - | campaigns / leaderboard / **activity** / groups |
+| `<ActivityFeed>` | `components/ActivityFeed.tsx` | 20s | Live feed (web + TG scans) |
+| RewardsPage tabs | `pages/RewardsPage.tsx` | - | campaigns / leaderboard / activity / groups |
 
 **Activity Feed Features:**
 - Real-time updates (20s poll interval)
+- Captures BOTH web scans AND Telegram group scans
+- Telegram broadcasts to all OTHER groups (creates cross-group FOMO)
 - Animate in new entries
+- Max 8 visible, scroll for more
 - Shows: username, wallet (shortened), chain, +10 pts, time ago
 - Max 8 visible, scroll for more
 - Empty state: "No recent scans yet"
@@ -252,9 +277,19 @@ User scans in group
 - Telegram groups get real-time updates without polling
 
 ### Quota Safety
-- Activity writes: 1 per scan
+- Activity writes: 1 per scan (web + TG)
 - Activity reads: ~480/day (polling)
 - Telegram sends: Free (server to server)
+
+### Firestore-First Pattern (v3 fix)
+All group commands now check Firestore BEFORE memory:
+- `/groupstats` → loads from Firestore if not in memory
+- `/join` → loads from Firestore if not in memory
+- `/leave` → loads from Firestore if not in memory
+- `/registergroup` → prevents duplicate groups
+- Group scan → loads group from Firestore before updating
+
+This ensures groups survive server restarts. Memory is cache, Firestore is source of truth.
 
 ---
 
@@ -312,14 +347,20 @@ TELEGRAM_BOT_TOKEN   # Telegram bot token
 | Factor | Why It Wins |
 |--------|-----------|
 | Works reliably | No quota issues |
+| Web + Telegram | Dual entry point for users |
 | Telegram integration | Most won't integrate TG |
 | Group features | Community-building angle |
-| Live activity feed | Real-time excitement |
+| Live activity feed | Real-time excitement + FOMO |
+| Telegram broadcast | Cross-group visibility |
 | Clean UI | Professional, not AI-looking |
 | One metric | Confusing multi-campaign vs. simple |
 | Production-ready caching | Others hit Firebase limits |
+| Firestore-first pattern | Survives server restarts |
 
-The biggest differentiator: **It just works.** Plus groups create community, and activity feed creates FOMO.
+The biggest differentiator: **It just works.** Plus:
+- Groups create community
+- Activity feed creates FOMO
+- Dual scanning (web + TG) maximizes engagement
 
 ---
 

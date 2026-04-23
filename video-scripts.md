@@ -85,7 +85,7 @@ Across the whole community."
 
 ---
 
-## VIDEO 3: "Group Power" (60 seconds)
+## VIDEO 3: "Group Power" (90 seconds)
 ### Community Feature
 
 **[OPEN on Telegram group]**
@@ -96,29 +96,69 @@ Groups."
 
 **[SCREEN RECORD: /registergroup command]**
 
-"Register your Telegram group with one command.
+"Step 1: Admin registers the group
+/registergroup
+
+Name it whatever you want."
+
+**[SHOW: Group registered confirmation]**
+
+"Step 2: Members join the group
+/join
+
 Now every member's scans count toward your group."
-
-**[SHOW: group leaderboard]**
-
-"Your community.
-Your team.
-One leaderboard."
 
 **[COMPOSITE: multiple phones, same group]**
 
-"Everyone scans.
-Group earns.
-Top groups split the equity pool."
+"Step 3: Everyone scans
+Your group leaderboard updates in real-time.
+Group stats show total scans and points.
+Group activity broadcasts to all other FundTracer groups."
 
-**[TEXT ON SCREEN:**
-"Community-driven equity accumulation]
+**[SHOW: /groupstats showing group stats]**
 
-"This is how we build together."
+"View with /groupstats"
+
+**[SHOW: Live activity feed with group scans]**
+
+"Every scan shows live.
+Across ALL groups.
+Not just yours."
 
 ---
 
-## VIDEO 4: "The Ask" (45 seconds)
+## VIDEO 4: "Live Activity Feed" (60 seconds)
+### The FOMO Feature
+
+**[OPEN on rewards page activity tab]**
+
+**VOICEOVER:**
+"Here's the part that creates FOMO.
+The live activity feed."
+
+**[SHOW: Activity items appearing in real-time]**
+
+"Every scan across every group.
+Web or Telegram.
+Shows:
+Who scanned.
+What wallet.
+On what chain.
+How many points."
+
+**[QUICK CUTS: Multiple activity items appearing]**
+
+"Users see each other scanning.
+Creates competition.
+Creates community.
+Creates momentum."
+
+**[TEXT ON SCREEN:**
+"Real-time equity building"]
+
+---
+
+## VIDEO 5: "The Ask" (45 seconds)
 ### Call to Action
 
 **[CLEAN: FundTracer interface]**
@@ -132,9 +172,10 @@ It's that simple."
 
 **[STACK: benefits]**
 - Free to use
-- No sign-up required
+- Web + Telegram
 - Equity for scanning
-- Telegram + web
+- Group leaderboards
+- Live activity feed
 - Real-time leaderboard
 
 "Go to fundtracer.xyz or open Telegram.
@@ -147,7 +188,7 @@ Start earning."
 
 ---
 
-## VIDEO 5: "The Stack" (60 seconds)
+## VIDEO 6: "The Stack" (60 seconds)
 ### Technical Overview (for builders)
 
 **[CODE: Torque integration]**
@@ -227,6 +268,12 @@ Your group ranks together.
 Your group earns together.
 This is how we build equity, decentralized."
 
+### 30s Activity
+"Every wallet scan just became a live event.
+Watch the activity feed.
+Everyone sees everyone scanning.
+This is how communities build equity together."
+
 ---
 
 ## USEFUL FACTS FOR SCRIPT
@@ -238,3 +285,4 @@ This is how we build equity, decentralized."
 - Supported chains: ETH, Linea, Polygon, Arbitrum, Base, Optimism, BSC
 - Telegram bot: @FundTracer_Bot
 - Web: fundtracer.xyz
+- Commands: /scan, /registergroup, /join, /groupstats, /groupmode

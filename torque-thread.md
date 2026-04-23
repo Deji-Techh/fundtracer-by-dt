@@ -26,11 +26,12 @@ That's what we built with @torque_defi.
 - BSC
 
 Each scan = tracked by Torque = points toward equity pool.
+Web + Telegram.
 
 **Tweet 4 (The Mechanics)**
 Here's how it works:
 
-1. Scan a wallet (any wallet)
+1. Scan a wallet (web or Telegram)
 2. Earn 10 points per scan (tracked by Torque)
 3. Climb the leaderboard
 4. Top scanners share a 5% equity pool
@@ -43,13 +44,25 @@ But here's where it gets interesting...
 
 Use FundTracer in a Telegram group.
 Register your group with /registergroup.
-Members scan together.
+Members join with /join.
 Group leaderboard created.
-Communal equity accumulation.
 
 Your group = your team.
+Everyone's scans count toward group equity.
 
-**Tweet 6 (The Engine)**
+**Tweet 6 (Live Activity)**
+Here's the part that creates FOMO:
+
+Every scan shows live.
+Not just in your group.
+Across ALL groups using FundTracer.
+
+"🔍 @username scanned 0x1234... on Linea (+10 pts)"
+
+Real-time activity feed on rewards page.
+Everyone sees everyone scanning.
+
+**Tweet 7 (The Stack)**
 @torque_defi handles:
 - Event tracking
 - Leaderboard calculations
@@ -63,23 +76,21 @@ We handle:
 
 The best of both worlds.
 
-**Tweet 7 (Social Proof)**
+**Tweet 8 (Social Proof)**
 Already seeing groups compete:
-- "calls" group: scanning together
-- Live leaderboard updating
-- Activity feed showing real-time scans
+- Group leaderboards updating
+- Live activity feed showing real-time scans
+- Members joining via /join
 
-Community-driven equity. NoVC required.
+Community-driven equity. No VC required.
 
-**Tweet 8 (The Ask)**
+**Tweet 9 (The Ask)**
 We just launched on Superteam Earn.
 
-If you've ever wondered what a wallet was holding, who funds it, what it interacts with...
-
-Scan it on FundTracer.
-You'll learn something.
-You'll earn something.
-You'll be part of something.
+Go to fundtracer.xyz or search @FundTracer_Bot on Telegram.
+Scan a wallet.
+Earn equity.
+Build together.
 
 → fundtracer.xyz
 
@@ -89,24 +100,36 @@ You'll be part of something.
 
 **Option A (Community angle):**
 One scan. Ten points. Real equity.
+Live activity feed showing every scan across all groups.
 We built the first community-driven wallet scanner on @torque_defi.
-Here's the full breakdown 🧵
 
-**Option B (Alpha angle):**
-Stop paying for wallet trackers.
-@FundTracer pays YOU in equity for scanning wallets.
+**Option B (Activity angle):**
+Every wallet scan just became a live event.
+@FundTracer shows real-time activity across ALL groups.
 Here's how we built it with @torque_defi 👇
 
 **Option C (Clean):**
 Built a wallet scanner.
-Tracked usage with @torque_defi.
+Added live activity feed with @torque_defi.
 Turned it into an equity rewards program.
 This is how we did it 🧵
 
 ---
 
+## Key Features to Highlight
+
+- Web + Telegram scanning
+- 10 points per scan
+- 5% equity pool
+- Group leaderboards with /registergroup + /join
+- Live activity feed across all users
+- Real-time Telegram broadcasts
+- 12-24 month vesting
+
+---
+
 ## Hashtags
-#DeFi #Web3 #Equity #Crypto #Torque #Superteam #Earn
+#DeFi #Web3 #Equity #Crypto #Torque #Superteam #Earn #NFT
 
 ## Suggested Tags
 @torque_defi @FundTracer
