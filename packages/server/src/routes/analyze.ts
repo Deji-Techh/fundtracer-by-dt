@@ -607,6 +607,10 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 
                 // V2: Increment scan count
                 await torqueServiceV2.incrementScan(req.user.uid).catch(err => console.error('[TorqueV2] Scan increment failed:', err));
+                
+                // V2: Add to activity feed (web scans)
+                const displayName = userData?.displayName || userData?.name || 'User';
+                await torqueServiceV2.addActivity(req.user.uid, displayName, address, normalizedChain).catch(err => console.error('[TorqueV2] Activity failed:', err));
             } else {
                 // Increment analysis count
                 await db.collection('users').doc(req.user.uid).set(
@@ -629,6 +633,10 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 
                 // V2: Increment scan count
                 await torqueServiceV2.incrementScan(req.user.uid).catch(err => console.error('[TorqueV2] Scan increment failed:', err));
+                
+                // V2: Add to activity feed (web scans)
+                const displayName = userData?.displayName || userData?.name || 'User';
+                await torqueServiceV2.addActivity(req.user.uid, displayName, address, normalizedChain).catch(err => console.error('[TorqueV2] Activity failed:', err));
             }
         }
     } catch (error: any) {
