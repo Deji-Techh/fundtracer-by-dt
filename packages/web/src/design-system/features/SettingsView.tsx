@@ -81,8 +81,15 @@ export function SettingsView() {
     try {
       const token = localStorage.getItem('fundtracer_token');
       console.log('[Torque] Token exists:', !!token);
+      console.log('[Torque] Token value (first 20 chars):', token?.substring(0, 20));
+      console.log('[Torque] Token length:', token?.length);
+      console.log('[Torque] All localStorage keys:', Object.keys(localStorage).filter(k => k.includes('token')));
+      
+      const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+      console.log('[Torque] Headers being sent:', Object.keys(headers));
+      
       const res = await fetch('/api/torque/v2/mystats', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: Object.keys(headers).length > 0 ? headers : undefined
       });
       console.log('[Torque] Response status:', res.status);
       const data = await res.json();
@@ -113,9 +120,21 @@ export function SettingsView() {
   const fetchReferralData = async () => {
     try {
       const userId = profile?.uid;
-      if (!userId) return;
-      const res = await fetch(`/api/torque/referrals?userId=${encodeURIComponent(userId)}`);
+      const altUserId = user?.uid;
+      console.log('[Referral] profile?.uid:', userId);
+      console.log('[Referral] user?.uid:', altUserId);
+      console.log('[Referral] profile object:', profile);
+      console.log('[Referral] user object:', user);
+      if (!userId && !altUserId) {
+        console.log('[Referral] No user ID found, skipping');
+        return;
+      }
+      const finalUserId = userId || altUserId;
+      if (!finalUserId) return;
+      const res = await fetch(`/api/torque/referrals?userId=${encodeURIComponent(finalUserId)}`);
+      console.log('[Referral] Response status:', res.status);
       const data = await res.json();
+      console.log('[Referral] Response:', data);
       setReferralData(data);
     } catch (err) {
       console.error('Failed to fetch referral data:', err);

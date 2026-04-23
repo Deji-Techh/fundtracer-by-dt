@@ -152,9 +152,14 @@ function EVMMainApp() {
   
   useEffect(() => {
     if (isAuthenticated && profile?.uid) {
+      console.log('[EVMTabs Referral] profile.uid:', profile.uid);
       fetch(`/api/torque/referrals?userId=${encodeURIComponent(profile.uid)}`)
-        .then(res => res.json())
+        .then(res => {
+          console.log('[EVMTabs Referral] Response status:', res.status);
+          return res.json();
+        })
         .then(data => {
+          console.log('[EVMTabs Referral] Response:', data);
           setReferralData(data);
           const hasSeenReferral = localStorage.getItem('fundtracer_referral_onboarding');
           if (!hasSeenReferral && (data.referralCode || data.referredBy)) {
