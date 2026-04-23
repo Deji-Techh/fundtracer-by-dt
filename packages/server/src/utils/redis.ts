@@ -65,7 +65,7 @@ export async function getOrSet<T>(
   if (redis && isConnected) {
     try {
       const cached = await redis.get<string>(key);
-      if (cached) {
+      if (cached && typeof cached === 'string') {
         console.log('[Redis] getOrSet HIT:', key, 'valueLength:', cached.length);
         try {
           return JSON.parse(cached) as T;
@@ -118,7 +118,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   if (redis && isConnected) {
     try {
       const cached = await redis.get<string>(key);
-      if (cached) {
+      if (cached && typeof cached === 'string') {
         console.log('[Redis] cacheGet HIT:', key, 'valueLength:', cached.length, 'first50chars:', cached.substring(0, 50));
         try {
           return JSON.parse(cached) as T;
