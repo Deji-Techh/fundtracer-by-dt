@@ -455,7 +455,28 @@ function registerBotCommands() {
         
         if (!chatId) return;
         
-        const group = registeredGroups.get(chatId);
+        let group = registeredGroups.get(chatId);
+        
+        // If not in memory, check Firestore (handles server restarts)
+        if (!group) {
+            try {
+                const db = require('../firebase.js').getFirestore();
+                const existingGroup = await db.collection('torque_groups')
+                    .where('chatId', '==', String(chatId))
+                    .limit(1)
+                    .get();
+                
+                if (existingGroup.size > 0) {
+                    const data = existingGroup.docs[0].data();
+                    const groupId = existingGroup.docs[0].id;
+                    group = { groupId, groupName: data.groupName, adminId: data.adminId };
+                    registeredGroups.set(chatId, group);
+                }
+            } catch (err) {
+                console.error('[Telegram] Failed to check Firestore for group:', err);
+            }
+        }
+        
         if (!group) {
             await sendReply(ctx, 
                 'Group not registered.\n' +
@@ -504,8 +525,28 @@ function registerBotCommands() {
         
         if (!chatId || !telegramId) return;
         
-        // Get group from /registergroup or warn
-        const group = registeredGroups.get(chatId);
+        // Get group - check memory first, then Firestore
+        let group = registeredGroups.get(chatId);
+        
+        if (!group) {
+            try {
+                const db = require('../firebase.js').getFirestore();
+                const existingGroup = await db.collection('torque_groups')
+                    .where('chatId', '==', String(chatId))
+                    .limit(1)
+                    .get();
+                
+                if (existingGroup.size > 0) {
+                    const data = existingGroup.docs[0].data();
+                    const groupId = existingGroup.docs[0].id;
+                    group = { groupId, groupName: data.groupName, adminId: data.adminId };
+                    registeredGroups.set(chatId, group);
+                }
+            } catch (err) {
+                console.error('[Telegram] Failed to check Firestore for /join:', err);
+            }
+        }
+        
         if (!group) {
             await sendReply(ctx, 
                 'Group not registered yet.\nAsk admin to use /registergroup first!',
@@ -557,7 +598,28 @@ function registerBotCommands() {
         
         if (!chatId || !telegramId) return;
         
-        const group = registeredGroups.get(chatId);
+        // Get group - check memory first, then Firestore
+        let group = registeredGroups.get(chatId);
+        
+        if (!group) {
+            try {
+                const db = require('../firebase.js').getFirestore();
+                const existingGroup = await db.collection('torque_groups')
+                    .where('chatId', '==', String(chatId))
+                    .limit(1)
+                    .get();
+                
+                if (existingGroup.size > 0) {
+                    const data = existingGroup.docs[0].data();
+                    const groupId = existingGroup.docs[0].id;
+                    group = { groupId, groupName: data.groupName, adminId: data.adminId };
+                    registeredGroups.set(chatId, group);
+                }
+            } catch (err) {
+                console.error('[Telegram] Failed to check Firestore for /leave:', err);
+            }
+        }
+        
         if (!group) {
             await sendReply(ctx, 'Group not registered.');
             return;
@@ -595,7 +657,28 @@ function registerBotCommands() {
         
         if (!chatId) return;
         
-        const group = registeredGroups.get(chatId);
+        // Get group - check memory first, then Firestore
+        let group = registeredGroups.get(chatId);
+        
+        if (!group) {
+            try {
+                const db = require('../firebase.js').getFirestore();
+                const existingGroup = await db.collection('torque_groups')
+                    .where('chatId', '==', String(chatId))
+                    .limit(1)
+                    .get();
+                
+                if (existingGroup.size > 0) {
+                    const data = existingGroup.docs[0].data();
+                    const groupId = existingGroup.docs[0].id;
+                    group = { groupId, groupName: data.groupName, adminId: data.adminId };
+                    registeredGroups.set(chatId, group);
+                }
+            } catch (err) {
+                console.error('[Telegram] Failed to check Firestore for /groupleaderboard:', err);
+            }
+        }
+        
         if (!group) {
             await sendReply(ctx, 'Group not registered. Ask admin to use /registergroup');
             return;
@@ -2583,8 +2666,29 @@ async function performScan(ctx: any, linkedUser: LinkedUser, address: string, ch
         
         // Update group stats if user is in a registered group
         const chatId = ctx.chat?.id;
-        if (chatId && registeredGroups.has(chatId)) {
-            const group = registeredGroups.get(chatId)!;
+        let group = chatId ? registeredGroups.get(chatId) : null;
+        
+        // If not in memory, check Firestore (handles server restarts)
+        if (chatId && !group) {
+            try {
+                const db = require('../firebase.js').getFirestore();
+                const existingGroup = await db.collection('torque_groups')
+                    .where('chatId', '==', String(chatId))
+                    .limit(1)
+                    .get();
+                
+                if (existingGroup.size > 0) {
+                    const data = existingGroup.docs[0].data();
+                    const groupId = existingGroup.docs[0].id;
+                    group = { groupId, groupName: data.groupName, adminId: data.adminId };
+                    registeredGroups.set(chatId, group);
+                }
+            } catch (err) {
+                console.error('[Telegram] Failed to check Firestore for group update:', err);
+            }
+        }
+        
+        if (group) {
             try {
                 const db = require('../firebase.js').getFirestore();
                 const groupRef = db.collection('torque_groups').doc(group.groupId);
