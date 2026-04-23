@@ -66,7 +66,15 @@ export async function getOrSet<T>(
     try {
       const cached = await redis.get<string>(key);
       if (cached) {
-        return JSON.parse(cached) as T;
+        console.log('[Redis] getOrSet HIT:', key, 'valueLength:', cached.length);
+        try {
+          return JSON.parse(cached) as T;
+        } catch (parseError) {
+          console.error('[Redis] getOrSet JSON parse error, deleting corrupted key:', key, 'value:', cached.substring(0, 100));
+          await redis.del(key);
+        }
+      } else {
+        console.log('[Redis] getOrSet MISS:', key);
       }
     } catch (error) {
       console.error('[Redis] Get error:', error);
@@ -83,12 +91,15 @@ export async function getOrSet<T>(
     }
   }
   
+  console.log('[Redis] getOrSet FETCHING:', key);
   const data = await fetcher();
+  console.log('[Redis] getOrSet STORING:', key, 'ttl:', ttlSeconds);
   
   // Store in Redis
   if (redis && isConnected) {
     try {
       await redis.setex(key, ttlSeconds, JSON.stringify(data));
+      console.log('[Redis] getOrSet STORED:', key);
     } catch (error) {
       console.error('[Redis] Set error:', error);
     }
@@ -108,13 +119,16 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
     try {
       const cached = await redis.get<string>(key);
       if (cached) {
+        console.log('[Redis] cacheGet HIT:', key, 'valueLength:', cached.length, 'first50chars:', cached.substring(0, 50));
         try {
           return JSON.parse(cached) as T;
         } catch (parseError) {
-          console.error('[Redis] JSON parse error, deleting corrupted key:', key);
+          console.error('[Redis] JSON parse error, deleting corrupted key:', key, 'value:', cached.substring(0, 100));
           await redis.del(key);
           return null;
         }
+      } else {
+        console.log('[Redis] cacheGet MISS:', key);
       }
     } catch (error) {
       console.error('[Redis] Get error:', error);
@@ -136,10 +150,12 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
 
 export async function cacheSet<T>(key: string, value: T, ttlSeconds: number = 60): Promise<void> {
   const serialized = JSON.stringify(value);
+  console.log('[Redis] cacheSet:', key, 'ttl:', ttlSeconds, 'valueLength:', serialized.length);
   
   if (redis && isConnected) {
     try {
       await redis.setex(key, ttlSeconds, serialized);
+      console.log('[Redis] cacheSet SUCCESS:', key);
     } catch (error) {
       console.error('[Redis] Set error:', error);
     }
