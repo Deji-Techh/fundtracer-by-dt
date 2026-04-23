@@ -25,7 +25,7 @@ export default function ActivityFeed({ refreshInterval = 20000 }: ActivityFeedPr
 
   const fetchActivity = async () => {
     try {
-      const response = await fetch('/api/torque/v2/activity?limit=10');
+      const response = await fetch('/api/torque-v2/activity?limit=10');
       
       if (!response.ok) {
         setError('Failed to load activity');

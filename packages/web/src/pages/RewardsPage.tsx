@@ -147,7 +147,7 @@ export default function RewardsPage() {
       let userMatches: any[] = [];
       if (selectedCampaign) {
         try {
-          const res = await fetch('/api/torque/v2/leaderboard');
+          const res = await fetch('/api/torque-v2/leaderboard');
           if (res.ok) {
             const data = await res.json();
             const q = query.toLowerCase();
@@ -194,7 +194,7 @@ export default function RewardsPage() {
       
       try {
         // Fetch v2 leaderboard (includes totalScanned count)
-        const overallRes = await fetch('/api/torque/v2/leaderboard');
+        const overallRes = await fetch('/api/torque-v2/leaderboard');
         if (overallRes.ok) {
           const data = await overallRes.json();
           setOverallStats({
@@ -207,7 +207,7 @@ export default function RewardsPage() {
 
         // Fetch user stats if logged in (v2)
         if (token) {
-          const userStatsRes = await fetch('/api/torque/v2/mystats', {
+          const userStatsRes = await fetch('/api/torque-v2/mystats', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (userStatsRes.ok) {
@@ -222,7 +222,7 @@ export default function RewardsPage() {
 
         // Fetch groups leaderboard
         try {
-          const groupsRes = await fetch('/api/torque/v2/groups');
+          const groupsRes = await fetch('/api/torque-v2/groups');
           if (groupsRes.ok) {
             const data = await groupsRes.json();
             setGroupStats(data.groups || []);

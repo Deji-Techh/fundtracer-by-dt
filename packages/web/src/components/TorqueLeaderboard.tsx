@@ -31,7 +31,7 @@ export default function TorqueLeaderboard({
 
 const fetchLeaderboard = async () => {
     try {
-      const response = await fetch('/api/torque/v2/leaderboard');
+      const response = await fetch('/api/torque-v2/leaderboard');
       
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));

@@ -88,7 +88,7 @@ export function SettingsView() {
       const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
       console.log('[Torque] Headers being sent:', Object.keys(headers));
       
-      const res = await fetch('/api/torque/v2/mystats', {
+      const res = await fetch('/api/torque-v2/mystats', {
         headers: Object.keys(headers).length > 0 ? headers : undefined
       });
       console.log('[Torque] Response status:', res.status);
