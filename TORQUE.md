@@ -131,12 +131,12 @@ User scans in Telegram group
 
 | Method | Route | Auth | Description |
 |--------|-------|------|-------|
-| GET | `/api/torque/v2/leaderboard` | No | Top 50 leaderboard |
-| GET | `/api/torque/v2/mystats` | Yes | User's stats + rank |
-| GET | `/api/torque/v2/activity` | No | Last 10 activities (NEW) |
-| GET | `/api/torque/v2/groups` | No | Group leaderboards (NEW) |
-| POST | `/api/torque/v2/scan` | Yes | Increment on each scan |
-| POST | `/api/torque/v2/admin/reset` | Admin | Wipe all data |
+| GET | `/api/torque-v2/leaderboard` | No | Top 50 leaderboard |
+| GET | `/api/torque-v2/mystats` | Yes | User's stats + rank |
+| GET | `/api/torque-v2/activity` | No | Last 10 activities (NEW) |
+| GET | `/api/torque-v2/groups` | No | Group leaderboards (NEW) |
+| POST | `/api/torque-v2/scan` | Yes | Increment on each scan |
+| POST | `/api/torque-v2/admin/reset` | Admin | Wipe all data |
 
 ---
 
