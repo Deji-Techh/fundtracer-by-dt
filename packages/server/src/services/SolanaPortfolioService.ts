@@ -1,11 +1,13 @@
 // ============================================================
 // FundTracer by DT - Solana Portfolio Service
 // Complete wallet analysis - Portfolio, Transactions, NFTs, DeFi, Risk
+// Now powered by Dune SIM as primary data source
 // ============================================================
 
 import { solanaKeyPool } from './SolanaKeyPoolManager.js';
 import { solanaHeliusClient } from './SolanaHeliusClient.js';
 import { cache } from '../utils/cache.js';
+import { duneSimClient, SimPortfolio, SimTransactionFormatted } from './DuneSimClient.js';
 import fetch from 'node-fetch';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -96,14 +98,75 @@ export interface SolanaRiskAnalysis {
     }[];
 }
 
+export interface PortfolioFilterOptions {
+    excludeSpamTokens?: boolean;
+    excludeUnpriced?: boolean;
+    minLiquidity?: number;
+}
+
 export class SolanaPortfolioService {
     private priceCache = new Map<string, number>();
 
-    async getPortfolio(address: string): Promise<SolanaPortfolio> {
-        const cacheKey = `solana:portfolio:${address}`;
+    /**
+     * Get portfolio - tries SIM first, falls back to existing RPC-based method
+     */
+    async getPortfolio(address: string, filterOptions?: PortfolioFilterOptions): Promise<SolanaPortfolio> {
+        const cacheKey = `solana:portfolio:${address}:${JSON.stringify(filterOptions || {})}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached as SolanaPortfolio;
 
+        // Try SIM first if enabled
+        if (duneSimClient.isEnabled()) {
+            try {
+                console.log('[SolanaPortfolio] Trying SIM for portfolio...');
+                
+                // Map SIM portfolio to our format
+                const simPortfolio = filterOptions?.excludeSpamTokens || filterOptions?.minLiquidity
+                    ? await duneSimClient.getFilteredPortfolio(address, {
+                        excludeSpamTokens: filterOptions?.excludeSpamTokens,
+                        excludeUnpriced: filterOptions?.excludeUnpriced,
+                        minLiquidity: filterOptions?.minLiquidity,
+                    })
+                    : await duneSimClient.getBalances(address).then(r => duneSimClient.mapBalancesToPortfolio(r));
+
+                // Convert SIM format to our format
+                const portfolio: SolanaPortfolio = {
+                    address: simPortfolio.address,
+                    sol: simPortfolio.sol,
+                    tokens: simPortfolio.tokens.map(t => ({
+                        mint: t.mint,
+                        amount: t.amount,
+                        decimals: t.decimals,
+                        uiAmount: t.uiAmount,
+                        symbol: t.symbol,
+                        name: t.name,
+                        logoUrl: t.logoUrl,
+                        price: t.price,
+                        value: t.value,
+                    })),
+                    staking: [], // Would need additional SIM call
+                    totalUsd: simPortfolio.totalUsd,
+                    fetchedAt: simPortfolio.fetchedAt,
+                };
+
+                console.log('[SolanaPortfolio] SIM portfolio fetched successfully');
+                cache.set(cacheKey, portfolio, 60);
+                return portfolio;
+            } catch (simError) {
+                console.error('[SolanaPortfolio] SIM failed, falling back to RPC:', simError);
+            }
+        }
+
+        // Fallback: Original RPC-based implementation
+        return this.getPortfolioFallback(address);
+    }
+
+    /**
+     * Original RPC-based portfolio (fallback)
+     */
+    private async getPortfolioFallback(address: string): Promise<SolanaPortfolio> {
+        const cacheKey = `solana:portfolio:fallback:${address}`;
+        
         const [balance, tokenAccounts, stakeAccounts] = await Promise.all([
             this.getBalance(address),
             this.getTokenAccounts(address),
@@ -255,11 +318,47 @@ export class SolanaPortfolioService {
         }
     }
 
+    /**
+     * Get transactions - uses SIM as primary
+     */
     async getTransactions(address: string, limit = 100): Promise<SolanaTransaction[]> {
         const cacheKey = `solana:txs:${address}:${limit}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached as SolanaTransaction[];
 
+        // Try SIM first if enabled
+        if (duneSimClient.isEnabled()) {
+            try {
+                console.log('[SolanaPortfolio] Trying SIM for transactions...');
+                
+                const simResponse = await duneSimClient.getTransactions(address, { limit });
+                const txs = duneSimClient.mapTransactions(simResponse);
+                
+                // Map to our format
+                const transactions: SolanaTransaction[] = txs.map(tx => ({
+                    signature: tx.signature,
+                    slot: tx.slot,
+                    blockTime: tx.blockTime,
+                    fee: tx.fee,
+                    status: tx.status,
+                    type: tx.type,
+                    from: tx.from,
+                    to: tx.to,
+                    amount: tx.amount,
+                    token: tx.token,
+                    tokenAmount: tx.tokenAmount,
+                    instructions: tx.instructions,
+                }));
+
+                console.log('[SolanaPortfolio] SIM transactions fetched successfully');
+                cache.set(cacheKey, transactions, 300);
+                return transactions;
+            } catch (simError) {
+                console.error('[SolanaPortfolio] SIM transactions failed, falling back to RPC:', simError);
+            }
+        }
+
+        // Fallback: Original RPC-based implementation
         const signatures = await this.getSignatures(address, limit);
         if (signatures.length === 0) return [];
 

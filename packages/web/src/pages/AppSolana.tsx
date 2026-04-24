@@ -6,7 +6,8 @@ import {
     Wallet, Send, Image, BarChart3, Shield, User, TrendingUp, History,
     GitCompare, ChevronRight, Loader2, X, Copy, ExternalLink, ArrowUpRight,
     Activity, Download, FileText, Zap, Crown, Droplets, Scale, Receipt,
-    Layers, BadgeCheck, DollarSign, Clock, Star, EyeOff, Hexagon, PieChart, Play, RefreshCw
+    Layers, BadgeCheck, DollarSign, Clock, Star, EyeOff, Hexagon, PieChart, Play, RefreshCw,
+    Filter
 } from 'lucide-react';
 import { Spinner, useSpinner } from '../utils/spinner';
 import ThemeToggle from '../components/common/ThemeToggle';
@@ -235,6 +236,10 @@ export default function AppSolana() {
     const [compareAddress, setCompareAddress] = useState('');
     const [compareData, setCompareData] = useState<{ sharedTxs?: number; commonTokens?: number; firstCommon?: string } | null>(null);
     const [comparing, setComparing] = useState(false);
+    
+    // Token filter options - powered by Dune SIM
+    const [filterSpamTokens, setFilterSpamTokens] = useState(true);
+    const [filterUnpriced, setFilterUnpriced] = useState(false);
 
     const token = localStorage.getItem('fundtracer_token') || '';
 
@@ -940,6 +945,23 @@ export default function AppSolana() {
                                 disabled={loading || !address}
                             >
                                 {loading ? <Spinner name="helix" /> : <Play size={16} />}
+                            </button>
+                        </div>
+                        <div className="filter-toggles">
+                            <button 
+                                className={`filter-toggle ${filterSpamTokens ? 'active' : ''}`}
+                                onClick={() => setFilterSpamTokens(!filterSpamTokens)}
+                                title={filterSpamTokens ? 'Filtering spam tokens' : 'Show all tokens'}
+                            >
+                                <Filter size={14} />
+                                <span>Spam Filter</span>
+                            </button>
+                            <button 
+                                className={`filter-toggle ${filterUnpriced ? 'active' : ''}`}
+                                onClick={() => setFilterUnpriced(!filterUnpriced)}
+                                title={filterUnpriced ? 'Filtering unpriced tokens' : 'Show all tokens'}
+                            >
+                                <span>Hide Unpriced</span>
                             </button>
                         </div>
                     </div>

@@ -18,15 +18,24 @@ function isValidSolanaAddress(address: string): boolean {
 }
 
 // GET /api/solana/portfolio/:address - Full portfolio view
+// Query params: exclude_spam_tokens=true/false, exclude_unpriced=true/false, min_liquidity=number
 router.get('/portfolio/:address', authMiddleware, usageMiddleware, async (req, res) => {
   try {
     const { address } = req.params;
+    const { exclude_spam_tokens, exclude_unpriced, min_liquidity } = req.query;
     
     if (!isValidSolanaAddress(address)) {
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    const portfolio = await solanaPortfolioService.getPortfolio(address);
+    const filterOptions: any = {};
+    if (exclude_spam_tokens === 'true') filterOptions.excludeSpamTokens = true;
+    if (exclude_unpriced === 'true') filterOptions.excludeUnpriced = true;
+    if (min_liquidity) filterOptions.minLiquidity = parseInt(min_liquidity as string);
+
+    const portfolio = await solanaPortfolioService.getPortfolio(address, 
+      Object.keys(filterOptions).length > 0 ? filterOptions : undefined
+    );
     res.json(portfolio);
   } catch (error: any) {
     console.error('Solana portfolio error:', error);

@@ -64,8 +64,45 @@
 .solana-search {
     flex: 1;
     display: flex;
-    max-width: 700px;
-    min-width: 0;
+    align-items: center;
+    gap: 12px;
+    max-width: 600px;
+}
+
+/* Filter toggles - powered by Dune SIM */
+.filter-toggles {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.filter-toggle:hover {
+    background: var(--surface);
+    color: var(--body);
+}
+
+.filter-toggle.active {
+    background: #9945ff15;
+    border-color: #9945ff;
+    color: #9945ff;
+}
+
+.filter-toggles .filter-toggle.active svg {
+    color: #9945ff;
 }
 
 .solana-search-bar {
