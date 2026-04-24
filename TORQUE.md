@@ -263,7 +263,7 @@ User scans in group
                     +---> Send: "🔍 {name} scanned {addr}..."
               |
               v
-        Web polls: GET /api/torque/v2/activity
+        Web polls: GET /api/torque-v2/activity
               |
               +---> Redis cache (15s)
               +---> Return last 10
@@ -325,7 +325,7 @@ if (existing.size > 0) {
 
 To wipe all data:
 ```bash
-curl -X POST "https://your-api.com/api/torque/v2/admin/reset?secret=fundtracer-admin-2024"
+curl -X POST "https://your-api.com/api/torque-v2/admin/reset?secret=fundtracer-admin-2024"
 ```
 
 ---

@@ -30,8 +30,11 @@ FundTracer uses Torque for growth primitives - leaderboards, event tracking, and
 - Top performers earn equity in FundTracer
 
 **API:**
-- Leaderboard: `GET /api/torque/v2/leaderboard`
-- My Stats: `GET /api/torque/v2/mystats` (auth required)
+- Leaderboard: `GET /api/torque-v2/leaderboard`
+- My Stats: `GET /api/torque-v2/mystats` (auth required)
+- Activity Feed: `GET /api/torque-v2/activity`
+- Group Rankings: `GET /api/torque-v2/groups`
+- Record Scan: `POST /api/torque-v2/scan` (auth required)
 
 See [TORQUE.md](./TORQUE.md) for full technical documentation.
 
