@@ -1,3 +1,5 @@
+Some issues here were not maily torque based, just leaaving it here incase of any person that wants to build something similar, goodluck
+
 # FundTracer x Torque - Integration Friction Log
 
 ## Overview
@@ -150,6 +152,8 @@ if (!group.exists) group = memoryGroups.get(groupId);
 
 **Suggested Improvement:** Make custom events a first-class option in the create incentive dropdown.
 
+Btw, we are also rewarding our users manually, not via torque
+
 ---
 
 ## Recommendations
@@ -183,3 +187,4 @@ if (!group.exists) group = memoryGroups.get(groupId);
 
 *Submitted: April 2026*
 *Hackathon: Torque x Frontier*
+
