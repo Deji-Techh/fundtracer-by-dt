@@ -264,34 +264,58 @@ export class DuneSimClient {
             let type = 'unknown';
 
             if (message?.accountKeys?.[0]) {
-                from = message.accountKeys[0].pubkey || message.accountKeys[0];
+                from = typeof message.accountKeys[0] === 'string' 
+                    ? message.accountKeys[0] 
+                    : (message.accountKeys[0]?.pubkey || '');
             }
 
+            // Parse instructions - check different formats
             for (const ix of instructions) {
+                // Check if it's parsed instruction (solana-web3.js format)
                 if (ix.parsed) {
                     if (ix.parsed.type === 'transfer') {
                         to = ix.parsed.info?.destination || '';
                         amount = parseInt(ix.parsed.info?.lamports || '0');
                         type = 'transfer';
+                        break;
                     } else if (ix.parsed.type === 'transferChecked') {
                         to = ix.parsed.info?.destination || '';
                         token = ix.parsed.info?.mint || '';
                         tokenAmount = parseFloat(ix.parsed.info?.tokenAmount?.amount || '0');
                         type = 'token-transfer';
+                        break;
                     }
-                } else if (ix.program === 'system') {
-                    type = 'transfer';
-                } else if (ix.program === 'token') {
-                    type = 'token-transfer';
-                } else if (ix.program === 'stake') {
-                    type = 'staking';
+                } 
+                // Check for program-based detection (raw instruction format)
+                else if (ix.program) {
+                    if (ix.program === 'system' || ix.programIdIndex === 0) {
+                        type = 'transfer';
+                    } else if (ix.program === 'token' || ix.programIdIndex === 2) {
+                        type = 'token-transfer';
+                    } else if (ix.program === 'stake') {
+                        type = 'staking';
+                    }
                 }
             }
 
+            // If still unknown, check for token program in accountKeys
+            if (type === 'unknown' && message?.accountKeys) {
+                const tokenProgramIdx = message.accountKeys.findIndex((k: any) => 
+                    k === 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' || 
+                    (typeof k === 'object' && k?.pubkey === 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+                );
+                if (tokenProgramIdx > -1) {
+                    type = 'token-transfer';
+                }
+            }
+
+            // Convert block_time from microseconds to milliseconds
+            const blockTimeMs = tx.block_time ? Math.floor(tx.block_time / 1000) : Date.now() * 1000;
+
             return {
-                signature: tx.raw_transaction?.transaction?.signatures?.[0] || '',
+                signature: rawTx?.transaction?.signatures?.[0] || '',
                 slot: tx.block_slot,
-                blockTime: tx.block_time,
+                blockTime: blockTimeMs,
                 fee: meta?.fee || 0,
                 status: meta?.err ? 'failed' : 'success',
                 type,
