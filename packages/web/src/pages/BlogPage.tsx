@@ -34,6 +34,24 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
   {
+    id: 'cli-rewards',
+    title: 'Level Up with CLI: View Rewards from Terminal',
+    excerpt: 'Now track your leaderboard standing directly from the CLI. FundTracer v1.1.5 brings Torque rewards to your terminal — analyze wallets and earn equity from anywhere.',
+    category: 'Product',
+    date: '2026-04-28',
+    readTime: '2 min read',
+    slug: 'cli-rewards-command',
+  },
+  {
+    id: 'hackathon-guide',
+    title: 'FundTracer Hackathon Starter Kit',
+    excerpt: 'Everything you need to build a winning hackathon project with FundTracer. From quick wallet analysis to Torque-powered rewards.',
+    category: 'Tutorial',
+    date: '2026-04-28',
+    readTime: '5 min read',
+    slug: 'hackathon-starter-kit',
+  },
+  {
     id: 'new',
     title: 'Unified UI: App-Solana Now Matches App-EVM',
     excerpt: 'We\'ve completely redesigned our Solana analysis app to match the familiar EVM interface. Same shell-based navigation, sidebar tabs, and topbar search — now with dedicated Solana features.',

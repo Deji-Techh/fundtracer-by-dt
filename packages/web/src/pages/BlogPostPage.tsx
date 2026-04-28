@@ -35,6 +35,153 @@ const navItems = [
 ];
 
 const blogPostsData: Record<string, BlogPost> = {
+  'cli-rewards-command': {
+    id: 'cli-rewards',
+    title: 'Level Up with CLI: View Rewards from Terminal',
+    excerpt: 'Now track your leaderboard standing directly from the CLI.',
+    category: 'Product',
+    date: '2026-04-28',
+    readTime: '2 min read',
+    author: 'FundTracer Team',
+    slug: 'cli-rewards-command',
+    content: `
+## The Command Line Gets Rewards
+
+Good news, CLI users. FundTracer v1.1.5 brings the full Torque rewards experience to your terminal. Analyze wallets, track your standing, and earn equity — all without leaving your shell.
+
+## New in v1.1.5
+
+- **Interactive Mode**: New "View Rewards" menu option
+- **Rewards Command**: \`fundtracer rewards\` shows the leaderboard
+- **My Stats**: \`fundtracer rewards --me\` shows your personal stats
+
+## Quick Start
+
+### Link Your Account
+
+\`\`\`bash
+# Install the CLI
+npm install -g fundtracer-cli
+
+# Link to your Torque account
+fundtracer link
+# Visit https://fundtracer.xyz/cli and enter code FT-XXXX
+\`\`\`
+
+### View Rewards
+
+\`\`\`bash
+# Interactive mode
+fundtracer interactive
+# Select "View Rewards" from the menu
+
+# Or direct commands
+fundtracer rewards          # Leaderboard
+fundtracer rewards --me      # Your stats
+\`\`\`
+
+## Why This Matters
+
+Whether you're deep in terminal work or prefer CLI over UI, you can now participate in the Torque hackathon rewards program. Every wallet you analyze counts toward your leaderboard standing.
+
+## Auto-Track
+
+When you run \`fundtracer analyze <address>\`, scans are automatically tracked to your linked account. No extra flags needed.
+
+## Install
+
+\`\`\`bash
+npm install -g fundtracer-cli
+fundtracer link
+\`\`\`
+
+Then start analyzing wallets and climb the leaderboard.
+`,
+  },
+  'hackathon-starter-kit': {
+    id: 'hackathon-guide',
+    title: 'FundTracer Hackathon Starter Kit',
+    excerpt: 'Everything you need to build a winning hackathon project with FundTracer.',
+    category: 'Tutorial',
+    date: '2026-04-28',
+    readTime: '5 min read',
+    author: 'FundTracer Team',
+    slug: 'hackathon-starter-kit',
+    content: `
+## Build Fast, Win Big
+
+Hackathon season is here. FundTracer gives you everything you need to build a compelling blockchain forensics project — and earn equity through Torque.
+
+## What You Get
+
+| Feature | Use Case |
+|---------|----------|
+| Multi-chain wallet analysis | Trace fund flows |
+| Risk scores | Detect scam/honeypot wallets |
+| Funding trees | Visualize asset origins |
+| Dune SIM integration | Solana on-chain data |
+| CLI tool | Terminal workflows |
+| Torque rewards | Earn equity while building |
+
+## Quick Setup
+
+\`\`\`bash
+# Install CLI
+npm install -g fundtracer-cli
+
+# Link to Torque (earn equity)
+fundtracer link
+
+# Analyze your first wallet
+fundtracer analyze 0x... --chain ethereum
+\`\`\`
+
+## Project Ideas
+
+### 1. Anti-Scam Telegram Bot
+- Use FundTracer API to check wallet risk before transactions
+- Alert users of honeypot tokens
+- Auto-scan forrug pull patterns
+
+### 2. Portfolio Tracker
+- Multi-chain dashboard
+- Track DeFi positions across chains
+- Alert on large transfers
+
+### 3. Airdrop Hunter Tools
+- Detect sybil activity
+- Score wallet eligibility
+- Track claim histories
+
+### 4. Due Diligence Dashboard  
+- Risk scores for KYC
+- Funding source analysis
+- Reputation tracking
+
+## API Integration
+
+\`\`\`javascript
+const response = await fetch('https://fundtracer.xyz/api/analyze', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    address: '0x...',
+    chain: 'ethereum',
+    depth: 2
+  })
+});
+const data = await response.json();
+\`\`\`
+
+## Win With FundTracer
+
+1. **Start fast**: CLI ready in minutes
+2. **Stay fast**: Auto-track every analysis
+3. **Win big**: Torque equity rewards
+
+Happy hacking! 🏆
+`,
+  },
   'unified-solana-evm-ui': {
     id: 'new',
     title: 'Unified UI: App-Solana Now Matches App-EVM',
