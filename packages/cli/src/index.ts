@@ -12,6 +12,8 @@ import { portfolioCommand } from './commands/portfolio.js';
 import { batchCommand } from './commands/batch.js';
 import { configCommand } from './commands/config.js';
 import { interactiveMode } from './commands/interactive.js';
+import { linkCommand } from './commands/link.js';
+import { rewardsCommand } from './commands/rewards.js';
 import { getApiKeys, getSybilApiKeys } from './utils.js';
 
 // Professional ASCII Art Banner - Dark/Glassy theme
@@ -180,6 +182,21 @@ if (isInteractive && args.length === 0) {
         .option('--show', 'Show current configuration')
         .option('--reset', 'Reset configuration to defaults')
         .action(configCommand);
+
+    // Link command
+    program
+        .command('link [code]')
+        .alias('connect')
+        .description('Link CLI to your FundTracer account for rewards')
+        .action(linkCommand);
+
+    // Rewards command
+    program
+        .command('rewards')
+        .alias('leaderboard')
+        .description('View rewards leaderboard and your stats')
+        .option('-m, --me', 'Show your personal stats')
+        .action(rewardsCommand);
 
     // Interactive mode
     program
