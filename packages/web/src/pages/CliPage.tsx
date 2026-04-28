@@ -29,7 +29,7 @@ export function CliPage() {
     setLinkError(null);
     
     try {
-      const data = await apiRequest('/api/torque-v2/cli/link', 'POST', { action: 'generate' });
+      const data = await apiRequest('/api/torque-v2/cli/link/generate', 'POST');
       
       if (data.success) {
         setLinkCode(data.code);
