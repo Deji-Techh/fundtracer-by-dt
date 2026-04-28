@@ -189,6 +189,7 @@ if (isInteractive && args.length === 0) {
         .command('link [code]')
         .alias('connect')
         .description('Link CLI to your FundTracer account for rewards')
+        .argument('[code]', 'Link code from fundtracer.xyz/cli')
         .action(linkCommand);
 
     // Rewards command

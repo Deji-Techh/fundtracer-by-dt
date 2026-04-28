@@ -3,10 +3,6 @@
 import chalk from 'chalk';
 import { getApiKeys } from '../utils.js';
 
-interface LinkOptions {
-  code?: string;
-}
-
 const c = {
   bold: chalk.bold,
   green: chalk.green,
@@ -16,11 +12,11 @@ const c = {
   cyan: chalk.cyan,
 };
 
-export async function linkCommand(options: LinkOptions) {
+export async function linkCommand(code?: string) {
   const API_BASE = process.env.FUNDTRACER_API || 'https://fundtracer.xyz';
   
-  // Phase 1: Generate code (if user provides their auth)
-  if (options.code) {
+  // Phase 1: Verify code (if user provides argument)
+  if (code) {
     // Verify and link
     try {
       console.log(c.gray('Verifying link code...'));
@@ -28,7 +24,7 @@ export async function linkCommand(options: LinkOptions) {
       const response = await fetch(`${API_BASE}/api/torque-v2/cli/link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify', linkCode: options.code })
+        body: JSON.stringify({ action: 'verify', linkCode: code })
       });
       
       const data = await response.json();
@@ -54,7 +50,7 @@ export async function linkCommand(options: LinkOptions) {
       
       existingConfig.linkedUserId = data.userId;
       existingConfig.linkedName = data.displayName;
-      existingConfig.cliLinkCode = options.code;
+      existingConfig.cliLinkCode = code;
       
       if (!fs.existsSync(configDir)) {
         fs.mkdirSync(configDir, { recursive: true });
