@@ -364,6 +364,39 @@ The biggest differentiator: **It just works.** Plus:
 
 ---
 
+## Manual Equity Distribution Model
+
+Since Torque incentives are configured on-chain, FundTracer uses a manual distribution approach:
+
+| Component | Implementation |
+|-----------|----------------|
+| Leaderboard | Tracks wallets scanned per user |
+| Points | 10 points per wallet analyzed |
+| Ranking | Top scanners eligible for equity |
+| Distribution | Manual allocation (off-chain) |
+
+**Why Manual:**
+
+- Full control over eligibility criteria
+- Can exclude sybil/suspicious accounts
+- Simpler for hackathon timeline
+- Can integrate Torque MCP later for automation
+
+**Growth Loop:**
+
+```
+User scans wallet -> +10 points -> Rank updates -> Competition drives more scans
+```
+
+**Distribution Logic:**
+
+1. Monthly snapshot of leaderboard
+2. Top N users eligible (based on budget)
+3. Manual token/Airdrop distribution
+4. Optional: Integrate Torque campaigns later for automation
+
+---
+
 ## What's Next (Roadmap)
 
 - [ ] Rank change alerts (Telegram DM when overtaken)

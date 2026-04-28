@@ -1,6 +1,7 @@
-Some issues here were not maily torque based, just leaaving it here incase of any person that wants to build something similar, goodluck
-
 # FundTracer x Torque - Integration Friction Log
+
+> Builder experience notes from the Torque x Frontier Hackathon
+> Some issues here are not Torque-based, leaving for reference
 
 ## Overview
 
@@ -17,6 +18,56 @@ Torque integration provides equity rewards via leaderboards that track wallets a
 | Custom Events API | Ingest endpoint functioned correctly on first implementation |
 | Redis Caching | Reduced Firebase reads from 49K/day to ~700/day (98% reduction) |
 | Telegram Integration | Group commands executed without special configuration |
+
+---
+
+## MCP Integration Notes
+
+Torque MCP was available from hackathon start. We chose NOT to use it for this implementation.
+
+**Why REST over MCP:**
+
+| Factor | Decision |
+|--------|----------|
+| Direct control | REST gave us direct control over event payload structure |
+| Debugging | Easier to debug via console logs during hackathon |
+| Timeline | REST was faster to implement in 48 hrs |
+| Familiarity | Team more familiar with fetch() than MCP commands |
+
+**Would we use MCP next time?**
+
+Yes. MCP provides:
+- Cleaner abstraction layer
+- Type-safe event definitions
+- Automatic error handling
+
+**Core Functionality:** REST API to Torque ingest endpoint works identically. The growth primitives (leaderboards, custom events, tracking) function correctly.
+
+---
+
+## Growth Loop Implementation
+
+**The Loop:**
+
+```
+User scans wallet → +10 points → Rank updates → Competition drives more scans
+```
+
+**Components:**
+
+| Component | Implementation |
+|-----------|----------------|
+| Trigger | Every wallet scan = +10 points |
+| Retention | Leaderboard rank creates competitive drive |
+| Reward | Top scanners eligible for equity |
+| Distribution | Manual allocation (not via Torque incentives) |
+
+**Why Manual Distribution:**
+
+- Full control over eligibility criteria
+- Can exclude sybil/suspicious accounts manually
+- Simpler for hackathon timeline
+- Can integrate Torque MCP with incentives automation later
 
 ---
 
