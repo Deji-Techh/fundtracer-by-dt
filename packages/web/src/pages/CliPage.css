@@ -207,6 +207,60 @@
   transform: translateY(-1px);
 }
 
+.cli-link-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-top: var(--space-4);
+  text-align: center;
+}
+
+.cli-linked-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--accent-green);
+  font-weight: 500;
+  margin-bottom: var(--space-4);
+}
+
+.cli-link-instructions {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-3);
+}
+
+.cli-link-note {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: var(--space-3);
+}
+
+.cli-google-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: white;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cli-google-btn:hover {
+  background: #f5f5f5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cli-google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .cli-header h1 {
     font-size: var(--text-2xl);
