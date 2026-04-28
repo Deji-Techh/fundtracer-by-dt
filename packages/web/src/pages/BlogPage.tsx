@@ -35,6 +35,15 @@ interface BlogPost {
 const blogPosts: BlogPost[] = [
   {
     id: 'new',
+    title: 'Unified UI: App-Solana Now Matches App-EVM',
+    excerpt: 'We\'ve completely redesigned our Solana analysis app to match the familiar EVM interface. Same shell-based navigation, sidebar tabs, and topbar search — now with dedicated Solana features.',
+    category: 'Product',
+    date: '2026-04-28',
+    readTime: '3 min read',
+    slug: 'unified-solana-evm-ui',
+  },
+  {
+    id: 'sim',
     title: 'FundTracer x Dune SIM: Real-Time Solana Data at Scale',
     excerpt: 'We\'ve integrated Dune\'s SIM API for instant access to Solana wallet balances, transactions, and on-chain activity. Built for the hackathon.',
     category: 'Engineering',

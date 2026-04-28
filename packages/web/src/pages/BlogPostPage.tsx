@@ -35,6 +35,77 @@ const navItems = [
 ];
 
 const blogPostsData: Record<string, BlogPost> = {
+  'unified-solana-evm-ui': {
+    id: 'new',
+    title: 'Unified UI: App-Solana Now Matches App-EVM',
+    excerpt: 'We have completely redesigned our Solana analysis app to match the familiar EVM interface with shell-based navigation.',
+    category: 'Product',
+    date: '2026-04-28',
+    readTime: '3 min read',
+    author: 'FundTracer Team',
+    slug: 'unified-solana-evm-ui',
+    content: `
+## Why We Unified the UI
+
+When users switch between our EVM and Solana analysis apps, they expect a consistent experience. Our original App-Solana used a different navigation pattern — feature grid with overlay panels — while App-EVM used the familiar sidebar + tabs shell that users know from our main app.
+
+Today, we have fixed that.
+
+## Before vs After
+
+### Before: Feature Grid Layout
+- 2D button grid (10 features)
+- Click to open slide-in overlay panel
+- Address input stayed at top
+- No persistent navigation
+
+### After: Shell-Based Navigation  
+- Sidebar with tabs (like App-EVM)
+- Tab content switches inline
+- Address in topbar search
+- Consistent AppShell component
+
+## New Structure
+
+| Tab | Description |
+|-----|-------------|
+| Portfolio | Token holdings, SOL balance, staking |
+| Transactions | History with filters |
+| NFTs | Gallery view |
+| DeFi | Protocol positions |
+| Risk | Security analysis |
+| Identity | Badges & reputation |
+| Analytics | Dune data |
+| Tax | P&L positions |
+| Compare | Multi-wallet |
+| History | Timeline |
+| EVM | Link to App-EVM |
+
+## Topbar Search
+
+The key addition: a unified search bar that:
+- Shows SOL chain badge (no network selector needed)
+- Accepts Solana addresses
+- Press Enter to analyze
+- Persists in URL params
+
+## Technical Changes
+
+- Created 10 new view components in \`design-system/features/Solana*View.tsx\`
+- Added search props to AppShell component
+- Updated route to use new AppSolanaPage
+- Consistent CSS using existing AppShell tokens
+
+## Why This Matters
+
+1. **Familiar UX** — Users know the pattern from App-EVM
+2. **Easier navigation** — Tabs > clicking through overlays
+3. **Faster switching** — No panels to open/close
+4. **Consistent code** — Reuses AppShell component
+
+Try it now: Go to FundTracer Solana and notice the new sidebar.
+    `,
+  },
   'fundtracer-dune-sim-integration': {
     id: 'new',
     title: 'FundTracer x Dune SIM: Real-Time Solana Data at Scale',
