@@ -25,25 +25,19 @@ function getAdminAuth() {
 }
 
 // CLI Link: Generate or verify link code
-router.post('/cli/link', async (req: Request, res: Response) => {
+router.post('/cli/link', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { linkCode, action } = req.body;
     const db = require('../firebase.js').getFirestore();
     const LINK_CODE_EXPIRY = 5 * 60 * 1000; // 5 minutes
     
+    // Get user ID from middleware (like /mystats and /scan)
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
     if (action === 'generate') {
-      // Generate new link code for authenticated user
-      const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-      
-      // Verify token and get user ID
-      const token = authHeader.split(' ')[1];
-      const auth = getAdminAuth();
-      const decoded = await auth.verifyIdToken(token);
-      const userId = decoded.uid;
-      
       // Check if user exists
       const userDoc = await db.collection('users').doc(userId).get();
       if (!userDoc.exists) {
