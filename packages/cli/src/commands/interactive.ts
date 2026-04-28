@@ -171,6 +171,14 @@ async function runAnalyze() {
     }
 }
 
+async function viewRewards() {
+    try {
+        await rewardsCommand({ me: false });
+    } catch (e: any) {
+        console.log(c.red('Error: ' + e.message));
+    }
+}
+
 async function showHistory() {
     const history = db.getHistory(20);
 
