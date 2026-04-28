@@ -15,7 +15,44 @@ export function CliPage() {
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
   const { isAuthenticated, user, loginWithGoogle, profile } = useAuth();
+
+  const handleGenerateCode = async () => {
+    if (!isAuthenticated || !user) {
+      setLinkError('Please sign in first');
+      return;
+    }
+    
+    setGeneratingCode(true);
+    setLinkError(null);
+    
+    try {
+      // Get auth token
+      const token = localStorage.getItem('fundtracer_token');
+      
+      const response = await fetch('/api/torque-v2/cli/link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action: 'generate' })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setLinkCode(data.code);
+      } else {
+        setLinkError(data.error || 'Failed to generate code');
+      }
+    } catch (error) {
+      setLinkError('Failed to generate code');
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -167,25 +204,37 @@ export function CliPage() {
           
           {isAuthenticated && profile ? (
             <div className="cli-link-section">
-              <div className="cli-linked-status">
-                <Check size={18} />
-                <span>Connected as {profile.displayName || profile.name || 'User'}</span>
-              </div>
-              <p className="cli-link-instructions">
-                Run in your terminal:
-              </p>
-              <div className="cli-code-block">
-                <code>fundtracer link</code>
-                <button 
-                  className="cli-copy-btn"
-                  onClick={() => handleCopy('fundtracer link')}
-                >
-                  Copy
-                </button>
-              </div>
-              <p className="cli-link-note">
-                This will show a code to enter below. Come back after linking.
-              </p>
+              {linkCode ? (
+                <>
+                  <div className="cli-code-display">
+                    <span className="cli-code-label">Your CLI Link Code:</span>
+                    <code className="cli-code">{linkCode}</code>
+                  </div>
+                  <p className="cli-link-note">
+                    Run in your terminal: <code>fundtracer link {linkCode}</code>
+                  </p>
+                  <button 
+                    className="cli-copy-btn"
+                    onClick={() => handleCopy(`fundtracer link ${linkCode}`)}
+                  >
+                    Copy Command
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    className="cli-generate-btn"
+                    onClick={handleGenerateCode}
+                    disabled={generatingCode}
+                  >
+                    {generatingCode ? 'Generating...' : 'Generate CLI Link Code'}
+                  </button>
+                  {linkError && <p className="cli-link-error">{linkError}</p>}
+                  <p className="cli-link-note">
+                    Click to generate a code, then enter it in your CLI
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="cli-link-section">
