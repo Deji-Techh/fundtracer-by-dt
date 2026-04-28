@@ -58,7 +58,7 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
 
         // Auto-track to backend unless --no-track
         if (!options.noTrack) {
-            await trackScan();
+            await trackScan(address);
         }
 
     } catch (error) {
@@ -67,7 +67,7 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
     }
 }
 
-async function trackScan() {
+async function trackScan(walletAddress: string) {
     const API_BASE = process.env.FUNDTRACER_API || 'https://fundtracer.xyz';
     
     // Get linked user from config
@@ -83,7 +83,6 @@ async function trackScan() {
     
     const config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
     const linkCode = config.cliLinkCode;
-    const walletAddress = result.address;
     
     if (!linkCode) {
         return; // No link code saved
