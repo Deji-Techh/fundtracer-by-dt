@@ -83,6 +83,7 @@ async function trackScan() {
     
     const config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
     const linkCode = config.cliLinkCode;
+    const walletAddress = result.address;
     
     if (!linkCode) {
         return; // No link code saved
@@ -92,7 +93,7 @@ async function trackScan() {
         await fetch(`${API_BASE}/api/torque-v2/cli/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ linkCode })
+            body: JSON.stringify({ linkCode, walletAddress })
         });
         console.log(c.gray('  +10 points for rewards'));
     } catch {

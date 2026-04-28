@@ -109,7 +109,7 @@ router.post('/cli/link/verify', async (req: Request, res: Response) => {
 // CLI Scan: Track scan without full authentication (uses link code)
 router.post('/cli/scan', async (req: Request, res: Response) => {
   try {
-    const { linkCode } = req.body;
+    const { linkCode, walletAddress } = req.body;
     
     if (!linkCode) {
       return res.status(400).json({ error: 'Link code required' });
@@ -141,7 +141,11 @@ router.post('/cli/scan', async (req: Request, res: Response) => {
     const userDoc = await db.collection('users').doc(userId).get();
     const displayName = userDoc.data()?.displayName || userDoc.data()?.name || '';
     
+    // Add 10 points
     await torqueServiceV2.incrementScan(userId, displayName);
+    
+    // Also add to activity feed
+    await torqueServiceV2.addActivity(userId, displayName, walletAddress || 'unknown', 'cli').catch(() => {});
     
     res.json({
       success: true,
