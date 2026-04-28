@@ -308,6 +308,47 @@ body {
 }
 .ft-btn-topbar-connect:hover { opacity: 0.9; box-shadow: 0 0 14px rgba(0,230,118,0.25); }
 
+/* Topbar Search */
+.ft-topbar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 400px;
+}
+
+.ft-chain-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #9945ff;
+  background: rgba(153, 69, 255, 0.15);
+  padding: 4px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+}
+
+.ft-search-input {
+  flex: 1;
+  height: 30px;
+  background: var(--bg);
+  border: 1px solid var(--line2);
+  border-radius: 3px;
+  padding: 0 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.ft-search-input::placeholder { color: var(--muted); }
+
+.ft-search-input:focus { 
+  border-color: #9945ff; 
+  background: var(--surface2); 
+}
+
 /* Content */
 .ft-content {
   flex: 1;

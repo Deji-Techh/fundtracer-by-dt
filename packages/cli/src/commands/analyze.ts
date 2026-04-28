@@ -10,12 +10,15 @@ import {
 import { getApiKeys, formatEth } from '../utils.js';
 import fs from 'fs';
 
+// Add noTrack option to interface
 interface AnalyzeOptions {
     chain: string;
     depth: string;
     output: 'table' | 'json' | 'tree' | 'csv';
     minValue?: string;
     export?: string;
+    track?: boolean;
+    noTrack?: boolean;
 }
 
 const c = {
@@ -53,9 +56,47 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
                 outputTable(result);
         }
 
+        // Auto-track to backend unless --no-track
+        if (!options.noTrack) {
+            await trackScan();
+        }
+
     } catch (error) {
         console.error(c.red('Error: ' + (error instanceof Error ? error.message : 'Unknown')));
         process.exit(1);
+    }
+}
+
+async function trackScan() {
+    const API_BASE = process.env.FUNDTRACER_API || 'https://fundtracer.xyz';
+    
+    // Get linked user from config
+    const fs = await import('fs');
+    const path = await import('path');
+    const os = await import('os');
+    
+    const configFile = path.join(os.homedir(), '.fundtracer', 'config.json');
+    
+    if (!fs.existsSync(configFile)) {
+        return; // Not linked, skip tracking
+    }
+    
+    const config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+    const linkCode = config.cliLinkCode;
+    
+    if (!linkCode) {
+        return; // No link code saved
+    }
+    
+    try {
+        await fetch(`${API_BASE}/api/torque-v2/cli/scan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ linkCode })
+        });
+        console.log(c.gray('  +10 points for rewards'));
+    } catch {
+        // Silent fail - don't interrupt analysis
     }
 }
 

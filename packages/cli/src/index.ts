@@ -135,6 +135,7 @@ if (isInteractive && args.length === 0) {
         .option('-o, --output <format>', 'Output format (table, json, tree, csv)', 'table')
         .option('--min-value <eth>', 'Minimum transaction value in ETH', '0')
         .option('--export <file>', 'Export results to file')
+        .option('--no-track', 'Skip tracking for rewards')
         .action(analyzeCommand);
 
     // Compare command (Sybil detection)

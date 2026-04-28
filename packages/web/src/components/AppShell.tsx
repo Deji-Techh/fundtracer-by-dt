@@ -18,6 +18,11 @@ interface AppShellProps {
   walletConnected?: boolean;
   walletAddress?: string;
   onConnectWallet?: () => void;
+  searchPlaceholder?: string;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  onSearchEnter?: () => void;
+  chainBadge?: string;
 }
 
 export function AppShell({
@@ -27,7 +32,12 @@ export function AppShell({
   navItems,
   walletConnected = false,
   walletAddress = '',
-  onConnectWallet
+  onConnectWallet,
+  searchPlaceholder,
+  searchValue = '',
+  onSearchChange,
+  onSearchEnter,
+  chainBadge
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
@@ -129,6 +139,22 @@ export function AppShell({
             />
             FundTracer
           </div>
+
+          {searchPlaceholder !== undefined && (
+            <div className="ft-topbar-search">
+              {chainBadge && (
+                <span className="ft-chain-badge">{chainBadge}</span>
+              )}
+              <input
+                type="text"
+                placeholder={searchPlaceholder}
+                value={searchValue}
+                onChange={(e) => onSearchChange?.(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onSearchEnter?.()}
+                className="ft-search-input"
+              />
+            </div>
+          )}
 
           <div className="ft-topbar-gap"></div>
 

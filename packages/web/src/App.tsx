@@ -4,7 +4,7 @@ import IntelPage from './pages/IntelPage';
 import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
 import AppPage from './pages/AppPage';
-import AppSolana from './pages/AppSolana';
+import AppSolanaPage from './pages/AppSolanaPage';
 import { useAuth } from './contexts/AuthContext';
 import MaintenancePage from './pages/MaintenancePage';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -262,7 +262,9 @@ function App() {
       } />
       <Route path="/app-solana/*" element={
         <ProtectedRoute>
-          <AppSolana />
+          <Suspense fallback={<div>Loading...</div>}>
+            <AppSolanaPage />
+          </Suspense>
         </ProtectedRoute>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
