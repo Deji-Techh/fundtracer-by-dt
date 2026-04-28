@@ -35,6 +35,17 @@ const navItems = [
 ];
 
 const blogPostsData: Record<string, BlogPost> = {
+  'fundtracer-dune-sim-integration': {
+    id: 'new',
+    title: 'FundTracer x Dune SIM: Real-Time Solana Data at Scale',
+    excerpt: 'We have integrated Dune SIM API for instant access to Solana wallet balances and transactions.',
+    category: 'Engineering',
+    date: '2026-04-28',
+    readTime: '3 min read',
+    author: 'FundTracer Team',
+    slug: 'fundtracer-dune-sim-integration',
+    content: 'Why We Integrated Dune SIM: Blockchain data APIs are hard. You need to manage multiple RPC endpoints, handle rate limits, normalize data across different chains, and keep everything in sync. That is where Dune SIM comes in. What is Dune SIM: SIM is Dune real-time blockchain data API. It gives you instant access to Wallet balances across 60 plus EVM chains and Solana, Transaction history with full raw transaction data, Token metadata with USD pricing, and Liquidity data for spam filtering. All through a single API key. No indexer setup required. How We are Using It: We have integrated SIM as our primary data source for Solana wallet analysis. Token Balances - slash beta svm balances gives us real-time SPL token holdings with USD values. Transaction History - slash beta svm transactions returns complete transaction data. Spam Filtering - Built-in exclude_spam_tokens parameter filters low-liquidity tokens. The Integration: We built a DuneSimClient wrapper that handles API authentication with X-Sim-Api-Key header, Cursor-based pagination for large result sets, Caching (60s for balances, 5min for transactions), and Automatic fallback to RPC on SIM failure. Why SIM Over RPC: SIM includes USD values - RPC needs extra calls. SIM returns symbols, names, decimals - RPC needs more calls. SIM handles 60 plus chains - RPC is 1 per endpoint. SIM has built-in liquidity filtering - custom logic otherwise. The Hackathon Angle: This integration was built for the Dune SIM Hackathon. We are using SIM endpoints to power Real-time portfolio values, Transaction history with proper timestamps, and Token spam filtering toggle in the UI. All while maintaining fallback to traditional RPC when SIM is unavailable. What is Next: We are just getting started. With SIM webhook subscriptions, we can build Real-time balance change alerts, Portfolio tracking notifications, and Multi-chain portfolio views (Solana plus Ethereum). Try it now: Go to FundTracer Solana and search any wallet. The data is powered by Dune SIM.',
+  },
   'fundtracer-v2-leaderboard-rebuilt': {
     id: '0',
     title: 'FundTracer v2: The Leaderboard That Actually Works',

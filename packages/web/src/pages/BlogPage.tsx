@@ -34,6 +34,15 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
   {
+    id: 'new',
+    title: 'FundTracer x Dune SIM: Real-Time Solana Data at Scale',
+    excerpt: 'We\'ve integrated Dune\'s SIM API for instant access to Solana wallet balances, transactions, and on-chain activity. Built for the hackathon.',
+    category: 'Engineering',
+    date: '2026-04-28',
+    readTime: '3 min read',
+    slug: 'fundtracer-dune-sim-integration',
+  },
+  {
     id: '0',
     title: 'FundTracer v2: The Leaderboard That Actually Works',
     excerpt: 'We rebuilt our rewards system from scratch. See how we achieved 98% Firestore read reduction and built a leaderboard that scales.',
