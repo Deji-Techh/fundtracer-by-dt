@@ -54,6 +54,7 @@ export async function linkCommand(options: LinkOptions) {
       
       existingConfig.linkedUserId = data.userId;
       existingConfig.linkedName = data.displayName;
+      existingConfig.cliLinkCode = options.code;
       
       if (!fs.existsSync(configDir)) {
         fs.mkdirSync(configDir, { recursive: true });
