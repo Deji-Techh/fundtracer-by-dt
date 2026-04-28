@@ -25,19 +25,20 @@ function getAdminAuth() {
 }
 
 // CLI Link: Generate or verify link code
+// - generate: requires auth (web user)
 router.post('/cli/link', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { linkCode, action } = req.body;
     const db = require('../firebase.js').getFirestore();
     const LINK_CODE_EXPIRY = 5 * 60 * 1000; // 5 minutes
     
-    // Get user ID from middleware (like /mystats and /scan)
-    const userId = req.user?.uid;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
     if (action === 'generate') {
+      // Generate new link code for authenticated web user
+      const userId = req.user?.uid;
+      if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
       // Check if user exists
       const userDoc = await db.collection('users').doc(userId).get();
       if (!userDoc.exists) {
@@ -47,7 +48,7 @@ router.post('/cli/link', authMiddleware, async (req: AuthenticatedRequest, res: 
       // Generate code and save
       const code = generateLinkCode();
       await db.collection('torque_cli_links').doc(code).set({
-        userId,
+        userId: authUserId,
         createdAt: Date.now(),
         expiresAt: Date.now() + LINK_CODE_EXPIRY,
         used: false
