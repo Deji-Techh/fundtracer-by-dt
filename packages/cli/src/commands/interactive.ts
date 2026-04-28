@@ -6,6 +6,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { ChainId, getEnabledChainList } from 'fundtracer-core';
 import { analyzeCommand } from './analyze.js';
+import { rewardsCommand } from './rewards.js';
 import { db } from '../database.js';
 
 const c = {
@@ -30,6 +31,7 @@ export async function interactiveMode() {
                 message: 'What would you like to do?',
                 choices: [
                     { name: 'Analyze Wallet', value: 'analyze' },
+                    { name: 'View Rewards', value: 'rewards' },
                     { name: 'View History', value: 'history' },
                     { name: 'View Favorites', value: 'favorites' },
                     { name: 'Configuration', value: 'config' },
@@ -44,6 +46,8 @@ export async function interactiveMode() {
 
             if (action === 'analyze') {
                 await runAnalyze();
+            } else if (action === 'rewards') {
+                await viewRewards();
             } else if (action === 'history') {
                 await showHistory();
             } else if (action === 'favorites') {
