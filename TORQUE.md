@@ -397,6 +397,56 @@ User scans wallet -> +10 points -> Rank updates -> Competition drives more scans
 
 ---
 
+## CLI Integration
+
+FundTracer CLI connects to Torque for reward tracking:
+
+### Linking
+
+```bash
+# 1. Open fundtracer.xyz/cli in browser
+# 2. Sign in with Google
+# 3. Run in terminal:
+fundtracer link
+# 4. Enter code shown on website:
+fundtracer link FT-XXXX
+```
+
+### Rewards Tracking
+
+```bash
+# Automatic (default) - tracks each scan
+fundtracer analyze 0x...
+
+# Skip tracking
+fundtracer analyze 0x... --no-track
+
+# View leaderboard
+fundtracer rewards
+
+# Your stats
+fundtracer rewards --me
+```
+
+### How It Works
+
+1. User signs in with Google on fundtracer.xyz/cli
+2. CLI generates link code (FT-XXXX)
+3. User enters code in CLI: `fundtracer link FT-XXXX`
+4. CLI saves link code to config
+5. Each `analyze` call sends scan to backend
+6. Backend updates Firestore + sends to Torque
+
+### Endpoints Used
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/torque-v2/cli/link` | Generate/verify link code |
+| POST | `/api/torque-v2/cli/scan` | Record scan |
+| GET | `/api/torque-v2/leaderboard` | View leaderboard |
+
+---
+
 ## What's Next (Roadmap)
 
 - [ ] Rank change alerts (Telegram DM when overtaken)
