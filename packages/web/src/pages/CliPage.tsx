@@ -5,6 +5,7 @@ import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './CliPage.css';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 import { useAuth } from '../contexts/AuthContext';
+import { apiRequest } from '../api';
 
 const navItems = LANDING_NAV_ITEMS.map(item => 
   item.href === '/cli' ? { ...item, active: true } : item
@@ -28,30 +29,7 @@ export function CliPage() {
     setLinkError(null);
     
     try {
-      // Get auth token - try both localStorage and context
-      let token = localStorage.getItem('fundtracer_token');
-      if (!token) {
-        token = await new Promise<string>((resolve) => {
-          const check = () => {
-            const t = localStorage.getItem('fundtracer_token');
-            if (t) resolve(t);
-            else setTimeout(check, 100);
-          };
-          check();
-        });
-      }
-      
-      const response = await fetch('/api/torque-v2/cli/link', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ action: 'generate' })
-      });
-      
-      const data = await response.json();
+      const data = await apiRequest('/api/torque-v2/cli/link', 'POST', { action: 'generate' });
       
       if (data.success) {
         setLinkCode(data.code);
