@@ -1,0 +1,113 @@
+.solana-view-empty,
+.solana-view-loading,
+.solana-view-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  color: var(--sub);
+  gap: 12px;
+}
+
+.solana-view-loading .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Transactions View */
+.tx-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  color: var(--sub);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.filter-btn.active {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tx-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.tx-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--surface2);
+  border-radius: 6px;
+  color: var(--sub);
+}
+
+.tx-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tx-type {
+  font-weight: 500;
+  color: var(--white);
+}
+
+.tx-time {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tx-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+}
+
+.tx-meta .positive {
+  color: var(--green);
+}
+
+.tx-meta .negative {
+  color: var(--red);
+}
+
+.tx-fee {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tx-link {
+  display: flex;
+  color: var(--sub);
+}
