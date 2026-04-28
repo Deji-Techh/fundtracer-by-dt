@@ -286,9 +286,6 @@
   color: var(--accent-cyan);
   letter-spacing: 0.1em;
 }
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-3);
-}
 
 .cli-link-note {
   font-size: var(--text-sm);
