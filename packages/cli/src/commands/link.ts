@@ -21,10 +21,10 @@ export async function linkCommand(code?: string) {
     try {
       console.log(c.gray('Verifying link code...'));
       
-      const response = await fetch(`${API_BASE}/api/torque-v2/cli/link`, {
+      const response = await fetch(`${API_BASE}/api/torque-v2/cli/link/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify', linkCode: code })
+        body: JSON.stringify({ linkCode: code })
       });
       
       const data = await response.json();
