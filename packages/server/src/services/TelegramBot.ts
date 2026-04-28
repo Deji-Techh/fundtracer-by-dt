@@ -361,9 +361,12 @@ function registerBotCommands() {
         if (entries.length === 0) {
             text += 'No entries yet. Be the first!\n';
         } else {
-            for (const entry of entries.slice(0, 10)) {
+            for (const entry of entries.slice(0, 50)) {
                 const name = entry.displayName || entry.userId?.slice(0, 8) || '?';
                 text += `${entry.rank}. ${name}  ${entry.walletsScanned} scans, ${entry.totalPoints} pts\n`;
+            }
+            if (entries.length > 50) {
+                text += `\n... and ${entries.length - 50} more\n`;
             }
         }
         text += '\n--------------------------------\n';
