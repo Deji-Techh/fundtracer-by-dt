@@ -28,11 +28,22 @@ export function CliPage() {
     setLinkError(null);
     
     try {
-      // Get auth token
-      const token = localStorage.getItem('fundtracer_token');
+      // Get auth token - try both localStorage and context
+      let token = localStorage.getItem('fundtracer_token');
+      if (!token) {
+        token = await new Promise<string>((resolve) => {
+          const check = () => {
+            const t = localStorage.getItem('fundtracer_token');
+            if (t) resolve(t);
+            else setTimeout(check, 100);
+          };
+          check();
+        });
+      }
       
       const response = await fetch('/api/torque-v2/cli/link', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
