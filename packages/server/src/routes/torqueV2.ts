@@ -9,6 +9,156 @@ import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 
 const router = Router();
 
+// Link code helper
+function generateLinkCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'FT-';
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+function getAdminAuth() {
+  const { getAuth } = require('../firebase.js');
+  return getAuth();
+}
+
+// CLI Link: Generate or verify link code
+router.post('/cli/link', async (req: Request, res: Response) => {
+  try {
+    const { linkCode, action } = req.body;
+    const db = require('../firebase.js').getFirestore();
+    const LINK_CODE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+    
+    if (action === 'generate') {
+      // Generate new link code for authenticated user
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      // Verify token and get user ID
+      const token = authHeader.split(' ')[1];
+      const auth = getAdminAuth();
+      const decoded = await auth.verifyIdToken(token);
+      const userId = decoded.uid;
+      
+      // Check if user exists
+      const userDoc = await db.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Generate code and save
+      const code = generateLinkCode();
+      await db.collection('torque_cli_links').doc(code).set({
+        userId,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + LINK_CODE_EXPIRY,
+        used: false
+      });
+      
+      res.json({
+        success: true,
+        code,
+        expiresIn: 300 // seconds
+      });
+      
+    } else if (action === 'verify' && linkCode) {
+      // Verify and link CLI
+      const linkDoc = await db.collection('torque_cli_links').doc(linkCode).get();
+      
+      if (!linkDoc.exists) {
+        return res.status(404).json({ error: 'Invalid code' });
+      }
+      
+      const data = linkDoc.data();
+      if (!data) {
+        return res.status(404).json({ error: 'Invalid code' });
+      }
+      
+      if (data.used) {
+        return res.status(400).json({ error: 'Code already used' });
+      }
+      
+      if (Date.now() > data.expiresAt) {
+        return res.status(400).json({ error: 'Code expired' });
+      }
+      
+      // Mark as used
+      await db.collection('torque_cli_links').doc(linkCode).update({
+        used: true,
+        linkedAt: Date.now(),
+        cliUserId: data.userId
+      });
+      
+      // Get user display name
+      const userDoc = await db.collection('users').doc(data.userId).get();
+      const displayName = userDoc.data()?.displayName || userDoc.data()?.name || 'User';
+      
+      res.json({
+        success: true,
+        userId: data.userId,
+        displayName
+      });
+      
+    } else {
+      res.status(400).json({ error: 'Invalid action' });
+    }
+  } catch (error: any) {
+    console.error('[TorqueV2] CLI Link error:', error);
+    res.status(500).json({ error: 'Failed to process link request' });
+  }
+});
+
+// CLI Scan: Track scan without full authentication (uses link code)
+router.post('/cli/scan', async (req: Request, res: Response) => {
+  try {
+    const { linkCode } = req.body;
+    
+    if (!linkCode) {
+      return res.status(400).json({ error: 'Link code required' });
+    }
+    
+    const db = require('../firebase.js').getFirestore();
+    
+    // Verify link code
+    const linkDoc = await db.collection('torque_cli_links').doc(linkCode).get();
+    
+    if (!linkDoc.exists) {
+      return res.status(401).json({ error: 'Invalid link code' });
+    }
+    
+    const linkData = linkDoc.data();
+    if (!linkData || linkData.used === false && !linkData.cliUserId) {
+      // Not yet linked - check if it's a fresh code from this session
+      // Allow the scan anyway, link on first use
+    }
+    
+    // Get user ID (either from verified link or create guest)
+    let userId = linkData?.userId || linkData?.cliUserId;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Please link CLI first: fundtracer link' });
+    }
+    
+    // Get display name
+    const userDoc = await db.collection('users').doc(userId).get();
+    const displayName = userDoc.data()?.displayName || userDoc.data()?.name || '';
+    
+    await torqueServiceV2.incrementScan(userId, displayName);
+    
+    res.json({
+      success: true,
+      message: 'Scan recorded'
+    });
+  } catch (error: any) {
+    console.error('[TorqueV2] CLI Scan error:', error);
+    res.status(500).json({ error: 'Failed to record scan' });
+  }
+});
+
 // Get leaderboard (public)
 router.get('/leaderboard', async (req: Request, res: Response) => {
   try {
