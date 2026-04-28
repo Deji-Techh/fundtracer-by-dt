@@ -24,86 +24,85 @@ function getAdminAuth() {
   return getAuth();
 }
 
-// CLI Link: Generate or verify link code
-// - generate: requires auth (web user)
-router.post('/cli/link', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// CLI Link: Generate code (requires auth from web)
+router.post('/cli/link/generate', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { linkCode, action } = req.body;
     const db = require('../firebase.js').getFirestore();
-    const LINK_CODE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+    const LINK_CODE_EXPIRY = 5 * 60 * 1000;
     
-    if (action === 'generate') {
-      // Generate new link code for authenticated web user
-      const userId = req.user?.uid;
-      if (!userId) {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-      
-      // Check if user exists
-      const userDoc = await db.collection('users').doc(userId).get();
-      if (!userDoc.exists) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      // Generate code and save
-      const code = generateLinkCode();
-      await db.collection('torque_cli_links').doc(code).set({
-        userId: authUserId,
-        createdAt: Date.now(),
-        expiresAt: Date.now() + LINK_CODE_EXPIRY,
-        used: false
-      });
-      
-      res.json({
-        success: true,
-        code,
-        expiresIn: 300 // seconds
-      });
-      
-    } else if (action === 'verify' && linkCode) {
-      // Verify and link CLI
-      const linkDoc = await db.collection('torque_cli_links').doc(linkCode).get();
-      
-      if (!linkDoc.exists) {
-        return res.status(404).json({ error: 'Invalid code' });
-      }
-      
-      const data = linkDoc.data();
-      if (!data) {
-        return res.status(404).json({ error: 'Invalid code' });
-      }
-      
-      if (data.used) {
-        return res.status(400).json({ error: 'Code already used' });
-      }
-      
-      if (Date.now() > data.expiresAt) {
-        return res.status(400).json({ error: 'Code expired' });
-      }
-      
-      // Mark as used
-      await db.collection('torque_cli_links').doc(linkCode).update({
-        used: true,
-        linkedAt: Date.now(),
-        cliUserId: data.userId
-      });
-      
-      // Get user display name
-      const userDoc = await db.collection('users').doc(data.userId).get();
-      const displayName = userDoc.data()?.displayName || userDoc.data()?.name || 'User';
-      
-      res.json({
-        success: true,
-        userId: data.userId,
-        displayName
-      });
-      
-    } else {
-      res.status(400).json({ error: 'Invalid action' });
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
+    
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const code = generateLinkCode();
+    await db.collection('torque_cli_links').doc(code).set({
+      userId,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + LINK_CODE_EXPIRY,
+      used: false
+    });
+    
+    res.json({ success: true, code, expiresIn: 300 });
   } catch (error: any) {
-    console.error('[TorqueV2] CLI Link error:', error);
-    res.status(500).json({ error: 'Failed to process link request' });
+    console.error('[TorqueV2] CLI Link Generate error:', error);
+    res.status(500).json({ error: 'Failed to generate link code' });
+  }
+});
+
+// CLI Link: Verify code (no auth - used by CLI user)
+router.post('/cli/link/verify', async (req: Request, res: Response) => {
+  try {
+    const { linkCode } = req.body;
+    const db = require('../firebase.js').getFirestore();
+    
+    if (!linkCode) {
+      return res.status(400).json({ error: 'Link code required' });
+    }
+    
+    const linkDoc = await db.collection('torque_cli_links').doc(linkCode).get();
+    
+    if (!linkDoc.exists) {
+      return res.status(404).json({ error: 'Invalid code' });
+    }
+    
+    const data = linkDoc.data();
+    if (!data) {
+      return res.status(404).json({ error: 'Invalid code' });
+    }
+    
+    if (data.used) {
+      return res.status(400).json({ error: 'Code already used' });
+    }
+    
+    if (Date.now() > data.expiresAt) {
+      return res.status(400).json({ error: 'Code expired' });
+    }
+    
+    // Mark as used
+    await db.collection('torque_cli_links').doc(linkCode).update({
+      used: true,
+      linkedAt: Date.now(),
+      cliUserId: data.userId
+    });
+    
+    // Get user display name
+    const userDoc = await db.collection('users').doc(data.userId).get();
+    const displayName = userDoc.data()?.displayName || userDoc.data()?.name || 'User';
+    
+    res.json({
+      success: true,
+      userId: data.userId,
+      displayName
+    });
+  } catch (error: any) {
+    console.error('[TorqueV2] CLI Link Verify error:', error);
+    res.status(500).json({ error: 'Failed to verify link code' });
   }
 });
 
