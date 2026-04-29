@@ -178,7 +178,7 @@ const features = [
     { id: 'nfts', label: 'NFTs', icon: Image, desc: 'Holdings, collections, rarity' },
     { id: 'defi', label: 'DeFi', icon: Layers, desc: 'Protocols, positions, yields' },
     { id: 'risk', label: 'Risk', icon: Shield, desc: 'Security analysis & signals' },
-    { id: 'identity', label: 'Identity', icon: BadgeCheck, desc: 'Badges & reputation' },
+    { id: 'identity', label: 'Identity', icon: BadgeCheck, desc: 'Badges & reputation', disabled: true },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, desc: 'Dune data & trends' },
     { id: 'tax', label: 'Tax', icon: DollarSign, desc: 'P&L & cost basis' },
     { id: 'compare', label: 'Compare', icon: GitCompare, desc: 'Compare multiple wallets' },
@@ -1008,14 +1008,15 @@ export default function AppSolana() {
                         {features.map((feature) => {
                             const isLoading = featureLoading[feature.id];
                             const isComplete = completedFeatures[feature.id];
+                            const isDisabled = (feature as any).disabled;
                             return (
                                 <motion.button
                                     key={feature.id}
-                                    className={`feature-box ${isLoading ? 'loading' : ''} ${isComplete ? 'complete' : ''}`}
-                                    onClick={() => isComplete && setActiveFeature(feature.id as FeatureType)}
-                                    whileHover={isComplete ? { scale: 1.02 } : {}}
-                                    whileTap={isComplete ? { scale: 0.98 } : {}}
-                                    disabled={isLoading || !isComplete}
+                                    className={`feature-box ${isLoading ? 'loading' : ''} ${isComplete ? 'complete' : ''} ${isDisabled ? 'disabled' : ''}`}
+                                    onClick={() => !isDisabled && isComplete && setActiveFeature(feature.id as FeatureType)}
+                                    whileHover={isDisabled || !isComplete ? {} : { scale: 1.02 }}
+                                    whileTap={isDisabled || !isComplete ? {} : { scale: 0.98 }}
+                                    disabled={isLoading || !isComplete || isDisabled}
                                 >
                                     {isLoading && (
                                         <div className="feature-skeleton">

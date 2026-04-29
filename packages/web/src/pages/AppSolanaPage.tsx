@@ -138,7 +138,7 @@ export function AppSolanaPage() {
         <circle cx="7" cy="5" r="3"/>
         <path d="M2 12c0-2.5 2-4 5-4s5 1.5 5 4"/>
       </svg>
-    )},
+    ), disabled: true },
     { id: 'section-financial', label: 'Financial', icon: null },
     { id: 'analytics', label: 'Analytics', icon: (
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -229,6 +229,7 @@ export function AppSolanaPage() {
         activeNav={activeTab}
         onNavChange={(id) => {
           const item = navItems.find(n => n.id === id);
+          if (item && (item as any).disabled) return;
           if (item && (item as any).onClick) {
             (item as any).onClick();
           } else {
