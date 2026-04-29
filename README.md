@@ -62,7 +62,7 @@ Terminal-based blockchain forensics for developers and security researchers.
 **Installation:**
 
 ```bash
-npm install -g fundtracer-cli
+npm install -g fundtracer
 ```
 
 Or build from source:

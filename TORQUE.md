@@ -411,6 +411,19 @@ FundTracer CLI connects to Torque for reward tracking:
 fundtracer link FT-XXXX
 ```
 
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `fundtracer analyze <address>` | Analyze a single wallet |
+| `fundtracer compare <addresses...>` | Compare wallets for Sybil detection |
+| `fundtracer portfolio <address>` | View NFT and token holdings |
+| `fundtracer batch <file>` | Analyze multiple wallets from a file |
+| `fundtracer interactive` | Start interactive mode |
+| `fundtracer config` | Configure API keys |
+| `fundtracer link <code>` | Link CLI to web account |
+| `fundtracer rewards` | View leaderboard and stats |
+
 ### How It Works
 
 1. Web user signs in at `/cli` page
@@ -452,9 +465,11 @@ Each `fundtracer analyze` call:
 3. Adds activity entry to feed
 4. Returns success (silent failure)
 
----
+CLI scans appear in activity feed with "cli" chain indicator.
 
-## Solana Support (v3 - NEW)
+### Solana Scanning
+
+FundTracer CLI also supports Solana wallet scanning:
 
 FundTracer now supports Solana wallet scanning with Torque rewards:
 
