@@ -425,6 +425,28 @@
     cursor: pointer;
 }
 
+.feature-box.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.feature-box.disabled .feature-icon,
+.feature-box.disabled .feature-label,
+.feature-box.disabled .feature-desc {
+    opacity: 0.4;
+}
+
+.feature-box.disabled {
+    background: var(--surface);
+    border-color: var(--line);
+}
+
+.feature-box.disabled:hover {
+    transform: none;
+    border-color: var(--line);
+}
+
 .feature-box.complete:hover {
     background: var(--surface2);
 }
