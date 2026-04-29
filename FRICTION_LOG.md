@@ -18,6 +18,45 @@ Torque integration provides equity rewards via leaderboards that track wallets a
 | Custom Events API | Ingest endpoint functioned correctly on first implementation |
 | Redis Caching | Reduced Firebase reads from 49K/day to ~700/day (98% reduction) |
 | Telegram Integration | Group commands executed without special configuration |
+| CLI Link Flow | Google OAuth + link code system works reliably |
+
+---
+
+## Recent Updates (Post-Hackathon)
+
+### CLI Link Code Issue
+
+**Problem:** Firebase ID token verification failed with "Firebase ID token has no 'kid' claim" error.
+
+**Root Cause:** `/cli/link` endpoint used `auth.verifyIdToken()` directly, but the token from frontend didn't have the required "kid" claim that Firebase Admin expects.
+
+**Solution:** Split into two endpoints:
+- `/cli/link/generate` - uses authMiddleware (for web to generate code)
+- `/cli/link/verify` - no auth needed (CLI verifies code)
+
+This follows the same pattern as other working endpoints like `/mystats` and `/scan`.
+
+### CLI Activity Feed Issue
+
+**Problem:** CLI scans added points but didn't appear in activity feed.
+
+**Root Cause:** `incrementScan()` only updated leaderboard points. Activity required separate call to `addActivity()`.
+
+**Solution:** Updated `/cli/scan` to call both `incrementScan()` and `addActivity()`, passing wallet address.
+
+### Solana Scanning
+
+**Problem:** Solana scans didn't count toward leaderboard.
+
+**Root Cause:** Solana endpoints (`/solana/portfolio`, `/solana/risk`) called portfolio service directly without Torque integration.
+
+**Solution:** Added Torque tracking to Solana endpoints:
+```javascript
+if (userId) {
+  await torqueServiceV2.incrementScan(userId, displayName);
+  await torqueServiceV2.addActivity(userId, displayName, address, 'solana');
+}
+```
 
 ---
 

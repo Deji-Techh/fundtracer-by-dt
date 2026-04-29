@@ -401,16 +401,32 @@ User scans wallet -> +10 points -> Rank updates -> Competition drives more scans
 
 FundTracer CLI connects to Torque for reward tracking:
 
-### Linking
+### Linking Flow (v3 - Updated)
 
 ```bash
 # 1. Open fundtracer.xyz/cli in browser
-# 2. Sign in with Google
-# 3. Run in terminal:
-fundtracer link
-# 4. Enter code shown on website:
+# 2. Sign in with Google  
+# 3. Click "Generate Link Code" button
+# 4. Run in terminal:
 fundtracer link FT-XXXX
 ```
+
+### How It Works
+
+1. Web user signs in at `/cli` page
+2. Calls `/api/torque-v2/cli/link/generate` (requires auth)
+3. Returns 4-char code (e.g., `FT-5CAE`) with 5-min expiry
+4. Code saved to `torque_cli_links` collection
+5. CLI calls `/api/torque-v2/cli/link/verify` with code
+6. Links user's Firebase ID to CLI session
+
+### Endpoints
+
+| Method | Endpoint | Auth | Purpose |
+|--------|----------|------|---------|
+| POST | `/api/torque-v2/cli/link/generate` | Yes | Generate link code |
+| POST | `/api/torque-v2/cli/link/verify` | No | Verify and link CLI |
+| POST | `/api/torque-v2/cli/scan` | No | Record scan (+10 pts) |
 
 ### Rewards Tracking
 
@@ -428,22 +444,41 @@ fundtracer rewards
 fundtracer rewards --me
 ```
 
+### CLI Scan Tracking
+
+Each `fundtracer analyze` call:
+1. Sends wallet address to `/cli/scan` endpoint
+2. Backend adds +10 points to leaderboard
+3. Adds activity entry to feed
+4. Returns success (silent failure)
+
+---
+
+## Solana Support (v3 - NEW)
+
+FundTracer now supports Solana wallet scanning with Torque rewards:
+
+### Endpoints That Count
+
+| Method | Endpoint | Points | Activity |
+|--------|----------|--------|----------|
+| GET | `/api/solana/portfolio/:addr` | +10 | Yes |
+| GET | `/api/solana/risk/:addr` | +10 | Yes |
+
 ### How It Works
 
-1. User signs in with Google on fundtracer.xyz/cli
-2. CLI generates link code (FT-XXXX)
-3. User enters code in CLI: `fundtracer link FT-XXXX`
-4. CLI saves link code to config
-5. Each `analyze` call sends scan to backend
-6. Backend updates Firestore + sends to Torque
+1. User scans Solana wallet on web or via API
+2. Backend checks auth (user must be logged in)
+3. Calls `torqueServiceV2.incrementScan(userId, displayName)`
+4. Adds activity entry with chain = "solana"
+5. Leaderboard and activity feed update
 
-### Endpoints Used
+### Activity Feed
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/torque-v2/cli/link` | Generate/verify link code |
-| POST | `/api/torque-v2/cli/scan` | Record scan |
-| GET | `/api/torque-v2/leaderboard` | View leaderboard |
+CLI scans show chain in activity:
+- `cli` - Command-line interface scans
+- `solana` - Solana wallet scans  
+- `eth`, `linea`, etc. - Web chain scans
 
 ---
 
