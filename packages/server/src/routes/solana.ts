@@ -3,10 +3,11 @@
 // Complete Solana wallet analysis API
 // ============================================================
 
-import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.js';
+import { Router, Response } from 'express';
+import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { usageMiddleware } from '../middleware/usage.js';
 import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
+import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 
 const router = Router();
 
@@ -19,9 +20,10 @@ function isValidSolanaAddress(address: string): boolean {
 
 // GET /api/solana/portfolio/:address - Full portfolio view
 // Query params: exclude_spam_tokens=true/false, exclude_unpriced=true/false, min_liquidity=number
-router.get('/portfolio/:address', authMiddleware, usageMiddleware, async (req, res) => {
+router.get('/portfolio/:address', authMiddleware, usageMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { address } = req.params;
+    const userId = req.user?.uid;
     const { exclude_spam_tokens, exclude_unpriced, min_liquidity } = req.query;
     
     if (!isValidSolanaAddress(address)) {
@@ -36,6 +38,14 @@ router.get('/portfolio/:address', authMiddleware, usageMiddleware, async (req, r
     const portfolio = await solanaPortfolioService.getPortfolio(address, 
       Object.keys(filterOptions).length > 0 ? filterOptions : undefined
     );
+    
+    // Add to Torque leaderboard and activity (if authenticated)
+    if (userId) {
+      const displayName = req.user?.name || 'User';
+      await torqueServiceV2.incrementScan(userId, displayName).catch(() => {});
+      await torqueServiceV2.addActivity(userId, displayName, address, 'solana').catch(() => {});
+    }
+    
     res.json(portfolio);
   } catch (error: any) {
     console.error('Solana portfolio error:', error);
@@ -117,15 +127,24 @@ router.get('/defi/:address', authMiddleware, usageMiddleware, async (req, res) =
 });
 
 // GET /api/solana/risk/:address - Risk analysis
-router.get('/risk/:address', authMiddleware, usageMiddleware, async (req, res) => {
+router.get('/risk/:address', authMiddleware, usageMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { address } = req.params;
+    const userId = req.user?.uid;
     
     if (!isValidSolanaAddress(address)) {
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
     const risk = await solanaPortfolioService.getRiskAnalysis(address);
+    
+    // Add to Torque leaderboard and activity (if authenticated)
+    if (userId) {
+      const displayName = req.user?.name || 'User';
+      await torqueServiceV2.incrementScan(userId, displayName).catch(() => {});
+      await torqueServiceV2.addActivity(userId, displayName, address, 'solana').catch(() => {});
+    }
+    
     res.json(risk);
   } catch (error: any) {
     console.error('Solana risk error:', error);
