@@ -531,30 +531,6 @@ export class SolanaPortfolioService {
             attributes: item.metadata?.attributes || item.content?.metadata?.attributes,
         }));
     }
-                    jsonrpc: '2.0',
-                    id: 1,
-                    method: 'getAssetsByOwner',
-                    params: [{
-                        owner: address,
-                        options: { limit: 100 }
-                    }]
-                })
-            });
-            const data = await res.json();
-            const alchemyNfts = data.result?.assets || [];
-            return alchemyNfts.map((item: any) => ({
-                id: item.id,
-                mint: item.id,
-                owner: address,
-                name: item.metadata?.name || item.name || 'Unknown',
-                symbol: item.metadata?.symbol,
-                imageUrl: item.metadata?.image || item.imageUrl,
-                collection: item.collection || '',
-                collectionImage: item.metadata?.image,
-                attributes: item.metadata?.attributes,
-            }));
-        }, 10);
-    }
 
     async getDeFiPositions(address: string): Promise<DeFiPosition[]> {
         const positions: DeFiPosition[] = [];
