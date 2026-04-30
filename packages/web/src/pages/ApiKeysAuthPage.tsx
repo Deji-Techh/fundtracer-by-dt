@@ -512,10 +512,6 @@ export function ApiKeysAuthPage() {
                     )}
                   </motion.button>
                 </form>
-
-                <p className="auth-footer-text">
-                  <a href="#" className="forgot-link">Forgot password?</a>
-                </p>
               </motion.div>
             )}
 

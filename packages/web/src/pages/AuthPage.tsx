@@ -399,10 +399,6 @@ export function AuthPage() {
                     <span />
                   </div>
 
-                  <p className="auth-email-note">
-                    Email/password sign-in is available after creating your account with Google.
-                  </p>
-
                   <div className="auth-trust-row">
                     <div className="auth-trust-item">
                       <Check size={14} />
@@ -417,19 +413,6 @@ export function AuthPage() {
                       <span>Sybil detection</span>
                     </div>
                   </div>
-
-                  <a 
-                    href="/auth?mode=forgotPassword"
-                    className="auth-link-forgot"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setAuthMode('forgotPassword');
-                      setError(null);
-                      setSuccess(null);
-                    }}
-                  >
-                    Forgot password?
-                  </a>
                 </motion.div>
               )}
             </AnimatePresence>
