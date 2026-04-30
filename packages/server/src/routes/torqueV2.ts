@@ -258,6 +258,15 @@ router.post('/scan', authMiddleware, async (req: AuthenticatedRequest, res: Resp
 // Get groups leaderboard (public)
 router.get('/groups', async (req: Request, res: Response) => {
   try {
+    const { isRedisConnected, cacheGet, cacheSet } = require('../utils/redis.js');
+    const cacheKey = 'torque:v2:groups';
+    
+    // Check Redis cache first
+    if (isRedisConnected()) {
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) return res.json(cached);
+    }
+    
     const db = require('../firebase.js').getFirestore();
     const snapshot = await db.collection('torque_groups')
       .orderBy('totalPoints', 'desc')
@@ -273,11 +282,18 @@ router.get('/groups', async (req: Request, res: Response) => {
       members: doc.data().members || []
     }));
     
-    res.json({
+    const result = {
       success: true,
       groups,
       timestamp: Date.now()
-    });
+    };
+    
+    // Cache for 5 minutes
+    if (isRedisConnected()) {
+      await cacheSet(cacheKey, result, 300);
+    }
+    
+    res.json(result);
   } catch (error: any) {
     console.error('[TorqueV2] Groups error:', error);
     res.status(500).json({ error: 'Failed to fetch groups' });
