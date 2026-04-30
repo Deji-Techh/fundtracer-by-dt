@@ -6,6 +6,320 @@
   overflow-x: hidden;
 }
 
+/* My Stats Tab */
+.my-stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px 24px;
+}
+
+.my-stats-empty,
+.my-stats-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  gap: 16px;
+}
+
+.my-stats-empty .empty-icon,
+.my-stats-loading .loading-spinner {
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+
+.my-stats-empty h3,
+.my-stats-loading p {
+  color: var(--color-text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.my-stats-empty p {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.stats-card {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.stats-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  color: var(--color-text-primary);
+}
+
+.stats-card .card-header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: var(--color-bg-surface);
+  border-radius: 12px;
+  color: var(--color-text-secondary);
+}
+
+.stat-item .stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-item .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* Equity Calculation */
+.equity-calculation {
+  background: linear-gradient(135deg, var(--color-bg-elevated) 0%, var(--color-bg-surface) 100%);
+}
+
+.calculation-formula {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+}
+
+.formula-line {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--color-bg-surface);
+  border-radius: 8px;
+}
+
+.formula-label {
+  color: var(--color-text-secondary);
+}
+
+.formula-value {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.formula-value.highlight {
+  color: var(--color-accent);
+  font-size: 1.25rem;
+}
+
+.formula-divider {
+  color: var(--color-text-muted);
+  font-size: 1.5rem;
+}
+
+.calculation-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* Claim Section */
+.claim-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.claim-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, var(--color-accent) 0%, color-mix(in srgb, var(--color-accent) 80%, black) 100%);
+  border: none;
+  border-radius: 12px;
+  color: var(--color-bg-primary);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.claim-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+.claim-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.no-points {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.claim-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--color-error-bg, #ff336620);
+  border: 1px solid var(--color-error);
+  border-radius: 8px;
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+/* Pool Stats */
+.pool-stats {
+  padding: 20px;
+  background: var(--color-bg-surface);
+  border-radius: 12px;
+}
+
+.pool-stats h4 {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.pool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.pool-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pool-item span {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.pool-item strong {
+  font-size: 1rem;
+  color: var(--color-text-primary);
+}
+
+/* Claimed State */
+.my-stats-claimed {
+  display: flex;
+  justify-content: center;
+  padding: 60px 24px;
+}
+
+.claimed-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+  max-width: 360px;
+}
+
+.claimed-success svg:first-child {
+  color: var(--color-success, #00ff88);
+  background: var(--color-success-bg, #00ff8820);
+  padding: 20px;
+  border-radius: 50%;
+}
+
+.claimed-success h2 {
+  font-size: 1.75rem;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.claimed-details {
+  width: 100%;
+  padding: 20px;
+  background: var(--color-bg-surface);
+  border-radius: 12px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row span {
+  color: var(--color-text-secondary);
+}
+
+.detail-row strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.detail-row.highlight strong {
+  color: var(--color-accent);
+  font-size: 1.25rem;
+}
+
+.claimed-note {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
 /* Hero Section */
 .rewards-hero {
   position: relative;

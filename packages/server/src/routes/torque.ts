@@ -5,7 +5,7 @@
 
 import { Router, Response, Request } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { torqueService, TORQUE_CAMPAIGNS, getCampaignStats, getOverallStats } from '../services/TorqueService.js';
+import { torqueService, TORQUE_CAMPAIGNS, getCampaignStats, getOverallStats, getClaimStatus, processClaim, getPoolStats } from '../services/TorqueService.js';
 import { ensureUserHasReferralCode } from '../utils/referral.js';
 
 const router = Router();
@@ -76,6 +76,87 @@ router.get('/stats', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[Torque] Stats error:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Claim equity - requires auth
+router.post('/claim', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.uid;
+    const userEmail = req.user!.email || req.body.email;
+    
+    // Get user's current stats
+    const stats = await torqueService.getUserStats(userId);
+    const { points } = stats || { points: 0 };
+    
+    if (points === 0) {
+      return res.status(400).json({ error: 'No points to claim' });
+    }
+    
+    // Calculate equity
+    // Total pool: 500,000 points = 5% equity
+    // 1 point = 0.00001% equity
+    // equity% = (points / 500,000) × 5
+    const equityPercent = (points / 500000) * 5;
+    
+    // Check if already claimed
+    const claimStatus = await torqueService.getClaimStatus(userId);
+    if (claimStatus?.claimed) {
+      return res.status(400).json({ 
+        error: 'Already claimed',
+        claimedEquity: claimStatus.equityPercent
+      });
+    }
+    
+    // Process claim
+    await torqueService.processClaim({
+      userId,
+      userEmail,
+      points,
+      equityPercent
+    });
+    
+    res.json({
+      success: true,
+      claimed: true,
+      points,
+      equityPercent: equityPercent.toFixed(5),
+      message: `You have claimed ${equityPercent.toFixed(5)}% equity`
+    });
+  } catch (error: any) {
+    console.error('[Torque] Claim error:', error);
+    res.status(500).json({ error: 'Failed to process claim' });
+  }
+});
+
+// Get claim status for current user
+router.get('/claim/status', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.uid;
+    const claimStatus = await torqueService.getClaimStatus(userId);
+    
+    res.json({
+      success: true,
+      ...claimStatus
+    });
+  } catch (error: any) {
+    console.error('[Torque] Claim status error:', error);
+    res.status(500).json({ error: 'Failed to fetch claim status' });
+  }
+});
+
+// Get global equity pool stats
+router.get('/pool-stats', async (req: Request, res: Response) => {
+  try {
+    const poolStats = await torqueService.getPoolStats();
+    
+    res.json({
+      success: true,
+      ...poolStats
+    });
+  } catch (error: any) {
+    console.error('[Torque] Pool stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch pool stats' });
   }
 });
 

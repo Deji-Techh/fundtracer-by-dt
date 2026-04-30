@@ -813,3 +813,106 @@ const result = {
     return { totalEquityPool: '5%', activeParticipants: 0, eventsTracked: 0, rewardsClaimed: '0.3%' };
   }
 }
+
+// Get claim status for a user
+export async function getClaimStatus(userId: string): Promise<{
+  claimed: boolean;
+  points: number;
+  equityPercent: number;
+  claimedAt: number | null;
+}> {
+  try {
+    const db = getDb();
+    const claimDoc = await db.collection('torque_claims').doc(userId).get();
+    
+    if (claimDoc.exists) {
+      const data = claimDoc.data();
+      return {
+        claimed: true,
+        points: data?.points || 0,
+        equityPercent: data?.equityPercent || 0,
+        claimedAt: data?.claimedAt?.toMillis() || null
+      };
+    }
+    
+    return { claimed: false, points: 0, equityPercent: 0, claimedAt: null };
+  } catch (error) {
+    console.error('[Torque] Failed to get claim status:', error);
+    return { claimed: false, points: 0, equityPercent: 0, claimedAt: null };
+  }
+}
+
+// Process equity claim
+export async function processClaim(params: {
+  userId: string;
+  userEmail: string;
+  points: number;
+  equityPercent: number;
+}): Promise<void> {
+  try {
+    const db = getDb();
+    const { userId, userEmail, points, equityPercent } = params;
+    
+    // Save claim to Firestore
+    await db.collection('torque_claims').doc(userId).set({
+      userId,
+      userEmail,
+      points,
+      equityPercent,
+      claimedAt: FieldValue.serverTimestamp(),
+      status: 'claimed'
+    });
+    
+    // Update global pool stats
+    const poolRef = db.collection('torque_pool').doc('global');
+    const poolDoc = await poolRef.get();
+    const currentStats = poolDoc.data() || {};
+    
+    await poolRef.set({
+      totalPointsClaimed: (currentStats.totalPointsClaimed || 0) + points,
+      totalEquityClaimed: (currentStats.totalEquityClaimed || 0) + equityPercent,
+      claimCount: (currentStats.claimCount || 0) + 1,
+      lastClaimedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    
+    console.log(`[Torque] Claim processed: ${userId} claimed ${equityPercent}% equity (${points} points)`);
+  } catch (error) {
+    console.error('[Torque] Failed to process claim:', error);
+    throw error;
+  }
+}
+
+// Get global pool statistics
+export async function getPoolStats(): Promise<{
+  totalEquityPool: string;
+  remainingEquityPool: string;
+  totalPointsClaimed: number;
+  totalEquityClaimed: number;
+  claimCount: number;
+}> {
+  try {
+    const db = getDb();
+    const poolDoc = await db.collection('torque_pool').doc('global').get();
+    const stats = poolDoc.data() || {};
+    
+    const totalEquityClaimed = stats.totalEquityClaimed || 0;
+    const remainingEquityPool = Math.max(0, 5 - totalEquityClaimed);
+    
+    return {
+      totalEquityPool: '5%',
+      remainingEquityPool: `${remainingEquityPool.toFixed(5)}%`,
+      totalPointsClaimed: stats.totalPointsClaimed || 0,
+      totalEquityClaimed,
+      claimCount: stats.claimCount || 0
+    };
+  } catch (error) {
+    console.error('[Torque] Failed to get pool stats:', error);
+    return {
+      totalEquityPool: '5%',
+      remainingEquityPool: '5%',
+      totalPointsClaimed: 0,
+      totalEquityClaimed: 0,
+      claimCount: 0
+    };
+  }
+}

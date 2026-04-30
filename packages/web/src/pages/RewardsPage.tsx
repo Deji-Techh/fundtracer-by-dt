@@ -17,6 +17,7 @@ import TorqueLeaderboard from '../components/TorqueLeaderboard';
 import ActivityFeed from '../components/ActivityFeed';
 import { useAuth } from '../contexts/AuthContext';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
+import MyStatsTab from '../components/MyStatsTab';
 import './RewardsPage.css';
 
 const navItems = LANDING_NAV_ITEMS.map(item => 
@@ -493,7 +494,7 @@ export default function RewardsPage() {
           </motion.h2>
 
           <div className="campaigns-tabs">
-            {['campaigns', 'leaderboard', 'activity', 'groups'].map(tab => (
+            {['campaigns', 'leaderboard', 'activity', 'my-stats'].map(tab => (
               <motion.button
                 key={tab}
                 className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
@@ -504,19 +505,10 @@ export default function RewardsPage() {
                 {tab === 'campaigns' && <Gift size={16} />}
                 {tab === 'leaderboard' && <Trophy size={16} />}
                 {tab === 'activity' && <Activity size={16} />}
-                {tab === 'groups' && <Users size={16} />}
-                {tab.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                {tab === 'my-stats' && <Wallet size={16} />}
+                {tab === 'my-stats' ? 'My Stats' : tab.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               </motion.button>
             ))}
-            <motion.button
-              className="tab-btn"
-              onClick={() => window.open('/app-evm?tab=settings#torque-stats', '_blank')}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Wallet size={16} />
-              My Stats
-            </motion.button>
           </div>
 
           <AnimatePresence mode="wait">
@@ -697,6 +689,20 @@ export default function RewardsPage() {
                 <h3>Live Activity</h3>
                 <p className="activity-subtitle">Real-time scans across all groups</p>
                 <ActivityFeed refreshInterval={20000} />
+              </motion.div>
+            )}
+
+            {activeTab === 'my-stats' && (
+              <motion.div 
+                className="my-stats-content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <MyStatsTab 
+                  user={user} 
+                  onClaim={() => setShowClaimModal(true)}
+                />
               </motion.div>
             )}
           </AnimatePresence>
