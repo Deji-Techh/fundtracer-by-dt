@@ -9,7 +9,7 @@ import {
   Wallet, Trophy, Target, Zap, Award, Lock, Unlock, 
   Calculator, Sparkles, CheckCircle, AlertCircle, Gift
 } from 'lucide-react';
-import { getAuthToken } from '../api';
+import { getAuthToken, apiRequest } from '../api';
 
 // Constants
 const TOTAL_POOL_POINTS = 500000;
@@ -76,29 +76,16 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
           console.log('[MyStatsTab] Token found after retry');
         }
 
-        // Fetch claim status
-        const claimRes = await fetch('/api/torque-v2/claim/status', {
-          headers: { 'Authorization': `Bearer ${token}` },
-          signal: abortController.signal
-        });
-        console.log('[MyStatsTab] /claim/status:', claimRes.status);
-        const claimData = await claimRes.json();
-        console.log('[MyStatsTab] claimData:', claimData);
+        // Fetch claim status using apiRequest (handles auth automatically)
+        const claimData = await apiRequest<any>('/api/torque-v2/claim/status');
         setClaimStatus(claimData);
 
         // Fetch pool stats
-        const poolRes = await fetch('/api/torque-v2/pool-stats');
-        const poolData = await poolRes.json();
+        const poolData = await apiRequest<any>('/api/torque-v2/pool-stats');
         setPoolStats(poolData);
 
-// Fetch user stats
-        console.log('[MyStatsTab] Fetching mystats, token:', token ? token.substring(0, 30) + '...' : 'NONE');
-        const statsRes = await fetch('/api/torque-v2/mystats', {
-          headers: { 'Authorization': `Bearer ${token}` },
-          signal: abortController.signal
-        });
-        console.log('[MyStatsTab] mystats response:', statsRes.status);
-        const statsData = await statsRes.json();
+        // Fetch user stats
+        const statsData = await apiRequest<any>('/api/torque-v2/mystats');
         setUserStats(statsData.stats);
       } catch (err: any) {
         // Ignore abort errors - they're expected when component unmounts
