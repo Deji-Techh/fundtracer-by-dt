@@ -511,6 +511,37 @@ CLI scans show chain in activity:
 
 ---
 
+## Recent Updates (v3.2 - April 2026)
+
+### Claim System 2.0
+
+Major overhaul of the equity claim system:
+
+| Feature | Before | After |
+|---------|--------|-------|
+| Multiple claims | One-time only | Unlimited (accumulate & claim) |
+| Claim history | None | Full history with dates |
+| Equity claimed stat | Static 0% | Real-time from pool-stats |
+| Close claimed view | No way to close | X button + Back button |
+| Error handling | Silent failures | Auto-dismiss after 5s |
+
+### Technical Changes
+
+- **Cache invalidation** — After each claim, clears:
+  - `torque:v2:claim:{userId}`
+  - `torque:v2:user:{userId}`
+  - `torque:v2:leaderboard`
+  - `torque:v2:pool-stats`
+
+- **Claim history endpoint** — Returns empty array instead of 500 on error
+
+- **UI improvements**:
+  - "View Claimed Equity (X%)" shows your total
+  - "Analyze more wallets" hint after claiming all
+  - Graceful handling of "nothing left to claim"
+
+---
+
 ## Equity Claim System (v3.1)
 
 > How users claim equity in FundTracer based on their leaderboard position

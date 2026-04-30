@@ -34,6 +34,15 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
   {
+    id: 'claim-improvements',
+    title: 'Claim System 2.0: Multiple Claims & Real-Time Updates',
+    excerpt: 'We\'ve completely overhauled the equity claim system. Now claim multiple times as you earn more points, track your claim history, and see real-time rewards claimed.',
+    category: 'Product',
+    date: '2026-04-30',
+    readTime: '3 min read',
+    slug: 'claim-system-improvements',
+  },
+  {
     id: 'equity-claims',
     title: 'Claim Your Equity: 5% Pool for Community',
     excerpt: 'FundTracer launches equity claims — analyze wallets and claim your share of the 5% equity pool. Top performers earn life-changing stakes.',

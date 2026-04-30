@@ -102,6 +102,100 @@ Can you overtake them?
 Start analyzing today at [fundtracer.xyz](https://fundtracer.xyz).
     `,
   },
+  'claim-system-improvements': {
+    id: 'claim-improvements',
+    title: 'Claim System 2.0: Multiple Claims & Real-Time Updates',
+    excerpt: 'We\'ve completely overhauled the equity claim system. Now claim multiple times as you earn more points.',
+    category: 'Product',
+    date: '2026-04-30',
+    readTime: '3 min read',
+    author: 'FundTracer Team',
+    slug: 'claim-system-improvements',
+    content: `
+## Claim System 2.0
+
+We've heard your feedback and made major improvements to our equity claim system. The new version includes multiple claims, real-time updates, and a much better user experience.
+
+## What's New
+
+### Multiple Claims
+The biggest change: you can now claim equity multiple times! Previously, users could only claim once. Now:
+
+- Earn points by analyzing wallets
+- Claim your equity when ready
+- Continue earning and claim again
+
+This "accumulate and claim" model means you're never locked out of earning more equity.
+
+### Real-Time Stats
+We've fixed several issues with the Rewards page hero section:
+
+- **Active Participants** — Now shows actual count from leaderboard
+- **Rewards Claimed** — Now fetches from pool stats endpoint to show actual distributed percentage (no more "0%")
+
+### Claim History
+Every claim is now tracked with a full history:
+
+- See all your past claims
+- View dates and amounts claimed
+- Track total equity earned over time
+
+### Better UI States
+- **Close button** — X icon to dismiss the claimed view
+- **Back to Stats** — Button to return after claiming
+- **All Claimed state** — Shows "View Claimed Equity (X%)" with hint to earn more
+- **Auto-dismiss errors** — Error messages clear after 5 seconds
+
+## Technical Improvements
+
+### Cache Invalidation
+Every successful claim now invalidates relevant Redis caches:
+
+- Claim status cache
+- User stats cache  
+- Leaderboard cache
+- Pool stats cache
+
+This ensures the UI updates immediately after claiming.
+
+### Error Handling
+The claim history endpoint now gracefully handles errors:
+
+- Returns empty history instead of 500 error
+- Prevents UI from breaking on server issues
+
+## How to Use
+
+1. **Earn Points** — Analyze wallets on FundTracer
+2. **Visit My Stats** — Go to Rewards > My Stats
+3. **Claim Equity** — Click "Claim X% Equity" button
+4. **View Details** — Click "View Claimed Equity" to see your claims
+5. **Earn More** — Analyze more wallets, claim again!
+
+## Example Flow
+
+| Action | Points | Equity Claimed |
+|--------|--------|----------------|
+| Analyze 3 wallets | 30 | 0.00030% |
+| First claim | — | 0.00030% |
+| Analyze 5 more | 50 | 0.00050% claimable |
+| Second claim | — | 0.00050% more |
+| **Total claimed** | 80 | **0.00080%** |
+
+## Behind the Scenes
+
+This update involved changes across the stack:
+
+- **Frontend** — MyStatsTab.tsx with new state management
+- **Backend** — TorqueServiceV2.ts with cache invalidation
+- **API** — New claim/history endpoint
+- **Styling** — New CSS for claim history section
+
+Check out the rewards page at [fundtracer.xyz/rewards](https://fundtracer.xyz/rewards).
+
+Happy analyzing!
+    `,
+  },
   'cli-rewards-command': {
     id: 'cli-rewards',
     title: 'Level Up with CLI: View Rewards from Terminal',

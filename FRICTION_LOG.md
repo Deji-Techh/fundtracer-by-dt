@@ -306,9 +306,9 @@ Added equity claim functionality:
 
 ---
 
-### Equity Claim System Improvements (April 2026)
+### Equity Claim System Improvements (v3.2 - April 2026)
 
-**Issues Fixed:**
+**Phase 1 Fixes:**
 
 1. **No close button on claimed view** - Users stuck on "Equity Claimed!" screen with no way to go back
    - Added X close button to dismiss and return to stats
@@ -326,6 +326,26 @@ Added equity claim functionality:
 
 4. **Removed vesting text** - Removed footer "5% equity pool • 12-24 month vesting • 3-12 month cliffs"
 
+**Phase 2 Fixes (v3.2):**
+
+1. **Equity Claimed showing 0% after claiming** - Redis cache returned stale data
+   - Added cache invalidation after successful claim
+   - Clears: claim status, user stats, leaderboard, pool stats caches
+
+2. **"Failed to claim" error when nothing left** - Backend returned error when claimable = 0
+   - Changed to show "View Claimed Equity (X%)" with claim percentage
+   - Added "Analyze more wallets to claim more equity!" hint
+   - Auto-refresh claim status from backend after claiming
+
+3. **500 error on claim/history** - Endpoint crashed on errors
+   - Now returns empty history array instead of 500
+   - UI doesn't break on server issues
+
+4. **Activity feed showed "Unknown" for claims** - Chain showed "EQUITY", user showed "Unknown"
+   - Changed to show "Claimed" user, "CLAIMED" chain
+   - Shows equity % instead of points
+   - Added checkmark icon and green styling
+
 **New Features:**
 
 - **Claim History** - New `/api/torque-v2/claim/history` endpoint
@@ -335,10 +355,11 @@ Added equity claim functionality:
 
 **Files Changed:**
 - `packages/web/src/components/MyStatsTab.tsx` - Added close/back buttons, claim history, multiple claim support
-- `packages/server/src/services/TorqueServiceV2.ts` - Multiple claim logic, getClaimHistory method
-- `packages/server/src/routes/torqueV2.ts` - Added claim history endpoint
+- `packages/server/src/services/TorqueServiceV2.ts` - Multiple claim logic, getClaimHistory method, cache invalidation
+- `packages/server/src/routes/torqueV2.ts` - Added claim history endpoint, error handling
 - `packages/web/src/pages/RewardsPage.tsx` - Fixed rewards claimed, removed footer
 - `packages/web/src/pages/RewardsPage.css` - Added styles for new buttons and history
+- `packages/web/src/components/ActivityFeed.tsx` - Claim activity display fixes
 
 ---
 
