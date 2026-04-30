@@ -187,15 +187,36 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
 });
 
 // Get my stats (requires auth)
-router.get('/mystats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
-  console.log('[TORQUE-V2] /mystats called, req.user:', req.user);
-  try {
-    const userId = req.user?.uid;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+// Try both inline auth AND path-level check
+router.get('/mystats', async (req: AuthenticatedRequest, res: Response) => {
+  console.log('[TORQUE-V2] /mystats raw req.user:', req.user);
+  console.log('[TORQUE-V2] /mystats headers:', req.headers.authorization ? 'present' : 'missing');
+  
+  // If no auth, check if we need to auth manually
+  if (!req.user) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No authentication token provided' });
     }
     
+    // Manual JWT verification
+    const { authMiddleware } = require('../middleware/auth.js');
+    await new Promise<void>((resolve, reject) => {
+      authMiddleware(req, res, (err?: any) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
+    console.log('[TORQUE-V2] After manual auth, req.user:', req.user);
+  }
+  
+  const userId = req.user?.uid;
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  try {
     const stats = await torqueServiceV2.getMyStats(userId);
     
     res.json({
