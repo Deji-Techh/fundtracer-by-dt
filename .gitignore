@@ -56,7 +56,6 @@ Thumbs.db
 
 # Project specific
 packages/*/dist
-!packages/web/dist
 packages/*/node_modules
 packages/*/build
 .env.vercel
@@ -82,3 +81,4 @@ README_CLI.md
 # Dependencies
 node_modules/
 packages/web/.env.production
+packages/*/dist
