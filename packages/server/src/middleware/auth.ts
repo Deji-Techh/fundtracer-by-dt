@@ -61,8 +61,9 @@ export async function authMiddleware(
     }
 
     const token = authHeader.split('Bearer ')[1];
+    console.log('[AUTH-MIDDLEWARE] Token received, length:', token?.length);
     
-    // Debug: log if token exists but is short (likely truncated or malformed)
+    // Debug: log if token exists but is likely truncated or malformed
     if (token && token.length < 20) {
         console.log('[AUTH] Token seems abnormally short:', token.substring(0, 10));
     }
@@ -79,6 +80,7 @@ export async function authMiddleware(
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
+        console.log('[AUTH-MIDDLEWARE] JWT verified, decoded:', JSON.stringify(decoded).substring(0, 200));
         
         // Check if this is an admin token
         if (decoded.type === 'admin') {
@@ -197,6 +199,9 @@ export async function authMiddleware(
             walletAddress: userData?.walletAddress || decoded.walletAddress || null,
             type: 'user'
         };
+
+        console.log('[AUTH-MIDDLEWARE] User populated:', req.user.uid);
+        console.log('[AUTH-MIDDLEWARE] Calling next()');
 
         // Set Locals for downstream routes (using DB values over JWT)
         res.locals.tier = userData?.tier || decoded.tier || 'free';

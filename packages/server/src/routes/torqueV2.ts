@@ -188,6 +188,7 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
 
 // Get my stats (requires auth)
 router.get('/mystats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  console.log('[TORQUE-V2] /mystats called, req.user:', req.user);
   try {
     const userId = req.user?.uid;
     
