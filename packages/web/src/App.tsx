@@ -220,6 +220,34 @@ function App() {
     return <MaintenancePage />;
   }
 
+  // Global token URL processing - handles OAuth redirects from any page
+  const { setTokenFromExternal } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [globalTokenProcessed, setGlobalTokenProcessed] = useState(false);
+  
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const error = searchParams.get('error');
+    const refParam = searchParams.get('ref');
+    
+    // Store ref param for referral tracking
+    if (refParam) {
+      localStorage.setItem('referral_ref', refParam);
+    }
+    
+    // Process token from URL (from OAuth callbacks like Google, etc.)
+    if (token && !globalTokenProcessed) {
+      setGlobalTokenProcessed(true);
+      setTokenFromExternal(token);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    
+    if (error) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams, globalTokenProcessed, setTokenFromExternal]);
+
   return (
     <ErrorBoundary>
       <SEOManager />

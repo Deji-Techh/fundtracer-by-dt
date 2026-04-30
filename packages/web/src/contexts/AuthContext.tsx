@@ -76,6 +76,7 @@ interface AuthContextType {
     getSigner: () => Promise<ethers.Signer>;
     loginWithWallet: () => Promise<void>;
     loginWithGoogle: () => Promise<void>;
+    setTokenFromExternal: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
