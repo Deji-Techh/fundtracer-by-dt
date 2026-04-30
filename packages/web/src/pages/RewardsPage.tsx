@@ -190,12 +190,16 @@ export default function RewardsPage() {
 
   // Fetch real-time stats
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const fetchStats = async () => {
       const token = localStorage.getItem('fundtracer_token');
       
       try {
         // Fetch v2 leaderboard (includes totalScanned count)
-        const overallRes = await fetch('/api/torque-v2/leaderboard');
+        const overallRes = await fetch('/api/torque-v2/leaderboard', { 
+          signal: abortController.signal 
+        });
         if (overallRes.ok) {
           const data = await overallRes.json();
           setOverallStats({
@@ -209,7 +213,8 @@ export default function RewardsPage() {
         // Fetch user stats if logged in (v2)
         if (token) {
           const userStatsRes = await fetch('/api/torque-v2/mystats', {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${token}` },
+            signal: abortController.signal
           });
           if (userStatsRes.ok) {
             const data = await userStatsRes.json();
@@ -240,7 +245,9 @@ export default function RewardsPage() {
     
     // Refresh stats every 60 seconds (stable)
     const interval = setInterval(fetchStats, 60000);
-    return () => clearInterval(interval);
+    
+    // Cleanup: abort pending requests
+    return () => abortController.abort();
   }, []);
 
   return (

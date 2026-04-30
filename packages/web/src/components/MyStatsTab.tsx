@@ -52,6 +52,8 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
 
 // Fetch data
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const fetchData = async () => {
       if (!user?.uid) {
         setLoading(false);
@@ -76,7 +78,8 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
 
         // Fetch claim status
         const claimRes = await fetch('/api/torque-v2/claim/status', {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: abortController.signal
         });
         console.log('[MyStatsTab] /claim/status:', claimRes.status);
         const claimData = await claimRes.json();
@@ -90,11 +93,17 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
 
         // Fetch user stats
         const statsRes = await fetch('/api/torque-v2/mystats', {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: abortController?.signal
         });
         const statsData = await statsRes.json();
         setUserStats(statsData.stats);
-      } catch (err) {
+      } catch (err: any) {
+        // Ignore abort errors - they're expected when component unmounts
+        if (err?.name === 'AbortError') {
+          console.log('[MyStatsTab] Request aborted (component unmounted)');
+          return;
+        }
         console.error('Failed to fetch stats:', err);
       } finally {
         setLoading(false);
@@ -102,6 +111,9 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
     };
 
     fetchData();
+    
+    // Cleanup: abort any pending requests when component unmounts
+    return () => abortController.abort();
   }, [user]);
 
   // Handle claim
