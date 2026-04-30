@@ -86,7 +86,11 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
 
         // Fetch user stats
         const statsData = await apiRequest<any>('/api/torque-v2/mystats');
-        setUserStats(statsData.stats);
+        const stats = statsData.stats;
+        setUserStats({
+          points: stats.walletsScanned || stats.totalPoints || 0,
+          rank: stats.rank || 0
+        });
       } catch (err: any) {
         // Ignore abort errors - they're expected when component unmounts
         if (err?.name === 'AbortError') {
