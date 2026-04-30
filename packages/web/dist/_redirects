@@ -1,8 +1,0 @@
-https://www.fundtracer.xyz/*  https://fundtracer.xyz/:splat  301
-/api/keys  https://api.fundtracer.xyz/api/keys  307
-/api/*  https://api.fundtracer.xyz/api/:splat  307
-/sitemap.xml  /sitemap.xml  200
-/sitemap.xml/  /sitemap.xml  200
-/robots.txt  /robots.txt  200
-/llms.txt  /llms.txt  200
-/*  /index.html  200
