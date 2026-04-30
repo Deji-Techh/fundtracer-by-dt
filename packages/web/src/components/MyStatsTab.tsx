@@ -59,19 +59,28 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
       }
 
       try {
-        const token = getAuthToken();
+        let token = getAuthToken();
         
         if (!token) {
-          console.log('[MyStatsTab] No token found, user may need to re-login');
-          setLoading(false);
-          return;
+          console.log('[MyStatsTab] No token found, waiting for auth...');
+          // Retry after a short delay to allow auth to complete
+          await new Promise(r => setTimeout(r, 500));
+          token = getAuthToken();
+          if (!token) {
+            console.log('[MyStatsTab] Still no token after retry');
+            setLoading(false);
+            return;
+          }
+          console.log('[MyStatsTab] Token found after retry');
         }
 
         // Fetch claim status
         const claimRes = await fetch('/api/torque-v2/claim/status', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        console.log('[MyStatsTab] /claim/status:', claimRes.status);
         const claimData = await claimRes.json();
+        console.log('[MyStatsTab] claimData:', claimData);
         setClaimStatus(claimData);
 
         // Fetch pool stats

@@ -61,14 +61,19 @@ export async function authMiddleware(
     }
 
     const token = authHeader.split('Bearer ')[1];
-
+    
+    // Debug: log if token exists but is short (likely truncated or malformed)
+    if (token && token.length < 20) {
+        console.log('[AUTH] Token seems abnormally short:', token.substring(0, 10));
+    }
+    
     // If API key middleware already authenticated, skip JWT verification
     if (req.user) {
         return next();
     }
-
+    
     // Skip JWT verification if this is an API key prefix (not a JWT)
-    if (token.startsWith('ft_')) {
+    if (token && token.startsWith('ft_')) {
         return res.status(401).json({ error: 'Invalid API key', code: 'KEY_INVALID' });
     }
 
