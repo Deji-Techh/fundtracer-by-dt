@@ -57,6 +57,20 @@
   border-color: var(--color-primary);
 }
 
+.activity-item.claim-activity {
+  border-color: var(--color-success);
+  background: linear-gradient(135deg, var(--color-success-muted) 0%, var(--color-bg-elevated) 100%);
+}
+
+.activity-item.claim-activity .activity-icon {
+  background: var(--color-success-muted);
+  color: var(--color-success);
+}
+
+.activity-item.claim-activity .activity-points {
+  color: var(--color-success);
+}
+
 .activity-icon {
   display: flex;
   align-items: center;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Zap, TrendingUp } from 'lucide-react';
+import { Search, Zap, TrendingUp, Gift, CheckCircle } from 'lucide-react';
 import './ActivityFeed.css';
 
 interface Activity {
@@ -11,6 +11,8 @@ interface Activity {
   chain: string;
   points: number;
   timestamp: number;
+  type?: string;
+  description?: string;
 }
 
 interface ActivityFeedProps {
@@ -36,8 +38,8 @@ export default function ActivityFeed({ refreshInterval = 20000 }: ActivityFeedPr
       const data = await response.json();
       
       // Check for new activities
-      const newIds = (data.activities || []).map((a: Activity) => a.id);
-      const hasNew = newIds.some(id => !prevActivitiesRef.current.includes(id));
+      const newIds = (data.activities || []).map((a: Activity): string => a.id);
+      const hasNew = newIds.some((id: string) => !prevActivitiesRef.current.includes(id));
       
       if (hasNew) {
         setActivities(data.activities || []);
@@ -97,27 +99,66 @@ export default function ActivityFeed({ refreshInterval = 20000 }: ActivityFeedPr
     );
   }
 
+  const isClaimActivity = (activity: Activity) => activity.type === 'claim' || activity.chain === 'equity';
+  
+  const getActivityIcon = (activity: Activity) => {
+    if (isClaimActivity(activity)) {
+      return <CheckCircle size={14} />;
+    }
+    return <Search size={14} />;
+  };
+
+  const getActivityUser = (activity: Activity) => {
+    if (isClaimActivity(activity)) {
+      return 'Claimed';
+    }
+    return activity.displayName || 'Unknown';
+  };
+
+  const getActivityDetails = (activity: Activity) => {
+    if (isClaimActivity(activity)) {
+      const equity = (activity.points * 0.00001).toFixed(5);
+      return `${equity}% equity`;
+    }
+    return formatAddress(activity.walletAddress);
+  };
+
+  const getActivityChain = (activity: Activity) => {
+    if (isClaimActivity(activity)) {
+      return 'CLAIMED';
+    }
+    return activity.chain?.toUpperCase() || '';
+  };
+
+  const getActivityPoints = (activity: Activity) => {
+    if (isClaimActivity(activity)) {
+      const equity = (activity.points * 0.00001).toFixed(5);
+      return `${equity}%`;
+    }
+    return `+${activity.points} pts`;
+  };
+
   return (
     <div className="activity-feed">
       <AnimatePresence mode="popLayout">
         {activities.slice(0, 8).map((activity, index) => (
           <motion.div
             key={activity.id}
-            className="activity-item"
+            className={`activity-item ${isClaimActivity(activity) ? 'claim-activity' : ''}`}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}
           >
             <div className="activity-icon">
-              <Search size={14} />
+              {getActivityIcon(activity)}
             </div>
             <div className="activity-content">
-              <span className="activity-user">{activity.displayName}</span>
-              <span className="activity-wallet">{formatAddress(activity.walletAddress)}</span>
-              <span className="activity-chain">{activity.chain?.toUpperCase()}</span>
+              <span className="activity-user">{getActivityUser(activity)}</span>
+              <span className="activity-wallet">{getActivityDetails(activity)}</span>
+              <span className="activity-chain">{getActivityChain(activity)}</span>
             </div>
             <div className="activity-meta">
-              <span className="activity-points">+{activity.points} pts</span>
+              <span className="activity-points">{getActivityPoints(activity)}</span>
               <span className="activity-time">{formatTime(activity.timestamp)}</span>
             </div>
           </motion.div>
