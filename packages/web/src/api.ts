@@ -85,7 +85,11 @@ async function apiRequestWithRetry<T>(
         endpoint.startsWith('/api/dexscreener/') ||
         endpoint.startsWith('/api/market/') ||
         endpoint.startsWith('/api/tokens/') ||
-        endpoint.startsWith('/api/polymarket/');
+        endpoint.startsWith('/api/polymarket/') ||
+        endpoint.startsWith('/api/torque-v2/leaderboard') ||
+        endpoint.startsWith('/api/torque-v2/pool-stats') ||
+        endpoint.startsWith('/api/torque-v2/groups') ||
+        endpoint.startsWith('/api/torque-v2/activity');
     
     if (!token && !isPublicEndpoint) {
         throw new Error('Not authenticated');

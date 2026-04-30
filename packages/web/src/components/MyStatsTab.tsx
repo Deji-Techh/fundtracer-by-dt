@@ -119,18 +119,7 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
     setError(null);
 
     try {
-      const { getAuthToken } = await import('../api');
-      const token = getAuthToken();
-      const res = await fetch('/api/torque-v2/claim', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ email: user.email })
-      });
-
-      const data = await res.json();
+      const data = await apiRequest<any>('/api/torque-v2/claim', 'POST', { email: user.email });
 
       if (data.success) {
         setClaimSuccess(true);
