@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Wallet, Trophy, Target, Zap, Award, Lock, Unlock, 
+  Wallet, Trophy, Target, Zap, Award, 
   Calculator, Sparkles, CheckCircle, AlertCircle, Gift
 } from 'lucide-react';
 import { getAuthToken, apiRequest } from '../api';
@@ -22,14 +22,6 @@ interface ClaimStatus {
   claimedAt: number | null;
 }
 
-interface PoolStats {
-  totalEquityPool: string;
-  remainingEquityPool: string;
-  totalPointsClaimed: number;
-  totalEquityClaimed: number;
-  claimCount: number;
-}
-
 interface MyStatsTabProps {
   user: any;
   onClaim: () => void;
@@ -38,7 +30,6 @@ interface MyStatsTabProps {
 export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
   const [loading, setLoading] = useState(true);
   const [claimStatus, setClaimStatus] = useState<ClaimStatus | null>(null);
-  const [poolStats, setPoolStats] = useState<PoolStats | null>(null);
   const [userStats, setUserStats] = useState<{ points: number; rank: number } | null>(null);
   const [claiming, setClaiming] = useState(false);
   const [claimSuccess, setClaimSuccess] = useState(false);
@@ -79,10 +70,6 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
         // Fetch claim status using apiRequest (handles auth automatically)
         const claimData = await apiRequest<any>('/api/torque-v2/claim/status');
         setClaimStatus(claimData);
-
-        // Fetch pool stats
-        const poolData = await apiRequest<any>('/api/torque-v2/pool-stats');
-        setPoolStats(poolData);
 
         // Fetch user stats
         const statsData = await apiRequest<any>('/api/torque-v2/mystats');
@@ -141,9 +128,6 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
 
   const points = userStats?.points || 0;
   const equityPercent = calculateEquity(points);
-  const remainingEquity = poolStats?.remainingEquityPool || '5%';
-  const totalClaimed = poolStats?.claimCount || 0;
-  const totalParticipants = totalClaimed + (user?.uid && !claimStatus?.claimed ? 1 : 0);
 
   // Not logged in state - check for either uid (Google) or walletAddress (wallet)
   const isLoggedIn = user?.uid || user?.walletAddress;
@@ -215,8 +199,14 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
         <div className="stats-grid">
           <div className="stat-item">
             <Target size={20} />
-            <span className="stat-label">Wallets Analyzed</span>
+            <span className="stat-label">Points</span>
             <span className="stat-value">{points}</span>
+          </div>
+          
+          <div className="stat-item">
+            <CheckCircle size={20} />
+            <span className="stat-label">Claimed</span>
+            <span className="stat-value">{claimStatus?.equityPercent?.toFixed(5) || '0.00000'}%</span>
           </div>
           
           <div className="stat-item">
@@ -304,29 +294,6 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
             <p>Analyze wallets to earn points and claim equity!</p>
           </div>
         )}
-      </div>
-
-      {/* Pool Stats */}
-      <div className="pool-stats">
-        <h4>Pool Status</h4>
-        <div className="pool-grid">
-          <div className="pool-item">
-            <span>Total Equity Pool</span>
-            <strong>{poolStats?.totalEquityPool || '5%'}</strong>
-          </div>
-          <div className="pool-item">
-            <span>Remaining</span>
-            <strong>{remainingEquity}</strong>
-          </div>
-          <div className="pool-item">
-            <span>Participants</span>
-            <strong>{totalParticipants}</strong>
-          </div>
-          <div className="pool-item">
-            <span>Claimed</span>
-            <strong>{poolStats?.claimCount || 0}</strong>
-          </div>
-        </div>
       </div>
     </motion.div>
   );

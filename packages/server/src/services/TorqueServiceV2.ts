@@ -26,6 +26,7 @@ interface LeaderboardEntry {
   rank: number;
   userId: string;
   displayName: string;
+  score: number;
   walletsScanned: number;
   totalPoints: number;
 }
@@ -186,6 +187,7 @@ class TorqueServiceV2 {
           rank,
           userId: doc.id,
           displayName,
+          score: (data.walletsScanned || 0) * 10,
           walletsScanned: data.walletsScanned || 0,
           totalPoints: data.totalPoints || 0
         });

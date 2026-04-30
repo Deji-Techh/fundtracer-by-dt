@@ -52,7 +52,7 @@ const fetchLeaderboard = async () => {
     }
   };
 
-  const getPointsLabel = () => 'Wallets Scanned';
+  const getPointsLabel = () => 'Points';
 
   useEffect(() => {
     fetchLeaderboard();
