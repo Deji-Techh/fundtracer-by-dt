@@ -9,6 +9,7 @@ import {
   Wallet, Trophy, Target, Zap, Award, Lock, Unlock, 
   Calculator, Sparkles, CheckCircle, AlertCircle, Gift
 } from 'lucide-react';
+import { getAuthToken } from '../api';
 
 // Constants
 const TOTAL_POOL_POINTS = 500000;
@@ -49,7 +50,7 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
     return equity.toFixed(5);
   };
 
-  // Fetch data
+// Fetch data
   useEffect(() => {
     const fetchData = async () => {
       if (!user?.uid) {
@@ -58,8 +59,14 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
       }
 
       try {
-        const token = localStorage.getItem('fundtracer_token');
+        const token = getAuthToken();
         
+        if (!token) {
+          console.log('[MyStatsTab] No token found, user may need to re-login');
+          setLoading(false);
+          return;
+        }
+
         // Fetch claim status
         const claimRes = await fetch('/api/torque-v2/claim/status', {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -96,7 +103,8 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
     setError(null);
 
     try {
-      const token = localStorage.getItem('fundtracer_token');
+      const { getAuthToken } = await import('../api');
+      const token = getAuthToken();
       const res = await fetch('/api/torque-v2/claim', {
         method: 'POST',
         headers: { 
