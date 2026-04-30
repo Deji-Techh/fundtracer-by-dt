@@ -520,7 +520,7 @@ apiRouter.use('/torque', torqueRoutes);
 // NEW: Torque Routes v2 (fresh start, mounted at /api/torque-v2 to avoid conflict)
 // NOTE: Auth is handled inside torqueV2.ts routes - only /v2/mystats and /v2/scan require auth
 import { torqueRoutesV2 } from './routes/torqueV2.js';
-apiRouter.use('/torque-v2', authMiddleware, torqueRoutesV2);
+apiRouter.use('/torque-v2', torqueRoutesV2);
 
 // NEW: Contract Scanner Routes
 import contractScannerRoutes from './routes/contractRoutes.js';
