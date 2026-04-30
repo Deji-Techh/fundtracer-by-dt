@@ -461,17 +461,17 @@ if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
     // Check if already claimed this month
     const claimsnap = await db.collection('torque_claims')
       .where('userId', '==', userId)
-      .orderBy('claimedAt', 'desc')
-      .limit(1)
       .get();
     
     if (claimsnap.size > 0) {
-      const lastClaim = claimsnap.docs[0].data();
-      const lastClaimTime = lastClaim.claimedAt || 0;
       const now = Date.now();
       const oneMonth = 30 * 24 * 60 * 60 * 1000;
+      const recentClaims = claimsnap.docs.filter(d => {
+        const claimedAt = d.data()?.claimedAt || 0;
+        return now - claimedAt < oneMonth;
+      });
       
-      if (now - lastClaimTime < oneMonth) {
+      if (recentClaims.length > 0) {
         return { success: false, equityPercent: 0, message: 'Already claimed this month' };
       }
     }
