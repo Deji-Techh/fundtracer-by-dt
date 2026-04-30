@@ -355,4 +355,22 @@ router.get('/pool-stats', async (req: Request, res: Response) => {
   }
 });
 
+// Legacy /stats endpoint redirect
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await torqueServiceV2.getPoolStats();
+    
+    res.json({
+      success: true,
+      totalPoints: stats.totalPoints,
+      totalUsers: stats.totalUsers,
+      poolSize: stats.poolSize,
+      distributed: stats.distributed
+    });
+  } catch (error: any) {
+    console.error('[TorqueV2] Stats error:', error);
+    res.status(500).json({ error: 'Failed to get stats' });
+  }
+});
+
 export { router as torqueRoutesV2 };
