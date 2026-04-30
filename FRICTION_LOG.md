@@ -306,6 +306,42 @@ Added equity claim functionality:
 
 ---
 
+### Equity Claim System Improvements (April 2026)
+
+**Issues Fixed:**
+
+1. **No close button on claimed view** - Users stuck on "Equity Claimed!" screen with no way to go back
+   - Added X close button to dismiss and return to stats
+   - Added "Back to Stats" button after claiming
+
+2. **One-time claim limitation** - Users could only claim once, even after earning more points
+   - Removed 1-month claim restriction
+   - Changed to accumulate-and-claim model: users earn points, claim when they want
+   - Tracks total claimed vs claimable separately
+   - Minimum 10 new points required per claim
+
+3. **Rewards Claimed stat not updating** - Hero section showed static "0%"
+   - Fixed to fetch from `/api/torque-v2/pool-stats` endpoint
+   - Now shows actual distributed equity percentage
+
+4. **Removed vesting text** - Removed footer "5% equity pool • 12-24 month vesting • 3-12 month cliffs"
+
+**New Features:**
+
+- **Claim History** - New `/api/torque-v2/claim/history` endpoint
+- **Claim History UI** - Displays list of all past claims with dates in My Stats tab
+- **Multiple Claims** - Users can claim multiple times as they earn more points
+- **Claimable Equity** - Shows how much more equity can be claimed
+
+**Files Changed:**
+- `packages/web/src/components/MyStatsTab.tsx` - Added close/back buttons, claim history, multiple claim support
+- `packages/server/src/services/TorqueServiceV2.ts` - Multiple claim logic, getClaimHistory method
+- `packages/server/src/routes/torqueV2.ts` - Added claim history endpoint
+- `packages/web/src/pages/RewardsPage.tsx` - Fixed rewards claimed, removed footer
+- `packages/web/src/pages/RewardsPage.css` - Added styles for new buttons and history
+
+---
+
 *Submitted: April 2026*
 *Hackathon: Torque x Frontier*
 *Updated: April 2026*

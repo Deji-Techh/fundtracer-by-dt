@@ -137,6 +137,10 @@ User scans in Telegram group
 | GET | `/api/torque-v2/groups` | No | Group leaderboards (NEW) |
 | POST | `/api/torque-v2/scan` | Yes | Increment on each scan |
 | POST | `/api/torque-v2/admin/reset` | Admin | Wipe all data |
+| GET | `/api/torque-v2/claim/status` | Yes | Check claim status |
+| POST | `/api/torque-v2/claim` | Yes | Claim equity |
+| GET | `/api/torque-v2/claim/history` | Yes | Get claim history |
+| GET | `/api/torque-v2/pool-stats` | No | Total pool stats |
 
 ---
 
@@ -531,17 +535,28 @@ Example: 3 wallets analyzed = 30 points = 0.00030% equity
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/torque-v2/claim/status` | Check if user has claimed |
+| GET | `/api/torque-v2/claim/status` | Check claim status + totals |
 | POST | `/api/torque-v2/claim` | Claim equity (requires auth) |
+| GET | `/api/torque-v2/claim/history` | Get claim history |
 | GET | `/api/torque-v2/pool-stats` | Total pool stats |
 
 ### Claim Flow
 
 1. User visits My Stats tab (requires login)
-2. System fetches claim status and pool stats
-3. If not claimed and has points > 0, shows "Claim X% Equity" button
-4. On claim: records to `torque_claims` collection
-5. User receives confirmation with equity percentage
+2. System fetches claim status, history, and pool stats
+3. Shows: Points Earned, Equity Claimed, Claimable Now
+4. If claimable > 0, shows "Claim X% Equity" button
+5. On claim: records to `torque_claims` collection (tracks multiple claims)
+6. User can view claimed details, go back, or claim again when earning more
+
+### Multiple Claims (v3.2 Update)
+
+Users can now claim multiple times as they earn more points:
+
+- Tracks total claimed points/equity separately
+- Calculates claimable = totalPoints - totalClaimed
+- Minimum 10 new points required per claim
+- Claim history displayed in My Stats tab
 
 ### Collection Schema
 
@@ -554,18 +569,20 @@ Example: 3 wallets analyzed = 30 points = 0.00030% equity
   updatedAt: timestamp
 }
 
-// torque_claims/{userId}
+// torque_claims/{docId}
 {
   userId: string,
-  pointsClaimed: number,
-  equityPercent: number,
+  pointsClaimed: number,      // points claimed in THIS claim
+  equityPercent: number,      // equity claimed in THIS claim
+  totalPointsAtClaim: number, // total points at time of claim
   claimedAt: timestamp
 }
 ```
 
 ### My Stats Tab Display
 
-- Wallets Analyzed (count from Firestore)
-- Points = walletsAnalyzed × 10
-- Equity = points × 0.00001%
-- Claim button (if not claimed and points > 0)
+- Points Earned: totalPoints from Firestore
+- Equity Claimed: cumulative from all claims
+- Claimable Now: claimable equity (can claim again)
+- View Claimed Equity: button to see claim details
+- Claim History: list of all past claims with dates
