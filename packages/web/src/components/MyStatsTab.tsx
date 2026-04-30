@@ -87,8 +87,10 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
         // Fetch user stats
         const statsData = await apiRequest<any>('/api/torque-v2/mystats');
         const stats = statsData.stats;
+        // 1 wallet scanned = 10 points
+        const walletsAnalyzed = stats.walletsScanned || 0;
         setUserStats({
-          points: stats.walletsScanned || stats.totalPoints || 0,
+          points: walletsAnalyzed * 10, // 10 points per wallet
           rank: stats.rank || 0
         });
       } catch (err: any) {
@@ -254,8 +256,8 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
           </div>
           
           <div className="formula-line your-points">
-            <span className="formula-label">Your Points</span>
-            <span className="formula-value">{points} pts × 0.00001%</span>
+            <span className="formula-label">Wallets Analyzed</span>
+            <span className="formula-value">{Math.floor(points / 10)} × 10 pts</span>
           </div>
           
           <div className="formula-divider">
