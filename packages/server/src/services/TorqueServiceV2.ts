@@ -415,7 +415,7 @@ class TorqueServiceV2 {
   }
 
   // Get claim status for user
-  async getClaimStatus(userId: string): Promise<{
+async getClaimStatus(userId: string): Promise<{
     totalPoints: number;
     claimedPoints: number;
     unclaimedPoints: number;
@@ -423,26 +423,29 @@ class TorqueServiceV2 {
     canClaim: boolean;
     claimed: boolean;
   }> {
+    const cacheKey = `torque:v2:claim:${userId}`;
+    
+    if (isRedisConnected()) {
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached) return cached;
+    }
+    
     const db = getDb();
     const doc = await db.collection(this.collection).doc(userId).get();
     const totalPoints = doc.data()?.totalPoints || 0;
     
-    // Check if already claimed
-    const claimsnap = await db.collection('torque_claims')
-      .where('userId', '==', userId)
-      .get();
+    const claimsnap = await db.collection('torque_claims').where('userId', '==', userId).limit(1).get();
     const hasClaimed = claimsnap.size > 0;
     const claimedPoints = hasClaimed ? claimsnap.docs[0].data().pointsClaimed || 0 : 0;
     const claimedEquity = hasClaimed ? claimsnap.docs[0].data().equityPercent || 0 : 0;
     
-    return {
-      totalPoints,
-      claimedPoints,
-      unclaimedPoints: hasClaimed ? 0 : totalPoints,
-      equityPercent: claimedEquity,
-      canClaim: !hasClaimed && totalPoints >= 1000,
-      claimed: hasClaimed
+    const result = {
+      totalPoints, claimedPoints, unclaimedPoints: hasClaimed ? 0 : totalPoints,
+      equityPercent: claimedEquity, canClaim: !hasClaimed && totalPoints >= 1000, claimed: hasClaimed
     };
+    
+if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
+    return result;
   }
 
   // Process claim
