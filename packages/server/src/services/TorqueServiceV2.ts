@@ -411,6 +411,106 @@ class TorqueServiceV2 {
       return [];
     }
   }
+
+  // Get claim status for user
+  async getClaimStatus(userId: string): Promise<{
+    totalPoints: number;
+    claimedPoints: number;
+    unclaimedPoints: number;
+    equityPercent: number;
+    canClaim: boolean;
+  }> {
+    const db = getDb();
+    const doc = await db.collection(this.collection).doc(userId).get();
+    const totalPoints = doc.data()?.totalPoints || 0;
+    
+    // Check if already claimed
+    const claimsnap = await db.collection('torque_claims')
+      .where('userId', '==', userId)
+      .get();
+    const claimedPoints = claimsnap.size > 0 ? claimsnap.docs[0].data().pointsClaimed || 0 : 0;
+    const unclaimedPoints = totalPoints - claimedPoints;
+    
+    // 500,000 points = 5% equity = 0.00001% per point
+    const equityPercent = unclaimedPoints * 0.00001;
+    
+    return {
+      totalPoints,
+      claimedPoints,
+      unclaimedPoints,
+      equityPercent,
+      canClaim: unclaimedPoints >= 1000 // Min 1000 points to claim
+    };
+  }
+
+  // Process claim
+  async processClaim(userId: string): Promise<{ success: boolean; equityPercent: number; message: string }> {
+    const db = getDb();
+    const doc = await db.collection(this.collection).doc(userId).get();
+    const totalPoints = doc.data()?.totalPoints || 0;
+    
+    if (totalPoints < 1000) {
+      return { success: false, equityPercent: 0, message: 'Need at least 1,000 points to claim equity' };
+    }
+    
+    // Check if already claimed this month
+    const claimsnap = await db.collection('torque_claims')
+      .where('userId', '==', userId)
+      .orderBy('claimedAt', 'desc')
+      .limit(1)
+      .get();
+    
+    if (claimsnap.size > 0) {
+      const lastClaim = claimsnap.docs[0].data();
+      const lastClaimTime = lastClaim.claimedAt || 0;
+      const now = Date.now();
+      const oneMonth = 30 * 24 * 60 * 60 * 1000;
+      
+      if (now - lastClaimTime < oneMonth) {
+        return { success: false, equityPercent: 0, message: 'Already claimed this month' };
+      }
+    }
+    
+    // Process claim
+    const equityPercent = totalPoints * 0.00001;
+    
+    await db.collection('torque_claims').add({
+      userId,
+      pointsClaimed: totalPoints,
+      equityPercent,
+      claimedAt: Date.now()
+    });
+    
+    return {
+      success: true,
+      equityPercent,
+      message: `Claimed ${equityPercent.toFixed(5)}% equity`
+    };
+  }
+
+  // Get pool stats
+  async getPoolStats(): Promise<{
+    totalPoints: number;
+    totalUsers: number;
+    poolSize: number;
+    distributed: number;
+  }> {
+    const db = getDb();
+    
+    const usersnap = await db.collection(this.collection).where('totalPoints', '>', 0).get();
+    const totalUsers = usersnap.size;
+    const totalPoints = usersnap.docs.reduce((sum, d) => sum + (d.data().totalPoints || 0), 0);
+    
+    const claimsnap = await db.collection('torque_claims').get();
+    const distributed = claimsnap.docs.reduce((sum, d) => sum + (d.data().equityPercent || 0), 0);
+    
+    return {
+      totalPoints,
+      totalUsers,
+      poolSize: 5, // 5% equity pool
+      distributed
+    };
+  }
 }
 
 export const torqueServiceV2 = new TorqueServiceV2();

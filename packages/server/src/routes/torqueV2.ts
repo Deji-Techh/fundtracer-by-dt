@@ -301,4 +301,58 @@ router.post('/admin/reset', async (req: Request, res: Response) => {
   }
 });
 
+// Get claim status (requires auth)
+router.get('/claim/status', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const status = await torqueServiceV2.getClaimStatus(userId);
+    
+    res.json({
+      success: true,
+      ...status
+    });
+  } catch (error: any) {
+    console.error('[TorqueV2] Claim status error:', error);
+    res.status(500).json({ error: 'Failed to get claim status' });
+  }
+});
+
+// Process claim (requires auth)
+router.post('/claim', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const result = await torqueServiceV2.processClaim(userId);
+    
+    res.json(result);
+  } catch (error: any) {
+    console.error('[TorqueV2] Claim error:', error);
+    res.status(500).json({ error: 'Failed to process claim' });
+  }
+});
+
+// Get pool stats (public)
+router.get('/pool-stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await torqueServiceV2.getPoolStats();
+    
+    res.json({
+      success: true,
+      ...stats
+    });
+  } catch (error: any) {
+    console.error('[TorqueV2] Pool stats error:', error);
+    res.status(500).json({ error: 'Failed to get pool stats' });
+  }
+});
+
 export { router as torqueRoutesV2 };
