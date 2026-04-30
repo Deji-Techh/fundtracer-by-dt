@@ -30,7 +30,7 @@ const faqCategories = [
       },
       {
         q: 'Is FundTracer free to use?',
-        a: 'Yes! We offer a free tier with 7 analyses every 4 hours. Upgrade to Pro for 25 analyses every 4 hours, or Max for unlimited access and advanced features.',
+        a: 'Yes! FundTracer is completely free to use. Analyze unlimited wallets with no restrictions.',
       },
       {
         q: 'What is a wallet risk score?',
@@ -49,7 +49,7 @@ const faqCategories = [
     questions: [
       {
         q: 'What blockchains does FundTracer support?',
-        a: 'We support Ethereum, Linea, Arbitrum, Base, Polygon, Optimism, and BSC. Pro and Max users get access to all chains, while free users are limited to Linea.',
+        a: 'We support Ethereum, Linea, Arbitrum, Base, Polygon, Optimism, and BSC. Solana is available in beta mode.',
       },
       {
         q: 'Can I analyze Bitcoin wallets?',
@@ -57,7 +57,7 @@ const faqCategories = [
       },
       {
         q: 'Does FundTracer support Solana?',
-        a: 'Solana support is available for Max users. Free and Pro users can access basic Solana analysis features.',
+        a: 'Yes! Solana support is available in beta mode for all users.',
       },
       {
         q: 'What is the difference between EVM chains?',
@@ -111,11 +111,7 @@ const faqCategories = [
       },
       {
         q: 'Is there a CLI tool?',
-        a: 'Yes! Install with npm install -g fundtracer-cli and use commands like fundtracer scan <address> --chain ethereum. See /cli for full documentation.',
-      },
-      {
-        q: 'Is there an API?',
-        a: 'Max plan subscribers get API access. Visit /api-docs for documentation on endpoints for wallet analysis, token prices, and more.',
+        a: 'Yes! Install with npm install -g fundtracer and use commands like fundtracer scan <address> --chain ethereum. See /cli for full documentation.',
       },
       {
         q: 'Is there a Chrome extension?',
@@ -156,16 +152,8 @@ const faqCategories = [
         a: 'Absolutely. We use enterprise-grade encryption and never store private keys. All analysis is performed on public blockchain data only.',
       },
       {
-        q: 'Do you store my analysis history?',
-        a: "Only if you create an account. Guest users' data is not stored. Registered users can access their complete analysis history.",
-      },
-      {
         q: 'What data sources do you use?',
         a: 'We aggregate data from Dune Analytics, Alchemy, LineaScan, Etherscan, CoinGecko, DefiLlama, and other leading blockchain data providers.',
-      },
-      {
-        q: 'Can I delete my account data?',
-        a: 'Yes, contact support@fundtracer.xyz and we will delete all your stored data within 30 days.',
       },
     ],
   },
@@ -177,18 +165,6 @@ const faqCategories = [
       {
         q: 'Can I change my plan?',
         a: 'Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.',
-      },
-      {
-        q: 'What payment methods are accepted?',
-        a: 'We accept USDT (Linea network) for Pro and Max subscriptions. Simply connect your wallet and pay with USDT.',
-      },
-      {
-        q: 'Is there a refund policy?',
-        a: 'Yes, we offer a 7-day money-back guarantee for all paid plans. No questions asked.',
-      },
-      {
-        q: 'What happens if I exceed my analysis limit?',
-        a: 'Free users get 7 analyses every 4 hours. Pro users get 25. If you exceed the limit, you can upgrade or wait for the reset.',
       },
     ],
   },
