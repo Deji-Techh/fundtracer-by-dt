@@ -481,6 +481,16 @@ class TorqueServiceV2 {
       claimedAt: Date.now()
     });
     
+    // Add activity entry for claim
+    await db.collection(this.activityCollection).add({
+      userId,
+      type: 'claim',
+      description: `Claimed ${equityPercent.toFixed(5)}% equity`,
+      points: totalPoints,
+      chain: 'equity',
+      timestamp: Date.now()
+    });
+    
     return {
       success: true,
       equityPercent,
