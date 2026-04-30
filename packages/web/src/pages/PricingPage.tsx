@@ -94,18 +94,6 @@ const faqs = [
     question: 'Can I upgrade or downgrade anytime?',
     answer: 'Yes, you can change your plan at any time. Changes take effect immediately.',
   },
-  {
-    question: 'What payment methods do you accept?',
-    answer: 'We accept all major credit/debit cards, PayPal, and crypto via Lemon Squeezy.',
-  },
-  {
-    question: 'Is there a free trial?',
-    answer: 'Yes, all paid plans come with a 7-day free trial. No credit card required.',
-  },
-  {
-    question: 'What happens if I exceed my limit?',
-    answer: "You'll need to wait for the next 4-hour window or upgrade for immediate access.",
-  },
 ];
 
 export function PricingPage() {

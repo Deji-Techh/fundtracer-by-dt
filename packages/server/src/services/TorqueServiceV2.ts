@@ -421,6 +421,7 @@ class TorqueServiceV2 {
     unclaimedPoints: number;
     equityPercent: number;
     canClaim: boolean;
+    claimed: boolean;
   }> {
     const db = getDb();
     const doc = await db.collection(this.collection).doc(userId).get();
@@ -430,18 +431,17 @@ class TorqueServiceV2 {
     const claimsnap = await db.collection('torque_claims')
       .where('userId', '==', userId)
       .get();
-    const claimedPoints = claimsnap.size > 0 ? claimsnap.docs[0].data().pointsClaimed || 0 : 0;
-    const unclaimedPoints = totalPoints - claimedPoints;
-    
-    // 500,000 points = 5% equity = 0.00001% per point
-    const equityPercent = unclaimedPoints * 0.00001;
+    const hasClaimed = claimsnap.size > 0;
+    const claimedPoints = hasClaimed ? claimsnap.docs[0].data().pointsClaimed || 0 : 0;
+    const claimedEquity = hasClaimed ? claimsnap.docs[0].data().equityPercent || 0 : 0;
     
     return {
       totalPoints,
       claimedPoints,
-      unclaimedPoints,
-      equityPercent,
-      canClaim: unclaimedPoints >= 1000 // Min 1000 points to claim
+      unclaimedPoints: hasClaimed ? 0 : totalPoints,
+      equityPercent: claimedEquity,
+      canClaim: !hasClaimed && totalPoints >= 1000,
+      claimed: hasClaimed
     };
   }
 

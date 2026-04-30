@@ -17,9 +17,9 @@ const TOTAL_EQUITY_PERCENT = 5;
 
 interface ClaimStatus {
   claimed: boolean;
-  points: number;
+  claimedPoints: number;
   equityPercent: number;
-  claimedAt: number | null;
+  canClaim: boolean;
 }
 
 interface MyStatsTabProps {
@@ -112,9 +112,9 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
         setClaimSuccess(true);
         setClaimStatus({
           claimed: true,
-          points: userStats.points,
+          claimedPoints: userStats.points,
           equityPercent: parseFloat(data.equityPercent),
-          claimedAt: Date.now()
+          canClaim: false
         });
       } else {
         setError(data.error || 'Failed to claim');
@@ -167,7 +167,7 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
           <div className="claimed-details">
             <div className="detail-row">
               <span>Points Claimed</span>
-              <strong>{claimStatus.points} pts</strong>
+              <strong>{claimStatus.claimedPoints} pts</strong>
             </div>
             <div className="detail-row highlight">
               <span>Equity Received</span>
