@@ -520,6 +520,14 @@ async getClaimStatus(userId: string): Promise<{
       timestamp: Date.now()
     });
     
+    // Invalidate caches after successful claim
+    if (isRedisConnected()) {
+      await cacheDel(`torque:v2:claim:${userId}`).catch(() => {});
+      await cacheDel(`torque:v2:user:${userId}`).catch(() => {});
+      await cacheDel('torque:v2:leaderboard').catch(() => {});
+      await cacheDel('torque:v2:pool-stats').catch(() => {});
+    }
+    
     return {
       success: true,
       equityPercent,

@@ -46,6 +46,14 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
   const [showClaimedView, setShowClaimedView] = useState(false);
   const [claimHistory, setClaimHistory] = useState<ClaimHistoryEntry[]>([]);
 
+  // Auto-clear error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   // Calculate equity from points
   const calculateEquity = (points: number): string => {
     const equity = (points / TOTAL_POOL_POINTS) * TOTAL_EQUITY_PERCENT;
@@ -130,22 +138,32 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
     try {
       const data = await apiRequest<any>('/api/torque-v2/claim', 'POST', { email: user.email });
 
-if (data.success) {
+      if (data.success) {
         setClaimSuccess(true);
-        const newEquity = parseFloat(data.equityPercent);
-        const claimedPoints = Math.round(newEquity / 0.00001);
-        const newTotalClaimed = (claimStatus?.totalClaimed || 0) + claimedPoints;
-        const newTotalEquity = (claimStatus?.totalEquityClaimed || 0) + newEquity;
+        // Refresh claim status from backend to get accurate data
+        const updatedStatus = await apiRequest<any>('/api/torque-v2/claim/status');
         setClaimStatus({
-          claimed: true,
-          claimedPoints: claimedPoints,
-          equityPercent: newEquity,
-          canClaim: true,
-          totalClaimed: newTotalClaimed,
-          totalEquityClaimed: newTotalEquity
+          ...updatedStatus,
+          canClaim: updatedStatus.canClaim
+        });
+        // Refresh user stats as well
+        const statsData = await apiRequest<any>('/api/torque-v2/mystats');
+        const stats = statsData.stats;
+        setUserStats({
+          points: (stats.walletsScanned || 0) * 10,
+          rank: stats.rank || 0
         });
       } else {
-        setError(data.error || 'Failed to claim');
+        // If claim fails (e.g., nothing left to claim), refresh status and update UI
+        if (data.message && data.message.includes('10 new points')) {
+          const updatedStatus = await apiRequest<any>('/api/torque-v2/claim/status');
+          setClaimStatus({
+            ...updatedStatus,
+            canClaim: false
+          });
+        } else {
+          setError(data.error || 'Failed to claim');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
@@ -360,16 +378,28 @@ if (data.success) {
               </>
             )}
           </motion.button>
-        ) : points > 0 && !canClaimMore && claimStatus?.claimed ? (
-          <motion.button
-            className="view-claimed-btn"
-            onClick={() => setShowClaimedView(true)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <CheckCircle size={20} />
-            <span>View Claimed Equity</span>
-          </motion.button>
+        ) : points > 0 && claimStatus?.claimed ? (
+          <motion.div className="all-claimed-section">
+            <motion.button
+              className="view-claimed-btn"
+              onClick={() => setShowClaimedView(true)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <CheckCircle size={20} />
+              <span>View Claimed Equity ({totalClaimedEquity.toFixed(5)}%)</span>
+            </motion.button>
+            {totalClaimedPoints > 0 && (
+              <p className="earn-more-hint">
+                Analyze more wallets to claim more equity!
+              </p>
+            )}
+          </motion.div>
+        ) : points > 0 && !canClaimMore && !claimStatus?.claimed ? (
+          <div className="no-points">
+            <Target size={24} />
+            <p>Analyze wallets to earn points and claim equity!</p>
+          </div>
         ) : points === 0 ? (
           <div className="no-points">
             <Target size={24} />

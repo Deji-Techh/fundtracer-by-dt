@@ -395,7 +395,13 @@ router.get('/claim/history', authMiddleware, async (req: AuthenticatedRequest, r
     });
   } catch (error: any) {
     console.error('[TorqueV2] Claim history error:', error);
-    res.status(500).json({ error: 'Failed to fetch claim history' });
+    // Return empty history instead of 500 to avoid breaking UI
+    res.json({
+      success: true,
+      history: [],
+      totalClaimed: 0,
+      totalEquityClaimed: 0
+    });
   }
 });
 
