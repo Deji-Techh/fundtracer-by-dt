@@ -73,7 +73,7 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
         setPoolStats(poolData);
 
         // Fetch user stats
-        const statsRes = await fetch('/api/torque-v2/stats', {
+        const statsRes = await fetch('/api/torque-v2/mystats', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const statsData = await statsRes.json();
