@@ -441,7 +441,7 @@ async getClaimStatus(userId: string): Promise<{
     
     const result = {
       totalPoints, claimedPoints, unclaimedPoints: hasClaimed ? 0 : totalPoints,
-      equityPercent: claimedEquity, canClaim: !hasClaimed && totalPoints >= 1000, claimed: hasClaimed
+      equityPercent: claimedEquity, canClaim: !hasClaimed && totalPoints >= 10, claimed: hasClaimed
     };
     
 if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
@@ -486,9 +486,15 @@ if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
       claimedAt: Date.now()
     });
     
+    // Get user data for activity
+    const userDoc = await db.collection('torque_users').doc(userId).get();
+    const userData = userDoc.data();
+    const displayName = userData?.displayName || userData?.name || 'Deji Tech';
+    
     // Add activity entry for claim
     await db.collection(this.activityCollection).add({
       userId,
+      displayName,
       type: 'claim',
       description: `Claimed ${equityPercent.toFixed(5)}% equity`,
       points: totalPoints,
