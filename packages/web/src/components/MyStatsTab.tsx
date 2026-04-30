@@ -257,7 +257,7 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
           
           <div className="formula-line your-points">
             <span className="formula-label">Wallets Analyzed</span>
-            <span className="formula-value">{Math.floor(points / 10)} × 10 pts</span>
+            <span className="formula-value">{Math.floor(points / 10)} × 10 × 0.00001%</span>
           </div>
           
           <div className="formula-divider">
@@ -272,7 +272,7 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
 
         <div className="calculation-note">
           <Sparkles size={14} />
-          <span>1 point = 0.00001% equity</span>
+          <span>10 points = 0.00001% equity</span>
         </div>
       </div>
 
