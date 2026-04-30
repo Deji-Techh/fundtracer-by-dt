@@ -195,6 +195,18 @@ export default function RewardsPage() {
       const token = localStorage.getItem('fundtracer_token');
       
       try {
+        // Fetch pool stats for rewards claimed
+        const poolRes = await fetch('/api/torque-v2/pool-stats', { 
+          signal: abortController.signal 
+        });
+        let rewardsClaimedPercent = '0%';
+        if (poolRes.ok) {
+          const poolData = await poolRes.json();
+          rewardsClaimedPercent = poolData.distributed 
+            ? `${poolData.distributed.toFixed(4)}%` 
+            : '0%';
+        }
+
         // Fetch v2 leaderboard (includes totalScanned count)
         const overallRes = await fetch('/api/torque-v2/leaderboard', { 
           signal: abortController.signal 
@@ -205,7 +217,7 @@ export default function RewardsPage() {
             totalEquityPool: '5%',
             activeParticipants: data.totalScanned || 0,
             eventsTracked: data.totalScanned || 0,
-            rewardsClaimed: '0%'
+            rewardsClaimed: rewardsClaimedPercent
           });
         }
 
@@ -735,14 +747,6 @@ export default function RewardsPage() {
             </motion.button>
           </motion.div>
         </section>
-
-        {/* Footer */}
-        <footer className="rewards-footer">
-          <div className="footer-content">
-            <p>5% equity pool • 12-24 month vesting • 3-12 month cliffs</p>
-            <p className="disclaimer">All rewards subject to terms and conditions. Equity vests over time.</p>
-          </div>
-        </footer>
       </div>
     </LandingLayout>
   );
