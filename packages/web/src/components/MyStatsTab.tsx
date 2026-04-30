@@ -91,11 +91,13 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
         const poolData = await poolRes.json();
         setPoolStats(poolData);
 
-        // Fetch user stats
+// Fetch user stats
+        console.log('[MyStatsTab] Fetching mystats, token:', token ? token.substring(0, 30) + '...' : 'NONE');
         const statsRes = await fetch('/api/torque-v2/mystats', {
           headers: { 'Authorization': `Bearer ${token}` },
-          signal: abortController?.signal
+          signal: abortController.signal
         });
+        console.log('[MyStatsTab] mystats response:', statsRes.status);
         const statsData = await statsRes.json();
         setUserStats(statsData.stats);
       } catch (err: any) {
