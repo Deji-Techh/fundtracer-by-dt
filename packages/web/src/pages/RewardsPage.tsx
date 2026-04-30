@@ -68,7 +68,6 @@ const comingSoon = [
 const defaultStats = [
   { label: 'Total Equity Pool', value: '5%', icon: Infinity },
   { label: 'Active Participants', value: '—', icon: Wallet },
-  { label: 'Events Tracked', value: '—', icon: Zap },
   { label: 'Rewards Claimed', value: '0%', icon: Award },
 ];
 
