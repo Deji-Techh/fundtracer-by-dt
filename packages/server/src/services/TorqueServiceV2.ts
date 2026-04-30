@@ -422,6 +422,8 @@ async getClaimStatus(userId: string): Promise<{
     equityPercent: number;
     canClaim: boolean;
     claimed: boolean;
+    totalClaimed: number;
+    totalEquityClaimed: number;
   }> {
     const cacheKey = `torque:v2:claim:${userId}`;
     
@@ -434,21 +436,37 @@ async getClaimStatus(userId: string): Promise<{
     const doc = await db.collection(this.collection).doc(userId).get();
     const totalPoints = doc.data()?.totalPoints || 0;
     
-    const claimsnap = await db.collection('torque_claims').where('userId', '==', userId).limit(1).get();
+    // Get all claims to calculate total claimed
+    const claimsnap = await db.collection('torque_claims').where('userId', '==', userId).get();
     const hasClaimed = claimsnap.size > 0;
-    const claimedPoints = hasClaimed ? claimsnap.docs[0].data().pointsClaimed || 0 : 0;
-    const claimedEquity = hasClaimed ? claimsnap.docs[0].data().equityPercent || 0 : 0;
+    
+    let totalClaimedPoints = 0;
+    let totalClaimedEquity = 0;
+    
+    claimsnap.docs.forEach(d => {
+      totalClaimedPoints += d.data().pointsClaimed || 0;
+      totalClaimedEquity += d.data().equityPercent || 0;
+    });
+    
+    const claimablePoints = Math.max(0, totalPoints - totalClaimedPoints);
+    const canClaimMore = claimablePoints >= 10;
     
     const result = {
-      totalPoints, claimedPoints, unclaimedPoints: hasClaimed ? 0 : totalPoints,
-      equityPercent: claimedEquity, canClaim: !hasClaimed && totalPoints >= 10, claimed: hasClaimed
+      totalPoints,
+      claimedPoints: totalClaimedPoints,
+      unclaimedPoints: claimablePoints,
+      equityPercent: totalClaimedEquity,
+      canClaim: canClaimMore,
+      claimed: hasClaimed,
+      totalClaimed: totalClaimedPoints,
+      totalEquityClaimed: totalClaimedEquity
     };
     
-if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
+    if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
     return result;
   }
 
-  // Process claim
+// Process claim - allow multiple claims, track claimable points
   async processClaim(userId: string): Promise<{ success: boolean; equityPercent: number; message: string }> {
     const db = getDb();
     const doc = await db.collection(this.collection).doc(userId).get();
@@ -458,38 +476,38 @@ if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
       return { success: false, equityPercent: 0, message: 'Need at least 10 points to claim equity' };
     }
     
-    // Check if already claimed this month
+    // Get all previous claims to calculate already claimed points
     const claimsnap = await db.collection('torque_claims')
       .where('userId', '==', userId)
       .get();
     
-    if (claimsnap.size > 0) {
-      const now = Date.now();
-      const oneMonth = 30 * 24 * 60 * 60 * 1000;
-      const recentClaims = claimsnap.docs.filter(d => {
-        const claimedAt = d.data()?.claimedAt || 0;
-        return now - claimedAt < oneMonth;
-      });
-      
-      if (recentClaims.length > 0) {
-        return { success: false, equityPercent: 0, message: 'Already claimed this month' };
-      }
+    let totalClaimedPoints = 0;
+    claimsnap.docs.forEach(d => {
+      totalClaimedPoints += d.data().pointsClaimed || 0;
+    });
+    
+    // Calculate claimable points (points earned since last claim)
+    const claimablePoints = Math.max(0, totalPoints - totalClaimedPoints);
+    
+    if (claimablePoints < 10) {
+      return { success: false, equityPercent: 0, message: 'Need at least 10 new points to claim more equity' };
     }
     
-    // Process claim
-    const equityPercent = totalPoints * 0.00001;
+    // Process claim for only the new claimable points
+    const equityPercent = claimablePoints * 0.00001;
     
     await db.collection('torque_claims').add({
       userId,
-      pointsClaimed: totalPoints,
+      pointsClaimed: claimablePoints,
       equityPercent,
-      claimedAt: Date.now()
+      claimedAt: Date.now(),
+      totalPointsAtClaim: totalPoints
     });
     
     // Get user data for activity
-    const userDoc = await db.collection('torque_users').doc(userId).get();
+    const userDoc = await db.collection('users').doc(userId).get();
     const userData = userDoc.data();
-    const displayName = userData?.displayName || userData?.name || 'Deji Tech';
+    const displayName = userData?.displayName || userData?.name || 'User';
     
     // Add activity entry for claim
     await db.collection(this.activityCollection).add({
@@ -497,7 +515,7 @@ if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
       displayName,
       type: 'claim',
       description: `Claimed ${equityPercent.toFixed(5)}% equity`,
-      points: totalPoints,
+      points: claimablePoints,
       chain: 'equity',
       timestamp: Date.now()
     });
@@ -507,6 +525,40 @@ if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
       equityPercent,
       message: `Claimed ${equityPercent.toFixed(5)}% equity`
     };
+  }
+
+  // Get claim history
+  async getClaimHistory(userId: string): Promise<{
+    history: Array<{ id: string; pointsClaimed: number; equityPercent: number; claimedAt: number }>;
+    totalClaimed: number;
+    totalEquityClaimed: number;
+  }> {
+    const db = getDb();
+    
+    const claimsnap = await db.collection('torque_claims')
+      .where('userId', '==', userId)
+      .orderBy('claimedAt', 'desc')
+      .get();
+    
+    const history: Array<{ id: string; pointsClaimed: number; equityPercent: number; claimedAt: number }> = [];
+    let totalClaimedPoints = 0;
+    let totalEquityClaimed = 0;
+    
+    claimsnap.docs.forEach(doc => {
+      const data = doc.data();
+      const points = data.pointsClaimed || 0;
+      const equity = data.equityPercent || 0;
+      history.push({
+        id: doc.id,
+        pointsClaimed: points,
+        equityPercent: equity,
+        claimedAt: data.claimedAt || 0
+      });
+      totalClaimedPoints += points;
+      totalEquityClaimed += equity;
+    });
+    
+    return { history, totalClaimed: totalClaimedPoints, totalEquityClaimed };
   }
 
   // Get pool stats
