@@ -454,8 +454,8 @@ if (isRedisConnected()) await cacheSet(cacheKey, result, 300);
     const doc = await db.collection(this.collection).doc(userId).get();
     const totalPoints = doc.data()?.totalPoints || 0;
     
-    if (totalPoints < 1000) {
-      return { success: false, equityPercent: 0, message: 'Need at least 1,000 points to claim equity' };
+    if (totalPoints < 10) {
+      return { success: false, equityPercent: 0, message: 'Need at least 10 points to claim equity' };
     }
     
     // Check if already claimed this month
