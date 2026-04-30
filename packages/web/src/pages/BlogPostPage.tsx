@@ -35,6 +35,73 @@ const navItems = [
 ];
 
 const blogPostsData: Record<string, BlogPost> = {
+  'equity-claim-system-launched': {
+    id: 'equity-claims',
+    title: 'Claim Your Equity: 5% Pool for Community',
+    excerpt: 'FundTracer launches equity claims — analyze wallets and claim your share of the 5% equity pool.',
+    category: 'Product',
+    date: '2026-04-30',
+    readTime: '3 min read',
+    author: 'FundTracer Team',
+    slug: 'equity-claim-system-launched',
+    content: `
+## Earn Equity by Analyzing Wallets
+
+Today we're launching our equity claim system — a 5% equity pool worth potentially life-changing returns for our most active community members.
+
+## The Equity Pool
+
+| Metric | Value |
+|--------|-------|
+| Total Pool | 500,000 points = 5% equity |
+| Per Wallet Analyzed | 10 points |
+| Equity per Point | 0.00001% |
+
+## How It Works
+
+1. **Analyze Wallets** — Use FundTracer to analyze any wallet on any supported chain
+2. **Earn Points** — Each analysis earns you 10 points (tracked via Torque)
+3. **Track Progress** — Visit My Stats in the Rewards page
+4. **Claim Equity** — Once you have points, click "Claim" to record your equity
+
+## Example Calculations
+
+| Wallets Analyzed | Points | Equity |
+|------------------|--------|--------|
+| 10 | 100 | 0.001% |
+| 100 | 1,000 | 0.01% |
+| 1,000 | 10,000 | 0.1% |
+| 10,000 | 100,000 | 1% |
+
+## Where to Claim
+
+Navigate to **Rewards > My Stats** to see your position and claim button:
+
+- Wallets Analyzed: Your scan count
+- Points: wallets × 10
+- Equity: points × 0.00001%
+- Claim Button: Appears when you have > 0 points
+
+## Leaderboard
+
+The leaderboard tracks top performers. Our top analyzers:
+
+1. Haicon Empire — 2,080 pts
+2. Fuhad Kamil-Bello — 600 pts
+3. Alli Odelade — 530 pts
+
+Can you overtake them?
+
+## What's Next
+
+- More chain support for point earning
+- Achievement badges
+- Group competitions
+- Referral bonuses
+
+Start analyzing today at [fundtracer.xyz](https://fundtracer.xyz).
+    `,
+  },
   'cli-rewards-command': {
     id: 'cli-rewards',
     title: 'Level Up with CLI: View Rewards from Terminal',

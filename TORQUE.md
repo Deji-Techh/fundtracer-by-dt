@@ -504,3 +504,68 @@ CLI scans show chain in activity:
 - [ ] Shareable stats card
 - [ ] Group vs group challenges
 - [ ] Torque campaign leaderboards (when available)
+
+---
+
+## Equity Claim System (v3.1)
+
+> How users claim equity in FundTracer based on their leaderboard position
+
+### Overview
+
+| Pool | Points Required | Equity |
+|------|----------------|--------|
+| Total | 500,000 | 5% |
+| Per 10 pts | 1 | 0.00001% |
+
+### Calculation
+
+```
+walletsAnalyzed × 10 = points
+points × 0.00001% = equity percent
+```
+
+Example: 3 wallets analyzed = 30 points = 0.00030% equity
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/torque-v2/claim/status` | Check if user has claimed |
+| POST | `/api/torque-v2/claim` | Claim equity (requires auth) |
+| GET | `/api/torque-v2/pool-stats` | Total pool stats |
+
+### Claim Flow
+
+1. User visits My Stats tab (requires login)
+2. System fetches claim status and pool stats
+3. If not claimed and has points > 0, shows "Claim X% Equity" button
+4. On claim: records to `torque_claims` collection
+5. User receives confirmation with equity percentage
+
+### Collection Schema
+
+```javascript
+// torque_wallets/{userId}
+{
+  walletsScanned: number,  // count of unique wallets
+  totalPoints: number,    // walletsScanned × 10
+  displayName: string,
+  updatedAt: timestamp
+}
+
+// torque_claims/{userId}
+{
+  userId: string,
+  pointsClaimed: number,
+  equityPercent: number,
+  claimedAt: timestamp
+}
+```
+
+### My Stats Tab Display
+
+- Wallets Analyzed (count from Firestore)
+- Points = walletsAnalyzed × 10
+- Equity = points × 0.00001%
+- Claim button (if not claimed and points > 0)

@@ -275,6 +275,38 @@ Btw, we are also rewarding our users manually, not via torque
 
 ---
 
+## Post-Hackathon Updates
+
+### Auth 401 Issue on /mystats (April 2026)
+
+**Problem:** `/api/torque-v2/mystats` returned 401 Unauthorized even with valid JWT, while `/api/user/profile` worked fine with the same token.
+
+**Root Cause:** Different fetch patterns:
+- `/api/user/profile` used `apiRequest()` wrapper with `credentials: 'include'`
+- `/torque-v2/*` used raw `fetch()` without credentials option
+
+The browser wasn't sending cookies/credentials with the raw fetch, so auth header wasn't being sent on some requests.
+
+**Solution:** 
+- Updated MyStatsTab.tsx to use `apiRequest()` instead of raw `fetch()`
+- Added field mapping: `walletsScanned × 10 = points` for equity display
+- Backend returns both fields, frontend handles the conversion
+
+**Files Changed:**
+- `packages/web/src/components/MyStatsTab.tsx`
+- `packages/server/src/routes/torqueV2.ts` (added debug logging)
+
+### Equity Claim System (April 2026)
+
+Added equity claim functionality:
+- 500,000 points pool = 5% equity
+- 10 points per wallet analyzed
+- Users can claim from My Stats tab
+- Claim recorded to `torque_claims` collection
+
+---
+
 *Submitted: April 2026*
 *Hackathon: Torque x Frontier*
+*Updated: April 2026*
 

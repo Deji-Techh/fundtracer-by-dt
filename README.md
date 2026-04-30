@@ -35,6 +35,24 @@ FundTracer uses Torque for growth primitives - leaderboards, event tracking, and
 - Activity Feed: `GET /api/torque-v2/activity`
 - Group Rankings: `GET /api/torque-v2/groups`
 - Record Scan: `POST /api/torque-v2/scan` (auth required)
+- Claim Status: `GET /api/torque-v2/claim/status`
+- Claim Equity: `POST /api/torque-v2/claim`
+
+### Equity Claim System
+
+FundTracer allocates **5% equity** to the community based on wallet analysis activity.
+
+| Metric | Value |
+|--------|-------|
+| Total Pool | 500,000 points = 5% |
+| Per Wallet | 10 points |
+| Equity per Point | 0.00001% |
+
+**How to claim:**
+1. Analyze wallets on fundtracer.xyz
+2. Visit My Stats tab in Rewards page
+3. Click "Claim X% Equity" button
+4. Equity recorded to your account
 
 See [TORQUE.md](./TORQUE.md) for full technical documentation.
 

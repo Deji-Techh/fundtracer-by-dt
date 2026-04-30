@@ -34,6 +34,15 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
   {
+    id: 'equity-claims',
+    title: 'Claim Your Equity: 5% Pool for Community',
+    excerpt: 'FundTracer launches equity claims — analyze wallets and claim your share of the 5% equity pool. Top performers earn life-changing stakes.',
+    category: 'Product',
+    date: '2026-04-30',
+    readTime: '3 min read',
+    slug: 'equity-claim-system-launched',
+  },
+  {
     id: 'cli-rewards',
     title: 'Level Up with CLI: View Rewards from Terminal',
     excerpt: 'Now track your leaderboard standing directly from the CLI. FundTracer v1.1.5 brings Torque rewards to your terminal — analyze wallets and earn equity from anywhere.',
