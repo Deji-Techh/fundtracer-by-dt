@@ -132,15 +132,16 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
   const totalClaimed = poolStats?.claimCount || 0;
   const totalParticipants = totalClaimed + (user?.uid && !claimStatus?.claimed ? 1 : 0);
 
-  // Not logged in state
-  if (!user) {
+  // Not logged in state - check for either uid (Google) or walletAddress (wallet)
+  const isLoggedIn = user?.uid || user?.walletAddress;
+  if (!isLoggedIn) {
     return (
       <div className="my-stats-empty">
         <div className="empty-icon">
           <Wallet size={48} />
         </div>
         <h3>Sign In to View Your Stats</h3>
-        <p>Connect your wallet to see your points and claim equity</p>
+        <p>Connect your Google account to see your points and claim equity</p>
       </div>
     );
   }
