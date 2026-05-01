@@ -6,6 +6,8 @@
 import { Router, Response, Request } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
+import { sendEmail, buildClaimConfirmationEmail } from '../services/EmailService.js';
+import { getFirestore } from '../firebase.js';
 
 const router = Router();
 
@@ -364,12 +366,39 @@ router.get('/claim/status', authMiddleware, async (req: AuthenticatedRequest, re
 router.post('/claim', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.uid;
+    const userEmail = req.user?.email;
     
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
     const result = await torqueServiceV2.processClaim(userId);
+    
+    // Send confirmation email on successful claim
+    if (result.success && userEmail) {
+      try {
+        const db = getFirestore();
+        const userDoc = await db.collection('users').doc(userId).get();
+        const userData = userDoc.data();
+        const displayName = userData?.displayName || '';
+        
+        const { subject, html } = buildClaimConfirmationEmail(
+          displayName,
+          result.equityPercent,
+          result.pointsClaimed
+        );
+        
+        await sendEmail({
+          to: userEmail,
+          subject,
+          html
+        });
+        
+        console.log(`[TorqueV2] Claim confirmation email sent to ${userEmail}`);
+      } catch (emailError) {
+        console.error('[TorqueV2] Failed to send claim confirmation email:', emailError);
+      }
+    }
     
     res.json(result);
   } catch (error: any) {

@@ -17,6 +17,11 @@ torque-thread.md
 video-scripts.md
 *.private.md
 
+# Grant application files
+GRANT_APPLICATION.md
+GRANT_FORM_FIELDS.txt
+ai-session-transcript.txt
+
 # Environment variables (CRITICAL: Never push these)
 .env
 .env.local

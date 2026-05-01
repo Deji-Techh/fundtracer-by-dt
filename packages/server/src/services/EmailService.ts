@@ -235,3 +235,81 @@ export function buildPremiumFeatureEmail(name: string, featureName: string): { s
 </div>`
   };
 }
+
+export function buildClaimConfirmationEmail(name: string, equityPercent: number, pointsClaimed: number): { subject: string; html: string } {
+  return {
+    subject: `You've Claimed ${equityPercent.toFixed(5)}% Equity in FundTracer!`,
+    html: `
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 0;">
+  <div style="text-align: center; padding: 20px;">
+    <img src="https://www.fundtracer.xyz/banner.png" alt="Fundtracer Banner" style="max-width: 100%; height: auto; border-radius: 8px; max-height: 150px;" />
+  </div>
+  
+  <div style="padding: 40px 30px; background: #ffffff;">
+    <div style="text-align: center; margin-bottom: 30px;">
+      <span style="font-size: 48px;">🎉</span>
+    </div>
+    
+    <h2 style="color: #1e293b; margin: 0 0 20px; font-size: 24px; font-weight: 600; text-align: center;">
+      Congratulations${name ? `, ${name}` : ''}!
+    </h2>
+    
+    <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 20px; text-align: center;">
+      You've successfully claimed your equity in FundTracer. Your contribution to the blockchain intelligence community now has real value.
+    </p>
+
+    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 30px; margin: 25px 0; text-align: center;">
+      <p style="color: #ffffff; font-size: 14px; font-weight: 600; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 1px;">Your Equity</p>
+      <p style="color: #ffffff; font-size: 36px; font-weight: 700; margin: 0;">${equityPercent.toFixed(5)}%</p>
+    </div>
+
+    <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <p style="color: #64748b; font-size: 14px; margin: 0;">Points Used</p>
+        <p style="color: #1e293b; font-weight: 600; font-size: 14px; margin: 0;">${pointsClaimed.toLocaleString()} pts</p>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+        <p style="color: #64748b; font-size: 14px; margin: 0;">Equity Claimed</p>
+        <p style="color: #1e293b; font-weight: 600; font-size: 14px; margin: 0;">${equityPercent.toFixed(5)}%</p>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <p style="color: #64748b; font-size: 14px; margin: 0;">Account Link</p>
+        <p style="color: #10b981; font-weight: 600; font-size: 14px; margin: 0;">Google Account</p>
+      </div>
+    </div>
+
+    <h3 style="color: #1e293b; margin: 30px 0 15px; font-size: 18px; font-weight: 600;">Keep Earning More Equity</h3>
+    
+    <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 20px;">
+      Every wallet you analyze earns you more points - and more equity. The more you use FundTracer, the more you own.
+    </p>
+
+    <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <p style="color: #1e293b; font-weight: 600; margin: 0 0 10px; font-size: 15px;">How to Earn More</p>
+      <p style="color: #64748b; margin: 0 0 10px; font-size: 14px; line-height: 1.6;">1 wallet = 10 points = 0.00001% equity</p>
+      <p style="color: #64748b; margin: 0 0 10px; font-size: 14px; line-height: 1.6;">Analyze 100 wallets = 0.001% equity</p>
+      <p style="color: #64748b; margin: 0; font-size: 14px; line-height: 1.6;">Analyze 1,000 wallets = 0.01% equity</p>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://www.fundtracer.xyz/rewards" style="background: #3b82f6; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">View Your Stats</a>
+    </div>
+    
+    <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 30px 0 0; text-align: center;">
+      Your equity is permanently linked to your Google account. No wallet required, no risk of losing access.
+    </p>
+    
+    <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 15px 0 0;">
+      Thank you for being part of the Fundtracer community.<br/>The Fundtracer Team
+    </p>
+  </div>
+  
+  <div style="background: #f1f5f9; padding: 20px; text-align: center;">
+    <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+      Fundtracer - Blockchain Intelligence for Everyone<br/>
+      <a href="https://www.fundtracer.xyz" style="color: #3b82f6; text-decoration: none;">https://www.fundtracer.xyz</a>
+    </p>
+  </div>
+</div>`
+  };
+}

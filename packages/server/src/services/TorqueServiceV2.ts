@@ -467,13 +467,13 @@ async getClaimStatus(userId: string): Promise<{
   }
 
 // Process claim - allow multiple claims, track claimable points
-  async processClaim(userId: string): Promise<{ success: boolean; equityPercent: number; message: string }> {
+  async processClaim(userId: string): Promise<{ success: boolean; equityPercent: number; pointsClaimed: number; message: string }> {
     const db = getDb();
     const doc = await db.collection(this.collection).doc(userId).get();
     const totalPoints = doc.data()?.totalPoints || 0;
     
     if (totalPoints < 10) {
-      return { success: false, equityPercent: 0, message: 'Need at least 10 points to claim equity' };
+      return { success: false, equityPercent: 0, pointsClaimed: 0, message: 'Need at least 10 points to claim equity' };
     }
     
     // Get all previous claims to calculate already claimed points
@@ -490,7 +490,7 @@ async getClaimStatus(userId: string): Promise<{
     const claimablePoints = Math.max(0, totalPoints - totalClaimedPoints);
     
     if (claimablePoints < 10) {
-      return { success: false, equityPercent: 0, message: 'Need at least 10 new points to claim more equity' };
+      return { success: false, equityPercent: 0, pointsClaimed: 0, message: 'Need at least 10 new points to claim more equity' };
     }
     
     // Process claim for only the new claimable points
@@ -531,6 +531,7 @@ async getClaimStatus(userId: string): Promise<{
     return {
       success: true,
       equityPercent,
+      pointsClaimed: claimablePoints,
       message: `Claimed ${equityPercent.toFixed(5)}% equity`
     };
   }
