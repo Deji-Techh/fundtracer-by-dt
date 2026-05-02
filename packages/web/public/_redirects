@@ -1,5 +1,4 @@
 https://www.fundtracer.xyz/*  https://fundtracer.xyz/:splat  301
-/qvac/*  https://fundtracer-qvac-production.up.railway.app/:splat  307
 /api/keys  https://api.fundtracer.xyz/api/keys  307
 /api/*  https://api.fundtracer.xyz/api/:splat  307
 /sitemap.xml  /sitemap.xml  200
