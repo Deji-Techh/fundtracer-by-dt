@@ -75,7 +75,9 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
     ];
 
     try {
-      const response = await fetch(`${config.baseURL}/v1/chat/completions`, {
+      // Ensure baseURL doesn't have trailing /v1/chat/completions
+      const baseURL = config.baseURL.replace(/\/v1\/chat\/completions$/, '').replace(/\/v1$/, '');
+      const response = await fetch(`${baseURL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +150,9 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
     ];
 
     try {
-      const response = await fetch(`${config.baseURL}/v1/chat/completions`, {
+      // Ensure baseURL doesn't have trailing /v1/chat/completions
+      const baseURL = config.baseURL.replace(/\/v1\/chat\/completions$/, '').replace(/\/v1$/, '');
+      const response = await fetch(`${baseURL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
