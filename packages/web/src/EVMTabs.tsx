@@ -20,6 +20,7 @@ import FirstTimeModal from './components/FirstTimeModal';
 import PrivacyPolicyPage from './components/PrivacyPolicyPage';
 import { PoHVerificationModal } from './components/PoHVerificationModal';
 import ReferralWelcomeModal from './components/ReferralWelcomeModal';
+import { AiChatBubble } from './components/ai-chat/AiChatBubble';
 
 import './global.css';
 import './styles/ios-glass.css';
@@ -257,6 +258,7 @@ function EVMMainApp() {
         referredBy={referralData.referredBy}
       />
       <KeyboardShortcuts isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
+      <AiChatBubble currentWallet={prefillAddress || walletAddress} currentChain={prefillChain || 'ethereum'} />
     </div>
   );
 }

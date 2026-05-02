@@ -498,6 +498,7 @@ import { debugRoutes } from './routes/debug.js';
 import { dexScreenerRoutes } from './routes/dexscreener.js';
 import { geckoTerminalRoutes } from './routes/geckoterminal.js';
 import { scanHistoryRoutes } from './routes/scanHistory.js';
+import { walletCacheRoutes } from './routes/walletCache.js';
 import { solanaRoutes } from './routes/solana.js';
 import notificationRoutes from './routes/notifications.js';
 
@@ -510,6 +511,7 @@ apiRouter.use('/debug', publicLimiter, debugRoutes); // Debug routes (public) wi
 apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
 apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
 apiRouter.use('/scan-history', apiKeyAuthMiddleware, authMiddleware, scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
+apiRouter.use('/wallet-cache', walletCacheRoutes); // Wallet data cache (public read, auth write)
 apiRouter.use('/solana', apiKeyAuthMiddleware, authMiddleware, solanaRoutes); // Solana wallet analysis
 apiRouter.use('/notifications', apiKeyAuthMiddleware, authMiddleware, notificationRoutes); // User notifications
 

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppShell from '../components/AppShell';
 import Loader from '../components/Loader';
+import { AiChatBubble } from '../components/ai-chat/AiChatBubble';
 import './AppSolanaPage.css';
 
 type TabType = 'portfolio' | 'transactions' | 'nfts' | 'defi' | 'risk' | 'identity' | 'analytics' | 'tax' | 'compare' | 'history';
@@ -226,16 +227,6 @@ export function AppSolanaPage() {
     <>
       {showLoader && isAuthenticated && <Loader onComplete={() => setShowLoader(false)} />}
       <AppShell
-        activeNav={activeTab}
-        onNavChange={(id) => {
-          const item = navItems.find(n => n.id === id);
-          if (item && (item as any).disabled) return;
-          if (item && (item as any).onClick) {
-            (item as any).onClick();
-          } else {
-            setActiveTab(id as TabType);
-          }
-        }}
         navItems={navItems}
         walletConnected={false}
         walletAddress={walletAddress}
@@ -248,6 +239,7 @@ export function AppSolanaPage() {
       >
         {renderContent()}
       </AppShell>
+      <AiChatBubble currentWallet={walletAddress} currentChain="solana" />
     </>
   );
 }
