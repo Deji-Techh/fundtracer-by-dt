@@ -1,9 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Zap, Download, Trash2, Send, Wallet, X, MessageSquare, Plus, History } from 'lucide-react';
 import { useQVAC, type QVACMessage } from '../../hooks/qvac/useQVAC';
 import { useScanCache, type ScanCacheItem } from '../../hooks/qvac/useScanCache';
 import './AiChatBubble.css';
+
+// Filter thinking tokens from any content
+function cleanThinkingTokens(text: string): string {
+  return text
+    .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
+    .replace(/<0x[0-9a-fA-F]{2,}>/g, '')
+    .replace(/<0x[0-9a-fA-F]{2,}/g, '')
+    .replace(/<think>[\s\S]*?<\/thought>/g, '')
+    .replace(/<think>/gi, '')
+    .replace(/<\/thought>/gi, '')
+    .replace(/<thought>/gi, '')
+    .replace(/<\/thought>/g, '')
+    .trim();
+}
 
 interface AiChatBubbleProps {
   currentWallet?: string;
@@ -95,8 +109,40 @@ const handleSendMessage = async () => {
 
   const handleAttachLastScan = () => {
     if (lastScannedWallet) {
-      setAttachedWallet(lastScannedWallet);
-      setInputValue(`Analyze ${lastScannedWallet}: give me a risk report`);
+      const walletToAnalyze = lastScannedWallet;
+      const chainToAnalyze = lastScannedChain || currentChain;
+      
+      // Auto-send the analysis request
+      const walletContext = `Wallet: ${walletToAnalyze} (${chainToAnalyze})`;
+      const analysisRequest = `Analyze ${walletToAnalyze} on ${chainToAnalyze} and give me a risk report in 2-3 sentences maximum`;
+      
+      // Add user message showing attachment
+      const userMsg: QVACMessage = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: `📎 Attached: ${walletToAnalyze.slice(0, 6)}...${walletToAnalyze.slice(-4)} (${chainToAnalyze})`,
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, userMsg]);
+      
+      // Auto-send to AI
+      streamMessage(analysisRequest, walletContext, (chunk: string) => {
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastMsg = updated[updated.length - 1];
+          if (lastMsg?.role === 'assistant') {
+            lastMsg.content += chunk;
+          } else {
+            updated.push({
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: chunk,
+              timestamp: Date.now(),
+            });
+          }
+          return updated;
+        });
+      });
     }
   };
 
@@ -237,7 +283,7 @@ const handleSendMessage = async () => {
               {messages.filter((m: QVACMessage) => m.role !== 'system').map((msg: QVACMessage) => (
                 <div key={msg.id} className={`ft-ai-message ${msg.role}`}>
                   <div className="ft-ai-message-label">{msg.role === 'user' ? 'You' : 'AI'}</div>
-                  <div className="ft-ai-message-text">{msg.content}</div>
+                  <div className="ft-ai-message-text">{cleanThinkingTokens(msg.content)}</div>
                 </div>
               ))}
               {isLoading && (
