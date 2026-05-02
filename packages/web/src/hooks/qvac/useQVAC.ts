@@ -98,8 +98,13 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
 
       const data = await response.json();
       let rawContent = data.choices?.[0]?.message?.content || 'No response generated';
-      // Remove thinking tokens like <0x09>answer<0x09> or literal strings
-      const cleanContent = rawContent.replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '').replace(/<think>/gi, '').replace(/<\/thought>/gi, '').trim();
+      // Remove thinking tokens: hex format like <0x09>answer<0x09> or literal like<think>Answer<\/thought>
+      const cleanContent = rawContent
+        .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
+        .replace(/<think>[\s\S]*?<\/thought>/g, '')
+        .replace(/<think>/gi, '')
+        .replace(/<\/thought>/gi, '')
+        .trim();
       const assistantMessage: QVACMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -207,6 +212,7 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
 
       assistantMessage.content = assistantContent
         .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
+        .replace(/<think>[\s\S]*?<\/thought>/g, '')
         .replace(/<think>/gi, '')
         .replace(/<\/thought>/gi, '')
         .trim();

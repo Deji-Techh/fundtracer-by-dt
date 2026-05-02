@@ -257,7 +257,7 @@ Our QVAC integration is meaningful because:
 
 ### Issue 2: Model Download Timeout
 **Problem:** Model (~400MB) download timed out Railway's health check.
-**Solution:** Pre-download Q2 model during Docker build, bake into image.
+**Solution:** Pre-download model during Docker build, bake into image.
 
 ### Issue 3: Railway Port Configuration
 **Problem:** Container port needed to match Railway's proxy.
@@ -266,7 +266,7 @@ Our QVAC integration is meaningful because:
 ### Issue 4: CPU-Only Performance
 **Problem:** Response times too slow (~87s) on CPU-only infrastructure.
 **Solution:** 
-- Switch to Q2 quantization (~180MB vs ~400MB)
+- Use Q4 quantization (~382MB) for better output quality
 - Optimize context size (256 vs 4096)
 - Limit output tokens (80 vs unlimited)
 - Enable multi-threading (--threads 4)
@@ -275,6 +275,90 @@ Our QVAC integration is meaningful because:
 ### Issue 5: Cold Start
 **Problem:** Model needs to load on each request initially.
 **Solution:** Preload model on server startup with `preload: true`.
+
+### Issue 6: Thinking Tokens in Output
+**Problem:** QVAC model outputs thinking tokens like `<think>` in responses.
+**Solution:** Added regex filter in frontend to strip thinking tokens before display.
+
+### Issue 7: Cloudflare Proxy (405 Errors)
+**Problem:** Frontend requests hitting Cloudflare Pages returned 405 errors.
+**Root Cause:** Cloudflare function not being triggered - requests went to static files.
+**Solution:** Hardcode direct Railway URL in frontend code, bypass Cloudflare entirely.
+
+### Issue 8: Response Time Target
+**Problem:** Need 3-10s response time for hackathon.
+**Result:** Direct Railway URL achieves ~7-15s (variable based on server load).
+
+## Current Architecture (May 2026)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   FundTracer Web App                    │
+│              https://fundtracer.xyz                     │
+├─────────────────────────────────────────────────────────────┤
+│  AiChatBubble                                           │
+│    ↓ Hardcoded URL                                      │
+│    https://fundtracer-qvac-production.up.railway.app        │
+│        (Direct - bypasses Cloudflare)                    │
+├─────────────────────────────────────────────────────────────┤
+│                   QVAC Server                       │
+│              Railway Cloud                             │
+│        fundtracer-qvac-production.up.railway.app      │
+│                                                     │
+│  • Model: Qwen3-0.6B-Q4_0.gguf (~382MB)           │
+│  • Context: 256 tokens                            │
+│  • Max Output: 80 tokens                          │
+│  • Response Time: ~7-15s                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Frontend Configuration
+
+QVAC URL is hardcoded in `useQVAC.ts`:
+
+```typescript
+const DEFAULT_CONFIG: QVACConfig = {
+  baseURL: import.meta.env.VITE_QVAC_URL || 'https://fundtracer-qvac-production.up.railway.app',
+  apiKey: import.meta.env.VITE_QVAC_API_KEY || 'fundtracer-ai-key',
+  model: import.meta.env.VITE_QVAC_MODEL || 'fundtracer-llm',
+};
+```
+
+### Thinking Tokens Filter
+
+Added in both streaming and non-streaming code paths:
+
+```typescript
+const cleanContent = rawContent
+  .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
+  .replace(/<think>/gi, '')
+  .replace(/<\/thought>/gi, '')
+  .trim();
+```
+
+### QVAC Server Config (qvac.config.json)
+
+```json
+{
+  "serve": {
+    "models": {
+      "fundtracer-llm": {
+        "src": "/root/.qvac/models/Qwen3-0.6B-Q4_0.gguf",
+        "type": "llm",
+        "default": true,
+        "preload": true,
+        "config": {
+          "ctx_size": 256,
+          "predict": 80,
+          "temp": 0.7,
+          "top_k": 20,
+          "top_p": 0.9
+        }
+      }
+    }
+  }
+}
+```
 
 ## Future Enhancements
 
