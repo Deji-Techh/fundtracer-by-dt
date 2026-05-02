@@ -30,15 +30,13 @@
   color: var(--color-accent);
 }
 
-/* Plus Button for attaching last scan */
+/* Plus Button - transparent like other trigger buttons */
 .ft-ai-plus-btn {
-  background: var(--color-accent);
-  color: var(--color-bg);
+  background: transparent;
 }
 
 .ft-ai-plus-btn:hover {
-  background: var(--color-accent-hover, var(--color-accent));
-  color: var(--color-bg);
+  background: var(--color-bg-elevated);
 }
 
 /* Panel */
