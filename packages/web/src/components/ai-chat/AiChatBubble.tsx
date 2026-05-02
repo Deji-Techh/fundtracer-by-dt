@@ -20,6 +20,7 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
   
   const {
     messages,
+    setMessages,
     isLoading,
     error,
     isServerReady,
@@ -57,32 +58,38 @@ const handleSendMessage = async () => {
           ? `Wallet: ${currentWallet} (${currentChain})`
           : undefined;
     
-    // Add a placeholder message for streaming
-    const tempMessage: QVACMessage = {
+    // Add user message immediately
+    const userMsg: QVACMessage = {
       id: crypto.randomUUID(),
-      role: 'assistant',
-      content: '',
+      role: 'user',
+      content: inputValue,
       timestamp: Date.now(),
     };
-    setMessages(prev => [...prev, tempMessage]);
-    setIsLoading(true);
+    setMessages(prev => [...prev, userMsg]);
     
     try {
       await streamMessage(inputValue, walletContext, (chunk: string) => {
-        // Update message with streaming chunk
+        // Update last message with streaming chunk
         setMessages(prev => {
           const updated = [...prev];
           const lastMsg = updated[updated.length - 1];
           if (lastMsg?.role === 'assistant') {
             lastMsg.content += chunk;
+          } else {
+            // Create assistant message if not exists
+            const assistantMsg: QVACMessage = {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: chunk,
+              timestamp: Date.now(),
+            };
+            updated.push(assistantMsg);
           }
           return updated;
         });
       });
     } catch (err) {
       console.error('Failed to send message:', err);
-      // Remove placeholder on error
-      setMessages(prev => prev.slice(0, -1));
     }
     setInputValue('');
     setAttachedWallet(null);

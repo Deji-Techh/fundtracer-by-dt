@@ -21,7 +21,7 @@ const DEFAULT_CONFIG: QVACConfig = {
 
 export function useQVAC(customConfig?: Partial<QVACConfig>) {
   const [config, setConfig] = useState<QVACConfig>({ ...DEFAULT_CONFIG, ...customConfig });
-  const [messages, setMessages] = useState<QVACMessage[]>([]);
+  const [messages, setMessagesState] = useState<QVACMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isServerReady, setIsServerReady] = useState(false);
@@ -38,7 +38,8 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const response = await fetch(`${config.baseURL}/models`, {
+      const baseURL = config.baseURL.replace(/\/v1\/chat\/completions$/, '').replace(/\/v1$/, '');
+      const response = await fetch(`${baseURL}/v1/models`, {
         method: 'GET',
         signal: controller.signal,
         headers: config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {},
@@ -112,7 +113,7 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
         timestamp: Date.now(),
       };
 
-      setMessages(prev => [...prev, userMessage, assistantMessage]);
+      setMessagesState(prev => [...prev, userMessage, assistantMessage]);
       return assistantMessage;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
@@ -125,7 +126,7 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
         timestamp: Date.now(),
       };
       
-      setMessages(prev => [...prev, userMessage, errorMsg]);
+      setMessagesState(prev => [...prev, userMessage, errorMsg]);
       return errorMsg;
     } finally {
       setIsLoading(false);
@@ -212,7 +213,7 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
 
       // If onChunk was provided, don't add duplicate message - caller handles it
       if (onChunk) {
-        setMessages(prev => [...prev, userMessage]);
+        setMessagesState(prev => [...prev, userMessage]);
         setIsLoading(false);
         return assistantMessage;
       }
@@ -224,7 +225,7 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
         .replace(/<think>/gi, '')
         .replace(/<\/thought>/gi, '')
         .trim();
-      setMessages(prev => [...prev, userMessage, assistantMessage]);
+      setMessagesState(prev => [...prev, userMessage, assistantMessage]);
       return assistantMessage;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
@@ -265,8 +266,16 @@ Generate a comprehensive risk assessment report. Include:
     return sendMessage('Generate a wallet risk report based on the following data:', context);
   }, [sendMessage]);
 
+  const handleSetMessages = useCallback((updater: QVACMessage[] | ((prev: QVACMessage[]) => QVACMessage[])) => {
+    if (typeof updater === 'function') {
+      setMessagesState(updater as (prev: QVACMessage[]) => QVACMessage[]);
+    } else {
+      setMessagesState(updater);
+    }
+  }, []);
+
   const clearMessages = useCallback(() => {
-    setMessages([]);
+    setMessagesState([]);
   }, []);
 
   useEffect(() => {
@@ -279,6 +288,7 @@ Generate a comprehensive risk assessment report. Include:
     config,
     setConfig,
     messages,
+    setMessages: handleSetMessages,
     isLoading,
     error,
     isServerReady,
