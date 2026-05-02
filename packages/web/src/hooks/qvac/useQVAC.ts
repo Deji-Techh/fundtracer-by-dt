@@ -85,7 +85,7 @@ Never provide financial advice - focus on risk assessment and pattern detection.
           messages: conversationMessages.map(m => ({ role: m.role, content: m.content })),
           stream: false,
           temperature: 0.7,
-          max_tokens: 2048,
+          max_tokens: 150,
         }),
       });
 
