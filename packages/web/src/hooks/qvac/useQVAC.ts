@@ -88,7 +88,7 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
           messages: conversationMessages.map(m => ({ role: m.role, content: m.content })),
           stream: false,
           temperature: 0.7,
-          max_tokens: 80,
+          max_tokens: 150,
         }),
       });
 
@@ -168,7 +168,7 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
           messages: conversationMessages.map(m => ({ role: m.role, content: m.content })),
           stream: true,
           temperature: 0.7,
-          max_tokens: 2048,
+          max_tokens: 150,
         }),
       });
 
