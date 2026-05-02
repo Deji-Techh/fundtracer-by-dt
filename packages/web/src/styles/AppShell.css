@@ -269,6 +269,12 @@ body {
 
 .ft-topbar-gap { flex: 1; }
 
+.ft-ai-button-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+/* Notification Bell */
 .ft-node-status {
   display: flex;
   align-items: center;

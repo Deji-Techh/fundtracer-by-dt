@@ -237,6 +237,10 @@ function EVMMainApp() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
       {activeTab !== 'home' && <TopNav activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as TabType)} />}
+      <AiChatBubble 
+        currentWallet={prefillAddress || walletAddress} 
+        currentChain={prefillChain || 'ethereum'} 
+      />
       {activeTab !== 'home' ? (
         <div style={{ paddingTop: '56px', paddingBottom: '80px' }}>
           {mainContent}
@@ -258,7 +262,6 @@ function EVMMainApp() {
         referredBy={referralData.referredBy}
       />
       <KeyboardShortcuts isOpen={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
-      <AiChatBubble currentWallet={prefillAddress || walletAddress} currentChain={prefillChain || 'ethereum'} />
     </div>
   );
 }

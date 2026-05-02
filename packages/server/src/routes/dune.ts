@@ -54,15 +54,24 @@ router.post('/fetch', async (req: AuthenticatedRequest, res: Response) => {
         linea: 'linea.transactions',
     };
 
+    // Ensure contract address is properly formatted to prevent SQL injection
+    // Allow only hex chars for contract address
+    if (!/^0x[a-fA-F0-9]{40}$/.test(contractAddress)) {
+        return res.status(400).json({ error: 'Invalid contract address format' });
+    }
+
     const duneTable = chainTableMap[chain] || 'ethereum.transactions';
     const contractLower = contractAddress.toLowerCase();
 
-    // Build the SQL query - simple DISTINCT
+    // Limit is converted to a number and clamped
+    const safeLimit = Math.min(Math.max(1, Number(limit) || 1000), 10000);
+
+    // Build the SQL query - using checked inputs
     const query = `
         SELECT DISTINCT "from" as wallet
         FROM ${duneTable}
         WHERE LOWER(CAST("to" AS VARCHAR)) = '${contractLower}'
-        LIMIT ${Math.min(limit, 10000)}
+        LIMIT ${safeLimit}
     `;
 
     try {

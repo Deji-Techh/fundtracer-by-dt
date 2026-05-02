@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/AppShell.css';
 import { NotificationBell, NotificationPanel } from './notifications';
+import { AiChatBubble } from './ai-chat/AiChatBubble';
 
 interface NavItem {
   id: string;
@@ -23,6 +24,7 @@ interface AppShellProps {
   onSearchChange?: (value: string) => void;
   onSearchEnter?: () => void;
   chainBadge?: string;
+  showAiButton?: boolean;
 }
 
 export function AppShell({
@@ -37,7 +39,8 @@ export function AppShell({
   searchValue = '',
   onSearchChange,
   onSearchEnter,
-  chainBadge
+  chainBadge,
+  showAiButton = true
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
@@ -158,7 +161,8 @@ export function AppShell({
 
           <div className="ft-topbar-gap"></div>
 
-          <NotificationBell />
+          {showAiButton && <div className="ft-ai-button-wrapper"><AiChatBubble currentWallet={walletAddress} currentChain={chainBadge?.toLowerCase() || 'ethereum'} /></div>}
+          {!showAiButton && <NotificationBell />}
 
           <div className="ft-node-status">
             <div className="ft-node-dot"></div>

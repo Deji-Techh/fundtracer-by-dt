@@ -227,6 +227,8 @@ export function AppSolanaPage() {
     <>
       {showLoader && isAuthenticated && <Loader onComplete={() => setShowLoader(false)} />}
       <AppShell
+        activeNav={activeTab}
+        onNavChange={(id) => setActiveTab(id as TabType)}
         navItems={navItems}
         walletConnected={false}
         walletAddress={walletAddress}
@@ -236,10 +238,10 @@ export function AppSolanaPage() {
         onSearchChange={handleAddressChange}
         onSearchEnter={() => handleAnalyze(walletAddress)}
         chainBadge="SOL"
+        showAiButton={true}
       >
         {renderContent()}
       </AppShell>
-      <AiChatBubble currentWallet={walletAddress} currentChain="solana" />
     </>
   );
 }
