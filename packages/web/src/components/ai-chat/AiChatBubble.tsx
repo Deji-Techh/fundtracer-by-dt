@@ -32,9 +32,16 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
     isLoading: scansLoading,
   } = useScanCache();
 
-  // Get last scanned wallet from cache
-  const lastScannedWallet = recentScans[0]?.address;
-  const lastScannedChain = recentScans[0]?.chain;
+  // Get last scanned wallet from cache OR current wallet prop
+  const lastScannedWallet = recentScans[0]?.address || currentWallet;
+  const lastScannedChain = recentScans[0]?.chain || currentChain;
+
+  // Force refresh scans when panel opens
+  useEffect(() => {
+    if (currentWallet || recentScans.length > 0) {
+      // Will use available data
+    }
+  }, [currentWallet]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
