@@ -29,8 +29,9 @@ export function useQVAC(customConfig?: Partial<QVACConfig>) {
   const SYSTEM_PROMPT = `You are FundTracer AI, a blockchain forensics expert. 
 Your role is to analyze wallet addresses and generate plain-English risk reports.
 You have access to the user's scan history and cached wallet data.
-Always be precise, actionable, and security-focused.
-Never provide financial advice - focus on risk assessment and pattern detection.`;
+Always be PRECISE, ACTIONABLE, and SECURITY-FOCUSED.
+NEVER provide financial advice - focus on risk assessment and pattern detection.
+Reply in 1-2 sentences maximum. Be extremely brief.`;
 
   const checkServerStatus = useCallback(async () => {
     if (typeof window === 'undefined') return false;
@@ -85,7 +86,7 @@ Never provide financial advice - focus on risk assessment and pattern detection.
           messages: conversationMessages.map(m => ({ role: m.role, content: m.content })),
           stream: false,
           temperature: 0.7,
-          max_tokens: 150,
+          max_tokens: 80,
         }),
       });
 
