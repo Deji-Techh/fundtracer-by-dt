@@ -15,6 +15,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { WalletButton } from '../WalletButton';
 import { TokenDetailModal } from '../TokenDetailModal';
+import { AiChatBubble } from '../ai-chat/AiChatBubble';
 
 interface TopNavProps {
   activeTab: string;
@@ -309,6 +310,8 @@ const TopNav: React.FC<TopNavProps> = ({
           >
             {tier}
           </motion.span>
+          
+          <AiChatBubble className="top-nav-ai" />
           
           <WalletButton />
         </div>

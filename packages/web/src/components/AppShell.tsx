@@ -162,7 +162,7 @@ export function AppShell({
           <div className="ft-topbar-gap"></div>
 
           {showAiButton && <div className="ft-ai-button-wrapper"><AiChatBubble currentWallet={walletAddress} currentChain={chainBadge?.toLowerCase() || 'ethereum'} /></div>}
-          {!showAiButton && <NotificationBell />}
+          <NotificationBell />
 
           <div className="ft-node-status">
             <div className="ft-node-dot"></div>

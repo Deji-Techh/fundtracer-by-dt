@@ -423,19 +423,20 @@
 
 /* When embedded in header - PC */
 @media (min-width: 768px) {
-  .ft-ai-bubble-container.embedded {
+  .ft-ai-bubble-container.embedded,
+  .top-nav-ai {
     position: absolute;
     right: 16px;
     top: 50%;
     transform: translateY(-50%);
   }
   
-  .ft-ai-bubble-container.embedded .ft-ai-float-btn {
+  .top-nav-ai .ft-ai-float-btn {
     width: 36px;
     height: 36px;
   }
   
-  .ft-ai-bubble-container.embedded .ft-ai-panel {
+  .top-nav-ai .ft-ai-panel {
     position: absolute;
     top: 100%;
     right: 0;
