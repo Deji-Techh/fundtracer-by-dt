@@ -77,6 +77,7 @@ function EVMMainApp() {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -98,6 +99,12 @@ function EVMMainApp() {
 
   useEffect(() => {
     // Privy doesn't have theme sync like AppKit - handled differently
+  }, []);
+
+  useEffect(() => {
+    // Set page loading to false after initial render
+    const timer = setTimeout(() => setIsPageLoading(false), 500);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -236,7 +243,7 @@ function EVMMainApp() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
-      {activeTab !== 'home' && <TopNav activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as TabType)} />}
+      {activeTab !== 'home' && <TopNav activeTab={activeTab} onTabChange={(tab) => setActiveTab(tab as TabType)} isLoading={isPageLoading} />}
       <AiChatBubble 
         currentWallet={prefillAddress || walletAddress} 
         currentChain={prefillChain || 'ethereum'} 

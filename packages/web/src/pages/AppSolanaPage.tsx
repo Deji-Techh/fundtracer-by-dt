@@ -238,7 +238,7 @@ export function AppSolanaPage() {
         onSearchChange={handleAddressChange}
         onSearchEnter={() => handleAnalyze(walletAddress)}
         chainBadge="SOL"
-        showAiButton={true}
+        showAiButton={!showLoader}
       >
         {renderContent()}
       </AppShell>

@@ -33,11 +33,16 @@ Always be precise, actionable, and security-focused.
 Never provide financial advice - focus on risk assessment and pattern detection.`;
 
   const checkServerStatus = useCallback(async () => {
+    if (typeof window === 'undefined') return false;
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       const response = await fetch(`${config.baseURL}/models`, {
         method: 'GET',
+        signal: controller.signal,
         headers: config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {},
       });
+      clearTimeout(timeoutId);
       setIsServerReady(response.ok);
       return response.ok;
     } catch {

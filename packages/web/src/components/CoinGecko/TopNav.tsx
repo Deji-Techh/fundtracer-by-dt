@@ -20,6 +20,7 @@ import { AiChatBubble } from '../ai-chat/AiChatBubble';
 interface TopNavProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isLoading?: boolean;
 }
 
 interface SearchResult {
@@ -36,6 +37,7 @@ interface SearchResult {
 const TopNav: React.FC<TopNavProps> = ({
   activeTab,
   onTabChange,
+  isLoading = false,
 }) => {
   const isMobile = useIsMobile();
   const { theme, toggleTheme, isDark } = useTheme();
@@ -311,7 +313,7 @@ const TopNav: React.FC<TopNavProps> = ({
             {tier}
           </motion.span>
           
-          <AiChatBubble className="top-nav-ai" />
+          {!isLoading && <AiChatBubble className="top-nav-ai" />}
           
           <WalletButton />
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, ChevronDown, Zap, Download, Trash2, Send, Wallet, X } from 'lucide-react';
+import { ChevronDown, Zap, Download, Trash2, Send, Wallet, X, MessageSquare } from 'lucide-react';
 import { useQVAC, type QVACMessage } from '../../hooks/qvac/useQVAC';
 import { useScanCache, type ScanCacheItem } from '../../hooks/qvac/useScanCache';
 import './AiChatBubble.css';
@@ -9,10 +9,9 @@ interface AiChatBubbleProps {
   currentWallet?: string;
   currentChain?: string;
   className?: string;
-  embedded?: boolean;
 }
 
-export function AiChatBubble({ currentWallet, currentChain = 'ethereum', className = '', embedded = false }: AiChatBubbleProps) {
+export function AiChatBubble({ currentWallet, currentChain = 'ethereum', className = '' }: AiChatBubbleProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [selectedScan, setSelectedScan] = useState<ScanCacheItem | null>(null);
@@ -78,123 +77,135 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
     URL.revokeObjectURL(url);
   };
 
-  const expandedContent = (
-    <motion.div
-      className="ft-ai-panel"
-      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: 10 }}
-      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-    >
-      <div className="ft-ai-header">
-        <div className="ft-ai-header-left">
-          <div className="ft-ai-logo">
-            <Zap size={16} />
-          </div>
-          <div className="ft-ai-header-title">
-            <span className="ft-ai-title-text">FundTracer AI</span>
-            <span className={`ft-ai-status ${isServerReady ? 'online' : 'offline'}`}>
-              {isServerReady ? 'Online' : 'Offline'}
-            </span>
-          </div>
-        </div>
-        <div className="ft-ai-header-actions">
-          <button className="ft-ai-action-btn" onClick={handleExportReport} title="Export">
-            <Download size={14} />
-          </button>
-          <button className="ft-ai-action-btn" onClick={clearMessages} title="Clear">
-            <Trash2 size={14} />
-          </button>
-          <button className="ft-ai-action-btn ft-ai-close" onClick={() => setIsExpanded(false)}>
-            <ChevronDown size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div className="ft-ai-scans-section">
-        <div className="ft-ai-scans-label">
-          <Wallet size={12} />
-          <span>Recent</span>
-        </div>
-        {scansLoading ? (
-          <div className="ft-ai-scans-loading">...</div>
-        ) : recentScans.length > 0 ? (
-          <div className="ft-ai-scans-list">
-            {recentScans.slice(0, 6).map((scan: ScanCacheItem) => (
-              <button 
-                key={scan.id} 
-                className={`ft-ai-scan-item ${selectedScan?.address === scan.address ? 'active' : ''}`}
-                onClick={() => handleSelectScan(scan)}
-              >
-                <span>{scan.address.slice(0, 4)}..{scan.address.slice(-2)}</span>
-                <span className="ft-scan-chain">{scan.chain?.slice(0, 2)}</span>
-              </button>
-            ))}
-          </div>
-        ) : <div className="ft-ai-scans-empty">No scans</div>}
-      </div>
-
-      {selectedScan && (
-        <div className="ft-ai-selected">
-          <span>{selectedScan.address.slice(0, 6)}..{selectedScan.address.slice(-4)}</span>
-          <button onClick={() => setSelectedScan(null)}>
-            <X size={12} />
-          </button>
-        </div>
-      )}
-
-      <div className="ft-ai-messages">
-        {messages.filter((m: QVACMessage) => m.role !== 'system').map((msg: QVACMessage) => (
-          <div key={msg.id} className={`ft-ai-message ${msg.role}`}>
-            <div className="ft-ai-message-role">{msg.role === 'user' ? 'You' : 'AI'}</div>
-            <div className="ft-ai-message-content">{msg.content}</div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="ft-ai-message loading">
-            <div className="ft-ai-typing">
-              <span></span><span></span><span></span>
-            </div>
-          </div>
-        )}
-        {error && <div className="ft-ai-error">{error}</div>}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="ft-ai-input-container">
-        <textarea
-          className="ft-ai-input"
-          placeholder={selectedScan ? `Ask about ${selectedScan.address.slice(0, 4)}...` : currentWallet ? `Ask about wallet...` : 'Select scan or ask...'}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyPress}
-          disabled={isLoading}
-          rows={2}
-        />
-        <button className="ft-ai-send-btn" onClick={handleSendMessage} disabled={isLoading || !inputValue.trim()}>
-          <Send size={14} />
-        </button>
-      </div>
-    </motion.div>
-  );
-
   return (
-    <div className={`ft-ai-bubble-container ${className} ${embedded ? 'embedded' : ''}`}>
+    <div className={`ft-ai-container ${className}`}>
       <AnimatePresence>
-        {isExpanded && expandedContent}
+        {isExpanded && (
+          <motion.div
+            className="ft-ai-panel"
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+          >
+            {/* Header */}
+            <div className="ft-ai-panel-header">
+              <div className="ft-ai-panel-title">
+                <Zap size={16} className="ft-ai-panel-icon" />
+                <span>FundTracer AI</span>
+              </div>
+              <div className="ft-ai-panel-actions">
+                <button className="ft-ai-panel-btn" onClick={handleExportReport} title="Export">
+                  <Download size={14} />
+                </button>
+                <button className="ft-ai-panel-btn" onClick={clearMessages} title="Clear">
+                  <Trash2 size={14} />
+                </button>
+                <button className="ft-ai-panel-btn ft-ai-panel-close" onClick={() => setIsExpanded(false)}>
+                  <ChevronDown size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Status bar */}
+            <div className="ft-ai-status-bar">
+              <span className={`ft-ai-status-dot ${isServerReady ? 'online' : 'offline'}`} />
+              <span>{isServerReady ? 'Connected' : 'Offline'}</span>
+            </div>
+
+            {/* Recent Scans */}
+            <div className="ft-ai-scans">
+              <div className="ft-ai-scans-header">
+                <Wallet size={12} />
+                <span>Recent Scans</span>
+              </div>
+              <div className="ft-ai-scans-list">
+                {scansLoading ? (
+                  <span className="ft-ai-scans-loading">Loading...</span>
+                ) : recentScans.length > 0 ? (
+                  recentScans.slice(0, 6).map((scan: ScanCacheItem) => (
+                    <button 
+                      key={scan.id} 
+                      className={`ft-ai-scan-chip ${selectedScan?.address === scan.address ? 'active' : ''}`}
+                      onClick={() => handleSelectScan(scan)}
+                    >
+                      {scan.address.slice(0, 4)}..{scan.address.slice(-2)}
+                      <span className="ft-ai-scan-chain">{scan.chain?.slice(0, 3)?.toUpperCase()}</span>
+                    </button>
+                  ))
+                ) : (
+                  <span className="ft-ai-scans-empty">No scans yet</span>
+                )}
+              </div>
+            </div>
+
+            {/* Selected Wallet */}
+            {selectedScan && (
+              <div className="ft-ai-wallet-bar">
+                <span>Analyzing:</span>
+                <code>{selectedScan.address.slice(0, 8)}...</code>
+                <button onClick={() => setSelectedScan(null)}><X size={12} /></button>
+              </div>
+            )}
+
+            {/* Messages */}
+            <div className="ft-ai-messages">
+              {messages.filter((m: QVACMessage) => m.role !== 'system').length === 0 && (
+                <div className="ft-ai-empty">
+                  <MessageSquare size={24} />
+                  <p>Ask about any wallet to get an AI-generated risk report</p>
+                </div>
+              )}
+              {messages.filter((m: QVACMessage) => m.role !== 'system').map((msg: QVACMessage) => (
+                <div key={msg.id} className={`ft-ai-message ${msg.role}`}>
+                  <div className="ft-ai-message-label">{msg.role === 'user' ? 'You' : 'AI'}</div>
+                  <div className="ft-ai-message-text">{msg.content}</div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="ft-ai-message assistant">
+                  <div className="ft-ai-message-label">AI</div>
+                  <div className="ft-ai-typing-indicator">
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
+              )}
+              {error && <div className="ft-ai-error">{error}</div>}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="ft-ai-input-area">
+              <textarea
+                className="ft-ai-input"
+                placeholder={selectedScan ? `Ask about ${selectedScan.address.slice(0, 4)}...` : currentWallet ? `Ask about ${currentWallet.slice(0, 6)}...` : 'Enter wallet address or question...'}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyPress}
+                disabled={isLoading}
+              />
+              <button 
+                className="ft-ai-send-btn" 
+                onClick={handleSendMessage} 
+                disabled={isLoading || !inputValue.trim()}
+              >
+                <Send size={14} />
+              </button>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
-      
-      {!isExpanded && (
-        <motion.button
-          className="ft-ai-float-btn"
-          onClick={() => setIsExpanded(true)}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          title="FundTracer AI"
-        >
-          <Zap size={18} />
-        </motion.button>
-      )}
+
+      {/* Floating Button */}
+      <motion.button
+        className="ft-ai-trigger"
+        onClick={() => setIsExpanded(!isExpanded)}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        title="FundTracer AI"
+      >
+        <Zap size={18} />
+      </motion.button>
     </div>
   );
 }
