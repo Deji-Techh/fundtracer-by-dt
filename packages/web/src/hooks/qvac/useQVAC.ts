@@ -182,6 +182,7 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
 
       let assistantContent = '';
       const decoder = new TextDecoder();
+      let thinkingBuffer = '';
       const assistantMessage: QVACMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -202,18 +203,25 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
           
           try {
             const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta?.content || '';
+            let delta = parsed.choices?.[0]?.delta?.content || '';
             if (delta) {
-              assistantContent += delta;
-              onChunk?.(delta);
+              // Filter thinking tokens
+              delta = delta
+                .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
+                .replace(/<think>[\s\S]*?<\/thought>/g, '')
+                .replace(/<think>/gi, '')
+                .replace(/<\/thought>/gi, '');
+              if (delta) {
+                assistantContent += delta;
+                onChunk?.(delta);
+              }
             }
           } catch {}
         }
       }
 
-      // If onChunk was provided, don't add duplicate message - caller handles it
+      // If onChunk was provided, caller handles messages - just return
       if (onChunk) {
-        setMessagesState(prev => [...prev, userMessage]);
         setIsLoading(false);
         return assistantMessage;
       }

@@ -33,16 +33,12 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
     isLoading: scansLoading,
   } = useScanCache();
 
-  // Get last scanned wallet from cache OR current wallet prop
+  // Get last scanned wallet - prefer recent scan, fallback to current wallet prop
   const lastScannedWallet = recentScans[0]?.address || currentWallet;
   const lastScannedChain = recentScans[0]?.chain || currentChain;
 
-  // Force refresh scans when panel opens
-  useEffect(() => {
-    if (currentWallet || recentScans.length > 0) {
-      // Will use available data
-    }
-  }, [currentWallet]);
+  // Show plus button always (when panel is closed) - adds last scanned wallet to input
+  const showPlusButton = !isExpanded;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,25 +54,15 @@ const handleSendMessage = async () => {
           ? `Wallet: ${currentWallet} (${currentChain})`
           : undefined;
     
-    // Add user message immediately
-    const userMsg: QVACMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: inputValue,
-      timestamp: Date.now(),
-    };
-    setMessages(prev => [...prev, userMsg]);
-    
+    // streamMessage adds user message internally - just pass content
     try {
       await streamMessage(inputValue, walletContext, (chunk: string) => {
-        // Update last message with streaming chunk
         setMessages(prev => {
           const updated = [...prev];
           const lastMsg = updated[updated.length - 1];
           if (lastMsg?.role === 'assistant') {
             lastMsg.content += chunk;
           } else {
-            // Create assistant message if not exists
             const assistantMsg: QVACMessage = {
               id: crypto.randomUUID(),
               role: 'assistant',
@@ -129,6 +115,11 @@ const handleSendMessage = async () => {
     URL.revokeObjectURL(url);
   };
 
+  // Load chat history on mount
+  useEffect(() => {
+    loadChatHistory();
+  }, []);
+
   // Load chat history from localStorage
   const loadChatHistory = () => {
     try {
@@ -147,10 +138,8 @@ const handleSendMessage = async () => {
   // Save chat history to localStorage
   const saveChatHistory = () => {
     try {
-      if (messages.length > 0) {
-        const toSave = messages.filter((m: QVACMessage) => m.role !== 'system');
-        localStorage.setItem('ft_qvac_history', JSON.stringify(toSave));
-      }
+      const toSave = messages.filter((m: QVACMessage) => m.role !== 'system');
+      localStorage.setItem('ft_qvac_history', JSON.stringify(toSave));
     } catch (e) {
       console.error('Failed to save chat history:', e);
     }
@@ -287,13 +276,13 @@ const handleSendMessage = async () => {
 
       {/* Floating Button Group */}
       <div className="ft-ai-button-group">
-        {lastScannedWallet && !isExpanded && (
+        {showPlusButton && (
           <motion.button
             className="ft-ai-trigger ft-ai-plus-btn"
             onClick={handleAttachLastScan}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            title={`Analyze ${lastScannedWallet.slice(0, 6)}...${lastScannedWallet.slice(-4)}`}
+            title={`Analyze ${lastScannedWallet?.slice(0, 6)}...${lastScannedWallet?.slice(-4)}`}
           >
             <Plus size={16} />
           </motion.button>
