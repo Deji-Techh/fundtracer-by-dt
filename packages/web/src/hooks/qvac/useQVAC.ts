@@ -74,7 +74,7 @@ Never provide financial advice - focus on risk assessment and pattern detection.
     ];
 
     try {
-      const response = await fetch(`${config.baseURL}/chat/completions`, {
+      const response = await fetch(`${config.baseURL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ Never provide financial advice - focus on risk assessment and pattern detection.
     ];
 
     try {
-      const response = await fetch(`${config.baseURL}/chat/completions`, {
+      const response = await fetch(`${config.baseURL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
