@@ -4,6 +4,12 @@
   align-items: center;
 }
 
+/* Button Group */
+.ft-ai-button-group {
+  display: inline-flex;
+  gap: 4px;
+}
+
 /* Trigger Button - compact like notification bell */
 .ft-ai-trigger {
   width: 36px;
@@ -22,6 +28,17 @@
 .ft-ai-trigger:hover {
   background: var(--color-bg-elevated);
   color: var(--color-accent);
+}
+
+/* Plus Button for attaching last scan */
+.ft-ai-plus-btn {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.ft-ai-plus-btn:hover {
+  background: var(--color-accent-hover, var(--color-accent));
+  color: var(--color-bg);
 }
 
 /* Panel */

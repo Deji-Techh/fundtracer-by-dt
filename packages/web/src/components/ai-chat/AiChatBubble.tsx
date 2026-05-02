@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Zap, Download, Trash2, Send, Wallet, X, MessageSquare } from 'lucide-react';
+import { ChevronDown, Zap, Download, Trash2, Send, Wallet, X, MessageSquare, Plus, History } from 'lucide-react';
 import { useQVAC, type QVACMessage } from '../../hooks/qvac/useQVAC';
 import { useScanCache, type ScanCacheItem } from '../../hooks/qvac/useScanCache';
 import './AiChatBubble.css';
@@ -15,6 +15,7 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [selectedScan, setSelectedScan] = useState<ScanCacheItem | null>(null);
+  const [attachedWallet, setAttachedWallet] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const {
@@ -31,6 +32,10 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
     isLoading: scansLoading,
   } = useScanCache();
 
+  // Get last scanned wallet from cache
+  const lastScannedWallet = recentScans[0]?.address;
+  const lastScannedChain = recentScans[0]?.chain;
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -39,6 +44,8 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
     if (!inputValue.trim() || isLoading) return;
     const walletContext = selectedScan 
       ? `Wallet: ${selectedScan.address} (${selectedScan.chain})`
+      : attachedWallet
+        ? `Wallet: ${attachedWallet} (${lastScannedChain || currentChain})`
       : currentWallet 
         ? `Wallet: ${currentWallet} (${currentChain})`
         : undefined;
@@ -48,6 +55,7 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
       console.error('Failed to send message:', err);
     }
     setInputValue('');
+    setAttachedWallet(null);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -60,6 +68,13 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
   const handleSelectScan = (scan: ScanCacheItem) => {
     setSelectedScan(scan);
     setInputValue(`Analyze ${scan.address}: give me a risk report`);
+  };
+
+  const handleAttachLastScan = () => {
+    if (lastScannedWallet) {
+      setAttachedWallet(lastScannedWallet);
+      setInputValue(`Analyze ${lastScannedWallet}: give me a risk report`);
+    }
   };
 
   const handleExportReport = () => {
@@ -76,6 +91,40 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // Load chat history from localStorage
+  const loadChatHistory = () => {
+    try {
+      const saved = localStorage.getItem('ft_qvac_history');
+      if (saved) {
+        const history = JSON.parse(saved);
+        if (history.length > 0) {
+          setMessages(history);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load chat history:', e);
+    }
+  };
+
+  // Save chat history to localStorage
+  const saveChatHistory = () => {
+    try {
+      if (messages.length > 0) {
+        const toSave = messages.filter((m: QVACMessage) => m.role !== 'system');
+        localStorage.setItem('ft_qvac_history', JSON.stringify(toSave));
+      }
+    } catch (e) {
+      console.error('Failed to save chat history:', e);
+    }
+  };
+
+  // Auto-save on messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      saveChatHistory();
+    }
+  }, [messages]);
 
   return (
     <div className={`ft-ai-container ${className}`}>
@@ -95,6 +144,9 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
                 <span>FundTracer AI</span>
               </div>
               <div className="ft-ai-panel-actions">
+                <button className="ft-ai-panel-btn" onClick={loadChatHistory} title="Load History">
+                  <History size={14} />
+                </button>
                 <button className="ft-ai-panel-btn" onClick={handleExportReport} title="Export">
                   <Download size={14} />
                 </button>
@@ -196,16 +248,29 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
         )}
       </AnimatePresence>
 
-      {/* Floating Button */}
-      <motion.button
-        className="ft-ai-trigger"
-        onClick={() => setIsExpanded(!isExpanded)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        title="FundTracer AI"
-      >
-        <Zap size={18} />
-      </motion.button>
+      {/* Floating Button Group */}
+      <div className="ft-ai-button-group">
+        {lastScannedWallet && !isExpanded && (
+          <motion.button
+            className="ft-ai-trigger ft-ai-plus-btn"
+            onClick={handleAttachLastScan}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title={`Analyze ${lastScannedWallet.slice(0, 6)}...${lastScannedWallet.slice(-4)}`}
+          >
+            <Plus size={16} />
+          </motion.button>
+        )}
+        <motion.button
+          className="ft-ai-trigger"
+          onClick={() => setIsExpanded(!isExpanded)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          title="FundTracer AI"
+        >
+          <Zap size={18} />
+        </motion.button>
+      </div>
     </div>
   );
 }
