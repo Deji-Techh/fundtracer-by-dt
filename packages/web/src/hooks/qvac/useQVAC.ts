@@ -210,6 +210,14 @@ Reply in 1-2 sentences maximum. Be extremely brief.`;
         }
       }
 
+      // If onChunk was provided, don't add duplicate message - caller handles it
+      if (onChunk) {
+        setMessages(prev => [...prev, userMessage]);
+        setIsLoading(false);
+        return assistantMessage;
+      }
+
+      // Clean the full response if not streaming
       assistantMessage.content = assistantContent
         .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
         .replace(/<think>[\s\S]*?<\/thought>/g, '')

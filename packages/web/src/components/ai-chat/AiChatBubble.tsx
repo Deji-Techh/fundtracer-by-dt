@@ -40,19 +40,42 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = async () => {
+const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
     const walletContext = selectedScan 
       ? `Wallet: ${selectedScan.address} (${selectedScan.chain})`
       : attachedWallet
         ? `Wallet: ${attachedWallet} (${lastScannedChain || currentChain})`
-      : currentWallet 
-        ? `Wallet: ${currentWallet} (${currentChain})`
-        : undefined;
+        : currentWallet 
+          ? `Wallet: ${currentWallet} (${currentChain})`
+          : undefined;
+    
+    // Add a placeholder message for streaming
+    const tempMessage: QVACMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, tempMessage]);
+    setIsLoading(true);
+    
     try {
-      await streamMessage(inputValue, walletContext);
+      await streamMessage(inputValue, walletContext, (chunk: string) => {
+        // Update message with streaming chunk
+        setMessages(prev => {
+          const updated = [...prev];
+          const lastMsg = updated[updated.length - 1];
+          if (lastMsg?.role === 'assistant') {
+            lastMsg.content += chunk;
+          }
+          return updated;
+        });
+      });
     } catch (err) {
       console.error('Failed to send message:', err);
+      // Remove placeholder on error
+      setMessages(prev => prev.slice(0, -1));
     }
     setInputValue('');
     setAttachedWallet(null);
