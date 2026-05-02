@@ -14,9 +14,9 @@ export interface QVACConfig {
 }
 
 const DEFAULT_CONFIG: QVACConfig = {
-  baseURL: 'http://127.0.0.1:11434/v1',
-  apiKey: 'fundtracer-ai-key',
-  model: 'fundtracer-llm',
+  baseURL: import.meta.env.VITE_QVAC_URL || 'http://127.0.0.1:11434/v1',
+  apiKey: import.meta.env.VITE_QVAC_API_KEY || 'fundtracer-ai-key',
+  model: import.meta.env.VITE_QVAC_MODEL || 'fundtracer-llm',
 };
 
 export function useQVAC(customConfig?: Partial<QVACConfig>) {
