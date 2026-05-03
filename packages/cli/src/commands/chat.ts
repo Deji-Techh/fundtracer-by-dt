@@ -140,7 +140,7 @@ export async function chatCommand() {
             const success = await streamCompletion(
                 messages,
                 (chunk) => { fullResponse += chunk; },
-                { max_tokens: 200 }
+                { max_tokens: 1000 }
             );
 
             stopSpinner();
