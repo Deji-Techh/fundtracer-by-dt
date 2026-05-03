@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiRequest } from '../../api';
+import { getHistory, type HistoryItem } from '../../utils/history';
 
 export interface ScanCacheItem {
   id: string;
@@ -38,7 +39,28 @@ export function useScanCache() {
     setError(null);
 
     try {
-      const response = await apiRequest('/api/scan-history', 'GET');
+      // Use local memory first (instant)
+      const historyItems = getHistory() as HistoryItem[];
+      
+      if (historyItems && historyItems.length > 0) {
+        const scans: ScanCacheItem[] = historyItems.slice(0, 20).map((item: HistoryItem) => ({
+          id: crypto.randomUUID(),
+          address: item.address,
+          chain: item.chain || 'ethereum',
+          label: item.label,
+          riskScore: item.riskScore,
+          tags: item.riskLevel ? [item.riskLevel] : [],
+          timestamp: item.timestamp || Date.now(),
+          balance: item.balanceInEth?.toString(),
+          txCount: item.totalTransactions,
+        }));
+        
+        setRecentScans(scans);
+        return scans;
+      }
+      
+      // Fallback to API if local is empty
+      const response = await apiRequest('/api/scan-history', 'GET') as Response;
       const data = await response.json();
       
       if (data.success && data.items) {
@@ -169,6 +191,16 @@ export function useScanCache() {
 
   useEffect(() => {
     fetchRecentScans();
+    
+    // Listen for history changes (when new scans are added)
+    const handleHistoryChange = () => {
+      fetchRecentScans();
+    };
+    window.addEventListener('historyChanged', handleHistoryChange);
+    
+    return () => {
+      window.removeEventListener('historyChanged', handleHistoryChange);
+    };
   }, [fetchRecentScans]);
 
   return {
