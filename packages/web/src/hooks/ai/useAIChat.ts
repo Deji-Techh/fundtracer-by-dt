@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiRequest } from '../../api';
+import { apiRequest, getAuthToken } from '../../api';
+import { getHistory, type HistoryItem } from '../../utils/history';
 
 export interface AIMessage {
   id: string;
@@ -330,12 +331,32 @@ Generate a comprehensive risk assessment report. Include:
     }
   }, []);
 
-  // Check message for addresses and auto-analyze if needed
+  // Check message for addresses and get wallet data (local history first, then API)
   const extractWalletDataFromMessage = useCallback(async (content: string): Promise<string | null> => {
     const detected = detectAddress(content);
     if (!detected) return null;
     
-    // Try to analyze this wallet
+    // First: Check local history (has scan data from recent scans)
+    const history = getHistory() as HistoryItem[];
+    const localData = history.find(h => 
+      h.address.toLowerCase() === detected.address.toLowerCase()
+    );
+    
+    if (localData) {
+      return `
+Wallet: ${localData.address}
+Chain: ${localData.chain}
+Risk Score: ${localData.riskScore ?? 'N/A'}
+Risk Level: ${localData.riskLevel ?? 'Unknown'}
+Total Transactions: ${localData.totalTransactions ?? 'N/A'}
+Total Received: ${localData.totalValueReceivedEth ?? 'N/A'} ETH
+Total Sent: ${localData.totalValueSentEth ?? 'N/A'} ETH
+Activity Period: ${localData.activityPeriodDays ?? 'N/A'} days
+Balance: ${localData.balanceInEth ?? 'N/A'} ETH
+      `.trim();
+    }
+    
+    // Second: Try API if not in local history
     const result = await analyzeWallet(detected.address, 'ethereum');
     if (result) {
       return `
@@ -353,6 +374,7 @@ Funding Sources: ${result.fundingSources?.join(', ') || 'None'}
 Top Destinations: ${result.topDestinations?.join(', ') || 'None'}
       `.trim();
     }
+    
     return null;
   }, [analyzeWallet]);
 

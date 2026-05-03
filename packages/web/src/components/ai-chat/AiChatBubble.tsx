@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Zap, Download, Trash2, Send, Wallet, X, MessageSquare, Plus, History } from 'lucide-react';
 import { useAIChat, type AIMessage } from '../../hooks/ai/useAIChat';
-import { useScanCache, type ScanCacheItem, type WalletCacheData } from '../../hooks/qvac/useScanCache';
+import { useScanCache, type ScanCacheItem } from '../../hooks/qvac/useScanCache';
+import { getHistory, type HistoryItem } from '../../utils/history';
 import { apiRequest } from '../../api';
 import './AiChatBubble.css';
 
@@ -140,29 +141,28 @@ const handleSendMessage = async () => {
       const walletToAnalyze = lastScannedWallet;
       const chainToAnalyze = lastScannedChain || currentChain;
       
-      // Fetch full wallet details from cache
+      // Get wallet data from local history (has full scan data)
+      const history = getHistory() as HistoryItem[];
+      const scanData = history.find(h => 
+        h.address.toLowerCase() === walletToAnalyze.toLowerCase()
+      );
+      
       let walletDetails = '';
-      try {
-        const cacheRes = await apiRequest(`/api/wallet-cache/${chainToAnalyze}/${walletToAnalyze}`, 'GET') as Response;
-        const cacheData = await cacheRes.json();
-        if (cacheData.success && cacheData.wallet) {
-          const w = cacheData.wallet;
-          walletDetails = `
-Wallet: ${w.address}
-Chain: ${w.chain}
-Balance: ${w.balance || 'Unknown'}
-Transactions: ${w.txCount || 'Unknown'}
-Risk Score: ${w.riskScore || 'Unknown'}
-Tags: ${w.tags?.join(', ') || 'None'}
-Funding Sources: ${w.fundingSources?.join(', ') || 'None'}
-Recent Activity: ${w.recentActivity || 'N/A'}
+      if (scanData) {
+        walletDetails = `
+Wallet: ${scanData.address}
+Chain: ${scanData.chain}
+Risk Score: ${scanData.riskScore ?? 'N/A'}
+Risk Level: ${scanData.riskLevel ?? 'Unknown'}
+Total Transactions: ${scanData.totalTransactions ?? 'N/A'}
+Total Received: ${scanData.totalValueReceivedEth ?? 'N/A'} ETH
+Total Sent: ${scanData.totalValueSentEth ?? 'N/A'} ETH
+Activity Period: ${scanData.activityPeriodDays ?? 'N/A'} days
+Balance: ${scanData.balanceInEth ?? 'N/A'} ETH
 `;
-        }
-      } catch (e) {
-        console.error('Failed to fetch wallet cache:', e);
       }
       
-      // Use wallet details as context
+      // Use wallet details or fallback to basic info
       const walletContext = walletDetails || `Wallet: ${walletToAnalyze} (${chainToAnalyze})`;
       const analysisRequest = `Analyze this wallet and give me a risk report`;
       
