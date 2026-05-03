@@ -68,7 +68,24 @@ const handleSendMessage = async () => {
           ? `Wallet: ${currentWallet} (${currentChain})`
           : undefined;
     
-    // streamMessage adds user message internally - just pass content
+    // Add user message to state first
+    const userMsg: AIMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: inputValue,
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    
+    // Add placeholder assistant message for streaming
+    const assistantMsg: AIMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, assistantMsg]);
+    
     try {
       await streamMessage(inputValue, walletContext, (chunk: string) => {
         setMessages(prev => {
@@ -76,14 +93,6 @@ const handleSendMessage = async () => {
           const lastMsg = updated[updated.length - 1];
           if (lastMsg?.role === 'assistant') {
             lastMsg.content += chunk;
-          } else {
-            const assistantMsg: AIMessage = {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: chunk,
-              timestamp: Date.now(),
-            };
-            updated.push(assistantMsg);
           }
           return updated;
         });
@@ -125,20 +134,22 @@ const handleSendMessage = async () => {
       };
       setMessages(prev => [...prev, userMsg]);
       
-      // Auto-send to AI
+      // Add placeholder assistant message for streaming
+      const assistantMsg: AIMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, assistantMsg]);
+      
+      // Stream to the placeholder
       streamMessage(analysisRequest, walletContext, (chunk: string) => {
         setMessages(prev => {
           const updated = [...prev];
           const lastMsg = updated[updated.length - 1];
           if (lastMsg?.role === 'assistant') {
             lastMsg.content += chunk;
-          } else {
-            updated.push({
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: chunk,
-              timestamp: Date.now(),
-            });
           }
           return updated;
         });
