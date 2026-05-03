@@ -7,6 +7,8 @@
 
 import net from 'net';
 import chalk from 'chalk';
+import fs from 'fs';
+import path from 'path';
 
 // Check QVAC_HOST env var for custom hosted server, default to local
 const QVAC_HOST = process.env.QVAC_HOST || process.env.QVAC_URL || '127.0.0.1';
@@ -55,33 +57,23 @@ export interface QVACCompletionResponse {
 }
 
 // System prompt for blockchain analysis
-const BLOCKCHAIN_SYSTEM_PROMPT = `You are FundTracer AI, an expert blockchain forensics analyst specializing in scam detection.
+const BLOCKCHAIN_SYSTEM_PROMPT = `You are FundTracer AI. Give brief, actionable answers. No verbose explanations. Never use thinking tags.`;
 
-## What FundTracer Does
-FundTracer detects suspicious on-chain behavior:
-- RAPID MOVEMENT: Funds moving quickly through many addresses (money laundering)
-- SAME-BLOCK: Multiple txs in same block (bot/MEV activity)  
-- SYBIL: Coordinated activity from multiple fake identities
-- CIRCULAR: Funds cycling through addresses (layering)
-- DUST: Spam tiny amounts to fingerprint addresses
-- FRESH: Newly created wallets with immediate suspicious activity
-- WASH: Artificial trading volume to manipulate prices
+// Detect model from config
+function getModelId(): string {
+    try {
+        const configPath = path.join(process.env.HOME || '', '.fundtracer-qvac', 'qvac.config.json');
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        return config?.serve?.models?.['fundtracer-ai']?.model || 'QWEN3_600M_INST_Q4';
+    } catch {
+        return 'QWEN3_600M_INST_Q4';
+    }
+}
 
-## Risk Scoring
-- 75+ = CRITICAL (scam/juice likely)
-- 50+ = HIGH risk
-- 25+ = MEDIUM risk
-- 0-25 = LOW risk (normal activity)
-
-## Your Task
-Analyze the wallet data and provide SPECIFIC, ACTIONABLE insights.
-- If LOW RISK: Say "LOW RISK - appears to be a regular [user type]"
-- If suspicious: Explain WHY with specific evidence from the data
-- NEVER just restate the numbers - interpret what they mean
-
-IMPORTANT: Provide actual analysis, not generic filler text.
-CRITICAL: Never include thinking tags - just output the response directly without any internal AI thinking.
-`;
+// Is this a small model (140M or 600M)?
+function isSmallModel(modelId: string): boolean {
+    return modelId.includes('140M') || modelId.includes('600M');
+}
 
 export async function checkQVACAvailable(): Promise<boolean> {
     // If hosted server, just check if we can reach it
@@ -238,36 +230,21 @@ export async function generateWalletInsights(
         topFundingDestinations?: { address: string; valueEth: number }[];
     }
 ): Promise<string | null> {
-    const userMessage = `
-Analyze this wallet and answer these specific questions:
-
-1. Is this a SYBIL address? (coordinated fake activity)
-2. Is this related to a MIXER? (Tornado Cash style)
-3. What type of user is this? (trader, whale, scammer, etc.)
-4. Any specific red flags?
-
-Data:
-- Address: ${walletAddress}
-- Chain: ${chain}
-- Risk Score: ${riskScore}/100 (${riskLevel})
-- Total Transactions: ${summary.totalTransactions || 0}
-- Total Sent: ${summary.totalValueSentEth || 0} ETH
-- Total Received: ${summary.totalValueReceivedEth || 0} ETH
-
-Top Funders:
-${(summary.topFundingSources || []).slice(0, 3).map((f, i) => `${i + 1}. ${f.address} (${f.valueEth} ETH)`).join('\n') || 'None'}
-
-Top Destinations:
-${(summary.topFundingDestinations || []).slice(0, 3).map((d, i) => `${i + 1}. ${d.address} (${d.valueEth} ETH)`).join('\n') || 'None'}
-
-Answer each question specifically. If no red flags, say "No specific concerns - appears to be a regular wallet."`;
+    const modelId = getModelId();
+    const small = isSmallModel(modelId);
+    
+    // Simpler prompt for small models
+    const userMessage = small
+        ? `Risk ${riskScore}/100 (${riskLevel}), ${summary.totalTransactions || 0} txs. One word: SAFE, SUSP, or SCAM?`
+        : `Wallet: ${walletAddress}, Risk: ${riskScore}/100 (${riskLevel}), Txs: ${summary.totalTransactions || 0}, Sent: ${summary.totalValueSentEth || 0} ETH, Received: ${summary.totalValueReceivedEth || 0} ETH. One sentence: SAFE, SUSPICIOUS, or SCAM? why?`;
 
     const messages: QVACMessage[] = [
         { role: 'system', content: BLOCKCHAIN_SYSTEM_PROMPT },
         { role: 'user', content: userMessage },
     ];
 
-    const response = await sendCompletion(messages, { max_tokens: 500 });
+    // Smaller tokens for smaller models
+    const response = await sendCompletion(messages, { max_tokens: small ? 50 : 200 });
     if (!response) return null;
 
     return response.choices?.[0]?.message?.content || null;

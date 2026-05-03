@@ -10,6 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import net from 'net';
 import ora from 'ora';
+import inquirer from 'inquirer';
 
 const execAsync = promisify(exec);
 
@@ -72,12 +73,26 @@ export async function qvacSetupCommand() {
         console.log('  ' + c.cyan(num + '. ' + name) + ' ' + c.gray('(' + size + ')') + ' - ' + speed + ', ' + qual);
     });
     console.log();
-    console.log(c.gray('  Default: Qwen3-600M (recommended)'));
     console.log(c.gray('  For embeddings: uses separate embedding model\n'));
 
-    // Use default model for now
-    const selectedModel = AVAILABLE_MODELS[1];
-    console.log(c.cyan(`  → Using: ${selectedModel.name}\n`));
+    // Prompt user to select model
+    const { modelChoice } = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'modelChoice',
+            message: 'Select model (1-4) or press Enter for default [2]:',
+            default: '2',
+            filter: (input: string) => input.trim() || '2'
+        }
+    ]);
+
+    const choiceIndex = parseInt(modelChoice) - 1;
+    if (isNaN(choiceIndex) || choiceIndex < 0 || choiceIndex >= AVAILABLE_MODELS.length) {
+        console.log(c.yellow('Invalid choice, using default (Qwen3-600M)'));
+    }
+
+    const selectedModel = AVAILABLE_MODELS[Math.min(Math.max(0, choiceIndex), AVAILABLE_MODELS.length - 1)];
+    console.log(c.cyan(`\n  → Using: ${selectedModel.name} (${selectedModel.size})\n`));
 
     // Create project directory
     const projectDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.fundtracer-qvac');
