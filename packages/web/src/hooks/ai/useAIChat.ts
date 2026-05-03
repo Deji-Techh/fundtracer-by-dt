@@ -336,11 +336,21 @@ Generate a comprehensive risk assessment report. Include:
     const detected = detectAddress(content);
     if (!detected) return null;
     
+    // Log for debugging
+    console.log('[AI] Detected address:', detected.address);
+    console.log('[AI] Checking local history...');
+    
     // First: Check local history (has scan data from recent scans)
     const history = getHistory() as HistoryItem[];
+    console.log('[AI] History items:', history.length);
+    console.log('[AI] History addresses:', history.map(h => h.address.toLowerCase()));
+    console.log('[AI] Looking for:', detected.address.toLowerCase());
+    
     const localData = history.find(h => 
       h.address.toLowerCase() === detected.address.toLowerCase()
     );
+    
+    console.log('[AI] Found in history:', localData);
     
     if (localData) {
       return `
