@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { apiRequest } from '../../api';
 
 export interface AIMessage {
   id: string;
@@ -19,6 +20,25 @@ const DEFAULT_CONFIG: AIConfig = {
 
 const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 
+// Detect EVM addresses (0x... on eth, arbitrum, optimism, polygon, etc.)
+const EVM_ADDRESS_REGEX = /0x[a-fA-F0-9]{40}/g;
+// Solana addresses (base58, 32-44 chars)
+const SOLANA_ADDRESS_REGEX = /[1-9A-HJ-NP-Za-km-z]{32,44}/g;
+
+export function detectAddress(text: string): { address: string; chain?: string } | null {
+  // Try EVM first
+  const evmMatch = text.match(EVM_ADDRESS_REGEX);
+  if (evmMatch) {
+    return { address: evmMatch[0] };
+  }
+  // Try Solana
+  const solMatch = text.match(SOLANA_ADDRESS_REGEX);
+  if (solMatch) {
+    return { address: solMatch[0] };
+  }
+  return null;
+}
+
 export function useAIChat(customConfig?: Partial<AIConfig>) {
   const [config, setConfig] = useState<AIConfig>({ ...DEFAULT_CONFIG, ...customConfig });
   const [messages, setMessagesState] = useState<AIMessage[]>([]);
@@ -26,13 +46,21 @@ export function useAIChat(customConfig?: Partial<AIConfig>) {
   const [error, setError] = useState<string | null>(null);
   const [isServerReady, setIsServerReady] = useState(false);
 
-  const SYSTEM_PROMPT = `You are FundTracer AI, a blockchain forensics expert. 
-Your role is to analyze wallet addresses and generate plain-English risk reports.
-NEVER show thinking. NEVER use tags like <thought>. NEVER be verbose.
-Always reply in 2-3 sentences MAXIMUM.
-Be PRECISE, ACTIONABLE, and SECURITY-FOCUSED.
-NEVER provide financial advice - focus on risk assessment.
-Output ONLY your answer. No prefixes. No formatting.`;
+  const SYSTEM_PROMPT = `You are FundTracer AI, a blockchain forensics expert.
+
+CRITICAL RULES:
+1. NEVER fabricate, infer, or guess risk assessments, tags, or activities.
+2. Only report information that is explicitly provided in the data given to you.
+3. If no analysis data is provided for a wallet, respond: "I don't have analysis data for this wallet. Please scan it first on FundTracer."
+4. When data IS provided, use ONLY the values from that data (riskScore, tags, balance, txCount, etc.)
+5. NEVER assume a wallet is "risky" or "suspicious" unless the provided data shows that.
+6. NEVER mention darknet markets, phishing, scams, or illegal activities unless explicitly in the provided data.
+
+RESPONSE STYLE:
+- Always reply in 2-3 sentences MAXIMUM.
+- Be PRECISE, ACTIONABLE, and SECURITY-FOCUSED.
+- NEVER provide financial advice - focus on risk assessment.
+- Output ONLY your answer. No prefixes. No formatting.`;
 
   const checkServerStatus = useCallback(async () => {
     if (typeof window === 'undefined') return false;
@@ -287,6 +315,47 @@ Generate a comprehensive risk assessment report. Include:
     setMessagesState([]);
   }, []);
 
+  // Analyze a wallet and return real data
+  const analyzeWallet = useCallback(async (address: string, chain: string = 'ethereum') => {
+    try {
+      const res = await apiRequest('/api/analyze/wallet', 'POST', { address, chain }) as Response;
+      const data = await res.json();
+      if (data.success && data.result) {
+        return data.result;
+      }
+      return null;
+    } catch (err) {
+      console.error('AI analyze error:', err);
+      return null;
+    }
+  }, []);
+
+  // Check message for addresses and auto-analyze if needed
+  const extractWalletDataFromMessage = useCallback(async (content: string): Promise<string | null> => {
+    const detected = detectAddress(content);
+    if (!detected) return null;
+    
+    // Try to analyze this wallet
+    const result = await analyzeWallet(detected.address, 'ethereum');
+    if (result) {
+      return `
+Wallet: ${result.address || detected.address}
+Chain: ethereum
+Risk Score: ${result.riskScore ?? 'N/A'}
+Risk Level: ${result.riskLevel ?? 'Unknown'}
+Total Transactions: ${result.totalTransactions ?? 'N/A'}
+Total Received: ${result.totalReceived ?? 'N/A'}
+Total Sent: ${result.totalSent ?? 'N/A'}
+Unique Addresses: ${result.uniqueAddresses ?? 'N/A'}
+Activity Period: ${result.activityPeriodDays ?? 'N/A'} days
+Tags: ${result.tags?.join(', ') || 'None'}
+Funding Sources: ${result.fundingSources?.join(', ') || 'None'}
+Top Destinations: ${result.topDestinations?.join(', ') || 'None'}
+      `.trim();
+    }
+    return null;
+  }, [analyzeWallet]);
+
   useEffect(() => {
     checkServerStatus();
   }, [checkServerStatus]);
@@ -304,5 +373,8 @@ Generate a comprehensive risk assessment report. Include:
     generateReport,
     clearMessages,
     checkServerStatus,
+    analyzeWallet,
+    extractWalletDataFromMessage,
+    detectAddress,
   };
 }

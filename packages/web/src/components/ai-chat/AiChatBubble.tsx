@@ -41,6 +41,8 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
     isServerReady,
     streamMessage,
     clearMessages,
+    extractWalletDataFromMessage,
+    detectAddress,
   } = useAIChat();
   
   const {
@@ -61,13 +63,29 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
 
 const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
-    const walletContext = selectedScan 
+    
+    // Try to extract wallet data from message if it contains an address
+    let walletData = await extractWalletDataFromMessage(inputValue);
+    
+    // Use detected data or fall back to selected scan or current wallet
+    const walletContext = walletData || (selectedScan 
       ? `Wallet: ${selectedScan.address} (${selectedScan.chain})`
       : attachedWallet
         ? `Wallet: ${attachedWallet} (${lastScannedChain || currentChain})`
         : currentWallet 
           ? `Wallet: ${currentWallet} (${currentChain})`
-          : undefined;
+          : undefined);
+    
+    // Add analyzing message if we found an address
+    if (walletData && !walletData.includes('N/A')) {
+      const analyzingMsg: AIMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: '📊 Analyzing wallet on FundTracer...',
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, analyzingMsg]);
+    }
     
     // Add user message to state first
     const userMsg: AIMessage = {
