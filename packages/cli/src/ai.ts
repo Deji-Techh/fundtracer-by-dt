@@ -267,7 +267,7 @@ Answer each question specifically. If no red flags, say "No specific concerns - 
         { role: 'user', content: userMessage },
     ];
 
-    const response = await sendCompletion(messages, { max_tokens: 5000 });
+    const response = await sendCompletion(messages, { max_tokens: 500 });
     if (!response) return null;
 
     return response.choices?.[0]?.message?.content || null;
