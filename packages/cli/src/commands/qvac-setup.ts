@@ -91,10 +91,10 @@ export async function qvacSetupCommand() {
     }
     console.log(c.gray('  Installing to: ') + projectDir + '\n');
 
-    // Install all QVAC packages
+    // Install core QVAC packages (LLM for chat/similarity)
     const installSpinner = ora('Installing @qvac packages...').start();
     try {
-        await execAsync('npm install @qvac/cli @qvac/sdk @qvac/embed-llamacpp --force', {
+        await execAsync('npm install @qvac/cli @qvac/sdk --force', {
             cwd: projectDir,
             timeout: 300000
         });
@@ -105,7 +105,7 @@ export async function qvacSetupCommand() {
         process.exit(1);
     }
 
-    // Create config with model definitions
+    // Create config with model definition
     const configSpinner = ora('Creating config...').start();
     const configPath = path.join(projectDir, 'qvac.config.json');
     const configContent = JSON.stringify({
@@ -115,11 +115,6 @@ export async function qvacSetupCommand() {
                     model: selectedModel.id,
                     default: true,
                     preload: true
-                },
-                "fundtracer-embed": {
-                    model: "NQ-WEMBED-E5-MULTI-V1",
-                    default: false,
-                    preload: false
                 }
             }
         }
