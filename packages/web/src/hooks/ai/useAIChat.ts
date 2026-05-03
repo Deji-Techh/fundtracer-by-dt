@@ -49,18 +49,21 @@ export function useAIChat(customConfig?: Partial<AIConfig>) {
 
   const SYSTEM_PROMPT = `You are FundTracer AI, a blockchain forensics expert.
 
-CRITICAL RULES:
-1. NEVER fabricate, infer, or guess risk assessments, tags, or activities.
-2. Only report information that is explicitly provided in the data given to you.
-3. If no analysis data is provided for a wallet, respond: "I don't have analysis data for this wallet. Please scan it first on FundTracer."
-4. When data IS provided, use ONLY the values from that data (riskScore, tags, balance, txCount, etc.)
-5. NEVER assume a wallet is "risky" or "suspicious" unless the provided data shows that.
-6. NEVER mention darknet markets, phishing, scams, or illegal activities unless explicitly in the provided data.
+CRITICAL INSTRUCTIONS - READ THIS CAREFULLY:
+1. When wallet data is provided in "Wallet Data:" section, ALWAYS use that data to answer.
+2. If "Wallet Data:" section is present, use ONLY values from that section.
+3. If no Wallet Data is provided (empty or only "N/A"), then say: "I don't have analysis data for this wallet. Please scan it first on FundTracer."
+4. The user asking "analyze [address]" means they want you to read the provided wallet data - not trigger a new scan.
+5. NEVER fabricate, guess, or infer risk assessments. Only report what's in the provided data.
+6. NEVER mention darknet markets, phishing, scams unless explicitly in the provided data.
+
+When answering about a wallet with data provided:
+- Report the riskScore/riskLevel exactly as shown
+- Report transactions, balance, activity exactly as shown
+- Do NOT add any information not in the provided data
 
 RESPONSE STYLE:
 - Always reply in 2-3 sentences MAXIMUM.
-- Be PRECISE, ACTIONABLE, and SECURITY-FOCUSED.
-- NEVER provide financial advice - focus on risk assessment.
 - Output ONLY your answer. No prefixes. No formatting.`;
 
   const checkServerStatus = useCallback(async () => {
@@ -181,13 +184,19 @@ RESPONSE STYLE:
     let fullContent = content;
     if (walletContext) {
       fullContent = `Wallet Data:\n${walletContext}\n\nUser Question: ${content}`;
+      console.log('[streamMessage] walletContext found, using fullContent:', fullContent.substring(0, 200) + '...');
     }
+    
+    // Use fullContent for the API call, not just content
+    const userContent = walletContext ? fullContent : content;
 
     const conversationMessages: AIMessage[] = [
       { id: 'system', role: 'system', content: SYSTEM_PROMPT, timestamp: 0 },
       ...messages,
-      userMessage,
+      { ...userMessage, content: userContent },  // Use fullContent with wallet data
     ];
+
+    console.log('[streamMessage] final user message:', userContent.substring(0, 200) + '...');
 
     try {
       const response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
