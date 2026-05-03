@@ -14,6 +14,13 @@ import { configCommand } from './commands/config.js';
 import { interactiveMode } from './commands/interactive.js';
 import { linkCommand } from './commands/link.js';
 import { rewardsCommand } from './commands/rewards.js';
+import { askCommand } from './commands/ask.js';
+import { chatCommand } from './commands/chat.js';
+import { explainCommand } from './commands/explain.js';
+import { similarCommand } from './commands/similar.js';
+import { checkScamCommand, reportScamCommand, scamDbStatsCommand } from './commands/check-scam.js';
+import { checkQVACAvailable, printQVACNotAvailable } from './ai.js';
+import { qvacSetupCommand } from './commands/qvac-setup.js';
 import { getApiKeys, getSybilApiKeys } from './utils.js';
 
 // Professional ASCII Art Banner - Dark/Glassy theme
@@ -136,6 +143,7 @@ if (isInteractive && args.length === 0) {
         .option('--min-value <eth>', 'Minimum transaction value in ETH', '0')
         .option('--export <file>', 'Export results to file')
         .option('--no-track', 'Skip tracking for rewards')
+        .option('--ai', 'Generate AI-powered risk insights')
         .action(analyzeCommand);
 
     // Compare command (Sybil detection)
@@ -214,6 +222,81 @@ if (isInteractive && args.length === 0) {
             console.log();
             interactiveMode();
         });
+
+    // Ask command - Natural language Q&A with QVAC
+    program
+        .command('ask <question>')
+        .description('Ask natural language questions about wallets')
+        .option('-c, --chain <chain>', 'Blockchain network', 'ethereum')
+        .action(askCommand);
+
+    // Chat command - Interactive AI chat mode
+    program
+        .command('chat')
+        .description('Start interactive AI chat mode with QVAC')
+        .action(chatCommand);
+
+    // Explain command - AI wallet explanation
+    program
+        .command('explain <address>')
+        .description('Get AI-powered explanation of a wallet')
+        .option('-c, --chain <chain>', 'Blockchain network', 'ethereum')
+        .action(explainCommand);
+
+    // Similar command - Find similar wallets using embeddings
+    program
+        .command('similar <address>')
+        .alias('neighbors')
+        .description('Find wallets similar to given address using embeddings')
+        .option('-c, --chain <chain>', 'Blockchain network', 'ethereum')
+        .option('-t, --top <number>', 'Number of similar wallets to find', '5')
+        .action(similarCommand);
+
+    // Check-scam command - Check scam database
+    program
+        .command('check-scam <address>')
+        .description('Check if address is in local scam database')
+        .option('-c, --chain <chain>', 'Blockchain network', 'ethereum')
+        .option('-v, --verbose', 'Show detailed info')
+        .action(checkScamCommand);
+
+    // Report-scam command - Report scam address
+    program
+        .command('report-scam <address>')
+        .description('Report a wallet as scammer')
+        .option('-c, --chain <chain>', 'Blockchain network', 'ethereum')
+        .option('-v, --verbose', 'Mark as suspected (not confirmed scammer)')
+        .action(reportScamCommand);
+
+    // Scam-db command - Show database stats
+    program
+        .command('scam-db')
+        .description('Show local scam database statistics')
+        .action(scamDbStatsCommand);
+
+    // QVAC status command
+    program
+        .command('qvac')
+        .description('Check QVAC server status')
+        .action(async () => {
+            process.stdout.write('Checking QVAC server... ');
+            const available = await checkQVACAvailable();
+            if (available) {
+                console.log(chalk.green('✓ running on localhost:11434'));
+            } else {
+                console.log(chalk.red('✗ not running'));
+                console.log();
+                printQVACNotAvailable();
+            }
+        });
+
+    // QVAC setup command
+    program
+        .command('qvac-setup')
+        .description('Install and set up QVAC automatically')
+        .option('-m, --model <model>', 'Model to use', 'QWEN3_1.8B_INST_Q4')
+        .option('-p, --port <port>', 'Port to run on', '11434')
+        .action(qvacSetupCommand);
 
     program.parse();
 }

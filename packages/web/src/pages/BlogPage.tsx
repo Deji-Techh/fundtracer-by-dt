@@ -34,6 +34,15 @@ interface BlogPost {
 
 const blogPosts: BlogPost[] = [
   {
+    id: 'qvac-integration',
+    title: 'Introducing QVAC: Local AI for Wallet Analysis',
+    excerpt: 'FundTracer now integrates QVAC by Tether for on-device AI wallet analysis. No cloud, no API calls, complete privacy. Just run `fundtracer qvac-setup` and analyze wallets locally.',
+    category: 'Product',
+    date: '2026-05-03',
+    readTime: '4 min read',
+    slug: 'qvac-local-ai-integration',
+  },
+  {
     id: 'claim-improvements',
     title: 'Claim System 2.0: Multiple Claims & Real-Time Updates',
     excerpt: 'We\'ve completely overhauled the equity claim system. Now claim multiple times as you earn more points, track your claim history, and see real-time rewards claimed.',

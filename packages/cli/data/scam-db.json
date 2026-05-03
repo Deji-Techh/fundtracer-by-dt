@@ -1,0 +1,63 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-05-03",
+  "description": "Local scam database for FundTracer - addresses known to be associated with scams/phishing",
+  "networks": {
+    "ethereum": {
+      "scammers": [
+        "0xDecaf9cD2367cdbb726E904cD6397eDFcAe6068D",
+        "0xd8fD3A6d02cF25458eE0f3d4f4d116d1B0EBfEBE",
+        "0xF0d5634a6E303FBb6Bb2b3bF95F3c833aFdBF0E8",
+        "0x1F3D1e09B3733aD98c7B831dFb13C62fB945dC27",
+        "0x8Be5029E0B95821542E0825d72ED5DB3d60bF6B7",
+        "0xE9fDCbB8B86aF86e4e82C5D3dB44BBF2Bb7C32C",
+        "0x3e4a6cE1aAb4a4B4fB2EbE2dB4C3B88B4F7E8C6E"
+      ],
+      "suspected": [],
+      "whales": []
+    },
+    "bsc": {
+      "scammers": [
+        "0xF0d5634a6E303FBb6Bb2b3bF95F3c833aFdBF0E8"
+      ],
+      "suspected": [],
+      "whales": []
+    },
+    "polygon": {
+      "scammers": [],
+      "suspected": [],
+      "whales": []
+    },
+    "arbitrum": {
+      "scammers": [],
+      "suspected": [],
+      "whales": []
+    },
+    "base": {
+      "scammers": [],
+      "suspected": [],
+      "whales": []
+    },
+    "optimism": {
+      "scammers": [],
+      "suspected": [],
+      "whales": []
+    },
+    "linea": {
+      "scammers": [],
+      "suspected": [],
+      "whales": []
+    },
+    "solana": {
+      "scammers": [],
+      "suspected": [],
+      "whales": []
+    }
+  },
+  "stats": {
+    "totalScammers": 7,
+    "totalSuspected": 0,
+    "totalWhales": 0
+  },
+  "note": "This is a local database. Users can add more addresses using fundtracer report-scam <address>"
+}

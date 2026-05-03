@@ -2,12 +2,14 @@
 
 import chalk from 'chalk';
 import Table from 'cli-table3';
+import ora from 'ora';
 import {
     WalletAnalyzer,
     ChainId,
     AnalysisResult,
 } from 'fundtracer-core';
 import { getApiKeys, formatEth } from '../utils.js';
+import { checkQVACAvailable, generateWalletInsights, printQVACNotAvailable } from '../ai.js';
 import fs from 'fs';
 
 // Add noTrack option to interface
@@ -19,6 +21,7 @@ interface AnalyzeOptions {
     export?: string;
     track?: boolean;
     noTrack?: boolean;
+    ai?: boolean;
 }
 
 const c = {
@@ -27,6 +30,7 @@ const c = {
     red: chalk.red,
     yellow: chalk.yellow,
     gray: chalk.gray,
+    cyan: chalk.cyan,
 };
 
 export async function analyzeCommand(address: string, options: AnalyzeOptions) {
@@ -37,10 +41,30 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
         process.exit(1);
     }
 
+    // Check for QVAC if --ai flag is provided
+    let qvacAvailable = false;
+    if (options.ai) {
+        process.stdout.write('Checking for QVAC... ');
+        qvacAvailable = await checkQVACAvailable();
+        if (qvacAvailable) {
+            console.log(c.green('✓ connected'));
+        } else {
+            console.log(c.yellow('not running'));
+            printQVACNotAvailable();
+        }
+    }
+
     try {
         const apiKeys = getApiKeys();
         const analyzer = new WalletAnalyzer(apiKeys);
+
+        // Show loading indicator
+        const loading = ora('Analyzing wallet...');
+        loading.start();
+
         const result = await analyzer.analyze(address, chainId, {});
+
+        loading.stop();
 
         switch (options.output) {
             case 'json':
@@ -54,6 +78,43 @@ export async function analyzeCommand(address: string, options: AnalyzeOptions) {
                 break;
             default:
                 outputTable(result);
+        }
+
+        // Generate AI insights if requested and QVAC is available
+        if (options.ai && qvacAvailable) {
+            console.log(c.bold('\n🤖 AI Insights'));
+            console.log('─'.repeat(25));
+
+            const aiSpinner = ora('Analyzing risk factors...');
+            aiSpinner.start();
+
+            const insights = await generateWalletInsights(
+                address,
+                chainId,
+                result.overallRiskScore || 0,
+                result.riskLevel || 'unknown',
+                {
+                    totalTransactions: result.summary?.totalTransactions,
+                    totalValueSentEth: result.summary?.totalValueSentEth,
+                    totalValueReceivedEth: result.summary?.totalValueReceivedEth,
+                    topFundingSources: result.summary?.topFundingSources?.map((f: any) => ({
+                        address: f.address,
+                        valueEth: f.valueEth,
+                    })),
+                    topFundingDestinations: result.summary?.topFundingDestinations?.map((d: any) => ({
+                        address: d.address,
+                        valueEth: d.valueEth,
+                    })),
+                }
+            );
+
+            aiSpinner.stop();
+
+            if (insights) {
+                console.log(c.cyan(insights));
+            } else {
+                console.log(c.gray('  Could not generate AI insights'));
+            }
         }
 
         // Auto-track to backend unless --no-track

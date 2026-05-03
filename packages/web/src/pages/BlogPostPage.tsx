@@ -35,6 +35,79 @@ const navItems = [
 ];
 
 const blogPostsData: Record<string, BlogPost> = {
+  'qvac-local-ai-integration': {
+    id: 'qvac-integration',
+    title: 'Introducing QVAC: Local AI for Wallet Analysis',
+    excerpt: 'FundTracer now integrates QVAC by Tether for on-device AI wallet analysis. No cloud, no API calls, complete privacy.',
+    category: 'Product',
+    date: '2026-05-03',
+    readTime: '4 min read',
+    author: 'FundTracer Team',
+    slug: 'qvac-local-ai-integration',
+    content: `
+## QVAC: Local AI for Wallet Analysis
+
+We're excited to announce QVAC integration for FundTracer CLI. Now you can analyze wallets using local AI — no cloud services, no API keys, complete privacy.
+
+### What is QVAC?
+
+QVAC is Tether's decentralized, local-first AI platform. It runs AI models directly on your device without routing data through centralized clouds.
+
+### Why Local AI?
+
+- **Privacy** — Your wallet queries never leave your device
+- **Offline** — Works without internet after model download
+- **No API Keys** — No cloud account needed
+- **Free** — No per-request costs
+
+### Getting Started
+
+\`\`\`bash
+# Install FundTracer
+npm install -g fundtracer
+
+# Setup QVAC (installs local AI)
+fundtracer qvac-setup
+
+# Use AI features
+fundtracer analyze 0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1 --ai
+fundtracer ask "why is this wallet risky?"
+fundtracer chat
+fundtracer similar 0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1
+\`\`\`
+
+### New Commands
+
+| Command | Description |
+|---------|-------------|
+| \`fundtracer analyze 0x... --ai\` | AI-powered wallet analysis |
+| \`fundtracer ask "question"\` | Ask questions about wallets |
+| \`fundtracer chat\` | Interactive AI conversation |
+| \`fundtracer similar 0x...\` | Find similar wallets |
+| \`fundtracer check-scam 0x...\` | Check local scam database |
+| \`fundtracer report-scam 0x...\` | Report scammer |
+
+### Model Options
+
+Choose from different AI models based on your hardware:
+
+- **Qwen3-140M** — ~150MB, fastest, basic quality
+- **Qwen3-600M** — ~380MB, fast, good quality (recommended)
+- **Qwen3-1.8B** — ~1.2GB, medium speed, better quality
+
+### Hackathon Opportunity
+
+This integration qualifies for **Tether's $10,000 QVAC side track** at Colosseum Frontier hackathon. To be eligible:
+
+1. Be a valid submission to Colosseum Frontier (before May 11)
+2. Meaningfully integrate QVAC SDK — not just a wrapper
+3. Include a public GitHub repo with working demo
+
+Learn more: [QVAC Documentation](https://docs.qvac.tether.io)
+
+Start analyzing today at [fundtracer.xyz](https://fundtracer.xyz)
+    `,
+  },
   'equity-claim-system-launched': {
     id: 'equity-claims',
     title: 'Claim Your Equity: 5% Pool for Community',

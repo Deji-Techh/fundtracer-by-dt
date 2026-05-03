@@ -1,385 +1,286 @@
-# QVAC Integration - FundTracer AI Assistant
+# QVAC Integration - FundTracer CLI
 
 ## Overview
 
-FundTracer integrates QVAC by Tether to provide local AI-powered wallet analysis reports. This integration enables users to get plain-English risk assessments for any wallet - now running on a dedicated server for production use.
+FundTracer CLI integrates **QVAC by Tether** for local AI-powered wallet analysis. This enables natural language insights about wallet risk, contract explanations, and interactive AI chat - all running locally on your machine without internet after initial setup.
 
 ## What is QVAC?
 
 **QVAC** is Tether's decentralized, local-first AI platform. It runs AI models directly on any device without routing data through centralized clouds.
 
 - **Website:** https://qvac.tether.io
-- **Docs:** https://docs.qvac.tether.io
+- **Docs:** https://docs.qvac.tether.io  
 - **GitHub:** https://github.com/tetherto/qvac
 
-## Integration Architecture
+## CLI Features
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                   FundTracer Web App                    │
-│                    app-evm / app-solana                │
-├─────────────────────────────────────────────────────────────┤
-│  Chat Bubble ──────► useQVAC() ──────────────────►   │
-│  (bottom-right)      React Hook        HTTP Client      │
-│                                              │
-│                           ┌──────────────────────────▼──┐ │
-│                           │  QVAC OpenAI Server         │ │
-│                           │  Railway Cloud             │ │
-│                           │  fundtracer-qvac.up.railway.app│ │
-│                           │                             │ │
-│                           │  • /v1/chat/completions    │ │
-│                           │  • /v1/embeddings         │ │
-│                           │  • /v1/models             │ │
-│                           └─────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
+| Feature | Command | Status |
+|---------|---------|--------|
+| **AI Analysis** | `fundtracer analyze 0x... --ai` | ✅ Working |
+| **Natural Q&A** | `fundtracer ask "why is 0x... risky?"` | ✅ Working |
+| **Wallet Explain** | `fundtracer explain 0x...` | ✅ Working |
+| **Chat Mode** | `fundtracer chat` | ✅ Working - No thinking tags |
+| **Similar Wallets** | `fundtracer similar 0x...` | ✅ Working - Uses QVAC LLM |
+| **Check Scam** | `fundtracer check-scam 0x...` | ✅ Working - Offline |
+| **Report Scam** | `fundtracer report-scam 0x...` | ✅ Working |
+| **Scam DB Stats** | `fundtracer scam-db` | ✅ Working |
+| **QVAC Setup** | `fundtracer qvac-setup` | ✅ Working - Model selection |
+| **QVAC Status** | `fundtracer qvac` | ✅ Working |
 
-## Deployment Architecture
+## Quick Start
 
-### Separate Server Repository
-
-Due to QVAC's runtime requirements (Vulkan libraries, model files), we use a separate repository for the QVAC server:
-
-| Repository | URL | Purpose |
-|-----------|-----|---------|
-| **fundtracer-qvac** | github.com/Deji-Tech/fundtracer-qvac | QVAC server (Railway) |
-| **fundtracer-by-dt** | github.com/Deji-Tech/fundtracer-by-dt | FundTracer web app |
-
-### Railway Deployment
-
-The QVAC server is deployed on Railway with optimized configuration:
-
-| Setting | Value | Purpose |
-|---------|-------|---------|
-| **Model** | Qwen3-0.6B-Q2 (~180MB) | Smaller for faster CPU inference |
-| **Runtime** | CPU with Vulkan (llvmpipe) | Software rendering |
-| **Threads** | 4 | Utilize all CPU cores |
-| **Context Size** | 256 | Reduced for speed |
-| **Max Tokens** | 80 | Limited response length |
-| **Pre-download** | Yes | Baked into Docker image |
-
-### Performance Optimization
-
-For optimal response times on CPU-only infrastructure:
-
-- **Q2 Quantization**: 180MB vs 400MB (2x+ faster)
-- **Threading**: `--threads 4` for parallel processing
-- **Context**: 256 tokens (vs 4096 default)
-- **Output**: 80 tokens max (vs unlimited)
-- **System Prompt**: "Reply in 1-2 sentences maximum"
-
-This achieves **~5-10 second response times** on CPU-only Railway deployment.
-
-### Key Files
-
-```
-# QVAC Server Repo (fundtracer-qvac)
-├── Dockerfile              # Docker config with Vulkan deps + Q2 model
-├── qvac.config.json       # Optimized model configuration  
-├── package.json           # Dependencies (@qvac/sdk, @qvac/cli)
-└── nixpacks.toml         # Build config
-
-# FundTracer Web Repo (fundtracer-by-dt)
-├── packages/web/
-│   ├── src/components/ai-chat/
-│   │   ├── AiChatBubble.tsx   # Chat UI
-│   │   └── AiChatBubble.css   # Styling
-│   └── hooks/qvac/
-│       ├── useQVAC.ts         # QVAC HTTP client
-│       └── useScanCache.ts    # Redis/Firebase cache
-```
-
-## Features
-
-| Feature | Description |
-|---------|-------------|
-| **Chat Bubble** | Floating button, expands to full-screen |
-| **Recent Scans** | Dropdown of cached wallet scans |
-| **AI Reports** | Natural language wallet analysis |
-| **Railway Hosted** | Production server for accessibility |
-| **Export** | Download reports as text |
-
-## How It Works
-
-### 1. User Interactions
-
-1. User analyzes a wallet on app-evm or app-solana
-2. Wallet data is cached in Redis + Firebase
-3. User taps the chat bubble (bottom-right)
-4. Bubble expands to full-screen panel
-5. User selects a recent scan OR enters new address
-6. QVAC generates a plain-English risk report
-
-### 2. QVAC Server (Railway)
-
-The QVAC server is hosted on Railway and exposes an OpenAI-compatible API:
+### Automatic Setup
 
 ```bash
-# Server runs at:
-https://fundtracer-qvac-production.up.railway.app/v1
-
-# Example request:
-curl -X POST https://fundtracer-qvac-production.up.railway.app/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "fundtracer-llm",
-    "messages": [{"role": "user", "content": "Analyze wallet 0x123..."}]
-  }'
+fundtracer qvac-setup
 ```
 
-### 3. API Endpoints
+This command will:
+1. Check for Docker (optional)
+2. Install `@qvac/cli`, `@qvac/sdk`, and `@qvac/embed-llamacpp` via npm
+3. Create configuration file in `~/.fundtracer-qvac/`
+4. Start the QVAC server with model preload
+5. Display available model options
 
-| Endpoint | Method | Description |
-|---------|--------|-------------|
-| `/v1/chat/completions` | POST | LLM inference for reports |
-| `/v1/embeddings` | POST | Text embeddings for RAG |
-| `/v1/models` | GET | List loaded models |
+### Manual Setup
+
+```bash
+mkdir -p ~/.fundtracer-qvac && cd ~/.fundtracer-qvac
+npm init -y
+npm install @qvac/cli @qvac/sdk @qvac/embed-llamacpp
+echo '{"serve":{"models":{"fundtracer-ai":{"model":"QWEN3_600M_INST_Q4","default":true,"preload":true}}}}' > qvac.config.json
+node node_modules/@qvac/cli/dist/index.js serve openai
+```
+
+# Install BOTH CLI and SDK (SDK is required as peer dependency)
+npm install @qvac/cli @qvac/sdk
+
+# Create config (preload: true loads model at server start)
+echo '{"serve":{"models":{"fundtracer-ai":{"model":"QWEN3_600M_INST_Q4","default":true,"preload":true}}}' > qvac.config.json
+
+# Start server
+node node_modules/@qvac/cli/dist/index.js serve openai
+```
+
+### Requirements
+
+| Requirement | Notes |
+|------------|-------|
+| Node.js | ≥ v18 (v22+ recommended) |
+| npm | Latest version recommended |
+| 4GB RAM | For AI model inference |
+| ~500MB Storage | For QWEN3-600M model |
+
+## Usage Examples
+
+### Analyze Wallet with AI
+
+```bash
+fundtracer analyze 0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1 --ai
+```
+
+Output:
+```
+Checking for QVAC... ✓ connected
+Analyzing wallet...
+
+📊 FundTracer Analysis
+
+Address: 0x742d...
+Chain: ethereum
+Balance: 1.5 ETH
+Transactions: 156
+
+Risk
+---
+  ✓ LOW  Score: 25/100
+
+🤖 AI Insights
+---
+This wallet shows LOW risk characteristics:
+• Funded primarily from Coinbase (centralized exchange)
+• Regular transaction patterns over 2+ years
+• No interaction with known risky contracts
+• Consistent with typical DeFi usage
+```
+
+### Ask Natural Questions
+
+```bash
+fundtracer ask "is 0x742d... a scammer?" -c ethereum
+```
+
+### Explain a Wallet
+
+```bash
+fundtracer explain 0x742d...
+```
+
+### Interactive Chat
+
+```bash
+fundtracer chat
+# Then type your questions...
+```
 
 ## Configuration
 
+### Configuration File
+
+After running `fundtracer qvac-setup`, a config is created at `~/.fundtracer-qvac/qvac.config.json`:
+
+```json
+{
+  "serve": {
+    "models": {
+      "fundtracer-ai": {
+        "model": "QWEN3_600M_INST_Q4",
+        "default": true,
+        "preload": true
+      }
+    }
+  }
+}
+```
+
+**Important**: `preload: true` loads the model at server start. Set to `false` to load on first request (slower first chat).
+
 ### Environment Variables
 
-In the FundTracer web app, configure:
-
 ```env
-# Railway QVAC server URL
-VITE_QVAC_URL=https://fundtracer-qvac-production.up.railway.app/v1
+# QVAC server URL (default: http://127.0.0.1:11434)
+QVAC_URL=http://localhost:11434
 
-# Optional: Custom API key
-VITE_QVAC_API_KEY=your-api-key
+# Or specify host and port separately
+QVAC_HOST=127.0.0.1
+QVAC_PORT=11434
 
-# Optional: Model name (default: fundtracer-llm)
-VITE_QVAC_MODEL=fundtracer-llm
+# Custom model name (if different from default)
+QVAC_MODEL=fundtracer-ai
 ```
 
-### qvac.config.json (Server)
+## How It Works
+
+1. **Setup**: `fundtracer qvac-setup` installs packages and creates config
+2. **Server Start**: Server starts on `localhost:11434` with model preloaded
+3. **Inference**: Model runs locally via llama.cpp
+4. **API**: OpenAI-compatible (`/v1/chat/completions`)
+
+**First Run**: Model may take 10-30s to load from cache  
+**Subsequent Runs**: Near-instant startup
+
+## Troubleshooting
+
+### QVAC Not Running
+
+If you see `QVAC not available` or `503` errors:
+
+```bash
+# Automatic - kills existing server first
+fundtracer qvac-setup
+
+# Or manually
+fuser -k 11434/tcp 2>/dev/null
+cd ~/.fundtracer-qvac
+node node_modules/@qvac/cli/dist/index.js serve openai
+```
+
+### Check QVAC Status
+
+```bash
+fundtracer chat
+# If server is running, it'll connect
+```
+
+### Port Already in Use
+
+```bash
+# Check what's using port 11434
+lsof -i :11434
+
+# Kill existing process
+fuser -k 11434/tcp
+
+# Then restart
+fundtracer qvac-setup
+```
+
+### Model Not Loading (503 errors)
+
+If you get 503 on chat requests:
+1. Server is running but model failed to load
+2. Check server output for errors: run manually with `node ... serve openai`
+3. Try reinstalling: `rm -rf ~/.fundtracer-qvac && fundtracer qvac-setup`
+
+### Reinstall
+
+To reinstall from scratch:
+
+```bash
+rm -rf ~/.fundtracer-qvac
+fundtracer qvac-setup
+```
+
+## Model Options
+
+| Model | Size | Speed | Quality |
+|-------|------|-------|--------|
+| QWEN3_600M | ~380MB | Fastest | Good |
+| QWEN3_1.8B | ~1.2GB | Fast | Better |
+| QWEN3_4B | ~2.5GB | Slower | Best |
+
+To change model, edit `~/.fundtracer-qvac/qvac.config.json`:
 
 ```json
 {
   "serve": {
     "models": {
-      "fundtracer-llm": {
-        "src": "/root/.qvac/models/Qwen3-0.6B-Q2_K.gguf",
-        "type": "llm",
+      "fundtracer-ai": {
+        "model": "QWEN3_1.8B_INST_Q4",
         "default": true,
-        "preload": true,
-        "config": {
-          "ctx_size": 256,
-          "predict": 80,
-          "temp": 0.7,
-          "top_k": 20,
-          "top_p": 0.9,
-          "no_mmap": true,
-          "verbosity": 1
-        }
+        "preload": true
       }
     }
   }
 }
 ```
 
-## Docker Deployment (QVAC Server)
+**Note**: Models are cached in `~/.qvac/models/`
 
-The Dockerfile for the QVAC server includes:
-
-1. **Vulkan libraries** - For GPU/CPU rendering
-2. **libatomic** - Required by QVAC runtime
-3. **Model pre-download** - Q2 model for faster inference
-
-```dockerfile
-FROM node:22-slim
-
-RUN apt-get update && apt-get install -y \
-    libvulkan1 \
-    libatomic1 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-COPY package.json qvac.config.json ./
-RUN npm install
-
-# Pre-download Q2 model (~180MB) for faster inference
-RUN mkdir -p /root/.qvac/models && \
-    curl -L -o /root/.qvac/models/Qwen3-0.6B-Q2_K.gguf \
-    "https://huggingface.co/bartowski/Qwen_Qwen3-0.6B-GGUF/resolve/main/Qwen_Qwen3-0.6B-Q2_K.gguf"
-
-EXPOSE 8080
-
-# Use 4 threads for parallel CPU processing
-CMD ["node", "node_modules/.bin/qvac", "serve", "openai", "--config", "qvac.config.json", "--port", "8080", "--host", "0.0.0.0", "--cors", "--verbose", "--threads", "4"]
-```
-
-## Tech Stack
-
-- **QVAC SDK:** `@qvac/sdk` - Local AI inference
-- **QVAC CLI:** `@qvac/cli` - OpenAI-compatible server
-- **Railway:** Cloud hosting for QVAC server
-- **React:** Frontend framework
-- **Redis:** Wallet data caching
-- **Firebase:** Scan history storage
-
-## Hackathon Eligibility
-
-This integration meets all Tether QVAC side track requirements:
-
-| Requirement | How We Meet It |
-|------------|----------------|
-| Meaningful QVAC integration | Uses LLM + embeddings + RAG pipeline for wallet analysis |
-| Not wrapper/demo | Core report generation via local AI - integral to product |
-| Production deployment | Railway-hosted QVAC server, live at fundtracer-qvac.up.railway.app |
-| Public repo | GitHub: github.com/Deji-Tech/fundtracer-by-dt |
-| Works offline/on-device capability | QVAC runs locally - demonstrates local-first AI architecture |
-
-### What Counts as Meaningful Integration
-
-Our QVAC integration is meaningful because:
-
-1. **Core Functionality**: AI-powered wallet risk analysis IS the product - not a demo
-2. **LLM Inference**: Uses QVAC's local LLM for natural language generation
-3. **Practical Application**: Real blockchain forensics for actual wallet addresses
-4. **Local-First Architecture**: Demonstrates QVAC's core value proposition
-
-## Evaluation Criteria
-
-| Criteria | Weight | Our Approach |
-|----------|--------|---------------|
-| Technical depth | 40% | QVAC LLM + embeddings + RAG + Railway deployment + optimization |
-| Product value | 30% | Real wallet forensics tool - actionable risk reports |
-| Innovation | 20% | Blockchain + local AI - unique combination |
-| Demo quality | 10% | Working web app + chat interface + live demo |
-
-## Challenges & Solutions
-
-### Issue 1: Vulkan Required
-**Problem:** QVAC requires Vulkan GPU libraries, not available in standard containers.
-**Solution:** Install `libvulkan1` + `libatomic1` in Dockerfile.
-
-### Issue 2: Model Download Timeout
-**Problem:** Model (~400MB) download timed out Railway's health check.
-**Solution:** Pre-download model during Docker build, bake into image.
-
-### Issue 3: Railway Port Configuration
-**Problem:** Container port needed to match Railway's proxy.
-**Solution:** Use port 8080 (Railway default), configure health check path.
-
-### Issue 4: CPU-Only Performance
-**Problem:** Response times too slow (~87s) on CPU-only infrastructure.
-**Solution:** 
-- Use Q4 quantization (~382MB) for better output quality
-- Optimize context size (256 vs 4096)
-- Limit output tokens (80 vs unlimited)
-- Enable multi-threading (--threads 4)
-- Brief system prompts
-
-### Issue 5: Cold Start
-**Problem:** Model needs to load on each request initially.
-**Solution:** Preload model on server startup with `preload: true`.
-
-### Issue 6: Thinking Tokens in Output
-**Problem:** QVAC model outputs thinking tokens like `<think>` in responses.
-**Solution:** Added regex filter in frontend to strip thinking tokens before display.
-
-### Issue 7: Cloudflare Proxy (405 Errors)
-**Problem:** Frontend requests hitting Cloudflare Pages returned 405 errors.
-**Root Cause:** Cloudflare function not being triggered - requests went to static files.
-**Solution:** Hardcode direct Railway URL in frontend code, bypass Cloudflare entirely.
-
-### Issue 8: Response Time Target
-**Problem:** Need 3-10s response time for hackathon.
-**Result:** Direct Railway URL achieves ~7-15s (variable based on server load).
-
-## Current Architecture (May 2026)
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                   FundTracer Web App                    │
-│              https://fundtracer.xyz                     │
-├─────────────────────────────────────────────────────────────┤
-│  AiChatBubble                                           │
-│    ↓ Hardcoded URL                                      │
-│    https://fundtracer-qvac-production.up.railway.app        │
-│        (Direct - bypasses Cloudflare)                    │
-├─────────────────────────────────────────────────────────────┤
-│                   QVAC Server                       │
-│              Railway Cloud                             │
-│        fundtracer-qvac-production.up.railway.app      │
-│                                                     │
-│  • Model: Qwen3-0.6B-Q4_0.gguf (~382MB)           │
-│  • Context: 256 tokens                            │
-│  • Max Output: 80 tokens                          │
-│  • Response Time: ~7-15s                        │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────┐     HTTP      ┌─────────────────────┐
+│   FundTracer CLI    │ ──────────►  │   QVAC Server     │
+│                   │ ◄────────── │  localhost:11434  │
+│  • analyze --ai   │            │                  │
+│  • ask          │            │  • QWEN3-600M    │
+│  • explain      │            │  • llama.cpp     │
+│  • chat        │            │                  │
+└─────────────────────┘            └─────────────────────┘
+
+Installation: ~/.fundtracer-qvac/
+Model cache: ~/.qvac/models/
 ```
 
-### Frontend Configuration
+**Files**:
+- `~/.fundtracer-qvac/` - QVAC installation
+- `~/.fundtracer-qvac/qvac.config.json` - Server config
+- `~/.qvac/models/` - Downloaded model files (~380MB)
 
-QVAC URL is hardcoded in `useQVAC.ts`:
+## Security
 
-```typescript
-const DEFAULT_CONFIG: QVACConfig = {
-  baseURL: import.meta.env.VITE_QVAC_URL || 'https://fundtracer-qvac-production.up.railway.app',
-  apiKey: import.meta.env.VITE_QVAC_API_KEY || 'fundtracer-ai-key',
-  model: import.meta.env.VITE_QVAC_MODEL || 'fundtracer-llm',
-};
-```
-
-### Thinking Tokens Filter
-
-Added in both streaming and non-streaming code paths:
-
-```typescript
-const cleanContent = rawContent
-  .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
-  .replace(/<think>/gi, '')
-  .replace(/<\/thought>/gi, '')
-  .trim();
-```
-
-### QVAC Server Config (qvac.config.json)
-
-```json
-{
-  "serve": {
-    "models": {
-      "fundtracer-llm": {
-        "src": "/root/.qvac/models/Qwen3-0.6B-Q4_0.gguf",
-        "type": "llm",
-        "default": true,
-        "preload": true,
-        "config": {
-          "ctx_size": 256,
-          "predict": 80,
-          "temp": 0.7,
-          "top_k": 20,
-          "top_p": 0.9
-        }
-      }
-    }
-  }
-}
-```
-
-## Future Enhancements
-
-Potential additions for post-hackathon:
-
-- **Voice Input:** `@qvac/transcription-whispercpp` for voice commands
-- **OCR Scanner:** `@qvac/ocr-onnx` for scanning addresses from images
-- **Image Generation:** `@qvac/diffusion-cpp` for wallet visualization
-- **RAG Pipeline:** `@qvac/rag` for semantic wallet pattern search
-- **Local Mode:** Offer optional local QVAC for privacy
-- **Mobile App:** Deploy QVAC on-device for iOS/Android
+- **Local Only**: All AI processing happens on your device
+- **No Data Sharing**: Your queries are not sent to external servers
+- **No Account Required**: No login or API keys needed
 
 ## Links
 
 - **FundTracer:** https://fundtracer.xyz
-- **GitHub Repo:** https://github.com/Deji-Tech/fundtracer-by-dt
-- **QVAC Server Repo:** https://github.com/Deji-Tech/fundtracer-qvac
+- **GitHub:** https://github.com/Deji-Tech/fundtracer-by-dt
 - **QVAC Docs:** https://docs.qvac.tether.io
 - **QVAC GitHub:** https://github.com/tetherto/qvac
-- **Hackathon:** https://colosseum.io (Tether Frontier Track)
 
 ---
 
-Built for the Tether Frontier Hackathon - QVAC Side Track
+Built with QVAC by Tether

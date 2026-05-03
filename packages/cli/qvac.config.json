@@ -1,0 +1,22 @@
+{
+  "$schema": "https://qvac.tether.io/schema/v1.json",
+  "serve": {
+    "models": {
+      "fundtracer-ai": {
+        "model": "QWEN3_1.8B_INST_Q4",
+        "default": true,
+        "preload": true,
+        "config": {
+          "ctx_size": 4096
+        }
+      },
+      "fundtracer-fast": {
+        "model": "QWEN3_600M_INST_Q4",
+        "preload": false,
+        "config": {
+          "ctx_size": 2048
+        }
+      }
+    }
+  }
+}
