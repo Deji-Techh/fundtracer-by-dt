@@ -29,18 +29,20 @@ FundTracer CLI integrates **QVAC by Tether** for local AI-powered wallet analysi
 
 ## Quick Start
 
-### Automatic Setup
+### Automatic Setup (Recommended)
 
 ```bash
 fundtracer qvac-setup
 ```
 
-This command will:
+This will:
 1. Check for Docker (optional)
-2. Install `@qvac/cli`, `@qvac/sdk`, and `@qvac/embed-llamacpp` via npm
-3. Create configuration file in `~/.fundtracer-qvac/`
-4. Start the QVAC server with model preload
-5. Display available model options
+2. Ask you to choose a model (choose **3 or 4** for useful AI)
+3. Install `@qvac/cli` and `@qvac/sdk` via npm
+4. Create configuration file in `~/.fundtracer-qvac/`
+5. Start the QVAC server on port 11434
+
+**Important**: Choose **Qwen3-1.8B** or **Qwen3-4B** when prompted. The 600M model is too small for meaningful analysis.
 
 ### Manual Setup
 
@@ -223,11 +225,20 @@ fundtracer qvac-setup
 
 ## Model Options
 
-| Model | Size | Speed | Quality |
-|-------|------|-------|--------|
-| QWEN3_600M | ~380MB | Fastest | Good |
-| QWEN3_1.8B | ~1.2GB | Fast | Better |
-| QWEN3_4B | ~2.5GB | Slower | Best |
+| Model | Size | Speed | Quality | Recommendation |
+|-------|------|-------|---------|----------------|
+| QWEN3_140M | ~150MB | Fastest | Basic | Not recommended for analysis |
+| QWEN3_600M | ~380MB | Fast | Good | Only for quick tests - too small |
+| QWEN3_1.8B | ~1.2GB | Medium | Better | **Recommended for most users** |
+| QWEN3_4B | ~2.5GB | Slow | Best | For best quality, powerful machines |
+
+### Which Model to Choose?
+
+- **140M/600M**: These small models hallucinate and give generic responses. Use only for testing.
+- **1.8B**: Good balance of speed and quality. Handles simple classification well.
+- **4B**: Best quality but needs more RAM. Only use if you have 8GB+ RAM.
+
+**Run `fundtracer qvac-setup` and choose option 3 or 4 for useful AI responses.**
 
 To change model, edit `~/.fundtracer-qvac/qvac.config.json`:
 

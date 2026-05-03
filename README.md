@@ -83,23 +83,12 @@ Terminal-based blockchain forensics for developers and security researchers.
 npm install -g fundtracer
 ```
 
-Or build from source:
-
-```bash
-git clone https://github.com/Deji-Tech/fundtracer-by-dt.git
-cd fundtracer-by-dt
-npm install
-cd packages/cli && npm run build && npm link
-```
-
 **Configuration:**
 
 Before using the CLI, configure your API keys:
 
 ```bash
 fundtracer config --set-key alchemy:YOUR_KEY
-fundtracer config --set-key moralis:YOUR_KEY
-fundtracer config --set-key dune:YOUR_KEY
 ```
 
 Get free API keys:
@@ -112,17 +101,37 @@ Get free API keys:
 | Command | Description |
 |---------|-------------|
 | `fundtracer analyze <address>` | Analyze a single wallet |
+| `fundtracer analyze <address> --ai` | Analyze with AI insights (requires QVAC) |
 | `fundtracer compare <addresses...>` | Compare wallets for Sybil detection |
 | `fundtracer portfolio <address>` | View NFT and token holdings |
 | `fundtracer batch <file>` | Analyze multiple wallets from a file |
 | `fundtracer interactive` | Start interactive mode |
 | `fundtracer config --show` | View current configuration |
 
+**AI Features (QVAC):**
+
+FundTracer supports local AI analysis via QVAC. Setup:
+
+```bash
+fundtracer qvac-setup
+# Choose Qwen3-1.8B or Qwen3-4B for best results
+```
+
+Then use:
+```bash
+fundtracer analyze 0x742d... --ai
+fundtracer ask "is this wallet a scammer?"
+fundtracer chat
+```
+
 **Examples:**
 
 ```bash
 # Analyze a wallet
-fundtracer analyze 0x742d35Cc6634C0532925a3b844Bc9e7595f8fC71
+fundtracer analyze 0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1
+
+# With AI
+fundtracer analyze 0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1 --ai
 
 # Compare multiple wallets
 fundtracer compare 0x742d... 0xdEaD... 0x8f2C...
