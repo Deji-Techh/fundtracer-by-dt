@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Zap, Download, Trash2, Send, Wallet, X, MessageSquare, Plus, History } from 'lucide-react';
-import { useQVAC, type QVACMessage } from '../../hooks/qvac/useQVAC';
+import { useAIChat, type AIMessage } from '../../hooks/ai/useAIChat';
 import { useScanCache, type ScanCacheItem } from '../../hooks/qvac/useScanCache';
 import './AiChatBubble.css';
 
@@ -40,7 +40,7 @@ export function AiChatBubble({ currentWallet, currentChain = 'ethereum', classNa
     isServerReady,
     streamMessage,
     clearMessages,
-  } = useQVAC();
+  } = useAIChat();
   
   const {
     recentScans,
@@ -77,7 +77,7 @@ const handleSendMessage = async () => {
           if (lastMsg?.role === 'assistant') {
             lastMsg.content += chunk;
           } else {
-            const assistantMsg: QVACMessage = {
+            const assistantMsg: AIMessage = {
               id: crypto.randomUUID(),
               role: 'assistant',
               content: chunk,
@@ -117,7 +117,7 @@ const handleSendMessage = async () => {
       const analysisRequest = `Analyze ${walletToAnalyze} on ${chainToAnalyze} and give me a risk report in 2-3 sentences maximum`;
       
       // Add user message showing attachment
-      const userMsg: QVACMessage = {
+      const userMsg: AIMessage = {
         id: crypto.randomUUID(),
         role: 'user',
         content: `📎 Attached: ${walletToAnalyze.slice(0, 6)}...${walletToAnalyze.slice(-4)} (${chainToAnalyze})`,
@@ -149,8 +149,8 @@ const handleSendMessage = async () => {
   const handleExportReport = () => {
     if (messages.length === 0) return;
     const content = messages
-      .filter((m: QVACMessage) => m.role !== 'system')
-      .map((m: QVACMessage) => `${m.role === 'user' ? 'You' : 'FundTracer AI'}: ${m.content}`)
+      .filter((m: AIMessage) => m.role !== 'system')
+      .map((m: AIMessage) => `${m.role === 'user' ? 'You' : 'FundTracer AI'}: ${m.content}`)
       .join('\n\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -169,7 +169,7 @@ const handleSendMessage = async () => {
   // Load chat history from localStorage
   const loadChatHistory = () => {
     try {
-      const saved = localStorage.getItem('ft_qvac_history');
+      const saved = localStorage.getItem('ft_ai_history');
       if (saved) {
         const history = JSON.parse(saved);
         if (history.length > 0) {
@@ -184,8 +184,8 @@ const handleSendMessage = async () => {
   // Save chat history to localStorage
   const saveChatHistory = () => {
     try {
-      const toSave = messages.filter((m: QVACMessage) => m.role !== 'system');
-      localStorage.setItem('ft_qvac_history', JSON.stringify(toSave));
+      const toSave = messages.filter((m: AIMessage) => m.role !== 'system');
+      localStorage.setItem('ft_ai_history', JSON.stringify(toSave));
     } catch (e) {
       console.error('Failed to save chat history:', e);
     }
@@ -234,7 +234,7 @@ const handleSendMessage = async () => {
             {/* Status bar */}
             <div className="ft-ai-status-bar">
               <span className={`ft-ai-status-dot ${isServerReady ? 'online' : 'offline'}`} />
-              <span>{isServerReady ? 'Connected' : 'Offline'}</span>
+              <span>{isServerReady ? 'Groq Connected' : 'API Key Missing'}</span>
             </div>
 
             {/* Recent Scans */}
@@ -274,13 +274,13 @@ const handleSendMessage = async () => {
 
             {/* Messages */}
             <div className="ft-ai-messages">
-              {messages.filter((m: QVACMessage) => m.role !== 'system').length === 0 && (
+              {messages.filter((m: AIMessage) => m.role !== 'system').length === 0 && (
                 <div className="ft-ai-empty">
                   <MessageSquare size={24} />
                   <p>Ask about any wallet to get an AI-generated risk report</p>
                 </div>
               )}
-              {messages.filter((m: QVACMessage) => m.role !== 'system').map((msg: QVACMessage) => (
+              {messages.filter((m: AIMessage) => m.role !== 'system').map((msg: AIMessage) => (
                 <div key={msg.id} className={`ft-ai-message ${msg.role}`}>
                   <div className="ft-ai-message-label">{msg.role === 'user' ? 'You' : 'AI'}</div>
                   <div className="ft-ai-message-text">{cleanThinkingTokens(msg.content)}</div>

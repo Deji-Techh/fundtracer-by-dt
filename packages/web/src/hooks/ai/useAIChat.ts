@@ -1,27 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export interface QVACMessage {
+export interface AIMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
 }
 
-export interface QVACConfig {
-  baseURL: string;
+export interface AIConfig {
   apiKey: string;
   model: string;
 }
 
-const DEFAULT_CONFIG: QVACConfig = {
-  baseURL: import.meta.env.VITE_QVAC_URL || 'https://fundtracer-qvac-production.up.railway.app',
-  apiKey: import.meta.env.VITE_QVAC_API_KEY || 'fundtracer-ai-key',
-  model: import.meta.env.VITE_QVAC_MODEL || 'fundtracer-llm',
+const DEFAULT_CONFIG: AIConfig = {
+  apiKey: import.meta.env.VITE_GROQ_API_KEY || '',
+  model: 'llama-3.3-70b-versatile',
 };
 
-export function useQVAC(customConfig?: Partial<QVACConfig>) {
-  const [config, setConfig] = useState<QVACConfig>({ ...DEFAULT_CONFIG, ...customConfig });
-  const [messages, setMessagesState] = useState<QVACMessage[]>([]);
+const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
+
+export function useAIChat(customConfig?: Partial<AIConfig>) {
+  const [config, setConfig] = useState<AIConfig>({ ...DEFAULT_CONFIG, ...customConfig });
+  const [messages, setMessagesState] = useState<AIMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isServerReady, setIsServerReady] = useState(false);
@@ -36,29 +36,24 @@ Output ONLY your answer. No prefixes. No formatting.`;
 
   const checkServerStatus = useCallback(async () => {
     if (typeof window === 'undefined') return false;
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const baseURL = config.baseURL.replace(/\/v1\/chat\/completions$/, '').replace(/\/v1$/, '');
-      const response = await fetch(`${baseURL}/v1/models`, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {},
-      });
-      clearTimeout(timeoutId);
-      setIsServerReady(response.ok);
-      return response.ok;
-    } catch {
+    if (!config.apiKey) {
       setIsServerReady(false);
       return false;
     }
-  }, [config.baseURL, config.apiKey]);
+    setIsServerReady(true);
+    return true;
+  }, [config.apiKey]);
 
   const sendMessage = useCallback(async (content: string, walletContext?: string) => {
+    if (!config.apiKey) {
+      setError('GROQ_API_KEY not configured');
+      return null;
+    }
+
     setIsLoading(true);
     setError(null);
 
-    const userMessage: QVACMessage = {
+    const userMessage: AIMessage = {
       id: crypto.randomUUID(),
       role: 'user',
       content,
@@ -70,20 +65,18 @@ Output ONLY your answer. No prefixes. No formatting.`;
       fullContent = `Wallet Data:\n${walletContext}\n\nUser Question: ${content}`;
     }
 
-    const conversationMessages: QVACMessage[] = [
+    const conversationMessages: AIMessage[] = [
       { id: 'system', role: 'system', content: SYSTEM_PROMPT, timestamp: 0 },
       ...messages,
       userMessage,
     ];
 
     try {
-      // Ensure baseURL doesn't have trailing /v1/chat/completions
-      const baseURL = config.baseURL.replace(/\/v1\/chat\/completions$/, '').replace(/\/v1$/, '');
-      const response = await fetch(`${baseURL}/v1/chat/completions`, {
+      const response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+          'Authorization': `Bearer ${config.apiKey}`,
         },
         body: JSON.stringify({
           model: config.model,
@@ -95,19 +88,21 @@ Output ONLY your answer. No prefixes. No formatting.`;
       });
 
       if (!response.ok) {
-        throw new Error(`QVAC server error: ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `Groq API error: ${response.status}`);
       }
 
       const data = await response.json();
       let rawContent = data.choices?.[0]?.message?.content || 'No response generated';
-      // Remove thinking tokens: hex format like <0x09>answer<0x09> or literal like<think>Answer<\/thought>
+      
       const cleanContent = rawContent
         .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
         .replace(/<think>[\s\S]*?<\/thought>/g, '')
         .replace(/<think>/gi, '')
         .replace(/<\/thought>/gi, '')
         .trim();
-      const assistantMessage: QVACMessage = {
+
+      const assistantMessage: AIMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: cleanContent || 'No response generated',
@@ -120,10 +115,10 @@ Output ONLY your answer. No prefixes. No formatting.`;
       const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
       setError(errorMessage);
       
-      const errorMsg: QVACMessage = {
+      const errorMsg: AIMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `Error: ${errorMessage}. Make sure the QVAC server is running.`,
+        content: `Error: ${errorMessage}. Please check your GROQ_API_KEY configuration.`,
         timestamp: Date.now(),
       };
       
@@ -134,11 +129,20 @@ Output ONLY your answer. No prefixes. No formatting.`;
     }
   }, [config, messages]);
 
-  const streamMessage = useCallback(async (content: string, walletContext?: string, onChunk?: (chunk: string) => void) => {
+  const streamMessage = useCallback(async (
+    content: string, 
+    walletContext?: string, 
+    onChunk?: (chunk: string) => void
+  ) => {
+    if (!config.apiKey) {
+      setError('GROQ_API_KEY not configured');
+      throw new Error('GROQ_API_KEY not configured');
+    }
+
     setIsLoading(true);
     setError(null);
 
-    const userMessage: QVACMessage = {
+    const userMessage: AIMessage = {
       id: crypto.randomUUID(),
       role: 'user',
       content,
@@ -150,20 +154,18 @@ Output ONLY your answer. No prefixes. No formatting.`;
       fullContent = `Wallet Data:\n${walletContext}\n\nUser Question: ${content}`;
     }
 
-    const conversationMessages: QVACMessage[] = [
+    const conversationMessages: AIMessage[] = [
       { id: 'system', role: 'system', content: SYSTEM_PROMPT, timestamp: 0 },
       ...messages,
       userMessage,
     ];
 
     try {
-      // Ensure baseURL doesn't have trailing /v1/chat/completions
-      const baseURL = config.baseURL.replace(/\/v1\/chat\/completions$/, '').replace(/\/v1$/, '');
-      const response = await fetch(`${baseURL}/v1/chat/completions`, {
+      const response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+          'Authorization': `Bearer ${config.apiKey}`,
         },
         body: JSON.stringify({
           model: config.model,
@@ -175,7 +177,8 @@ Output ONLY your answer. No prefixes. No formatting.`;
       });
 
       if (!response.ok) {
-        throw new Error(`QVAC server error: ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `Groq API error: ${response.status}`);
       }
 
       const reader = response.body?.getReader();
@@ -183,8 +186,7 @@ Output ONLY your answer. No prefixes. No formatting.`;
 
       let assistantContent = '';
       const decoder = new TextDecoder();
-      let thinkingBuffer = '';
-      const assistantMessage: QVACMessage = {
+      const assistantMessage: AIMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: '',
@@ -206,7 +208,6 @@ Output ONLY your answer. No prefixes. No formatting.`;
             const parsed = JSON.parse(data);
             let delta = parsed.choices?.[0]?.delta?.content || '';
             if (delta) {
-              // Filter thinking tokens
               delta = delta
                 .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
                 .replace(/<think>[\s\S]*?<\/thought>/g, '')
@@ -221,19 +222,18 @@ Output ONLY your answer. No prefixes. No formatting.`;
         }
       }
 
-      // If onChunk was provided, caller handles messages - just return
       if (onChunk) {
         setIsLoading(false);
         return assistantMessage;
       }
 
-      // Clean the full response if not streaming
       assistantMessage.content = assistantContent
         .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
         .replace(/<think>[\s\S]*?<\/thought>/g, '')
         .replace(/<think>/gi, '')
         .replace(/<\/thought>/gi, '')
         .trim();
+
       setMessagesState(prev => [...prev, userMessage, assistantMessage]);
       return assistantMessage;
     } catch (err) {
@@ -275,9 +275,9 @@ Generate a comprehensive risk assessment report. Include:
     return sendMessage('Generate a wallet risk report based on the following data:', context);
   }, [sendMessage]);
 
-  const handleSetMessages = useCallback((updater: QVACMessage[] | ((prev: QVACMessage[]) => QVACMessage[])) => {
+  const handleSetMessages = useCallback((updater: AIMessage[] | ((prev: AIMessage[]) => AIMessage[])) => {
     if (typeof updater === 'function') {
-      setMessagesState(updater as (prev: QVACMessage[]) => QVACMessage[]);
+      setMessagesState(updater as (prev: AIMessage[]) => AIMessage[]);
     } else {
       setMessagesState(updater);
     }
@@ -289,8 +289,6 @@ Generate a comprehensive risk assessment report. Include:
 
   useEffect(() => {
     checkServerStatus();
-    const interval = setInterval(checkServerStatus, 30000);
-    return () => clearInterval(interval);
   }, [checkServerStatus]);
 
   return {
