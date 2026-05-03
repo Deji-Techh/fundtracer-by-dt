@@ -55,20 +55,33 @@ export interface QVACCompletionResponse {
 }
 
 // System prompt for blockchain analysis
-const BLOCKCHAIN_SYSTEM_PROMPT = `You are FundTracer AI, an expert blockchain forensics analyst.
+const BLOCKCHAIN_SYSTEM_PROMPT = `You are FundTracer AI, an expert blockchain forensics analyst specializing in scam detection.
 
-Your role is to analyze Ethereum/BSC/Solana wallet addresses and provide security insights.
+## What FundTracer Does
+FundTracer detects suspicious on-chain behavior:
+- RAPID MOVEMENT: Funds moving quickly through many addresses (money laundering)
+- SAME-BLOCK: Multiple txs in same block (bot/MEV activity)  
+- SYBIL: Coordinated activity from multiple fake identities
+- CIRCULAR: Funds cycling through addresses (layering)
+- DUST: Spam tiny amounts to fingerprint addresses
+- FRESH: Newly created wallets with immediate suspicious activity
+- WASH: Artificial trading volume to manipulate prices
 
-When analyzing wallets, consider:
-- Funding sources (CEX, mixers, other wallets)
-- Transaction patterns (frequency, timing, amounts)
-- Contract interactions (DEX, lending, NFTs)
-- Risk factors (age, behavior anomalies)
-- Sybil indicators (coordinated activity)
+## Risk Scoring
+- 75+ = CRITICAL (scam/juice likely)
+- 50+ = HIGH risk
+- 25+ = MEDIUM risk
+- 0-25 = LOW risk (normal activity)
 
-Provide concise, actionable insights. Use bullet points.
-If you don't have enough data, say so.
-Never make up addresses or transaction details.`;
+## Your Task
+Analyze the wallet data and provide SPECIFIC, ACTIONABLE insights.
+- If LOW RISK: Say "LOW RISK - appears to be a regular [user type]"
+- If suspicious: Explain WHY with specific evidence from the data
+- NEVER just restate the numbers - interpret what they mean
+
+IMPORTANT: Provide actual analysis, not generic filler text.
+CRITICAL: Never include thinking tags - just output the response directly without any internal AI thinking.
+`;
 
 export async function checkQVACAvailable(): Promise<boolean> {
     // If hosted server, just check if we can reach it
@@ -226,12 +239,17 @@ export async function generateWalletInsights(
     }
 ): Promise<string | null> {
     const userMessage = `
-Analyze this wallet and explain the risk factors:
+Analyze this wallet and answer these specific questions:
 
+1. Is this a SYBIL address? (coordinated fake activity)
+2. Is this related to a MIXER? (Tornado Cash style)
+3. What type of user is this? (trader, whale, scammer, etc.)
+4. Any specific red flags?
+
+Data:
 - Address: ${walletAddress}
 - Chain: ${chain}
-- Risk Score: ${riskScore}/100
-- Risk Level: ${riskLevel}
+- Risk Score: ${riskScore}/100 (${riskLevel})
 - Total Transactions: ${summary.totalTransactions || 0}
 - Total Sent: ${summary.totalValueSentEth || 0} ETH
 - Total Received: ${summary.totalValueReceivedEth || 0} ETH
@@ -242,14 +260,14 @@ ${(summary.topFundingSources || []).slice(0, 3).map((f, i) => `${i + 1}. ${f.add
 Top Destinations:
 ${(summary.topFundingDestinations || []).slice(0, 3).map((d, i) => `${i + 1}. ${d.address} (${d.valueEth} ETH)`).join('\n') || 'None'}
 
-Provide a brief explanation of why this wallet is ${riskLevel} risk and what the user should watch for.`;
+Answer each question specifically. If no red flags, say "No specific concerns - appears to be a regular wallet."`;
 
     const messages: QVACMessage[] = [
         { role: 'system', content: BLOCKCHAIN_SYSTEM_PROMPT },
         { role: 'user', content: userMessage },
     ];
 
-    const response = await sendCompletion(messages, { max_tokens: 300 });
+    const response = await sendCompletion(messages, { max_tokens: 5000 });
     if (!response) return null;
 
     return response.choices?.[0]?.message?.content || null;
