@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Zap, Download, Trash2, Send, Wallet, X, MessageSquare, Plus, History } from 'lucide-react';
 import { useAIChat, type AIMessage } from '../../hooks/ai/useAIChat';
-import { useScanCache, type ScanCacheItem } from '../../hooks/qvac/useScanCache';
+import { useScanCache, type ScanCacheItem, type WalletCacheData } from '../../hooks/qvac/useScanCache';
+import { apiRequest } from '../../api';
 import './AiChatBubble.css';
 
 // Filter thinking tokens from any content
@@ -116,14 +117,36 @@ const handleSendMessage = async () => {
     setInputValue(`Analyze ${scan.address}: give me a risk report`);
   };
 
-  const handleAttachLastScan = () => {
+  const handleAttachLastScan = async () => {
     if (lastScannedWallet) {
       const walletToAnalyze = lastScannedWallet;
       const chainToAnalyze = lastScannedChain || currentChain;
       
-      // Auto-send the analysis request
-      const walletContext = `Wallet: ${walletToAnalyze} (${chainToAnalyze})`;
-      const analysisRequest = `Analyze ${walletToAnalyze} on ${chainToAnalyze} and give me a risk report in 2-3 sentences maximum`;
+      // Fetch full wallet details from cache
+      let walletDetails = '';
+      try {
+        const cacheRes = await apiRequest(`/api/wallet-cache/${chainToAnalyze}/${walletToAnalyze}`, 'GET') as Response;
+        const cacheData = await cacheRes.json();
+        if (cacheData.success && cacheData.wallet) {
+          const w = cacheData.wallet;
+          walletDetails = `
+Wallet: ${w.address}
+Chain: ${w.chain}
+Balance: ${w.balance || 'Unknown'}
+Transactions: ${w.txCount || 'Unknown'}
+Risk Score: ${w.riskScore || 'Unknown'}
+Tags: ${w.tags?.join(', ') || 'None'}
+Funding Sources: ${w.fundingSources?.join(', ') || 'None'}
+Recent Activity: ${w.recentActivity || 'N/A'}
+`;
+        }
+      } catch (e) {
+        console.error('Failed to fetch wallet cache:', e);
+      }
+      
+      // Use wallet details as context
+      const walletContext = walletDetails || `Wallet: ${walletToAnalyze} (${chainToAnalyze})`;
+      const analysisRequest = `Analyze this wallet and give me a risk report`;
       
       // Add user message showing attachment
       const userMsg: AIMessage = {
@@ -143,7 +166,7 @@ const handleSendMessage = async () => {
       };
       setMessages(prev => [...prev, assistantMsg]);
       
-      // Stream to the placeholder
+      // Stream to the placeholder - pass wallet details as context
       streamMessage(analysisRequest, walletContext, (chunk: string) => {
         setMessages(prev => {
           const updated = [...prev];
