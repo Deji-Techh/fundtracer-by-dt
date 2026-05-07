@@ -29,7 +29,7 @@ FundTracer uses Torque for growth primitives - leaderboards, event tracking, and
 - Points determine your rank on the leaderboard
 - Top performers earn equity in FundTracer
 
-**API:** Link: https://api.fundtracer.xyz
+**API:** Link: https://api.fundtracer.xyz/api
 
 - Leaderboard: `GET /api/torque-v2/leaderboard`
 - My Stats: `GET /api/torque-v2/mystats` (auth required)
@@ -204,7 +204,7 @@ The FundTracer API provides programmatic access to blockchain forensics data. Ge
 ### Base URL
 
 ```
-https://www.fundtracer.xyz/api
+https://api.fundtracer.xyz/api
 ```
 
 ### Authentication
@@ -213,7 +213,7 @@ All endpoints require a Bearer token:
 
 ```bash
 curl -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
-  https://www.fundtracer.xyz/api/analyze/wallet
+  https://api.fundtracer.xyz/api/analyze/wallet
 ```
 
 ### Endpoints
@@ -225,7 +225,7 @@ curl -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
 curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"address":"0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1","chain":"ethereum"}' \
-  https://www.fundtracer.xyz/api/analyze/wallet
+  https://api.fundtracer.xyz/api/analyze/wallet
 ```
 
 #### Funding Tree
@@ -235,7 +235,7 @@ curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
 curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"address":"0x742d35Cc6634C0532925a3b844Bc9e7595f5b2a1","chain":"ethereum"}' \
-  https://www.fundtracer.xyz/api/analyze/funding-tree
+  https://api.fundtracer.xyz/api/analyze/funding-tree
 ```
 
 #### Compare Wallets
@@ -245,7 +245,7 @@ curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
 curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"addresses":["0x742d...","0xd8dA..."],"chain":"ethereum"}' \
-  https://www.fundtracer.xyz/api/analyze/compare
+  https://api.fundtracer.xyz/api/analyze/compare
 ```
 
 #### Sybil Detection
@@ -255,7 +255,7 @@ curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
 curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"contractAddress":"0x7a250d...","chain":"ethereum"}' \
-  https://www.fundtracer.xyz/api/analyze/sybil
+  https://api.fundtracer.xyz/api/analyze/sybil
 ```
 
 #### Contract Analysis
@@ -265,7 +265,7 @@ curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
 curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"contractAddress":"0x7a250d...","chain":"ethereum"}' \
-  https://www.fundtracer.xyz/api/analyze/contract
+  https://api.fundtracer.xyz/api/analyze/contract
 ```
 
 #### Batch Analysis *(NEW)*
@@ -275,7 +275,7 @@ curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
 curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"addresses":["0x742d...","0xd8dA..."],"chain":"ethereum"}' \
-  https://www.fundtracer.xyz/api/analyze/batch
+  https://api.fundtracer.xyz/api/analyze/batch
 ```
 
 #### Transaction Lookup *(NEW)*
@@ -283,7 +283,7 @@ curl -X POST -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
 ```bash
 # Fetch detailed transaction info with logs and gas costs
 curl -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
-  "https://www.fundtracer.xyz/api/tx/ethereum/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640c5a76964d3e17d20f3e7f52a"
+  "https://api.fundtracer.xyz/api/tx/ethereum/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640c5a76964d3e17d20f3e7f52a"
 ```
 
 #### Gas Prices *(NEW)*
@@ -291,7 +291,7 @@ curl -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
 ```bash
 # Get current gas prices (low/medium/high in gwei)
 curl -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
-  "https://www.fundtracer.xyz/api/gas?chain=ethereum"
+  "https://api.fundtracer.xyz/api/gas?chain=ethereum"
 
 # Supported chains: ethereum, arbitrum, optimism, polygon, bsc, base
 ```
