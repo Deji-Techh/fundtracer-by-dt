@@ -690,8 +690,10 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
         const cachedData = await cacheGetCached<any>(walletCacheKey);
         const fromCache = !!cachedData;
         
+        const cachedTransactions = cachedData?.transactions;
+        
         if (cachedData) {
-            console.log(`[DEBUG] Cache HIT for funding tree: ${address} on ${normalizedChain}, using cached transactions`);
+            console.log(`[DEBUG] Cache HIT for funding tree: ${address} on ${normalizedChain}, using ${cachedTransactions?.length || 0} cached transactions`);
         } else {
             console.log(`[DEBUG] Cache MISS for funding tree: ${address} on ${normalizedChain}, will fetch fresh`);
         }
@@ -715,6 +717,7 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
         const result = await withTimeout(
             analyzer.buildFundingTree(address, chain as ChainId, {
                 treeConfig: options?.treeConfig,
+                cachedTransactions: fromCache ? cachedTransactions : undefined,
             }),
             30000, // 30s timeout for tree building alone
             'Funding tree'

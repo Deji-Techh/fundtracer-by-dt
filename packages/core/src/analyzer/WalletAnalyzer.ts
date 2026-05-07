@@ -180,6 +180,7 @@ export class WalletAnalyzer {
         chainId: ChainId,
         options: {
             treeConfig?: Partial<FundingTreeConfig>;
+            cachedTransactions?: Transaction[]; // Accept pre-fetched transactions
         } = {}
     ): Promise<{ fundingSources: FundingNode; fundingDestinations: FundingNode }> {
         const provider = this.providerFactory.getProvider(chainId);
@@ -187,8 +188,8 @@ export class WalletAnalyzer {
 
         this.reportProgress('Fetching transactions', 1, 3, 'Loading transaction data...');
 
-        // Fetch transactions to feed the tree builder
-        const txs = await provider.getTransactions(normalizedAddr);
+        // Use cached transactions if provided, otherwise fetch fresh
+        const txs = options.cachedTransactions || await provider.getTransactions(normalizedAddr);
 
         this.reportProgress('Building funding tree', 2, 3, 'Tracing funding sources and destinations...');
 
