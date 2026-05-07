@@ -9,6 +9,7 @@
  */
 
 import { cache } from '../utils/cache.js';
+import { getOrSet, isRedisConnected } from '../utils/redis.js';
 
 // API Base URLs
 const GAMMA_API = 'https://gamma-api.polymarket.com';
@@ -153,8 +154,36 @@ export class PolymarketService {
     console.warn(`[PolymarketService] Rate limited for ${delayMs / 1000}s`);
   }
 
-  // Generic fetch helper
+  // Generic fetch helper with Redis caching
   private async fetch<T>(url: string, cacheKey: string, cacheTtl: number): Promise<T> {
+    // Try Redis first, fallback to memory cache
+    if (isRedisConnected()) {
+      try {
+        const cached = await getOrSet<T>(cacheKey, async () => {
+          await this.checkRateLimit();
+          this.requestCount++;
+          const response = await fetch(url, {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'FundTracer/1.0'
+            }
+          });
+          if (!response.ok) {
+            if (response.status === 429) {
+              this.setRateLimit(60000);
+              throw new Error('Rate limited by Polymarket API');
+            }
+            throw new Error(`Polymarket API error: ${response.status} ${response.statusText}`);
+          }
+          return await response.json() as T;
+        }, cacheTtl);
+        return cached;
+      } catch (error) {
+        console.error(`[PolymarketService] Redis fetch error, falling back:`, error);
+      }
+    }
+
+    // Fallback to memory cache
     const cached = cache.get(cacheKey);
     if (cached) return cached as T;
 

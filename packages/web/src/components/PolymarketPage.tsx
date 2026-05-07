@@ -485,9 +485,9 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
         <p>Explore prediction markets, volume spikes, and price movers on Polymarket</p>
       </motion.div>
 
-      {/* Tab Bar */}
+      {/* Tab Bar - Improved UI */}
       <motion.div
-        className="tab-bar-flat"
+        className="polymarket-tabs"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -495,16 +495,23 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
         {modeButtons.map((mode, index) => (
           <motion.button
             key={mode.id}
-            className={`tab-item ${viewMode === mode.id ? 'active' : ''}`}
+            className={`polymarket-tab ${viewMode === mode.id ? 'active' : ''}`}
             onClick={() => setViewMode(mode.id as ViewMode)}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            whileHover={{ backgroundColor: 'var(--color-bg-hover)' }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <mode.icon />
-            <span>{mode.label}</span>
+            <span className="polymarket-tab__icon"><mode.icon /></span>
+            <span className="polymarket-tab__label">{mode.label}</span>
+            {viewMode === mode.id && (
+              <motion.div 
+                className="polymarket-tab__indicator"
+                layoutId="activeTab"
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              />
+            )}
           </motion.button>
         ))}
       </motion.div>
