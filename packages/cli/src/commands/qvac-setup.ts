@@ -24,10 +24,10 @@ const c = {
 };
 
 const AVAILABLE_MODELS = [
-    { id: 'QWEN3_140M_INST_Q4', name: 'Qwen3-140M', size: '~150MB', speed: 'Fastest', quality: 'Basic' },
     { id: 'QWEN3_600M_INST_Q4', name: 'Qwen3-600M', size: '~380MB', speed: 'Fast', quality: 'Good' },
-    { id: 'QWEN3_1.8B_INST_Q4', name: 'Qwen3-1.8B', size: '~1.2GB', speed: 'Medium', quality: 'Better' },
-    { id: 'QWEN3_4B_INST_Q4', name: 'Qwen3-4B', size: '~2.5GB', speed: 'Slow', quality: 'Best' },
+    { id: 'QWEN3_1_7B_INST_Q4', name: 'Qwen3-1.7B', size: '~1.2GB', speed: 'Medium', quality: 'Better' },
+    { id: 'QWEN3_4B_INST_Q4_K_M', name: 'Qwen3-4B', size: '~2.5GB', speed: 'Slow', quality: 'Best' },
+    { id: 'QWEN3_8B_INST_Q4_K_M', name: 'Qwen3-8B', size: '~5GB', speed: 'Slowest', quality: 'Ultra' },
 ];
 
 export async function qvacSetupCommand() {

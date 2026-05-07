@@ -42,7 +42,7 @@ This will:
 4. Create configuration file in `~/.fundtracer-qvac/`
 5. Start the QVAC server on port 11434
 
-**Important**: Choose **Qwen3-1.8B** or **Qwen3-4B** when prompted. The 600M model is too small for meaningful analysis.
+**Important**: Choose **Qwen3-1.7B** or **Qwen3-4B** when prompted. The 600M model is too small for meaningful analysis.
 
 ### Manual Setup
 
@@ -58,7 +58,7 @@ node node_modules/@qvac/cli/dist/index.js serve openai
 npm install @qvac/cli @qvac/sdk
 
 # Create config (preload: true loads model at server start)
-echo '{"serve":{"models":{"fundtracer-ai":{"model":"QWEN3_600M_INST_Q4","default":true,"preload":true}}}' > qvac.config.json
+echo '{"serve":{"models":{"fundtracer-ai":{"model":"QWEN3_1_7B_INST_Q4","default":true,"preload":true}}}' > qvac.config.json
 
 # Start server
 node node_modules/@qvac/cli/dist/index.js serve openai
@@ -227,16 +227,17 @@ fundtracer qvac-setup
 
 | Model | Size | Speed | Quality | Recommendation |
 |-------|------|-------|---------|----------------|
-| QWEN3_140M | ~150MB | Fastest | Basic | Not recommended for analysis |
-| QWEN3_600M | ~380MB | Fast | Good | Only for quick tests - too small |
-| QWEN3_1.8B | ~1.2GB | Medium | Better | **Recommended for most users** |
-| QWEN3_4B | ~2.5GB | Slow | Best | For best quality, powerful machines |
+| QWEN3-600M | ~380MB | Fast | Good | Only for quick tests - too small |
+| QWEN3-1.7B | ~1.2GB | Medium | Better | **Recommended for most users** |
+| QWEN3-4B | ~2.5GB | Slow | Best | For best quality, powerful machines |
+| QWEN3-8B | ~5GB | Slowest | Ultra | For max quality, high-end machines |
 
 ### Which Model to Choose?
 
-- **140M/600M**: These small models hallucinate and give generic responses. Use only for testing.
-- **1.8B**: Good balance of speed and quality. Handles simple classification well.
-- **4B**: Best quality but needs more RAM. Only use if you have 8GB+ RAM.
+- **600M**: This small model is too basic for meaningful analysis. Use only for testing.
+- **1.7B**: Good balance of speed and quality. Handles simple classification well.
+- **4B**: Best quality but needs more RAM. Use if you have 8GB+ RAM.
+- **8B**: Maximum quality but requires 16GB+ RAM.
 
 **Run `fundtracer qvac-setup` and choose option 3 or 4 for useful AI responses.**
 
@@ -247,7 +248,7 @@ To change model, edit `~/.fundtracer-qvac/qvac.config.json`:
   "serve": {
     "models": {
       "fundtracer-ai": {
-        "model": "QWEN3_1.8B_INST_Q4",
+        "model": "QWEN3_1_7B_INST_Q4",
         "default": true,
         "preload": true
       }

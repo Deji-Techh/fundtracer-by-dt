@@ -1,7 +1,7 @@
 {
     "name": "fundtracer",
-    "version": "1.8.9",
-    "description": "FundTracer CLI - Terminal-based blockchain wallet analyzer with local AI (QVAC)",
+    "version": "1.8.10",
+    "description": "FundTracer CLI - Terminal-based blockchain wallet analyzer with local AI (QVAC). Embeddings coming soon.",
     "type": "module",
     "main": "./dist/index.js",
     "bin": {

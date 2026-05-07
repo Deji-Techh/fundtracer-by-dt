@@ -6,6 +6,8 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
+import fs from 'fs';
+import path from 'path';
 import { analyzeCommand } from './commands/analyze.js';
 import { compareCommand } from './commands/compare.js';
 import { portfolioCommand } from './commands/portfolio.js';
@@ -19,9 +21,11 @@ import { chatCommand } from './commands/chat.js';
 import { explainCommand } from './commands/explain.js';
 import { similarCommand } from './commands/similar.js';
 import { checkScamCommand, reportScamCommand, scamDbStatsCommand } from './commands/check-scam.js';
-import { checkQVACAvailable, printQVACNotAvailable } from './ai.js';
 import { qvacSetupCommand } from './commands/qvac-setup.js';
+import { checkQVACAvailable, printQVACNotAvailable } from './ai.js';
 import { getApiKeys, getSybilApiKeys } from './utils.js';
+
+const PKG_VERSION = '1.8.10';
 
 // Professional ASCII Art Banner - Dark/Glassy theme
 const banner = `
@@ -131,7 +135,7 @@ if (isInteractive && args.length === 0) {
     program
         .name('fundtracer')
         .description('Blockchain wallet forensics tool for tracing funds and detecting suspicious activity')
-        .version('1.0.0');
+        .version(PKG_VERSION);
 
     // Analyze command
     program
