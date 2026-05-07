@@ -685,6 +685,17 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
     }
 
     try {
+        // Check if wallet data is already cached from previous analysis
+        const walletCacheKey = `wallet:${normalizedChain}:${address.toLowerCase()}`;
+        const cachedData = await cacheGetCached<any>(walletCacheKey);
+        const fromCache = !!cachedData;
+        
+        if (cachedData) {
+            console.log(`[DEBUG] Cache HIT for funding tree: ${address} on ${normalizedChain}, using cached transactions`);
+        } else {
+            console.log(`[DEBUG] Cache MISS for funding tree: ${address} on ${normalizedChain}, will fetch fresh`);
+        }
+
         const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
         const sybilConfig = getSybilAlchemyKeys();
 
@@ -700,7 +711,7 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             sybilConfig: sybilConfig,
         });
 
-        console.log(`[DEBUG] Building funding tree for ${address} on ${chain}...`);
+        console.log(`[DEBUG] Building funding tree for ${address} on ${chain} (fromCache=${fromCache})...`);
         const result = await withTimeout(
             analyzer.buildFundingTree(address, chain as ChainId, {
                 treeConfig: options?.treeConfig,
@@ -712,6 +723,7 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
         res.json({
             success: true,
             result,
+            fromCache,
         });
     } catch (error: any) {
         console.error('Funding tree error:', error.message);
