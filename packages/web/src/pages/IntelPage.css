@@ -347,7 +347,7 @@
 
 /* Skeleton loader for buttons */
 .skeleton-btn {
-  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background: linear-gradient(90deg, var(--intel-bg-surface) 25%, var(--intel-bg-hover) 50%, var(--intel-bg-surface) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite;
 }
