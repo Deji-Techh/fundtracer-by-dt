@@ -1,6 +1,7 @@
 // ============================================================
 // FundTracer - Dune SIM Client
-// Real-time blockchain data API (Solana/SVM support)
+// Real-time blockchain data API (EVM + Solana/SVM support)
+// Docs: https://docs.sim.dune.com/
 // ============================================================
 
 import fetch from 'node-fetch';
@@ -8,8 +9,37 @@ import { cache } from '../utils/cache.js';
 
 const SIM_API_BASE = 'https://api.sim.dune.com';
 const SIM_BETA_BASE = 'https://api.sim.dune.com/beta';
+const SIM_V1_BASE = 'https://api.sim.dune.com/v1';
 
-export interface SimBalance {
+// EVM Chain ID mapping
+export const EVM_CHAIN_IDS: Record<string, number> = {
+    ethereum: 1,
+    eth: 1,
+    linea: 59144,
+    arbitrum: 42161,
+    arb: 42161,
+    optimism: 10,
+    opt: 10,
+    base: 8453,
+    polygon: 137,
+    matic: 137,
+    bsc: 56,
+    avalanche: 43114,
+    avax: 43114,
+};
+
+export const CHAIN_ID_TO_NAME: Record<number, string> = {
+    1: 'ethereum',
+    59144: 'linea',
+    42161: 'arbitrum',
+    10: 'optimism',
+    8453: 'base',
+    137: 'polygon',
+    56: 'bsc',
+    43114: 'avalanche',
+};
+
+export type SimBalance = {
     chain: string;
     address: string;
     amount: string;
@@ -358,6 +388,575 @@ export class DuneSimClient {
             ...simResponse,
             balances,
         });
+    }
+
+    // ============================================================
+    // EVM METHODS (using /v1/evm/* endpoints)
+    // ============================================================
+
+    /**
+     * Convert chain name to chain_id
+     */
+    private getChainId(chainName: string): number {
+        return EVM_CHAIN_IDS[chainName.toLowerCase()] || EVM_CHAIN_IDS[chainName] || 1;
+    }
+
+    /**
+     * Get EVM token balances for a wallet
+     * Endpoint: GET /v1/evm/balances/{address}
+     */
+    async getEvmBalances(
+        address: string,
+        options: {
+            chainIds?: number | number[];  // Chain IDs or 'default'
+            filters?: 'erc20' | 'native';
+            assetClass?: 'stablecoin';
+            excludeSpamTokens?: boolean;
+            excludeUnpriced?: boolean;
+            metadata?: 'logo' | 'url' | 'pools';
+            historicalPrices?: string; // e.g., "168,720,24" for 7d, 30d, 24h ago
+            limit?: number;
+            offset?: string;
+        } = {}
+    ): Promise<{
+        wallet_address: string;
+        balances: Array<{
+            chain: string;
+            chain_id: number;
+            address: string;
+            amount: string;
+            symbol: string;
+            name: string;
+            decimals: number;
+            price_usd: number;
+            value_usd: number;
+            pool_size?: number;
+            low_liquidity?: boolean;
+            token_metadata?: { logo?: string; url?: string };
+            pool?: { pool_type: string; address: string; chain_id: number; tokens: string[] };
+            historical_prices?: Array<{ offset_hours: number; price_usd: number }>;
+        }>;
+        next_offset?: string;
+        warnings?: Array<{ code: string; message: string; chain_ids?: number[] }>;
+        request_time: string;
+        response_time: string;
+    }> {
+        const cacheKey = `sim:evm:balances:${address}:${JSON.stringify(options)}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached as ReturnType<typeof this.getEvmBalances> extends (...args: any[]) => Promise<infer R> ? R : never;
+
+        const params = new URLSearchParams();
+        
+        if (options.chainIds) {
+            if (Array.isArray(options.chainIds)) {
+                params.set('chain_ids', options.chainIds.join(','));
+            } else {
+                params.set('chain_ids', options.chainIds.toString());
+            }
+        }
+        if (options.filters) params.set('filters', options.filters);
+        if (options.assetClass) params.set('asset_class', options.assetClass);
+        if (options.excludeSpamTokens) params.set('exclude_spam_tokens', 'true');
+        if (options.excludeUnpriced) params.set('exclude_unpriced', 'true');
+        if (options.metadata) params.set('metadata', options.metadata);
+        if (options.historicalPrices) params.set('historical_prices', options.historicalPrices);
+        if (options.limit) params.set('limit', options.limit.toString());
+        if (options.offset) params.set('offset', options.offset);
+
+        const url = `${SIM_V1_BASE}/evm/balances/${address}${params.toString() ? '?' + params.toString() : ''}`;
+
+        try {
+            const data = await this.fetchWithAuth<any>(url);
+            // Cache for 60 seconds - balances change on-chain
+            cache.set(cacheKey, data, 60);
+            return data;
+        } catch (error) {
+            console.error('[DuneSimClient] Error fetching EVM balances:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get EVM activity for a wallet
+     * Endpoint: GET /v1/evm/activity/{address}
+     */
+    async getEvmActivity(
+        address: string,
+        options: {
+            chainIds?: number | number[];
+            activityType?: string; // send,receive,mint,burn,swap,approve,call
+            assetType?: string;    // native,erc20,erc721,erc1155
+            tokenAddress?: string;
+            limit?: number;
+            offset?: string;
+        } = {}
+    ): Promise<{
+        wallet_address: string;
+        activity: Array<{
+            chain_id: number;
+            block_number: number;
+            block_time: string;
+            tx_hash: string;
+            type: string;
+            asset_type: string;
+            token_address?: string;
+            from?: string;
+            to?: string;
+            value: string;
+            value_usd: number;
+            id?: string;
+            spender?: string;
+            token_metadata?: { symbol: string; decimals: number; name?: string; price_usd?: number; pool_size?: number };
+            function?: { signature: string; name: string; inputs: Array<{ name: string; type: string; value: string }> };
+            from_token_address?: string;
+            from_token_value?: string;
+            from_token_metadata?: { symbol: string; decimals: number };
+            to_token_address?: string;
+            to_token_value?: string;
+            to_token_metadata?: { symbol: string; decimals: number };
+        }>;
+        next_offset?: string;
+        warnings?: Array<{ code: string; message: string; chain_ids?: number[] }>;
+        request_time: string;
+        response_time: string;
+    }> {
+        const cacheKey = `sim:evm:activity:${address}:${JSON.stringify(options)}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached as ReturnType<typeof this.getEvmActivity> extends (...args: any[]) => Promise<infer R> ? R : never;
+
+        const params = new URLSearchParams();
+        if (options.chainIds) {
+            params.set('chain_ids', Array.isArray(options.chainIds) ? options.chainIds.join(',') : options.chainIds.toString());
+        }
+        if (options.activityType) params.set('activity_type', options.activityType);
+        if (options.assetType) params.set('asset_type', options.assetType);
+        if (options.tokenAddress) params.set('token_address', options.tokenAddress);
+        if (options.limit) params.set('limit', options.limit.toString());
+        if (options.offset) params.set('offset', options.offset);
+
+        const url = `${SIM_V1_BASE}/evm/activity/${address}${params.toString() ? '?' + params.toString() : ''}`;
+
+        try {
+            const data = await this.fetchWithAuth<any>(url);
+            cache.set(cacheKey, data, 30); // Cache 30 seconds
+            return data;
+        } catch (error) {
+            console.error('[DuneSimClient] Error fetching EVM activity:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get EVM transactions for a wallet
+     * Endpoint: GET /v1/evm/transactions/{address}
+     */
+    async getEvmTransactions(
+        address: string,
+        options: {
+            chainIds?: number | number[];
+            limit?: number;
+            offset?: string;
+            decode?: boolean;
+        } = {}
+    ): Promise<{
+        wallet_address: string;
+        transactions: Array<{
+            address: string;
+            block_hash: string;
+            block_number: string;
+            block_time: string;
+            chain: string;
+            from: string;
+            to: string;
+            hash: string;
+            data: string;
+            gas_price: string;
+            value: string;
+            transaction_type: string;
+            nonce?: string;
+            max_fee_per_gas?: string;
+            max_priority_fee_per_gas?: string;
+            decoded?: { name: string; inputs: Array<{ name: string; type: string; value: string }> };
+            logs?: Array<{
+                address: string;
+                topics: string[];
+                data: string;
+                decoded?: { name: string; inputs: Array<{ name: string; type: string; value: string }> };
+            }>;
+        }>;
+        next_offset?: string;
+        warnings?: Array<{ code: string; message: string; chain_ids?: number[] }>;
+        request_time: string;
+        response_time: string;
+    }> {
+        const cacheKey = `sim:evm:txs:${address}:${JSON.stringify(options)}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached as ReturnType<typeof this.getEvmTransactions> extends (...args: any[]) => Promise<infer R> ? R : never;
+
+        const params = new URLSearchParams();
+        if (options.chainIds) {
+            params.set('chain_ids', Array.isArray(options.chainIds) ? options.chainIds.join(',') : options.chainIds.toString());
+        }
+        if (options.limit) params.set('limit', options.limit.toString());
+        if (options.offset) params.set('offset', options.offset);
+        if (options.decode) params.set('decode', 'true');
+
+        const url = `${SIM_V1_BASE}/evm/transactions/${address}${params.toString() ? '?' + params.toString() : ''}`;
+
+        try {
+            const data = await this.fetchWithAuth<any>(url);
+            cache.set(cacheKey, data, 300); // Cache 5 minutes
+            return data;
+        } catch (error) {
+            console.error('[DuneSimClient] Error fetching EVM transactions:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get EVM collectibles (NFTs) for a wallet
+     * Endpoint: GET /v1/evm/collectibles/{address}
+     */
+    async getEvmCollectibles(
+        address: string,
+        options: {
+            chainIds?: number | number[];
+            limit?: number;
+            offset?: string;
+            filterSpam?: boolean;
+            showSpamScores?: boolean;
+        } = {}
+    ): Promise<{
+        wallet_address: string;
+        entries: Array<{
+            contract_address: string;
+            token_standard: 'ERC721' | 'ERC1155';
+            token_id: string;
+            chain: string;
+            chain_id: number;
+            name: string;
+            symbol?: string;
+            description?: string;
+            image_url?: string;
+            last_sale_price?: string;
+            metadata?: {
+                uri?: string;
+                attributes?: Array<{ key: string; value: string; format?: string }>;
+            };
+            balance: string;
+            last_acquired: string;
+            is_spam: boolean;
+            spam_score?: number;
+            explanations?: Array<{
+                feature: string;
+                value: any;
+                feature_score: number;
+                feature_weight: number;
+            }>;
+        }>;
+        next_offset?: string;
+        warnings?: Array<{ code: string; message: string; chain_ids?: number[] }>;
+        request_time: string;
+        response_time: string;
+    }> {
+        const cacheKey = `sim:evm:collectibles:${address}:${JSON.stringify(options)}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached as ReturnType<typeof this.getEvmCollectibles> extends (...args: any[]) => Promise<infer R> ? R : never;
+
+        const params = new URLSearchParams();
+        if (options.chainIds) {
+            params.set('chain_ids', Array.isArray(options.chainIds) ? options.chainIds.join(',') : options.chainIds.toString());
+        }
+        if (options.limit) params.set('limit', options.limit.toString());
+        if (options.offset) params.set('offset', options.offset);
+        if (options.filterSpam === false) params.set('filter_spam', 'false');
+        if (options.showSpamScores) params.set('show_spam_scores', 'true');
+
+        const url = `${SIM_V1_BASE}/evm/collectibles/${address}${params.toString() ? '?' + params.toString() : ''}`;
+
+        try {
+            const data = await this.fetchWithAuth<any>(url);
+            cache.set(cacheKey, data, 300); // Cache 5 minutes
+            return data;
+        } catch (error) {
+            console.error('[DuneSimClient] Error fetching EVM collectibles:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get token info for an EVM token
+     * Endpoint: GET /v1/evm/token-info/{address}
+     */
+    async getEvmTokenInfo(
+        tokenAddress: string,
+        chainId: number = 1
+    ): Promise<{
+        token: {
+            address: string;
+            chain: string;
+            chain_id: number;
+            symbol: string;
+            name: string;
+            decimals: number;
+            total_supply: string;
+            price_usd: number;
+            pool_size?: number;
+            low_liquidity?: boolean;
+            pool?: { pool_type: string; address: string; chain_id: number; tokens: string[] };
+        };
+        request_time: string;
+        response_time: string;
+    }> {
+        const cacheKey = `sim:evm:tokeninfo:${tokenAddress}:${chainId}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached as ReturnType<typeof this.getEvmTokenInfo> extends (...args: any[]) => Promise<infer R> ? R : never;
+
+        const url = `${SIM_V1_BASE}/evm/token-info/${tokenAddress}?chain_ids=${chainId}`;
+
+        try {
+            const data = await this.fetchWithAuth<any>(url);
+            cache.set(cacheKey, data, 300); // Cache 5 minutes
+            return data;
+        } catch (error) {
+            console.error('[DuneSimClient] Error fetching token info:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get stablecoin balances for a wallet
+     * Endpoint: GET /v1/evm/stablecoins/{address}
+     */
+    async getEvmStablecoins(
+        address: string,
+        options: {
+            chainIds?: number | number[];
+            excludeUnpriced?: boolean;
+            limit?: number;
+            offset?: string;
+        } = {}
+    ): Promise<{
+        wallet_address: string;
+        balances: Array<{
+            chain: string;
+            chain_id: number;
+            address: string;
+            amount: string;
+            symbol: string;
+            name: string;
+            decimals: number;
+            price_usd: number;
+            value_usd: number;
+        }>;
+        next_offset?: string;
+        warnings?: Array<{ code: string; message: string; chain_ids?: number[] }>;
+        request_time: string;
+        response_time: string;
+    }> {
+        const cacheKey = `sim:evm:stablecoins:${address}:${JSON.stringify(options)}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached as ReturnType<typeof this.getEvmStablecoins> extends (...args: any[]) => Promise<infer R> ? R : never;
+
+        const params = new URLSearchParams();
+        if (options.chainIds) {
+            params.set('chain_ids', Array.isArray(options.chainIds) ? options.chainIds.join(',') : options.chainIds.toString());
+        }
+        if (options.excludeUnpriced) params.set('exclude_unpriced', 'true');
+        if (options.limit) params.set('limit', options.limit.toString());
+        if (options.offset) params.set('offset', options.offset);
+
+        const url = `${SIM_V1_BASE}/evm/stablecoins/${address}${params.toString() ? '?' + params.toString() : ''}`;
+
+        try {
+            const data = await this.fetchWithAuth<any>(url);
+            cache.set(cacheKey, data, 60);
+            return data;
+        } catch (error) {
+            console.error('[DuneSimClient] Error fetching stablecoins:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get full EVM portfolio (tokens + NFTs + activity summary)
+     */
+    async getEvmPortfolio(
+        address: string,
+        chainId: number = 1,
+        options: {
+            includeNfts?: boolean;
+            includeActivity?: boolean;
+            includeStablecoins?: boolean;
+        } = {}
+    ): Promise<{
+        address: string;
+        chain_id: number;
+        total_value_usd: number;
+        native: { balance: string; value_usd: number; symbol: string };
+        tokens: Array<{
+            address: string;
+            balance: string;
+            value_usd: number;
+            symbol: string;
+            name: string;
+            decimals: number;
+            price_usd: number;
+            pool_size?: number;
+            low_liquidity?: boolean;
+            logo?: string;
+        }>;
+        stablecoins: Array<{
+            address: string;
+            balance: string;
+            value_usd: number;
+            symbol: string;
+        }>;
+        nfts?: Array<{
+            contract_address: string;
+            token_id: string;
+            name: string;
+            image_url?: string;
+            collection: string;
+            is_spam: boolean;
+        }>;
+        activity_summary?: {
+            total_sends: number;
+            total_receives: number;
+            total_volume_usd: number;
+        };
+        last_updated: string;
+    }> {
+        // Always fetch balances first
+        const balancesResult = await this.getEvmBalances(address, { chainIds: chainId, excludeUnpriced: true, metadata: 'logo' });
+        
+        // Process tokens and native
+        let totalValue = 0;
+        const tokens: Array<{
+            address: string;
+            balance: string;
+            value_usd: number;
+            symbol: string;
+            name: string;
+            decimals: number;
+            price_usd: number;
+            pool_size?: number;
+            low_liquidity?: boolean;
+            logo?: string;
+        }> = [];
+        let nativeBalance = '0';
+        let nativeValue = 0;
+
+        for (const bal of balancesResult.balances || []) {
+            totalValue += bal.value_usd || 0;
+            
+            if (bal.address === 'native') {
+                nativeBalance = bal.amount;
+                nativeValue = bal.value_usd || 0;
+            } else {
+                tokens.push({
+                    address: bal.address,
+                    balance: bal.amount,
+                    value_usd: bal.value_usd || 0,
+                    symbol: bal.symbol,
+                    name: bal.name,
+                    decimals: bal.decimals,
+                    price_usd: bal.price_usd || 0,
+                    pool_size: bal.pool_size,
+                    low_liquidity: bal.low_liquidity,
+                    logo: bal.token_metadata?.logo,
+                });
+            }
+        }
+
+        // Stablecoins (optional)
+        const stablecoinsList: Array<{
+            address: string;
+            balance: string;
+            value_usd: number;
+            symbol: string;
+        }> = [];
+        if (options.includeStablecoins) {
+            try {
+                const stableResult = await this.getEvmStablecoins(address, { chainIds: chainId });
+                for (const bal of stableResult.balances || []) {
+                    stablecoinsList.push({
+                        address: bal.address,
+                        balance: bal.amount,
+                        value_usd: bal.value_usd || 0,
+                        symbol: bal.symbol,
+                    });
+                }
+            } catch (e) {
+                console.warn('[DuneSimClient] Stablecoins fetch failed:', e);
+            }
+        }
+
+        // NFTs (optional)
+        const nftList: Array<{
+            contract_address: string;
+            token_id: string;
+            name: string;
+            image_url?: string;
+            collection: string;
+            is_spam: boolean;
+        }> = [];
+        if (options.includeNfts) {
+            try {
+                const nftResult = await this.getEvmCollectibles(address, { chainIds: chainId, filterSpam: true });
+                for (const nft of nftResult.entries || []) {
+                    nftList.push({
+                        contract_address: nft.contract_address,
+                        token_id: nft.token_id,
+                        name: nft.name,
+                        image_url: nft.image_url,
+                        collection: nft.symbol || nft.name,
+                        is_spam: nft.is_spam,
+                    });
+                }
+            } catch (e) {
+                console.warn('[DuneSimClient] Collectibles fetch failed:', e);
+            }
+        }
+
+        // Activity summary (optional)
+        let activitySummary: { total_sends: number; total_receives: number; total_volume_usd: number } | undefined;
+        if (options.includeActivity) {
+            try {
+                const activityResult = await this.getEvmActivity(address, { chainIds: chainId, limit: 100 });
+                let sends = 0, receives = 0, volume = 0;
+                
+                for (const act of activityResult.activity || []) {
+                    if (act.type === 'send') sends++;
+                    if (act.type === 'receive') receives++;
+                    volume += act.value_usd || 0;
+                }
+                
+                activitySummary = {
+                    total_sends: sends,
+                    total_receives: receives,
+                    total_volume_usd: volume,
+                };
+            } catch (e) {
+                console.warn('[DuneSimClient] Activity fetch failed:', e);
+            }
+        }
+
+        return {
+            address,
+            chain_id: chainId,
+            total_value_usd: totalValue + nativeValue,
+            native: {
+                balance: nativeBalance,
+                value_usd: nativeValue,
+                symbol: 'ETH',
+            },
+            tokens,
+            stablecoins: options.includeStablecoins ? stablecoinsList : [],
+            nfts: options.includeNfts ? nftList : undefined,
+            activity_summary: options.includeActivity ? activitySummary : undefined,
+            last_updated: new Date().toISOString(),
+        };
     }
 }
 

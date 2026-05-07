@@ -56,6 +56,8 @@ interface PortfolioData {
   nfts: NFTItem[];
   lastUpdated: string;
   attribution?: { text: string; url?: string };
+  stablecoins?: { address: string; symbol: string; balance: string; value: number }[];
+  activitySummary?: { send: number; receive: number; swap: number; date: string }[];
 }
 
 interface TokenItem {
@@ -67,6 +69,8 @@ interface TokenItem {
   price: number;
   value: number;
   logoUrl?: string;
+  poolSize?: number;
+  lowLiquidity?: boolean;
 }
 
 interface NFTItem {
@@ -75,6 +79,7 @@ interface NFTItem {
   name: string;
   imageUrl?: string;
   collectionName?: string;
+  isSpam?: boolean;
 }
 
 // Chain to Alchemy network mapping
@@ -137,143 +142,50 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
         const walletAddress = result.wallet.address;
         const chainKey = result.wallet.chain as keyof typeof CHAIN_CONFIG;
         const chainConfig2 = CHAIN_CONFIG[chainKey] || { id: 'linea' };
-        const alchemyNetwork = CHAIN_TO_ALCHEMY[chainConfig2.id] || 'linea-mainnet';
 
         try {
-            const key = keyManager.getWalletKey();
-            if (!key) {
-                throw new Error('No Alchemy API key available');
+            // Use Sim API (Dune) backend instead of Alchemy
+            const response = await fetchWithTimeout(
+                `/api/portfolio/${walletAddress}?chain=${chainConfig2.id}`,
+                { cache: 'no-store' },
+                30000
+            );
+            
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || errData.message || `API error: ${response.status}`);
             }
 
-            // 1. Fetch ETH balance
-            let ethBalance = '0';
-            try {
-                const ethResponse = await fetchWithTimeout(
-                    `https://${alchemyNetwork}.g.alchemy.com/v2/${key}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            jsonrpc: '2.0',
-                            id: 1,
-                            method: 'eth_getBalance',
-                            params: [walletAddress, 'latest']
-                        })
-                    },
-                    10000
-                );
-                const ethData = await ethResponse.json();
-                ethBalance = ethData.result || '0';
-            } catch (ethErr) {
-                // Silent fail
-            }
+            const data = await response.json();
+            
+            // Transform Sim API response to frontend format
+            const tokens = (data.tokens || []).map((token: any) => ({
+                contractAddress: token.address,
+                name: token.name,
+                symbol: token.symbol,
+                balance: token.balance,
+                decimals: token.decimals,
+                price: token.price,
+                value: token.value,
+                logoUrl: token.logoUrl,
+                poolSize: token.poolSize,
+                lowLiquidity: token.lowLiquidity,
+            }));
 
-            // Convert hex to decimal
-            const ethValue = ethBalance.startsWith('0x') 
-                ? parseInt(ethBalance, 16) / Math.pow(10, 18)
-                : parseFloat(ethBalance) / Math.pow(10, 18);
-
-            // 2. Fetch token balances
-            let tokens: TokenItem[] = [];
-            try {
-                const tokenResponse = await fetchWithTimeout(
-                    `https://${alchemyNetwork}.g.alchemy.com/v2/${key}`,
-                    {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            jsonrpc: '2.0',
-                            id: 1,
-                            method: 'alchemy_getTokenBalances',
-                            params: [walletAddress]
-                        })
-                    },
-                    15000
-                );
-                const tokenData = await tokenResponse.json();
-                const rawTokens = (tokenData.result?.tokenBalances || [])
-                    .filter((t: any) => parseInt(t.tokenBalance) > 0)
-                    .slice(0, 50);
-
-                if (rawTokens.length > 0) {
-                    // Fetch metadata in parallel
-                    const metadataResults = await executeBatches(rawTokens, 10, async (token: any) => {
-                        try {
-                            const metaResponse = await fetchWithTimeout(
-                                `https://${alchemyNetwork}.g.alchemy.com/v2/${key}`,
-                                {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        jsonrpc: '2.0',
-                                        id: 1,
-                                        method: 'alchemy_getTokenMetadata',
-                                        params: [token.contractAddress]
-                                    })
-                                },
-                                5000
-                            );
-                            const metaData = await metaResponse.json();
-                            const meta = metaData.result || {};
-                            const rawBal = parseInt(token.tokenBalance);
-                            const decimals = meta.decimals || 18;
-                            const balance = rawBal / Math.pow(10, decimals);
-
-                            return {
-                                contractAddress: token.contractAddress,
-                                name: meta.name || 'Unknown Token',
-                                symbol: meta.symbol || '?',
-                                balance: balance.toString(),
-                                decimals: decimals,
-                                logoUrl: meta.logo || undefined
-                            };
-                        } catch (e) {
-                            return null;
-                        }
-                    });
-
-                    // Get prices from CoinGecko
-                    const symbols = metadataResults.filter(Boolean).map((t: any) => t.symbol).filter(Boolean);
-                    let prices: Record<string, any> = {};
-                    if (symbols.length > 0) {
-                        try {
-                            const cgResponse = await fetch(
-                                `https://api.coingecko.com/api/v3/simple/price?ids=${symbols.slice(0, 10).join(',')}&vs_currencies=usd`
-                            );
-                            const cgData = await cgResponse.json();
-                            prices = cgData;
-                        } catch (priceErr) {
-                            console.warn('[WalletGridView] Price fetch error:', priceErr);
-                        }
-                    }
-
-                    // Calculate values
-                    tokens = (metadataResults.filter(Boolean) as any[]).map((token) => {
-                        const priceData = prices[token.symbol?.toLowerCase()];
-                        const price = priceData?.usd || 0;
-                        const value = parseFloat(token.balance) * price;
-                        return {
-                            ...token,
-                            price: price,
-                            value: value
-                        };
-                    });
-                }
-            } catch (tokenErr) {
-                console.error('[WalletGridView] Token fetch error:', tokenErr);
-            }
-
-            // 3. Calculate total value (ETH + tokens)
-            const tokensValue = tokens.reduce((sum, t) => sum + t.value, 0);
-            const totalValue = ethValue * 2500 + tokensValue; // Assume $2500 ETH price
+            // Calculate total value
+            const tokensValue = tokens.reduce((sum: number, t: TokenItem) => sum + (t.value || 0), 0);
+            const nativeValue = data.native?.value || 0;
+            const totalValue = (data.totalValue ?? tokensValue + nativeValue) || 0;
 
             setPortfolioData({
                 wallet: walletAddress,
                 chain: result.wallet.chain,
                 totalValue: totalValue,
                 tokens: tokens,
-                nfts: [],
-                lastUpdated: new Date().toISOString()
+                nfts: data.nfts || [],
+                stablecoins: data.stablecoins || [],
+                activitySummary: data.activitySummary,
+                lastUpdated: data.lastUpdated,
             });
 
         } catch (err: any) {
