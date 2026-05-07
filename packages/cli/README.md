@@ -119,12 +119,12 @@ fundtracer qvac-setup
 ```
 
 This will:
-1. Offer model selection (140M, 600M, 1.8B, 4B)
+1. Offer model selection (600M, 1.7B, 4B, 8B)
 2. Install QVAC packages
 3. Create config
 4. Start server on port 11434
 
-**Recommendation:** Choose QWEN3-1.8B or QWEN3-4B for better AI responses. The 600M model is too small for meaningful analysis.
+**Recommendation:** Choose QWEN3-1.7B or QWEN3-4B for better AI responses. The 600M model is too small for meaningful analysis.
 
 ## Rewards
 

@@ -25,7 +25,7 @@ import { qvacSetupCommand } from './commands/qvac-setup.js';
 import { checkQVACAvailable, printQVACNotAvailable } from './ai.js';
 import { getApiKeys, getSybilApiKeys } from './utils.js';
 
-const PKG_VERSION = '1.8.10';
+const PKG_VERSION = '1.8.11';
 
 // Professional ASCII Art Banner - Dark/Glassy theme
 const banner = `

@@ -115,7 +115,7 @@ FundTracer supports local AI analysis via QVAC. Setup:
 
 ```bash
 fundtracer qvac-setup
-# Choose Qwen3-1.8B or Qwen3-4B for best results
+# Choose Qwen3-1.7B or Qwen3-4B for best results
 ```
 
 Then use:
