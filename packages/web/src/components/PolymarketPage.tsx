@@ -21,6 +21,31 @@ const modeButtons = [
   { id: 'search', label: 'Search', icon: SearchIcon },
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 300,
+      damping: 20,
+    },
+  },
+};
+
 // Simple inline SVG icons
 function GridIcon() {
   return (
@@ -201,291 +226,244 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
     window.open(`https://polymarket.com/event/${slug}`, '_blank');
   };
 
-  // Render market card
+  // Render market card - Grid Layout
   const renderMarketCard = (market: PolymarketMarket | undefined | null, extra?: React.ReactNode) => {
-    // Guard against undefined/null market
     if (!market) return null;
     
-    return (
-    <motion.div
-      key={market.id}
-      className="section-flat"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      style={{
-        padding: isMobile ? 16 : 20,
-        marginBottom: 12,
-        cursor: 'pointer',
-      }}
-      whileHover={{ scale: 1.01 }}
-      onClick={() => setSelectedMarket(market)}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{
-            fontSize: '1rem',
-            fontWeight: 600,
-            color: 'var(--color-text-primary)',
-            marginBottom: 8,
-            lineHeight: 1.4,
-          }}>
-            {market.question}
-          </h3>
-          
-          {/* Outcome prices */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-            {market.outcomes?.map((outcome, i) => (
-              <div key={i} style={{
-                padding: '6px 12px',
-                background: 'var(--color-bg)',
-                borderRadius: 6,
-                fontSize: '0.875rem',
-              }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>{outcome}: </span>
-                <span style={{
-                  fontWeight: 600,
-                  color: i === 0 ? 'var(--color-success)' : 'var(--color-danger)',
-                }}>
-                  {market.outcomePrices?.[i] ? formatPrice(market.outcomePrices[i]) : '-'}
-                </span>
-              </div>
-            ))}
-          </div>
-          
-          {/* Stats row */}
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-            <span>24h Vol: <strong style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(market.volume24hr)}</strong></span>
-            <span>Liquidity: <strong style={{ color: 'var(--color-text-primary)' }}>{formatCurrency(market.liquidity)}</strong></span>
-            {market.endDate && (
-              <span>Ends: <strong style={{ color: 'var(--color-text-primary)' }}>{new Date(market.endDate).toLocaleDateString()}</strong></span>
-            )}
-          </div>
-          
-          {/* Extra content (spike ratio, price change, etc) */}
-          {extra}
-        </div>
-        
-        {/* Image thumbnail */}
-        {market.image && (
-          <img
-            src={market.image}
-            alt=""
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: 8,
-              objectFit: 'cover',
-            }}
-          />
-        )}
-      </div>
-      
-      {/* Tags */}
-      {market.tags && market.tags.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-          {market.tags.slice(0, 3).map((tag, i) => (
-            <span key={i} style={{
-              padding: '2px 8px',
-              background: 'var(--color-bg-hover)',
-              borderRadius: 4,
-              fontSize: '0.75rem',
-              color: 'var(--color-text-muted)',
-            }}>
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-    </motion.div>
-    );
-  };
-
-  // Render market detail modal
-  const renderMarketDetail = () => {
-    if (!selectedMarket) return null;
+    const primaryPrice = market.outcomePrices?.[0] ? parseFloat(String(market.outcomePrices[0])) : 0;
+    const isYesLikely = primaryPrice >= 0.5;
     
     return (
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        key={market.id}
+        className="polymarket-card"
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover={{ y: -4, transition: { duration: 0.2 } }}
+        onClick={() => setSelectedMarket(market)}
         style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.6)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 20,
+          cursor: 'pointer',
         }}
-        onClick={() => setSelectedMarket(null)}
       >
+        {/* Card Header with outcome indicator */}
+        <div className="polymarket-card__header" style={{
+          borderLeft: `4px solid ${isYesLikely ? 'var(--color-success)' : 'var(--color-danger)'}`,
+        }}>
+          <div className="polymarket-card__icon">
+            {market.image ? (
+              <img src={market.image} alt="" />
+            ) : (
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: 8,
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: 700,
+                fontSize: '1.1rem',
+              }}>
+                {market.question?.charAt(0).toUpperCase() || '?'}
+              </div>
+            )}
+          </div>
+          <div className="polymarket-card__title-wrap">
+            <h3 className="polymarket-card__title">{market.question}</h3>
+          </div>
+        </div>
+
+        {/* Outcome Prices */}
+        <div className="polymarket-card__outcomes">
+          {market.outcomes?.slice(0, 2).map((outcome, i) => (
+            <div key={i} className={`polymarket-card__outcome outcome-${outcome?.toLowerCase()}`}>
+              <span className="outcome-label">{outcome}</span>
+              <span className="outcome-price">
+                {market.outcomePrices?.[i] ? formatPrice(market.outcomePrices[i]) : '-'}
+              </span>
+              <div className="outcome-bar">
+                <div 
+                  className="outcome-bar-fill" 
+                  style={{ 
+                    width: `${(parseFloat(String(market.outcomePrices?.[i] || '0')) * 100)}%`,
+                    background: i === 0 ? 'var(--color-success)' : 'var(--color-danger)',
+                  }} 
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Stats Row */}
+        <div className="polymarket-card__stats">
+          <div className="stat-item">
+            <span className="stat-label">24h Vol</span>
+            <span className="stat-value">{formatCurrency(market.volume24hr)}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Liquidity</span>
+            <span className="stat-value">{formatCurrency(market.liquidity)}</span>
+          </div>
+          {market.endDate && (
+            <div className="stat-item">
+              <span className="stat-label">Ends</span>
+              <span className="stat-value">{new Date(market.endDate).toLocaleDateString()}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Extra content (spike ratio, price change) */}
+        {extra && <div className="polymarket-card__extra">{extra}</div>}
+
+        {/* Tags */}
+        {market.tags && market.tags.length > 0 && (
+          <div className="polymarket-card__tags">
+            {market.tags.slice(0, 2).map((tag, i) => (
+              <span key={i} className="tag">{tag}</span>
+            ))}
+          </div>
+        )}
+      </motion.div>
+    );
+  };
+
+  // Render market detail slide-out panel
+  const renderSlideOutPanel = () => {
+    if (!selectedMarket) return null;
+    
+    const primaryPrice = selectedMarket.outcomePrices?.[0] ? parseFloat(selectedMarket.outcomePrices[0]) : 0;
+    const isYesLikely = primaryPrice >= 0.5;
+    
+    return (
+      <>
+        {/* Backdrop */}
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          style={{
-            background: 'var(--color-bg-elevated)',
-            borderRadius: 16,
-            maxWidth: 600,
-            width: '100%',
-            maxHeight: '80vh',
-            overflow: 'auto',
-            padding: 24,
-          }}
-          onClick={e => e.stopPropagation()}
+          className="slide-out-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setSelectedMarket(null)}
+        />
+        
+        {/* Slide-out Panel */}
+        <motion.div
+          className="slide-out-panel"
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-text-primary)', flex: 1, marginRight: 16 }}>
-              {selectedMarket.question}
-            </h2>
+          {/* Panel Header */}
+          <div className="slide-out-panel__header">
+            <div className="slide-out-panel__title-wrap">
+              <h2 className="slide-out-panel__title">{selectedMarket.question}</h2>
+              {selectedMarket.slug && (
+                <span className="slide-out-panel__slug">{selectedMarket.slug}</span>
+              )}
+            </div>
             <button
+              className="slide-out-panel__close"
               onClick={() => setSelectedMarket(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 8,
-                color: 'var(--color-text-muted)',
-              }}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12"/>
               </svg>
             </button>
           </div>
-          
-          {/* Image */}
-          {selectedMarket.image && (
-            <img
-              src={selectedMarket.image}
-              alt=""
-              style={{
-                width: '100%',
-                height: 200,
-                objectFit: 'cover',
-                borderRadius: 12,
-                marginBottom: 20,
-              }}
-            />
-          )}
-          
-          {/* Description */}
-          {selectedMarket.description && (
-            <p style={{
-              color: 'var(--color-text-secondary)',
-              fontSize: '0.9375rem',
-              lineHeight: 1.6,
-              marginBottom: 20,
-            }}>
-              {selectedMarket.description}
-            </p>
-          )}
-          
-          {/* Outcomes */}
-          <div style={{ marginBottom: 20 }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 12, textTransform: 'uppercase' }}>
-              Outcomes
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {selectedMarket.outcomes?.map((outcome, i) => {
-                const price = selectedMarket.outcomePrices?.[i] ? parseFloat(selectedMarket.outcomePrices[i]) : 0;
-                return (
-                  <div key={i} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: 12,
-                    background: 'var(--color-bg)',
-                    borderRadius: 8,
-                  }}>
-                    <span style={{ flex: 1, color: 'var(--color-text-primary)' }}>{outcome}</span>
-                    <span style={{
-                      fontWeight: 700,
-                      fontSize: '1.125rem',
-                      color: i === 0 ? 'var(--color-success)' : 'var(--color-danger)',
-                    }}>
-                      {formatPrice(price)}
-                    </span>
-                    <div style={{
-                      width: 100,
-                      height: 6,
-                      background: 'var(--color-border)',
-                      borderRadius: 3,
-                      overflow: 'hidden',
-                    }}>
-                      <div style={{
-                        width: `${price * 100}%`,
-                        height: '100%',
-                        background: i === 0 ? 'var(--color-success)' : 'var(--color-danger)',
-                        borderRadius: 3,
-                      }} />
+
+          {/* Panel Content */}
+          <div className="slide-out-panel__content">
+            {/* Market Image */}
+            {selectedMarket.image && (
+              <div className="slide-out-panel__image">
+                <img src={selectedMarket.image} alt="" />
+              </div>
+            )}
+
+            {/* Description */}
+            {selectedMarket.description && (
+              <p className="slide-out-panel__description">{selectedMarket.description}</p>
+            )}
+
+            {/* Outcome Probabilities */}
+            <div className="slide-out-panel__section">
+              <h4 className="slide-out-panel__section-title">Outcome Probabilities</h4>
+              <div className="outcomes-list">
+                {selectedMarket.outcomes?.map((outcome, i) => {
+                  const price = selectedMarket.outcomePrices?.[i] ? parseFloat(selectedMarket.outcomePrices[i]) : 0;
+                  const isPrimary = i === 0;
+                  return (
+                    <div key={i} className={`outcome-row ${isPrimary ? 'outcome-row--primary' : ''}`}>
+                      <div className="outcome-row__info">
+                        <span className="outcome-row__label">{outcome}</span>
+                        <span className={`outcome-row__price ${isPrimary ? 'positive' : 'negative'}`}>
+                          {formatPrice(price)}
+                        </span>
+                      </div>
+                      <div className="outcome-row__bar">
+                        <div 
+                          className="outcome-row__bar-fill"
+                          style={{ 
+                            width: `${price * 100}%`,
+                            background: isPrimary ? 'var(--color-success)' : 'var(--color-danger)',
+                          }} 
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Stats Grid */}
+            <div className="slide-out-panel__section">
+              <h4 className="slide-out-panel__section-title">Market Stats</h4>
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <span className="stat-card__label">24h Volume</span>
+                  <span className="stat-card__value">{formatCurrency(selectedMarket.volume24hr)}</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-card__label">Total Volume</span>
+                  <span className="stat-card__value">{formatCurrency(selectedMarket.volume)}</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-card__label">Liquidity</span>
+                  <span className="stat-card__value">{formatCurrency(selectedMarket.liquidity)}</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-card__label">End Date</span>
+                  <span className="stat-card__value">
+                    {selectedMarket.endDate ? new Date(selectedMarket.endDate).toLocaleDateString() : '-'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tags */}
+            {selectedMarket.tags && selectedMarket.tags.length > 0 && (
+              <div className="slide-out-panel__section">
+                <div className="tags-list">
+                  {selectedMarket.tags.map((tag, i) => (
+                    <span key={i} className="tag-pill">{tag}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Button */}
+            <button
+              className="trade-button"
+              onClick={() => openOnPolymarket(selectedMarket.slug)}
+            >
+              <span>Trade on Polymarket</span>
+              <ExternalLinkIcon />
+            </button>
           </div>
-          
-          {/* Stats */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 12,
-            marginBottom: 20,
-          }}>
-            <div style={{ padding: 16, background: 'var(--color-bg)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>24h Volume</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                {formatCurrency(selectedMarket.volume24hr)}
-              </div>
-            </div>
-            <div style={{ padding: 16, background: 'var(--color-bg)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>Total Volume</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                {formatCurrency(selectedMarket.volume)}
-              </div>
-            </div>
-            <div style={{ padding: 16, background: 'var(--color-bg)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>Liquidity</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                {formatCurrency(selectedMarket.liquidity)}
-              </div>
-            </div>
-            <div style={{ padding: 16, background: 'var(--color-bg)', borderRadius: 8 }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: 4 }}>End Date</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                {selectedMarket.endDate ? new Date(selectedMarket.endDate).toLocaleDateString() : '-'}
-              </div>
-            </div>
-          </div>
-          
-          {/* Action button */}
-          <button
-            onClick={() => openOnPolymarket(selectedMarket.slug)}
-            style={{
-              width: '100%',
-              padding: '14px 20px',
-              background: 'var(--color-accent)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 10,
-              fontSize: '1rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-            }}
-          >
-            Trade on Polymarket
-            <ExternalLinkIcon />
-          </button>
         </motion.div>
-      </motion.div>
+      </>
     );
   };
 
@@ -637,133 +615,89 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
         </div>
       )}
 
-      {/* Content */}
+{/* Content - Grid Layout */}
       {!loading && !error && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
           style={{ marginTop: 16 }}
         >
           {/* Trending Markets */}
           {viewMode === 'trending' && trendingMarkets.length > 0 && (
             <>
-              <div style={{
-                padding: isMobile ? '16px 16px 8px' : '16px 20px 8px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--color-text-muted)',
-              }}>
+              <div className="section-title">
                 Top Markets by 24h Volume
               </div>
-              {trendingMarkets.map(market => renderMarketCard(market))}
+              <motion.div className="markets-grid">
+                {trendingMarkets.map(market => renderMarketCard(market))}
+              </motion.div>
             </>
           )}
 
           {/* Volume Spikes */}
           {viewMode === 'spikes' && volumeSpikes.length > 0 && (
             <>
-              <div style={{
-                padding: isMobile ? '16px 16px 8px' : '16px 20px 8px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--color-text-muted)',
-              }}>
+              <div className="section-title">
                 Unusual Volume Activity
               </div>
-              {volumeSpikes
-                .filter(spike => spike?.market)
-                .map(spike => renderMarketCard(spike.market, (
-                <div style={{
-                  marginTop: 12,
-                  padding: 10,
-                  background: 'rgba(var(--accent-rgb), 0.1)',
-                  borderRadius: 6,
-                  fontSize: '0.875rem',
-                }}>
-                  <span style={{ color: 'var(--color-accent)', fontWeight: 600 }}>
-                    {safeToFixed(spike.spikeRatio)}x
-                  </span>
-                  <span style={{ color: 'var(--color-text-muted)' }}> above average volume</span>
-                </div>
-              )))}
+              <motion.div className="markets-grid">
+                {volumeSpikes
+                  .filter(spike => spike?.market)
+                  .map(spike => renderMarketCard(spike.market, (
+                    <div className="spike-badge">
+                      <span className="spike-value">{safeToFixed(spike.spikeRatio)}x</span>
+                      <span className="spike-label">above avg</span>
+                    </div>
+                  )))}
+              </motion.div>
             </>
           )}
 
           {/* Price Movers */}
           {viewMode === 'movers' && priceMovers.length > 0 && (
             <>
-              <div style={{
-                padding: isMobile ? '16px 16px 8px' : '16px 20px 8px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--color-text-muted)',
-              }}>
+              <div className="section-title">
                 Biggest Price Movements
               </div>
-              {priceMovers
-                .filter(mover => mover?.market)
-                .map(mover => renderMarketCard(mover.market, (
-                <div style={{
-                  marginTop: 12,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  fontSize: '0.875rem',
-                }}>
-                  <span style={{
-                    padding: '4px 10px',
-                    borderRadius: 4,
-                    background: (mover.priceChange ?? 0) >= 0 ? 'rgba(0, 200, 100, 0.1)' : 'rgba(255, 100, 100, 0.1)',
-                    color: (mover.priceChange ?? 0) >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
-                    fontWeight: 600,
-                  }}>
-                    {formatPercent(mover.priceChange)}
-                  </span>
-                  <span style={{ color: 'var(--color-text-muted)' }}>
-                    {formatPrice(mover.previousPrice)} &rarr; {formatPrice(mover.currentPrice)}
-                  </span>
-                </div>
-              )))}
+              <motion.div className="markets-grid">
+                {priceMovers
+                  .filter(mover => mover?.market)
+                  .map(mover => renderMarketCard(mover.market, (
+                    <div className="mover-badge">
+                      <span className={`mover-value ${(mover.priceChange ?? 0) >= 0 ? 'positive' : 'negative'}`}>
+                        {formatPercent(mover.priceChange)}
+                      </span>
+                      <span className="mover-range">
+                        {formatPrice(mover.previousPrice)} → {formatPrice(mover.currentPrice)}
+                      </span>
+                    </div>
+                  )))}
+              </motion.div>
             </>
           )}
 
           {/* All Markets */}
           {viewMode === 'all' && allMarkets.length > 0 && (
             <>
-              <div style={{
-                padding: isMobile ? '16px 16px 8px' : '16px 20px 8px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--color-text-muted)',
-              }}>
+              <div className="section-title">
                 All Markets ({allMarkets.length})
               </div>
-              {allMarkets.map(market => renderMarketCard(market))}
+              <motion.div className="markets-grid">
+                {allMarkets.map(market => renderMarketCard(market))}
+              </motion.div>
             </>
           )}
 
           {/* Search Results */}
           {viewMode === 'search' && searchResults.length > 0 && (
             <>
-              <div style={{
-                padding: isMobile ? '16px 16px 8px' : '16px 20px 8px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--color-text-muted)',
-              }}>
+              <div className="section-title">
                 Search Results ({searchResults.length})
               </div>
-              {searchResults.map(market => renderMarketCard(market))}
+              <motion.div className="markets-grid">
+                {searchResults.map(market => renderMarketCard(market))}
+              </motion.div>
             </>
           )}
 
@@ -780,15 +714,15 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
           {viewMode === 'movers' && priceMovers.length === 0 && !loading && (
             <EmptyState message="No significant price movements" />
           )}
-          {viewMode === 'search' && searchQuery && searchResults.length === 0 && !loading && (
+{viewMode === 'search' && searchQuery && searchResults.length === 0 && !loading && (
             <EmptyState message={`No markets found for "${searchQuery}"`} />
           )}
         </motion.div>
       )}
 
-      {/* Market Detail Modal */}
+      {/* Slide-out Panel */}
       <AnimatePresence>
-        {selectedMarket && renderMarketDetail()}
+        {selectedMarket && renderSlideOutPanel()}
       </AnimatePresence>
     </motion.div>
   );

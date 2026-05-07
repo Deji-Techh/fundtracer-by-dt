@@ -51,7 +51,7 @@ export function PolymarketView() {
   );
 }
 
-// Skeleton loading state
+// Skeleton loading state - Updated for grid layout
 function PolymarketSkeleton() {
   return (
     <div className="polymarket-skeleton">
@@ -62,20 +62,31 @@ function PolymarketSkeleton() {
         ))}
       </div>
 
-      {/* Cards skeleton */}
-      <div className="polymarket-skeleton__grid">
+      {/* Section title skeleton */}
+      <div className="section-title">
+        <div className="skeleton" style={{ width: '180px', height: 14 }} />
+      </div>
+
+      {/* Cards skeleton - Grid */}
+      <div className="markets-grid">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="polymarket-skeleton__card">
-            <div className="polymarket-skeleton__card-header">
-              <div className="polymarket-skeleton__card-icon skeleton" />
-              <div className="polymarket-skeleton__card-title skeleton" />
+          <div key={i} className="polymarket-card skeleton-card">
+            {/* Card header */}
+            <div className="skeleton-card__header">
+              <div className="skeleton skeleton-card__icon" />
+              <div className="skeleton skeleton-card__title" />
             </div>
-            <div className="polymarket-skeleton__card-question skeleton" />
-            <div className="polymarket-skeleton__card-meta">
-              <div className="polymarket-skeleton__card-stat skeleton" />
-              <div className="polymarket-skeleton__card-stat skeleton" />
+            {/* Outcomes */}
+            <div className="skeleton-card__outcomes">
+              <div className="skeleton skeleton-card__outcome" />
+              <div className="skeleton skeleton-card__outcome" />
             </div>
-            <div className="polymarket-skeleton__card-bar skeleton" />
+            {/* Stats */}
+            <div className="skeleton-card__stats">
+              <div className="skeleton skeleton-card__stat" />
+              <div className="skeleton skeleton-card__stat" />
+              <div className="skeleton skeleton-card__stat" />
+            </div>
           </div>
         ))}
       </div>
