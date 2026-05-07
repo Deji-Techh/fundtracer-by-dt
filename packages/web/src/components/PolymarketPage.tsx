@@ -125,12 +125,17 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
   
   // Selected market for detail view
   const [selectedMarket, setSelectedMarket] = useState<PolymarketMarket | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const isMobile = useIsMobile();
 
   // Load data based on view mode
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     
     try {
@@ -164,12 +169,32 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
       setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, [viewMode]);
 
+  // Load on mount
   useEffect(() => {
     if (viewMode !== 'search') {
       loadData();
+    }
+  }, [viewMode, loadData]);
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (viewMode !== 'search') {
+        loadData(true);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [viewMode, loadData]);
+
+  // Manual refresh handler
+  const handleRefresh = useCallback(() => {
+    if (viewMode !== 'search') {
+      loadData(true);
     }
   }, [viewMode, loadData]);
 
@@ -221,9 +246,11 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
     return value.toFixed(decimals);
   };
 
-  // Open market on Polymarket
+  // Open market on Polymarket with correct URL format
   const openOnPolymarket = (slug: string) => {
-    window.open(`https://polymarket.com/event/${slug}`, '_blank');
+    // Remove trailing outcome suffix (e.g., "..yes", "..no")
+    const cleanSlug = slug.replace(/\.\.(yes|no)$/i, '');
+    window.open(`https://polymarket.com/event/${cleanSlug}?outcomeIndex=0`, '_blank');
   };
 
   // Render market card - Grid Layout
@@ -480,14 +507,54 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
       >
-        <h1>Prediction Markets</h1>
-        <p>Explore prediction markets, volume spikes, and price movers on Polymarket</p>
+        <div>
+          <h1>Prediction Markets</h1>
+          <p>Explore prediction markets, volume spikes, and price movers on Polymarket</p>
+        </div>
+        <motion.button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 40,
+            background: 'var(--color-bg)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 8,
+            cursor: isRefreshing ? 'not-allowed' : 'pointer',
+            color: 'var(--color-text-secondary)',
+          }}
+          title="Refresh data"
+        >
+          <motion.svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            animate={isRefreshing ? { rotate: 360 } : {}}
+            transition={isRefreshing ? { duration: 1, repeat: Infinity, ease: "linear" } : {}}
+          >
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 16h5v5"/>
+          </motion.svg>
+        </motion.button>
       </motion.div>
 
-      {/* Tab Bar - Improved UI */}
+      {/* Tab Bar */}
       <motion.div
-        className="polymarket-tabs"
+        className="tab-bar-flat"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -495,23 +562,16 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
         {modeButtons.map((mode, index) => (
           <motion.button
             key={mode.id}
-            className={`polymarket-tab ${viewMode === mode.id ? 'active' : ''}`}
+            className={`tab-item ${viewMode === mode.id ? 'active' : ''}`}
             onClick={() => setViewMode(mode.id as ViewMode)}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ backgroundColor: 'var(--color-bg-hover)' }}
             whileTap={{ scale: 0.98 }}
           >
-            <span className="polymarket-tab__icon"><mode.icon /></span>
-            <span className="polymarket-tab__label">{mode.label}</span>
-            {viewMode === mode.id && (
-              <motion.div 
-                className="polymarket-tab__indicator"
-                layoutId="activeTab"
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            )}
+            <mode.icon />
+            <span>{mode.label}</span>
           </motion.button>
         ))}
       </motion.div>
@@ -594,7 +654,7 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
             </div>
             <div style={{ color: 'var(--color-text-secondary)' }}>{error}</div>
             <button
-              onClick={loadData}
+              onClick={() => loadData(false)}
               style={{
                 marginTop: 12,
                 padding: '8px 16px',
@@ -611,14 +671,33 @@ const PolymarketPage: React.FC<PolymarketPageProps> = () => {
         )}
       </AnimatePresence>
 
-      {/* Loading State */}
+      {/* Loading State - Skeleton */}
       {loading && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          padding: 40,
-        }}>
-          <div className="loading-spinner" />
+        <div className="polymarket-skeleton">
+          {/* Section title skeleton */}
+          <div className="section-title">
+            <div className="skeleton" style={{ width: '180px', height: 14 }} />
+          </div>
+          {/* Cards skeleton - Grid */}
+          <div className="markets-grid">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="polymarket-card skeleton-card">
+                <div className="skeleton-card__header">
+                  <div className="skeleton skeleton-card__icon" />
+                  <div className="skeleton skeleton-card__title" />
+                </div>
+                <div className="skeleton-card__outcomes">
+                  <div className="skeleton skeleton-card__outcome" />
+                  <div className="skeleton skeleton-card__outcome" />
+                </div>
+                <div className="skeleton-card__stats">
+                  <div className="skeleton skeleton-card__stat" />
+                  <div className="skeleton skeleton-card__stat" />
+                  <div className="skeleton skeleton-card__stat" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

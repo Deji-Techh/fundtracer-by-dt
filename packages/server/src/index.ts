@@ -649,6 +649,14 @@ server = app.listen(PORT, async () => {
         console.error('[Server] Failed to start Polymarket watcher:', error);
     }
 
+    // Start Polymarket periodic data refresh
+    try {
+        const { polymarketService } = await import('./services/PolymarketService.js');
+        polymarketService.startPeriodicRefresh();
+    } catch (error) {
+        console.error('[Server] Failed to start Polymarket periodic refresh:', error);
+    }
+
     // Start keep-alive pinger to prevent Render cold starts
     const RAILWAY_URL = process.env.RAILWAY_URL || 'https://fundtracer-by-dt-production.up.railway.app';
     keepAliveInterval = setInterval(() => {

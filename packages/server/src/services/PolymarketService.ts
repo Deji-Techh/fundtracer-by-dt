@@ -248,7 +248,7 @@ export class PolymarketService {
     const url = `${GAMMA_API}/markets?${queryParams.toString()}`;
     const cacheKey = `polymarket:markets:${queryParams.toString()}`;
 
-    const rawMarkets = await this.fetch<any[]>(url, cacheKey, 60); // 1 min cache
+    const rawMarkets = await this.fetch<any[]>(url, cacheKey, 3600); // 1 hour cache
 
     return rawMarkets.map(m => this.normalizeMarket(m));
   }
@@ -850,6 +850,46 @@ export class PolymarketService {
       text: 'Powered by Polymarket',
       url: 'https://polymarket.com'
     };
+  }
+
+  /**
+   * Preload all data into Redis cache on server startup
+   */
+  async preloadAllData(): Promise<void> {
+    console.log('[PolymarketService] Starting data preloading...');
+    const preloadKeys = [
+      { key: 'polymarket:preload:trending', fn: () => this.getTrendingMarkets(20) },
+      { key: 'polymarket:preload:markets', fn: () => this.getMarkets({ active: true, closed: false, limit: 50 }) },
+    ];
+
+    for (const item of preloadKeys) {
+      try {
+        const data = await item.fn();
+        if (isRedisConnected()) {
+          await getOrSet(item.key, async () => data, 3600); // 1 hour cache
+          console.log(`[PolymarketService] Preloaded: ${item.key}`);
+        }
+      } catch (error) {
+        console.error(`[PolymarketService] Failed to preload ${item.key}:`, error);
+      }
+    }
+    console.log('[PolymarketService] Data preloading complete');
+  }
+
+  /**
+   * Start periodic refresh (every hour)
+   */
+  startPeriodicRefresh(): void {
+    console.log('[PolymarketService] Starting periodic refresh (every 1 hour)');
+    
+    // Initial preload
+    this.preloadAllData();
+
+    // Refresh every hour
+    setInterval(() => {
+      console.log('[PolymarketService] Periodic refresh triggered');
+      this.preloadAllData();
+    }, 60 * 60 * 1000); // 1 hour
   }
 }
 
