@@ -43,6 +43,9 @@ interface FundingTreeProps {
     onGenerate?: () => void;
     isLoading?: boolean;
     error?: string | null;
+    // Legacy props for backward compatibility with AnalysisView
+    node?: FundingNode;
+    direction?: 'source' | 'destination';
 }
 
 // --- Entity type color helpers ---
@@ -340,11 +343,20 @@ const MobileTreeView = ({
 
 // --- Main Component ---
 
-function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum', treeDepth = 2, onDepthChange, onGenerate, isLoading, error: externalError }: FundingTreeProps) {
-    const [activeDirection, setActiveDirection] = useState<'source' | 'destination'>('source');
+function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum', treeDepth = 2, onDepthChange, onGenerate, isLoading, error: externalError, node: legacyNode, direction: legacyDirection }: FundingTreeProps) {
+    // Move validation BEFORE hooks - compute chain config and node first
+    const chainConfig = CHAINS[chain] || { explorer: '#', name: 'Unknown' };
+    const isChainValid = !!chainConfig;
     
-    // Choose which node to display based on active activeDirection
-    const node = activeDirection === 'source' ? sourceData : destData;
+    // Handle legacy props from AnalysisView - use direction to set initial state
+    const [activeDirection, setActiveDirection] = useState<'source' | 'destination'>(legacyDirection || 'source');
+    
+    // For legacy usage (AnalysisView), use the single node prop
+    // For new usage (WalletGridView), use sourceData/destData
+    const sourceNode = legacyNode && legacyDirection === 'source' ? legacyNode : sourceData;
+    const destNode = legacyNode && legacyDirection === 'destination' ? legacyNode : destData;
+    const node = activeDirection === 'source' ? sourceNode : destNode;
+    const hasNodeData = !!(node && node.address);
     
     const svgRef = useRef<SVGSVGElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -363,51 +375,10 @@ function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum', 
     // Mobile state
     const [showMobileGraph, setShowMobileGraph] = useState(false);
 
-    const chainConfig = CHAINS[chain] || { explorer: '#', name: 'Unknown' };
     const isMobile = useIsMobile();
 
-    // Safety checks
-    if (!chainConfig) {
-        console.error('[FundingTree] Invalid chain config for chain:', chain);
-        return null;
-    }
-
-    if (!node || !node.address) {
-        return (
-            <div className="funding-tree-empty">
-                <div className="funding-tree-controls">
-                    <div className="tree-depth-selector">
-                        <label>Tree Depth:</label>
-                        <select 
-                            value={treeDepth} 
-                            onChange={(e) => onDepthChange?.(Number(e.target.value))}
-                            disabled={isLoading}
-                        >
-                            <option value={1}>1 hop</option>
-                            <option value={2}>2 hops</option>
-                            <option value={3}>3 hops</option>
-                            <option value={4}>4 hops</option>
-                        </select>
-                    </div>
-                    <button 
-                        className={`generate-tree-btn ${isLoading ? 'loading' : ''}`}
-                        onClick={onGenerate}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? 'Generating...' : 'Generate Funding Tree'}
-                    </button>
-                </div>
-                
-                {externalError && (
-                    <div className="tree-error">{externalError}</div>
-                )}
-                
-                <div className="funding-tree-placeholder">
-                    <p>Click "Generate Funding Tree" to visualize fund sources and destinations</p>
-                </div>
-            </div>
-        );
-    }
+    // Check if we should show empty state - do this AFTER all hooks are called
+    const showEmptyState = !isChainValid || !hasNodeData;
 
     // Toggle node collapse
     const toggleCollapse = useCallback((address: string) => {
@@ -670,10 +641,12 @@ function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum', 
 
     // 1. Mobile list view
     if (isMobile && !showMobileGraph) {
+        // node is guaranteed to exist here after empty state check
+        const validNode = node as NonNullable<typeof node>;
         return (
             <div style={{ position: 'relative' }}>
                 <MobileTreeView
-                    node={node}
+                    node={validNode}
                     activeDirection={activeDirection}
                     chainConfig={chainConfig}
                     onShowGraph={() => setShowMobileGraph(true)}
@@ -717,6 +690,44 @@ function FundingTree({ sourceData, destData, targetAddress, chain = 'ethereum', 
         background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--color-surface-border)', overflow: 'hidden',
     };
+
+    // Render empty state if no data
+    if (showEmptyState) {
+        return (
+            <div className="funding-tree-empty">
+                <div className="funding-tree-controls">
+                    <div className="tree-depth-selector">
+                        <label>Tree Depth:</label>
+                        <select 
+                            value={treeDepth} 
+                            onChange={(e) => onDepthChange?.(Number(e.target.value))}
+                            disabled={isLoading}
+                        >
+                            <option value={1}>1 hop</option>
+                            <option value={2}>2 hops</option>
+                            <option value={3}>3 hops</option>
+                            <option value={4}>4 hops</option>
+                        </select>
+                    </div>
+                    <button 
+                        className={`generate-tree-btn ${isLoading ? 'loading' : ''}`}
+                        onClick={onGenerate}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Generating...' : 'Generate Funding Tree'}
+                    </button>
+                </div>
+                
+                {externalError && (
+                    <div className="tree-error">{externalError}</div>
+                )}
+                
+                <div className="funding-tree-placeholder">
+                    <p>Click "Generate Funding Tree" to visualize fund sources and destinations</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div ref={containerRef} className={`funding-tree-container ${isFullscreen || (isMobile && showMobileGraph) ? 'fullscreen' : ''}`}>
