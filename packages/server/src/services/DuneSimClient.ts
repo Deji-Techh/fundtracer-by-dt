@@ -766,7 +766,7 @@ export class DuneSimClient {
         if (options.limit) params.set('limit', options.limit.toString());
         if (options.offset) params.set('offset', options.offset);
 
-        const url = `${SIM_V1_BASE}/evm/stablecoins/${address}${params.toString() ? '?' + params.toString() : ''}`;
+        const url = `${SIM_V1_BASE}/evm/balances/${address}/stablecoins${params.toString() ? '?' + params.toString() : ''}`;
 
         try {
             const data = await this.fetchWithAuth<any>(url);
