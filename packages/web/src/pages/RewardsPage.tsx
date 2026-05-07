@@ -35,11 +35,6 @@ const campaigns = [
     type: 'leaderboard',
     participants: 0,
     endsIn: null,
-    prize: [
-      { place: '1st', amount: '2.5%', icon: Crown },
-      { place: '2nd', amount: '1.5%', icon: Medal },
-      { place: '3rd', amount: '1.0%', icon: Medal },
-    ],
     active: true
   }
 ];
@@ -96,7 +91,7 @@ const howItWorks = [
   {
     step: 4,
     title: 'Claim Equity',
-    description: 'Rewards vest over 12-24 months with cliff periods',
+    description: 'Claim permanently into your Google account',
     icon: Lock,
     gradient: 'from-blue-500 to-cyan-500'
   }
@@ -337,8 +332,7 @@ export default function RewardsPage() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              The more you analyze, the more equity you earn. Top performers win 
-              life-changing shares in FundTracer. No capture required.
+              Analyze blockchain activity, earn equity. No forms, no fees — just do the work and own a piece of FundTracer.
             </motion.p>
 
             <motion.div 
@@ -571,16 +565,6 @@ export default function RewardsPage() {
                     <div className="campaign-participants">
                       <Wallet size={14} />
                       <span>{campaignStats[campaign.id]?.participants || '—'} analyzing</span>
-                    </div>
-
-                    <div className="campaign-prizes">
-                      {campaign.prize.map((p, i) => (
-                        <div key={i} className="prize-item">
-                          <p.icon size={14} />
-                          <span>{p.place}</span>
-                          <strong>{p.amount}</strong>
-                        </div>
-                      ))}
                     </div>
 
                     <motion.button 

@@ -57,6 +57,12 @@ export function IntelPage() {
   const [trendingTokens, setTrendingTokens] = useState<TrendingToken[]>([]);
   const [liveFeed, setLiveFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [buttonLoading, setButtonLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setButtonLoading(false), 2500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch market stats from CoinGecko
   const fetchMarketStats = useCallback(async () => {
@@ -253,7 +259,9 @@ export function IntelPage() {
       transparent={true}
       headerRight={
         <div className="intel-header-actions">
-          {isAuthenticated ? (
+          {buttonLoading ? (
+            <div className="skeleton-btn" style={{ width: 100, height: 36, borderRadius: 6 }} />
+          ) : isAuthenticated ? (
             <button className="intel-btn intel-btn--primary" onClick={() => navigate('/app-evm')}>
               Launch App
             </button>
@@ -286,15 +294,24 @@ export function IntelPage() {
               across multiple blockchains in real-time.
             </p>
             <div className="intel-hero__actions">
-              <button className="intel-btn intel-btn--primary intel-btn--lg" onClick={handleLaunchApp}>
-                Start Investigating
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-              <button className="intel-btn intel-btn--secondary intel-btn--lg" onClick={() => navigate('/pricing')}>
-                View Pricing
-              </button>
+              {buttonLoading ? (
+                <>
+                  <div className="skeleton-btn" style={{ width: 180, height: 48, borderRadius: 8 }} />
+                  <div className="skeleton-btn" style={{ width: 130, height: 48, borderRadius: 8 }} />
+                </>
+              ) : (
+                <>
+                  <button className="intel-btn intel-btn--primary intel-btn--lg" onClick={handleLaunchApp}>
+                    Start Investigating
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  <button className="intel-btn intel-btn--secondary intel-btn--lg" onClick={() => navigate('/pricing')}>
+                    View Pricing
+                  </button>
+                </>
+              )}
             </div>
           </div>
           
