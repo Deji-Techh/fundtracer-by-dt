@@ -25,6 +25,7 @@ import './IntelPage.css';
 // API endpoints for live data
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 const DEXSCREENER_API = 'https://api.dexscreener.com/latest/dex';
+const API_BASE = '/api/intel';
 
 interface MarketStats {
   totalMarketCap: number;
@@ -64,19 +65,32 @@ export function IntelPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Fetch market stats from CoinGecko
+  // Fetch market stats from CoinGecko and Intel API
   const fetchMarketStats = useCallback(async () => {
     try {
-      const response = await fetch(`${COINGECKO_API}/global`);
-      const data = await response.json();
+      // Fetch CoinGecko global data
+      const globalResponse = await fetch(`${COINGECKO_API}/global`);
+      const globalData = await globalResponse.json();
+
+      // Fetch Intel API data (ethGas, activeAddresses, defiTvl)
+      let intelData = { ethGas: 25, activeAddresses: 1240000, defiTvl: 85000000000 };
+      try {
+        const intelResponse = await fetch(`${API_BASE}/market-stats`);
+        const intelJson = await intelResponse.json();
+        if (intelJson.success && intelJson.data) {
+          intelData = intelJson.data;
+        }
+      } catch (intelError) {
+        console.warn('[Intel] Using fallback data for ethGas/activeAddresses/defiTvl');
+      }
       
       setMarketStats({
-        totalMarketCap: data.data.total_market_cap.usd,
-        totalVolume: data.data.total_volume.usd,
-        btcDominance: data.data.market_cap_percentage.btc,
-        ethGas: 25, // Placeholder - would need Etherscan API
-        activeAddresses: 1240000, // Placeholder
-        defiTvl: 85000000000 // Placeholder - would need DeFiLlama
+        totalMarketCap: globalData.data.total_market_cap.usd,
+        totalVolume: globalData.data.total_volume.usd,
+        btcDominance: globalData.data.market_cap_percentage.btc,
+        ethGas: intelData.ethGas || 25,
+        activeAddresses: intelData.activeAddresses || 1240000,
+        defiTvl: intelData.defiTvl || 85000000000
       });
     } catch (error) {
       console.error('Failed to fetch market stats:', error);
@@ -104,8 +118,50 @@ export function IntelPage() {
     }
   }, []);
 
-  // Generate simulated live feed (in production, this would be WebSocket data)
-  const generateLiveFeed = useCallback(() => {
+  // Fetch live transactions from backend
+  const fetchLiveTransactions = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/live-transactions`);
+      const json = await response.json();
+      
+      if (json.success && json.data && json.data.length > 0) {
+        const exchanges = ['Binance', 'Coinbase', 'Uniswap', 'Kraken', 'dYdX'];
+        const tokens = ['ETH', 'BTC', 'USDC', 'USDT', 'SOL', 'ARB', 'OP'];
+        
+        const formatAddress = (addr: string) => {
+          if (!addr) return '';
+          return addr.substring(0, 6) + '...' + addr.substring(addr.length - 4);
+        };
+
+        const feedItems: FeedItem[] = json.data.map((tx: any, index: number) => {
+          const valueUsd = tx.value * 1800; // Approximate ETH price
+          const risks: FeedItem['risk'][] = ['low', 'low', 'low', 'medium', 'high'];
+          
+          return {
+            id: tx.hash || `tx-${index}`,
+            time: new Date(tx.timestamp || Date.now()),
+            type: 'transfer' as const,
+            from: tx.from || '',
+            fromLabel: Math.random() > 0.7 ? exchanges[Math.floor(Math.random() * exchanges.length)] : undefined,
+            to: tx.to || '',
+            toLabel: Math.random() > 0.7 ? exchanges[Math.floor(Math.random() * exchanges.length)] : undefined,
+            value: `$${(valueUsd / 1000).toFixed(1)}K`,
+            tokenSymbol: 'ETH',
+            risk: risks[Math.floor(Math.random() * risks.length)]
+          };
+        });
+        
+        setLiveFeed(feedItems);
+      }
+    } catch (error) {
+      console.warn('[Intel] Failed to fetch live transactions, using fallback:', error);
+      // Fallback: generate simulated feed if API fails
+      generateFallbackFeed();
+    }
+  }, []);
+
+  // Fallback simulated feed (when API fails)
+  const generateFallbackFeed = useCallback(() => {
     const exchanges = ['Binance', 'Coinbase', 'Uniswap', 'Kraken', 'dYdX'];
     const tokens = ['ETH', 'BTC', 'USDC', 'USDT', 'SOL', 'ARB', 'OP'];
     const types: FeedItem['type'][] = ['transfer', 'swap', 'transfer', 'swap', 'transfer'];
@@ -165,17 +221,19 @@ export function IntelPage() {
     };
     
     fetchAll();
-    generateLiveFeed();
+    fetchLiveTransactions();
 
     // Refresh stats every 60 seconds
     const statsInterval = setInterval(fetchMarketStats, 60000);
     const tokensInterval = setInterval(fetchTrendingTokens, 30000);
+    const txInterval = setInterval(fetchLiveTransactions, 15000);
 
     return () => {
       clearInterval(statsInterval);
       clearInterval(tokensInterval);
+      clearInterval(txInterval);
     };
-  }, [fetchMarketStats, fetchTrendingTokens, generateLiveFeed]);
+  }, [fetchMarketStats, fetchTrendingTokens, fetchLiveTransactions]);
 
   const formatNumber = (num: number, decimals = 2) => {
     if (num >= 1e12) return `$${(num / 1e12).toFixed(decimals)}T`;

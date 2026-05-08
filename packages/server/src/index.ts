@@ -96,6 +96,7 @@ import paymentRoutes from './routes/payment.js';
 import contactRoutes from './routes/contact.js';
 import transactionRoutes from './routes/transaction.js';
 import gasRoutes from './routes/gas.js';
+import intelRoutes from './routes/intel.js';
 import { PaymentListener } from './services/PaymentListener.js';
 import contractService from './services/ContractService.js';
 
@@ -471,6 +472,7 @@ apiRouter.use('/payment', publicLimiter, paymentRoutes); // Payment verification
 apiRouter.use('/contact', publicLimiter, contactRoutes); // Contact/sales form
 apiRouter.use('/tx', apiKeyAuthMiddleware, transactionRoutes); // Transaction lookup
 apiRouter.use('/gas', apiKeyAuthMiddleware, gasRoutes); // Gas prices
+apiRouter.use('/intel', publicLimiter, intelRoutes); // Intel page data (public)
 apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
 apiRouter.use('/track', trackRoutes);
 import { smartMoneyRoutes } from './routes/smartMoney.js';
