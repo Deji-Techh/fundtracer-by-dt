@@ -388,20 +388,35 @@ async function checkServerRunning(host: string = '127.0.0.1', port: number = 114
     });
 }
 
+async function checkModelLoaded(): Promise<boolean> {
+    try {
+        const response = await fetch('http://127.0.0.1:11434/v1/models', {
+            method: 'GET',
+            signal: AbortSignal.timeout(5000)
+        });
+        if (response.ok) {
+            const data = await response.json() as { data?: { id: string }[] | undefined };
+            return !!(data?.data && data.data.length > 0);
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 async function tryStartServer(dir: string, modelName: string): Promise<boolean> {
     const cliPath = path.join(dir, 'node_modules', '@qvac', 'cli', 'dist', 'index.js');
     
-    // Calculate wait time based on model size
-    // 600M: ~30s, 1.7B: ~60s, 4B: ~120s, 8B: ~180s
-    let baseWaitTime = 2000;
+    // Calculate wait time based on model size -大幅增加!
+    // 600M: ~30s, 1.7B: ~90s, 4B: ~240s, 8B: ~360s
     let maxRetries = 30;
     
     if (modelName.includes('4B')) {
-        maxRetries = 90; // 180 seconds
+        maxRetries = 150; // 300 seconds (5 minutes!)
     } else if (modelName.includes('8B')) {
-        maxRetries = 120; // 240 seconds
+        maxRetries = 200; // 400 seconds
     } else if (modelName.includes('1.7B')) {
-        maxRetries = 45; // 90 seconds
+        maxRetries = 60; // 120 seconds
     }
     
     console.log(c.gray(`  Starting ${modelName} (this may take up to ${maxRetries * 2}s)...`));
@@ -424,7 +439,8 @@ async function tryStartServer(dir: string, modelName: string): Promise<boolean> 
             continue;
         }
         
-        if (await checkServerRunning()) {
+        // Check if model is actually loaded (not just port open)
+        if (await checkModelLoaded()) {
             return true;
         }
     }
