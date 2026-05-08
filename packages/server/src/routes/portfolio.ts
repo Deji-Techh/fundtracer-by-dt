@@ -1,16 +1,62 @@
 import { Router, Request, Response } from 'express';
 import { duneSimClient, EVM_CHAIN_IDS } from '../services/DuneSimClient.js';
+import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
 
 const router = Router();
 
+// Helper: check if address is Solana (base58, not hex)
+function isSolanaAddress(addr: string): boolean {
+  // Solana addresses are base58: 32-44 chars, alphanumeric (excluding 0, O, I, l)
+  const SOLANA_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  return SOLANA_REGEX.test(addr);
+}
+
 // GET /api/portfolio/:walletAddress
-// Now uses Sim API (Dune) for EVM chains
+// Now uses Sim API (Dune) for EVM chains and SolanaPortfolioService for Solana
 router.get('/:walletAddress', async (req: Request, res: Response) => {
   try {
     const { walletAddress } = req.params;
     const chain = (req.query.chain as string) || 'linea';
 
     console.log('[Portfolio] Request - wallet:', walletAddress, 'chain:', chain);
+
+    // Handle Solana chain
+    if (chain.toLowerCase() === 'solana' || isSolanaAddress(walletAddress)) {
+      const solanaChain = 'solana';
+      console.log('[Portfolio] Fetching Solana portfolio...');
+
+      const portfolio = await solanaPortfolioService.getPortfolio(walletAddress);
+
+      res.json({
+        wallet: walletAddress,
+        chain: solanaChain,
+        chainId: 'solana',
+        totalValue: portfolio.totalUsd,
+        native: {
+          balance: (portfolio.sol.sol / 1e9).toString(),
+          value: portfolio.sol.sol,
+          symbol: 'SOL',
+        },
+        tokens: portfolio.tokens.map(token => ({
+          address: token.mint,
+          symbol: token.symbol || '',
+          name: token.name || '',
+          balance: token.uiAmount?.toString() || '0',
+          decimals: token.decimals,
+          price: token.price,
+          value: token.value,
+          logoUrl: token.logoUrl,
+          poolSize: undefined,
+          lowLiquidity: false,
+        })),
+        stablecoins: [],
+        nfts: [],
+        activitySummary: null,
+        attribution: { text: 'Solana SIM API' },
+        lastUpdated: portfolio.fetchedAt,
+      });
+      return;
+    }
 
     if (!walletAddress || !walletAddress.startsWith('0x')) {
       return res.status(400).json({ error: 'Invalid wallet address' });
@@ -91,6 +137,31 @@ router.get('/:walletAddress/tokens', async (req: Request, res: Response) => {
     const chain = (req.query.chain as string) || 'linea';
     const excludeSpam = req.query.exclude_spam === 'true';
     const excludeUnpriced = req.query.exclude_unpriced === 'true';
+
+    // Handle Solana
+    if (chain.toLowerCase() === 'solana' || isSolanaAddress(walletAddress)) {
+      const portfolio = await solanaPortfolioService.getPortfolio(walletAddress);
+      res.json({
+        wallet: walletAddress,
+        chain: 'solana',
+        chainId: 'solana',
+        native: { balance: (portfolio.sol.sol / 1e9).toString(), value: portfolio.sol.sol },
+        tokens: portfolio.tokens.map(t => ({
+          address: t.mint,
+          symbol: t.symbol || '',
+          name: t.name || '',
+          balance: t.uiAmount?.toString() || '0',
+          decimals: t.decimals,
+          price: t.price,
+          value: t.value,
+          logo: t.logoUrl,
+          poolSize: undefined,
+          lowLiquidity: false,
+        })),
+        nextOffset: undefined,
+      });
+      return;
+    }
 
     if (!walletAddress || !walletAddress.startsWith('0x')) {
       return res.status(400).json({ error: 'Invalid wallet address' });
