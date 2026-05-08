@@ -953,17 +953,34 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
 
         // Try to fetch interactors from Dune first if configured
         let externalInteractors: string[] = [];
+        let externalInteractorData: Array<{
+            address: string;
+            firstInteraction: number;
+            lastInteraction: number;
+            interactionCount: number;
+            totalValueIn: number;
+            totalValueOut: number;
+        }> = [];
+
         const duneKey = process.env.DUNE_API_KEY;
 
         if (duneKey) {
             try {
                 console.log('[DEBUG] Attempting to fetch interactors from Dune...');
                 const duneService = new DuneService(duneKey);
-                externalInteractors = await duneService.getContractInteractors(
+                
+                // Use the richer method that includes timestamps and values
+                externalInteractorData = await duneService.getContractInteractorsWithData(
                     chain as string,
                     contractAddress
                 );
-                console.log(`[DEBUG] Dune returned ${externalInteractors.length} interactors`);
+                
+                if (externalInteractorData.length > 0) {
+                    console.log(`[DEBUG] Dune returned ${externalInteractorData.length} interactors with data`);
+                    externalInteractors = externalInteractorData.map(d => d.address);
+                } else {
+                    console.log('[DEBUG] Dune returned empty, falling back to RPC');
+                }
             } catch (duneError) {
                 console.error('[DEBUG] Dune fetch failed, falling back to RPC:', duneError);
                 // Fallback to empty array -> RPC
@@ -975,7 +992,8 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
             analyzer.analyzeContract(contractAddress, chain as ChainId, {
                 maxInteractors: options?.maxInteractors || 100,
                 analyzeFunding: options?.analyzeFunding !== false,
-                externalInteractors: externalInteractors.length > 0 ? externalInteractors : undefined
+                externalInteractors: externalInteractors.length > 0 ? externalInteractors : undefined,
+                externalInteractorData: externalInteractorData.length > 0 ? externalInteractorData : undefined
             }),
             180000, // 180 second timeout for complete contract analysis
             'Contract analysis'

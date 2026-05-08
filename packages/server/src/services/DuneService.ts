@@ -15,6 +15,71 @@ export class DuneService {
         }
     }
 
+    /**
+     * Fetch contract interactors with actual transaction data from Dune
+     * Returns richer data than just addresses - includes timestamps, counts, values
+     */
+    async getContractInteractorsWithData(chain: string, contractAddress: string, limit: number = 1000): Promise<Array<{
+        address: string;
+        firstInteraction: number;
+        lastInteraction: number;
+        interactionCount: number;
+        totalValueIn: number;
+        totalValueOut: number;
+    }>> {
+        const chainTableMap: Record<string, string> = {
+            ethereum: 'ethereum.transactions',
+            polygon: 'polygon.transactions',
+            arbitrum: 'arbitrum.transactions',
+            optimism: 'optimism.transactions',
+            base: 'base.transactions',
+            linea: 'linea.transactions',
+            bsc: 'bnb.transactions',
+        };
+
+        const duneTable = chainTableMap[chain.toLowerCase()] || 'ethereum.transactions';
+        const contractLower = contractAddress.toLowerCase();
+
+        // Query with actual transaction data - aggregate by wallet
+        const query = `
+            SELECT 
+                "from" as wallet,
+                MIN(block_number) as first_block,
+                MAX(block_number) as last_block,
+                COUNT(*) as tx_count,
+                SUM("value" / 1e18) as total_eth_in,
+                0 as total_eth_out
+            FROM ${duneTable}
+            WHERE LOWER(CAST("to" AS VARCHAR)) = '${contractLower}'
+            GROUP BY "from"
+            ORDER BY tx_count DESC, first_block ASC
+            LIMIT ${limit}
+        `;
+
+        try {
+            console.log(`[DuneService] Fetching interactors with data for ${contractAddress} on ${chain}`);
+            const result = await this.executeQuery(query);
+
+            if (result && result.result && result.result.rows) {
+                return result.result.rows.map((r: any) => ({
+                    address: r.wallet?.toLowerCase() || '',
+                    firstInteraction: r.first_block || 0,
+                    lastInteraction: r.last_block || 0,
+                    interactionCount: r.tx_count || 1,
+                    totalValueIn: parseFloat(r.total_eth_in || 0),
+                    totalValueOut: parseFloat(r.total_eth_out || 0),
+                })).filter((r: any) => r.address);
+            }
+            return [];
+        } catch (error) {
+            console.error('[DuneService] Error fetching interactors with data:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Legacy method - returns only addresses (kept for backward compatibility)
+     */
     async getContractInteractors(chain: string, contractAddress: string, limit: number = 1000): Promise<string[]> {
         const chainTableMap: Record<string, string> = {
             ethereum: 'ethereum.transactions',

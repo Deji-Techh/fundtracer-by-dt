@@ -386,7 +386,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                     exit={{ opacity: 0, x: -300 }}
                                     transition={{ duration: 0.3 }}
                                 >
-                                    {(result.sharedFundingGroups || []).length === 0 ? (
+                                    {(sharedFundingGroups.length === 0) ? (
                                         <div className="empty-state">
                                             <CheckmarkCircle02Icon size={48} />
                                             <h3>No Shared Funding Detected</h3>
@@ -394,33 +394,46 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                         </div>
                                     ) : (
                                         <div className="shared-groups">
-                                            {(result.sharedFundingGroups || []).map((group: any, i: number) => (
-                                                <motion.div
-                                                    key={i}
-                                                    className="shared-group-card"
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: i * 0.1 }}
-                                                >
-                                                    <div className="group-header">
-                                                        <span className="funding-source">{formatAddress(group.fundingSource || '')}</span>
-                                                        <span className="wallet-count">{group.count || 0} wallets</span>
-                                                    </div>
-                                                    <div className="wallets-list">
-                                                        {(group.wallets || []).slice(0, 5).map((wallet: string, j: number) => (
-                                                            <span key={j} className="wallet-chip" 
-                                                                onMouseEnter={(e) => setHoveredAddress({ address: wallet, x: e.clientX, y: e.clientY })}
-                                                                onMouseLeave={() => setHoveredAddress(null)}
-                                                            >
-                                                                {formatAddress(wallet)}
+                                            {sharedFundingGroups.map((group: SharedFundingGroup, i: number) => {
+                                                const wallets = group?.wallets || [];
+                                                const fundingSource = group?.fundingSource;
+                                                
+                                                return (
+                                                    <motion.div
+                                                        key={i}
+                                                        className="shared-group-card"
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: i * 0.1 }}
+                                                    >
+                                                        <div className="group-header">
+                                                            <span className="funding-source">
+                                                                {fundingSource ? formatAddress(fundingSource) : 'Unknown'}
                                                             </span>
-                                                        ))}
-                                                        {(group.wallets || []).length > 5 && (
-                                                            <span className="more">+{(group.wallets || []).length - 5} more</span>
-                                                        )}
-                                                    </div>
-                                                </motion.div>
-                                            ))}
+                                                            <span className="wallet-count">{group.count || 0} wallets</span>
+                                                        </div>
+                                                        <div className="wallets-list">
+                                                            {wallets.length > 0 ? (
+                                                                <>
+                                                                    {wallets.slice(0, 5).map((wallet: string, j: number) => (
+                                                                        <span key={j} className="wallet-chip" 
+                                                                            onMouseEnter={(e) => setHoveredAddress({ address: wallet, x: e.clientX, y: e.clientY })}
+                                                                            onMouseLeave={() => setHoveredAddress(null)}
+                                                                        >
+                                                                            {formatAddress(wallet)}
+                                                                        </span>
+                                                                    ))}
+                                                                    {wallets.length > 5 && (
+                                                                        <span className="more">+{wallets.length - 5} more</span>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <span className="no-wallets">No wallet data available</span>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </motion.div>

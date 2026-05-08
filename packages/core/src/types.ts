@@ -131,7 +131,8 @@ export type SuspiciousPatternType =
     | 'same_block_activity'
     | 'fresh_wallet'
     | 'circular_flow'
-    | 'known_bad_actor';
+    | 'known_bad_actor'
+    | 'no_prior_funding';
 
 /** Complete wallet analysis result */
 export interface AnalysisResult {

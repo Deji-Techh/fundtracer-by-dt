@@ -22,6 +22,16 @@ import {
 import { ProviderFactory, ApiKeyConfig } from '../providers/ProviderFactory.js';
 import { getAddressInfo } from '../data/KnownAddresses.js';
 
+/** Interactor data from external sources like Dune */
+export interface ExternalInteractorData {
+    address: string;
+    firstInteraction: number;
+    lastInteraction: number;
+    interactionCount: number;
+    totalValueIn: number;
+    totalValueOut: number;
+}
+
 // Known contract addresses for project identification
 const KNOWN_PROJECTS: Record<string, { name: string; category: ProjectInteraction['category'] }> = {
     '0x7a250d5630b4cf539739df2c5dacb4c659f2488d': { name: 'Uniswap V2 Router', category: 'defi' },
@@ -275,6 +285,8 @@ export class WalletAnalyzer {
             analyzeFunding?: boolean;
             // Allow external provider of interactors (like Dune)
             externalInteractors?: string[];
+            // Rich data from external sources with actual timestamps and values
+            externalInteractorData?: ExternalInteractorData[];
         } = {}
     ): Promise<{
         contractAddress: string;
@@ -313,16 +325,40 @@ export class WalletAnalyzer {
         if (options.externalInteractors && options.externalInteractors.length > 0) {
             this.reportProgress('Using provided interactors', 1, 4, `Processing ${options.externalInteractors.length} wallets...`);
 
-            // For external interactors, we only have the address initially
+            // Check if we have rich data from external sources (Dune with timestamps/values)
+            const richDataMap = new Map<string, ExternalInteractorData>();
+            if (options.externalInteractorData && options.externalInteractorData.length > 0) {
+                for (const data of options.externalInteractorData) {
+                    richDataMap.set(data.address.toLowerCase(), data);
+                }
+            }
+
+            // For external interactors, use rich data if available, otherwise use address only
             for (const addr of options.externalInteractors) {
                 const normalized = addr.toLowerCase();
-                interactorMap.set(normalized, {
-                    count: 1, // Assumed at least 1
-                    valueIn: 0,
-                    valueOut: 0,
-                    firstTs: Math.floor(Date.now() / 1000),
-                    lastTs: Math.floor(Date.now() / 1000)
-                });
+                const richData = richDataMap.get(normalized);
+
+                if (richData) {
+                    // Use actual data from Dune - convert block numbers to approximate timestamps
+                    // Block timestamps are approximated (Linea ~12s/block, Ethereum ~12s/block)
+                    const SECONDS_PER_BLOCK = 12;
+                    interactorMap.set(normalized, {
+                        count: richData.interactionCount,
+                        valueIn: richData.totalValueIn,
+                        valueOut: richData.totalValueOut,
+                        firstTs: richData.firstInteraction * SECONDS_PER_BLOCK,
+                        lastTs: richData.lastInteraction * SECONDS_PER_BLOCK,
+                    });
+                } else {
+                    // Legacy fallback - only address provided, no timestamps
+                    interactorMap.set(normalized, {
+                        count: 1,
+                        valueIn: 0,
+                        valueOut: 0,
+                        firstTs: Math.floor(Date.now() / 1000),
+                        lastTs: Math.floor(Date.now() / 1000),
+                    });
+                }
             }
         } else {
             this.reportProgress('Fetching contract transactions', 1, 4, 'Getting transactions to contract...');
@@ -378,6 +414,9 @@ export class WalletAnalyzer {
             count: number;
         }> = [];
 
+        // Track wallets with no prior funding (created specifically for this contract)
+        const walletsWithoutPriorFunding: string[] = [];
+
         if (options.analyzeFunding !== false) {
             this.reportProgress('Analyzing funding sources', 2, 4, `Tracing funding for ${interactors.length} wallets...`);
 
@@ -398,6 +437,9 @@ export class WalletAnalyzer {
                             const existing = fundingMap.get(funding.address) || [];
                             existing.push(interactor.address);
                             fundingMap.set(funding.address, existing);
+                        } else {
+                            // No prior funding found - wallet was likely created for this contract
+                            walletsWithoutPriorFunding.push(interactor.address);
                         }
                     } catch (e) {
                         // ignore errors
@@ -456,6 +498,30 @@ export class WalletAnalyzer {
                 score: 20,
             });
             riskScore += 20;
+        }
+
+        // Check for wallets with no prior funding (created specifically for this contract)
+        if (walletsWithoutPriorFunding.length > 0) {
+            const noFundingPercent = walletsWithoutPriorFunding.length / interactors.length;
+            if (noFundingPercent >= 0.5) {
+                suspiciousPatterns.push({
+                    type: 'no_prior_funding',
+                    severity: 'high',
+                    description: `${walletsWithoutPriorFunding.length} of ${interactors.length} interactors have no prior on-chain history (created for this contract)`,
+                    evidence: walletsWithoutPriorFunding.slice(0, 5),
+                    score: 40,
+                });
+                riskScore += 40;
+            } else if (noFundingPercent >= 0.2) {
+                suspiciousPatterns.push({
+                    type: 'no_prior_funding',
+                    severity: 'medium',
+                    description: `${walletsWithoutPriorFunding.length} of ${interactors.length} interactors have no prior on-chain history`,
+                    evidence: walletsWithoutPriorFunding.slice(0, 5),
+                    score: 20,
+                });
+                riskScore += 20;
+            }
         }
 
         return {
