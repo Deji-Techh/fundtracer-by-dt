@@ -389,7 +389,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     successfulTxs: transactions.filter(t => t.status === 'success').length,
                     failedTxs: transactions.filter(t => t.status === 'failed').length,
                     totalValueSentEth: 0,
-                    totalValueReceivedEth: parseFloat(walletInfo.balance || '0'),
+                    totalValueReceivedEth: parseFloat(walletInfo.balance || '0') || 0,
                     uniqueInteractedAddresses: uniqueContracts.size,
                     topFundingSources: [],
                     topFundingDestinations: [],
@@ -500,6 +500,60 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
     const isSolana = normalizedChain === 'solana';
     if (isSolana ? !SOL_ADDR_REGEX.test(address) : !ETH_ADDRESS_REGEX.test(address)) {
         return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
+    }
+
+    // SOLANA FUNDING TREE
+    if (isSolana) {
+        try {
+            const { SolanaAdapter } = await import('@fundtracer/core');
+            const solanaAdapter = new SolanaAdapter();
+
+            // Get transactions to find funders/destinations
+            const transactions = await solanaAdapter.getTransactions(address, { limit: 100 });
+            
+            // Find unique source and destination addresses
+            const sources = new Set<string>();
+            const destinations = new Set<string>();
+            transactions.forEach(tx => {
+                if (tx.from && tx.from !== address) sources.add(tx.from);
+                if (tx.to && tx.to !== address) destinations.add(tx.to);
+            });
+
+            // Build tree structure
+            const fundingSources = {
+                nodes: Array.from(sources).slice(0, 20).map((addr, i) => ({
+                    address: addr,
+                    depth: 1,
+                    direction: 'source' as const,
+                    totalValue: '0',
+                    totalValueInEth: 0,
+                    txCount: transactions.filter(t => t.from === addr).length,
+                    labels: [],
+                })),
+                edges: []
+            };
+            const fundingDestinations = {
+                nodes: Array.from(destinations).slice(0, 20).map((addr, i) => ({
+                    address: addr,
+                    depth: 1,
+                    direction: 'destination' as const,
+                    totalValue: '0',
+                    totalValueInEth: 0,
+                    txCount: transactions.filter(t => t.to === addr).length,
+                    labels: [],
+                })),
+                edges: []
+            };
+
+            return res.json({
+                success: true,
+                result: { fundingSources, fundingDestinations },
+                usageRemaining: res.locals.usageRemaining,
+            });
+        } catch (error: any) {
+            console.error('[Solana Funding Tree] Error:', error);
+            return res.status(500).json({ error: 'Solana funding tree failed', message: error.message });
+        }
     }
 
     try {
@@ -688,7 +742,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
                                 successfulTxs: wtxs.filter(t => t.status === 'success').length,
                                 failedTxs: wtxs.filter(t => t.status === 'failed').length,
                                 totalValueSentEth: 0,
-                                totalValueReceivedEth: parseFloat(w.walletInfo.balance || '0'),
+                                totalValueReceivedEth: parseFloat(w.walletInfo.balance || '0') || 0,
                                 uniqueInteractedAddresses: uniqueContracts.size,
                                 topFundingSources: [],
                                 topFundingDestinations: [],
