@@ -9,12 +9,13 @@ import InvestigateView from '../design-system/features/InvestigateView';
 import { getAuthToken } from '../api';
 import './AppPage.css';
 
-type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'sui' | 'history' | 'settings';
+type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'sui' | 'history' | 'settings' | 'radar';
 
 const PortfolioView = lazy(() => import('../design-system/features/PortfolioView'));
 const PolymarketView = lazy(() => import('../design-system/features/PolymarketView'));
 const HistoryView = lazy(() => import('../design-system/features/HistoryView'));
 const SettingsView = lazy(() => import('../design-system/features/SettingsView'));
+const RadarView = lazy(() => import('../design-system/features/RadarView'));
 
 function PageSkeleton() {
   return (
@@ -193,6 +194,14 @@ export function AppPage() {
       </svg>
     ), badge: 3 },
     { id: 'section-system', label: 'System', icon: null },
+    { id: 'radar', label: 'Radar', icon: (
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <circle cx="7" cy="7" r="1.5"/>
+        <path d="M7 2v2M7 10v2M2 7h2M10 7h2"/>
+        <circle cx="7" cy="7" r="5" strokeDasharray="2 1"/>
+        <path d="M7 3.5c1 1.5 1 3.5 0 4.5M7 3.5c-1.5 1-3.5 1-4.5 0M7 10.5c-1-1.5-1-3.5 0-4.5M7 10.5c1.5-1 3.5-1 4.5 0"/>
+      </svg>
+    )},
     { id: 'settings', label: 'Settings', icon: (
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="7" cy="7" r="2"/>
@@ -216,6 +225,8 @@ export function AppPage() {
         return <Suspense fallback={<PageSkeleton />}><HistoryView onSelectScan={() => {}} /></Suspense>;
       case 'settings':
         return <Suspense fallback={<PageSkeleton />}><SettingsView onConnectWallet={handleConnectWallet} isWalletConnected={isWalletConnected} walletAddress={walletAddress} /></Suspense>;
+      case 'radar':
+        return <Suspense fallback={<PageSkeleton />}><RadarView /></Suspense>;
       case 'sui':
         return <Suspense fallback={<PageSkeleton />}><InvestigateView suiMode={true} /></Suspense>;
       default:
