@@ -427,6 +427,43 @@ JWT_SECRET=your-secret
 
 ---
 
+## Changelog
+
+### 2026-05-08
+
+**Solana Support Added**
+
+- `/api/analyze/wallet` now supports Solana chain via direct Helius integration
+  - Returns wallet info (balance, tx count)
+  - Returns transactions with program interactions
+  - Returns summary (unique contracts, first/last activity timestamp)
+
+- `/api/analyze/compare` now supports Solana chain
+  - Uses SolanaAdapter directly to fetch wallet data
+  - Finds common transactions between wallets
+  - Finds common program interactions
+  - Calculates correlation score (% overlapping transactions)
+  - Reports direct transfers between wallets
+
+**Radar Feature Updates**
+
+- Removed all emojis from UI
+- Email section replaced with 4-grid boxes:
+  - Email Notifications (toggle on/off)
+  - Frequency (Instant/Hourly/Daily digest)
+  - Your Email (read-only from account)
+  - Custom Message (display)
+- Email now permanently linked to user account (non-editable)
+
+**Bug Fixes**
+
+- Added Solana to ALLOWED_CHAINS
+- Address validation now chain-aware (EVM vs Solana regex)
+- Compare endpoint validates chain before addresses
+- Proper error handling instead of 500 crashes
+
+---
+
 ## License
 
 GNU General Public License v3.0 - See [LICENSE](LICENSE)
