@@ -30,6 +30,7 @@ import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 const SUI_ADDRESS_REGEX = /^0x[a-fA-F0-9]{64}$/;
+const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 // Chain configuration - support both frontend IDs and canonical names
 const ALLOWED_CHAINS = [
@@ -910,10 +911,17 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         return res.json({ success: true, result: sanitizedCached, usageRemaining: res.locals.usageRemaining, cached: true });
     }
 
-    // Validate all addresses
+    // Validate all addresses based on chain
+    const isSolanaChain = normalizedChain === 'solana';
     for (const addr of addresses) {
-        if (!ETH_ADDRESS_REGEX.test(addr)) {
-            return res.status(400).json({ error: 'Invalid address format' });
+        if (isSolanaChain) {
+            if (!SOLANA_ADDRESS_REGEX.test(addr)) {
+                return res.status(400).json({ error: 'Invalid Solana address format' });
+            }
+        } else {
+            if (!ETH_ADDRESS_REGEX.test(addr)) {
+                return res.status(400).json({ error: 'Invalid address format' });
+            }
         }
     }
 
