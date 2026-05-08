@@ -519,7 +519,11 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 solanaPortfolioService.getTransactions(address, txLimit)
             ]);
 
-            // Format for consistent API response
+// Add more detailed summary calculations
+            const txTimestamps = transactions.map(t => t.blockTime).filter(Boolean);
+            const minTimestamp = txTimestamps.length > 0 ? Math.min(...txTimestamps) : 0;
+            const daysActive = minTimestamp > 0 ? Math.ceil((Date.now() - minTimestamp) / 86400000) : 0;
+
             const solanaResult = {
                 wallet: {
                     address: address,
@@ -536,16 +540,16 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     from: t.from,
                     to: t.to || '',
                     value: (t.amount || 0).toString(),
-                    valueInEth: (t.amount || 0) / 1e9, // Convert lamports to SOL
+                    valueInEth: (t.amount || 0) / 1e9,
                     fee: t.fee.toString(),
                     gasUsed: t.fee.toString(),
                     gasPrice: '0',
                     gasCostInEth: t.fee / 1e9,
                     status: t.status === 'success' ? 'success' : 'failed',
                     category: t.token ? 'token_transfer' : 'transfer',
-                    timestamp: Math.floor(t.blockTime / 1000), // Convert ms to seconds for frontend (EVM standard)
+                    timestamp: Math.floor(t.blockTime / 1000),
                     blockNumber: t.slot,
-                    isIncoming: false, // Will be calculated client-side from wallet address
+                    isIncoming: false,
                     methodId: undefined,
                     methodName: undefined,
                 })),
@@ -554,22 +558,13 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     totalTransactions: transactions.length,
                     successfulTxs: transactions.filter(t => t.status === 'success').length,
                     failedTxs: transactions.filter(t => t.status === 'failed').length,
-                    // Calculate sent/received based on the analyzed wallet address
                     totalValueSentEth: transactions.filter(t => t.from === address).reduce((sum, t) => sum + (t.amount || 0) / 1e9, 0),
                     totalValueReceivedEth: transactions.filter(t => t.to === address).reduce((sum, t) => sum + (t.amount || 0) / 1e9, 0),
                     uniqueInteractedAddresses: new Set([
                         ...transactions.map(t => t.from),
                         ...transactions.map(t => t.to)
                     ].filter(Boolean)).size,
-                    activityPeriodDays: (() => {
-                        if (transactions.length === 0) return 0;
-                        const timestamps = transactions.map(t => t.blockTime).filter(Boolean);
-                        if (timestamps.length === 0) return 0;
-                        // timestamps are in ms from Dune, convert to days from now
-                        const minTs = Math.min(...timestamps);
-                        const msDiff = Date.now() - minTs;
-                        return Math.max(1, Math.ceil(msDiff / (1000 * 60 * 60 * 24));
-                    })(),
+                    activityPeriodDays: Math.max(1, daysActive),
                 },
             };
 
