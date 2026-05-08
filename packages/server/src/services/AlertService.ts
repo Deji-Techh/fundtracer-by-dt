@@ -1,10 +1,12 @@
 /**
- * Alert Service - Firestore CRUD for wallet alerts
+ * Alert Service - Firestore CRUD for wallet alerts + Redis cache for activity
  */
 import { getFirestore, admin } from '../firebase.js';
+import { cacheGet, cacheSet, cacheDel, cacheDelPattern, isRedisConnected } from '../utils/redis.js';
 
 const ALERTS_COLLECTION = 'radar_alerts';
 const ACTIVITY_COLLECTION = 'radar_activity';
+const ACTIVITY_CACHE_TTL_SECONDS = 300; // 5 minutes
 
 export interface RadarAlert {
     id: string;
@@ -25,6 +27,7 @@ export interface RadarActivity {
     id: string;
     alertId: string;
     address: string;
+    userId: string;
     type: 'received' | 'sent' | 'swap' | 'nft' | 'stake' | 'other';
     amount?: number;
     amountUSD?: number;
@@ -159,12 +162,20 @@ class AlertService {
     }
 
     /**
-     * Record activity for an alert
+     * Record activity for an alert - INVALIDATES CACHE
      */
     async recordActivity(data: Omit<RadarActivity, 'id'>): Promise<string> {
         const docRef = this.db.collection(ACTIVITY_COLLECTION).doc();
         
         await docRef.set(data);
+
+        // Invalidate user's activity cache
+        if (isRedisConnected()) {
+            const userId = data.userId || 'unknown';
+            await cacheDel(`radar:activity:${userId}:*`);
+            console.log(`[Radar] Invalidated cache for user ${userId}`);
+        }
+
         return docRef.id;
     }
 
@@ -185,9 +196,22 @@ class AlertService {
     }
 
     /**
-     * Get all activity for a user's alerts (for live feed)
+     * Get all activity for a user's alerts (for live feed) - WITH REDIS CACHE
      */
     async getLiveActivity(userId: string, limit: number = 100): Promise<RadarActivity[]> {
+        const cacheKey = `radar:activity:${userId}:${limit}`;
+        
+        // Check Redis cache first
+        if (isRedisConnected()) {
+            const cached = await cacheGet<RadarActivity[]>(cacheKey);
+            if (cached && cached.length > 0) {
+                console.log(`[Radar] Cache HIT for ${userId}`);
+                return cached.slice(0, limit);
+            }
+            console.log(`[Radar] Cache MISS for ${userId}`);
+        }
+
+        // Cache miss - fetch from Firestore
         const alerts = await this.getAlertsByUser(userId);
         const alertIds = alerts.map(a => a.id);
 
@@ -220,7 +244,15 @@ class AlertService {
             return timeB - timeA;
         });
 
-        return activities.slice(0, limit);
+        const result = activities.slice(0, limit);
+
+        // Cache the result
+        if (isRedisConnected() && result.length > 0) {
+            await cacheSet(cacheKey, result, ACTIVITY_CACHE_TTL_SECONDS);
+            console.log(`[Radar] Cached ${result.length} activities for ${userId}`);
+        }
+
+        return result;
     }
 
     /**
