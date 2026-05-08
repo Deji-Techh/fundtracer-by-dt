@@ -36,7 +36,7 @@ const MESSAGE_TEMPLATES = [
   { id: 'new_tx', label: 'New transaction detected', text: 'New transaction detected on {address}' },
   { id: 'large_tx', label: 'Large transfer', text: 'Large transfer of {amount} {token} (${amountUSD}) detected from {address}' },
   { id: 'suspicious', label: 'Suspicious activity', text: 'Suspicious activity detected involving {address}' },
-  { id: 'token_swap', label: 'Token swap', text: 'Token swap detected: {amountIn} → {amountOut}' },
+  { id: 'token_swap', label: 'Token swap', text: 'Token swap detected: {amountIn} -> {amountOut}' },
   { id: 'custom', label: 'Custom message', text: '' },
 ];
 
@@ -196,12 +196,12 @@ const RadarView: React.FC = () => {
 
   const getActivityIcon = (type: LiveActivity['type']) => {
     switch (type) {
-      case 'received': return '↓';
-      case 'sent': return '↑';
-      case 'swap': return '⇄';
-      case 'nft': return '🎨';
-      case 'stake': return '⚡';
-      default: return '•';
+      case 'received': return 'IN';
+      case 'sent': return 'OUT';
+      case 'swap': return 'SWAP';
+      case 'nft': return 'NFT';
+      case 'stake': return 'STAKE';
+      default: return '--';
     }
   };
 
@@ -410,9 +410,9 @@ const RadarView: React.FC = () => {
               <div key={alert.id} className={`wallet-card ${!alert.enabled ? 'paused' : ''}`}>
                 <div className="wallet-card-header">
                   <div className="wallet-card-icon">
-                    {alert.alertType === 'any_transaction' ? '🔔' : 
-                     alert.alertType === 'large_transfer' ? '🐋' :
-                     alert.alertType === 'suspicious' ? '⚠️' : '📊'}
+                    {alert.alertType === 'any_transaction' ? 'TX' : 
+                     alert.alertType === 'large_transfer' ? '$' :
+                     alert.alertType === 'suspicious' ? '!' : 'CH'}
                   </div>
                   <div className="wallet-card-info">
                     <div className="wallet-label">{alert.label}</div>
@@ -454,37 +454,51 @@ const RadarView: React.FC = () => {
             </div>
           </div>
 
-          {/* Email Settings */}
-          <div className="email-settings-section">
-            <div className="section-header">
-              <h3>EMAIL NOTIFICATIONS</h3>
-              {emailSettings.verified && <span className="synced-badge">Synced</span>}
+          {/* Email Settings - 4 Grid Boxes */}
+          <div className="settings-grid">
+            <div className="settings-box">
+              <div className="box-header">EMAIL NOTIFICATIONS</div>
+              <div className="box-content">
+                <label className="toggle-label">
+                  <input 
+                    type="checkbox" 
+                    checked={emailSettings.enabled}
+                    onChange={(e) => setEmailSettings({...emailSettings, enabled: e.target.checked})}
+                  />
+                  <span className="toggle-switch"></span>
+                  <span className="toggle-text">{emailSettings.enabled ? 'On' : 'Off'}</span>
+                </label>
+              </div>
             </div>
-            <div className="email-card">
-              <div className="email-input-row">
-                <input 
-                  type="email" 
-                  placeholder="your@email.com"
-                  value={emailSettings.address}
-                  onChange={(e) => setEmailSettings({...emailSettings, address: e.target.value, verified: false})}
-                  className="email-input"
-                />
-                <button className="verify-btn" onClick={handleVerifyEmail}>
-                  {emailSettings.verified ? '✓ Verified' : 'Verify'}
-                </button>
+            
+            <div className="settings-box">
+              <div className="box-header">FREQUENCY</div>
+              <div className="box-content">
+                <select 
+                  className="frequency-select"
+                  defaultValue="instant"
+                >
+                  <option value="instant">Instant</option>
+                  <option value="hourly">Hourly Digest</option>
+                  <option value="daily">Daily Digest</option>
+                </select>
               </div>
-              <div className="custom-message-row">
-                <span className="custom-label">Custom message:</span>
-                <button className="customize-btn" onClick={() => setShowTemplateModal(true)}>
-                  {emailSettings.customMessage ? 'Edit' : 'Add'} 
-                  {emailSettings.customMessage && ' ✏️'}
-                </button>
+            </div>
+            
+            <div className="settings-box">
+              <div className="box-header">YOUR EMAIL</div>
+              <div className="box-content">
+                <div className="email-display">{emailSettings.address || 'Loading...'}</div>
               </div>
-              {emailSettings.customMessage && (
-                <div className="custom-message-preview">
-                  "{emailSettings.customMessage}"
+            </div>
+            
+            <div className="settings-box">
+              <div className="box-header">CUSTOM MESSAGE</div>
+              <div className="box-content">
+                <div className="custom-msg-display">
+                  {emailSettings.customMessage || 'Using default template'}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -492,7 +506,7 @@ const RadarView: React.FC = () => {
         {/* Right Column - Live Activity */}
         <div className="radar-activity-section">
           <div className="section-header">
-            <h3>⚡ LIVE ACTIVITY</h3>
+            <h3>LIVE ACTIVITY</h3>
             <span className="live-badge">● Live</span>
           </div>
           
@@ -547,7 +561,7 @@ const RadarView: React.FC = () => {
               </div>
             </div>
             <button className="banner-cta" onClick={() => navigateTo('/features')}>
-              Learn More →
+              Learn More
             </button>
           </div>
         </div>
