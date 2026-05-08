@@ -738,26 +738,26 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
         });
     }
 
-    // Handle Solana chain - use SolanaAdapter from core
+    // Handle Solana chain - use new dedicated SolanaFundingTreeService
     if (normalizedChain === 'solana') {
         try {
-            // @ts-ignore - core package
-            const { SolanaAdapter } = await import('@fundtracer/core');
-            const solanaAdapter = new SolanaAdapter();
+            const { SolanaFundingTreeService } = await import('../services/SolanaFundingTreeService.js');
+            
+            const alchemyKey = process.env.ALCHEMY_SOLANA_API_KEY;
+            if (!alchemyKey) {
+                return res.status(500).json({ 
+                    error: 'Solana funding tree service is not configured',
+                    message: 'ALCHEMY_SOLANA_API_KEY environment variable is required'
+                });
+            }
+            
+            const fundingTreeService = new SolanaFundingTreeService(alchemyKey);
 
             console.log(`[DEBUG] Building funding tree for ${address} on Solana...`);
             
-            // Wrap in try-catch to prevent crash
-            let fundingResult;
-            try {
-                fundingResult = await solanaAdapter.getFundingSources(address, options?.depth || 3);
-            } catch (sfError: any) {
-                console.error('[Solana FundingTree] Inner error:', sfError.message);
-                fundingResult = { sources: [], destinations: [], cluster: [], totalFunded: 0, totalReceived: 0 };
-            }
-            
+            // Build funding tree with timeout
             const result = await withTimeout(
-                Promise.resolve(fundingResult),
+                fundingTreeService.buildFundingTree(address, options?.depth || 3),
                 30000,
                 'Funding tree'
             );
@@ -765,7 +765,8 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             res.json({
                 success: true,
                 result: {
-                    ...result,
+                    fundingSources: result.fundingSources,
+                    fundingDestinations: result.fundingDestinations,
                     chain: 'solana',
                 },
                 usageRemaining: res.locals.usageRemaining,
