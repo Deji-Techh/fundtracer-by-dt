@@ -751,8 +751,18 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             const solanaAdapter = new SolanaAdapter();
 
             console.log(`[DEBUG] Building funding tree for ${address} on Solana...`);
+            
+            // Wrap in try-catch to prevent crash
+            let fundingResult;
+            try {
+                fundingResult = await solanaAdapter.getFundingSources(address, options?.depth || 3);
+            } catch (sfError: any) {
+                console.error('[Solana FundingTree] Inner error:', sfError.message);
+                fundingResult = { sources: [], destinations: [], cluster: [], totalFunded: 0, totalReceived: 0 };
+            }
+            
             const result = await withTimeout(
-                solanaAdapter.getFundingSources(address, options?.depth || 3),
+                Promise.resolve(fundingResult),
                 30000,
                 'Funding tree'
             );
@@ -767,9 +777,9 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             });
             return;
         } catch (error: any) {
-            console.error('[Funding Tree Solana] Error:', error);
+            console.error('[Funding Tree Solana] Error:', error.message);
             res.status(500).json({ 
-                error: 'Failed to build funding tree for Solana',
+                error: 'Funding tree temporarily unavailable for Solana',
                 message: error.message 
             });
             return;
