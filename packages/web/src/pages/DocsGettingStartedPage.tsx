@@ -27,11 +27,6 @@ export function GettingStartedPage() {
         researchers, investors, and compliance teams. Analyze wallet addresses, detect coordinated 
         activity, trace fund flows, and assess risk across multiple blockchains.
       </p>
-      <div className="callout">
-        <div className="callout-title">Free to Use</div>
-        <p>FundTracer offers a free tier with 7 analyses every 4 hours. Upgrade to Pro for 25 analyses, or Max for unlimited access.</p>
-      </div>
-
       <h2 id="features">Core Features</h2>
       <div className="feature-grid">
         <div className="feature-card">
