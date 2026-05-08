@@ -15,3 +15,6 @@ export { PolymarketView, default as PolymarketViewDefault } from './PolymarketVi
 export { HistoryView, default as HistoryViewDefault } from './HistoryView';
 
 export { SettingsView, default as SettingsViewDefault } from './SettingsView';
+
+export { default as RadarViewDefault } from './RadarView';
+export { default as RadarView } from './RadarView';

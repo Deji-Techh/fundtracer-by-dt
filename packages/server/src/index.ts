@@ -503,19 +503,10 @@ import { scanHistoryRoutes } from './routes/scanHistory.js';
 import { walletCacheRoutes } from './routes/walletCache.js';
 import { solanaRoutes } from './routes/solana.js';
 import notificationRoutes from './routes/notifications.js';
+import radarRoutes from './routes/radar.js';
 
-apiRouter.use('/portfolio', portfolioRoutes);
-apiRouter.use('/history', apiKeyAuthMiddleware, authMiddleware, historyRoutes);
-apiRouter.use('/tokens', publicLimiter, tokenRoutes); // Public token search with rate limiting
-apiRouter.use('/market', publicLimiter, marketRoutes); // Public market stats with rate limiting
-apiRouter.use('/safety', apiKeyAuthMiddleware, authMiddleware, safetyRoutes); // Token safety checks
-apiRouter.use('/debug', publicLimiter, debugRoutes); // Debug routes (public) with rate limiting
-apiRouter.use('/dexscreener', dexScreenerRoutes); // DEX Screener data (public)
-apiRouter.use('/geckoterminal', geckoTerminalRoutes); // GeckoTerminal data (public)
-apiRouter.use('/scan-history', apiKeyAuthMiddleware, authMiddleware, scanHistoryLimiter, scanHistoryRoutes); // Scan history sync with rate limiting
-apiRouter.use('/wallet-cache', walletCacheRoutes); // Wallet data cache (public read, auth write)
-apiRouter.use('/solana', apiKeyAuthMiddleware, authMiddleware, solanaRoutes); // Solana wallet analysis
 apiRouter.use('/notifications', apiKeyAuthMiddleware, authMiddleware, notificationRoutes); // User notifications
+apiRouter.use('/radar', radarRoutes); // Radar wallet alerts
 
 // OLD: Torque Routes (has /referrals endpoint)
 // NOTE: Auth is handled inside torque.ts routes - each route handles its own auth

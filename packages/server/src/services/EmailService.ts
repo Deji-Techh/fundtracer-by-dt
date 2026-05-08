@@ -25,6 +25,7 @@ interface SendEmailOptions {
 }
 
 const DEFAULT_FROM = 'Fundtracer <welcome@fundtracer.xyz>';
+const RADAR_FROM = 'Fundtracer Radar <alert@fundtracer.xyz>';
 const BCC_ADDRESS = 'fundtracer.xyz+9c127564b8@invite.trustpilot.com';
 
 export async function sendEmail({ to, subject, html, from, includeBcc }: SendEmailOptions): Promise<void> {

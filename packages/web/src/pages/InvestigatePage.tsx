@@ -38,10 +38,11 @@ import {
   PortfolioView, 
   PolymarketView,
   HistoryView,
-  SettingsView 
+  SettingsView,
+  RadarView
 } from '../design-system/features';
 
-type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'history' | 'settings';
+type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'radar' | 'history' | 'settings';
 
 // Nav icons as inline SVG components
 const InvestigateIcon = () => (
@@ -93,6 +94,16 @@ const SolanaIcon = () => (
     <path d="M3 14.5L6 11.5H17L14 14.5H3Z"/>
     <path d="M3 5.5L6 8.5H17L14 5.5H3Z"/>
     <path d="M3 10L6 13H17L14 10H3Z"/>
+  </svg>
+);
+
+const RadarIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <circle cx="10" cy="10" r="2"/>
+    <path d="M10 2v2M10 16v2M2 10h2M16 10h2"/>
+    <path d="M4.93 4.93l1.41 1.41M13.66 13.66l1.41 1.41M4.93 15.07l1.41-1.41M13.66 6.34l1.41-1.41"/>
+    <circle cx="10" cy="10" r="7" strokeDasharray="3 2"/>
+    <path d="M10 3c-1.5 2-1.5 5 0 7M10 3c2 1.5 5 1.5 7 0M10 17c-1.5-2-1.5-5 0-7M10 17c2-1.5 5-1.5 7 0"/>
   </svg>
 );
 
@@ -302,6 +313,7 @@ function InvestigateMainApp() {
     { id: 'investigate', label: 'Investigate', icon: <InvestigateIcon /> },
     { id: 'portfolio', label: 'Portfolio', icon: <PortfolioIcon /> },
     { id: 'polymarket', label: 'Polymarket', icon: <PolymarketIcon /> },
+    { id: 'radar', label: 'Radar', icon: <RadarIcon /> },
     { id: 'history', label: 'History', icon: <HistoryIcon /> },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ];
@@ -341,6 +353,11 @@ function InvestigateMainApp() {
         {/* Polymarket Tab */}
         <div className={`investigate-tab ${activeTab === 'polymarket' ? 'investigate-tab--active' : ''}`}>
           <PolymarketView />
+        </div>
+
+        {/* Radar Tab */}
+        <div className={`investigate-tab ${activeTab === 'radar' ? 'investigate-tab--active' : ''}`}>
+          <RadarView />
         </div>
 
         {/* History Tab */}
