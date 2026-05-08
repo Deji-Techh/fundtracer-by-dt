@@ -104,7 +104,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
             fontSize: '14px',
           }}
         >
-          <AlertCircleIcon size={16} strokeWidth={2} />
+          <HugeiconsIcon icon={AlertCircleIcon} size={16} strokeWidth={2} />
           <span>Retry</span>
           <RefreshCw size={14} />
         </button>
@@ -150,7 +150,7 @@ export function WalletButton({ onError, onSuccess }: WalletButtonProps) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-            <AlertCircleIcon size={20} strokeWidth={2} color="#ef4444" />
+            <HugeiconsIcon icon={AlertCircleIcon} size={20} strokeWidth={2} />
             <div style={{ flex: 1 }}>
               <h4 style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
                 Connection Failed

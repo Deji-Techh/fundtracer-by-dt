@@ -68,9 +68,23 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
     const isMobile = useIsMobile();
     const navigate = useNavigate();
 
+    // Debug: log the incoming result
+    if (typeof window !== 'undefined') {
+        console.log('[ContractGridView] Received result:', {
+            hasResult: !!result,
+            hasInteractors: !!(result && result.interactors),
+            interactorCount: result?.interactors?.length || 0,
+            hasSharedFunding: !!(result && result.sharedFundingGroups),
+            sharedFundingCount: result?.sharedFundingGroups?.length || 0,
+            hasSuspiciousPatterns: !!(result && result.suspiciousPatterns),
+            patternCount: result?.suspiciousPatterns?.length || 0,
+        });
+    }
+
     try {
         // Defensive: ensure result exists and has required fields
         if (!result) {
+            console.log('[ContractGridView] No result provided');
             return (
                 <div className="wallet-grid-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
                     <p>No contract data available</p>
@@ -82,6 +96,12 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
         const interactors = result?.interactors || [];
         const sharedFundingGroups = result?.sharedFundingGroups || [];
         const suspiciousPatterns = result?.suspiciousPatterns || [];
+
+        console.log('[ContractGridView] Processed data:', {
+            interactors: interactors.length,
+            sharedFundingGroups: sharedFundingGroups.length,
+            suspiciousPatterns: suspiciousPatterns.length,
+        });
 
     const chain = result?.chain || 'linea';
     const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
@@ -258,7 +278,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                         </div>
                                         <div className="stat-item">
                                             <span className="stat-label">Risk Score</span>
-                                            <span className={`stat-value ${riskLevel === 'critical' || riskLevel === 'high' ? 'negative' : riskLevel === 'medium' ? '' : 'positive'}`}>
+                                            <span className={`stat-value ${riskLevel === 'critical' || riskLevel === 'high' || riskLevel === 'medium' ? 'negative' : 'positive'}`}>
                                                 {result.riskScore ?? 0}
                                             </span>
                                         </div>
@@ -286,7 +306,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                     <div className="pattern-list">
                                         {(result.suspiciousPatterns || []).length === 0 ? (
                                             <div className="no-patterns">
-                                                <CheckmarkCircle02Icon />
+                                                <HugeiconsIcon icon={CheckmarkCircle02Icon} size={20} strokeWidth={2} />
                                                 <p>No suspicious patterns detected</p>
                                             </div>
                                         ) : (
@@ -325,7 +345,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: 0.5 + i * 0.05 }}
                                                 style={{ position: 'relative' }}
-                                                onMouseEnter={(e) => setHoveredAddress({ address: interactor.address, x: e.clientX, y: e.clientY })}
+onMouseEnter={(e: React.MouseEvent) => setHoveredAddress({ address: interactor.address, x: e.clientX, y: e.clientY })}
                                                 onMouseLeave={() => setHoveredAddress(null)}
                                             >
                                                 <span className="address">{formatAddress(interactor.address)}</span>
@@ -364,7 +384,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: i * 0.02 }}
                                         style={{ position: 'relative' }}
-                                        onMouseEnter={(e) => setHoveredAddress({ address: interactor.address, x: e.clientX, y: e.clientY })}
+                                        onMouseEnter={(e: React.MouseEvent) => setHoveredAddress({ address: interactor.address, x: e.clientX, y: e.clientY })}
                                         onMouseLeave={() => setHoveredAddress(null)}
                                     >
                                         <span className="col-address">{formatAddress(interactor.address)}</span>
@@ -388,7 +408,7 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
                                 >
                                     {(sharedFundingGroups.length === 0) ? (
                                         <div className="empty-state">
-                                            <CheckmarkCircle02Icon size={48} />
+                                            <HugeiconsIcon icon={CheckmarkCircle02Icon} size={48} strokeWidth={2} />
                                             <h3>No Shared Funding Detected</h3>
                                             <p>This contract has no suspicious shared funding patterns.</p>
                                         </div>

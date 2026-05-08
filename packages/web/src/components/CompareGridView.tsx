@@ -185,7 +185,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                         </div>
                                         {isSybilLikely && (
                                             <div className="sybil-warning">
-                                                <AlertDiamondIcon size={20} />
+                                                <HugeiconsIcon icon={AlertDiamondIcon} size={20} strokeWidth={2} />
                                                 <span>Potential Sybil Activity Detected</span>
                                             </div>
                                         )}
@@ -248,7 +248,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                     <div className="address-list">
                                         {commonFundingSources.length === 0 ? (
                                             <div className="empty-list">
-                                                <CheckmarkCircle02Icon />
+                                                <HugeiconsIcon icon={CheckmarkCircle02Icon} size={20} strokeWidth={2} />
                                                 <p>No common funding sources found</p>
                                             </div>
                                         ) : (
@@ -289,7 +289,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                     <div className="address-list">
                                         {commonDestinations.length === 0 ? (
                                             <div className="empty-list">
-                                                <CheckmarkCircle02Icon />
+                                                <HugeiconsIcon icon={CheckmarkCircle02Icon} size={20} strokeWidth={2} />
                                                 <p>No common destinations found</p>
                                             </div>
                                         ) : (
@@ -327,7 +327,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                             <div className="full-list">
                                 {commonFundingSources.length === 0 ? (
                                     <div className="empty-state">
-                                        <CheckmarkCircle02Icon size={48} />
+                                        <HugeiconsIcon icon={CheckmarkCircle02Icon} size={48} strokeWidth={2} />
                                         <p>No common funding sources found</p>
                                     </div>
                                 ) : (
@@ -353,7 +353,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                             <div className="full-list">
                                 {commonDestinations.length === 0 ? (
                                     <div className="empty-state">
-                                        <CheckmarkCircle02Icon size={48} />
+                                        <HugeiconsIcon icon={CheckmarkCircle02Icon} size={48} strokeWidth={2} />
                                         <p>No common destinations found</p>
                                     </div>
                                 ) : (
@@ -390,7 +390,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                             <div className="transfers-list">
                                 {directTransfers.length === 0 ? (
                                     <div className="empty-state">
-                                        <CheckmarkCircle02Icon size={48} />
+                                        <HugeiconsIcon icon={CheckmarkCircle02Icon} size={48} strokeWidth={2} />
                                         <p>No direct transfers found</p>
                                     </div>
                                 ) : (
@@ -410,7 +410,7 @@ export default function CompareGridView({ result, chain }: CompareGridViewProps)
                                                 >
                                                     {formatAddress(safeString(transfer.from))}
                                                 </span>
-                                                <ArrowRightIcon size={16} />
+                                                <HugeiconsIcon icon={ArrowRightIcon} size={16} strokeWidth={2} />
                                                 <span 
                                                     className="wallet"
                                                     onMouseEnter={(e: any) => setHoveredAddress({ address: safeString(transfer.to), x: e.clientX, y: e.clientY })}
