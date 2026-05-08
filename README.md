@@ -7,9 +7,23 @@ Multi-chain blockchain forensics platform for tracing wallet funds, detecting Sy
 | App | URL |
 |-----|-----|
 | Landing Page | [fundtracer.xyz](https://fundtracer.xyz) |
-| EVM Analysis | [fundtracer.xyz/app-evm](https://fundtracer.xyz/app-evm) |
-| Solana Analysis | [fundtracer.xyz/app-solana](https://fundtracer.xyz/app-solana) |
+| Analysis App | [fundtracer.xyz/app-evm](https://fundtracer.xyz/app-evm) |
 | Telegram Alerts | [fundtracer.xyz/telegram](https://fundtracer.xyz/telegram) |
+
+---
+
+## Supported Chains
+
+| Chain | Status |
+|-------|--------|
+| Linea | Active |
+| Ethereum | Active |
+| Base | Active |
+| Arbitrum | Active |
+| Optimism | Active |
+| BSC | Active |
+| Solana | Active |
+| Sui | Coming Soon |
 
 ---
 
@@ -65,7 +79,7 @@ See [TORQUE.md](./TORQUE.md) for full technical documentation.
 
 Browser-based wallet analysis for EVM chains and Solana. No installation required.
 
-**Supported Chains:** Linea, Base, Arbitrum, Optimism, Polygon, BNB Chain, Ethereum
+**Supported Chains:** Linea, Ethereum, Base, Arbitrum, Optimism, BSC, Solana
 
 **Features:**
 - Wallet analysis with transaction history and risk scoring
@@ -305,8 +319,8 @@ curl -H "Authorization: Bearer ft_live_YOUR_API_KEY" \
 | Arbitrum | 42161 | `arbitrum` |
 | Base | 8453 | `base` |
 | Optimism | 10 | `optimism` |
-| Polygon | 137 | `polygon` |
 | BNB Chain | 56 | `bsc` |
+| Solana | TBD | `solana` |
 
 ### SDK
 
