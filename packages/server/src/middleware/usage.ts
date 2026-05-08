@@ -19,9 +19,8 @@ const ALLOWED_CHAINS = [
     'arbitrum', 'arb',
     'base',
     'optimism', 'opt',
-    'polygon', 'polygon_pos', 'matic',
     'bsc', 'binance',
-    'sui'
+    'solana'
 ];
 
 // Map frontend chain IDs to canonical names
@@ -30,8 +29,6 @@ const normalizeChainId = (chain: string): string => {
         'eth': 'ethereum',
         'arb': 'arbitrum',
         'opt': 'optimism',
-        'polygon_pos': 'polygon',
-        'matic': 'polygon',
         'binance': 'bsc',
     };
     return mapping[chain.toLowerCase()] || chain.toLowerCase();
