@@ -44,9 +44,12 @@ router.post('/alerts', async (req: Request, res: Response) => {
 
         const { address, label, chain, alertType, threshold, email, customMessage } = req.body;
 
-        if (!address || !email) {
-            return res.status(400).json({ error: 'address and email required' });
+        if (!address) {
+            return res.status(400).json({ error: 'wallet address required' });
         }
+
+        // Allow creating without email (not required), threshold must be defined if provided
+        const alertThreshold = threshold === undefined || threshold === null || threshold === 0 ? undefined : threshold;
 
         // Check for duplicate
         const existing = await alertService.getAlertByAddress(address, userId);
@@ -59,9 +62,9 @@ router.post('/alerts', async (req: Request, res: Response) => {
             label,
             chain: chain || 'solana',
             alertType: alertType || 'any_transaction',
-            threshold,
+            threshold: alertThreshold,
             enabled: true,
-            email,
+            email: email || '',
             customMessage,
             userId
         });

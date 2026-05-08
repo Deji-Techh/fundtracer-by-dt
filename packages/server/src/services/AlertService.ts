@@ -51,10 +51,19 @@ class AlertService {
      */
     async createAlert(data: Omit<RadarAlert, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
         const now = admin.firestore.Timestamp.now();
+        
+        // Filter out undefined values to prevent Firestore errors
+        const cleanedData: Record<string, unknown> = {};
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== undefined) {
+                cleanedData[key] = value;
+            }
+        });
+        
         const docRef = this.db.collection(ALERTS_COLLECTION).doc();
         
         await docRef.set({
-            ...data,
+            ...cleanedData,
             createdAt: now,
             updatedAt: now,
         });
