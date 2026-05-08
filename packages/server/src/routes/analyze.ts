@@ -341,6 +341,15 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
     }
 
+    // TODO: Implement Solana wallet analysis via SolanaAdapter
+    if (isSolana) {
+        return res.status(400).json({
+            error: 'Solana wallet analysis not yet supported',
+            message: 'Solana support is coming soon.',
+            hint: 'Use an EVM chain (ethereum, linea, arbitrum, base, etc.) for now'
+        });
+    }
+
     try {
         // For Solana, we don't need an Alchemy key - use built-in Helius keys
         const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
@@ -517,6 +526,15 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         if (!valid) {
             return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
         }
+    }
+
+    // Solana compare not yet supported - return helpful message
+    if (isSolana) {
+        return res.status(400).json({
+            error: 'Solana compare not yet supported',
+            message: 'Compare functionality for Solana is coming soon. In the meantime, you can analyze individual Solana wallets.',
+            hint: 'Use /api/analyze/wallet with chain=solana instead'
+        });
     }
 
     try {
