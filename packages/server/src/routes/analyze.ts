@@ -341,13 +341,68 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
     }
 
-    // TODO: Implement Solana wallet analysis via SolanaAdapter
+    // SOLANA WALLET ANALYZE - Use SolanaAdapter directly
     if (isSolana) {
-        return res.status(400).json({
-            error: 'Solana wallet analysis not yet supported',
-            message: 'Solana support is coming soon.',
-            hint: 'Use an EVM chain (ethereum, linea, arbitrum, base, etc.) for now'
-        });
+        try {
+            const { SolanaAdapter } = await import('@fundtracer/core');
+            const solanaAdapter = new SolanaAdapter();
+
+            const [walletInfo, transactions] = await Promise.all([
+                solanaAdapter.getWalletInfo(address),
+                solanaAdapter.getTransactions(address, { limit: 100 })
+            ]);
+
+            // Build analysis result in expected format (Solana uses balance differently)
+            const uniqueContracts = new Set<string>();
+            transactions.forEach(tx => {
+                tx.programInteractions?.forEach(p => uniqueContracts.add(p));
+            });
+            const firstTx = transactions[transactions.length - 1];
+            const lastTx = transactions[0];
+
+            const result = {
+                address: address,
+                chain: 'solana',
+                walletInfo,
+                transactions: transactions.map(tx => ({
+                    hash: tx.hash,
+                    from: tx.from,
+                    to: tx.to || null,
+                    value: tx.value,
+                    timestamp: tx.timestamp,
+                    fee: tx.fee,
+                    status: tx.status,
+                    blockNumber: null,
+                    tokenTransfers: tx.tokenTransfers || [],
+                    programInteractions: tx.programInteractions || [],
+                })),
+                tokenBalances: [],
+                nfts: [],
+                fundingSources: { nodes: [], edges: [] },
+                fundingDestinations: { nodes: [], edges: [] },
+                projectsInteracted: [],
+                summary: {
+                    totalReceived: walletInfo.balance || '0',
+                    totalSent: '0',
+                    txCount: transactions.length,
+                    uniqueContracts: uniqueContracts.size,
+                    firstActivity: firstTx?.timestamp || null,
+                    lastActivity: lastTx?.timestamp || null,
+                }
+            };
+
+            return res.json({
+                success: true,
+                result,
+                usageRemaining: res.locals.usageRemaining,
+            });
+        } catch (error: any) {
+            console.error('[Solana Analyze] Error:', error);
+            return res.status(500).json({
+                error: 'Solana analysis failed',
+                message: error.message
+            });
+        }
     }
 
     try {
@@ -528,13 +583,95 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         }
     }
 
-    // Solana compare not yet supported - return helpful message
+    // SOLANA COMPARE - Use SolanaAdapter directly
     if (isSolana) {
-        return res.status(400).json({
-            error: 'Solana compare not yet supported',
-            message: 'Compare functionality for Solana is coming soon. In the meantime, you can analyze individual Solana wallets.',
-            hint: 'Use /api/analyze/wallet with chain=solana instead'
-        });
+        try {
+            const { SolanaAdapter } = await import('@fundtracer/core');
+            const solanaAdapter = new SolanaAdapter();
+
+            // Fetch wallet info and transactions for each address in parallel
+            const walletData = await Promise.all(
+                addresses.map(async (addr) => {
+                    const [walletInfo, transactions] = await Promise.all([
+                        solanaAdapter.getWalletInfo(addr),
+                        solanaAdapter.getTransactions(addr, { limit: 100 })
+                    ]);
+                    return { address: addr, walletInfo, transactions };
+                })
+            );
+
+            // Find common transactions
+            const allTxHashes = walletData.map(w => new Set(w.transactions.map(t => t.hash)));
+            const firstSet = Array.from(allTxHashes[0]);
+            const commonTxHashes = firstSet.filter(hash => 
+                allTxHashes.every(set => set.has(hash))
+            );
+
+            // Find common programs interacted with
+            const allPrograms = walletData.map(w => {
+                const programs = new Set<string>();
+                w.transactions.forEach(tx => {
+                    tx.programInteractions?.forEach(p => programs.add(p));
+                });
+                return programs;
+            });
+            const firstProgs = Array.from(allPrograms[0]);
+            const commonPrograms = firstProgs.filter(prog => 
+                allPrograms.every(set => set.has(prog))
+            );
+
+            // Calculate basic correlation (transaction overlap)
+            const avgTxCount = walletData.reduce((sum, w) => sum + w.transactions.length, 0) / addresses.length;
+            const correlationScore = commonTxHashes.length > 0 
+                ? Math.round((commonTxHashes.length / avgTxCount) * 100) 
+                : 0;
+
+            // Check for direct transfers between wallets
+            const addressSet = new Set(addresses);
+            const directTransfers: any[] = [];
+            walletData.forEach(w => {
+                w.transactions.forEach(tx => {
+                    if (tx.to && addressSet.has(tx.to)) {
+                        directTransfers.push({
+                            from: w.address,
+                            to: tx.to,
+                            hash: tx.hash,
+                            amount: tx.value,
+                            timestamp: tx.timestamp
+                        });
+                    }
+                });
+            });
+
+            return res.json({
+                success: true,
+                result: {
+                    wallets: walletData.map(w => ({
+                        address: w.address,
+                        balance: w.walletInfo.balance,
+                        txCount: w.transactions.length,
+                        firstActivity: w.transactions[0]?.timestamp || null,
+                        lastActivity: w.transactions[w.transactions.length - 1]?.timestamp || null,
+                    })),
+                    commonFundingSources: [],
+                    commonDestinations: [],
+                    sharedProjects: commonPrograms.map(prog => ({
+                        contractAddress: prog,
+                        name: 'Solana Program'
+                    })),
+                    directTransfers,
+                    correlationScore,
+                    commonTransactions: commonTxHashes,
+                },
+                usageRemaining: res.locals.usageRemaining,
+            });
+        } catch (error: any) {
+            console.error('[Solana Compare] Error:', error);
+            return res.status(500).json({
+                error: 'Solana compare failed',
+                message: error.message
+            });
+        }
     }
 
     try {
