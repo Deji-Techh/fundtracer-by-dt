@@ -852,7 +852,10 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
 
         console.log(`[Compare] Comparing ${addresses.length} wallets...`);
 
-        const result = await analyzer.compareWallets(addresses, chain as ChainId, options);
+        const rawResult = await analyzer.compareWallets(addresses, chain as ChainId, options);
+
+        // Sanitize result to remove any non-serializable objects
+        const result = JSON.parse(JSON.stringify(rawResult));
 
         res.json({
             success: true,
