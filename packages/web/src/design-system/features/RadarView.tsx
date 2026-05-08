@@ -163,20 +163,83 @@ const RadarView: React.FC = () => {
 
   const getActivityColor = (type: LiveActivity['type']) => {
     switch (type) {
-      case 'received': return 'var(--color-positive)';
-      case 'sent': return 'var(--color-negative)';
-      case 'swap': return 'var(--color-accent)';
-      case 'nft': return 'var(--color-warning)';
-      case 'stake': return 'var(--color-info)';
-      default: return 'var(--color-text-muted)';
+      case 'received': return 'var(--intel-green)';
+      case 'sent': return 'var(--intel-red)';
+      case 'swap': return 'var(--intel-purple)';
+      case 'nft': return 'var(--intel-orange)';
+      case 'stake': return 'var(--intel-cyan)';
+      default: return 'var(--intel-text-muted)';
     }
   };
 
   if (isLoading) {
     return (
       <div className="radar-loading">
-        <div className="loading-spinner" />
-        <span>Loading Radar...</span>
+        {/* Skeleton Header */}
+        <div className="skeleton-header">
+          <div className="skeleton skeleton-title" />
+          <div className="skeleton skeleton-chain" />
+        </div>
+
+        {/* Skeleton Grid */}
+        <div className="skeleton-grid">
+          {/* Left - Wallet Cards Skeleton */}
+          <div className="skeleton-card">
+            <div className="skeleton-card-header">
+              <div className="skeleton skeleton-avatar" />
+              <div className="skeleton-card-info">
+                <div className="skeleton skeleton-label" />
+                <div className="skeleton skeleton-address" />
+              </div>
+            </div>
+            <div className="skeleton-card-body">
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line-short" />
+            </div>
+            <div className="skeleton-card-footer">
+              <div className="skeleton skeleton-toggle" />
+              <div className="skeleton skeleton-delete" />
+            </div>
+          </div>
+
+          {/* Duplicated for visual balance */}
+          <div className="skeleton-card">
+            <div className="skeleton-card-header">
+              <div className="skeleton skeleton-avatar" />
+              <div className="skeleton-card-info">
+                <div className="skeleton skeleton-label" />
+                <div className="skeleton skeleton-address" />
+              </div>
+            </div>
+            <div className="skeleton-card-body">
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line-short" />
+            </div>
+            <div className="skeleton-card-footer">
+              <div className="skeleton skeleton-toggle" />
+              <div className="skeleton skeleton-delete" />
+            </div>
+          </div>
+
+          {/* Right - Activity Skeleton */}
+          <div className="skeleton-activity-list">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="skeleton-activity-item">
+                <div className="skeleton skeleton-activity-icon" />
+                <div className="skeleton-activity-content">
+                  <div className="skeleton-activity-main">
+                    <div className="skeleton skeleton-activity-address" />
+                    <div className="skeleton skeleton-activity-action" />
+                  </div>
+                  <div className="skeleton-activity-details">
+                    <div className="skeleton skeleton-activity-amount" />
+                    <div className="skeleton skeleton-activity-time" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
