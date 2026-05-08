@@ -505,8 +505,20 @@ import { solanaRoutes } from './routes/solana.js';
 import notificationRoutes from './routes/notifications.js';
 import radarRoutes from './routes/radar.js';
 
-apiRouter.use('/notifications', apiKeyAuthMiddleware, authMiddleware, notificationRoutes); // User notifications
-apiRouter.use('/radar', radarRoutes); // Radar wallet alerts
+// All API routes - restored from working commit
+apiRouter.use('/portfolio', portfolioRoutes);
+apiRouter.use('/history', apiKeyAuthMiddleware, authMiddleware, historyRoutes);
+apiRouter.use('/tokens', publicLimiter, tokenRoutes);
+apiRouter.use('/market', publicLimiter, marketRoutes);
+apiRouter.use('/safety', apiKeyAuthMiddleware, authMiddleware, safetyRoutes);
+apiRouter.use('/debug', publicLimiter, debugRoutes);
+apiRouter.use('/dexscreener', dexScreenerRoutes);
+apiRouter.use('/geckoterminal', geckoTerminalRoutes);
+apiRouter.use('/scan-history', apiKeyAuthMiddleware, authMiddleware, scanHistoryLimiter, scanHistoryRoutes);
+apiRouter.use('/wallet-cache', walletCacheRoutes);
+apiRouter.use('/solana', apiKeyAuthMiddleware, authMiddleware, solanaRoutes);
+apiRouter.use('/notifications', apiKeyAuthMiddleware, authMiddleware, notificationRoutes);
+apiRouter.use('/radar', radarRoutes);
 
 // OLD: Torque Routes (has /referrals endpoint)
 // NOTE: Auth is handled inside torque.ts routes - each route handles its own auth
