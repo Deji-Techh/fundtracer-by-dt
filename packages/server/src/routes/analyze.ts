@@ -19,6 +19,24 @@ import { validateAddressInput, sanitizeString, validateArrayLength, SOLANA_ADDRE
 import { getAlchemyKeyPool } from '../utils/quicknode.js';
 import { cacheGet, cacheSet } from '../utils/redis.js';
 
+// Deep sanitize function to prevent React Error #130 (objects not valid as React child)
+function sanitizeForFrontend(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') return obj;
+    if (Array.isArray(obj)) return obj.map(sanitizeForFrontend);
+    if (obj instanceof Error) return { message: obj.message, name: obj.name };
+    if (obj instanceof Map) return Object.fromEntries(obj);
+    if (obj instanceof Set) return Array.from(obj);
+    if (typeof obj === 'object') {
+        const clean: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+            clean[key] = sanitizeForFrontend(value);
+        }
+        return clean;
+    }
+    return String(obj);
+}
+
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 const SOL_ADDR_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -457,7 +475,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
         res.json({
             success: true,
-            result: {
+            result: sanitizeForFrontend({
                 ...enrichAnalysisResult({
                     ...result,
                     transactions: paginatedTransactions,
@@ -469,7 +487,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     hasMore,
                     returned: paginatedTransactions.length,
                 },
-            },
+            }),
             usageRemaining: res.locals.usageRemaining,
         });
 
@@ -862,8 +880,8 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
 
         const rawResult = await analyzer.compareWallets(addresses, chain as ChainId, options);
 
-        // Sanitize result to remove any non-serializable objects
-        const result = JSON.parse(JSON.stringify(rawResult));
+        // Sanitize result to remove any non-serializable objects (prevents React Error #130)
+        const result = sanitizeForFrontend(rawResult);
 
         res.json({
             success: true,
@@ -1002,7 +1020,7 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         console.log('[DEBUG] Contract analysis complete, sending response');
         res.json({
             success: true,
-            result: enrichAnalysisResult(result),
+            result: sanitizeForFrontend(enrichAnalysisResult(result)),
             usageRemaining: res.locals.usageRemaining,
         });
 
@@ -1091,7 +1109,7 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
         console.log('[DEBUG] Sybil analysis complete, sending response');
         res.json({
             success: true,
-            result,
+            result: sanitizeForFrontend(result),
             usageRemaining: res.locals.usageRemaining,
         });
 
@@ -1205,7 +1223,7 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
 
         res.json({
             success: true,
-            result: batchResults,
+            result: sanitizeForFrontend(batchResults),
             meta: {
                 total: validAddresses.length,
                 analyzed,
@@ -1302,7 +1320,7 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
         
         res.json({
             success: true,
-            result,
+            result: sanitizeForFrontend(result),
             meta: {
                 duration: `${duration}s`,
                 walletsAnalyzed: validAddresses.length,

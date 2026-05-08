@@ -438,6 +438,20 @@ export function InvestigateView({
     try {
       const response = await compareWallets(addresses, selectedChain);
       if (response.result) {
+        console.log('[Compare] Raw response received:', typeof response.result, Object.keys(response.result));
+        
+        // Debug: Check for non-serializable objects
+        const checkObj = (obj: any, path: string = '') => {
+          if (obj && typeof obj === 'object') {
+            if (obj instanceof Error) console.error(`[Compare] Error object at ${path}:`, obj.message);
+            if (obj instanceof Map) console.error(`[Compare] Map at ${path}:`, Array.from(obj.entries()).slice(0,3));
+            if (obj instanceof Set) console.error(`[Compare] Set at ${path}:`, Array.from(obj).slice(0,3));
+            if (Array.isArray(obj)) obj.forEach((item, i) => checkObj(item, `${path}[${i}]`));
+            else Object.entries(obj).forEach(([k, v]) => checkObj(v, `${path}.${k}`));
+          }
+        };
+        checkObj(response.result);
+        
         setMultiWalletResult(response.result);
         saveResultToCache('compare', response.result);
 
