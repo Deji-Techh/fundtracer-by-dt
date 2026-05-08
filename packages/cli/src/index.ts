@@ -281,20 +281,19 @@ if (isInteractive && args.length === 0) {
     // QVAC command with subcommands
     const qvacCmd = program
         .command('qvac')
-        .description('QVAC server management');
-
-    // Default action - run status check
-    qvacCmd
-        .action(async () => {
-            process.stdout.write('Checking QVAC server... ');
-            const available = await checkQVACAvailable();
-            if (available) {
-                console.log(chalk.green('✓ running on localhost:11434'));
-            } else {
-                console.log(chalk.red('✗ not running'));
-                console.log();
-                printQVACNotAvailable();
-            }
+        .description('QVAC server management (status, stop)')
+        .action(() => {
+            // When just 'fundtracer qvac' is called (no subcommand), show status
+            checkQVACAvailable().then(available => {
+                process.stdout.write('Checking QVAC server... ');
+                if (available) {
+                    console.log(chalk.green('✓ running on localhost:11434'));
+                } else {
+                    console.log(chalk.red('✗ not running'));
+                    console.log();
+                    printQVACNotAvailable();
+                }
+            });
         });
 
     qvacCmd
