@@ -10,27 +10,16 @@ import {
     WalletAnalyzer,
     SybilAnalyzer,
     ChainId,
-    FilterOptions,
-    SuiProvider,
-    setCallerContext,
-    clearCallerContext
+    FilterOptions
 } from '@fundtracer/core';
 import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
-import { validateAddressInput, sanitizeString, validateArrayLength, isValidSuiAddress } from '../utils/validation.js';
-import { cache } from '../utils/cache.js';
-import { cacheGetCached, cacheSetCached } from '../services/apiCache.js';
-import { sendEmail, buildFirstAnalysisEmail } from '../services/EmailService.js';
-import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
-import { trackAnalysisEvent, TORQUE_EVENTS, TORQUE_CAMPAIGNS, torqueService } from '../services/TorqueService.js';
-import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
-import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
+import { validateAddressInput, sanitizeString, validateArrayLength, SOLANA_ADDRESS_REGEX } from '../utils/validation.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
-const SUI_ADDRESS_REGEX = /^0x[a-fA-F0-9]{64}$/;
-const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const SOL_ADDR_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 // Chain configuration - support both frontend IDs and canonical names
 const ALLOWED_CHAINS = [
@@ -39,12 +28,10 @@ const ALLOWED_CHAINS = [
     'arbitrum', 'arb',
     'base',
     'optimism', 'opt',
+    'polygon', 'polygon_pos', 'matic',
     'bsc', 'binance',
-    'solana' // Solana support via SolanaAdapter
+    'solana', 'sol'
 ];
-
-// Chains not yet supported - will return helpful error (kept for reference)
-const UNSUPPORTED_CHAINS = ['sui'];
 
 // Map frontend chain IDs to canonical names
 const normalizeChainId = (chain: string): string => {
@@ -55,6 +42,7 @@ const normalizeChainId = (chain: string): string => {
         'polygon_pos': 'polygon',
         'matic': 'polygon',
         'binance': 'bsc',
+        'sol': 'solana',
     };
     return mapping[chain.toLowerCase()] || chain.toLowerCase();
 };
@@ -131,94 +119,6 @@ function getUserFriendlyError(error: any): { status: number; error: string; mess
         error: 'Analysis failed',
         message: msg || 'An unexpected error occurred during analysis.',
     };
-}
-
-// Sui Analysis Handler
-async function handleSuiAnalysis(
-    req: AuthenticatedRequest,
-    res: Response,
-    address: string,
-    options: any
-) {
-    const cacheKey = `sui:wallet:${address}`;
-    const cached = cache.get(cacheKey);
-    
-    if (cached) {
-        return res.json({
-            success: true,
-            result: cached,
-            usageRemaining: res.locals.usageRemaining,
-        });
-    }
-
-    try {
-        const suiProvider = new SuiProvider(process.env.SUI_RPC_URL);
-        const normalizedAddress = address.toLowerCase();
-        
-        const limit = options?.limit || 100;
-        const offset = options?.offset || 0;
-        
-        console.log(`[SUI] Analyzing wallet: ${normalizedAddress}`);
-        
-        // Get wallet info
-        const walletInfo = await suiProvider.getWalletInfo(normalizedAddress);
-        
-        // Get transactions
-        const transactions = await suiProvider.getTransactions(normalizedAddress, { limit });
-        
-        // Get token transfers
-        const tokenTransfers = await suiProvider.getTokenTransfers(normalizedAddress);
-        
-        const result = {
-            wallet: walletInfo,
-            transactions: transactions.slice(offset, offset + limit),
-            pagination: {
-                total: transactions.length,
-                offset,
-                limit,
-                hasMore: offset + limit < transactions.length
-            },
-            tokenTransfers,
-            summary: {
-                totalTransactions: transactions.length,
-                successfulTxs: transactions.filter(t => t.status === 'success').length,
-                failedTxs: transactions.filter(t => t.status === 'failed').length,
-                totalValueSentEth: transactions.reduce((sum, t) => sum + (t.isIncoming ? 0 : t.valueInEth), 0),
-                totalValueReceivedEth: transactions.reduce((sum, t) => sum + (t.isIncoming ? t.valueInEth : 0), 0),
-                uniqueInteractedAddresses: new Set(transactions.map(t => t.to).filter(Boolean)).size,
-                activityPeriodDays: (() => {
-                    if (transactions.length === 0) return 0;
-                    const timestamps = transactions.map(t => t.timestamp).filter(Boolean);
-                    if (timestamps.length === 0) return 0;
-                    // timestamps are in seconds, convert to ms for comparison with Date.now()
-                    const ms = Date.now() - (Math.min(...timestamps) * 1000);
-                    const days = ms / (1000 * 60 * 60 * 24);
-                    return Math.ceil(days);
-                })(),
-            },
-            overallRiskScore: 0,
-            riskLevel: 'low',
-            suspiciousIndicators: [],
-            fundingSources: null,
-            fundingDestinations: null,
-            projectsInteracted: [],
-        };
-        
-        // Cache for 60 seconds
-        cache.set(cacheKey, result, 60);
-        
-        return res.json({
-            success: true,
-            result,
-            usageRemaining: res.locals.usageRemaining,
-        });
-    } catch (error: any) {
-        console.error('[SUI] Analysis error:', error);
-        return res.status(500).json({ 
-            error: 'Sui analysis failed',
-            message: error.message || 'Failed to analyze Sui wallet'
-        });
-    }
 }
 
 const router = Router();
@@ -339,40 +239,6 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: strin
     ]);
 }
 
-// Create a minimal compare result with only the fields needed by the frontend
-function createMinimalCompareResult(result: any): any {
-    if (!result) return null;
-    
-    // Only keep the comparison data - not full wallet objects
-    const minimalDirectTransfers = (result.directTransfers || []).map((tx: any) => ({
-        from: String(tx.from || ''),
-        to: String(tx.to || ''),
-        valueInEth: Number(tx.valueInEth) || 0,
-        timestamp: Number(tx.timestamp) || 0,
-    }));
-    
-    const minimalSharedProjects = (result.sharedProjects || []).map((p: any) => ({
-        contractAddress: String(p.contractAddress || ''),
-        projectName: p.projectName ? String(p.projectName) : null,
-        category: p.category ? String(p.category) : 'unknown',
-        interactionCount: Number(p.interactionCount) || 0,
-        totalValueInEth: Number(p.totalValueInEth) || 0,
-        firstInteraction: Number(p.firstInteraction) || 0,
-        lastInteraction: Number(p.lastInteraction) || 0,
-    }));
-    
-    return {
-        // Only include wallet count, not full wallet objects
-        wallets: (result.wallets || []).map((_: any, i: number) => ({ index: i })),
-        commonFundingSources: (result.commonFundingSources || []).map(String),
-        commonDestinations: (result.commonDestinations || []).map(String),
-        sharedProjects: minimalSharedProjects,
-        directTransfers: minimalDirectTransfers,
-        correlationScore: Number(result.correlationScore) || 0,
-        isSybilLikely: Boolean(result.isSybilLikely),
-    };
-}
-
 // Helper to validate Free Tier transaction
 import { JsonRpcProvider } from 'ethers';
 
@@ -442,9 +308,6 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
     const { address, chain, options } = req.body;
 
-    // DEBUG: Log incoming chain value
-    console.log(`[DEBUG] /analyze/wallet called with chain="${chain}" (type: ${typeof chain}), address="${address?.slice(0, 10)}..."`);
-
     // Use comprehensive validation
     const validation = validateAddressInput(address, chain);
     if (!validation.valid) {
@@ -455,8 +318,8 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
     if (options) {
         if (options.limit !== undefined) {
             const limit = Number(options.limit);
-            if (isNaN(limit) || limit < 1) {
-                return res.status(400).json({ error: 'Invalid limit parameter (must be positive integer)' });
+            if (isNaN(limit) || limit < 1 || limit > 1000) {
+                return res.status(400).json({ error: 'Invalid limit parameter (1-1000)' });
             }
         }
         if (options.addresses && !validateArrayLength(options.addresses, 100)) {
@@ -466,31 +329,21 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
     // Normalize chain to lowercase for validation
     const normalizedChain = normalizeChainId(chain);
-    console.log(`[DEBUG] normalizedChain="${normalizedChain}", ALLOWED_CHAINS includes it: ${ALLOWED_CHAINS.includes(normalizedChain)}`);
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-        console.log(`[DEBUG] Chain "${normalizedChain}" NOT in ALLOWED_CHAINS, checking UNSUPPORTED_CHAINS...`);
-        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
-            console.log(`[DEBUG] Chain "${normalizedChain}" is in UNSUPPORTED_CHAINS - returning coming soon`);
-            return res.status(400).json({ 
-                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, BSC, Solana.` 
-            });
-        }
-        console.log(`[DEBUG] Chain "${normalizedChain}" not in UNSUPPORTED_CHAINS either - returning generic Invalid chain`);
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
-    // Wallet Redis cache check (4 day TTL)
-    const walletCacheKey = `wallet:${normalizedChain}:${address.toLowerCase()}`;
-    const walletCached = await cacheGetCached<any>(walletCacheKey);
-    if (walletCached) {
-        return res.json({ success: true, result: walletCached, usageRemaining: res.locals.usageRemaining, cached: true });
+    // Validate address based on chain type
+    const isSolana = normalizedChain === 'solana';
+    if (isSolana ? !SOL_ADDR_REGEX.test(address) : !ETH_ADDRESS_REGEX.test(address)) {
+        return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
     }
 
     try {
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
-        const sybilConfig = getSybilAlchemyKeys();
+        // For Solana, we don't need an Alchemy key - use built-in Helius keys
+        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -501,93 +354,20 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            sybilConfig: sybilConfig, // Enable multi-key timestamp fetching
         });
 
-        // Pagination params - unlimited if not specified (fetch all)
-        const limit = options?.limit ? Math.min(options.limit, 100000) : 100000; // Cap at 100k for safety
+        // Pagination params
+        const limit = Math.min(options?.limit || 10000, 10000); // Max 10000 per request
         const offset = options?.offset || 0;
 
-        console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 180s timeout...`);
-        setCallerContext('wallet-analyze');
-
-        // Handle Solana separately via SolanaPortfolioService
-        if (normalizedChain === 'solana') {
-            const txLimit = options?.limit || 100;
-            
-            const [portfolio, transactions] = await Promise.all([
-                solanaPortfolioService.getPortfolio(address),
-                solanaPortfolioService.getTransactions(address, txLimit)
-            ]);
-
-// Add more detailed summary calculations
-            const txTimestamps = transactions.map(t => t.blockTime).filter(Boolean);
-            const minTimestamp = txTimestamps.length > 0 ? Math.min(...txTimestamps) : 0;
-            const daysActive = minTimestamp > 0 ? Math.ceil((Date.now() - minTimestamp) / 86400000) : 0;
-
-            const solanaResult = {
-                wallet: {
-                    address: address,
-                    chain: 'solana' as ChainId,
-                    balance: (portfolio.sol.sol / 1e9).toString(),
-                    balanceInEth: portfolio.sol.sol,
-                    txCount: transactions.length,
-                    firstTxTimestamp: transactions[transactions.length - 1]?.blockTime || null,
-                    lastTxTimestamp: transactions[0]?.blockTime || null,
-                    isContract: false,
-                },
-                transactions: transactions.map(t => ({
-                    hash: t.signature,
-                    from: t.from,
-                    to: t.to || '',
-                    value: (t.amount || 0).toString(),
-                    valueInEth: (t.amount || 0) / 1e9,
-                    fee: t.fee.toString(),
-                    gasUsed: t.fee.toString(),
-                    gasPrice: '0',
-                    gasCostInEth: t.fee / 1e9,
-                    status: t.status === 'success' ? 'success' : 'failed',
-                    category: t.token ? 'token_transfer' : 'transfer',
-                    timestamp: Math.floor(t.blockTime / 1000),
-                    blockNumber: t.slot,
-                    isIncoming: false,
-                    methodId: undefined,
-                    methodName: undefined,
-                })),
-                tokens: portfolio.tokens,
-                summary: {
-                    totalTransactions: transactions.length,
-                    successfulTxs: transactions.filter(t => t.status === 'success').length,
-                    failedTxs: transactions.filter(t => t.status === 'failed').length,
-                    totalValueSentEth: transactions.filter(t => t.from === address).reduce((sum, t) => sum + (t.amount || 0) / 1e9, 0),
-                    totalValueReceivedEth: transactions.filter(t => t.to === address).reduce((sum, t) => sum + (t.amount || 0) / 1e9, 0),
-                    uniqueInteractedAddresses: new Set([
-                        ...transactions.map(t => t.from),
-                        ...transactions.map(t => t.to)
-                    ].filter(Boolean)).size,
-                    activityPeriodDays: Math.max(1, daysActive),
-                },
-            };
-
-            res.json({
-                success: true,
-                result: solanaResult,
-                usageRemaining: res.locals.usageRemaining,
-            });
-
-            clearCallerContext();
-            return res;
-        }
-
-        const txLimit = options?.limit || 100000;
+        console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 120s timeout...`);
         const result = await withTimeout(
-            analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: txLimit, skipFundingTree: true }),
-            180000, // Increased to 180s for large wallets
+            analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: 10000, skipFundingTree: true }),
+            120000, // Increased to 120s to handle large tx lists
             'Wallet analysis'
         );
-        clearCallerContext();
 
-        // Paginate transactions - return up to limit
+        // Paginate transactions - return up to 10000
         const totalTransactions = result.transactions.length;
         const paginatedTransactions = result.transactions.slice(offset, offset + limit);
         const hasMore = offset + limit < totalTransactions;
@@ -610,22 +390,6 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             usageRemaining: res.locals.usageRemaining,
         });
 
-        // Save wallet result to Redis (4 day TTL)
-        const walletEnriched = {
-            ...enrichAnalysisResult({
-                ...result,
-                transactions: paginatedTransactions,
-            }),
-            pagination: {
-                offset,
-                limit,
-                total: totalTransactions,
-                hasMore,
-                returned: paginatedTransactions.length,
-            },
-        };
-        cacheSetCached(walletCacheKey, walletEnriched, 345600).catch(() => {});
-
         // Track analytics (async, don't await to avoid slowing response)
         trackAnalysis({
             userId: req.user?.uid,
@@ -634,81 +398,6 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             feature: 'wallet',
             timestamp: Date.now(),
         }).catch(err => console.error('Failed to track analytics:', err));
-
-        // Send first analysis email (async, don't await)
-        if (req.user?.uid && req.user?.email) {
-            const db = getFirestore();
-            const userDoc = await db.collection('users').doc(req.user.uid).get();
-            const userData = userDoc.data();
-            
-            // Check if this is the user's first analysis (analysisCount is 0 or undefined)
-            const analysisCount = userData?.analysisCount || 0;
-            if (analysisCount === 0) {
-                const { subject, html } = buildFirstAnalysisEmail(
-                    userData?.displayName || userData?.name || '',
-                    address,
-                    normalizedChain
-                );
-                sendEmail({
-                    to: req.user.email,
-                    subject,
-                    html,
-                    includeBcc: true,
-                }).catch(err => console.error('[Email] Failed to send first analysis email:', err));
-                
-                // Update the analysis count
-                await db.collection('users').doc(req.user.uid).set(
-                    { analysisCount: 1 },
-                    { merge: true }
-                );
-
-                // Track Torque first analysis event (async, don't await)
-                trackAnalysisEvent(
-                    req.user.uid,
-                    TORQUE_EVENTS.FIRST_ANALYSIS,
-                    {
-                        chain: normalizedChain,
-                        address: address,
-                        risk_score: result.overallRiskScore,
-                        tx_count: result.summary?.totalTransactions,
-                        has_suspicious: (result.suspiciousIndicators?.length || 0) > 0,
-                    }
-                ).catch(err => console.error('[Torque] Failed to track first analysis:', err));
-                
-                // V2: Increment scan count
-                await torqueServiceV2.incrementScan(req.user.uid).catch(err => console.error('[TorqueV2] Scan increment failed:', err));
-                
-                // V2: Add to activity feed (web scans)
-                const displayName = userData?.displayName || userData?.name || 'User';
-                await torqueServiceV2.addActivity(req.user.uid, displayName, address, normalizedChain).catch(err => console.error('[TorqueV2] Activity failed:', err));
-            } else {
-                // Increment analysis count
-                await db.collection('users').doc(req.user.uid).set(
-                    { analysisCount: analysisCount + 1 },
-                    { merge: true }
-                );
-
-                // Track Torque wallet analyzed event (async, don't await)
-                trackAnalysisEvent(
-                    req.user.uid,
-                    TORQUE_EVENTS.WALLET_ANALYZED,
-                    {
-                        chain: normalizedChain,
-                        address: address,
-                        risk_score: result.overallRiskScore,
-                        tx_count: result.summary?.totalTransactions,
-                        has_suspicious: (result.suspiciousIndicators?.length || 0) > 0,
-                    }
-                ).catch(err => console.error('[Torque] Failed to track wallet analyzed:', err));
-                
-                // V2: Increment scan count
-                await torqueServiceV2.incrementScan(req.user.uid).catch(err => console.error('[TorqueV2] Scan increment failed:', err));
-                
-                // V2: Add to activity feed (web scans)
-                const displayName = userData?.displayName || userData?.name || 'User';
-                await torqueServiceV2.addActivity(req.user.uid, displayName, address, normalizedChain).catch(err => console.error('[TorqueV2] Activity failed:', err));
-            }
-        }
     } catch (error: any) {
         console.error('Wallet analysis error:', error.message);
         const errInfo = getUserFriendlyError(error);
@@ -731,89 +420,20 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
     // Normalize chain to lowercase
     const normalizedChain = normalizeChainId(chain);
 
-    // Handle Sui chain - return a message that funding tree is not yet supported
-    if (normalizedChain === 'sui') {
-        return res.status(400).json({ 
-            error: 'Funding tree is not yet supported for Sui blockchain. This feature is coming soon.',
-            isSuiUnsupported: true
-        });
-    }
-
-    // Handle Solana chain - use new dedicated SolanaFundingTreeService
-    if (normalizedChain === 'solana') {
-        try {
-            const { SolanaFundingTreeService } = await import('../services/SolanaFundingTreeService.js');
-            
-            const alchemyKey = process.env.ALCHEMY_SOLANA_API_KEY;
-            if (!alchemyKey) {
-                return res.status(500).json({ 
-                    error: 'Solana funding tree service is not configured',
-                    message: 'ALCHEMY_SOLANA_API_KEY environment variable is required'
-                });
-            }
-            
-            const fundingTreeService = new SolanaFundingTreeService(alchemyKey);
-
-            console.log(`[DEBUG] Building funding tree for ${address} on Solana...`);
-            
-            // Build funding tree with timeout
-            const result = await withTimeout(
-                fundingTreeService.buildFundingTree(address, options?.depth || 3),
-                30000,
-                'Funding tree'
-            );
-
-            res.json({
-                success: true,
-                result: {
-                    fundingSources: result.fundingSources,
-                    fundingDestinations: result.fundingDestinations,
-                    chain: 'solana',
-                },
-                usageRemaining: res.locals.usageRemaining,
-            });
-            return;
-        } catch (error: any) {
-            console.error('[Funding Tree Solana] Error:', error.message);
-            res.status(500).json({ 
-                error: 'Funding tree temporarily unavailable for Solana',
-                message: error.message 
-            });
-            return;
-        }
-    }
-
-    // EVM address validation
-    if (!ETH_ADDRESS_REGEX.test(address)) {
-        return res.status(400).json({ error: 'Invalid wallet address format' });
-    }
-
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
-            return res.status(400).json({ 
-                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, BSC, Solana.` 
-            });
-        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
-    try {
-        // Check if wallet data is already cached from previous analysis
-        const walletCacheKey = `wallet:${normalizedChain}:${address.toLowerCase()}`;
-        const cachedData = await cacheGetCached<any>(walletCacheKey);
-        const fromCache = !!cachedData;
-        
-        const cachedTransactions = cachedData?.transactions;
-        
-        if (cachedData) {
-            console.log(`[DEBUG] Cache HIT for funding tree: ${address} on ${normalizedChain}, using ${cachedTransactions?.length || 0} cached transactions`);
-        } else {
-            console.log(`[DEBUG] Cache MISS for funding tree: ${address} on ${normalizedChain}, will fetch fresh`);
-        }
+    // Validate address based on chain type
+    const isSolana = normalizedChain === 'solana';
+    if (isSolana ? !SOL_ADDR_REGEX.test(address) : !ETH_ADDRESS_REGEX.test(address)) {
+        return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
+    }
 
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
-        const sybilConfig = getSybilAlchemyKeys();
+    try {
+        // For Solana, don't need Alchemy key
+        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -824,14 +444,12 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            sybilConfig: sybilConfig,
         });
 
-        console.log(`[DEBUG] Building funding tree for ${address} on ${chain} (fromCache=${fromCache})...`);
+        console.log(`[DEBUG] Building funding tree for ${address} on ${chain}...`);
         const result = await withTimeout(
             analyzer.buildFundingTree(address, chain as ChainId, {
                 treeConfig: options?.treeConfig,
-                cachedTransactions: fromCache ? cachedTransactions : undefined,
             }),
             30000, // 30s timeout for tree building alone
             'Funding tree'
@@ -840,7 +458,6 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
         res.json({
             success: true,
             result,
-            fromCache,
         });
     } catch (error: any) {
         console.error('Funding tree error:', error.message);
@@ -888,56 +505,23 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
     // Normalize chain to lowercase
     const normalizedChain = chain?.toLowerCase();
 
-    // Handle Sui chain for compare endpoint
-    if (normalizedChain === 'sui') {
-        // Validate all addresses for Sui
-        for (const addr of addresses) {
-            if (!SUI_ADDRESS_REGEX.test(addr)) {
-                return res.status(400).json({ error: 'Invalid Sui address format. Expected 64 hex characters starting with 0x.' });
-            }
-        }
-        return res.status(400).json({ 
-            error: 'Compare is not yet supported for Sui blockchain. This feature is coming soon.',
-            isSuiUnsupported: true
-        });
-    }
-
-    // Compare Redis cache check (4 day TTL)
-    const compareChain = chain?.toLowerCase();
-    const compareCacheKey = `compare:${compareChain}:${addresses.map(a => a.toLowerCase()).sort().join(',')}`;
-    const compareCached = await cacheGetCached<any>(compareCacheKey);
-    if (compareCached) {
-        const sanitizedCached = createMinimalCompareResult(compareCached);
-        return res.json({ success: true, result: sanitizedCached, usageRemaining: res.locals.usageRemaining, cached: true });
-    }
-
-    // Validate all addresses based on chain
-    const isSolanaChain = normalizedChain === 'solana';
-    for (const addr of addresses) {
-        if (isSolanaChain) {
-            if (!SOLANA_ADDRESS_REGEX.test(addr)) {
-                return res.status(400).json({ error: 'Invalid Solana address format' });
-            }
-        } else {
-            if (!ETH_ADDRESS_REGEX.test(addr)) {
-                return res.status(400).json({ error: 'Invalid address format' });
-            }
-        }
-    }
-
-    // Validate chain parameter
-    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
-            return res.status(400).json({ 
-                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, BSC, Solana.` 
-            });
-        }
+    // Validate chain parameter FIRST (needed for address validation)
+    if (!normalizedChain || !ALLOWED_CHAINS.includes(normalizedChain)) {
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
+    // Validate all addresses based on chain type
+    const isSolana = normalizedChain === 'solana';
+    for (const addr of addresses) {
+        const valid = isSolana ? SOL_ADDR_REGEX.test(addr) : ETH_ADDRESS_REGEX.test(addr);
+        if (!valid) {
+            return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
+        }
+    }
+
     try {
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
-        const sybilConfig = getSybilAlchemyKeys();
+        // For Solana, we don't need an Alchemy key - use built-in Helius keys
+        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -948,22 +532,15 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            sybilConfig: sybilConfig,
         });
 
         const result = await analyzer.compareWallets(addresses, chain as ChainId, options);
 
-        const sanitizedResult = createMinimalCompareResult(result);
-
         res.json({
             success: true,
-            result: sanitizedResult,
+            result,
             usageRemaining: res.locals.usageRemaining,
         });
-
-        // Save compare result to Redis (4 day TTL)
-        const compareCacheKey = `compare:${compareChain}:${addresses.map(a => a.toLowerCase()).sort().join(',')}`;
-        cacheSetCached(compareCacheKey, sanitizedResult, 345600).catch(() => {});
 
         // Track analytics
         trackAnalysis({
@@ -1009,41 +586,20 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
     // Normalize chain to lowercase
     const normalizedChain = normalizeChainId(chain);
 
-    // Handle Sui chain - return coming soon message
-    if (normalizedChain === 'sui') {
-        if (!SUI_ADDRESS_REGEX.test(contractAddress)) {
-            return res.status(400).json({ error: 'Invalid Sui address format. Expected 64 hex characters starting with 0x.' });
-        }
-        return res.status(400).json({ 
-            error: 'Contract analysis is not yet supported for Sui blockchain. This feature is coming soon.',
-            isSuiUnsupported: true
-        });
-    }
-
-    if (!ETH_ADDRESS_REGEX.test(contractAddress)) {
-        return res.status(400).json({ error: 'Invalid contract address format' });
-    }
-
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
-            return res.status(400).json({ 
-                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, BSC, Solana.` 
-            });
-        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
-    // Contract Redis cache check (4 day TTL)
-    const contractCacheKey = `contract:${normalizedChain}:${contractAddress.toLowerCase()}`;
-    const contractCached = await cacheGetCached<any>(contractCacheKey);
-    if (contractCached) {
-        return res.json({ success: true, result: contractCached, usageRemaining: res.locals.usageRemaining, cached: true });
+    // Validate address based on chain type
+    const isSolana = normalizedChain === 'solana';
+    if (isSolana ? !SOL_ADDR_REGEX.test(contractAddress) : !ETH_ADDRESS_REGEX.test(contractAddress)) {
+        return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} contract address format` });
     }
 
     try {
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
-        const sybilConfig = getSybilAlchemyKeys();
+        // For Solana, don't need Alchemy key
+        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
@@ -1054,7 +610,6 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            sybilConfig: sybilConfig,
         });
 
         // Try to fetch interactors from Dune first if configured
@@ -1077,7 +632,6 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         }
 
         console.log('[DEBUG] Starting contract analysis with 180s timeout...');
-        setCallerContext('contract-analyze');
         const result = await withTimeout(
             analyzer.analyzeContract(contractAddress, chain as ChainId, {
                 maxInteractors: options?.maxInteractors || 100,
@@ -1087,17 +641,13 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
             180000, // 180 second timeout for complete contract analysis
             'Contract analysis'
         );
-        clearCallerContext();
 
         console.log('[DEBUG] Contract analysis complete, sending response');
         res.json({
             success: true,
-            result,
+            result: enrichAnalysisResult(result),
             usageRemaining: res.locals.usageRemaining,
         });
-
-        // Save contract result to Redis (4 day TTL)
-        cacheSetCached(contractCacheKey, result, 345600).catch(() => {});
 
         // Track analytics
         trackAnalysis({
@@ -1134,42 +684,34 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
     // Normalize chain to lowercase
     const normalizedChain = normalizeChainId(chain);
 
-    // Handle Sui chain - return coming soon message
-    if (normalizedChain === 'sui') {
-        if (!SUI_ADDRESS_REGEX.test(contractAddress)) {
-            return res.status(400).json({ error: 'Invalid Sui address format. Expected 64 hex characters starting with 0x.' });
-        }
-        return res.status(400).json({ 
-            error: 'Sybil detection is not yet supported for Sui blockchain. This feature is coming soon.',
-            isSuiUnsupported: true
-        });
-    }
-
-    if (!ETH_ADDRESS_REGEX.test(contractAddress)) {
-        return res.status(400).json({ error: 'Invalid contract address format' });
-    }
-
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
-            return res.status(400).json({ 
-                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, BSC, Solana.` 
-            });
-        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
     }
 
-    try {
-        const alchemyConfig = getSybilAlchemyKeys();
+    // Validate address based on chain type
+    const isSolana = normalizedChain === 'solana';
+    if (isSolana ? !SOL_ADDR_REGEX.test(contractAddress) : !ETH_ADDRESS_REGEX.test(contractAddress)) {
+        return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} contract address format` });
+    }
 
-        if (!alchemyConfig.defaultKey) {
+    try {
+        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        const moralisKey = process.env.MORALIS_API_KEY || '';
+        const covalentKey = process.env.COVALENT_API_KEY || '';
+
+        // For Solana, sybil detection isn't supported via Alchemy - return empty result
+        if (isSolana) {
+            return res.json({ success: true, result: { clusters: [], message: 'Sybil detection not yet supported for Solana' } });
+        }
+
+        if (!alchemyKey) {
             return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
         }
 
-        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyConfig);
+        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyKey, moralisKey, covalentKey);
 
         console.log('[DEBUG] Starting sybil analysis with 300s timeout...');
-        setCallerContext('sybil-analyze');
         const result = await withTimeout(
             analyzer.analyzeContract(contractAddress, {
                 maxInteractors: options?.maxInteractors || 500,
@@ -1178,7 +720,6 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
             600000, // 10 minute timeout for sybil analysis
             'Sybil analysis'
         );
-        clearCallerContext();
 
         console.log('[DEBUG] Sybil analysis complete, sending response');
         res.json({
@@ -1227,26 +768,28 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: 'Maximum 50 addresses per batch' });
     }
 
-    const validAddresses = addresses.filter((addr: string) => ETH_ADDRESS_REGEX.test(addr));
-    if (validAddresses.length === 0) {
-        return res.status(400).json({ error: 'No valid addresses provided' });
-    }
-
     const normalizedChain = (chain as string)?.toLowerCase() || 'linea';
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
         return res.status(400).json({ error: `Invalid chain: ${chain}` });
     }
 
+    // Validate addresses based on chain type
+    const isSolana = normalizedChain === 'solana';
+    const validAddresses = addresses.filter((addr: string) => 
+        isSolana ? SOL_ADDR_REGEX.test(addr) : ETH_ADDRESS_REGEX.test(addr)
+    );
+    if (validAddresses.length === 0) {
+        return res.status(400).json({ error: `No valid ${isSolana ? 'Solana' : 'EVM'} addresses provided` });
+    }
+
     try {
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
-        const sybilConfig = getSybilAlchemyKeys();
+        // For Solana, don't need Alchemy key
+        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
 
         const analyzer = new WalletAnalyzer({
             alchemy: alchemyKey,
-            sybilConfig: sybilConfig,
         });
 
-        setCallerContext('batch-analyze');
         const results = await Promise.allSettled(
             validAddresses.map(addr =>
                 analyzer.analyze(addr, normalizedChain as ChainId, {
@@ -1255,7 +798,6 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
                 })
             )
         );
-        clearCallerContext();
 
         const batchResults = results.map((result, i) => {
             if (result.status === 'fulfilled') {
@@ -1320,43 +862,42 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
         return res.status(400).json({ error: 'Maximum 10000 addresses allowed' });
     }
 
-    // Validate addresses
-    const validAddresses = addresses.filter((addr: string) => ETH_ADDRESS_REGEX.test(addr));
-
-    if (validAddresses.length === 0) {
-        return res.status(400).json({ error: 'No valid addresses provided' });
-    }
-
     // Normalize chain to lowercase
     const normalizedChain = chain?.toLowerCase() || 'ethereum';
 
     // Validate chain parameter
     if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-        if (UNSUPPORTED_CHAINS.includes(normalizedChain)) {
-            return res.status(400).json({ 
-                error: `${normalizedChain.charAt(0).toUpperCase() + normalizedChain.slice(1)} support is coming soon. Currently supported: Ethereum, Linea, Arbitrum, Base, Optimism, BSC, Solana.` 
-            });
-        }
         return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
+    }
+
+    // Validate addresses based on chain type
+    const isSolana = normalizedChain === 'solana';
+    const validAddresses = addresses.filter((addr: string) => 
+        isSolana ? SOL_ADDR_REGEX.test(addr) : ETH_ADDRESS_REGEX.test(addr)
+    );
+
+    if (validAddresses.length === 0) {
+        return res.status(400).json({ error: `No valid ${isSolana ? 'Solana' : 'EVM'} addresses provided` });
     }
 
     try {
         console.log('[DEBUG] Using original SybilAnalyzer for direct address analysis...');
         
-        // Get Alchemy key configuration for multi-key pool
-        const alchemyConfig = getSybilAlchemyKeys();
+        // Get Alchemy key for user
+        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        const moralisKey = process.env.MORALIS_API_KEY || '';
+        const covalentKey = process.env.COVALENT_API_KEY || '';
 
-        if (!alchemyConfig.defaultKey) {
+        if (!alchemyKey) {
             return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
         }
 
-        // Use SybilAnalyzer with multi-key pool
-        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyConfig);
+        // Use original SybilAnalyzer (proven to work)
+        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyKey, moralisKey, covalentKey);
 
         console.log(`[DEBUG] Starting sybil analysis on ${validAddresses.length} addresses...`);
         const startTime = Date.now();
         
-        setCallerContext('sybil-addresses');
         const result = await withTimeout(
             analyzer.analyzeAddresses(validAddresses, {
                 minClusterSize: options?.minClusterSize || 3,
@@ -1364,7 +905,6 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
             600000, // 10 minute timeout
             'Sybil analysis'
         );
-        clearCallerContext();
         
         const duration = (Date.now() - startTime) / 1000;
         console.log(`[DEBUG] Sybil analysis complete in ${duration}s`);
@@ -1385,91 +925,6 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
         console.error('Sybil address analysis error:', error.message);
         res.status(500).json({
             error: 'Sybil analysis failed',
-            message: error.message,
-        });
-    }
-});
-
-// CEX Flow Analysis Endpoint
-router.post('/cex-flow', async (req: AuthenticatedRequest, res: Response) => {
-    const startTime = Date.now();
-    
-    try {
-        const { walletAddress, chain, cexName, depth } = req.body;
-
-        // Validation
-        if (!walletAddress) {
-            return res.status(400).json({ error: 'walletAddress is required' });
-        }
-
-        const normalizedChain = normalizeChainId(chain || 'ethereum');
-        if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-            return res.status(400).json({ 
-                error: 'Invalid chain',
-                message: `Chain must be one of: ${ALLOWED_CHAINS.join(', ')}`
-            });
-        }
-
-        // Get wallet analysis first (to get transactions)
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
-        const sybilConfig = getSybilAlchemyKeys();
-        
-        const analyzer = new WalletAnalyzer({
-            alchemy: alchemyKey,
-            moralis: process.env.MORALIS_API_KEY,
-            etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            arbiscan: process.env.ARBISCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
-            sybilConfig: sybilConfig,
-        });
-        
-        setCallerContext('cex-flow-analyze');
-        const walletResult = await withTimeout(
-            analyzer.analyze(walletAddress, normalizedChain as ChainId, { transactionLimit: 500, skipFundingTree: true }),
-            180000,
-            'Wallet analysis for CEX flow'
-        );
-        clearCallerContext();
-        
-        // Get transactions from the result
-        const transactions = (walletResult.transactions || []).map((tx: any) => ({
-            hash: tx.hash || tx.digest,
-            from: tx.from || tx.sender,
-            to: tx.to || tx.recipient,
-            value: parseFloat(tx.value || tx.valueInEth || '0'),
-            timestamp: tx.timestamp || tx.timestampMs || Date.now(),
-            token: tx.token || 'ETH',
-        }));
-
-        // Import CEX service
-        const { CEXService } = await import('../services/CEXService.js');
-        const cexService = new CEXService();
-
-        // Analyze CEX flow
-        const result = await cexService.analyzeCEXFlow(walletAddress, normalizedChain as ChainId, {
-            cexName,
-            depth: depth || 2,
-            transactions,
-        });
-
-        const duration = (Date.now() - startTime) / 1000;
-        
-        res.json({
-            success: true,
-            result,
-            meta: {
-                duration: `${duration}s`,
-                transactionsAnalyzed: transactions.length,
-            },
-            usageRemaining: res.locals.usageRemaining,
-        });
-    } catch (error: any) {
-        console.error('CEX flow analysis error:', error.message);
-        res.status(500).json({
-            error: 'CEX flow analysis failed',
             message: error.message,
         });
     }
