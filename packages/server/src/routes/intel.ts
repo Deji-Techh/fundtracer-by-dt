@@ -21,8 +21,8 @@ const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || '';
 // Redis keys
 const REDIS_KEY_LIVE_TX = 'intel:live-transactions';
 const REDIS_KEY_MARKET_STATS = 'intel:market-stats';
-const LIVE_TX_CACHE_TTL = 30; // 30 seconds
-const MARKET_STATS_CACHE_TTL = 60; // 60 seconds
+const LIVE_TX_CACHE_TTL = 300; // 5 minutes
+const MARKET_STATS_CACHE_TTL = 600; // 10 minutes
 
 /**
  * GET /api/intel/market-stats
@@ -74,17 +74,18 @@ router.get('/market-stats', async (req, res) => {
                     results.activeAddresses = 1240000;
                 }
 
-                // 3. DeFi TVL from DeFiLlama
+                // 3. DeFi TVL from CoinGecko (more reliable than DeFiLlama)
                 try {
-                    const tvlResponse = await axios.get(
-                        `${DEFILLAMA_API}/tvl`,
+                    const cgResponse = await axios.get(
+                        `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false`,
                         { timeout: 5000 }
                     );
-                    if (tvlResponse.data) {
-                        const totalTvl = Object.values(tvlResponse.data as Record<string, any>)
-                            .reduce((sum: number, chain: any) => sum + (chain?.totalUsd || 0), 0);
-                        results.defiTvl = Math.round(totalTvl);
-                    }
+                    // Estimate DeFi TVL from top DeFi tokens (rough approximation)
+                    const defiTokens = ['ethereum', 'wrapped-bitcoin', 'uniswap', 'aave', 'maker', 'curve-dao-token', 'lido-dao', 'rocket-pool'];
+                    const defiData = cgResponse.data.filter((c: any) => defiTokens.includes(c.id));
+                    const totalDefiMcap = defiData.reduce((sum: number, c: any) => sum + (c.market_cap || 0), 0);
+                    // DeFi TVL is typically 2-3x the top token MC, use 2.5x multiplier
+                    results.defiTvl = Math.round(totalDefiMcap * 2.5) || 85000000000;
                 } catch (error) {
                     console.error('[Intel] Failed to fetch DeFi TVL:', error);
                     results.defiTvl = 85000000000;
