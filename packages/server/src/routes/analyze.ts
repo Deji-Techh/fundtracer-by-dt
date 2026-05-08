@@ -16,6 +16,7 @@ import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength, SOLANA_ADDRESS_REGEX } from '../utils/validation.js';
+import { getAlchemyKeyPool } from '../utils/quicknode.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -413,11 +414,21 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     try {
-        // For Solana, we don't need an Alchemy key - use built-in Helius keys
-        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        // Load the full 20-key pool for parallel requests
+        const alchemyKeyPool = getAlchemyKeyPool();
+        const defaultKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        
+        // Build SybilAlchemyConfig for parallel key usage
+        const sybilConfig = !isSolana && alchemyKeyPool.length > 0 ? {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            moralisKey: process.env.MORALIS_API_KEY,
+        } : undefined;
 
         const analyzer = new WalletAnalyzer({
-            alchemy: alchemyKey,
+            alchemy: defaultKey || alchemyKeyPool[0] || '',
+            sybilConfig: sybilConfig,
             moralis: process.env.MORALIS_API_KEY,
             etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
@@ -431,7 +442,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         const limit = Math.min(options?.limit || 10000, 10000); // Max 10000 per request
         const offset = options?.offset || 0;
 
-        console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 120s timeout...`);
+        console.log(`[DEBUG] Starting wallet analysis with 20-key pool (${alchemyKeyPool.length} keys) for ${address}...`);
         const result = await withTimeout(
             analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: 10000, skipFundingTree: true }),
             120000, // Increased to 120s to handle large tx lists
@@ -789,11 +800,21 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     try {
-        // For Solana, we don't need an Alchemy key - use built-in Helius keys
-        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        // Load the full 20-key pool for parallel requests
+        const alchemyKeyPool = getAlchemyKeyPool();
+        const defaultKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        
+        // Build SybilAlchemyConfig for parallel key usage
+        const sybilConfig = !isSolana && alchemyKeyPool.length > 0 ? {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            moralisKey: process.env.MORALIS_API_KEY,
+        } : undefined;
 
         const analyzer = new WalletAnalyzer({
-            alchemy: alchemyKey,
+            alchemy: defaultKey || alchemyKeyPool[0] || '',
+            sybilConfig: sybilConfig,
             moralis: process.env.MORALIS_API_KEY,
             etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
@@ -802,6 +823,8 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
         });
+
+        console.log(`[Compare] Comparing ${addresses.length} wallets with ${alchemyKeyPool.length} keys...`);
 
         const result = await analyzer.compareWallets(addresses, chain as ChainId, options);
 
@@ -867,11 +890,21 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     try {
-        // For Solana, don't need Alchemy key
-        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        // Load the full 20-key pool for parallel requests
+        const alchemyKeyPool = getAlchemyKeyPool();
+        const defaultKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        
+        // Build SybilAlchemyConfig for parallel key usage
+        const sybilConfig = !isSolana && alchemyKeyPool.length > 0 ? {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            moralisKey: process.env.MORALIS_API_KEY,
+        } : undefined;
 
         const analyzer = new WalletAnalyzer({
-            alchemy: alchemyKey,
+            alchemy: defaultKey || alchemyKeyPool[0] || '',
+            sybilConfig: sybilConfig,
             moralis: process.env.MORALIS_API_KEY,
             etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
@@ -965,7 +998,9 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     try {
-        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        // Load the full 20-key pool for parallel sybil detection
+        const alchemyKeyPool = getAlchemyKeyPool();
+        const defaultKey = await getAlchemyKeyForUser(req.user.uid);
         const moralisKey = process.env.MORALIS_API_KEY || '';
         const covalentKey = process.env.COVALENT_API_KEY || '';
 
@@ -974,13 +1009,21 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
             return res.json({ success: true, result: { clusters: [], message: 'Sybil detection not yet supported for Solana' } });
         }
 
-        if (!alchemyKey) {
+        if (!defaultKey && alchemyKeyPool.length === 0) {
             return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
         }
 
-        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyKey, moralisKey, covalentKey);
+        // Build SybilAlchemyConfig for parallel key usage
+        const sybilConfig = {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            moralisKey: moralisKey,
+        };
 
-        console.log('[DEBUG] Starting sybil analysis with 300s timeout...');
+        const analyzer = new SybilAnalyzer(chain as ChainId, sybilConfig);
+
+        console.log(`[Sybil] Analyzing contract with ${alchemyKeyPool.length} keys...`);
         const result = await withTimeout(
             analyzer.analyzeContract(contractAddress, {
                 maxInteractors: options?.maxInteractors || 500,
@@ -1052,12 +1095,24 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     try {
-        // For Solana, don't need Alchemy key
-        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        // Load the full 20-key pool for parallel requests
+        const alchemyKeyPool = getAlchemyKeyPool();
+        const defaultKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        
+        // Build SybilAlchemyConfig for parallel key usage
+        const sybilConfig = !isSolana && alchemyKeyPool.length > 0 ? {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            moralisKey: process.env.MORALIS_API_KEY,
+        } : undefined;
 
         const analyzer = new WalletAnalyzer({
-            alchemy: alchemyKey,
+            alchemy: defaultKey || alchemyKeyPool[0] || '',
+            sybilConfig: sybilConfig,
         });
+
+        console.log(`[Batch] Analyzing ${validAddresses.length} addresses with ${alchemyKeyPool.length} keys...`);
 
         const results = await Promise.allSettled(
             validAddresses.map(addr =>
@@ -1152,19 +1207,28 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
     try {
         console.log('[DEBUG] Using original SybilAnalyzer for direct address analysis...');
         
-        // Get Alchemy key for user
-        const alchemyKey = await getAlchemyKeyForUser(req.user.uid);
+        // Load the full 20-key pool for parallel sybil detection
+        const alchemyKeyPool = getAlchemyKeyPool();
+        const defaultKey = await getAlchemyKeyForUser(req.user.uid);
         const moralisKey = process.env.MORALIS_API_KEY || '';
         const covalentKey = process.env.COVALENT_API_KEY || '';
 
-        if (!alchemyKey) {
+        if (!defaultKey && alchemyKeyPool.length === 0) {
             return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
         }
 
-        // Use original SybilAnalyzer (proven to work)
-        const analyzer = new SybilAnalyzer(chain as ChainId, alchemyKey, moralisKey, covalentKey);
+        // Build SybilAlchemyConfig for parallel key usage
+        const sybilConfig = {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            moralisKey: moralisKey,
+        };
 
-        console.log(`[DEBUG] Starting sybil analysis on ${validAddresses.length} addresses...`);
+        // Use SybilAnalyzer with key pool for parallel analysis
+        const analyzer = new SybilAnalyzer(chain as ChainId, sybilConfig);
+
+        console.log(`[Sybil] Analyzing ${validAddresses.length} addresses with ${alchemyKeyPool.length} keys...`);
         const startTime = Date.now();
         
         const result = await withTimeout(
