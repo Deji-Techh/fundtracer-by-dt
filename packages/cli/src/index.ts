@@ -21,7 +21,7 @@ import { chatCommand } from './commands/chat.js';
 import { explainCommand } from './commands/explain.js';
 import { similarCommand } from './commands/similar.js';
 import { checkScamCommand, reportScamCommand, scamDbStatsCommand } from './commands/check-scam.js';
-import { qvacSetupCommand } from './commands/qvac-setup.js';
+import { qvacSetupCommand, qvacStopCommand } from './commands/qvac-setup.js';
 import { checkQVACAvailable, printQVACNotAvailable } from './ai.js';
 import { getApiKeys, getSybilApiKeys } from './utils.js';
 
@@ -278,9 +278,27 @@ if (isInteractive && args.length === 0) {
         .description('Show local scam database statistics')
         .action(scamDbStatsCommand);
 
-    // QVAC status command
-    program
+    // QVAC command with subcommands
+    const qvacCmd = program
         .command('qvac')
+        .description('QVAC server management');
+
+    // Default action - run status check
+    qvacCmd
+        .action(async () => {
+            process.stdout.write('Checking QVAC server... ');
+            const available = await checkQVACAvailable();
+            if (available) {
+                console.log(chalk.green('✓ running on localhost:11434'));
+            } else {
+                console.log(chalk.red('✗ not running'));
+                console.log();
+                printQVACNotAvailable();
+            }
+        });
+
+    qvacCmd
+        .command('status')
         .description('Check QVAC server status')
         .action(async () => {
             process.stdout.write('Checking QVAC server... ');
@@ -293,6 +311,11 @@ if (isInteractive && args.length === 0) {
                 printQVACNotAvailable();
             }
         });
+
+    qvacCmd
+        .command('stop')
+        .description('Stop the QVAC server')
+        .action(qvacStopCommand);
 
     // QVAC setup command
     program

@@ -97,7 +97,7 @@ export async function similarCommand(address: string, options: SimilarOptions) {
     // Use QVAC for similarity analysis
     const aiLoading = ora('Finding similar wallet types...').start();
     
-    const systemPrompt = 'You are a blockchain forensics expert. Given a wallet profile, identify 5 types of wallets that would show SIMILAR on-chain behavior. Consider transaction volume, value flow, contract interactions, and risk profile. Respond with a simple list, one per line.';
+    const systemPrompt = 'You are FundTracer AI, a blockchain forensics expert. You work for FundTracer. Given a wallet profile, identify 5 types of wallets that would show SIMILAR on-chain behavior. Consider transaction volume, value flow, contract interactions, and risk profile. Never use thinking tags. Respond with a simple list, one per line.';
     
     const userPrompt = 'Find wallets similar to this target:\nAddress: ' + address + '\nChain: ' + chain + '\nProfile: ' + profile + '\n\nWhat types of wallets show similar behavior? List top 5 with brief reason.';
     

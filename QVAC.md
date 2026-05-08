@@ -24,8 +24,9 @@ FundTracer CLI integrates **QVAC by Tether** for local AI-powered wallet analysi
 | **Check Scam** | `fundtracer check-scam 0x...` | ✅ Working - Offline |
 | **Report Scam** | `fundtracer report-scam 0x...` | ✅ Working |
 | **Scam DB Stats** | `fundtracer scam-db` | ✅ Working |
-| **QVAC Setup** | `fundtracer qvac-setup` | ✅ Working - Model selection |
+| **QVAC Setup** | `fundtracer qvac-setup` | ✅ Working - Downloads model first, then starts server |
 | **QVAC Status** | `fundtracer qvac` | ✅ Working |
+| **QVAC Stop** | `fundtracer qvac stop` | ✅ Working - Stop the server |
 
 ## Quick Start
 
@@ -37,12 +38,15 @@ fundtracer qvac-setup
 
 This will:
 1. Check for Docker (optional)
-2. Ask you to choose a model (choose **3 or 4** for useful AI)
-3. Install `@qvac/cli` and `@qvac/sdk` via npm
+2. Ask you to choose a model (choose **2, 3, or 4** for useful AI)
+3. Install `@qvac/cli` and `@qvac/sdk` via npm (if not already installed)
 4. Create configuration file in `~/.fundtracer-qvac/`
-5. Start the QVAC server on port 11434
+5. **Download the model to `~/.qvac/models/`** with progress indicator
+6. Start the QVAC server on port 11434
 
 **Important**: Choose **Qwen3-1.7B** or **Qwen3-4B** when prompted. The 600M model is too small for meaningful analysis.
+
+The model download happens **before** the server starts, so you can see the download progress. If you already have the model downloaded, it will skip the download and start the server immediately.
 
 ### Manual Setup
 

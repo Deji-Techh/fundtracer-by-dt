@@ -1,10 +1,10 @@
 // ============================================================
 // FundTracer CLI - QVAC Setup Command
-// With model selection and embeddings support
+// With model download progress and improved reliability
 // ============================================================
 
 import chalk from 'chalk';
-import { exec, spawn } from 'child_process';
+import { exec, spawn, ChildProcess } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
@@ -24,11 +24,13 @@ const c = {
 };
 
 const AVAILABLE_MODELS = [
-    { id: 'QWEN3_600M_INST_Q4', name: 'Qwen3-600M', size: '~380MB', speed: 'Fast', quality: 'Good' },
-    { id: 'QWEN3_1_7B_INST_Q4', name: 'Qwen3-1.7B', size: '~1.2GB', speed: 'Medium', quality: 'Better' },
-    { id: 'QWEN3_4B_INST_Q4_K_M', name: 'Qwen3-4B', size: '~2.5GB', speed: 'Slow', quality: 'Best' },
-    { id: 'QWEN3_8B_INST_Q4_K_M', name: 'Qwen3-8B', size: '~5GB', speed: 'Slowest', quality: 'Ultra' },
+    { id: 'QWEN3_600M_INST_Q4', name: 'Qwen3-600M', size: '~380MB', speed: 'Fast', quality: 'Good', fileMatch: 'Qwen3-0.6B' },
+    { id: 'QWEN3_1_7B_INST_Q4', name: 'Qwen3-1.7B', size: '~1.2GB', speed: 'Medium', quality: 'Better', fileMatch: 'Qwen3-1.7B' },
+    { id: 'QWEN3_4B_INST_Q4_K_M', name: 'Qwen3-4B', size: '~2.5GB', speed: 'Slow', quality: 'Best', fileMatch: 'Qwen3-4B' },
+    { id: 'QWEN3_8B_INST_Q4_K_M', name: 'Qwen3-8B', size: '~5GB', speed: 'Slowest', quality: 'Ultra', fileMatch: 'Qwen3-8B' },
 ];
+
+let qvacProcess: ChildProcess | null = null;
 
 export async function qvacSetupCommand() {
     console.log(c.bold('\n⚡ QVAC Setup - Local AI Server\n'));
@@ -62,7 +64,7 @@ export async function qvacSetupCommand() {
         process.exit(1);
     }
 
-// Show model options
+    // Show model options
     console.log(c.bold('\n📊 Available Models\n'));
     AVAILABLE_MODELS.forEach((m, i) => {
         const num = String(i + 1);
@@ -106,22 +108,61 @@ export async function qvacSetupCommand() {
     }
     console.log(c.gray('  Installing to: ') + projectDir + '\n');
 
-    // Install core QVAC packages (LLM for chat/similarity)
-    const installSpinner = ora('Installing @qvac packages...').start();
-    try {
-        await execAsync('npm install @qvac/cli @qvac/sdk --force', {
-            cwd: projectDir,
-            timeout: 300000
-        });
-        installSpinner.succeed('@qvac packages installed');
-    } catch (e: any) {
-        installSpinner.fail('Install failed');
-        console.log(c.red('Error: ' + e.message));
-        process.exit(1);
+    // Check if packages already installed
+    const cliPath = path.join(projectDir, 'node_modules', '@qvac', 'cli', 'package.json');
+    const sdkPath = path.join(projectDir, 'node_modules', '@qvac', 'sdk', 'package.json');
+    const packagesInstalled = fs.existsSync(cliPath) && fs.existsSync(sdkPath);
+
+    if (packagesInstalled) {
+        console.log(c.green('  ✓ @qvac packages already installed'));
+    } else {
+        // Install with progress - separate CLI and SDK
+        console.log(c.bold('\n📦 Installing Packages\n'));
+        
+        const cliSpinner = ora('Installing @qvac/cli...').start();
+        try {
+            await execAsync('npm install @qvac/cli --force', {
+                cwd: projectDir,
+                timeout: 300000
+            });
+            cliSpinner.succeed('@qvac/cli installed');
+        } catch (e: any) {
+            cliSpinner.fail('Failed to install @qvac/cli');
+            console.log(c.red('Error: ' + e.message));
+            process.exit(1);
+        }
+
+        const sdkSpinner = ora('Installing @qvac/sdk...').start();
+        try {
+            await execAsync('npm install @qvac/sdk --force', {
+                cwd: projectDir,
+                timeout: 300000
+            });
+            sdkSpinner.succeed('@qvac/sdk installed');
+        } catch (e: any) {
+            sdkSpinner.fail('Failed to install @qvac/sdk');
+            console.log(c.red('Error: ' + e.message));
+            process.exit(1);
+        }
     }
 
-    // Create config with model definition
-    const configSpinner = ora('Creating config...').start();
+    // Check if model is already downloaded
+    const modelCacheDir = path.join(process.env.HOME || '', '.qvac', 'models');
+    let modelDownloaded = false;
+    let existingModelFile = '';
+
+    if (fs.existsSync(modelCacheDir)) {
+        const files = fs.readdirSync(modelCacheDir);
+        for (const file of files) {
+            if (file.includes(selectedModel.fileMatch) && file.endsWith('.gguf')) {
+                modelDownloaded = true;
+                existingModelFile = file;
+                break;
+            }
+        }
+    }
+
+    // Create/update config
     const configPath = path.join(projectDir, 'qvac.config.json');
     const configContent = JSON.stringify({
         serve: {
@@ -135,21 +176,117 @@ export async function qvacSetupCommand() {
         }
     }, null, 2);
     fs.writeFileSync(configPath, configContent);
-    configSpinner.succeed('Config created');
 
-    // Kill any existing server
+    // Download model if not present
+    if (modelDownloaded) {
+        console.log(c.green(`  ✓ Model already downloaded: ${existingModelFile}`));
+    } else {
+        console.log(c.bold('\n📥 Downloading Model\n'));
+        console.log(c.gray(`  Downloading ${selectedModel.name} to ~/.qvac/models/...`));
+        console.log(c.gray('  This may take several minutes depending on your connection...\n'));
+
+        // Kill any existing server first
+        await killQvacServer();
+
+        const downloadSpinner = ora('Downloading ' + selectedModel.name + '...').start();
+        
+        try {
+            const cliPath = path.join(projectDir, 'node_modules', '@qvac', 'cli', 'dist', 'index.js');
+            
+            // Start the server - it will download the model on first run
+            const downloadProcess = spawn('node', [cliPath, 'serve', 'openai', '-v'], {
+                cwd: projectDir,
+                stdio: ['ignore', 'pipe', 'pipe']
+            });
+
+            let lastProgress = '';
+            let lastPercent = 0;
+            
+            downloadProcess.stdout?.on('data', (data: Buffer) => {
+                const output = data.toString();
+                
+                // Look for download progress
+                const percentMatch = output.match(/(\d+)%/);
+                if (percentMatch) {
+                    const percent = parseInt(percentMatch[1]);
+                    if (percent > lastPercent) {
+                        downloadSpinner.text = `Downloading ${selectedModel.name}: ${percent}%`;
+                        lastPercent = percent;
+                    }
+                }
+                
+                // Also check for "downloading" or "Downloading" in output
+                if (output.toLowerCase().includes('downloading') && !output.includes('%')) {
+                    const lines = output.split('\n').filter(l => l.toLowerCase().includes('downloading'));
+                    if (lines.length > 0) {
+                        downloadSpinner.text = lines[0].substring(0, 60);
+                    }
+                }
+            });
+
+            downloadProcess.stderr?.on('data', (data: Buffer) => {
+                const output = data.toString();
+                
+                // Look for download progress in stderr too
+                const percentMatch = output.match(/(\d+)%/);
+                if (percentMatch) {
+                    const percent = parseInt(percentMatch[1]);
+                    if (percent > lastPercent) {
+                        downloadSpinner.text = `Downloading ${selectedModel.name}: ${percent}%`;
+                        lastPercent = percent;
+                    }
+                }
+                
+                if (output.toLowerCase().includes('downloading') && !output.includes('%')) {
+                    const lines = output.split('\n').filter(l => l.toLowerCase().includes('downloading'));
+                    if (lines.length > 0) {
+                        downloadSpinner.text = lines[0].substring(0, 60);
+                    }
+                }
+            });
+
+            // Wait for server to start (which means model downloaded)
+            const maxWaitTime = 600000; // 10 minutes
+            const startTime = Date.now();
+            let serverStarted = false;
+
+            while (!serverStarted && (Date.now() - startTime) < maxWaitTime) {
+                await new Promise(r => setTimeout(r, 3000));
+                if (await checkServerRunning()) {
+                    serverStarted = true;
+                }
+            }
+
+            // Kill the download server - we'll start fresh
+            downloadProcess.kill('SIGTERM');
+            await new Promise(r => setTimeout(r, 2000));
+
+            if (serverStarted) {
+                downloadSpinner.succeed(selectedModel.name + ' downloaded and verified');
+            } else {
+                downloadSpinner.warn('Download may not have completed fully');
+                console.log(c.gray('  Will attempt to start server...\n'));
+            }
+        } catch (e: any) {
+            downloadSpinner.warn('Download issue: ' + e.message);
+            console.log(c.gray('  Will attempt to start server...\n'));
+        }
+    }
+
+    // Kill any existing server on port 11434
+    console.log(c.bold('\n🚀 Starting Server\n'));
     const killSpinner = ora('Clearing port 11434...').start();
     try {
-        await execAsync('fuser -k 11434/tcp 2>/dev/null || true', { timeout: 5000 });
+        await killQvacServer();
         await new Promise(r => setTimeout(r, 1000));
         killSpinner.succeed('Port cleared');
     } catch {
-        killSpinner.info('No existing server');
+        killSpinner.info('Port ready');
     }
 
-    // Start server
+    // Start server with improved reliability
     const startSpinner = ora('Starting QVAC server...').start();
-    const serverStarted = await tryStartServer(projectDir);
+    const serverStarted = await tryStartServer(projectDir, selectedModel.name);
     
     if (serverStarted) {
         startSpinner.succeed('QVAC server started');
@@ -173,6 +310,7 @@ export async function qvacSetupCommand() {
     if (isRunning) {
         console.log(c.bold('Server:'));
         console.log(c.cyan('  URL: ') + c.gray('http://127.0.0.1:11434'));
+        console.log(c.cyan('  Model: ') + c.gray(selectedModel.name));
     } else {
         console.log(c.yellow('⚠️  Server not running - start manually:\n'));
         console.log(c.bold('Manual start:'));
@@ -187,6 +325,46 @@ export async function qvacSetupCommand() {
     console.log(c.cyan('  fundtracer chat              # Interactive chat'));
     console.log(c.cyan('  fundtracer similar 0x...     # Find similar wallets'));
     console.log(c.cyan('  fundtracer check-scam 0x...   # Check scam database'));
+    console.log(c.cyan('  fundtracer qvac stop         # Stop the server'));
+    console.log();
+}
+
+async function killQvacServer(): Promise<void> {
+    try {
+        await execAsync('fuser -k 11434/tcp 2>/dev/null || true', { timeout: 5000 });
+    } catch {
+        // Ignore
+    }
+    
+    try {
+        await execAsync('pkill -f "qvac.*serve" 2>/dev/null || true', { timeout: 5000 });
+    } catch {
+        // Ignore
+    }
+    
+    await new Promise(r => setTimeout(r, 500));
+}
+
+export async function qvacStopCommand() {
+    console.log(c.bold('\n🛑 Stopping QVAC Server\n'));
+    
+    const killSpinner = ora('Stopping server...').start();
+    
+    try {
+        await killQvacServer();
+        
+        await new Promise(r => setTimeout(r, 1000));
+        const isRunning = await checkServerRunning();
+        
+        if (!isRunning) {
+            killSpinner.succeed('QVAC server stopped');
+        } else {
+            killSpinner.warn('Server may still be running');
+        }
+    } catch (e: any) {
+        killSpinner.fail('Failed to stop: ' + e.message);
+    }
+    
     console.log();
 }
 
@@ -202,7 +380,7 @@ async function checkDockerRunning(): Promise<boolean> {
 async function checkServerRunning(host: string = '127.0.0.1', port: number = 11434): Promise<boolean> {
     return new Promise((resolve) => {
         const socket = new net.Socket();
-        socket.setTimeout(5000);
+        socket.setTimeout(3000);
         socket.on('connect', () => { socket.destroy(); resolve(true); });
         socket.on('timeout', () => { socket.destroy(); resolve(false); });
         socket.on('error', () => { socket.destroy(); resolve(false); });
@@ -210,17 +388,47 @@ async function checkServerRunning(host: string = '127.0.0.1', port: number = 114
     });
 }
 
-async function tryStartServer(dir: string): Promise<boolean> {
+async function tryStartServer(dir: string, modelName: string): Promise<boolean> {
     const cliPath = path.join(dir, 'node_modules', '@qvac', 'cli', 'dist', 'index.js');
-    spawn('node', [cliPath, 'serve', 'openai'], {
+    
+    // Calculate wait time based on model size
+    // 600M: ~30s, 1.7B: ~60s, 4B: ~120s, 8B: ~180s
+    let baseWaitTime = 2000;
+    let maxRetries = 30;
+    
+    if (modelName.includes('4B')) {
+        maxRetries = 90; // 180 seconds
+    } else if (modelName.includes('8B')) {
+        maxRetries = 120; // 240 seconds
+    } else if (modelName.includes('1.7B')) {
+        maxRetries = 45; // 90 seconds
+    }
+    
+    console.log(c.gray(`  Starting ${modelName} (this may take up to ${maxRetries * 2}s)...`));
+    
+    qvacProcess = spawn('node', [cliPath, 'serve', 'openai'], {
         cwd: dir,
         detached: true,
         stdio: 'ignore'
-    }).unref();
+    });
     
-    for (let i = 0; i < 15; i++) {
+    qvacProcess.unref();
+    
+    let lastError = '';
+    
+    for (let i = 0; i < maxRetries; i++) {
         await new Promise(r => setTimeout(r, 2000));
-        if (await checkServerRunning()) return true;
+        
+        if (qvacProcess && qvacProcess.exitCode !== null && qvacProcess.exitCode !== 0) {
+            lastError = `Process exited with code ${qvacProcess.exitCode}`;
+            continue;
+        }
+        
+        if (await checkServerRunning()) {
+            return true;
+        }
     }
+    
+    console.log(c.gray('  Last error: ' + lastError));
     return false;
 }

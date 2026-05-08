@@ -52,8 +52,14 @@ Get free keys:
 ### AI Commands (requires QVAC)
 
 ```bash
-# Set up local AI server
+# Set up local AI server (downloads model first, then starts server)
 fundtracer qvac-setup
+
+# Check QVAC server status
+fundtracer qvac
+
+# Stop QVAC server
+fundtracer qvac stop
 
 # AI-powered analysis
 fundtracer analyze 0x... --ai
