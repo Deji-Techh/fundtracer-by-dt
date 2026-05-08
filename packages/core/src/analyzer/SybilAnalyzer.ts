@@ -748,36 +748,67 @@ export class SybilAnalyzer {
                     const responseText = await response.text();
                     
                     if (!contentType.includes('application/json')) {
-                        console.log(`[SybilAnalyzer] Non-JSON response for ${address}, status: ${response.status}`);
+                        console.log(`[SybilAnalyzer] Non-JSON response for ${address}, trying different key...`);
                         consecutiveFailures++;
-                        // Wait longer on failures
-                        await new Promise(resolve => setTimeout(resolve, 3000 * consecutiveFailures));
+                        // Rotate to a different key on non-JSON
+                        const allKeys = this.keyPool?.getAllWalletKeys() || [];
+                        const keyIndex = allKeys.indexOf(apiKey);
+                        if (keyIndex >= 0 && allKeys.length > 1) {
+                            const nextKey = allKeys[(keyIndex + 1) % allKeys.length];
+                            apiKey = nextKey;
+                            console.log(`[SybilAnalyzer] Rotated to key ${nextKey.slice(0, 8)}... for ${address}`);
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                         continue;
                     }
                     
-                    // Parse the JSON
+                    // Parse the JSON - on failure, try a different key
                     try {
                         data = JSON.parse(responseText);
                     } catch (parseError) {
-                        console.log(`[SybilAnalyzer] JSON parse error for ${address}`);
+                        console.log(`[SybilAnalyzer] JSON parse error for ${address}, trying different key...`);
                         consecutiveFailures++;
-                        await new Promise(resolve => setTimeout(resolve, 3000 * consecutiveFailures));
+                        // Rotate to a different key on JSON parse errors
+                        const allKeys = this.keyPool?.getAllWalletKeys() || [];
+                        const keyIndex = allKeys.indexOf(apiKey);
+                        if (keyIndex >= 0 && allKeys.length > 1) {
+                            const nextKey = allKeys[(keyIndex + 1) % allKeys.length];
+                            console.log(`[SybilAnalyzer] Rotating to key ${nextKey.slice(0, 8)}... for ${address}`);
+                            apiKey = nextKey;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                         continue;
                     }
                     
-                    // Handle rate limiting (429)
+// Handle rate limiting (429)
                     if (response.status === 429 || data?.error?.code === 429) {
-                        console.log(`[SybilAnalyzer] Rate limited for ${address}, retrying after delay...`);
+                        console.log(`[SybilAnalyzer] Rate limited for ${address}, trying different key...`);
                         consecutiveFailures++;
-                        await new Promise(resolve => setTimeout(resolve, 2000 * consecutiveFailures));
+                        // Rotate to a different key on rate limiting
+                        const allKeys = this.keyPool?.getAllWalletKeys() || [];
+                        const keyIndex = allKeys.indexOf(apiKey);
+                        if (keyIndex >= 0 && allKeys.length > 1) {
+                            const nextKey = allKeys[(keyIndex + 1) % allKeys.length];
+                            apiKey = nextKey;
+                            console.log(`[SybilAnalyzer] Rotated to key ${nextKey.slice(0, 8)}... for ${address}`);
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 2000));
                         continue;
                     }
-                    
+
                     // Handle Alchemy errors
                     if (data?.error) {
-                        console.log(`[SybilAnalyzer] Alchemy error for ${address}: ${JSON.stringify(data.error)}`);
+                        console.log(`[SybilAnalyzer] Alchemy error for ${address}: ${JSON.stringify(data.error)}, trying different key...`);
                         consecutiveFailures++;
-                        await new Promise(resolve => setTimeout(resolve, 1000 * consecutiveFailures));
+                        // Rotate to a different key on errors
+                        const allKeys = this.keyPool?.getAllWalletKeys() || [];
+                        const keyIndex = allKeys.indexOf(apiKey);
+                        if (keyIndex >= 0 && allKeys.length > 1) {
+                            const nextKey = allKeys[(keyIndex + 1) % allKeys.length];
+                            apiKey = nextKey;
+                            console.log(`[SybilAnalyzer] Rotated to key ${nextKey.slice(0, 8)}... for ${address}`);
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                         continue;
                     }
                     
@@ -786,9 +817,17 @@ export class SybilAnalyzer {
                     break;
                     
                 } catch (error: any) {
-                    console.log(`[SybilAnalyzer] Exception for ${address}: ${error?.message || error}`);
+                    console.log(`[SybilAnalyzer] Exception for ${address}: ${error?.message || error}, trying different key...`);
                     consecutiveFailures++;
-                    await new Promise(resolve => setTimeout(resolve, 2000 * consecutiveFailures));
+                    // Rotate to a different key on exceptions
+                    const allKeys = this.keyPool?.getAllWalletKeys() || [];
+                    const keyIndex = allKeys.indexOf(apiKey);
+                    if (keyIndex >= 0 && allKeys.length > 1) {
+                        const nextKey = allKeys[(keyIndex + 1) % allKeys.length];
+                        apiKey = nextKey;
+                        console.log(`[SybilAnalyzer] Rotated to key ${nextKey.slice(0, 8)}... for ${address}`);
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
             

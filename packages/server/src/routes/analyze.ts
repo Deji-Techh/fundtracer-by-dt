@@ -1086,12 +1086,13 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
             return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
         }
 
-        // Build SybilAlchemyConfig for parallel key usage
+        // Build SybilAlchemyConfig for parallel key usage - use ALL keys
         const sybilConfig = {
             defaultKey: defaultKey || alchemyKeyPool[0],
-            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
-            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            contractKeys: alchemyKeyPool, // Use ALL keys for contract lookups
+            walletKeys: alchemyKeyPool,   // Use ALL keys for wallet lookups (parallel)
             moralisKey: moralisKey,
+            covalentKey: covalentKey,
         };
 
         const analyzer = new SybilAnalyzer(chain as ChainId, sybilConfig);
@@ -1290,12 +1291,13 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
             return res.status(400).json({ error: 'Alchemy API key required for sybil detection' });
         }
 
-        // Build SybilAlchemyConfig for parallel key usage
+        // Build SybilAlchemyConfig for parallel key usage - use ALL keys
         const sybilConfig = {
             defaultKey: defaultKey || alchemyKeyPool[0],
-            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
-            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            contractKeys: alchemyKeyPool, // Use ALL keys for contract lookups
+            walletKeys: alchemyKeyPool,   // Use ALL keys for wallet lookups (parallel)
             moralisKey: moralisKey,
+            covalentKey: process.env.COVALENT_API_KEY || '',
         };
 
         // Use SybilAnalyzer with key pool for parallel analysis
