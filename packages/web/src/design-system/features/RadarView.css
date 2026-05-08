@@ -408,6 +408,55 @@
   border-radius: var(--radius-sm);
 }
 
+/* Synced Badge */
+.synced-badge {
+  font-size: var(--text-xs);
+  color: var(--intel-green);
+  background: var(--intel-green-bg);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+/* Template Modal */
+.template-desc {
+  font-size: var(--text-sm);
+  color: var(--intel-text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.template-item {
+  padding: var(--space-3);
+  background: var(--intel-bg-base);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.template-item:hover {
+  border-color: var(--intel-cyan);
+  background: var(--intel-bg-hover);
+}
+
+.template-label {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--intel-text-primary);
+}
+
+.template-preview {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--intel-text-muted);
+  font-style: italic;
+}
+
 /* Activity Feed */
 .activity-feed {
   display: flex;

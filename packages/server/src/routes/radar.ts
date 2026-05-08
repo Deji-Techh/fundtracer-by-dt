@@ -200,4 +200,39 @@ router.post('/test-email', async (req: Request, res: Response) => {
     }
 });
 
+// POST /api/radar/verify-email - Send verification email
+router.post('/verify-email', async (req: Request, res: Response) => {
+    try {
+        const { email, userId } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email required' });
+        }
+
+        // Send verification email
+        await sendEmail({
+            to: email,
+            subject: 'Verify your Radar alert email - Fundtracer',
+            html: `
+<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #1e293b;">Verify your Radar alerts</h2>
+  <p style="color: #475569;">Click the button below to verify your email for Radar wallet alerts:</p>
+  <a href="${process.env.APP_URL || 'https://fundtracer.xyz'}/radar/verify?email=${encodeURIComponent(email)}&userId=${userId}" 
+     style="display: inline-block; background: #00ff88; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+    Verify Email
+  </a>
+  <p style="color: #94a3b8; font-size: 12px;">
+    If you didn't set up Radar alerts, you can ignore this email.
+  </p>
+</div>`,
+            from: RADAR_FROM
+        });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Radar] Verify email error:', error);
+        res.status(500).json({ error: 'Failed to send verification email' });
+    }
+});
+
 export default router;

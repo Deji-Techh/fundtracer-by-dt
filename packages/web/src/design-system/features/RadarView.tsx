@@ -26,16 +26,37 @@ interface LiveActivity {
   txHash: string;
 }
 
+interface UserProfile {
+  email: string;
+  displayName?: string;
+}
+
+// Message templates
+const MESSAGE_TEMPLATES = [
+  { id: 'new_tx', label: 'New transaction detected', text: 'New transaction detected on {address}' },
+  { id: 'large_tx', label: 'Large transfer', text: 'Large transfer of {amount} {token} (${amountUSD}) detected from {address}' },
+  { id: 'suspicious', label: 'Suspicious activity', text: 'Suspicious activity detected involving {address}' },
+  { id: 'token_swap', label: 'Token swap', text: 'Token swap detected: {amountIn} → {amountOut}' },
+  { id: 'custom', label: 'Custom message', text: '' },
+];
+
 const RadarView: React.FC = () => {
   const [chain, setChain] = useState<'solana' | 'evm'>('solana');
   const [alerts, setAlerts] = useState<RadarAlert[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [liveActivities, setLiveActivities] = useState<LiveActivity[]>([]);
   const [emailSettings, setEmailSettings] = useState({
     enabled: true,
     address: '',
     verified: false,
     customMessage: '',
+  });
+  const [formData, setFormData] = useState({
+    address: '',
+    label: '',
+    alertType: 'any_transaction',
+    threshold: 1000,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string>('');
@@ -93,6 +114,29 @@ const RadarView: React.FC = () => {
 
     return () => clearInterval(pollInterval);
   }, [userId, isLoading]);
+
+  // Fetch user profile from API to auto-fill email
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/user/profile`);
+        if (res.ok) {
+          const profile: UserProfile = await res.json();
+          if (profile.email) {
+            setEmailSettings(prev => ({
+              ...prev,
+              address: profile.email,
+              verified: true,
+            }));
+          }
+        }
+      } catch (error) {
+        console.log('[Radar] No authenticated profile, using guest mode');
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   const toggleAlert = async (id: string) => {
     const alert = alerts.find(a => a.id === id);
@@ -170,6 +214,83 @@ const RadarView: React.FC = () => {
       case 'stake': return 'var(--intel-cyan)';
       default: return 'var(--intel-text-muted)';
     }
+  };
+
+  // Handle adding a new alert
+  const handleAddAlert = async () => {
+    if (!formData.address.trim()) {
+      alert('Please enter a wallet address');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/radar/alerts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: formData.address,
+          label: formData.label,
+          chain: chain,
+          alertType: formData.alertType,
+          threshold: formData.alertType === 'large_transfer' ? formData.threshold : undefined,
+          email: emailSettings.address,
+          customMessage: emailSettings.customMessage,
+          userId: userId,
+        }),
+      });
+
+      if (res.ok) {
+        setShowAddModal(false);
+        setFormData({ address: '', label: '', alertType: 'any_transaction', threshold: 1000 });
+        loadAlerts(userId);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to create alert');
+      }
+    } catch (error) {
+      console.error('[Radar] Failed to create alert:', error);
+      alert('Failed to create alert');
+    }
+  };
+
+  // Handle verify email
+  const handleVerifyEmail = async () => {
+    if (!emailSettings.address) {
+      alert('Please enter an email address first');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/radar/verify-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailSettings.address, userId: userId }),
+      });
+
+      if (res.ok) {
+        setEmailSettings(prev => ({ ...prev, verified: true }));
+        alert('Verification email sent!');
+      } else {
+        alert('Failed to send verification email');
+      }
+    } catch (error) {
+      console.error('[Radar] Failed to verify email:', error);
+      alert('Failed to send verification email');
+    }
+  };
+
+  // Handle custom message selection
+  const handleTemplateSelect = (templateId: string) => {
+    const template = MESSAGE_TEMPLATES.find(t => t.id === templateId);
+    if (template) {
+      setEmailSettings(prev => ({ ...prev, customMessage: template.text }));
+      setShowTemplateModal(false);
+    }
+  };
+
+  // Handle navigation
+  const navigateTo = (path: string) => {
+    window.location.href = path;
   };
 
   if (isLoading) {
@@ -336,7 +457,8 @@ const RadarView: React.FC = () => {
           {/* Email Settings */}
           <div className="email-settings-section">
             <div className="section-header">
-              <h3>📧 EMAIL NOTIFICATIONS</h3>
+              <h3>EMAIL NOTIFICATIONS</h3>
+              {emailSettings.verified && <span className="synced-badge">Synced</span>}
             </div>
             <div className="email-card">
               <div className="email-input-row">
@@ -344,16 +466,16 @@ const RadarView: React.FC = () => {
                   type="email" 
                   placeholder="your@email.com"
                   value={emailSettings.address}
-                  onChange={(e) => setEmailSettings({...emailSettings, address: e.target.value})}
+                  onChange={(e) => setEmailSettings({...emailSettings, address: e.target.value, verified: false})}
                   className="email-input"
                 />
-                <button className="verify-btn">
+                <button className="verify-btn" onClick={handleVerifyEmail}>
                   {emailSettings.verified ? '✓ Verified' : 'Verify'}
                 </button>
               </div>
               <div className="custom-message-row">
                 <span className="custom-label">Custom message:</span>
-                <button className="customize-btn">
+                <button className="customize-btn" onClick={() => setShowTemplateModal(true)}>
                   {emailSettings.customMessage ? 'Edit' : 'Add'} 
                   {emailSettings.customMessage && ' ✏️'}
                 </button>
@@ -424,7 +546,9 @@ const RadarView: React.FC = () => {
                 <span className="banner-subtitle">Wallet Intelligence Platform</span>
               </div>
             </div>
-            <button className="banner-cta">Learn More →</button>
+            <button className="banner-cta" onClick={() => navigateTo('/features')}>
+              Learn More →
+            </button>
           </div>
         </div>
       </div>
@@ -444,6 +568,8 @@ const RadarView: React.FC = () => {
                   type="text" 
                   placeholder="Enter wallet address..."
                   className="form-input"
+                  value={formData.address}
+                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                 />
               </div>
               <div className="form-group">
@@ -452,11 +578,17 @@ const RadarView: React.FC = () => {
                   type="text" 
                   placeholder="e.g., My Wallet, Whale Target"
                   className="form-input"
+                  value={formData.label}
+                  onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
                 />
               </div>
               <div className="form-group">
                 <label>Alert Type</label>
-                <select className="form-select">
+                <select 
+                  className="form-select"
+                  value={formData.alertType}
+                  onChange={(e) => setFormData(prev => ({ ...prev, alertType: e.target.value }))}
+                >
                   <option value="any_transaction">Any Transaction</option>
                   <option value="large_transfer">Large Transfer (&gt;$1000)</option>
                   <option value="token_swap">Token Swap</option>
@@ -464,12 +596,14 @@ const RadarView: React.FC = () => {
                   <option value="new_position">New DeFi Position</option>
                 </select>
               </div>
-              <div className="form-group threshold-group">
+              <div className={`form-group threshold-group ${formData.alertType === 'large_transfer' ? 'visible' : ''}`}>
                 <label>Threshold (USD)</label>
                 <input 
                   type="number" 
                   placeholder="1000"
                   className="form-input"
+                  value={formData.threshold}
+                  onChange={(e) => setFormData(prev => ({ ...prev, threshold: parseInt(e.target.value) || 0 }))}
                 />
               </div>
             </div>
@@ -477,9 +611,38 @@ const RadarView: React.FC = () => {
               <button className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
                 Cancel
               </button>
-              <button className="btn btn-primary">
+              <button className="btn btn-primary" onClick={handleAddAlert}>
                 Add Alert
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Message Template Modal */}
+      {showTemplateModal && (
+        <div className="modal-overlay" onClick={() => setShowTemplateModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Custom Message Template</h3>
+              <button className="modal-close" onClick={() => setShowTemplateModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p className="template-desc">Select a template for your alert notifications:</p>
+              <div className="template-list">
+                {MESSAGE_TEMPLATES.map(template => (
+                  <div 
+                    key={template.id} 
+                    className="template-item"
+                    onClick={() => handleTemplateSelect(template.id)}
+                  >
+                    <div className="template-label">{template.label}</div>
+                    {template.text && (
+                      <div className="template-preview">{template.text}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
