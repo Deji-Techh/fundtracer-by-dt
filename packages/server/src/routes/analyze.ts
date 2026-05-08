@@ -25,6 +25,7 @@ import { sendEmail, buildFirstAnalysisEmail } from '../services/EmailService.js'
 import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
 import { trackAnalysisEvent, TORQUE_EVENTS, TORQUE_CAMPAIGNS, torqueService } from '../services/TorqueService.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
+import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -37,13 +38,12 @@ const ALLOWED_CHAINS = [
     'arbitrum', 'arb',
     'base',
     'optimism', 'opt',
-    'polygon', 'polygon_pos', 'matic',
     'bsc', 'binance',
-    'sui' // Added but handled specially - returns "coming soon"
+    'solana' // Solana support via SolanaAdapter
 ];
 
 // Chains not yet supported - will return helpful error (kept for reference)
-const UNSUPPORTED_CHAINS = ['sui', 'solana'];
+const UNSUPPORTED_CHAINS = ['sui'];
 
 // Map frontend chain IDs to canonical names
 const normalizeChainId = (chain: string): string => {
@@ -509,6 +509,50 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
         console.log(`[DEBUG] Starting wallet analysis (limit=${limit}, offset=${offset}) with 180s timeout...`);
         setCallerContext('wallet-analyze');
+
+        // Handle Solana separately via SolanaPortfolioService
+        if (normalizedChain === 'solana') {
+            const txLimit = options?.limit || 100;
+            
+            const [portfolio, transactions] = await Promise.all([
+                solanaPortfolioService.getPortfolio(address),
+                solanaPortfolioService.getTransactions(address, txLimit)
+            ]);
+
+            // Format for consistent API response
+            const solanaResult = {
+                wallet: {
+                    address: address,
+                    chain: 'solana' as ChainId,
+                    balance: (portfolio.sol.sol / 1e9).toString(),
+                    balanceInEth: portfolio.sol.sol,
+                    txCount: transactions.length,
+                    firstTxTimestamp: transactions[transactions.length - 1]?.blockTime || null,
+                    lastTxTimestamp: transactions[0]?.blockTime || null,
+                    isContract: false,
+                },
+                transactions: transactions.map(t => ({
+                    hash: t.signature,
+                    from: t.from,
+                    to: t.to || '',
+                    value: (t.amount || 0).toString(),
+                    fee: t.fee.toString(),
+                    timestamp: t.blockTime,
+                    blockNumber: t.slot,
+                })),
+                tokens: portfolio.tokens,
+            };
+
+            res.json({
+                success: true,
+                result: solanaResult,
+                usageRemaining: res.locals.usageRemaining,
+            });
+
+            clearCallerContext();
+            return res;
+        }
+
         const txLimit = options?.limit || 100000;
         const result = await withTimeout(
             analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: txLimit, skipFundingTree: true }),

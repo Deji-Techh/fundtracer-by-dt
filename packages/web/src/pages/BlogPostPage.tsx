@@ -1453,7 +1453,7 @@ While EVM and Solana have different architectures, both are traceable with the r
 
 The most important factor is using tools built for each specific chain. FundTracer supports both, allowing you to analyze wallets across the crypto ecosystem.
 
-Try it at fundtracer.xyz - analyze EVM chains at /app-evm and Solana at /app-solana.
+Try it at fundtracer.xyz - analyze wallets across EVM and Solana chains from /app-evm.
 
 For more details, see our documentation on Ethereum Wallet Tracker and Solana Wallet Tracker.
     `

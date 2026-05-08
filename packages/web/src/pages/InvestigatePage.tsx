@@ -302,7 +302,6 @@ function InvestigateMainApp() {
     { id: 'investigate', label: 'Investigate', icon: <InvestigateIcon /> },
     { id: 'portfolio', label: 'Portfolio', icon: <PortfolioIcon /> },
     { id: 'polymarket', label: 'Polymarket', icon: <PolymarketIcon /> },
-    { id: 'solana', label: 'Solana', icon: <SolanaIcon />, onClick: () => navigate('/app-solana') },
     { id: 'history', label: 'History', icon: <HistoryIcon /> },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ];

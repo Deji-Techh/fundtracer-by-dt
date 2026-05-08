@@ -30,16 +30,6 @@ export const CHAIN_CONFIG = {
     enabled: true,
     priority: 3,
   },
-  polygon: {
-    id: 'polygon_pos',
-    name: 'Polygon',
-    displayName: 'Polygon',
-    color: '#8247e5',
-    icon: '/chains/polygon.svg',
-    explorerUrl: 'https://polygonscan.com',
-    enabled: true,
-    priority: 4,
-  },
   arbitrum: {
     id: 'arbitrum',
     name: 'Arbitrum',
@@ -48,7 +38,7 @@ export const CHAIN_CONFIG = {
     icon: '/chains/arbitrum.svg',
     explorerUrl: 'https://arbiscan.io',
     enabled: true,
-    priority: 5,
+    priority: 4,
   },
   optimism: {
     id: 'optimism',
@@ -58,7 +48,7 @@ export const CHAIN_CONFIG = {
     icon: '/chains/optimism.svg',
     explorerUrl: 'https://optimistic.etherscan.io',
     enabled: true,
-    priority: 6,
+    priority: 5,
   },
   bsc: {
     id: 'bsc',
@@ -67,6 +57,16 @@ export const CHAIN_CONFIG = {
     color: '#f0b90b',
     icon: '/chains/bsc.svg',
     explorerUrl: 'https://bscscan.com',
+    enabled: true,
+    priority: 6,
+  },
+  solana: {
+    id: 'solana',
+    name: 'Solana',
+    displayName: 'Solana',
+    color: '#9945FF',
+    icon: '/chains/solana.svg',
+    explorerUrl: 'https://solscan.io',
     enabled: true,
     priority: 7,
   },
@@ -96,8 +96,8 @@ export const getChainTokenSymbol = (chainKey: string): string => {
     arbitrum: 'ETH',
     base: 'ETH',
     optimism: 'ETH',
-    polygon: 'MATIC',
     bsc: 'BNB',
+    solana: 'SOL',
     sui: 'SUI',
   };
   return tokenSymbols[chainKey] || 'ETH';

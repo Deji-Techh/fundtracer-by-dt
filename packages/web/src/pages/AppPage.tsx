@@ -9,7 +9,7 @@ import InvestigateView from '../design-system/features/InvestigateView';
 import { getAuthToken } from '../api';
 import './AppPage.css';
 
-type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'solana' | 'history' | 'settings';
+type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'sui' | 'history' | 'settings';
 
 const PortfolioView = lazy(() => import('../design-system/features/PortfolioView'));
 const PolymarketView = lazy(() => import('../design-system/features/PolymarketView'));
@@ -180,11 +180,6 @@ export function AppPage() {
         <path d="M6.5 7h1"/>
       </svg>
     )},
-    { id: 'solana', label: 'Solana', icon: (
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M2 7h10M7 2l4 5-4 5-4-5z"/>
-      </svg>
-    ), onClick: () => navigate('/app-solana') },
     { id: 'sui', label: 'Sui', icon: (
       <svg viewBox="0 0 14 14" fill="none">
         <circle cx="7" cy="7" r="6" fill="#6f6feb" />

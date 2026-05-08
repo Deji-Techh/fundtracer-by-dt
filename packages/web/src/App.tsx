@@ -1,10 +1,8 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
 import IntelPage from './pages/IntelPage';
-import SolanaPage from './components/SolanaPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
 import AppPage from './pages/AppPage';
-import AppSolanaPage from './pages/AppSolanaPage';
 import { useAuth } from './contexts/AuthContext';
 import MaintenancePage from './pages/MaintenancePage';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -285,13 +283,6 @@ function App() {
         <ProtectedRoute>
           <Suspense fallback={<div>Loading...</div>}>
             <AppPage />
-          </Suspense>
-        </ProtectedRoute>
-      } />
-      <Route path="/app-solana/*" element={
-        <ProtectedRoute>
-          <Suspense fallback={<div>Loading...</div>}>
-            <AppSolanaPage />
           </Suspense>
         </ProtectedRoute>
       } />
