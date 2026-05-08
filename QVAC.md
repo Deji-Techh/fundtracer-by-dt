@@ -46,6 +46,14 @@ This will:
 
 **Important**: Choose **Qwen3-1.7B** or **Qwen3-4B** when prompted. The 600M model is too small for meaningful analysis.
 
+> **Note on load times**: 
+> - 600M: ~30 seconds
+> - 1.7B: ~1-2 minutes  
+> - 4B: ~3-5 minutes (may take longer on first load)
+> - 8B: ~5-10 minutes
+> 
+> The setup command will wait for the model to fully load before completing.
+
 The model download happens **before** the server starts, so you can see the download progress. If you already have the model downloaded, it will skip the download and start the server immediately.
 
 ### Manual Setup

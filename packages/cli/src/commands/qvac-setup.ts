@@ -412,35 +412,60 @@ async function tryStartServer(dir: string, modelName: string): Promise<boolean> 
     let maxRetries = 30;
     
     if (modelName.includes('4B')) {
-        maxRetries = 150; // 300 seconds (5 minutes!)
+        maxRetries = 200; // 400 seconds (6+ minutes!)
     } else if (modelName.includes('8B')) {
-        maxRetries = 200; // 400 seconds
+        maxRetries = 300; // 600 seconds
     } else if (modelName.includes('1.7B')) {
-        maxRetries = 60; // 120 seconds
+        maxRetries = 80; // 160 seconds
     }
     
-    console.log(c.gray(`  Starting ${modelName} (this may take up to ${maxRetries * 2}s)...`));
+    console.log(c.gray(`  Starting ${modelName} (this may take a few minutes, please wait)...`));
+    
+    // Check if server already running with this model
+    if (await checkModelLoaded()) {
+        console.log(c.green('  Server already running with model loaded'));
+        return true;
+    }
     
     qvacProcess = spawn('node', [cliPath, 'serve', 'openai'], {
         cwd: dir,
         detached: true,
-        stdio: 'ignore'
+        stdio: ['ignore', 'ignore', 'pipe']
+    });
+    
+    // Capture stderr to see what's happening
+    let stderrData = '';
+    qvacProcess.stderr?.on('data', (data: Buffer) => {
+        stderrData += data.toString();
     });
     
     qvacProcess.unref();
     
     let lastError = '';
+    let progressPrinted = false;
+    
+    console.log(c.gray('  Waiting for model to load...\n'));
     
     for (let i = 0; i < maxRetries; i++) {
         await new Promise(r => setTimeout(r, 2000));
         
+        // Check process status
         if (qvacProcess && qvacProcess.exitCode !== null && qvacProcess.exitCode !== 0) {
             lastError = `Process exited with code ${qvacProcess.exitCode}`;
-            continue;
+            if (stderrData) {
+                console.log(c.gray('  Error output: ' + stderrData.substring(0, 100)));
+            }
+            // Keep waiting - maybe another process will pick up
+        }
+        
+        // Print progress every 15 seconds
+        if (i > 0 && i % 8 === 0) {
+            console.log(c.gray(`  Still loading ${modelName}... (${Math.floor(i * 2 / 60)}min)`));
         }
         
         // Check if model is actually loaded (not just port open)
         if (await checkModelLoaded()) {
+            console.log(c.green('  Model loaded successfully!'));
             return true;
         }
     }
