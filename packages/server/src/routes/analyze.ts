@@ -18,6 +18,7 @@ import { trackAnalysis } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength, SOLANA_ADDRESS_REGEX } from '../utils/validation.js';
 import { getAlchemyKeyPool } from '../utils/quicknode.js';
 import { cacheGet, cacheSet } from '../utils/redis.js';
+import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 
 // Deep sanitize function to prevent React Error #130 (objects not valid as React child)
 function sanitizeForFrontend(obj: any): any {
@@ -507,6 +508,11 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             feature: 'wallet',
             timestamp: Date.now(),
         }).catch(err => console.error('Failed to track analytics:', err));
+
+        // Record to Torque - award points and log activity
+        const userName = req.user?.name || req.user?.email || 'User';
+        await torqueServiceV2.incrementScan(req.user.uid, userName).catch(err => console.error('[TorqueV2] Scan increment failed:', err));
+        await torqueServiceV2.addActivity(req.user.uid, userName, address, chain).catch(err => console.error('[TorqueV2] Activity failed:', err));
     } catch (error: any) {
         console.error('Wallet analysis error:', error.message);
         const errInfo = getUserFriendlyError(error);
@@ -897,6 +903,11 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
             feature: 'compare',
             timestamp: Date.now(),
         }).catch(err => console.error('Failed to track analytics:', err));
+
+        // Record to Torque - award points for compare
+        const userName = req.user?.name || req.user?.email || 'User';
+        await torqueServiceV2.incrementScan(req.user.uid, userName).catch(err => console.error('[TorqueV2] Compare scan increment failed:', err));
+        await torqueServiceV2.addActivity(req.user.uid, userName, `${addresses.length} wallets compared`, chain).catch(err => console.error('[TorqueV2] Activity failed:', err));
     } catch (error: any) {
         console.error('Comparison error:', error);
         const errInfo = getUserFriendlyError(error);
@@ -1032,6 +1043,11 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
             feature: 'contract',
             timestamp: Date.now(),
         }).catch(err => console.error('Failed to track analytics:', err));
+
+        // Record to Torque - award points for contract analysis
+        const userName = req.user?.name || req.user?.email || 'User';
+        await torqueServiceV2.incrementScan(req.user.uid, userName).catch(err => console.error('[TorqueV2] Contract scan increment failed:', err));
+        await torqueServiceV2.addActivity(req.user.uid, userName, contractAddress, chain).catch(err => console.error('[TorqueV2] Activity failed:', err));
     } catch (error: any) {
         console.error('Contract analysis error:', error.message);
         const errInfo = getUserFriendlyError(error);
@@ -1122,6 +1138,11 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
             feature: 'sybil',
             timestamp: Date.now(),
         }).catch(err => console.error('Failed to track analytics:', err));
+
+        // Record to Torque - award points for sybil detection
+        const userName = req.user?.name || req.user?.email || 'User';
+        await torqueServiceV2.incrementScan(req.user.uid, userName).catch(err => console.error('[TorqueV2] Sybil scan increment failed:', err));
+        await torqueServiceV2.addActivity(req.user.uid, userName, `Sybil: ${contractAddress}`, chain).catch(err => console.error('[TorqueV2] Activity failed:', err));
     } catch (error: any) {
         console.error('Sybil analysis error:', error.message);
         const errInfo = getUserFriendlyError(error);
@@ -1232,6 +1253,11 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
             },
             usageRemaining: res.locals.usageRemaining,
         });
+
+        // Record to Torque - award points for batch analysis
+        const userName = req.user?.name || req.user?.email || 'User';
+        await torqueServiceV2.incrementScan(req.user.uid, userName).catch(err => console.error('[TorqueV2] Batch scan increment failed:', err));
+        await torqueServiceV2.addActivity(req.user.uid, userName, `${analyzed} wallets batch analyzed`, chain).catch(err => console.error('[TorqueV2] Activity failed:', err));
     } catch (error: any) {
         console.error('[Batch] Error:', error.message);
         res.status(500).json({ error: 'Batch analysis failed', message: error.message });
@@ -1329,6 +1355,11 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
             },
             usageRemaining: res.locals.usageRemaining,
         });
+
+        // Record to Torque - award points for sybil address analysis
+        const userName = req.user?.name || req.user?.email || 'User';
+        await torqueServiceV2.incrementScan(req.user.uid, userName).catch(err => console.error('[TorqueV2] Sybil address scan increment failed:', err));
+        await torqueServiceV2.addActivity(req.user.uid, userName, `${validAddresses.length} addresses analyzed`, chain).catch(err => console.error('[TorqueV2] Activity failed:', err));
     } catch (error: any) {
         console.error('Sybil address analysis error:', error.message);
         res.status(500).json({
