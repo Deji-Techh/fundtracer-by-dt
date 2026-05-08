@@ -17,6 +17,7 @@ import contractService from '../services/ContractService.js';
 import { trackAnalysis } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength, SOLANA_ADDRESS_REGEX } from '../utils/validation.js';
 import { getAlchemyKeyPool } from '../utils/quicknode.js';
+import { cacheGet, cacheSet } from '../utils/redis.js';
 
 // Constants for validation - defined once at module level for performance
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
@@ -472,6 +473,14 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             usageRemaining: res.locals.usageRemaining,
         });
 
+        // Cache transactions for funding tree reuse (5 min TTL)
+        const cacheKey = `analyze:tx:${address.toLowerCase()}:${normalizedChain}`;
+        await cacheSet(cacheKey, {
+            transactions: result.transactions,
+            timestamp: Date.now(),
+        }, 300).catch(err => console.error('[Cache] Failed to cache transactions:', err));
+        console.log(`[Cache] Cached ${result.transactions.length} transactions for funding tree`);
+
         // Track analytics (async, don't await to avoid slowing response)
         trackAnalysis({
             userId: req.user?.uid,
@@ -568,11 +577,21 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
     }
 
     try {
-        // For Solana, don't need Alchemy key
-        const alchemyKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        // Load the full 20-key pool for parallel requests
+        const alchemyKeyPool = getAlchemyKeyPool();
+        const defaultKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+        
+        // Build SybilAlchemyConfig for parallel key usage
+        const sybilConfig = !isSolana && alchemyKeyPool.length > 0 ? {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            moralisKey: process.env.MORALIS_API_KEY,
+        } : undefined;
 
         const analyzer = new WalletAnalyzer({
-            alchemy: alchemyKey,
+            alchemy: defaultKey || alchemyKeyPool[0] || '',
+            sybilConfig: sybilConfig,
             moralis: process.env.MORALIS_API_KEY,
             etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
@@ -583,11 +602,26 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
         });
 
         console.log(`[DEBUG] Building funding tree for ${address} on ${chain}...`);
+
+        // Try to get cached transactions from recent wallet analysis
+        const cacheKey = `analyze:tx:${address.toLowerCase()}:${normalizedChain}`;
+        const cachedData = await cacheGet<{ transactions: any[]; timestamp: number }>(cacheKey);
+        let cachedTxs = undefined;
+        
+        // Use cache if available and less than 5 minutes old
+        if (cachedData && Date.now() - cachedData.timestamp < 300000) {
+            console.log(`[FundingTree] Using cached transactions (${cachedData.transactions.length} txs)`);
+            cachedTxs = cachedData.transactions;
+        } else {
+            console.log(`[FundingTree] No cache found, fetching fresh transactions...`);
+        }
+
         const result = await withTimeout(
             analyzer.buildFundingTree(address, chain as ChainId, {
                 treeConfig: options?.treeConfig,
+                cachedTransactions: cachedTxs,
             }),
-            30000, // 30s timeout for tree building alone
+            120000, // Increased to 120s timeout - with key pool this should be fast
             'Funding tree'
         );
 
