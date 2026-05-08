@@ -668,8 +668,8 @@ export class SybilAnalyzer {
         }
 
         const allKeys = this.keyPool.getAllWalletKeys();
-        // Limit to max 2 keys to avoid rate limiting
-        const MAX_PARALLEL_KEYS = 2;
+        // Use up to 15 keys for parallel processing
+        const MAX_PARALLEL_KEYS = 15;
         const numKeys = Math.min(allKeys.length, MAX_PARALLEL_KEYS, uncachedAddresses.length);
         const keys = allKeys.slice(0, numKeys);
         
