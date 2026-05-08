@@ -543,13 +543,28 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     gasCostInEth: t.fee / 1e9,
                     status: t.status === 'success' ? 'success' : 'failed',
                     category: t.token ? 'token_transfer' : 'transfer',
-                    timestamp: t.blockTime,
+                    timestamp: Math.floor(t.blockTime / 1000), // Convert ms to seconds for frontend
                     blockNumber: t.slot,
                     isIncoming: false, // Will be calculated client-side from wallet address
                     methodId: undefined,
                     methodName: undefined,
                 })),
                 tokens: portfolio.tokens,
+                summary: {
+                    totalTransactions: transactions.length,
+                    successfulTxs: transactions.filter(t => t.status === 'success').length,
+                    failedTxs: transactions.filter(t => t.status === 'failed').length,
+                    totalValueSentEth: 0, // Would need full transaction value parsing
+                    totalValueReceivedEth: 0,
+                    uniqueInteractedAddresses: new Set(transactions.map(t => t.to).filter(Boolean)).size,
+                    activityPeriodDays: (() => {
+                        if (transactions.length === 0) return 0;
+                        const timestamps = transactions.map(t => t.blockTime).filter(Boolean);
+                        if (timestamps.length === 0) return 0;
+                        const ms = Date.now() - (Math.min(...timestamps) * 1000);
+                        return Math.ceil(ms / (1000 * 60 * 60 * 24));
+                    })(),
+                },
             };
 
             res.json({
