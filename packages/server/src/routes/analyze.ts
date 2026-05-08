@@ -352,7 +352,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 solanaAdapter.getTransactions(address, { limit: 100 })
             ]);
 
-            // Build analysis result in expected format (Solana uses balance differently)
+            // Build analysis result - match AnalysisResult interface exactly
             const uniqueContracts = new Set<string>();
             transactions.forEach(tx => {
                 tx.programInteractions?.forEach(p => uniqueContracts.add(p));
@@ -361,9 +361,10 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             const lastTx = transactions[0];
 
             const result = {
-                address: address,
-                chain: 'solana',
-                walletInfo,
+                wallet: {
+                    ...walletInfo,
+                    chain: 'solana' as any,  // Add required chain property
+                },
                 transactions: transactions.map(tx => ({
                     hash: tx.hash,
                     from: tx.from,
@@ -376,18 +377,24 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     tokenTransfers: tx.tokenTransfers || [],
                     programInteractions: tx.programInteractions || [],
                 })),
-                tokenBalances: [],
-                nfts: [],
-                fundingSources: { nodes: [], edges: [] },
-                fundingDestinations: { nodes: [], edges: [] },
+                fundingSources: { nodes: [], edges: [] } as any,
+                fundingDestinations: { nodes: [], edges: [] } as any,
+                suspiciousIndicators: [],
+                overallRiskScore: 0,
+                riskLevel: 'low' as const,
                 projectsInteracted: [],
+                sameBlockTransactions: [],
                 summary: {
-                    totalReceived: walletInfo.balance || '0',
-                    totalSent: '0',
-                    txCount: transactions.length,
-                    uniqueContracts: uniqueContracts.size,
-                    firstActivity: firstTx?.timestamp || null,
-                    lastActivity: lastTx?.timestamp || null,
+                    totalTransactions: transactions.length,
+                    successfulTxs: transactions.filter(t => t.status === 'success').length,
+                    failedTxs: transactions.filter(t => t.status === 'failed').length,
+                    totalValueSentEth: 0,
+                    totalValueReceivedEth: parseFloat(walletInfo.balance || '0'),
+                    uniqueInteractedAddresses: uniqueContracts.size,
+                    topFundingSources: [],
+                    topFundingDestinations: [],
+                    activityPeriodDays: 0,
+                    averageTxPerDay: 0,
                 }
             };
 
@@ -646,42 +653,60 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
             return res.json({
                 success: true,
                 result: {
-                    wallets: walletData.map(w => ({
-                        address: w.address,
-                        chain: 'solana',
-                        walletInfo: w.walletInfo,
-                        transactions: w.transactions.map(tx => ({
-                            hash: tx.hash,
-                            from: tx.from,
-                            to: tx.to,
-                            value: tx.value,
-                            timestamp: tx.timestamp,
-                            fee: tx.fee,
-                            status: tx.status,
-                            blockNumber: null,
-                            tokenTransfers: tx.tokenTransfers || [],
-                            programInteractions: tx.programInteractions || [],
-                        })),
-                        tokenBalances: [],
-                        nfts: [],
-                        fundingSources: { nodes: [], edges: [] },
-                        fundingDestinations: { nodes: [], edges: [] },
-                        projectsInteracted: [],
-                        summary: {
-                            totalReceived: w.walletInfo.balance,
-                            totalSent: '0',
-                            txCount: w.transactions.length,
-                            uniqueContracts: Array.from(new Set(w.transactions.flatMap(tx => tx.programInteractions || []))).length,
-                            firstActivity: w.transactions[w.transactions.length - 1]?.timestamp || null,
-                            lastActivity: w.transactions[0]?.timestamp || null,
-                        }
-                    })),
+                    wallets: walletData.map(w => {
+                        const wtxs = w.transactions;
+                        const uniqueContracts = new Set<string>();
+                        wtxs.forEach(tx => tx.programInteractions?.forEach(p => uniqueContracts.add(p)));
+                        const firstTx = wtxs[wtxs.length - 1];
+                        const lastTx = wtxs[0];
+                        return {
+                            wallet: {
+                                ...w.walletInfo,
+                                chain: 'solana' as any,
+                            },
+                            transactions: wtxs.map(tx => ({
+                                hash: tx.hash,
+                                from: tx.from,
+                                to: tx.to || null,
+                                value: tx.value,
+                                timestamp: tx.timestamp,
+                                fee: tx.fee,
+                                status: tx.status,
+                                blockNumber: null,
+                                tokenTransfers: tx.tokenTransfers || [],
+                                programInteractions: tx.programInteractions || [],
+                            })),
+                            fundingSources: { nodes: [], edges: [] } as any,
+                            fundingDestinations: { nodes: [], edges: [] } as any,
+                            suspiciousIndicators: [],
+                            overallRiskScore: 0,
+                            riskLevel: 'low' as const,
+                            projectsInteracted: [],
+                            sameBlockTransactions: [],
+                            summary: {
+                                totalTransactions: wtxs.length,
+                                successfulTxs: wtxs.filter(t => t.status === 'success').length,
+                                failedTxs: wtxs.filter(t => t.status === 'failed').length,
+                                totalValueSentEth: 0,
+                                totalValueReceivedEth: parseFloat(w.walletInfo.balance || '0'),
+                                uniqueInteractedAddresses: uniqueContracts.size,
+                                topFundingSources: [],
+                                topFundingDestinations: [],
+                                activityPeriodDays: 0,
+                                averageTxPerDay: 0,
+                            }
+                        };
+                    }),
                     commonFundingSources: [],
                     commonDestinations: [],
                     sharedProjects: commonPrograms.map(prog => ({
                         contractAddress: prog,
-                        name: 'Solana Program',
-                        category: 'other' as const,
+                        projectName: 'Solana Program',
+                        category: 'unknown' as const,
+                        interactionCount: 0,
+                        totalValueInEth: 0,
+                        firstInteraction: 0,
+                        lastInteraction: 0,
                     })),
                     directTransfers: directTransfers.map(dt => ({
                         hash: dt.hash,
@@ -689,8 +714,11 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
                         to: dt.to,
                         value: dt.amount,
                         timestamp: dt.timestamp,
+                        fee: '',
                         status: 'success',
+                        blockNumber: null,
                         chain: { type: 'solana', id: 'mainnet-beta' },
+                        tokenTransfers: [],
                     })),
                     correlationScore,
                     isSybilLikely: correlationScore > 60,
