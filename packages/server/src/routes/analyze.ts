@@ -838,9 +838,17 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         const alchemyKeyPool = getAlchemyKeyPool();
         const defaultKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
 
-        // For compare, use simple single key (sybilConfig was causing React crash)
+        // Build SybilAlchemyConfig for parallel key usage
+        const sybilConfig = !isSolana && alchemyKeyPool.length > 0 ? {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            moralisKey: process.env.MORALIS_API_KEY,
+        } : undefined;
+
         const analyzer = new WalletAnalyzer({
             alchemy: defaultKey || alchemyKeyPool[0] || '',
+            sybilConfig: sybilConfig,
             moralis: process.env.MORALIS_API_KEY,
             etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
@@ -850,7 +858,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
         });
 
-        console.log(`[Compare] Comparing ${addresses.length} wallets...`);
+        console.log(`[Compare] Comparing ${addresses.length} wallets with ${alchemyKeyPool.length} keys...`);
 
         const rawResult = await analyzer.compareWallets(addresses, chain as ChainId, options);
 
