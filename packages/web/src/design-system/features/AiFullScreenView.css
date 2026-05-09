@@ -173,46 +173,44 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: 12px;
-  margin-bottom: 4px;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 2px;
+  border-radius: 8px;
   background: transparent;
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   position: relative;
 }
 
 .ai-scan-item:hover {
-  background: #141418;
+  background: rgba(127, 119, 221, 0.1);
 }
 
 .ai-scan-item.selected {
-  background: #1a1a1f;
-  border-color: #2a2a30;
+  background: rgba(127, 119, 221, 0.15);
 }
 
 .ai-scan-item-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .ai-scan-address {
   font-family: 'SF Mono', 'JetBrains Mono', monospace;
-  font-size: 13px;
-  font-weight: 500;
-  color: #c0c0c8;
+  font-size: 12px;
+  color: #a0a0a8;
 }
 
 .ai-scan-chain {
-  font-size: 9px;
-  font-weight: 700;
-  color: #fff;
-  padding: 3px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #707078;
+  padding: 2px 6px;
   border-radius: 4px;
-  background: #2a2a35;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* Hover Details Dropdown */
@@ -276,14 +274,14 @@
 }
 
 .ai-scan-risk {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 500;
+  color: #808088;
 }
 
 .ai-scan-time {
   font-size: 10px;
-  color: #5a5a66;
+  color: #505058;
 }
 
 .ai-empty-state {
@@ -639,16 +637,9 @@
   background: #9088ee;
 }
 
-/* Attachment Bar */
+/* Attachment Bar - Hidden, using context cards instead */
 .ai-attachment-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(127, 119, 221, 0.1);
-  border: 1px solid rgba(127, 119, 221, 0.2);
-  border-radius: 8px;
-  margin-right: 10px;
+  display: none;
 }
 
 .ai-attachment-icon {
@@ -722,14 +713,9 @@
   color: #b0b0b8;
 }
 
-/* Uploaded Files */
+/* Uploaded Files - Hidden, using context cards instead */
 .ai-uploaded-files {
-  padding: 10px 20px;
-  background: #0d0d10;
-  border-top: 1px solid #1a1a1f;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: none;
 }
 
 .ai-file-item {
@@ -904,6 +890,82 @@
     grid-template-columns: 1fr;
   }
   
+  /* Context Cards - shown in chat area */
+.ai-context-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ai-context-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(127, 119, 221, 0.1);
+  border: 1px solid rgba(127, 119, 221, 0.2);
+  border-radius: 8px;
+}
+
+.ai-context-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(127, 119, 221, 0.2);
+  border-radius: 6px;
+  color: #7F77DD;
+}
+
+.ai-context-card-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+
+.ai-context-card-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7F77DD;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ai-context-card-value {
+  font-family: 'SF Mono', 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #b0b0b8;
+}
+
+.ai-context-card-chain {
+  font-size: 10px;
+  color: #606068;
+}
+
+.ai-context-card-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #606068;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-context-card-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #a0a0a8;
+}
+
   .ai-column-left, .ai-column-right {
     display: none;
   }

@@ -16,7 +16,8 @@ import {
   Sparkles,
   FileCode,
   Check,
-  ChevronDown
+  ChevronDown,
+  AlertCircle
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAuth } from '../../contexts/AuthContext';
@@ -390,9 +391,12 @@ const contractSuggestions = [
         }
 
       } catch (error: any) {
+        const errorMsg = error.message?.includes('network') 
+          ? 'Network error. Please check your connection and try again.' 
+          : `Sorry, something went wrong. ${error.message || 'Please try again.'}`;
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
+          content: errorMsg,
           timestamp: Date.now()
         }]);
       } finally {
@@ -470,9 +474,12 @@ const contractSuggestions = [
         }
 
       } catch (error: any) {
+        const errorMsg = error.message?.includes('network') 
+          ? 'Network error. Please check your connection and try again.' 
+          : `Sorry, something went wrong. ${error.message || 'Please try again.'}`;
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
+          content: errorMsg,
           timestamp: Date.now()
         }]);
       } finally {
@@ -712,10 +719,13 @@ const contractSuggestions = [
 
     } catch (error: any) {
       console.error('Send with attachment error:', error);
+      const errorMsg = error.message?.includes('network') 
+        ? 'Network error. Please check your connection and try again.' 
+        : `Sorry, something went wrong. ${error.message || 'Please try again.'}`;
       
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
+        content: errorMsg,
         timestamp: Date.now()
       }]);
     } finally {
@@ -909,21 +919,13 @@ const contractSuggestions = [
                           <span className="ai-scan-address">
                             {scan.address.slice(0, 6)}...{scan.address.slice(-4)}
                           </span>
-                          <span 
-                            className="ai-scan-chain"
-                            style={{ 
-                              background: CHAIN_COLORS[scan.chain] || CHAIN_COLORS.ethereum 
-                            }}
-                          >
+                          <span className="ai-scan-chain">
                             {scan.chain?.slice(0, 3).toUpperCase()}
                           </span>
                         </div>
                         <div className="ai-scan-item-meta">
                           {scan.riskLevel && (
-                            <span 
-                              className="ai-scan-risk"
-                              style={{ color: getRiskColor(scan.riskLevel) }}
-                            >
+                            <span className="ai-scan-risk">
                               {scan.riskLevel}
                             </span>
                           )}
@@ -956,6 +958,69 @@ const contractSuggestions = [
                 transition={{ delay: 0.15 }}
               >
                 <div className="ai-chat-messages">
+                  {/* Attachment Context Cards */}
+                  {(walletAttachment || uploadedFiles.length > 0) && (
+                    <div className="ai-context-cards">
+                      {walletAttachment && (
+                        <motion.div 
+                          className="ai-context-card"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          <div className="ai-context-card-icon">
+                            {walletAttachment.status === 'analyzing' ? (
+                              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                                <Loader2 size={14} />
+                              </motion.div>
+                            ) : walletAttachment.status === 'ready' ? (
+                              <CheckCircle2 size={14} />
+                            ) : (
+                              <AlertCircle size={14} />
+                            )}
+                          </div>
+                          <div className="ai-context-card-content">
+                            <span className="ai-context-card-label">
+                              {attachmentMode === 'wallet' ? 'Wallet' : 'Contract'}
+                            </span>
+                            <span className="ai-context-card-value">
+                              {walletAttachment.address.slice(0, 10)}...{walletAttachment.address.slice(-4)}
+                            </span>
+                            <span className="ai-context-card-chain">
+                              {walletAttachment.chain?.toUpperCase()}
+                            </span>
+                          </div>
+                          <button 
+                            className="ai-context-card-clear"
+                            onClick={handleClearAttachment}
+                          >
+                            <X size={12} />
+                          </button>
+                        </motion.div>
+                      )}
+                      {uploadedFiles.filter(f => f.status === 'ready').map((file) => (
+                        <motion.div 
+                          key={file.id}
+                          className="ai-context-card"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          <div className="ai-context-card-icon">
+                            <FileText size={14} />
+                          </div>
+                          <div className="ai-context-card-content">
+                            <span className="ai-context-card-label">Document</span>
+                            <span className="ai-context-card-value">{file.name}</span>
+                          </div>
+                          <button 
+                            className="ai-context-card-clear"
+                            onClick={() => handleRemoveFile(file.id)}
+                          >
+                            <X size={12} />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                   {isLoadingSession ? (
                     <>
                       {[1, 2, 3].map((i) => (
@@ -1018,7 +1083,7 @@ const contractSuggestions = [
                     </motion.div>
                   ))
                   )}
-                  {isLoading && (
+                  {isLoading && !messages.some(m => m.role === 'assistant' && m.content) && (
                     <motion.div 
                       className="ai-message ai-message-assistant"
                       initial={{ opacity: 0 }}

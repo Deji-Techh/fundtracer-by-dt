@@ -7,6 +7,7 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { callGeminiStream, selectModel } from '../lib/gemini-client.js';
 import { buildContext, formatAnalysisForDisplay, type AnalysisData } from '../lib/context-builder.js';
+import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
 
 const router = Router();
 
@@ -35,10 +36,13 @@ const SOL_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 async function analyzeWallet(address: string, chain: string): Promise<AnalysisData> {
   const { WalletAnalyzer } = await import('@fundtracer/core');
   
+  // Get Alchemy key pool for wallet analysis
+  const sybilKeys = getSybilAlchemyKeys();
+  
   const analyzer = new WalletAnalyzer({
-    alchemy: process.env.ALCHEMY_API_KEY || '',
-    moralis: process.env.MORALIS_API_KEY,
-    etherscan: process.env.ETHERSCAN_API_KEY,
+    alchemy: sybilKeys.defaultKey || '',
+    moralis: sybilKeys.moralisKey,
+    sybilConfig: sybilKeys,
   });
   
   // Use 'ethereum' as default chain ID - can be made dynamic

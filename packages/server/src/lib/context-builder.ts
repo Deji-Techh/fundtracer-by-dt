@@ -177,35 +177,64 @@ function buildContractContext(data: ContractAnalysis): string {
   return context;
 }
 
-// Format analysis data for display in chat
+// Format analysis data for display in chat with tabular format
 export function formatAnalysisForDisplay(data: AnalysisData, addressType: 'wallet' | 'contract'): string {
   if (addressType === 'wallet') {
     const w = data as WalletAnalysis;
-    return `
-**Wallet Analysis Complete**
-
-• **Address:** \`${w.address?.slice(0, 10)}...\`
-• **Chain:** ${w.chain}
-• **Risk Score:** ${w.riskScore}/100 (${w.riskLevel})
-• **Balance:** ${w.balance || 'N/A'}
-• **Transactions:** ${w.totalTransactions?.toLocaleString() || 'N/A'}
-• **First Seen:** ${w.firstSeen || 'N/A'}
-${w.tags?.length ? `\n• **Tags:** ${w.tags.join(', ')}` : ''}
-${w.sybilCluster?.detected ? `\n⚠️ **Sybil Cluster Detected:** ${w.sybilCluster.clusterSize} wallets` : ''}
-    `.trim();
+    
+    let table = `| Field | Value |\n| --- | --- |\n| Address | \`${w.address?.slice(0, 8)}...${w.address?.slice(-6)}\` |\n| Chain | ${w.chain || 'N/A'} |\n| Risk Score | ${w.riskScore ?? 'N/A'}/100 (${w.riskLevel || 'Unknown'}) |\n| Balance | ${w.balance || 'N/A'} |\n| Total Txns | ${w.totalTransactions?.toLocaleString() || 'N/A'} |\n| Unique Addrs | ${w.uniqueAddresses?.toLocaleString() || 'N/A'} |\n| First Seen | ${w.firstSeen || 'N/A'} |\n| Last Active | ${w.lastSeen || 'N/A'} |`;
+    
+    if (w.tokenHoldings && w.tokenHoldings.length > 0) {
+      table += `\n\n**Token Holdings**\n| Token | Balance | Value |\n| --- | --- | --- |`;
+      for (const token of w.tokenHoldings.slice(0, 5)) {
+        table += `\n| ${token.symbol || 'Unknown'} | ${token.balance || 'N/A'} | ${token.value || 'N/A'} |`;
+      }
+    }
+    
+    if (w.topInteractions && w.topInteractions.length > 0) {
+      table += `\n\n**Top Interactions**\n| Project | Address | Count |\n| --- | --- | --- |`;
+      for (const interaction of w.topInteractions.slice(0, 8)) {
+        table += `\n| ${interaction.label || 'Unknown'} | \`${interaction.address?.slice(0, 6)}...${interaction.address?.slice(-4)}\` | ${interaction.count || 0} |`;
+      }
+    }
+    
+    if (w.flags && w.flags.length > 0) {
+      table += `\n\n**Risk Flags**\n${w.flags.map(f => `- ${f}`).join('\n')}`;
+    }
+    
+    if (w.sybilCluster?.detected) {
+      table += `\n\n⚠️ **Sybil Cluster Detected:** ${w.sybilCluster.clusterSize} wallets with ${w.sybilCluster.similarityScore}% similarity`;
+    }
+    
+    return table;
   } else {
     const c = data as ContractAnalysis;
-    return `
-**Contract Analysis Complete**
-
-• **Address:** \`${c.address?.slice(0, 10)}...\`
-• **Chain:** ${c.chain}
-• **Name:** ${c.name || 'Unknown'}
-• **Type:** ${c.contractType || 'Unknown'}
-• **Verified:** ${c.verified ? '✅ Yes' : '❌ No'}
-• **Risk Level:** ${c.riskLevel || 'Unknown'}
-${c.isHoneypot ? '\n⚠️ **Honeypot Risk Detected**' : ''}
-${c.isMintable ? '\n⚠️ **Mintable - Potential Risk**' : ''}
-    `.trim();
+    
+    let table = `| Field | Value |\n| --- | --- |\n| Address | \`${c.address?.slice(0, 8)}...${c.address?.slice(-6)}\` |\n| Chain | ${c.chain || 'N/A'} |\n| Name | ${c.name || 'Unknown'} |\n| Type | ${c.contractType || 'Unknown'} |\n| Verified | ${c.verified ? 'Yes' : 'No'} |\n| Risk Level | ${c.riskLevel || 'Unknown'} |\n| Deployer | ${c.deployer ? `${c.deployer.slice(0, 8)}...${c.deployer.slice(-4)}` : 'N/A'} |\n| Created | ${c.createdAt || 'N/A'} |`;
+    
+    if (c.holders) {
+      table += `\n| Holders | ${c.holders.toLocaleString()} |`;
+    }
+    if (c.transfers) {
+      table += `\n| Transfers | ${c.transfers.toLocaleString()} |`;
+    }
+    if (c.totalInteractions) {
+      table += `\n| Interactions | ${c.totalInteractions.toLocaleString()} |`;
+    }
+    
+    if (c.isHoneypot) {
+      table += `\n\n⚠️ **Honeypot Risk Detected**`;
+    }
+    if (c.isMintable) {
+      table += `\n⚠️ **Mintable - Potential Risk**`;
+    }
+    if (c.isPaused) {
+      table += `\n⚠️ **Contract Paused**`;
+    }
+    if (c.securityFindings && c.securityFindings.length > 0) {
+      table += `\n\n**Security Findings**\n${c.securityFindings.map(f => `- ${f}`).join('\n')}`;
+    }
+    
+    return table;
   }
 }
