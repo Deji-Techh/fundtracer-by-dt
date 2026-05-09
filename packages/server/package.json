@@ -31,6 +31,7 @@
         "node-fetch": "^2.7.0",
         "nodemailer": "^6.10.1",
         "on-finished": "^2.4.1",
+        "openai": "^6.37.0",
         "qrcode": "^1.5.4",
         "resend": "^6.9.3",
         "serverless-http": "^4.0.0",
