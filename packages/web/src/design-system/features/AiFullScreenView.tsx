@@ -432,11 +432,13 @@ const contractSuggestions = [
       const newSession = data.session;
       setChatSessions(prev => [newSession, ...prev]);
       setActiveSessionId(newSession.id);
-      setMessages([{
+      const initialMessages: { role: 'user' | 'assistant'; content: string; timestamp: number }[] = [{
         role: 'assistant',
         content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
         timestamp: Date.now(),
-      }]);
+      }];
+      setMessages(initialMessages);
+      localStorage.setItem(`ai-chat-${newSession.id}`, JSON.stringify(initialMessages));
     } catch (error) {
       console.error('Failed to create session:', error);
     }

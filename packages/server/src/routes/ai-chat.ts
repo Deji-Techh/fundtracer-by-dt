@@ -45,8 +45,14 @@ async function analyzeWallet(address: string, chain: string): Promise<AnalysisDa
     sybilConfig: sybilKeys,
   });
   
-  // Use 'ethereum' as default chain ID - can be made dynamic
-  const result = await analyzer.analyze(address, 'ethereum') as any;
+  // Use the requested chain - map 'linea' to 'ethereum' for the analyzer since it may not support Linea directly
+  const chainId = chain.toLowerCase() === 'linea' ? 'ethereum' : 
+                  chain.toLowerCase() === 'base' ? 'ethereum' :
+                  chain.toLowerCase() === 'arbitrum' ? 'arbitrum' :
+                  chain.toLowerCase() === 'optimism' ? 'optimism' :
+                  chain.toLowerCase() === 'polygon' ? 'polygon' : 'ethereum';
+  
+  const result = await analyzer.analyze(address, chainId) as any;
   
   // Transform to our context format
   return {
