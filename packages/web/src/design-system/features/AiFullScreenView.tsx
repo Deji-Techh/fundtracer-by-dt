@@ -100,19 +100,20 @@ function formatFileSize(bytes: number): string {
 
 // Simple markdown to HTML converter for tables
 function renderMarkdown(content: string): string {
-  // Convert markdown tables to HTML
+  if (!content) return '';
+  
   let html = content;
   
-  // Check if content contains a table
+  // Preserve original content before any processing
+  // Only parse tables if both | and --- exist (clear table indicator)
   if (html.includes('|') && html.includes('---')) {
     const lines = html.split('\n');
+    const tableLines: string[] = [];
     let inTable = false;
-    let tableHtml = '';
     let headerProcessed = false;
     
     for (const line of lines) {
-      if (line.trim().startsWith('|') && line.includes('---')) {
-        // Skip separator line
+      if (line.includes('---')) {
         inTable = true;
         headerProcessed = false;
         continue;
@@ -122,38 +123,20 @@ function renderMarkdown(content: string): string {
         const cells = line.split('|').filter(c => c.trim());
         
         if (!headerProcessed) {
-          // Header row
-          tableHtml += '<table><thead><tr>';
-          for (const cell of cells) {
-            tableHtml += `<th>${cell.trim()}</th>`;
-          }
-          tableHtml += '</tr></thead><tbody>';
+          tableLines.push('<tr>' + cells.map(c => `<th>${c.trim()}</th>`).join('') + '</tr>');
           headerProcessed = true;
         } else {
-          // Data row
-          tableHtml += '<tr>';
-          for (const cell of cells) {
-            tableHtml += `<td>${cell.trim()}</td>`;
-          }
-          tableHtml += '</tr>';
+          tableLines.push('<tr>' + cells.map(c => `<td>${c.trim()}</td>`).join('') + '</tr>');
         }
-      } else if (inTable) {
-        // End of table
-        if (tableHtml) {
-          tableHtml += '</tbody></table>';
-          html = html.replace(/\|[\s\S]*?\|[\s\S]*?\n/g, '').replace(tableHtml, '').trim();
-          html = tableHtml + '\n\n' + html;
-        }
+      } else if (inTable && !line.trim().startsWith('|')) {
         inTable = false;
-        tableHtml = '';
       }
     }
     
-    // Close table if still open
-    if (inTable && tableHtml) {
-      tableHtml += '</tbody></table>';
-      html = html.replace(/\|[\s\S]*?\|[\s\S]*?\n/g, '').trim();
-      html = tableHtml + '\n\n' + html;
+    if (tableLines.length > 0) {
+      const tableHtml = '<table><thead>' + tableLines[0] + '</thead><tbody>' + tableLines.slice(1).join('') + '</tbody></table>';
+      // Replace only the table portion, preserve rest of content
+      html = html.replace(/\|[\s\S]*?---[\s\S]*?(?=\n\n|\n[^|]|$)/g, tableHtml);
     }
   }
   
@@ -251,7 +234,25 @@ export function AiFullScreenView({
     }
   }, [messages]);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  // Load cached uploaded files from localStorage
+  const loadCachedFiles = (): UploadedFile[] => {
+    try {
+      const cached = localStorage.getItem('ai-uploaded-files');
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch {}
+    return [];
+  };
+  
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(loadCachedFiles);
+  
+  // Save uploaded files to localStorage when they change
+  useEffect(() => {
+    if (uploadedFiles.length > 0) {
+      localStorage.setItem('ai-uploaded-files', JSON.stringify(uploadedFiles));
+    }
+  }, [uploadedFiles]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const [attachmentMode, setAttachmentMode] = useState<AttachmentMode>('none');
@@ -350,12 +351,16 @@ const contractSuggestions = [
     setIsLoadingSession(true);
     try {
       const data = await apiRequest<{ messages: any[] }>(`/api/chat/sessions/${sessionId}/messages`);
-      if (data.messages && data.messages.length > 0) {
+      const cachedMessages = loadCachedMessages();
+      
+      // Always prefer localStorage if it has more content (more complete chat)
+      if (cachedMessages.length > (data.messages?.length || 0)) {
+        setMessages(cachedMessages);
+      } else if (data.messages && data.messages.length > 0) {
         setMessages(data.messages);
         localStorage.setItem('ai-chat-messages', JSON.stringify(data.messages));
       } else {
-        // Try to use cached messages from localStorage as fallback
-        const cachedMessages = loadCachedMessages();
+        // Both empty - use default
         if (cachedMessages.length > 1 || (cachedMessages[0] && cachedMessages[0].content !== 'Hi! I\'m FundTracer AI')) {
           setMessages(cachedMessages);
         } else {
@@ -395,6 +400,7 @@ const contractSuggestions = [
       
       // Clear localStorage cache for new session
       localStorage.removeItem('ai-chat-messages');
+      localStorage.removeItem('ai-uploaded-files');
       
       const data = await apiRequest<{ session: any }>('/api/chat/sessions', 'POST', { title: 'New Conversation' });
       const newSession = data.session;
