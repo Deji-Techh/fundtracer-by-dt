@@ -356,6 +356,8 @@ app.use(cors({
         /^https:\/\/.*\.fundtracer\.xyz$/
     ],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 }));
 
 // Capture raw body for LemonSqueezy webhook BEFORE json middleware
