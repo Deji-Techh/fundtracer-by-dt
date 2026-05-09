@@ -315,6 +315,13 @@ const contractSuggestions = [
         timestamp: item.timestamp || Date.now(),
         riskLevel: item.riskLevel,
         riskScore: item.riskScore,
+        label: item.label,
+        type: item.type,
+        totalTransactions: item.totalTransactions,
+        totalValueSentEth: item.totalValueSentEth,
+        totalValueReceivedEth: item.totalValueReceivedEth,
+        activityPeriodDays: item.activityPeriodDays,
+        balanceInEth: item.balanceInEth,
       }));
       setRecentScans(scans);
 
