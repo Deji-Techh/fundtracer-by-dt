@@ -219,23 +219,12 @@ const contractSuggestions = [
   }, [isOpen]);
 
   const fetchChatSessions = async () => {
-    const token = getAuthToken();
-    if (!token) {
-      console.log('[AI] No auth token, waiting for login...');
-      return;
-    }
     try {
-      const response = await fetch('/api/chat/sessions', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.sessions && data.sessions.length > 0) {
-          setChatSessions(data.sessions);
-          setActiveSessionId(data.sessions[0].id);
-          // Load messages for the active session
-          loadSessionMessages(data.sessions[0].id);
-        }
+      const data = await apiRequest<{ sessions: any[] }>('/api/chat/sessions');
+      if (data.sessions && data.sessions.length > 0) {
+        setChatSessions(data.sessions);
+        setActiveSessionId(data.sessions[0].id);
+        loadSessionMessages(data.sessions[0].id);
       }
     } catch (error) {
       console.error('Failed to fetch chat sessions:', error);
@@ -244,15 +233,9 @@ const contractSuggestions = [
 
   const loadSessionMessages = async (sessionId: string) => {
     try {
-      const token = getAuthToken();
-      const response = await fetch(`/api/chat/sessions/${sessionId}/messages`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.messages && data.messages.length > 0) {
-          setMessages(data.messages);
-        }
+      const data = await apiRequest<{ messages: any[] }>(`/api/chat/sessions/${sessionId}/messages`);
+      if (data.messages && data.messages.length > 0) {
+        setMessages(data.messages);
       }
     } catch (error) {
       console.error('Failed to load session messages:', error);
@@ -262,15 +245,7 @@ const contractSuggestions = [
   const saveMessage = async (message: { role: 'user' | 'assistant'; content: string; timestamp: number }) => {
     if (!activeSessionId) return;
     try {
-      const token = getAuthToken();
-      await fetch(`/api/chat/sessions/${activeSessionId}/messages`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify(message),
-      });
+      await apiRequest(`/api/chat/sessions/${activeSessionId}/messages`, 'POST', message);
     } catch (error) {
       console.error('Failed to save message:', error);
     }
@@ -278,26 +253,15 @@ const contractSuggestions = [
 
   const createNewSession = async () => {
     try {
-      const token = getAuthToken();
-      const response = await fetch('/api/chat/sessions', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({ title: 'New Conversation' }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const newSession = data.session;
-        setChatSessions(prev => [newSession, ...prev]);
-        setActiveSessionId(newSession.id);
-        setMessages([{
-          role: 'assistant',
-          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
-          timestamp: Date.now(),
-        }]);
-      }
+      const data = await apiRequest<{ session: any }>('/api/chat/sessions', 'POST', { title: 'New Conversation' });
+      const newSession = data.session;
+      setChatSessions(prev => [newSession, ...prev]);
+      setActiveSessionId(newSession.id);
+      setMessages([{
+        role: 'assistant',
+        content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+        timestamp: Date.now(),
+      }]);
     } catch (error) {
       console.error('Failed to create session:', error);
     }
