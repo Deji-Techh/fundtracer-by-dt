@@ -44,6 +44,10 @@ export async function authMiddleware(
     next: NextFunction
 ) {
     console.log('[AUTH-MIDDLEWARE] START for:', req.method, req.originalUrl);
+    
+    // Debug: log auth header specifically
+    console.log('[AUTH-MIDDLEWARE] Authorization header:', req.headers.authorization ? 'present' : 'MISSING');
+    
     const authHeader = req.headers.authorization;
     
     // SECURITY: JWT_SECRET must be set in environment
