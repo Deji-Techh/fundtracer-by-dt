@@ -71,6 +71,7 @@ async function analyzeContract(address: string, chain: string): Promise<Analysis
 
 // Main AI Chat endpoint with SSE
 router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
+  console.log('[AI-CHAT-ROUTE] Request received, user:', req.user?.uid);
   try {
     const { address, addressType, chain, question, history, attachedFiles } = req.body;
 
