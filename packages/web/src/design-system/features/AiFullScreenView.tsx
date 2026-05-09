@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { getHistory, type HistoryItem } from '../../utils/history';
-import { apiRequest } from '../../api';
+import { apiRequest, getAuthToken } from '../../api';
 import './AiFullScreenView.css';
 
 interface AiFullScreenViewProps {
@@ -218,7 +218,10 @@ const contractSuggestions = [
 
   const fetchChatSessions = async () => {
     try {
-      const response = await fetch('/api/chat/sessions');
+      const token = getAuthToken();
+      const response = await fetch('/api/chat/sessions', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.sessions && data.sessions.length > 0) {
@@ -235,7 +238,10 @@ const contractSuggestions = [
 
   const loadSessionMessages = async (sessionId: string) => {
     try {
-      const response = await fetch(`/api/chat/sessions/${sessionId}/messages`);
+      const token = getAuthToken();
+      const response = await fetch(`/api/chat/sessions/${sessionId}/messages`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.messages && data.messages.length > 0) {
@@ -250,9 +256,13 @@ const contractSuggestions = [
   const saveMessage = async (message: { role: 'user' | 'assistant'; content: string; timestamp: number }) => {
     if (!activeSessionId) return;
     try {
+      const token = getAuthToken();
       await fetch(`/api/chat/sessions/${activeSessionId}/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify(message),
       });
     } catch (error) {
@@ -262,9 +272,13 @@ const contractSuggestions = [
 
   const createNewSession = async () => {
     try {
+      const token = getAuthToken();
       const response = await fetch('/api/chat/sessions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify({ title: 'New Conversation' }),
       });
       if (response.ok) {
@@ -313,10 +327,12 @@ const contractSuggestions = [
           displayName: f.name,
         }));
 
+        const token = getAuthToken();
         const response = await fetch('/api/ai-chat/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
           },
           body: JSON.stringify({
             question: inputValue,
@@ -444,10 +460,12 @@ const contractSuggestions = [
     setInputValue('');
 
     try {
+      const token = getAuthToken();
       const response = await fetch('/api/ai-chat/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({
           address,
@@ -561,10 +579,12 @@ const contractSuggestions = [
         displayName: f.name,
       }));
 
+      const token = getAuthToken();
       const response = await fetch('/api/ai-chat/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({
           address: walletAttachment.address,
@@ -680,10 +700,12 @@ const contractSuggestions = [
         });
 
         // Upload to backend
+        const token = getAuthToken();
         const response = await fetch('/api/upload/file', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
           },
           body: JSON.stringify({
             fileData: base64,
