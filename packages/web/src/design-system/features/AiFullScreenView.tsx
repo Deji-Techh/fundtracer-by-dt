@@ -156,6 +156,8 @@ export function AiFullScreenView({
   const [showAttachmentDropdown, setShowAttachmentDropdown] = useState(false);
   const [walletAttachment, setWalletAttachment] = useState<WalletAttachment | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoadingContext, setIsLoadingContext] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [selectedChain, setSelectedChain] = useState(currentChain);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -204,6 +206,8 @@ const contractSuggestions = [
 
   useEffect(() => {
     if (isOpen) {
+      setIsInitialLoading(true);
+      
       const history = getHistory() as HistoryItem[];
       const scans: RecentScan[] = history.slice(0, 20).map((item, index) => ({
         id: `scan-${index}`,
@@ -216,7 +220,9 @@ const contractSuggestions = [
       setRecentScans(scans);
 
       // Fetch chat sessions from backend
-      fetchChatSessions();
+      fetchChatSessions().finally(() => {
+        setIsInitialLoading(false);
+      });
     }
   }, [isOpen]);
 
@@ -499,12 +505,66 @@ const contractSuggestions = [
     createNewSession();
   };
 
-  const handleSelectScan = (scan: RecentScan) => {
+  const handleSelectScan = async (scan: RecentScan) => {
     setSelectedScanId(scan.id);
-    setTimeout(() => {
-      setInputValue(`Analyze wallet ${scan.address} on ${scan.chain} and provide a risk report`);
-      setSelectedScanId(null);
-    }, 300);
+    setIsLoadingContext(true);
+    
+    // Get cached data from history
+    const history = getHistory() as HistoryItem[];
+    const cachedData = history.find(h => h.address.toLowerCase() === scan.address.toLowerCase());
+    
+    // Create tabular response from cached data
+    const formatCachedData = (data: HistoryItem, addr: string, chain: string): string => {
+      let table = `| Field | Value |\n| --- | --- |\n`;
+      table += `| Address | \`${addr.slice(0, 8)}...${addr.slice(-6)}\` |\n`;
+      table += `| Chain | ${chain.charAt(0).toUpperCase() + chain.slice(1)} |\n`;
+      
+      if (data.riskScore !== undefined) {
+        table += `| Risk Score | ${data.riskScore}/100 |\n`;
+      }
+      if (data.riskLevel) {
+        table += `| Risk Level | ${data.riskLevel} |\n`;
+      }
+      if (data.balanceInEth !== undefined) {
+        table += `| Balance | ${data.balanceInEth.toFixed(4)} ETH |\n`;
+      }
+      if (data.totalTransactions !== undefined) {
+        table += `| Total Txns | ${data.totalTransactions.toLocaleString()} |\n`;
+      }
+      if (data.totalValueReceivedEth !== undefined) {
+        table += `| Total Received | ${data.totalValueReceivedEth.toFixed(4)} ETH |\n`;
+      }
+      if (data.totalValueSentEth !== undefined) {
+        table += `| Total Sent | ${data.totalValueSentEth.toFixed(4)} ETH |\n`;
+      }
+      if (data.activityPeriodDays !== undefined) {
+        table += `| Activity Period | ${data.activityPeriodDays} days |\n`;
+      }
+      
+      return table;
+    };
+    
+    // Simulate a brief loading for UX
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const tabularData = cachedData 
+      ? formatCachedData(cachedData, scan.address, scan.chain)
+      : `| Field | Value |\n| --- | --- |\n| Address | \`${scan.address.slice(0, 8)}...${scan.address.slice(-6)}\` |\n| Chain | ${scan.chain} |\n| Status | Cached data not available |`;
+    
+    const assistantMessage = {
+      role: 'assistant' as const,
+      content: tabularData,
+      timestamp: Date.now(),
+    };
+    
+    setMessages(prev => [...prev, assistantMessage]);
+    setWalletAttachment({
+      address: scan.address,
+      chain: scan.chain,
+      status: 'ready'
+    });
+    setIsLoadingContext(false);
+    setSelectedScanId(null);
   };
 
   const handleSelectAttachmentMode = (mode: AttachmentMode) => {
@@ -891,6 +951,85 @@ const contractSuggestions = [
 
             {/* Three Column Layout */}
             <div className="ai-fullscreen-content">
+              {/* Initial Loading State */}
+              {isInitialLoading && (
+                <>
+                  {/* Left Column Skeleton */}
+                  <motion.div 
+                    className="ai-column ai-column-left"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="ai-column-header">
+                      <Wallet size={16} />
+                      <span>Recent Scans</span>
+                    </div>
+                    <div className="ai-scan-list">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="ai-scan-item ai-scan-skeleton">
+                          <div className="ai-skeleton" style={{ width: '60%', height: '14px', marginBottom: '8px' }} />
+                          <div className="ai-skeleton" style={{ width: '40%', height: '10px', opacity: 0.5 }} />
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                  
+                  {/* Middle Column Skeleton */}
+                  <motion.div 
+                    className="ai-column ai-column-middle"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="ai-chat-messages">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className={`ai-message ai-message-${i === 1 ? 'user' : 'assistant'}`}>
+                          <div className="ai-message-avatar">
+                            {i === 1 ? <User size={14} /> : <Bot size={14} />}
+                          </div>
+                          <div className="ai-message-content">
+                            <div className="ai-skeleton" style={{ 
+                              width: i === 1 ? '60%' : i === 2 ? '80%' : '45%',
+                              height: '16px',
+                              borderRadius: '4px',
+                              marginBottom: '8px'
+                            }} />
+                            <div className="ai-skeleton" style={{ 
+                              width: '30%',
+                              height: '12px',
+                              borderRadius: '4px',
+                              opacity: 0.5
+                            }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                  
+                  {/* Right Column Skeleton */}
+                  <motion.div 
+                    className="ai-column ai-column-right"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="ai-column-header">
+                      <MessageSquare size={16} />
+                      <span>Chat History</span>
+                    </div>
+                    <div className="ai-session-list">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="ai-session-item ai-session-skeleton">
+                          <div className="ai-skeleton" style={{ width: '70%', height: '14px', marginBottom: '6px' }} />
+                          <div className="ai-skeleton" style={{ width: '50%', height: '10px', opacity: 0.5 }} />
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </>
+              )}
+              
+              {/* Actual Content */}
+              {!isInitialLoading && (
+              <>
               {/* Left Column - Recent Scans (23%) */}
               <motion.div 
                 className="ai-column ai-column-left"
@@ -958,8 +1097,29 @@ const contractSuggestions = [
                 transition={{ delay: 0.15 }}
               >
                 <div className="ai-chat-messages">
+                  {/* Loading Context Indicator */}
+                  {isLoadingContext && (
+                    <div className="ai-context-cards">
+                      <motion.div 
+                        className="ai-context-card ai-context-loading"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                      >
+                        <div className="ai-context-card-icon">
+                          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                            <Loader2 size={14} />
+                          </motion.div>
+                        </div>
+                        <div className="ai-context-card-content">
+                          <span className="ai-context-card-label">Loading</span>
+                          <span className="ai-context-card-value">Fetching cached data...</span>
+                        </div>
+                      </motion.div>
+                    </div>
+                  )}
+                  
                   {/* Attachment Context Cards */}
-                  {(walletAttachment || uploadedFiles.length > 0) && (
+                  {(walletAttachment || uploadedFiles.length > 0) && !isLoadingContext && (
                     <div className="ai-context-cards">
                       {walletAttachment && (
                         <motion.div 
@@ -1485,6 +1645,8 @@ const contractSuggestions = [
                   ))}
                 </div>
               </motion.div>
+              </>
+              )}
             </div>
           </motion.div>
         </motion.div>

@@ -966,6 +966,18 @@
   color: #a0a0a8;
 }
 
+.ai-context-loading {
+  opacity: 0.7;
+}
+
+.ai-context-loading .ai-context-card-icon {
+  color: #7F77DD;
+}
+
+.ai-context-loading .ai-context-card-value {
+  color: #606068;
+}
+
   .ai-column-left, .ai-column-right {
     display: none;
   }
