@@ -21,7 +21,7 @@ import {
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHistory, type HistoryItem } from '../../utils/history';
-import { apiRequest, getAuthToken } from '../../api';
+import { apiRequest, getAuthToken, API_BASE } from '../../api';
 import './AiFullScreenView.css';
 
 interface AiFullScreenViewProps {
@@ -323,7 +323,7 @@ const contractSuggestions = [
         }));
 
         const token = getAuthToken();
-        const response = await fetch('/api/ai-chat/chat', {
+        const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -408,7 +408,7 @@ const contractSuggestions = [
         if (!token) {
           throw new Error('Not authenticated - please log in again');
         }
-        const response = await fetch('/api/ai-chat/chat', {
+        const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -527,7 +527,7 @@ const contractSuggestions = [
 
     try {
       const token = getAuthToken();
-      const response = await fetch('/api/ai-chat/chat', {
+      const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -646,7 +646,7 @@ const contractSuggestions = [
       }));
 
       const token = getAuthToken();
-      const response = await fetch('/api/ai-chat/chat', {
+      const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

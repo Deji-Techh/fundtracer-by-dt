@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { getAuthToken, API_BASE } from '../api';
 
 export type NotificationType = 
   | 'scan_complete' 
@@ -111,7 +112,8 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 
 async function authenticatedFetch(url: string, options?: RequestInit): Promise<Response> {
   const headers = await getAuthHeaders();
-  const response = await fetch(url, {
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+  const response = await fetch(fullUrl, {
     ...options,
     headers: { ...headers, ...options?.headers },
     credentials: 'include',
@@ -244,7 +246,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem('fundtracer_token');
       if (token) {
         getAuthHeaders().then(headers => {
-          fetch('/api/notifications', {
+          fetch(`${API_BASE}/api/notifications`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...headers },
             body: JSON.stringify(newNotification),
@@ -260,7 +262,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     
     if (user) {
       getAuthHeaders().then(headers => {
-        fetch(`/api/notifications/${id}/read`, { method: 'PUT', headers, credentials: 'include' }).catch(() => {});
+        fetch(`${API_BASE}/api/notifications/${id}/read`, { method: 'PUT', headers, credentials: 'include' }).catch(() => {});
       });
     }
   }, [user]);
@@ -270,7 +272,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     
     if (user) {
       getAuthHeaders().then(headers => {
-        fetch('/api/notifications/read-all', { method: 'PUT', headers, credentials: 'include' }).catch(() => {});
+        fetch(`${API_BASE}/api/notifications/read-all`, { method: 'PUT', headers, credentials: 'include' }).catch(() => {});
       });
     }
   }, [user]);

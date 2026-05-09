@@ -21,7 +21,7 @@ function normalizeChainForApi(chain: ChainId): string {
 // In production, assume the API is on the same domain if not specified (e.g., via proxy)
 // Or use a hardcoded production URL if frontend/backend are separate
 // In production, endpoints already include '/api' prefix, so base should be empty
-const API_BASE = import.meta.env.VITE_API_URL ||
+export const API_BASE = import.meta.env.VITE_API_URL ||
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://localhost:3001'
         : window.location.hostname === 'fundtracer.xyz' || window.location.hostname === 'www.fundtracer.xyz'
