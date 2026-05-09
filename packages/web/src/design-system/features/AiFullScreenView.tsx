@@ -219,16 +219,12 @@ const contractSuggestions = [
   }, [isOpen]);
 
   const fetchChatSessions = async () => {
-    if (!isAuthenticated || !user) {
-      console.log('[AI] User not authenticated yet, skipping chat load');
+    const token = getAuthToken();
+    if (!token) {
+      console.log('[AI] No auth token, waiting for login...');
       return;
     }
     try {
-      const token = getAuthToken();
-      if (!token) {
-        console.log('[AI] No auth token, waiting for login...');
-        return;
-      }
       const response = await fetch('/api/chat/sessions', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
