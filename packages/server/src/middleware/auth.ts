@@ -43,6 +43,7 @@ export async function authMiddleware(
     res: Response,
     next: NextFunction
 ) {
+    console.log('[AUTH-MIDDLEWARE] All headers:', JSON.stringify(req.headers));
     const authHeader = req.headers.authorization;
     
     // SECURITY: JWT_SECRET must be set in environment
