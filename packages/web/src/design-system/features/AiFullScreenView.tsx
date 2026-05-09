@@ -135,30 +135,8 @@ export function AiFullScreenView({
   
   const [inputValue, setInputValue] = useState('');
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
-    {
-      id: '1',
-      title: 'Wallet Analysis: 0x742d...',
-      lastMessage: 'What is the risk score for this wallet?',
-      timestamp: Date.now() - 3600000,
-      messageCount: 5,
-    },
-    {
-      id: '2',
-      title: 'Contract Analysis: 0x7a25...',
-      lastMessage: 'Analyze this DeFi protocol',
-      timestamp: Date.now() - 86400000,
-      messageCount: 8,
-    },
-    {
-      id: '3',
-      title: 'Funding Trace: 0xd8dA...',
-      lastMessage: 'Show me the funding sources',
-      timestamp: Date.now() - 172800000,
-      messageCount: 3,
-    },
-  ]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>('1');
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; timestamp: number }[]>([
     {
       role: 'assistant',
@@ -232,8 +210,78 @@ const contractSuggestions = [
         riskScore: item.riskScore,
       }));
       setRecentScans(scans);
+
+      // Fetch chat sessions from backend
+      fetchChatSessions();
     }
   }, [isOpen]);
+
+  const fetchChatSessions = async () => {
+    try {
+      const response = await fetch('/api/chat/sessions');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.sessions && data.sessions.length > 0) {
+          setChatSessions(data.sessions);
+          setActiveSessionId(data.sessions[0].id);
+          // Load messages for the active session
+          loadSessionMessages(data.sessions[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch chat sessions:', error);
+    }
+  };
+
+  const loadSessionMessages = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/chat/sessions/${sessionId}/messages`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.messages && data.messages.length > 0) {
+          setMessages(data.messages);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load session messages:', error);
+    }
+  };
+
+  const saveMessage = async (message: { role: 'user' | 'assistant'; content: string; timestamp: number }) => {
+    if (!activeSessionId) return;
+    try {
+      await fetch(`/api/chat/sessions/${activeSessionId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(message),
+      });
+    } catch (error) {
+      console.error('Failed to save message:', error);
+    }
+  };
+
+  const createNewSession = async () => {
+    try {
+      const response = await fetch('/api/chat/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Conversation' }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const newSession = data.session;
+        setChatSessions(prev => [newSession, ...prev]);
+        setActiveSessionId(newSession.id);
+        setMessages([{
+          role: 'assistant',
+          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+          timestamp: Date.now(),
+        }]);
+      }
+    } catch (error) {
+      console.error('Failed to create session:', error);
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -251,6 +299,7 @@ const contractSuggestions = [
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    saveMessage(userMessage);
 
     // Check if we have attached files (document mode)
     const readyFiles = uploadedFiles.filter(f => f.status === 'ready' && f.fileUri);
@@ -349,6 +398,7 @@ const contractSuggestions = [
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, assistantMessage]);
+        saveMessage(assistantMessage);
         setIsLoading(false);
       }, 1500);
     }
@@ -362,16 +412,7 @@ const contractSuggestions = [
   };
 
   const handleNewChat = () => {
-    const newSession: ChatSession = {
-      id: `session-${Date.now()}`,
-      title: 'New Conversation',
-      lastMessage: 'New chat started',
-      timestamp: Date.now(),
-      messageCount: 0,
-    };
-    setChatSessions(prev => [newSession, ...prev]);
-    setActiveSessionId(newSession.id);
-    setMessages([]);
+    createNewSession();
   };
 
   const handleSelectScan = (scan: RecentScan) => {
@@ -468,6 +509,7 @@ const contractSuggestions = [
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, assistantMessage]);
+        saveMessage(assistantMessage);
       } else {
         throw new Error('No response from AI');
       }
@@ -485,6 +527,7 @@ const contractSuggestions = [
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, errorMessage]);
+      saveMessage(errorMessage);
     } finally {
       setIsAnalyzing(false);
     }
@@ -953,25 +996,6 @@ const contractSuggestions = [
                     onChange={handleFileUpload}
                     accept=".pdf,.txt,.csv,.json,.js,.ts,.py,.sol,.png,.jpg,.jpeg,.webp"
                   />
-                  <motion.button 
-                    className="ai-attach-btn"
-                    title="Attach document"
-                    onClick={handleAttachClick}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                      >
-                        <Loader2 size={18} />
-                      </motion.div>
-                    ) : (
-                      <Plus size={18} />
-                    )}
-                  </motion.button>
 
                   {/* Wallet/Contract Attachment Display */}
                   {walletAttachment && (
@@ -1048,6 +1072,23 @@ const contractSuggestions = [
                             exit={{ opacity: 0, y: -10, scale: 0.95 }}
                             transition={{ duration: 0.15 }}
                           >
+                            {attachmentMode !== 'none' && (
+                              <>
+                                <button 
+                                  className="ai-dropdown-item"
+                                  onClick={() => {
+                                    setAttachmentMode('none');
+                                    setWalletAttachment(null);
+                                    setUploadedFiles([]);
+                                    setShowAttachmentDropdown(false);
+                                  }}
+                                >
+                                  <MessageSquare size={16} />
+                                  <span>Chat Only</span>
+                                </button>
+                                <div className="ai-dropdown-divider" />
+                              </>
+                            )}
                             <button 
                               className="ai-dropdown-item"
                               onClick={() => {
@@ -1238,7 +1279,10 @@ const contractSuggestions = [
                     <motion.button
                       key={session.id}
                       className={`ai-session-item ${activeSessionId === session.id ? 'active' : ''}`}
-                      onClick={() => setActiveSessionId(session.id)}
+                      onClick={() => {
+                          setActiveSessionId(session.id);
+                          loadSessionMessages(session.id);
+                        }}
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}

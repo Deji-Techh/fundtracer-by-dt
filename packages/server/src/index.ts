@@ -483,6 +483,10 @@ apiRouter.use('/ai-chat', authMiddleware, aiChatRoutes);
 import { uploadRoutes } from './routes/upload.js';
 apiRouter.use('/upload', authMiddleware, uploadRoutes);
 
+// Chat History Routes - For AI chat session storage
+import { chatHistoryRoutes } from './routes/chat-history.js';
+apiRouter.use('/chat', authMiddleware, chatHistoryRoutes);
+
 apiRouter.use('/track', trackRoutes);
 import { smartMoneyRoutes } from './routes/smartMoney.js';
 apiRouter.use('/smart-money', smartMoneyRoutes); // Public smart money discovery
