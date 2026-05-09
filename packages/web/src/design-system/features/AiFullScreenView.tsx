@@ -414,6 +414,16 @@ const contractSuggestions = [
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Auto-reset loading when new assistant message appears (backup for streaming completion)
+  useEffect(() => {
+    if (isLoading && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'assistant' && lastMessage.content) {
+        setIsLoading(false);
+      }
+    }
+  }, [messages, isLoading]);
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
@@ -433,10 +443,10 @@ const contractSuggestions = [
     setIsLoading(true);
     saveMessage(userMessage);
     
-    // Safety timeout - ensure loading is reset after 30 seconds
+    // Safety timeout - ensure loading is reset after 5 seconds (backup)
     const loadingTimeout = setTimeout(() => {
       setIsLoading(false);
-    }, 30000);
+    }, 5000);
 
     // Check if we have attached files (document mode)
     const readyFiles = uploadedFiles.filter(f => f.status === 'ready' && f.fileUri);
@@ -821,7 +831,7 @@ const contractSuggestions = [
     // Safety timeout
     const loadingTimeout = setTimeout(() => {
       setIsLoading(false);
-    }, 30000);
+    }, 5000);
 
     try {
       // Build history from messages (last 10)
@@ -1409,7 +1419,7 @@ const contractSuggestions = [
                     </motion.div>
                   ))
                   )}
-                  {isLoading && !messages.some(m => m.role === 'assistant' && m.content) && (
+                  {isLoading && messages.filter(m => m.role === 'assistant').slice(-1)[0]?.content.length < 5 && (
                     <motion.div 
                       className="ai-message ai-message-assistant ai-thinking"
                       initial={{ opacity: 0 }}
