@@ -561,7 +561,6 @@ router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, re
         if (notificationsSnapshot.size > 0) {
             const notifDeletePromises = notificationsSnapshot.docs.map(doc => doc.ref.delete());
             await Promise.all(notifDeletePromises);
-            console.log('[User] Deleted notifications:', notificationsSnapshot.size);
         }
 
         // 3. Delete user's API keys subcollection

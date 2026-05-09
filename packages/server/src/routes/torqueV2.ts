@@ -191,9 +191,6 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
 // Get my stats (requires auth)
 // Try both inline auth AND path-level check
 router.get('/mystats', async (req: AuthenticatedRequest, res: Response) => {
-  console.log('[TORQUE-V2] /mystats raw req.user:', req.user);
-  console.log('[TORQUE-V2] /mystats headers:', req.headers.authorization ? 'present' : 'missing');
-  
   // If no auth, check if we need to auth manually
   if (!req.user) {
     const authHeader = req.headers.authorization;

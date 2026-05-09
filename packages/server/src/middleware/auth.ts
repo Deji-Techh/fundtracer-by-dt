@@ -43,10 +43,7 @@ export async function authMiddleware(
     res: Response,
     next: NextFunction
 ) {
-    console.log('[AUTH-MIDDLEWARE] START for:', req.method, req.originalUrl);
     
-    // Debug: log auth header specifically
-    console.log('[AUTH-MIDDLEWARE] Authorization header:', req.headers.authorization ? 'present' : 'MISSING');
     
     const authHeader = req.headers.authorization;
     
@@ -66,12 +63,6 @@ export async function authMiddleware(
     }
 
     const token = authHeader.split('Bearer ')[1];
-    console.log('[AUTH-MIDDLEWARE] Token received, length:', token?.length);
-    
-    // Debug: log if token exists but is likely truncated or malformed
-    if (token && token.length < 20) {
-        console.log('[AUTH] Token seems abnormally short:', token.substring(0, 10));
-    }
     
     // If API key middleware already authenticated, skip JWT verification
     if (req.user) {
@@ -85,7 +76,6 @@ export async function authMiddleware(
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
-        console.log('[AUTH-MIDDLEWARE] JWT verified, decoded:', JSON.stringify(decoded).substring(0, 200));
         
         // Check if this is an admin token
         if (decoded.type === 'admin') {
@@ -310,12 +300,11 @@ export async function apiKeyAuthMiddleware(
     next: NextFunction
 ) {
     const authHeader = req.headers.authorization;
-    console.log('[API-KEY-MIDDLEWARE] Auth header:', authHeader ? authHeader.substring(0, 30) + '...' : 'none');
+    
     
     // Check if this is an API key (starts with ft_live_ or ft_test_)
     if (authHeader && authHeader.startsWith('Bearer ft_')) {
         const apiKey = authHeader.split('Bearer ')[1];
-        console.log('[API-KEY-MIDDLEWARE] API key detected:', apiKey.substring(0, 20) + '...');
         
         try {
             // OPTIMIZATION 1: Try Redis cache first

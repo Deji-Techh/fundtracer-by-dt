@@ -390,8 +390,6 @@ const contractSuggestions = [
         }
 
       } catch (error: any) {
-        console.error('Send with document error:', error);
-        
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
@@ -404,7 +402,6 @@ const contractSuggestions = [
       // Chat-only mode - call API without address or files
       try {
         const token = getAuthToken();
-        console.log('[AI-Chat] Token present:', !!token, token?.substring(0, 20));
         if (!token) {
           throw new Error('Not authenticated - please log in again');
         }
@@ -473,8 +470,6 @@ const contractSuggestions = [
         }
 
       } catch (error: any) {
-        console.error('Chat-only error:', error);
-        
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,

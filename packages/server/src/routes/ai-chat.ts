@@ -71,7 +71,6 @@ async function analyzeContract(address: string, chain: string): Promise<Analysis
 
 // Main AI Chat endpoint with SSE
 router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
-  console.log('[AI-CHAT-ROUTE] Request received, user:', req.user?.uid);
   try {
     const { address, addressType, chain, question, history, attachedFiles } = req.body;
 
@@ -180,11 +179,8 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
       context = `You are FundTracer AI, a blockchain forensics analyst assistant. You help users analyze wallet addresses, understand transaction flows, assess risk levels, and answer questions about blockchain security.\n\n`;
     }
 
-    console.log('[AI-Chat] Context built, classifying question...');
-
     // Classify question complexity and select model
     const modelType = await selectModel(question);
-    console.log(`[AI-Chat] Using model: ${modelType}`);
 
     // Convert history to Gemini format
     const geminiHistory = (history || []).map((msg: { role: string; content: string }) => ({
@@ -208,8 +204,6 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
       fullResponse 
     })}\n\n`);
     res.write('data: [DONE]\n\n');
-
-    console.log('[AI-Chat] Response complete, length:', fullResponse.length);
 
   } catch (error: any) {
     console.error('[AI-Chat] Error:', error.message);
