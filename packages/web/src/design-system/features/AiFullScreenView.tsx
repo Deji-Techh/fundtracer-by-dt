@@ -17,7 +17,8 @@ import {
   FileCode,
   Check,
   ChevronDown,
-  AlertCircle
+  AlertCircle,
+  Square
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAuth } from '../../contexts/AuthContext';
@@ -163,6 +164,13 @@ interface RecentScan {
   timestamp: number;
   riskLevel?: string;
   riskScore?: number;
+  label?: string;
+  type?: 'wallet' | 'contract' | 'compare' | 'sybil';
+  totalTransactions?: number;
+  totalValueSentEth?: number;
+  totalValueReceivedEth?: number;
+  activityPeriodDays?: number;
+  balanceInEth?: number;
 }
 
 interface ChatSession {
@@ -206,37 +214,6 @@ export function AiFullScreenView({
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   
-  // Load cached messages from localStorage
-  const loadCachedMessages = (sessionId?: string): { role: 'user' | 'assistant'; content: string; timestamp: number }[] => {
-    // If we have an active session, load session-specific cache
-    if (sessionId) {
-      try {
-        const cached = localStorage.getItem(`ai-chat-${sessionId}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed.length > 0) {
-            return parsed;
-          }
-        }
-      } catch {}
-    }
-    // Otherwise load default cache
-    try {
-      const cached = localStorage.getItem('ai-chat-messages');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch {}
-    return [{
-      role: 'assistant',
-      content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
-      timestamp: Date.now() - 3600000,
-    }];
-  };
-  
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; timestamp: number }[]>(() => {
     // Start with empty, will be filled by loadSessionMessages or fetchChatSessions
     return [{
@@ -247,32 +224,11 @@ export function AiFullScreenView({
   });
   const [isLoading, setIsLoading] = useState(false);
   
-  // Save messages to localStorage when they change (session-specific)
-  useEffect(() => {
-    if (messages.length > 0 && activeSessionId) {
-      localStorage.setItem(`ai-chat-${activeSessionId}`, JSON.stringify(messages));
-    }
-  }, [messages, activeSessionId]);
+  // Abort controller for stopping requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
   const [isLoadingSession, setIsLoadingSession] = useState(false);
-  // Load cached uploaded files from localStorage
-  const loadCachedFiles = (): UploadedFile[] => {
-    try {
-      const cached = localStorage.getItem('ai-uploaded-files');
-      if (cached) {
-        return JSON.parse(cached);
-      }
-    } catch {}
-    return [];
-  };
-  
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(loadCachedFiles);
-  
-  // Save uploaded files to localStorage when they change
-  useEffect(() => {
-    if (uploadedFiles.length > 0) {
-      localStorage.setItem('ai-uploaded-files', JSON.stringify(uploadedFiles));
-    }
-  }, [uploadedFiles]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const [attachmentMode, setAttachmentMode] = useState<AttachmentMode>('none');
@@ -283,6 +239,27 @@ export function AiFullScreenView({
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [selectedChain, setSelectedChain] = useState(currentChain);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Computed: is anything running
+  const isRunning = isLoading || isAnalyzing || isLoadingContext || isUploading;
+  
+  // Stop everything
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    setIsAnalyzing(false);
+    setIsLoadingContext(false);
+    setIsUploading(false);
+    
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: 'Operation stopped.',
+      timestamp: Date.now()
+    }]);
+  };
 
   // Quick suggestions based on attachment mode
   const walletSuggestions = [
@@ -370,32 +347,24 @@ const contractSuggestions = [
   const loadSessionMessages = async (sessionId: string) => {
     setIsLoadingSession(true);
     try {
-      // First try backend
       const data = await apiRequest<{ messages: any[] }>(`/api/chat/sessions/${sessionId}/messages`);
-      const cachedMessages = loadCachedMessages(sessionId);
       
-      // Use whichever has more messages (more complete)
-      if (cachedMessages.length > (data.messages?.length || 0)) {
-        setMessages(cachedMessages);
-      } else if (data.messages && data.messages.length > 0) {
+      if (data.messages && data.messages.length > 0) {
         setMessages(data.messages);
-        localStorage.setItem(`ai-chat-${sessionId}`, JSON.stringify(data.messages));
       } else {
-        // Both empty
-        if (cachedMessages.length > 1 || (cachedMessages[0] && cachedMessages[0].content !== 'Hi! I\'m FundTracer AI')) {
-          setMessages(cachedMessages);
-        } else {
-          setMessages([{
-            role: 'assistant',
-            content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
-            timestamp: Date.now(),
-          }]);
-        }
+        setMessages([{
+          role: 'assistant',
+          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+          timestamp: Date.now(),
+        }]);
       }
     } catch (error) {
       console.error('Failed to load session messages:', error);
-      const cachedMessages = loadCachedMessages(sessionId);
-      setMessages(cachedMessages);
+      setMessages([{
+        role: 'assistant',
+        content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+        timestamp: Date.now(),
+      }]);
     } finally {
       setIsLoadingSession(false);
     }
@@ -412,33 +381,20 @@ const contractSuggestions = [
 
   const createNewSession = async () => {
     try {
-      // Clear attachments when starting new session
       setWalletAttachment(null);
       setUploadedFiles([]);
       setAttachmentMode('none');
       setInputValue('');
       
-      // Clear localStorage cache for new session
-      localStorage.removeItem('ai-chat-messages');
-      localStorage.removeItem('ai-uploaded-files');
-      // Clear all session-specific caches (they'll be recreated as needed)
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('ai-chat-')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
       const data = await apiRequest<{ session: any }>('/api/chat/sessions', 'POST', { title: 'New Conversation' });
       const newSession = data.session;
       setChatSessions(prev => [newSession, ...prev]);
       setActiveSessionId(newSession.id);
-      const initialMessages: { role: 'user' | 'assistant'; content: string; timestamp: number }[] = [{
+      setMessages([{
         role: 'assistant',
         content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
         timestamp: Date.now(),
-      }];
-      setMessages(initialMessages);
-      localStorage.setItem(`ai-chat-${newSession.id}`, JSON.stringify(initialMessages));
+      }]);
     } catch (error) {
       console.error('Failed to create session:', error);
     }
@@ -495,6 +451,7 @@ const contractSuggestions = [
         }));
 
         const token = getAuthToken();
+        abortControllerRef.current = new AbortController();
         const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
           method: 'POST',
           headers: {
@@ -505,7 +462,8 @@ const contractSuggestions = [
             question: inputValue,
             attachedFiles,
             history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
-          })
+          }),
+          signal: abortControllerRef.current.signal
         });
 
         if (!response.ok) {
@@ -582,6 +540,7 @@ const contractSuggestions = [
         if (!token) {
           throw new Error('Not authenticated - please log in again');
         }
+        abortControllerRef.current = new AbortController();
         const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
           method: 'POST',
           headers: {
@@ -591,7 +550,8 @@ const contractSuggestions = [
           body: JSON.stringify({
             question: inputValue,
             history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
-          })
+          }),
+          signal: abortControllerRef.current.signal
         });
 
         if (!response.ok) {
@@ -674,134 +634,48 @@ const contractSuggestions = [
     createNewSession();
   };
 
-const handleSelectScan = async (scan: RecentScan) => {
+const handleSelectScan = (scan: RecentScan) => {
     setSelectedScanId(scan.id);
     setIsLoadingContext(true);
     
-    // Set the wallet attachment for analysis
     setWalletAttachment({
       address: scan.address,
       chain: scan.chain,
-      status: 'analyzing'
+      status: 'ready'
     });
     setAttachmentMode('wallet');
     setInputValue('');
     
-    // Add user message
+    const scanDataTable = `
+| Property | Value |
+|----------|-------|
+| Address | ${scan.address} |
+| Chain | ${scan.chain} |
+| Label | ${scan.label || 'N/A'} |
+| Risk Score | ${scan.riskScore ?? 'N/A'} |
+| Risk Level | ${scan.riskLevel || 'N/A'} |
+| Total Transactions | ${scan.totalTransactions ?? 'N/A'} |
+| Total Value Sent | ${scan.totalValueSentEth ? scan.totalValueSentEth.toFixed(4) : 'N/A'} ETH |
+| Total Value Received | ${scan.totalValueReceivedEth ? scan.totalValueReceivedEth.toFixed(4) : 'N/A'} ETH |
+| Activity Period | ${scan.activityPeriodDays ? `${scan.activityPeriodDays} days` : 'N/A'} |
+| Balance | ${scan.balanceInEth ? scan.balanceInEth.toFixed(4) : 'N/A'} ETH |
+| Last Scanned | ${formatRelativeTime(scan.timestamp)} |
+`;
+    
     const userMessage = {
       role: 'user' as const,
-      content: `Analyze wallet ${scan.address} on ${scan.chain} and provide a detailed risk report`,
+      content: `Show me details for wallet ${scan.address} on ${scan.chain}`,
       timestamp: Date.now(),
     };
-    setMessages(prev => [...prev, userMessage]);
     
-    setIsLoading(true);
+    const assistantMessage = {
+      role: 'assistant' as const,
+      content: `Here's the cached scan data for **${scan.label || scan.address.slice(0, 8) + '...'}** on ${scan.chain.toUpperCase()}:\n\n${scanDataTable}\n\nYou can ask me follow-up questions about this wallet.`,
+      timestamp: Date.now(),
+    };
     
-    // Safety timeout
-    const loadingTimeout = setTimeout(() => {
-      setIsLoading(false);
-      setIsLoadingContext(false);
-    }, 5000);
-    
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({
-          address: scan.address,
-          addressType: 'wallet',
-          chain: scan.chain,
-          question: 'Provide a comprehensive analysis including risk score, transaction count, balance, funding sources, suspicious activities, and any other relevant details.',
-          history: [],
-          attachedFiles: []
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      
-      const placeholderId = Date.now();
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: '',
-        timestamp: placeholderId
-      }]);
-      
-      if (!reader) {
-        throw new Error('No response stream');
-      }
-      
-      let fullResponse = '';
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
-        
-        for (const line of lines) {
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
-          
-          try {
-            const parsed = JSON.parse(data);
-            
-            if (parsed.type === 'chunk') {
-              fullResponse += parsed.content;
-              setMessages(prev => prev.map(m => 
-                m.timestamp === placeholderId 
-                  ? { ...m, content: fullResponse }
-                  : m
-              ));
-            } else if (parsed.type === 'error') {
-              throw new Error(parsed.message);
-            }
-          } catch {}
-        }
-      }
-      
-      if (!fullResponse) {
-        throw new Error('No response from AI');
-      }
-      
-      setWalletAttachment({
-        address: scan.address,
-        chain: scan.chain,
-        status: 'ready'
-      });
-      
-    } catch (error: any) {
-      console.error('Analysis error:', error);
-      setWalletAttachment({
-        address: scan.address,
-        chain: scan.chain,
-        status: 'error'
-      });
-      
-      const errorMsg = error.message?.includes('network') 
-        ? 'Network error. Please check your connection and try again.' 
-        : `Sorry, couldn't analyze this wallet. ${error.message || 'Please try again.'}`;
-      
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: errorMsg,
-        timestamp: Date.now()
-      }]);
-    } finally {
-      clearTimeout(loadingTimeout);
-      setIsLoading(false);
-      setIsLoadingContext(false);
-      setSelectedScanId(null);
-    }
+    setMessages(prev => [...prev, userMessage, assistantMessage]);
+    setIsLoadingContext(false);
   };
 
   const handleSelectAttachmentMode = (mode: AttachmentMode) => {
@@ -826,6 +700,7 @@ const handleSelectScan = async (scan: RecentScan) => {
 
     try {
       const token = getAuthToken();
+      abortControllerRef.current = new AbortController();
       const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
         method: 'POST',
         headers: {
@@ -838,7 +713,8 @@ const handleSelectScan = async (scan: RecentScan) => {
           chain: currentChain,
           question: 'Analyze this address and tell me about it',
           history: []
-        })
+        }),
+        signal: abortControllerRef.current.signal
       });
 
       if (!response.ok) {
@@ -950,6 +826,7 @@ const handleSelectScan = async (scan: RecentScan) => {
       }));
 
       const token = getAuthToken();
+      abortControllerRef.current = new AbortController();
       const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
         method: 'POST',
         headers: {
@@ -963,7 +840,8 @@ const handleSelectScan = async (scan: RecentScan) => {
           question: inputValue,
           history,
           ...(attachedFiles.length > 0 && { attachedFiles })
-        })
+        }),
+        signal: abortControllerRef.current.signal
       });
 
       if (!response.ok) {
@@ -1075,6 +953,7 @@ const handleSelectScan = async (scan: RecentScan) => {
 
         // Upload to backend
         const token = getAuthToken();
+        abortControllerRef.current = new AbortController();
         const response = await fetch('/api/upload/file', {
           method: 'POST',
           headers: {
@@ -1086,6 +965,7 @@ const handleSelectScan = async (scan: RecentScan) => {
             fileName: file.name,
             mimeType: file.type,
           }),
+          signal: abortControllerRef.current.signal
         });
 
         if (!response.ok) {
@@ -1815,6 +1695,16 @@ const handleSelectScan = async (scan: RecentScan) => {
                         ) : (
                           <Check size={16} />
                         )}
+                      </motion.button>
+                    ) : isRunning ? (
+                      <motion.button 
+                        className="ai-stop-btn"
+                        onClick={handleStop}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{ background: '#ef4444' }}
+                      >
+                        <Square size={16} />
                       </motion.button>
                     ) : (
                       <motion.button 

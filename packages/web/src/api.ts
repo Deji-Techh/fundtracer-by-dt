@@ -704,3 +704,110 @@ export async function deleteApiKey(keyId: string, twoFactorCode?: string): Promi
     }
     return data;
 }
+
+// ============================================================
+// AI Chat Session Management
+// ============================================================
+
+export interface ChatSession {
+    id: string;
+    userId: string;
+    title: string;
+    walletAddress?: string | null;
+    chain?: string | null;
+    messages: ChatMessage[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: number;
+}
+
+export async function getChatSessions(): Promise<{ sessions: ChatSession[]; source: string }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/ai-chat/sessions`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to load sessions');
+    }
+    return response.json();
+}
+
+export async function getChatSession(sessionId: string): Promise<{ session: ChatSession; source: string }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/ai-chat/sessions/${sessionId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to load session');
+    }
+    return response.json();
+}
+
+export async function createChatSession(title?: string, walletAddress?: string, chain?: string): Promise<{ session: ChatSession }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/ai-chat/sessions`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, walletAddress, chain }),
+    });
+
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create session');
+    }
+    return response.json();
+}
+
+export async function updateChatSession(sessionId: string, messages: ChatMessage[], title?: string): Promise<{ session: ChatSession }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/ai-chat/sessions/${sessionId}`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages, title }),
+    });
+
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update session');
+    }
+    return response.json();
+}
+
+export async function deleteChatSession(sessionId: string): Promise<{ success: boolean }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/ai-chat/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete session');
+    }
+    return response.json();
+}

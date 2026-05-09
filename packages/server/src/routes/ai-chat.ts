@@ -8,6 +8,8 @@ import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { callGeminiStream, selectModel } from '../lib/gemini-client.js';
 import { buildContext, formatAnalysisForDisplay, type AnalysisData } from '../lib/context-builder.js';
 import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
+import { cacheGet, cacheSet, cacheDel } from '../utils/redis.js';
+import { getFirestore } from '../firebase.js';
 
 const router = Router();
 
@@ -237,6 +239,243 @@ router.get('/status', (req, res) => {
       pro: 'gemini-2.5-pro'
     }
   });
+});
+
+// ============================================================
+// Chat Session Management (Redis + Firestore)
+// ============================================================
+
+const SESSION_TTL_SECONDS = 10 * 24 * 60 * 60; // 10 days
+const FIRESTORE_COLLECTION = 'aiChatSessions';
+
+// List all sessions for the user
+router.get('/sessions', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Try Redis first
+    const redisKey = `ai:sessions:${userId}`;
+    const cached = await cacheGet(redisKey);
+    if (cached) {
+      return res.json({ sessions: cached, source: 'cache' });
+    }
+
+    // Fall back to Firestore
+    const db = getFirestore();
+    const snapshot = await db.collection(FIRESTORE_COLLECTION)
+      .where('userId', '==', userId)
+      .orderBy('updatedAt', 'desc')
+      .limit(50)
+      .get();
+
+    const sessions = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      // Convert timestamps
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString(),
+      updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString(),
+    }));
+
+    // Cache in Redis for 1 hour
+    await cacheSet(redisKey, sessions, 3600);
+
+    res.json({ sessions, source: 'firestore' });
+  } catch (error: any) {
+    console.error('[AI Chat] Failed to list sessions:', error);
+    res.status(500).json({ error: 'Failed to load sessions' });
+  }
+});
+
+// Get a specific session with messages
+router.get('/sessions/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    const sessionId = req.params.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Try Redis first
+    const redisKey = `ai:session:${sessionId}`;
+    const cached = await cacheGet(redisKey) as { userId: string; [key: string]: any } | null;
+    if (cached && cached.userId === userId) {
+      return res.json({ session: cached, source: 'cache' });
+    }
+
+    // Fall back to Firestore
+    const db = getFirestore();
+    const doc = await db.collection(FIRESTORE_COLLECTION).doc(sessionId).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const data = doc.data();
+    if (data?.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const session = {
+      id: doc.id,
+      ...data,
+      createdAt: data?.createdAt?.toDate?.()?.toISOString(),
+      updatedAt: data?.updatedAt?.toDate?.()?.toISOString(),
+    };
+
+    // Cache in Redis
+    await cacheSet(redisKey, session, 3600);
+
+    res.json({ session, source: 'firestore' });
+  } catch (error: any) {
+    console.error('[AI Chat] Failed to get session:', error);
+    res.status(500).json({ error: 'Failed to load session' });
+  }
+});
+
+// Create a new session
+router.post('/sessions', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    const { title, walletAddress, chain } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const db = getFirestore();
+    const { FieldValue } = await import('firebase-admin/firestore');
+
+    const sessionData = {
+      userId,
+      title: title || 'New Chat',
+      walletAddress: walletAddress || null,
+      chain: chain || null,
+      messages: [],
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    const docRef = await db.collection(FIRESTORE_COLLECTION).add(sessionData);
+
+    // Invalidate sessions list cache
+    const redisKey = `ai:sessions:${userId}`;
+    await cacheDel(redisKey);
+
+    const session = {
+      id: docRef.id,
+      ...sessionData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Cache the new session
+    await cacheSet(`ai:session:${docRef.id}`, session, SESSION_TTL_SECONDS);
+
+    res.status(201).json({ session });
+  } catch (error: any) {
+    console.error('[AI Chat] Failed to create session:', error);
+    res.status(500).json({ error: 'Failed to create session' });
+  }
+});
+
+// Update session (add messages)
+router.put('/sessions/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    const sessionId = req.params.id;
+    const { messages, title } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const db = getFirestore();
+    const { FieldValue } = await import('firebase-admin/firestore');
+
+    const docRef = db.collection(FIRESTORE_COLLECTION).doc(sessionId);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const data = doc.data();
+    if (data?.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const updateData: any = {
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (messages !== undefined) {
+      updateData.messages = messages;
+    }
+    if (title !== undefined) {
+      updateData.title = title;
+    }
+
+    await docRef.update(updateData);
+
+    // Invalidate caches
+    await cacheDel(`ai:session:${sessionId}`);
+    await cacheDel(`ai:sessions:${userId}`);
+
+    // Store in Redis with TTL
+    const updatedDoc = await docRef.get();
+    const sessionData = {
+      id: sessionId,
+      ...updatedDoc.data(),
+      createdAt: updatedDoc.data()?.createdAt?.toDate?.()?.toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await cacheSet(`ai:session:${sessionId}`, sessionData, SESSION_TTL_SECONDS);
+
+    res.json({ session: sessionData });
+  } catch (error: any) {
+    console.error('[AI Chat] Failed to update session:', error);
+    res.status(500).json({ error: 'Failed to update session' });
+  }
+});
+
+// Delete a session
+router.delete('/sessions/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    const sessionId = req.params.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const db = getFirestore();
+    const docRef = db.collection(FIRESTORE_COLLECTION).doc(sessionId);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const data = doc.data();
+    if (data?.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    await docRef.delete();
+
+    // Invalidate caches
+    await cacheDel(`ai:session:${sessionId}`);
+    await cacheDel(`ai:sessions:${userId}`);
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[AI Chat] Failed to delete session:', error);
+    res.status(500).json({ error: 'Failed to delete session' });
+  }
 });
 
 export default router;

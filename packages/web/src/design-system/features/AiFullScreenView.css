@@ -652,6 +652,25 @@
   cursor: not-allowed;
 }
 
+.ai-stop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ai-stop-btn:hover {
+  background: #dc2626;
+}
+
 .ai-accept-btn {
   background: #7F77DD;
   color: #fff;
@@ -1097,30 +1116,34 @@
 /* Markdown Table Styling - Claude-style */
 .ai-message-content table {
   width: 100%;
-  border-collapse: collapse;
-  margin: 12px 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 16px 0;
   font-size: 13px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   overflow: hidden;
 }
 
 .ai-message-content table th {
-  background: rgba(127, 119, 221, 0.15);
-  color: #7F77DD;
-  font-weight: 600;
+  background: linear-gradient(180deg, rgba(127, 119, 221, 0.12) 0%, rgba(127, 119, 221, 0.06) 100%);
+  color: #a8a4d4;
+  font-weight: 500;
   text-align: left;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid rgba(127, 119, 221, 0.2);
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
 }
 
 .ai-message-content table td {
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: #b0b0b8;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #e0e0e8;
+  font-family: 'SF Mono', 'JetBrains Mono', 'Monaco', monospace;
+  font-size: 12px;
 }
 
 .ai-message-content table tr:last-child td {
@@ -1128,7 +1151,16 @@
 }
 
 .ai-message-content table tr:hover td {
-  background: rgba(127, 119, 221, 0.05);
+  background: rgba(127, 119, 221, 0.06);
+}
+
+.ai-message-content table tr td:first-child {
+  color: #8b85c8;
+  font-weight: 500;
+}
+
+.ai-message-content table tr:hover td:first-child {
+  color: #a8a4d4;
 }
 
 .ai-message-content code {
