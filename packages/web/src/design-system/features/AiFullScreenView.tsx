@@ -91,6 +91,81 @@ const CHAIN_COLORS: Record<string, string> = {
   solana: '#9945ff',
 };
 
+// Simple markdown to HTML converter for tables
+function renderMarkdown(content: string): string {
+  // Convert markdown tables to HTML
+  let html = content;
+  
+  // Check if content contains a table
+  if (html.includes('|') && html.includes('---')) {
+    const lines = html.split('\n');
+    let inTable = false;
+    let tableHtml = '';
+    let headerProcessed = false;
+    
+    for (const line of lines) {
+      if (line.trim().startsWith('|') && line.includes('---')) {
+        // Skip separator line
+        inTable = true;
+        headerProcessed = false;
+        continue;
+      }
+      
+      if (inTable && line.trim().startsWith('|')) {
+        const cells = line.split('|').filter(c => c.trim());
+        
+        if (!headerProcessed) {
+          // Header row
+          tableHtml += '<table><thead><tr>';
+          for (const cell of cells) {
+            tableHtml += `<th>${cell.trim()}</th>`;
+          }
+          tableHtml += '</tr></thead><tbody>';
+          headerProcessed = true;
+        } else {
+          // Data row
+          tableHtml += '<tr>';
+          for (const cell of cells) {
+            tableHtml += `<td>${cell.trim()}</td>`;
+          }
+          tableHtml += '</tr>';
+        }
+      } else if (inTable) {
+        // End of table
+        if (tableHtml) {
+          tableHtml += '</tbody></table>';
+          html = html.replace(/\|[\s\S]*?\|[\s\S]*?\n/g, '').replace(tableHtml, '').trim();
+          html = tableHtml + '\n\n' + html;
+        }
+        inTable = false;
+        tableHtml = '';
+      }
+    }
+    
+    // Close table if still open
+    if (inTable && tableHtml) {
+      tableHtml += '</tbody></table>';
+      html = html.replace(/\|[\s\S]*?\|[\s\S]*?\n/g, '').trim();
+      html = tableHtml + '\n\n' + html;
+    }
+  }
+  
+  // Convert bold
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // Convert inline code
+  html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+  
+  // Convert bullet lists
+  html = html.replace(/^- (.*)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  
+  // Convert newlines to <br>
+  html = html.split('\n').map(line => line.trim()).filter(line => line).join('<br>');
+  
+  return html;
+}
+
 interface RecentScan {
   id: string;
   address: string;
@@ -280,6 +355,12 @@ const contractSuggestions = [
 
   const createNewSession = async () => {
     try {
+      // Clear attachments when starting new session
+      setWalletAttachment(null);
+      setUploadedFiles([]);
+      setAttachmentMode('none');
+      setInputValue('');
+      
       const data = await apiRequest<{ session: any }>('/api/chat/sessions', 'POST', { title: 'New Conversation' });
       const newSession = data.session;
       setChatSessions(prev => [newSession, ...prev]);
@@ -563,6 +644,7 @@ const contractSuggestions = [
       chain: scan.chain,
       status: 'ready'
     });
+    setAttachmentMode('wallet');
     setIsLoadingContext(false);
     setSelectedScanId(null);
   };
@@ -1235,7 +1317,10 @@ const contractSuggestions = [
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.1 }}
                       >
-                        <p>{msg.content}</p>
+                        <div 
+                          className="ai-message-markdown"
+                          dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+                        />
                         <span className="ai-message-time">
                           {formatRelativeTime(msg.timestamp)}
                         </span>
@@ -1382,7 +1467,7 @@ const contractSuggestions = [
                         onClick={() => setShowAttachmentDropdown(!showAttachmentDropdown)}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        disabled={isUploading || !!walletAttachment}
+                        disabled={isUploading}
                       >
                         {attachmentMode === 'wallet' ? (
                           <Wallet size={18} />
