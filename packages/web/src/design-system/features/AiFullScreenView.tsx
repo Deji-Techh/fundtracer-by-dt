@@ -207,7 +207,20 @@ export function AiFullScreenView({
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   
   // Load cached messages from localStorage
-  const loadCachedMessages = (): { role: 'user' | 'assistant'; content: string; timestamp: number }[] => {
+  const loadCachedMessages = (sessionId?: string): { role: 'user' | 'assistant'; content: string; timestamp: number }[] => {
+    // If we have an active session, load session-specific cache
+    if (sessionId) {
+      try {
+        const cached = localStorage.getItem(`ai-chat-${sessionId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+    // Otherwise load default cache
     try {
       const cached = localStorage.getItem('ai-chat-messages');
       if (cached) {
@@ -224,15 +237,22 @@ export function AiFullScreenView({
     }];
   };
   
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; timestamp: number }[]>(loadCachedMessages);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; timestamp: number }[]>(() => {
+    // Start with empty, will be filled by loadSessionMessages or fetchChatSessions
+    return [{
+      role: 'assistant',
+      content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+      timestamp: Date.now() - 3600000,
+    }];
+  });
   const [isLoading, setIsLoading] = useState(false);
   
-  // Save messages to localStorage when they change
+  // Save messages to localStorage when they change (session-specific)
   useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem('ai-chat-messages', JSON.stringify(messages));
+    if (messages.length > 0 && activeSessionId) {
+      localStorage.setItem(`ai-chat-${activeSessionId}`, JSON.stringify(messages));
     }
-  }, [messages]);
+  }, [messages, activeSessionId]);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   // Load cached uploaded files from localStorage
   const loadCachedFiles = (): UploadedFile[] => {
@@ -350,17 +370,18 @@ const contractSuggestions = [
   const loadSessionMessages = async (sessionId: string) => {
     setIsLoadingSession(true);
     try {
+      // First try backend
       const data = await apiRequest<{ messages: any[] }>(`/api/chat/sessions/${sessionId}/messages`);
-      const cachedMessages = loadCachedMessages();
+      const cachedMessages = loadCachedMessages(sessionId);
       
-      // Always prefer localStorage if it has more content (more complete chat)
+      // Use whichever has more messages (more complete)
       if (cachedMessages.length > (data.messages?.length || 0)) {
         setMessages(cachedMessages);
       } else if (data.messages && data.messages.length > 0) {
         setMessages(data.messages);
-        localStorage.setItem('ai-chat-messages', JSON.stringify(data.messages));
+        localStorage.setItem(`ai-chat-${sessionId}`, JSON.stringify(data.messages));
       } else {
-        // Both empty - use default
+        // Both empty
         if (cachedMessages.length > 1 || (cachedMessages[0] && cachedMessages[0].content !== 'Hi! I\'m FundTracer AI')) {
           setMessages(cachedMessages);
         } else {
@@ -373,8 +394,7 @@ const contractSuggestions = [
       }
     } catch (error) {
       console.error('Failed to load session messages:', error);
-      // On error, try to load from localStorage
-      const cachedMessages = loadCachedMessages();
+      const cachedMessages = loadCachedMessages(sessionId);
       setMessages(cachedMessages);
     } finally {
       setIsLoadingSession(false);
@@ -401,6 +421,12 @@ const contractSuggestions = [
       // Clear localStorage cache for new session
       localStorage.removeItem('ai-chat-messages');
       localStorage.removeItem('ai-uploaded-files');
+      // Clear all session-specific caches (they'll be recreated as needed)
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('ai-chat-')) {
+          localStorage.removeItem(key);
+        }
+      });
       
       const data = await apiRequest<{ session: any }>('/api/chat/sessions', 'POST', { title: 'New Conversation' });
       const newSession = data.session;
