@@ -226,16 +226,28 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
 
     let fullResponse = '';
     
-    for await (const chunk of callGeminiStream(context, question, geminiHistory, modelType, hasFiles ? attachedFiles : undefined)) {
-      fullResponse += chunk;
-      res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+    try {
+      for await (const chunk of callGeminiStream(context, question, geminiHistory, modelType, hasFiles ? attachedFiles : undefined)) {
+        fullResponse += chunk;
+        res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+      }
+    } catch (streamError: any) {
+      console.error('[AI-Chat] Stream error:', streamError.message);
+      if (!fullResponse) {
+        res.write(`data: ${JSON.stringify({ 
+          type: 'error', 
+          message: 'Failed to get AI response. Please try again.' 
+        })}\n\n`);
+      }
     }
 
     // Send completion
-    res.write(`data: ${JSON.stringify({ 
-      type: 'complete', 
-      fullResponse 
-    })}\n\n`);
+    if (fullResponse) {
+      res.write(`data: ${JSON.stringify({ 
+        type: 'complete', 
+        fullResponse 
+      })}\n\n`);
+    }
     res.write('data: [DONE]\n\n');
 
   } catch (error: any) {

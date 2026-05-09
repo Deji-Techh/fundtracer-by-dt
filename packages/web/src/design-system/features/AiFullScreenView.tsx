@@ -614,6 +614,18 @@ const contractSuggestions = [
 
       } catch (error: any) {
         clearTimeout(loadingTimeout);
+        
+        // Handle abort errors gracefully
+        if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Request was cancelled.',
+            timestamp: Date.now()
+          }]);
+          setIsLoading(false);
+          return;
+        }
+        
         const errorMsg = error.message?.includes('network') 
           ? 'Network error. Please check your connection and try again.' 
           : `Sorry, something went wrong. ${error.message || 'Please try again.'}`;
@@ -900,10 +912,20 @@ const handleSelectScan = (scan: RecentScan) => {
       }
 
       if (!fullResponse) {
-        throw new Error('No response from AI');
+        throw new Error('No response from AI - the service may be unavailable');
       }
 
     } catch (error: any) {
+      // Handle abort errors gracefully
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Request was cancelled.',
+          timestamp: Date.now()
+        }]);
+        return;
+      }
+      
       console.error('Send with attachment error:', error);
       const errorMsg = error.message?.includes('network') 
         ? 'Network error. Please check your connection and try again.' 
