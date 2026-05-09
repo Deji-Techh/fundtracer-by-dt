@@ -511,6 +511,66 @@ CLI scans show chain in activity:
 
 ---
 
+## Recent Updates (v3.3 - May 2026)
+
+### Torque Recording Restored (May 2026)
+
+**Problem:** Scans stopped recording to Torque after refactoring. The Torque calls were removed during the 20-key pool and sanitization updates.
+
+**Root Cause:** During analyze.ts refactoring (adding 20-key Alchemy pool + React Error #130 sanitization), the Torque recording calls were accidentally removed:
+- `torqueServiceV2.incrementScan(userId, displayName)` 
+- `torqueServiceV2.addActivity(userId, displayName, address, chain)`
+
+**Solution:** Re-added Torque calls to ALL analysis endpoints:
+- `/api/analyze/wallet` - EVM wallet scanning
+- `/api/analyze/compare` - Wallet comparison
+- `/api/analyze/contract` - Contract analysis  
+- `/api/analyze/sybil` - Sybil detection
+- `/api/analyze/sybil-addresses` - Sybil address analysis
+- `/api/analyze/batch` - Batch analysis
+- `/api/solana/portfolio` - Solana (already worked)
+- `/api/solana/risk` - Solana (already worked)
+
+Each scan now awards +10 points and logs activity.
+
+### React Error #130 Fix (May 2026)
+
+**Problem:** Compare feature crashed with "Objects not valid as React child" error.
+
+**Root Cause:** API responses contained non-serializable objects (Error instances, Maps, Sets) that React couldn't render.
+
+**Solution:** Added deep sanitization function to ALL endpoints:
+```javascript
+function sanitizeForFrontend(obj) {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForFrontend);
+  if (obj instanceof Error) return { message: obj.message, name: obj.name };
+  if (obj instanceof Map) return Object.fromEntries(obj);
+  if (obj instanceof Set) return Array.from(obj);
+  // ... recursive sanitize
+}
+```
+
+Applied to: wallet, compare, contract, sybil, batch endpoints.
+
+### Sybil Analyzer Improvements (May 2026)
+
+**Problem:** Sybil detector was only using 5 keys instead of 15 available.
+
+**Fixes:**
+1. **Increased key pool** - Changed `MAX_PARALLEL_KEYS` from 2 → 15
+2. **Key rotation on errors** - Now rotates to different key on:
+   - JSON parse errors
+   - Rate limiting (429)
+   - Alchemy API errors
+   - Network exceptions
+   - Non-JSON responses
+
+This dramatically improves reliability and speed for sybil detection.
+
+---
+
 ## Recent Updates (v3.2 - April 2026)
 
 ### Claim System 2.0

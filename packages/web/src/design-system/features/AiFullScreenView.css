@@ -543,6 +543,160 @@
   border-left: 1px solid var(--intel-border-subtle);
 }
 
+/* Plus Dropdown */
+.ai-plus-dropdown {
+  position: relative;
+}
+
+.ai-attachment-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: var(--space-2);
+  background: var(--intel-bg-surface);
+  border: 1px solid var(--intel-border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-1);
+  min-width: 140px;
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+}
+
+.ai-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2-5) var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--intel-text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.ai-dropdown-item:hover {
+  background: var(--intel-bg-hover);
+  color: var(--intel-text-primary);
+}
+
+.ai-dropdown-item svg {
+  color: var(--intel-cyan);
+}
+
+/* Input Wrapper */
+.ai-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.ai-input-wrapper.attachment-mode {
+  background: var(--intel-cyan-bg);
+  border: 1px solid var(--intel-cyan);
+  border-radius: var(--radius-lg);
+  padding: var(--space-1);
+}
+
+.ai-input-wrapper.attachment-mode .ai-chat-input {
+  background: transparent;
+  border: none;
+}
+
+/* Attachment Input */
+.ai-chat-input.attachment-input {
+  background: rgba(0, 255, 136, 0.08) !important;
+  border: 1px solid rgba(0, 255, 136, 0.3) !important;
+  color: var(--intel-text-primary);
+}
+
+.ai-chat-input.attachment-input::placeholder {
+  color: var(--intel-cyan);
+  opacity: 0.8;
+}
+
+/* Accept Button */
+.ai-accept-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--intel-cyan);
+  color: var(--intel-bg-deep);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.ai-accept-btn:hover:not(:disabled) {
+  background: var(--intel-cyan-bright);
+  transform: scale(1.05);
+  box-shadow: 0 0 12px var(--intel-cyan-glow);
+}
+
+.ai-accept-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Attachment Bar */
+.ai-attachment-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--intel-cyan-bg);
+  border: 1px solid var(--intel-cyan);
+  border-radius: var(--radius-lg);
+  margin-right: var(--space-2);
+}
+
+.ai-attachment-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--intel-cyan);
+}
+
+.ai-attachment-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--intel-cyan);
+  flex: 1;
+}
+
+.ai-attachment-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--intel-cyan);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ai-attachment-clear:hover {
+  background: rgba(0, 255, 136, 0.2);
+}
+
+/* Attach Button Active State */
+.ai-attach-btn.active {
+  background: var(--intel-cyan);
+  color: var(--intel-bg-deep);
+  border-color: var(--intel-cyan);
+}
+
 .ai-new-chat-btn {
   display: flex;
   align-items: center;

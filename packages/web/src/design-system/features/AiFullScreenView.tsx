@@ -13,10 +13,14 @@ import {
   Loader2,
   Bot,
   User,
-  Sparkles
+  Sparkles,
+  FileCode,
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { getHistory, type HistoryItem } from '../../utils/history';
+import { apiRequest } from '../../api';
 import './AiFullScreenView.css';
 
 interface AiFullScreenViewProps {
@@ -87,6 +91,15 @@ interface UploadedFile {
   status: 'uploading' | 'processing' | 'ready' | 'error';
 }
 
+interface WalletAttachment {
+  address: string;
+  chain: string;
+  data?: any;
+  status: 'pending' | 'analyzing' | 'ready' | 'error';
+}
+
+type AttachmentMode = 'none' | 'wallet' | 'contract';
+
 export function AiFullScreenView({ 
   isOpen, 
   onClose, 
@@ -132,6 +145,10 @@ export function AiFullScreenView({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
+  const [attachmentMode, setAttachmentMode] = useState<AttachmentMode>('none');
+  const [showAttachmentDropdown, setShowAttachmentDropdown] = useState(false);
+  const [walletAttachment, setWalletAttachment] = useState<WalletAttachment | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -209,6 +226,153 @@ export function AiFullScreenView({
       setInputValue(`Analyze wallet ${scan.address} on ${scan.chain} and provide a risk report`);
       setSelectedScanId(null);
     }, 300);
+  };
+
+  const handleSelectAttachmentMode = (mode: AttachmentMode) => {
+    setAttachmentMode(mode);
+    setShowAttachmentDropdown(false);
+    setInputValue('');
+  };
+
+  const handleAcceptWallet = async () => {
+    if (!inputValue.trim()) return;
+
+    const isWallet = attachmentMode === 'wallet';
+    const address = inputValue.trim();
+    
+    setWalletAttachment({
+      address: address,
+      chain: currentChain,
+      status: 'analyzing'
+    });
+    setIsAnalyzing(true);
+    setInputValue('');
+
+    try {
+      const endpoint = isWallet ? '/api/analyze/wallet' : '/api/analyze/contract';
+      const response = await apiRequest(endpoint, 'POST', { 
+        address, 
+        chain: currentChain 
+      }) as Response;
+      
+      const data = await response.json();
+      
+      if (data.success && data.result) {
+        setWalletAttachment({
+          address,
+          chain: currentChain,
+          data: data.result,
+          status: 'ready'
+        });
+        
+        const assistantMessage = {
+          role: 'assistant' as const,
+          content: isWallet 
+            ? `Wallet ${address.slice(0, 6)}...${address.slice(-4)} attached and analyzed. Ask me anything about this wallet!`
+            : `Contract ${address.slice(0, 6)}...${address.slice(-4)} attached. Ask me about this contract!`,
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        throw new Error(data.error || 'Analysis failed');
+      }
+    } catch (error) {
+      console.error('Analysis error:', error);
+      setWalletAttachment({
+        address,
+        chain: currentChain,
+        status: 'error'
+      });
+      
+      const errorMessage = {
+        role: 'assistant' as const,
+        content: `Sorry, I couldn't analyze this ${isWallet ? 'wallet' : 'contract'}. Please check the address and try again.`,
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSendWithAttachment = async () => {
+    if (!inputValue.trim() || !walletAttachment || isLoading) return;
+
+    const userMessage = {
+      role: 'user' as const,
+      content: inputValue,
+      timestamp: Date.now(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
+
+    try {
+      let analysisData = '';
+      
+      if (walletAttachment.data) {
+        const d = walletAttachment.data;
+        analysisData = `
+Wallet Analysis Data:
+- Address: ${d.address || walletAttachment.address}
+- Chain: ${walletAttachment.chain}
+- Risk Score: ${d.riskScore ?? 'N/A'}
+- Risk Level: ${d.riskLevel ?? 'Unknown'}
+- Total Transactions: ${d.totalTransactions ?? 'N/A'}
+- Total Received: ${d.totalReceived ?? 'N/A'}
+- Total Sent: ${d.totalSent ?? 'N/A'}
+- Unique Addresses: ${d.uniqueAddresses ?? 'N/A'}
+- Activity Period: ${d.activityPeriodDays ?? 'N/A'} days
+- Balance: ${d.balance ?? 'N/A'}
+- Tags: ${d.tags?.join(', ') || 'None'}
+- Funding Sources: ${d.fundingSources?.join(', ') || 'None'}
+- Top Destinations: ${d.topDestinations?.join(', ') || 'None'}
+- First Seen: ${d.firstSeen ?? 'N/A'}
+- Last Seen: ${d.lastSeen ?? 'N/A'}
+`;
+      }
+
+      const promptWithData = analysisData 
+        ? `${analysisData}\n\nUser Question: ${inputValue}`
+        : inputValue;
+
+      // In production, this would call the AI with the wallet data
+      // For now, simulate the response
+      setTimeout(() => {
+        const responseContent = walletAttachment.data 
+          ? `Based on the analysis of ${walletAttachment.address.slice(0, 6)}...${walletAttachment.address.slice(-4)}:\n\n` +
+            `• Risk Level: ${walletAttachment.data.riskLevel || 'Unknown'}\n` +
+            `• Total Transactions: ${walletAttachment.data.totalTransactions || 0}\n` +
+            `• This wallet shows ${walletAttachment.data.riskLevel?.toLowerCase() === 'low' ? 'minimal risk indicators' : 'some patterns worth noting'}.\n\n` +
+            `Would you like more specific details about this wallet?`
+          : 'I need more context to answer that. What would you like to know specifically?';
+          
+        const assistantMessage = {
+          role: 'assistant' as const,
+          content: responseContent,
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
+      }, 1500);
+
+    } catch (error) {
+      console.error('Send with attachment error:', error);
+      setIsLoading(false);
+      
+      const errorMsg = {
+        role: 'assistant' as const,
+        content: 'Sorry, something went wrong. Please try again.',
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    }
+  };
+
+  const handleClearAttachment = () => {
+    setWalletAttachment(null);
+    setAttachmentMode('none');
   };
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -538,27 +702,161 @@ export function AiFullScreenView({
                       <Plus size={18} />
                     )}
                   </motion.button>
-                  <textarea
-                    ref={inputRef}
-                    className="ai-chat-input"
-                    placeholder={currentWallet 
-                      ? `Ask about ${currentWallet.slice(0, 6)}...` 
-                      : 'Enter wallet address or question...'}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    disabled={isLoading}
-                    rows={1}
-                  />
-                  <motion.button 
-                    className="ai-send-btn"
-                    onClick={handleSendMessage}
-                    disabled={isLoading || !inputValue.trim()}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Send size={16} />
-                  </motion.button>
+
+                  {/* Wallet/Contract Attachment Display */}
+                  {walletAttachment && (
+                    <motion.div 
+                      className="ai-attachment-bar"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                    >
+                      <div className="ai-attachment-icon">
+                        {walletAttachment.status === 'analyzing' ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            <Loader2 size={14} />
+                          </motion.div>
+                        ) : walletAttachment.status === 'ready' ? (
+                          <CheckCircle2 size={14} />
+                        ) : (
+                          <X size={14} />
+                        )}
+                      </div>
+                      <span className="ai-attachment-label">
+                        {walletAttachment.status === 'analyzing' 
+                          ? 'Analyzing...' 
+                          : `${walletAttachment.address.slice(0, 8)}...${walletAttachment.address.slice(-4)}`}
+                      </span>
+                      <button 
+                        className="ai-attachment-clear"
+                        onClick={handleClearAttachment}
+                      >
+                        <X size={12} />
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {/* Main Input */}
+                  <div className={`ai-input-wrapper ${attachmentMode !== 'none' ? 'attachment-mode' : ''}`}>
+                    {/* Dropdown Trigger for Plus Button */}
+                    <div className="ai-plus-dropdown">
+                      <motion.button 
+                        className={`ai-attach-btn ${attachmentMode !== 'none' ? 'active' : ''}`}
+                        title="Attach wallet or contract"
+                        onClick={() => setShowAttachmentDropdown(!showAttachmentDropdown)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        disabled={isUploading || !!walletAttachment}
+                      >
+                        {attachmentMode === 'wallet' ? (
+                          <Wallet size={18} />
+                        ) : attachmentMode === 'contract' ? (
+                          <FileCode size={18} />
+                        ) : isUploading ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            <Loader2 size={18} />
+                          </motion.div>
+                        ) : (
+                          <Plus size={18} />
+                        )}
+                      </motion.button>
+                      
+                      <AnimatePresence>
+                        {showAttachmentDropdown && (
+                          <motion.div 
+                            className="ai-attachment-dropdown"
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            transition={{ duration: 0.15 }}
+                          >
+                            <button 
+                              className="ai-dropdown-item"
+                              onClick={() => handleSelectAttachmentMode('wallet')}
+                            >
+                              <Wallet size={16} />
+                              <span>Wallet</span>
+                            </button>
+                            <button 
+                              className="ai-dropdown-item"
+                              onClick={() => handleSelectAttachmentMode('contract')}
+                            >
+                              <FileCode size={16} />
+                              <span>Contract</span>
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    <textarea
+                      ref={inputRef}
+                      className={`ai-chat-input ${attachmentMode !== 'none' ? 'attachment-input' : ''}`}
+                      placeholder={
+                        attachmentMode === 'wallet' 
+                          ? 'Input wallet address...' 
+                          : attachmentMode === 'contract'
+                            ? 'Input contract address...'
+                            : currentWallet 
+                              ? `Ask about ${currentWallet.slice(0, 6)}...` 
+                              : 'Enter wallet address or question...'
+                      }
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (attachmentMode !== 'none' && !walletAttachment) {
+                            handleAcceptWallet();
+                          } else if (walletAttachment) {
+                            handleSendWithAttachment();
+                          } else {
+                            handleSendMessage();
+                          }
+                        }
+                      }}
+                      disabled={isLoading || isAnalyzing}
+                      rows={1}
+                    />
+                    
+                    {/* Send or Accept Button */}
+                    {attachmentMode !== 'none' && !walletAttachment ? (
+                      <motion.button 
+                        className="ai-accept-btn"
+                        onClick={handleAcceptWallet}
+                        disabled={isAnalyzing || !inputValue.trim()}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {isAnalyzing ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          >
+                            <Loader2 size={16} />
+                          </motion.div>
+                        ) : (
+                          <Check size={16} />
+                        )}
+                      </motion.button>
+                    ) : (
+                      <motion.button 
+                        className="ai-send-btn"
+                        onClick={walletAttachment ? handleSendWithAttachment : handleSendMessage}
+                        disabled={isLoading || !inputValue.trim()}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Send size={16} />
+                      </motion.button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
 
