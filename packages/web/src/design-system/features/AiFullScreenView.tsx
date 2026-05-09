@@ -672,67 +672,134 @@ const contractSuggestions = [
     createNewSession();
   };
 
-  const handleSelectScan = async (scan: RecentScan) => {
+const handleSelectScan = async (scan: RecentScan) => {
     setSelectedScanId(scan.id);
     setIsLoadingContext(true);
     
-    // Get cached data from history
-    const history = getHistory() as HistoryItem[];
-    const cachedData = history.find(h => h.address.toLowerCase() === scan.address.toLowerCase());
-    
-    // Create tabular response from cached data
-    const formatCachedData = (data: HistoryItem, addr: string, chain: string): string => {
-      let table = `| Field | Value |\n| --- | --- |\n`;
-      table += `| Address | \`${addr.slice(0, 8)}...${addr.slice(-6)}\` |\n`;
-      table += `| Chain | ${chain.charAt(0).toUpperCase() + chain.slice(1)} |\n`;
-      
-      if (data.riskScore !== undefined) {
-        table += `| Risk Score | ${data.riskScore}/100 |\n`;
-      }
-      if (data.riskLevel) {
-        table += `| Risk Level | ${data.riskLevel} |\n`;
-      }
-      if (data.balanceInEth !== undefined) {
-        table += `| Balance | ${data.balanceInEth.toFixed(4)} ETH |\n`;
-      }
-      if (data.totalTransactions !== undefined) {
-        table += `| Total Txns | ${data.totalTransactions.toLocaleString()} |\n`;
-      }
-      if (data.totalValueReceivedEth !== undefined) {
-        table += `| Total Received | ${data.totalValueReceivedEth.toFixed(4)} ETH |\n`;
-      }
-      if (data.totalValueSentEth !== undefined) {
-        table += `| Total Sent | ${data.totalValueSentEth.toFixed(4)} ETH |\n`;
-      }
-      if (data.activityPeriodDays !== undefined) {
-        table += `| Activity Period | ${data.activityPeriodDays} days |\n`;
-      }
-      
-      return table;
-    };
-    
-    // Simulate a brief loading for UX
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const tabularData = cachedData 
-      ? formatCachedData(cachedData, scan.address, scan.chain)
-      : `| Field | Value |\n| --- | --- |\n| Address | \`${scan.address.slice(0, 8)}...${scan.address.slice(-6)}\` |\n| Chain | ${scan.chain} |\n| Status | Cached data not available |`;
-    
-    const assistantMessage = {
-      role: 'assistant' as const,
-      content: tabularData,
-      timestamp: Date.now(),
-    };
-    
-    setMessages(prev => [...prev, assistantMessage]);
+    // Set the wallet attachment for analysis
     setWalletAttachment({
       address: scan.address,
       chain: scan.chain,
-      status: 'ready'
+      status: 'analyzing'
     });
     setAttachmentMode('wallet');
-    setIsLoadingContext(false);
-    setSelectedScanId(null);
+    setInputValue('');
+    
+    // Add user message
+    const userMessage = {
+      role: 'user' as const,
+      content: `Analyze wallet ${scan.address} on ${scan.chain} and provide a detailed risk report`,
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+    
+    setIsLoading(true);
+    
+    // Safety timeout
+    const loadingTimeout = setTimeout(() => {
+      setIsLoading(false);
+      setIsLoadingContext(false);
+    }, 5000);
+    
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          address: scan.address,
+          addressType: 'wallet',
+          chain: scan.chain,
+          question: 'Provide a comprehensive analysis including risk score, transaction count, balance, funding sources, suspicious activities, and any other relevant details.',
+          history: [],
+          attachedFiles: []
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      const placeholderId = Date.now();
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '',
+        timestamp: placeholderId
+      }]);
+      
+      if (!reader) {
+        throw new Error('No response stream');
+      }
+      
+      let fullResponse = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+        
+        for (const line of lines) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+          
+          try {
+            const parsed = JSON.parse(data);
+            
+            if (parsed.type === 'chunk') {
+              fullResponse += parsed.content;
+              setMessages(prev => prev.map(m => 
+                m.timestamp === placeholderId 
+                  ? { ...m, content: fullResponse }
+                  : m
+              ));
+            } else if (parsed.type === 'error') {
+              throw new Error(parsed.message);
+            }
+          } catch {}
+        }
+      }
+      
+      if (!fullResponse) {
+        throw new Error('No response from AI');
+      }
+      
+      setWalletAttachment({
+        address: scan.address,
+        chain: scan.chain,
+        status: 'ready'
+      });
+      
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      setWalletAttachment({
+        address: scan.address,
+        chain: scan.chain,
+        status: 'error'
+      });
+      
+      const errorMsg = error.message?.includes('network') 
+        ? 'Network error. Please check your connection and try again.' 
+        : `Sorry, couldn't analyze this wallet. ${error.message || 'Please try again.'}`;
+      
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: errorMsg,
+        timestamp: Date.now()
+      }]);
+    } finally {
+      clearTimeout(loadingTimeout);
+      setIsLoading(false);
+      setIsLoadingContext(false);
+      setSelectedScanId(null);
+    }
   };
 
   const handleSelectAttachmentMode = (mode: AttachmentMode) => {
