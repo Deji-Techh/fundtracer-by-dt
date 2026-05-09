@@ -36,6 +36,8 @@ interface InvestigateViewProps {
   prefillType?: string;
   onPrefillConsumed?: () => void;
   suiMode?: boolean;
+  selectedChain?: string;
+  onChainChange?: (chain: string) => void;
 }
 
 // Tab types matching reference HTML
@@ -58,7 +60,9 @@ export function InvestigateView({
   prefillChain,
   prefillType,
   onPrefillConsumed,
-  suiMode = false
+  suiMode = false,
+  selectedChain: externalSelectedChain,
+  onChainChange
 }: InvestigateViewProps) {
   const { user, profile, isAuthenticated } = useAuth();
   const { login: loginPrivy, user: privyUser } = usePrivy();
@@ -69,8 +73,11 @@ export function InvestigateView({
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('wallet');
   
-  // Chain state
-  const [selectedChain, setSelectedChain] = useState<ChainId>('linea');
+  // Chain state - use external if provided, otherwise default
+  const [internalChain, setInternalChain] = useState<ChainId>('linea');
+  const selectedChain = externalSelectedChain || internalChain;
+  const chainId = selectedChain as ChainId;
+  const handleChainChange = onChainChange || setInternalChain;
   
   // Loading and error states
   const [loading, setLoading] = useState(false);
@@ -227,7 +234,7 @@ export function InvestigateView({
   useEffect(() => {
     if (prefillAddress) {
       if (prefillChain) {
-        setSelectedChain(prefillChain as ChainId);
+        handleChainChange(prefillChain as ChainId);
       }
       
       const targetMode = (prefillType === 'sybil' || prefillType === 'contract' || prefillType === 'compare')
@@ -273,19 +280,20 @@ export function InvestigateView({
     setPagination(null);
     setCurrentAnalysisAddress(address);
 
-    const cacheKey = `${address.toLowerCase()}-${selectedChain}`;
+    const chainId = selectedChain as ChainId;
+    const cacheKey = `${address.toLowerCase()}-${chainId}`;
     if (resultsCache[cacheKey]) {
       setWalletResult(resultsCache[cacheKey]);
       if (resultsCache[cacheKey].pagination) {
         setPagination(resultsCache[cacheKey].pagination!);
       }
-      addToHistory(address, selectedChain);
+      addToHistory(address, chainId);
       setLoading(false);
       return;
     }
 
     try {
-      const response = await analyzeWallet(address, selectedChain, { limit: 100, offset: 0 });
+      const response = await analyzeWallet(address, chainId, { limit: 100, offset: 0 });
       
       if (response?.result) {
         setWalletResult(response.result);
@@ -296,7 +304,7 @@ export function InvestigateView({
           setPagination(response.result.pagination);
         }
 
-        addToHistory(address, selectedChain, undefined, {
+        addToHistory(address, chainId, undefined, {
           riskScore: response.result.overallRiskScore,
           riskLevel: response.result.riskLevel,
           totalTransactions: response.result.summary?.totalTransactions,
@@ -312,8 +320,8 @@ export function InvestigateView({
         addNotification({
           type: 'scan_complete',
           title: 'Wallet Scan Complete',
-          message: `Finished analyzing ${address.slice(0, 6)}...${address.slice(-4)} on ${CHAIN_CONFIG[selectedChain]?.name || selectedChain}`,
-          data: { address, chain: selectedChain, navigateTo: `/app-evm?address=${address}&chain=${selectedChain}` },
+          message: `Finished analyzing ${address.slice(0, 6)}...${address.slice(-4)} on ${CHAIN_CONFIG[chainId]?.name || chainId}`,
+          data: { address, chain: chainId, navigateTo: `/app-evm?address=${address}&chain=${chainId}` },
         });
       } else {
         console.error('[SUI] No result in response:', response);
@@ -399,11 +407,11 @@ export function InvestigateView({
     setError(null);
 
     try {
-      const response = await analyzeContract(address, selectedChain);
+      const response = await analyzeContract(address, chainId);
       if (response.result) {
         setContractResult(response.result);
         saveResultToCache('contract', response.result);
-        addToHistory(address, selectedChain, 'Contract Analysis', {
+        addToHistory(address, chainId, 'Contract Analysis', {
           totalTransactions: response.result.interactors?.length,
         }, 'contract');
         await recordUsage();
@@ -436,7 +444,7 @@ export function InvestigateView({
     setError(null);
 
     try {
-      const response = await compareWallets(addresses, selectedChain);
+      const response = await compareWallets(addresses, chainId);
       if (response.result) {
         console.log('[Compare] Raw response received:', typeof response.result, Object.keys(response.result));
         
@@ -456,7 +464,7 @@ export function InvestigateView({
         saveResultToCache('compare', response.result);
 
         const compareLabel = `Compare: ${addresses.length} wallets`;
-        addToHistory(addresses.join(','), selectedChain, compareLabel, {
+        addToHistory(addresses.join(','), chainId, compareLabel, {
           riskScore: response.result.correlationScore,
           riskLevel: response.result.isSybilLikely ? 'high' : response.result.correlationScore > 60 ? 'high' : response.result.correlationScore > 30 ? 'medium' : 'low',
           totalTransactions: response.result.directTransfers?.length,
@@ -493,7 +501,7 @@ export function InvestigateView({
       const newOffset = pagination.offset + pagination.limit;
       const { transactions: newTxs, pagination: newPagination } = await loadMoreTransactions(
         currentAnalysisAddress,
-        selectedChain,
+        chainId,
         newOffset,
         100
       );
@@ -512,7 +520,7 @@ export function InvestigateView({
 
   // Select from history
   const handleSelectFromHistory = (addr: string, chain?: string) => {
-    if (chain) setSelectedChain(chain as ChainId);
+    if (chain) handleChainChange(chain as ChainId);
     handleAnalyzeWallet(addr);
   };
 
@@ -538,12 +546,12 @@ export function InvestigateView({
 
     // Sybil tab - show SybilGridView
     if (activeTab === 'sybil') {
-      return <SybilGridView chain={selectedChain} />;
+      return <SybilGridView chain={chainId} />;
     }
 
     // CEX Flow tab - show CEXFlowView
     if (activeTab === 'cex-flow') {
-      return <CEXFlowView chain={selectedChain} />;
+      return <CEXFlowView chain={chainId} />;
     }
 
     // Wallet tab - show WalletGridView or SearchHistory
@@ -591,7 +599,7 @@ export function InvestigateView({
     // Compare tab - show CompareGridView
     if (activeTab === 'compare') {
       if (multiWalletResult) {
-        return <CompareGridView result={multiWalletResult} chain={selectedChain} />;
+        return <CompareGridView result={multiWalletResult} chain={chainId} />;
       }
       return (
         <div className="investigate-empty">
@@ -652,7 +660,7 @@ export function InvestigateView({
               </button>
             </div>
             <div className="sui-grid-content">
-              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('wallet'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { handleChainChange('sui'); setActiveTab('wallet'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <circle cx="12" cy="12" r="10"/>
@@ -662,7 +670,7 @@ export function InvestigateView({
                 <div className="sui-grid-item-label">Wallet</div>
                 <div className="sui-grid-item-desc">Analyze any wallet</div>
               </div>
-              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('contract'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { handleChainChange('sui'); setActiveTab('contract'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -672,7 +680,7 @@ export function InvestigateView({
                 <div className="sui-grid-item-label">Contract</div>
                 <div className="sui-grid-item-desc">Smart contract analysis</div>
               </div>
-              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('compare'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { handleChainChange('sui'); setActiveTab('compare'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <circle cx="9" cy="9" r="6"/>
@@ -682,7 +690,7 @@ export function InvestigateView({
                 <div className="sui-grid-item-label">Compare</div>
                 <div className="sui-grid-item-desc">Compare wallets</div>
               </div>
-              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('sybil'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { handleChainChange('sui'); setActiveTab('sybil'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -692,7 +700,7 @@ export function InvestigateView({
                 <div className="sui-grid-item-label">Sybil Detector</div>
                 <div className="sui-grid-item-desc">Detect fake users</div>
               </div>
-              <div className="sui-grid-item" onClick={() => { setSelectedChain('sui'); setActiveTab('track'); setShowSuiGrid(false); }}>
+              <div className="sui-grid-item" onClick={() => { handleChainChange('sui'); setActiveTab('track'); setShowSuiGrid(false); }}>
                 <div className="sui-grid-item-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -706,6 +714,21 @@ export function InvestigateView({
           </div>
         </div>
       )}
+
+      {/* Breadcrumb Navbar */}
+      <div className="breadcrumb-nav">
+        <span className="breadcrumb-item">Home</span>
+        <span className="breadcrumb-sep">/</span>
+        <span className="breadcrumb-item">Network</span>
+        <span className="breadcrumb-sep">/</span>
+        <span className="breadcrumb-item active">
+          <span 
+            className="breadcrumb-dot" 
+            style={{ background: CHAIN_CONFIG[selectedChain as keyof typeof CHAIN_CONFIG]?.color || '#61dfff' }}
+          />
+          {CHAIN_CONFIG[selectedChain as keyof typeof CHAIN_CONFIG]?.name || 'Linea'}
+        </span>
+      </div>
 
       {/* Page Header */}
       <div className="page-head">
@@ -849,34 +872,6 @@ export function InvestigateView({
         </div>
 
         <div className="panel-body">
-          {/* Network Selection - Only show for wallet/contract/compare tabs (not for sui mode) */}
-          {!suiMode && activeTab !== 'sybil' && activeTab !== 'graph' && activeTab !== 'track' && activeTab !== 'cex-flow' && (
-            <>
-              <div className="field-label">Network</div>
-              <div className="chains">
-                {chains.map(chain => {
-                  const requiredTier = chainTiers[chain.id];
-                  const isAccessible = canAccessChain(chain.id);
-                  return (
-                    <div 
-                      key={chain.id}
-                      className={`chain ${selectedChain === chain.id ? 'active' : ''} ${!isAccessible ? 'chain-disabled' : ''}`}
-                      onClick={() => {
-                        if (isAccessible) {
-                          setSelectedChain(chain.id as ChainId);
-                        }
-                      }}
-                      style={{ opacity: isAccessible ? 1 : 0.5, cursor: isAccessible ? 'pointer' : 'not-allowed' }}
-                    >
-                      <div className="chain-pip" style={{ background: chain.color }}></div>
-                      {chain.name}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
           {/* Address Input - show for wallet/contract/compare tabs */}
           {activeTab !== 'sybil' && activeTab !== 'track' && activeTab !== 'graph' && activeTab !== 'cex-flow' && (
             <>

@@ -8,7 +8,7 @@ export const CHAIN_CONFIG = {
     icon: '/chains/linea.svg',
     explorerUrl: 'https://lineascan.build',
     enabled: true,
-    priority: 1, // Top priority
+    priority: 1,
   },
   ethereum: {
     id: 'eth',
@@ -49,6 +49,16 @@ export const CHAIN_CONFIG = {
     explorerUrl: 'https://optimistic.etherscan.io',
     enabled: true,
     priority: 5,
+  },
+  polygon: {
+    id: 'polygon',
+    name: 'Polygon',
+    displayName: 'Polygon',
+    color: '#8247e5',
+    icon: '/chains/polygon.svg',
+    explorerUrl: 'https://polygonscan.com',
+    enabled: true,
+    priority: 5.5,
   },
   bsc: {
     id: 'bsc',

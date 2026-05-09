@@ -121,6 +121,95 @@ body {
   color: var(--white);
 }
 
+/* Network Selector */
+.ft-network-selector {
+  padding: 8px 12px;
+  position: relative;
+}
+
+.ft-network-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ft-network-btn:hover {
+  background: var(--surface3);
+  border-color: var(--line2);
+}
+
+.ft-network-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ft-network-name {
+  flex: 1;
+  text-align: left;
+}
+
+.ft-network-arrow {
+  width: 12px;
+  height: 12px;
+  color: var(--muted);
+  transition: transform 0.2s;
+}
+
+.ft-network-arrow.open {
+  transform: rotate(180deg);
+}
+
+.ft-network-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 12px;
+  right: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 200;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.ft-network-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: var(--body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.1s;
+  text-align: left;
+}
+
+.ft-network-option:hover {
+  background: var(--surface2);
+  color: var(--primary);
+}
+
+.ft-network-option.active {
+  background: var(--surface2);
+  color: var(--white);
+}
+
 .ft-sidebar-nav {
   flex: 1;
   padding: 8px 0;

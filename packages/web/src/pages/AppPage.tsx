@@ -64,6 +64,9 @@ function AuthGate() {
   );
 }
 
+import { ChainId } from '@fundtracer/core';
+import { CHAIN_CONFIG } from '../config/chains';
+
 export function AppPage() {
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -72,10 +75,13 @@ export function AppPage() {
   const isConnected = !!address;
 
   const [activeTab, setActiveTab] = useState<TabType>('investigate');
+  const [selectedChain, setSelectedChain] = useState<ChainId>('linea');
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
   const [showLoader, setShowLoader] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  const currentChainName = CHAIN_CONFIG[selectedChain as keyof typeof CHAIN_CONFIG]?.name || 'Linea';
 
   useEffect(() => {
     if (authLoading) {
@@ -216,7 +222,7 @@ export function AppPage() {
     }
     switch (activeTab) {
       case 'investigate':
-        return <InvestigateView />;
+        return <InvestigateView selectedChain={selectedChain} onChainChange={(c) => setSelectedChain(c as ChainId)} />;
       case 'portfolio':
         return <Suspense fallback={<PageSkeleton />}><PortfolioView /></Suspense>;
       case 'polymarket':
@@ -228,9 +234,9 @@ export function AppPage() {
       case 'radar':
         return <Suspense fallback={<PageSkeleton />}><RadarView /></Suspense>;
       case 'sui':
-        return <Suspense fallback={<PageSkeleton />}><InvestigateView suiMode={true} /></Suspense>;
+        return <Suspense fallback={<PageSkeleton />}><InvestigateView suiMode={true} selectedChain={selectedChain} onChainChange={(c) => setSelectedChain(c as ChainId)} /></Suspense>;
       default:
-        return <InvestigateView />;
+        return <InvestigateView selectedChain={selectedChain} onChainChange={(c) => setSelectedChain(c as ChainId)} />;
     }
   };
 
@@ -252,6 +258,8 @@ export function AppPage() {
         walletConnected={isWalletConnected}
         walletAddress={walletAddress}
         onConnectWallet={handleConnectWallet}
+        selectedChain={selectedChain}
+        onChainChange={(chain) => setSelectedChain(chain as ChainId)}
       >
         {renderContent()}
       </AppShell>

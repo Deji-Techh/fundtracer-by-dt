@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/AppShell.css';
 import { NotificationBell, NotificationPanel } from './notifications';
 import { AiChatBubble } from './ai-chat/AiChatBubble';
+import { CHAIN_CONFIG, type ChainKey } from '../config/chains';
 
 interface NavItem {
   id: string;
@@ -25,6 +26,8 @@ interface AppShellProps {
   onSearchEnter?: () => void;
   chainBadge?: string;
   showAiButton?: boolean;
+  selectedChain?: string;
+  onChainChange?: (chain: string) => void;
 }
 
 export function AppShell({
@@ -40,9 +43,12 @@ export function AppShell({
   onSearchChange,
   onSearchEnter,
   chainBadge,
-  showAiButton = true
+  showAiButton = true,
+  selectedChain = 'linea',
+  onChainChange
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [networkDropdownOpen, setNetworkDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
   const closeSidebar = () => {
@@ -74,6 +80,53 @@ export function AppShell({
             }}
           />
           <span className="ft-wordmark-text">FundTracer</span>
+        </div>
+
+        {/* Network Selector */}
+        <div className="ft-network-selector">
+          <button 
+            className="ft-network-btn"
+            onClick={() => setNetworkDropdownOpen(!networkDropdownOpen)}
+          >
+            <span 
+              className="ft-network-dot" 
+              style={{ background: CHAIN_CONFIG[selectedChain as ChainKey]?.color || '#61dfff' }}
+            />
+            <span className="ft-network-name">
+              {CHAIN_CONFIG[selectedChain as ChainKey]?.name || 'Linea'}
+            </span>
+            <svg 
+              className={`ft-network-arrow ${networkDropdownOpen ? 'open' : ''}`}
+              viewBox="0 0 10 10" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="1.5"
+            >
+              <path d="M2 4l3 3 3-3" />
+            </svg>
+          </button>
+          
+          {networkDropdownOpen && (
+            <div className="ft-network-dropdown">
+              {Object.entries(CHAIN_CONFIG)
+                .filter(([_, config]) => config.enabled)
+                .sort((a, b) => a[1].priority - b[1].priority)
+                .map(([key, config]) => (
+                  <button
+                    key={key}
+                    className={`ft-network-option ${selectedChain === key ? 'active' : ''}`}
+                    onClick={() => {
+                      onChainChange?.(key);
+                      setNetworkDropdownOpen(false);
+                    }}
+                  >
+                    <span className="ft-network-dot" style={{ background: config.color }} />
+                    <span>{config.name}</span>
+                  </button>
+                ))
+              }
+            </div>
+          )}
         </div>
 
         <nav className="ft-sidebar-nav">
