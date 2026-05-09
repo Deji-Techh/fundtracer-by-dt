@@ -91,6 +91,13 @@ const CHAIN_COLORS: Record<string, string> = {
   solana: '#9945ff',
 };
 
+// Format file size helper
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
 // Simple markdown to HTML converter for tables
 function renderMarkdown(content: string): string {
   // Convert markdown tables to HTML
@@ -347,24 +354,23 @@ const contractSuggestions = [
         setMessages(data.messages);
         localStorage.setItem('ai-chat-messages', JSON.stringify(data.messages));
       } else {
-        setMessages([{
-          role: 'assistant',
-          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
-          timestamp: Date.now(),
-        }]);
-        localStorage.setItem('ai-chat-messages', JSON.stringify([{
-          role: 'assistant',
-          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
-          timestamp: Date.now(),
-        }]));
+        // Try to use cached messages from localStorage as fallback
+        const cachedMessages = loadCachedMessages();
+        if (cachedMessages.length > 1 || (cachedMessages[0] && cachedMessages[0].content !== 'Hi! I\'m FundTracer AI')) {
+          setMessages(cachedMessages);
+        } else {
+          setMessages([{
+            role: 'assistant',
+            content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+            timestamp: Date.now(),
+          }]);
+        }
       }
     } catch (error) {
       console.error('Failed to load session messages:', error);
-      setMessages([{
-        role: 'assistant',
-        content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
-        timestamp: Date.now(),
-      }]);
+      // On error, try to load from localStorage
+      const cachedMessages = loadCachedMessages();
+      setMessages(cachedMessages);
     } finally {
       setIsLoadingSession(false);
     }
@@ -1317,22 +1323,22 @@ const contractSuggestions = [
                       {uploadedFiles.filter(f => f.status === 'ready').map((file) => (
                         <motion.div 
                           key={file.id}
-                          className="ai-context-card"
+                          className="ai-context-card ai-document-card"
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                         >
-                          <div className="ai-context-card-icon">
-                            <FileText size={14} />
+                          <div className="ai-document-icon">
+                            <FileText size={16} />
                           </div>
-                          <div className="ai-context-card-content">
-                            <span className="ai-context-card-label">Document</span>
-                            <span className="ai-context-card-value">{file.name}</span>
+                          <div className="ai-document-info">
+                            <span className="ai-document-name">{file.name}</span>
+                            <span className="ai-document-size">{formatFileSize(file.size)}</span>
                           </div>
                           <button 
-                            className="ai-context-card-clear"
+                            className="ai-document-remove"
                             onClick={() => handleRemoveFile(file.id)}
                           >
-                            <X size={12} />
+                            <X size={14} />
                           </button>
                         </motion.div>
                       ))}
@@ -1405,7 +1411,7 @@ const contractSuggestions = [
                   )}
                   {isLoading && !messages.some(m => m.role === 'assistant' && m.content) && (
                     <motion.div 
-                      className="ai-message ai-message-assistant"
+                      className="ai-message ai-message-assistant ai-thinking"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                     >
@@ -1413,20 +1419,21 @@ const contractSuggestions = [
                         <Bot size={14} />
                       </div>
                       <div className="ai-message-content">
-                        <div className="ai-typing-indicator">
+                        <div className="ai-thinking-dots">
                           <motion.span 
-                            animate={{ y: [0, -4, 0] }}
-                            transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: 0 }}
                           />
                           <motion.span 
-                            animate={{ y: [0, -4, 0] }}
-                            transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
                           />
                           <motion.span 
-                            animate={{ y: [0, -4, 0] }}
-                            transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
                           />
                         </div>
+                        <span className="ai-thinking-text">Thinking</span>
                       </div>
                     </motion.div>
                   )}
@@ -1711,7 +1718,7 @@ const contractSuggestions = [
                             handleSendMessage();
                           }
                         }}
-                        disabled={isLoading || !inputValue.trim()}
+                        disabled={!inputValue.trim()}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
