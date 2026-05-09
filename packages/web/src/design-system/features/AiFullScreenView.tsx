@@ -911,11 +911,19 @@ const handleSelectScan = (scan: RecentScan) => {
         }
       }
 
-      if (!fullResponse) {
-        throw new Error('No response from AI - the service may be unavailable');
-      }
+if (!fullResponse) {
+          throw new Error('No response from AI');
+        }
 
-    } catch (error: any) {
+        // Save assistant message to backend
+        const assistantMsg = {
+          role: 'assistant' as const,
+          content: fullResponse,
+          timestamp: Date.now(),
+        };
+        saveMessage(assistantMsg);
+
+      } catch (error: any) {
       // Handle abort errors gracefully
       if (error.name === 'AbortError' || error.message?.includes('aborted')) {
         setMessages(prev => [...prev, {
