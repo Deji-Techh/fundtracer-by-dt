@@ -19,6 +19,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useAuth } from '../../contexts/AuthContext';
 import { getHistory, type HistoryItem } from '../../utils/history';
 import { apiRequest, getAuthToken } from '../../api';
 import './AiFullScreenView.css';
@@ -132,6 +133,7 @@ export function AiFullScreenView({
   currentChain = 'ethereum' 
 }: AiFullScreenViewProps) {
   const isMobile = useIsMobile();
+  const { user, isAuthenticated } = useAuth();
   
   const [inputValue, setInputValue] = useState('');
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
@@ -217,10 +219,18 @@ const contractSuggestions = [
   }, [isOpen]);
 
   const fetchChatSessions = async () => {
+    if (!isAuthenticated || !user) {
+      console.log('[AI] User not authenticated yet, skipping chat load');
+      return;
+    }
     try {
       const token = getAuthToken();
+      if (!token) {
+        console.log('[AI] No auth token, waiting for login...');
+        return;
+      }
       const response = await fetch('/api/chat/sessions', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
