@@ -474,6 +474,11 @@ apiRouter.use('/tx', apiKeyAuthMiddleware, transactionRoutes); // Transaction lo
 apiRouter.use('/gas', apiKeyAuthMiddleware, gasRoutes); // Gas prices
 apiRouter.use('/intel', publicLimiter, intelRoutes); // Intel page data (public)
 apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
+
+// AI Chat Routes - Context-aware AI analyst with smart model routing
+import { aiChatRoutes } from './routes/ai-chat.js';
+apiRouter.use('/ai-chat', authMiddleware, aiChatRoutes);
+
 apiRouter.use('/track', trackRoutes);
 import { smartMoneyRoutes } from './routes/smartMoney.js';
 apiRouter.use('/smart-money', smartMoneyRoutes); // Public smart money discovery

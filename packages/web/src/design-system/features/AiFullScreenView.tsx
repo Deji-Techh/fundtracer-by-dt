@@ -149,7 +149,37 @@ export function AiFullScreenView({
   const [showAttachmentDropdown, setShowAttachmentDropdown] = useState(false);
   const [walletAttachment, setWalletAttachment] = useState<WalletAttachment | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedChain, setSelectedChain] = useState(currentChain);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Quick suggestions based on attachment mode
+  const walletSuggestions = [
+    "Is this wallet safe?",
+    "Who funded this wallet?",
+    "Detect sybil activity",
+    "Show risk breakdown"
+  ];
+
+  const contractSuggestions = [
+    "Is this a honeypot?",
+    "Check for hidden mint",
+    "Who owns this contract?",
+    "Is liquidity locked?"
+  ];
+
+  const suggestions = attachmentMode === 'contract' ? contractSuggestions : 
+                     attachmentMode === 'wallet' ? walletSuggestions : [];
+
+  const CHAIN_OPTIONS = [
+    { value: 'ethereum', label: 'ETH', color: '#627eea' },
+    { value: 'linea', label: 'LINEA', color: '#61dfff' },
+    { value: 'arbitrum', label: 'ARB', color: '#28a0f0' },
+    { value: 'base', label: 'BASE', color: '#0052ff' },
+    { value: 'optimism', label: 'OP', color: '#ff0420' },
+    { value: 'polygon', label: 'POL', color: '#8247e5' },
+    { value: 'bsc', label: 'BSC', color: '#f3ba2f' },
+    { value: 'solana', label: 'SOL', color: '#9945ff' },
+  ];
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -249,34 +279,75 @@ export function AiFullScreenView({
     setInputValue('');
 
     try {
-      const endpoint = isWallet ? '/api/analyze/wallet' : '/api/analyze/contract';
-      const response = await apiRequest(endpoint, 'POST', { 
-        address, 
-        chain: currentChain 
-      }) as Response;
-      
-      const data = await response.json();
-      
-      if (data.success && data.result) {
+      const response = await fetch('/api/ai-chat/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address,
+          addressType: isWallet ? 'wallet' : 'contract',
+          chain: currentChain,
+          question: 'Analyze this address and tell me about it',
+          history: []
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+      let analysisData = null;
+
+      if (!reader) {
+        throw new Error('No response stream');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+        for (const line of lines) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            
+            if (parsed.type === 'analysis') {
+              analysisData = parsed.message;
+            } else if (parsed.type === 'chunk') {
+              fullResponse += parsed.content;
+            } else if (parsed.type === 'error') {
+              throw new Error(parsed.message);
+            }
+          } catch {}
+        }
+      }
+
+      if (analysisData || fullResponse) {
         setWalletAttachment({
           address,
           chain: currentChain,
-          data: data.result,
           status: 'ready'
         });
-        
+
         const assistantMessage = {
           role: 'assistant' as const,
-          content: isWallet 
-            ? `Wallet ${address.slice(0, 6)}...${address.slice(-4)} attached and analyzed. Ask me anything about this wallet!`
-            : `Contract ${address.slice(0, 6)}...${address.slice(-4)} attached. Ask me about this contract!`,
+          content: analysisData || `Address ${address.slice(0, 6)}...${address.slice(-4)} analyzed successfully. Ask me anything!`,
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, assistantMessage]);
       } else {
-        throw new Error(data.error || 'Analysis failed');
+        throw new Error('No response from AI');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis error:', error);
       setWalletAttachment({
         address,
@@ -286,7 +357,7 @@ export function AiFullScreenView({
       
       const errorMessage = {
         role: 'assistant' as const,
-        content: `Sorry, I couldn't analyze this ${isWallet ? 'wallet' : 'contract'}. Please check the address and try again.`,
+        content: `Sorry, I couldn't analyze this ${isWallet ? 'wallet' : 'contract'}. ${error.message || 'Please check the address and try again.'}`,
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -309,64 +380,89 @@ export function AiFullScreenView({
     setIsLoading(true);
 
     try {
-      let analysisData = '';
-      
-      if (walletAttachment.data) {
-        const d = walletAttachment.data;
-        analysisData = `
-Wallet Analysis Data:
-- Address: ${d.address || walletAttachment.address}
-- Chain: ${walletAttachment.chain}
-- Risk Score: ${d.riskScore ?? 'N/A'}
-- Risk Level: ${d.riskLevel ?? 'Unknown'}
-- Total Transactions: ${d.totalTransactions ?? 'N/A'}
-- Total Received: ${d.totalReceived ?? 'N/A'}
-- Total Sent: ${d.totalSent ?? 'N/A'}
-- Unique Addresses: ${d.uniqueAddresses ?? 'N/A'}
-- Activity Period: ${d.activityPeriodDays ?? 'N/A'} days
-- Balance: ${d.balance ?? 'N/A'}
-- Tags: ${d.tags?.join(', ') || 'None'}
-- Funding Sources: ${d.fundingSources?.join(', ') || 'None'}
-- Top Destinations: ${d.topDestinations?.join(', ') || 'None'}
-- First Seen: ${d.firstSeen ?? 'N/A'}
-- Last Seen: ${d.lastSeen ?? 'N/A'}
-`;
+      // Build history from messages (last 10)
+      const history = messages
+        .slice(-10)
+        .filter(m => m.content)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const response = await fetch('/api/ai-chat/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: walletAttachment.address,
+          addressType: attachmentMode,
+          chain: walletAttachment.chain,
+          question: inputValue,
+          history
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
 
-      const promptWithData = analysisData 
-        ? `${analysisData}\n\nUser Question: ${inputValue}`
-        : inputValue;
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-      // In production, this would call the AI with the wallet data
-      // For now, simulate the response
-      setTimeout(() => {
-        const responseContent = walletAttachment.data 
-          ? `Based on the analysis of ${walletAttachment.address.slice(0, 6)}...${walletAttachment.address.slice(-4)}:\n\n` +
-            `• Risk Level: ${walletAttachment.data.riskLevel || 'Unknown'}\n` +
-            `• Total Transactions: ${walletAttachment.data.totalTransactions || 0}\n` +
-            `• This wallet shows ${walletAttachment.data.riskLevel?.toLowerCase() === 'low' ? 'minimal risk indicators' : 'some patterns worth noting'}.\n\n` +
-            `Would you like more specific details about this wallet?`
-          : 'I need more context to answer that. What would you like to know specifically?';
-          
-        const assistantMessage = {
-          role: 'assistant' as const,
-          content: responseContent,
-          timestamp: Date.now(),
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsLoading(false);
-      }, 1500);
+      // Add placeholder for streaming response
+      const placeholderId = Date.now();
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '',
+        timestamp: placeholderId
+      }]);
 
-    } catch (error) {
+      if (!reader) {
+        throw new Error('No response stream');
+      }
+
+      let fullResponse = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+        for (const line of lines) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            
+            if (parsed.type === 'chunk') {
+              fullResponse += parsed.content;
+              setMessages(prev => prev.map(m => 
+                m.timestamp === placeholderId 
+                  ? { ...m, content: fullResponse }
+                  : m
+              ));
+            } else if (parsed.type === 'error') {
+              throw new Error(parsed.message);
+            }
+          } catch {}
+        }
+      }
+
+      if (!fullResponse) {
+        throw new Error('No response from AI');
+      }
+
+    } catch (error: any) {
       console.error('Send with attachment error:', error);
-      setIsLoading(false);
       
-      const errorMsg = {
-        role: 'assistant' as const,
-        content: 'Sorry, something went wrong. Please try again.',
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
+        timestamp: Date.now()
+      }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -790,6 +886,32 @@ Wallet Analysis Data:
                               <FileCode size={16} />
                               <span>Contract</span>
                             </button>
+                            
+                            {attachmentMode !== 'none' && (
+                              <>
+                                <div className="ai-dropdown-divider" />
+                                <div className="ai-chain-selector">
+                                  <span className="ai-chain-label">Chain:</span>
+                                  <div className="ai-chain-options">
+                                    {CHAIN_OPTIONS.map(chain => (
+                                      <button
+                                        key={chain.value}
+                                        className={`ai-chain-btn ${selectedChain === chain.value ? 'active' : ''}`}
+                                        onClick={() => {
+                                          setSelectedChain(chain.value);
+                                        }}
+                                        style={{ 
+                                          borderColor: selectedChain === chain.value ? chain.color : 'transparent',
+                                          background: selectedChain === chain.value ? `${chain.color}20` : 'transparent'
+                                        }}
+                                      >
+                                        {chain.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              </>
+                            )}
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -857,6 +979,37 @@ Wallet Analysis Data:
                       </motion.button>
                     )}
                   </div>
+
+                  {/* Quick Suggestion Chips */}
+                  {walletAttachment && suggestions.length > 0 && (
+                    <motion.div 
+                      className="ai-suggestions"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <span className="ai-suggestions-label">Quick questions:</span>
+                      <div className="ai-suggestions-list">
+                        {suggestions.map((suggestion, idx) => (
+                          <motion.button
+                            key={idx}
+                            className="ai-suggestion-chip"
+                            onClick={() => {
+                              setInputValue(suggestion);
+                              inputRef.current?.focus();
+                            }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 + idx * 0.05 }}
+                          >
+                            {suggestion}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
               </motion.div>
 
