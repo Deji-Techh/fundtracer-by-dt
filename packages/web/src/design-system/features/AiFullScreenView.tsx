@@ -215,14 +215,34 @@ export function AiFullScreenView({
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; timestamp: number }[]>([
-    {
+  
+  // Load cached messages from localStorage
+  const loadCachedMessages = (): { role: 'user' | 'assistant'; content: string; timestamp: number }[] => {
+    try {
+      const cached = localStorage.getItem('ai-chat-messages');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return [{
       role: 'assistant',
       content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
       timestamp: Date.now() - 3600000,
-    },
-  ]);
+    }];
+  };
+  
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; timestamp: number }[]>(loadCachedMessages);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Save messages to localStorage when they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('ai-chat-messages', JSON.stringify(messages));
+    }
+  }, [messages]);
   const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -325,12 +345,18 @@ const contractSuggestions = [
       const data = await apiRequest<{ messages: any[] }>(`/api/chat/sessions/${sessionId}/messages`);
       if (data.messages && data.messages.length > 0) {
         setMessages(data.messages);
+        localStorage.setItem('ai-chat-messages', JSON.stringify(data.messages));
       } else {
         setMessages([{
           role: 'assistant',
           content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
           timestamp: Date.now(),
         }]);
+        localStorage.setItem('ai-chat-messages', JSON.stringify([{
+          role: 'assistant',
+          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+          timestamp: Date.now(),
+        }]));
       }
     } catch (error) {
       console.error('Failed to load session messages:', error);
@@ -360,6 +386,9 @@ const contractSuggestions = [
       setUploadedFiles([]);
       setAttachmentMode('none');
       setInputValue('');
+      
+      // Clear localStorage cache for new session
+      localStorage.removeItem('ai-chat-messages');
       
       const data = await apiRequest<{ session: any }>('/api/chat/sessions', 'POST', { title: 'New Conversation' });
       const newSession = data.session;
