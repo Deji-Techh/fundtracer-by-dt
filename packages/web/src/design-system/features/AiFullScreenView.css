@@ -713,6 +713,27 @@
   color: #b0b0b8;
 }
 
+/* Inline Suggestions - in chat area */
+.ai-suggestions-inline {
+  padding: 12px 16px;
+  background: rgba(127, 119, 221, 0.05);
+  border-bottom: 1px solid rgba(127, 119, 221, 0.1);
+  margin-bottom: 12px;
+}
+
+.ai-suggestions-inline .ai-suggestions-label {
+  margin-bottom: 8px;
+}
+
+.ai-suggestions-inline .ai-suggestions-list {
+  gap: 6px;
+}
+
+.ai-suggestions-inline .ai-suggestion-chip {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
 /* Uploaded Files - Hidden, using context cards instead */
 .ai-uploaded-files {
   display: none;

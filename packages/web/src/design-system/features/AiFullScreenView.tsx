@@ -397,6 +397,11 @@ const contractSuggestions = [
     setInputValue('');
     setIsLoading(true);
     saveMessage(userMessage);
+    
+    // Safety timeout - ensure loading is reset after 30 seconds
+    const loadingTimeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 30000);
 
     // Check if we have attached files (document mode)
     const readyFiles = uploadedFiles.filter(f => f.status === 'ready' && f.fileUri);
@@ -478,6 +483,7 @@ const contractSuggestions = [
         }
 
       } catch (error: any) {
+        clearTimeout(loadingTimeout);
         const errorMsg = error.message?.includes('network') 
           ? 'Network error. Please check your connection and try again.' 
           : `Sorry, something went wrong. ${error.message || 'Please try again.'}`;
@@ -487,6 +493,7 @@ const contractSuggestions = [
           timestamp: Date.now()
         }]);
       } finally {
+        clearTimeout(loadingTimeout);
         setIsLoading(false);
       }
     } else {
@@ -561,6 +568,7 @@ const contractSuggestions = [
         }
 
       } catch (error: any) {
+        clearTimeout(loadingTimeout);
         const errorMsg = error.message?.includes('network') 
           ? 'Network error. Please check your connection and try again.' 
           : `Sorry, something went wrong. ${error.message || 'Please try again.'}`;
@@ -570,6 +578,7 @@ const contractSuggestions = [
           timestamp: Date.now()
         }]);
       } finally {
+        clearTimeout(loadingTimeout);
         setIsLoading(false);
       }
     }
@@ -773,6 +782,11 @@ const contractSuggestions = [
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    
+    // Safety timeout
+    const loadingTimeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 30000);
 
     try {
       // Build history from messages (last 10)
@@ -871,6 +885,7 @@ const contractSuggestions = [
         timestamp: Date.now()
       }]);
     } finally {
+      clearTimeout(loadingTimeout);
       setIsLoading(false);
     }
   };
@@ -1179,6 +1194,37 @@ const contractSuggestions = [
                 transition={{ delay: 0.15 }}
               >
                 <div className="ai-chat-messages">
+                  {/* Quick Suggestions - Above context cards */}
+                  {walletAttachment && suggestions.length > 0 && !isLoading && (
+                    <motion.div 
+                      className="ai-suggestions ai-suggestions-inline"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <span className="ai-suggestions-label">Quick questions:</span>
+                      <div className="ai-suggestions-list">
+                        {suggestions.map((suggestion, idx) => (
+                          <motion.button
+                            key={idx}
+                            className="ai-suggestion-chip"
+                            onClick={() => {
+                              setInputValue(suggestion);
+                              inputRef.current?.focus();
+                            }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.15 + idx * 0.05 }}
+                          >
+                            {suggestion}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                  
                   {/* Loading Context Indicator */}
                   {isLoadingContext && (
                     <div className="ai-context-cards">
@@ -1644,37 +1690,6 @@ const contractSuggestions = [
                       </motion.button>
                     )}
                   </div>
-
-                  {/* Quick Suggestion Chips */}
-                  {walletAttachment && suggestions.length > 0 && (
-                    <motion.div 
-                      className="ai-suggestions"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <span className="ai-suggestions-label">Quick questions:</span>
-                      <div className="ai-suggestions-list">
-                        {suggestions.map((suggestion, idx) => (
-                          <motion.button
-                            key={idx}
-                            className="ai-suggestion-chip"
-                            onClick={() => {
-                              setInputValue(suggestion);
-                              inputRef.current?.focus();
-                            }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 + idx * 0.05 }}
-                          >
-                            {suggestion}
-                          </motion.button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
                 </div>
               </motion.div>
 
