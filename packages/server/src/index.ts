@@ -479,6 +479,10 @@ apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware,
 import { aiChatRoutes } from './routes/ai-chat.js';
 apiRouter.use('/ai-chat', authMiddleware, aiChatRoutes);
 
+// File Upload Routes - For Gemini document attachments
+import { uploadRoutes } from './routes/upload.js';
+apiRouter.use('/upload', authMiddleware, uploadRoutes);
+
 apiRouter.use('/track', trackRoutes);
 import { smartMoneyRoutes } from './routes/smartMoney.js';
 apiRouter.use('/smart-money', smartMoneyRoutes); // Public smart money discovery

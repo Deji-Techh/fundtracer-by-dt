@@ -30,14 +30,15 @@ interface AiFullScreenViewProps {
   currentChain?: string;
 }
 
-const CHAIN_COLORS: Record<string, string> = {
-  ethereum: '#627eea',
-  linea: '#61dfff',
-  arbitrum: '#28a0f0',
-  base: '#0052ff',
-  optimism: '#ff0420',
-  polygon: '#8247e5',
-  solana: '#9945ff',
+const CHAIN_LABELS: Record<string, string> = {
+  ethereum: 'Ethereum',
+  linea: 'Linea',
+  arbitrum: 'Arbitrum',
+  base: 'Base',
+  optimism: 'Optimism',
+  polygon: 'Polygon',
+  bsc: 'BNB Chain',
+  solana: 'Solana',
 };
 
 function formatRelativeTime(timestamp: number): string {
@@ -49,22 +50,44 @@ function formatRelativeTime(timestamp: number): string {
   const days = Math.floor(hours / 24);
 
   if (seconds < 60) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  return new Date(timestamp).toLocaleDateString();
+  if (minutes < 60) return `${minutes}m`;
+  if (hours < 24) return `${hours}h`;
+  if (days < 7) return `${days}d`;
+  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function getRiskClass(level?: string): string {
+  if (!level) return '';
+  switch (level.toLowerCase()) {
+    case 'low': return 'risk-low';
+    case 'medium': return 'risk-medium';
+    case 'high': return 'risk-high';
+    case 'critical': return 'risk-critical';
+    default: return '';
+  }
 }
 
 function getRiskColor(level?: string): string {
-  if (!level) return 'var(--intel-text-muted)';
+  if (!level) return '#888';
   switch (level.toLowerCase()) {
-    case 'low': return 'var(--intel-green)';
-    case 'medium': return 'var(--intel-yellow)';
-    case 'high': return 'var(--intel-orange)';
-    case 'critical': return 'var(--intel-red)';
-    default: return 'var(--intel-text-muted)';
+    case 'low': return '#4ade80';
+    case 'medium': return '#fbbf24';
+    case 'high': return '#f97316';
+    case 'critical': return '#ef4444';
+    default: return '#888';
   }
 }
+
+const CHAIN_COLORS: Record<string, string> = {
+  ethereum: '#627eea',
+  linea: '#61dfff',
+  arbitrum: '#28a0f0',
+  base: '#0052ff',
+  optimism: '#ff0420',
+  polygon: '#8247e5',
+  bsc: '#f3ba2f',
+  solana: '#9945ff',
+};
 
 interface RecentScan {
   id: string;
@@ -89,6 +112,8 @@ interface UploadedFile {
   size: number;
   type: string;
   status: 'uploading' | 'processing' | 'ready' | 'error';
+  fileUri?: string;
+  mimeType?: string;
 }
 
 interface WalletAttachment {
@@ -98,7 +123,7 @@ interface WalletAttachment {
   status: 'pending' | 'analyzing' | 'ready' | 'error';
 }
 
-type AttachmentMode = 'none' | 'wallet' | 'contract';
+type AttachmentMode = 'none' | 'wallet' | 'contract' | 'document';
 
 export function AiFullScreenView({ 
   isOpen, 
@@ -160,15 +185,23 @@ export function AiFullScreenView({
     "Show risk breakdown"
   ];
 
-  const contractSuggestions = [
+const contractSuggestions = [
     "Is this a honeypot?",
     "Check for hidden mint",
     "Who owns this contract?",
     "Is liquidity locked?"
   ];
 
+  const documentSuggestions = [
+    "Summarize this document",
+    "Extract key findings",
+    "What are the main risks?",
+    "Generate a report"
+  ];
+
   const suggestions = attachmentMode === 'contract' ? contractSuggestions : 
-                     attachmentMode === 'wallet' ? walletSuggestions : [];
+                       attachmentMode === 'wallet' ? walletSuggestions :
+                       attachmentMode === 'document' ? documentSuggestions : [];
 
   const CHAIN_OPTIONS = [
     { value: 'ethereum', label: 'ETH', color: '#627eea' },
@@ -206,7 +239,7 @@ export function AiFullScreenView({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
     const userMessage = {
@@ -219,15 +252,106 @@ export function AiFullScreenView({
     setInputValue('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      const assistantMessage = {
-        role: 'assistant' as const,
-        content: 'I can analyze that wallet for you. Would you like me to fetch the latest risk score and transaction history?',
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-      setIsLoading(false);
-    }, 1500);
+    // Check if we have attached files (document mode)
+    const readyFiles = uploadedFiles.filter(f => f.status === 'ready' && f.fileUri);
+    
+    // If we have files but no wallet, use the document-only endpoint
+    if (readyFiles.length > 0 && !walletAttachment) {
+      try {
+        const attachedFiles = readyFiles.map(f => ({
+          fileUri: f.fileUri,
+          mimeType: f.mimeType,
+          displayName: f.name,
+        }));
+
+        const response = await fetch('/api/ai-chat/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            question: inputValue,
+            attachedFiles,
+            history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        // Add placeholder for streaming response
+        const placeholderId = Date.now();
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: '',
+          timestamp: placeholderId
+        }]);
+
+        if (!reader) {
+          throw new Error('No response stream');
+        }
+
+        let fullResponse = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+          for (const line of lines) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.type === 'chunk') {
+                fullResponse += parsed.content;
+                setMessages(prev => prev.map(m => 
+                  m.timestamp === placeholderId 
+                    ? { ...m, content: fullResponse }
+                    : m
+                ));
+              } else if (parsed.type === 'error') {
+                throw new Error(parsed.message);
+              }
+            } catch {}
+          }
+        }
+
+        if (!fullResponse) {
+          throw new Error('No response from AI');
+        }
+
+      } catch (error: any) {
+        console.error('Send with document error:', error);
+        
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
+          timestamp: Date.now()
+        }]);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // Original mock behavior for now when no files
+      setTimeout(() => {
+        const assistantMessage = {
+          role: 'assistant' as const,
+          content: 'I can analyze that wallet for you. Would you like me to fetch the latest risk score and transaction history?',
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
+      }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -386,6 +510,14 @@ export function AiFullScreenView({
         .filter(m => m.content)
         .map(m => ({ role: m.role, content: m.content }));
 
+      // Get ready files for attachment
+      const readyFiles = uploadedFiles.filter(f => f.status === 'ready' && f.fileUri);
+      const attachedFiles = readyFiles.map(f => ({
+        fileUri: f.fileUri,
+        mimeType: f.mimeType,
+        displayName: f.name,
+      }));
+
       const response = await fetch('/api/ai-chat/chat', {
         method: 'POST',
         headers: {
@@ -393,10 +525,11 @@ export function AiFullScreenView({
         },
         body: JSON.stringify({
           address: walletAttachment.address,
-          addressType: attachmentMode,
+          addressType: attachmentMode === 'document' ? 'wallet' : attachmentMode,
           chain: walletAttachment.chain,
           question: inputValue,
-          history
+          history,
+          ...(attachedFiles.length > 0 && { attachedFiles })
         })
       });
 
@@ -471,11 +604,12 @@ export function AiFullScreenView({
     setAttachmentMode('none');
   };
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
+    setAttachmentMode('document');
 
     for (const file of Array.from(files)) {
       const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -488,17 +622,57 @@ export function AiFullScreenView({
         status: 'uploading'
       }]);
 
-      setTimeout(() => {
-        setUploadedFiles(prev => prev.map(f => 
-          f.id === fileId ? { ...f, status: 'processing' } : f
-        ));
-        
-        setTimeout(() => {
+      try {
+        // Read file as base64
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result as string;
+            // Remove data URL prefix
+            const base64Data = result.split(',')[1];
+            resolve(base64Data);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // Upload to backend
+        const response = await fetch('/api/upload/file', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileData: base64,
+            fileName: file.name,
+            mimeType: file.type,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
           setUploadedFiles(prev => prev.map(f => 
-            f.id === fileId ? { ...f, status: 'ready' } : f
+            f.id === fileId ? { 
+              ...f, 
+              status: 'ready',
+              fileUri: data.file.fileUri,
+              mimeType: data.file.mimeType,
+            } : f
           ));
-        }, 1500);
-      }, 1000);
+        } else {
+          throw new Error(data.error || 'Upload failed');
+        }
+      } catch (error: any) {
+        console.error('File upload error:', error);
+        setUploadedFiles(prev => prev.map(f => 
+          f.id === fileId ? { ...f, status: 'error' } : f
+        ));
+      }
     }
 
     setIsUploading(false);
@@ -777,7 +951,7 @@ export function AiFullScreenView({
                     multiple
                     className="ai-hidden-input"
                     onChange={handleFileUpload}
-                    accept=".pdf,.txt,.csv,.json,.doc,.docx"
+                    accept=".pdf,.txt,.csv,.json,.js,.ts,.py,.sol,.png,.jpg,.jpeg,.webp"
                   />
                   <motion.button 
                     className="ai-attach-btn"
@@ -851,6 +1025,8 @@ export function AiFullScreenView({
                           <Wallet size={18} />
                         ) : attachmentMode === 'contract' ? (
                           <FileCode size={18} />
+                        ) : attachmentMode === 'document' ? (
+                          <FileText size={18} />
                         ) : isUploading ? (
                           <motion.div
                             animate={{ rotate: 360 }}
@@ -872,6 +1048,17 @@ export function AiFullScreenView({
                             exit={{ opacity: 0, y: -10, scale: 0.95 }}
                             transition={{ duration: 0.15 }}
                           >
+                            <button 
+                              className="ai-dropdown-item"
+                              onClick={() => {
+                                setAttachmentMode('document');
+                                setShowAttachmentDropdown(false);
+                                fileInputRef.current?.click();
+                              }}
+                            >
+                              <FileText size={16} />
+                              <span>Document</span>
+                            </button>
                             <button 
                               className="ai-dropdown-item"
                               onClick={() => handleSelectAttachmentMode('wallet')}
@@ -925,16 +1112,20 @@ export function AiFullScreenView({
                           ? 'Input wallet address...' 
                           : attachmentMode === 'contract'
                             ? 'Input contract address...'
-                            : currentWallet 
-                              ? `Ask about ${currentWallet.slice(0, 6)}...` 
-                              : 'Enter wallet address or question...'
+                            : attachmentMode === 'document'
+                              ? 'Ask about the document...'
+                              : currentWallet 
+                                ? `Ask about ${currentWallet.slice(0, 6)}...` 
+                                : 'Enter wallet address or question...'
                       }
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
-                          if (attachmentMode !== 'none' && !walletAttachment) {
+                          if (attachmentMode === 'document' && uploadedFiles.length > 0) {
+                            handleSendMessage();
+                          } else if (attachmentMode !== 'none' && !walletAttachment) {
                             handleAcceptWallet();
                           } else if (walletAttachment) {
                             handleSendWithAttachment();
@@ -948,7 +1139,7 @@ export function AiFullScreenView({
                     />
                     
                     {/* Send or Accept Button */}
-                    {attachmentMode !== 'none' && !walletAttachment ? (
+                    {attachmentMode !== 'none' && attachmentMode !== 'document' && !walletAttachment ? (
                       <motion.button 
                         className="ai-accept-btn"
                         onClick={handleAcceptWallet}
@@ -970,7 +1161,16 @@ export function AiFullScreenView({
                     ) : (
                       <motion.button 
                         className="ai-send-btn"
-                        onClick={walletAttachment ? handleSendWithAttachment : handleSendMessage}
+                        onClick={() => {
+                          if (attachmentMode === 'document' && uploadedFiles.length > 0) {
+                            // Send with document
+                            handleSendMessage();
+                          } else if (walletAttachment) {
+                            handleSendWithAttachment();
+                          } else {
+                            handleSendMessage();
+                          }
+                        }}
                         disabled={isLoading || !inputValue.trim()}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}

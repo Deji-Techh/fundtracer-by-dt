@@ -72,37 +72,55 @@ async function analyzeContract(address: string, chain: string): Promise<Analysis
 // Main AI Chat endpoint with SSE
 router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { address, addressType, chain, question, history } = req.body;
+    const { address, addressType, chain, question, history, attachedFiles } = req.body;
 
-    // Validation
-    if (!address || !addressType || !chain || !question) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        required: ['address', 'addressType', 'chain', 'question']
-      });
-    }
-
-    if (!['wallet', 'contract'].includes(addressType)) {
-      return res.status(400).json({ error: 'addressType must be wallet or contract' });
-    }
-
-    const normalizedChain = normalizeChainId(chain);
-    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
-      return res.status(400).json({ 
-        error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` 
-      });
-    }
-
-    // Validate address format
-    const isSolana = normalizedChain === 'solana';
-    const isValidAddress = isSolana 
-      ? SOL_ADDRESS_REGEX.test(address)
-      : ETH_ADDRESS_REGEX.test(address);
+    // Validation - either address OR attachedFiles must be provided
+    const hasAddress = address && addressType && chain;
+    const hasFiles = attachedFiles && Array.isArray(attachedFiles) && attachedFiles.length > 0;
     
-    if (!isValidAddress) {
+    if (!question) {
       return res.status(400).json({ 
-        error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` 
+        error: 'Missing required field: question'
       });
+    }
+
+    if (!hasAddress && !hasFiles) {
+      return res.status(400).json({ 
+        error: 'Must provide either address (with addressType and chain) OR attachedFiles'
+      });
+    }
+
+    // If address is provided, validate it
+    let normalizedChain = '';
+    if (address) {
+      if (!addressType || !chain) {
+        return res.status(400).json({ 
+          error: 'addressType and chain are required when address is provided'
+        });
+      }
+
+      if (!['wallet', 'contract'].includes(addressType)) {
+        return res.status(400).json({ error: 'addressType must be wallet or contract' });
+      }
+
+      normalizedChain = normalizeChainId(chain);
+      if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ 
+          error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` 
+        });
+      }
+
+      // Validate address format
+      const isSolana = normalizedChain === 'solana';
+      const isValidAddress = isSolana 
+        ? SOL_ADDRESS_REGEX.test(address)
+        : ETH_ADDRESS_REGEX.test(address);
+      
+      if (!isValidAddress) {
+        return res.status(400).json({ 
+          error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` 
+        });
+      }
     }
 
     // Set SSE headers
@@ -111,37 +129,53 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'disable');
 
-    // Send initial status
-    res.write(`data: ${JSON.stringify({ type: 'status', message: 'Analyzing ' + addressType + '...' })}\n\n`);
+    // Build context
+    let context = '';
+    let analysisSummary = '';
 
-    // Analyze the address
-    let analysisData: AnalysisData;
-    
-    try {
-      if (addressType === 'wallet') {
-        analysisData = await analyzeWallet(address, normalizedChain);
-      } else {
-        analysisData = await analyzeContract(address, normalizedChain);
+    // If we have an address, analyze it
+    if (hasAddress) {
+      // Send initial status
+      res.write(`data: ${JSON.stringify({ type: 'status', message: 'Analyzing ' + addressType + '...' })}\n\n`);
+
+      let analysisData: AnalysisData;
+      
+      try {
+        if (addressType === 'wallet') {
+          analysisData = await analyzeWallet(address, normalizedChain);
+        } else {
+          analysisData = await analyzeContract(address, normalizedChain);
+        }
+      } catch (analysisError: any) {
+        console.error('[AI-Chat] Analysis error:', analysisError.message);
+        res.write(`data: ${JSON.stringify({ 
+          type: 'error', 
+          message: `Failed to analyze ${addressType}: ${analysisError.message}` 
+        })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        return;
       }
-    } catch (analysisError: any) {
-      console.error('[AI-Chat] Analysis error:', analysisError.message);
+
+      // Send analysis complete message
+      analysisSummary = formatAnalysisForDisplay(analysisData, addressType);
       res.write(`data: ${JSON.stringify({ 
-        type: 'error', 
-        message: `Failed to analyze ${addressType}: ${analysisError.message}` 
+        type: 'analysis', 
+        message: analysisSummary 
       })}\n\n`);
-      res.write('data: [DONE]\n\n');
-      return;
+
+      // Build context from analysis data
+      context = buildContext(analysisData, addressType);
+    } else {
+      // Document-only mode
+      res.write(`data: ${JSON.stringify({ type: 'status', message: 'Processing document(s)...' })}\n\n`);
+      context = `The user has attached the following document(s) for analysis:\n`;
+      
+      for (const file of attachedFiles) {
+        context += `- ${file.displayName} (${file.mimeType})\n`;
+      }
+      context += '\nPlease analyze these documents and answer the user\'s question.\n';
     }
 
-    // Send analysis complete message
-    const analysisSummary = formatAnalysisForDisplay(analysisData, addressType);
-    res.write(`data: ${JSON.stringify({ 
-      type: 'analysis', 
-      message: analysisSummary 
-    })}\n\n`);
-
-    // Build context from analysis data
-    const context = buildContext(analysisData, addressType);
     console.log('[AI-Chat] Context built, classifying question...');
 
     // Classify question complexity and select model
@@ -159,7 +193,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
 
     let fullResponse = '';
     
-    for await (const chunk of callGeminiStream(context, question, geminiHistory, modelType)) {
+    for await (const chunk of callGeminiStream(context, question, geminiHistory, modelType, hasFiles ? attachedFiles : undefined)) {
       fullResponse += chunk;
       res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
     }

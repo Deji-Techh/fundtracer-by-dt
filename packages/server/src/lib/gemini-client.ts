@@ -4,6 +4,8 @@
 // ============================================================
 
 import { geminiClassifier, type ClassificationResult } from './classifier.js';
+import fs from 'fs';
+import path from 'path';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
@@ -24,6 +26,111 @@ interface GeminiResponse {
   error?: {
     message: string;
     code?: number;
+  };
+}
+
+export interface UploadedFile {
+  fileUri: string;
+  mimeType: string;
+  displayName: string;
+}
+
+// Supported MIME types for Gemini
+const SUPPORTED_MIME_TYPES: Record<string, string> = {
+  'pdf': 'application/pdf',
+  'txt': 'text/plain',
+  'csv': 'text/csv',
+  'json': 'application/json',
+  'js': 'text/javascript',
+  'ts': 'text/typescript',
+  'py': 'text/x-python',
+  'sol': 'text/x-solidity',
+  'png': 'image/png',
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'webp': 'image/webp',
+  'gif': 'image/gif',
+  'mp3': 'audio/mpeg',
+  'mp4': 'video/mp4',
+  'wav': 'audio/wav',
+};
+
+function getMimeType(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  return SUPPORTED_MIME_TYPES[ext] || 'application/octet-stream';
+}
+
+// Upload file to Gemini File API
+export async function uploadFileToGemini(
+  filePath: string,
+  displayName: string
+): Promise<UploadedFile> {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  const mimeType = getMimeType(displayName);
+  const fileSize = fs.statSync(filePath).size;
+
+  // Step 1: Initiate upload
+  const initiateUrl = `${GEMINI_BASE_URL}/files?uploadType=resumable&key=${GEMINI_API_KEY}`;
+  
+  const initiateResponse = await fetch(initiateUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Upload-Protocol': 'resumable',
+      'X-Goog-Upload-Command': 'start',
+      'X-Goog-Upload-Header-Content-Length': fileSize.toString(),
+      'X-Goog-Upload-Header-Content-Type': mimeType,
+    },
+    body: JSON.stringify({
+      file: {
+        display_name: displayName,
+      },
+    }),
+  });
+
+  if (!initiateResponse.ok) {
+    const error = await initiateResponse.json().catch(() => ({}));
+    throw new Error(error.error?.message || 'Failed to initiate file upload');
+  }
+
+  const uploadUrl = initiateResponse.headers.get('X-Goog-Upload-URL');
+  if (!uploadUrl) {
+    throw new Error('No upload URL returned from Gemini');
+  }
+
+  // Step 2: Upload file content
+  const fileContent = fs.readFileSync(filePath);
+  
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': mimeType,
+      'X-Goog-Upload-Offset': '0',
+      'X-Goog-Upload-Command': 'upload, finalize',
+    },
+    body: fileContent,
+  });
+
+  if (!uploadResponse.ok) {
+    const error = await uploadResponse.json().catch(() => ({}));
+    throw new Error(error.error?.message || 'Failed to upload file to Gemini');
+  }
+
+  const uploadData = await uploadResponse.json();
+  
+  // Extract file URI from response
+  const fileUri = uploadData.file?.uri;
+  if (!fileUri) {
+    throw new Error('No file URI returned from Gemini');
+  }
+
+  return {
+    fileUri,
+    mimeType,
+    displayName,
   };
 }
 
@@ -64,7 +171,8 @@ export async function* callGeminiStream(
   context: string,
   userQuestion: string,
   history: GeminiMessage[] = [],
-  modelType: ModelType = 'flash'
+  modelType: ModelType = 'flash',
+  attachedFiles?: UploadedFile[]
 ): AsyncGenerator<string, void, unknown> {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
@@ -72,24 +180,56 @@ export async function* callGeminiStream(
 
   const modelName = getModelName(modelType);
 
+  // Build message parts - include file URIs if attached
+  const userParts: any[] = [];
+  
+  // Add context if present
+  if (context) {
+    userParts.push({ text: `Context:\n${context}\n\n` });
+  }
+
+  // Add file attachments
+  if (attachedFiles && attachedFiles.length > 0) {
+    for (const file of attachedFiles) {
+      userParts.push({
+        fileData: {
+          mimeType: file.mimeType,
+          fileUri: file.fileUri,
+        },
+      });
+    }
+  }
+
+  // Add the question
+  userParts.push({ text: `Question: ${userQuestion}` });
+
   // Build conversation messages
   const messages: GeminiMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
     ...history.slice(-10), // Max 10 previous messages
-    { role: 'user', content: `Context:\n${context}\n\nQuestion: ${userQuestion}` }
+    { role: 'user', content: '' } // Content will be in parts
   ];
 
   // For streaming, we use the chat/completions endpoint with streaming
   const url = `${GEMINI_BASE_URL}/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 
-  const body = {
-    contents: messages.map(msg => ({
-      role: msg.role === 'system' ? 'user' : msg.role,
-      parts: [{ text: msg.content }]
-    })),
+  const body: any = {
+    contents: messages.map((msg, idx) => {
+      if (idx === messages.length - 1) {
+        // Last message is current user message with file attachments
+        return {
+          role: 'user',
+          parts: userParts,
+        };
+      }
+      return {
+        role: msg.role === 'system' ? 'user' : msg.role,
+        parts: [{ text: msg.content }],
+      };
+    }),
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
       topP: 0.95,
       topK: 40
     }
