@@ -74,7 +74,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { address, addressType, chain, question, history, attachedFiles } = req.body;
 
-    // Validation - either address OR attachedFiles must be provided
+    // Validation - question is required, address and files are optional for chat-only mode
     const hasAddress = address && addressType && chain;
     const hasFiles = attachedFiles && Array.isArray(attachedFiles) && attachedFiles.length > 0;
     
@@ -84,11 +84,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    if (!hasAddress && !hasFiles) {
-      return res.status(400).json({ 
-        error: 'Must provide either address (with addressType and chain) OR attachedFiles'
-      });
-    }
+    // Note: address and attachedFiles are now optional - chat-only mode is supported
 
     // If address is provided, validate it
     let normalizedChain = '';
@@ -121,6 +117,9 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
           error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` 
         });
       }
+    } else {
+      // Chat-only mode - no address provided
+      normalizedChain = 'ethereum'; // Default for chat-only
     }
 
     // Set SSE headers
@@ -165,8 +164,8 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
 
       // Build context from analysis data
       context = buildContext(analysisData, addressType);
-    } else {
-      // Document-only mode
+    } else if (hasFiles) {
+      // Document-only mode (no address, but has files)
       res.write(`data: ${JSON.stringify({ type: 'status', message: 'Processing document(s)...' })}\n\n`);
       context = `The user has attached the following document(s) for analysis:\n`;
       
@@ -174,6 +173,10 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
         context += `- ${file.displayName} (${file.mimeType})\n`;
       }
       context += '\nPlease analyze these documents and answer the user\'s question.\n';
+    } else {
+      // Chat-only mode (no address, no files)
+      res.write(`data: ${JSON.stringify({ type: 'status', message: 'Thinking...' })}\n\n`);
+      context = `You are FundTracer AI, a blockchain forensics analyst assistant. You help users analyze wallet addresses, understand transaction flows, assess risk levels, and answer questions about blockchain security.\n\n`;
     }
 
     console.log('[AI-Chat] Context built, classifying question...');

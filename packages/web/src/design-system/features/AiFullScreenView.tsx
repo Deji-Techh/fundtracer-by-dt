@@ -147,6 +147,7 @@ export function AiFullScreenView({
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSession, setIsLoadingSession] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
@@ -225,20 +226,39 @@ const contractSuggestions = [
         setChatSessions(data.sessions);
         setActiveSessionId(data.sessions[0].id);
         loadSessionMessages(data.sessions[0].id);
+      } else {
+        // No sessions exist - create a new one
+        createNewSession();
       }
     } catch (error) {
       console.error('Failed to fetch chat sessions:', error);
+      // Create a new session on error too
+      createNewSession();
     }
   };
 
   const loadSessionMessages = async (sessionId: string) => {
+    setIsLoadingSession(true);
     try {
       const data = await apiRequest<{ messages: any[] }>(`/api/chat/sessions/${sessionId}/messages`);
       if (data.messages && data.messages.length > 0) {
         setMessages(data.messages);
+      } else {
+        setMessages([{
+          role: 'assistant',
+          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+          timestamp: Date.now(),
+        }]);
       }
     } catch (error) {
       console.error('Failed to load session messages:', error);
+      setMessages([{
+        role: 'assistant',
+        content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+        timestamp: Date.now(),
+      }]);
+    } finally {
+      setIsLoadingSession(false);
     }
   };
 
@@ -273,6 +293,11 @@ const contractSuggestions = [
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
+
+    // Create new session if none exists
+    if (!activeSessionId) {
+      await createNewSession();
+    }
 
     const userMessage = {
       role: 'user' as const,
@@ -376,17 +401,84 @@ const contractSuggestions = [
         setIsLoading(false);
       }
     } else {
-      // Original mock behavior for now when no files
-      setTimeout(() => {
-        const assistantMessage = {
-          role: 'assistant' as const,
-          content: 'I can analyze that wallet for you. Would you like me to fetch the latest risk score and transaction history?',
-          timestamp: Date.now(),
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        saveMessage(assistantMessage);
+      // Chat-only mode - call API without address or files
+      try {
+        const token = getAuthToken();
+        const response = await fetch('/api/ai-chat/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
+          body: JSON.stringify({
+            question: inputValue,
+            history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        const placeholderId = Date.now();
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: '',
+          timestamp: placeholderId
+        }]);
+
+        if (!reader) {
+          throw new Error('No response stream');
+        }
+
+        let fullResponse = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+          for (const line of lines) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.type === 'chunk') {
+                fullResponse += parsed.content;
+                setMessages(prev => prev.map(m => 
+                  m.timestamp === placeholderId 
+                    ? { ...m, content: fullResponse }
+                    : m
+                ));
+              } else if (parsed.type === 'error') {
+                throw new Error(parsed.message);
+              }
+            } catch {}
+          }
+        }
+
+        if (!fullResponse) {
+          throw new Error('No response from AI');
+        }
+
+      } catch (error: any) {
+        console.error('Chat-only error:', error);
+        
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `Sorry, something went wrong. ${error.message || 'Please try again.'}`,
+          timestamp: Date.now()
+        }]);
+      } finally {
         setIsLoading(false);
-      }, 1500);
+      }
     }
   };
 
@@ -865,7 +957,37 @@ const contractSuggestions = [
                 transition={{ delay: 0.15 }}
               >
                 <div className="ai-chat-messages">
-                  {messages.map((msg, index) => (
+                  {isLoadingSession ? (
+                    <>
+                      {[1, 2, 3].map((i) => (
+                        <motion.div 
+                          key={i}
+                          className={`ai-message ai-message-${i === 1 ? 'user' : 'assistant'}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                        >
+                          <div className="ai-message-avatar">
+                            {i === 1 ? <User size={14} /> : <Bot size={14} />}
+                          </div>
+                          <div className="ai-message-content">
+                            <div className="ai-skeleton" style={{ 
+                              width: i === 1 ? '60%' : i === 2 ? '80%' : '45%',
+                              height: '16px',
+                              borderRadius: '4px',
+                              marginBottom: '8px'
+                            }} />
+                            <div className="ai-skeleton" style={{ 
+                              width: '30%',
+                              height: '12px',
+                              borderRadius: '4px',
+                              opacity: 0.5
+                            }} />
+                          </div>
+                        </motion.div>
+                      ))}
+                    </>
+                  ) : (
+                    messages.map((msg, index) => (
                     <motion.div 
                       key={index} 
                       className={`ai-message ai-message-${msg.role}`}
@@ -895,7 +1017,8 @@ const contractSuggestions = [
                         </span>
                       </motion.div>
                     </motion.div>
-                  ))}
+                  ))
+                  )}
                   {isLoading && (
                     <motion.div 
                       className="ai-message ai-message-assistant"
