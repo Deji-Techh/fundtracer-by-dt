@@ -404,11 +404,15 @@ const contractSuggestions = [
       // Chat-only mode - call API without address or files
       try {
         const token = getAuthToken();
+        console.log('[AI-Chat] Token present:', !!token, token?.substring(0, 20));
+        if (!token) {
+          throw new Error('Not authenticated - please log in again');
+        }
         const response = await fetch('/api/ai-chat/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
             question: inputValue,
