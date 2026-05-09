@@ -363,6 +363,31 @@ body {
   align-items: center;
 }
 
+.ft-ai-trigger-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.ft-ai-trigger-new:hover {
+  background: var(--surface3);
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.2);
+}
+
+.ft-ai-trigger-new:active {
+  transform: scale(0.95);
+}
+
 /* Notification Bell */
 .ft-node-status {
   display: flex;

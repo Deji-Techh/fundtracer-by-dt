@@ -6,6 +6,7 @@ import AppShell from '../components/AppShell';
 import Loader from '../components/Loader';
 import OnboardingModal from '../components/OnboardingModal';
 import InvestigateView from '../design-system/features/InvestigateView';
+import { AiFullScreenView } from '../design-system/features/AiFullScreenView';
 import { getAuthToken } from '../api';
 import './AppPage.css';
 
@@ -80,6 +81,7 @@ export function AppPage() {
   const [walletAddress, setWalletAddress] = useState('');
   const [showLoader, setShowLoader] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isAiOpen, setIsAiOpen] = useState(false);
 
   const currentChainName = CHAIN_CONFIG[selectedChain as keyof typeof CHAIN_CONFIG]?.name || 'Linea';
 
@@ -260,9 +262,16 @@ export function AppPage() {
         onConnectWallet={handleConnectWallet}
         selectedChain={selectedChain}
         onChainChange={(chain) => setSelectedChain(chain as ChainId)}
+        onOpenAi={() => setIsAiOpen(true)}
       >
         {renderContent()}
       </AppShell>
+      <AiFullScreenView 
+        isOpen={isAiOpen} 
+        onClose={() => setIsAiOpen(false)}
+        currentWallet={walletAddress}
+        currentChain={selectedChain as string}
+      />
     </>
   );
 }

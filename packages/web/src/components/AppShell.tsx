@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Zap } from 'lucide-react';
 import '../styles/AppShell.css';
 import { NotificationBell, NotificationPanel } from './notifications';
-import { AiChatBubble } from './ai-chat/AiChatBubble';
 import { CHAIN_CONFIG, type ChainKey } from '../config/chains';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface NavItem {
   id: string;
@@ -26,6 +27,7 @@ interface AppShellProps {
   onSearchEnter?: () => void;
   chainBadge?: string;
   showAiButton?: boolean;
+  onOpenAi?: () => void;
   selectedChain?: string;
   onChainChange?: (chain: string) => void;
 }
@@ -44,12 +46,14 @@ export function AppShell({
   onSearchEnter,
   chainBadge,
   showAiButton = true,
+  onOpenAi,
   selectedChain = 'linea',
   onChainChange
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [networkDropdownOpen, setNetworkDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const closeSidebar = () => {
     setSidebarOpen(false);
@@ -214,7 +218,15 @@ export function AppShell({
 
           <div className="ft-topbar-gap"></div>
 
-          {showAiButton && <div className="ft-ai-button-wrapper"><AiChatBubble currentWallet={walletAddress} currentChain={chainBadge?.toLowerCase() || 'ethereum'} /></div>}
+          {showAiButton && onOpenAi && !isMobile && (
+            <button 
+              className="ft-ai-trigger-new"
+              onClick={onOpenAi}
+              title="Open FundTracer AI"
+            >
+              <Zap size={18} />
+            </button>
+          )}
           <NotificationBell />
 
           <div className="ft-node-status">

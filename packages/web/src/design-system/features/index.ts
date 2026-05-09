@@ -18,3 +18,5 @@ export { SettingsView, default as SettingsViewDefault } from './SettingsView';
 
 export { default as RadarViewDefault } from './RadarView';
 export { default as RadarView } from './RadarView';
+
+export { AiFullScreenView, default as AiFullScreenViewDefault } from './AiFullScreenView';
