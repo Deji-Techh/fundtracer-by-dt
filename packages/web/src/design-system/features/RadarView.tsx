@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import './RadarView.css';
+import { 
+  BellIcon, 
+  DollarIcon, 
+  ShieldIcon, 
+  ArrowSwapIcon, 
+  ImageIcon, 
+  PositionIcon,
+  PlusIcon,
+  RadarEmptyIcon,
+  CloseIcon,
+  EmailIcon,
+  ClockIcon,
+  MessageIcon
+} from './RadarIcons';
 
 const API_BASE = '/api';
 
@@ -18,6 +32,7 @@ interface RadarAlert {
 interface LiveActivity {
   id: string;
   address: string;
+  alertLabel?: string;
   type: 'received' | 'sent' | 'swap' | 'nft' | 'stake' | 'other';
   amount?: number;
   amountUSD?: number;
@@ -40,6 +55,19 @@ const MESSAGE_TEMPLATES = [
   { id: 'custom', label: 'Custom message', text: '' },
 ];
 
+const AlertTypeIcon: React.FC<{ type: RadarAlert['alertType'] }> = ({ type }) => {
+  const iconProps = { size: 20, className: 'wallet-card-icon-svg' };
+  switch (type) {
+    case 'any_transaction': return <BellIcon {...iconProps} />;
+    case 'large_transfer': return <DollarIcon {...iconProps} />;
+    case 'suspicious': return <ShieldIcon {...iconProps} />;
+    case 'token_swap': return <ArrowSwapIcon {...iconProps} />;
+    case 'nft_activity': return <ImageIcon {...iconProps} />;
+    case 'new_position': return <PositionIcon {...iconProps} />;
+    default: return <BellIcon {...iconProps} />;
+  }
+};
+
 const RadarView: React.FC = () => {
   const [chain, setChain] = useState<'solana' | 'evm'>('solana');
   const [alerts, setAlerts] = useState<RadarAlert[]>([]);
@@ -57,9 +85,14 @@ const RadarView: React.FC = () => {
     label: '',
     alertType: 'any_transaction',
     threshold: 1000,
+    email: '',
+    frequency: 'instant',
   });
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
+  const [deletedAlert, setDeletedAlert] = useState<RadarAlert | null>(null);
+  const [showUndoToast, setShowUndoToast] = useState(false);
 
   // Load alerts from API
   const loadAlerts = async (user: string) => {
@@ -94,6 +127,7 @@ const RadarView: React.FC = () => {
       localStorage.setItem('fundtracer_user_id', user);
     }
     setUserId(user);
+    setMounted(true);
   }, []);
 
   // Load data when userId changes
@@ -165,11 +199,30 @@ const RadarView: React.FC = () => {
   };
 
   const deleteAlert = async (id: string) => {
+    const alert = alerts.find(a => a.id === id);
+    if (!alert) return;
+
+    setDeletedAlert(alert);
+    setAlerts(alerts.filter(a => a.id !== id));
+    setShowUndoToast(true);
+
     try {
       await fetch(`${API_BASE}/radar/alerts/${id}`, { method: 'DELETE' });
-      setAlerts(alerts.filter(a => a.id !== id));
+      setTimeout(() => {
+        setShowUndoToast(false);
+        setDeletedAlert(null);
+      }, 4000);
     } catch (error) {
       console.error('[Radar] Failed to delete alert:', error);
+      setAlerts([...alerts, alert]);
+    }
+  };
+
+  const handleUndoDelete = () => {
+    if (deletedAlert) {
+      setAlerts([...alerts, deletedAlert]);
+      setShowUndoToast(false);
+      setDeletedAlert(null);
     }
   };
 
@@ -241,7 +294,7 @@ const RadarView: React.FC = () => {
 
       if (res.ok) {
         setShowAddModal(false);
-        setFormData({ address: '', label: '', alertType: 'any_transaction', threshold: 1000 });
+        setFormData({ address: '', label: '', alertType: 'any_transaction', threshold: 1000, email: '', frequency: 'instant' });
         loadAlerts(userId);
       } else {
         const err = await res.json();
@@ -392,7 +445,7 @@ const RadarView: React.FC = () => {
         </div>
         <div className="radar-header-right">
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            + Add Wallet
+            <PlusIcon size={16} /> Add Wallet
           </button>
         </div>
       </div>
@@ -406,13 +459,36 @@ const RadarView: React.FC = () => {
           </div>
           
           <div className="wallet-cards">
-            {alerts.map((alert) => (
-              <div key={alert.id} className={`wallet-card ${!alert.enabled ? 'paused' : ''}`}>
+            {alerts.length === 0 && (
+              <div className="radar-empty">
+                <div className="radar-empty-illustration">
+                  <RadarEmptyIcon />
+                </div>
+                <h4 className="radar-empty-title">No wallets being tracked</h4>
+                <p className="radar-empty-desc">
+                  Add wallets to monitor their activity and receive alerts in real-time
+                </p>
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => setShowAddModal(true)}
+                >
+                  <PlusIcon size={16} /> Add Your First Wallet
+                </button>
+              </div>
+            )}
+            {alerts.map((alert, index) => (
+              <div 
+                key={alert.id} 
+                className={`wallet-card ${!alert.enabled ? 'paused' : ''}`}
+                style={{ 
+                  animationDelay: `${index * 0.05}s`,
+                  opacity: mounted ? 1 : 0,
+                  transform: mounted ? 'translateY(0)' : 'translateY(10px)'
+                }}
+              >
                 <div className="wallet-card-header">
                   <div className="wallet-card-icon">
-                    {alert.alertType === 'any_transaction' ? 'TX' : 
-                     alert.alertType === 'large_transfer' ? '$' :
-                     alert.alertType === 'suspicious' ? '!' : 'CH'}
+                    <AlertTypeIcon type={alert.alertType} />
                   </div>
                   <div className="wallet-card-info">
                     <div className="wallet-label">{alert.label}</div>
@@ -441,23 +517,29 @@ const RadarView: React.FC = () => {
                     className="delete-btn"
                     onClick={() => deleteAlert(alert.id)}
                   >
-                    ×
+                    <CloseIcon size={16} />
                   </button>
                 </div>
               </div>
             ))}
 
             {/* Add New Card */}
-            <div className="wallet-card add-card" onClick={() => setShowAddModal(true)}>
-              <div className="add-icon">+</div>
-              <div className="add-text">Add Wallet</div>
-            </div>
+            {alerts.length > 0 && (
+              <div className="wallet-card add-card" onClick={() => setShowAddModal(true)}>
+                <div className="add-icon">
+                  <PlusIcon size={24} />
+                </div>
+                <div className="add-text">Add Wallet</div>
+              </div>
+            )}
           </div>
 
           {/* Email Settings - 4 Grid Boxes */}
           <div className="settings-grid">
             <div className="settings-box">
-              <div className="box-header">EMAIL NOTIFICATIONS</div>
+              <div className="box-header">
+                <EmailIcon size={14} /> EMAIL NOTIFICATIONS
+              </div>
               <div className="box-content">
                 <label className="toggle-label">
                   <input 
@@ -472,7 +554,9 @@ const RadarView: React.FC = () => {
             </div>
             
             <div className="settings-box">
-              <div className="box-header">FREQUENCY</div>
+              <div className="box-header">
+                <ClockIcon size={14} /> FREQUENCY
+              </div>
               <div className="box-content">
                 <select 
                   className="frequency-select"
@@ -486,14 +570,18 @@ const RadarView: React.FC = () => {
             </div>
             
             <div className="settings-box">
-              <div className="box-header">YOUR EMAIL</div>
+              <div className="box-header">
+                <EmailIcon size={14} /> YOUR EMAIL
+              </div>
               <div className="box-content">
                 <div className="email-display">{emailSettings.address || 'Loading...'}</div>
               </div>
             </div>
             
             <div className="settings-box">
-              <div className="box-header">CUSTOM MESSAGE</div>
+              <div className="box-header">
+                <MessageIcon size={14} /> CUSTOM MESSAGE
+              </div>
               <div className="box-content">
                 <div className="custom-msg-display">
                   {emailSettings.customMessage || 'Using default template'}
@@ -521,6 +609,9 @@ const RadarView: React.FC = () => {
                 </div>
                 <div className="activity-content">
                   <div className="activity-main">
+                    {activity.alertLabel && (
+                      <span className="activity-wallet-badge">{activity.alertLabel}</span>
+                    )}
                     <span className="activity-address">
                       {activity.address.slice(0, 8)}...{activity.address.slice(-4)}
                     </span>
@@ -573,7 +664,9 @@ const RadarView: React.FC = () => {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Add Alert</h3>
-              <button className="modal-close" onClick={() => setShowAddModal(false)}>×</button>
+              <button className="modal-close" onClick={() => setShowAddModal(false)}>
+                <CloseIcon size={20} />
+              </button>
             </div>
             <div className="modal-body">
               <div className="form-group">
@@ -603,11 +696,11 @@ const RadarView: React.FC = () => {
                   value={formData.alertType}
                   onChange={(e) => setFormData(prev => ({ ...prev, alertType: e.target.value }))}
                 >
-                  <option value="any_transaction">Any Transaction</option>
-                  <option value="large_transfer">Large Transfer (&gt;$1000)</option>
-                  <option value="token_swap">Token Swap</option>
-                  <option value="nft_activity">NFT Activity</option>
-                  <option value="new_position">New DeFi Position</option>
+                  <option value="any_transaction">Any Transaction - Get notified of every action</option>
+                  <option value="large_transfer">Large Transfer - Alerts when transfers exceed threshold</option>
+                  <option value="token_swap">Token Swap - Notify on DEX trades</option>
+                  <option value="nft_activity">NFT Activity - Mint, transfer, or sale events</option>
+                  <option value="new_position">New DeFi Position - New lending/staking positions</option>
                 </select>
               </div>
               <div className={`form-group threshold-group ${formData.alertType === 'large_transfer' ? 'visible' : ''}`}>
@@ -619,6 +712,32 @@ const RadarView: React.FC = () => {
                   value={formData.threshold}
                   onChange={(e) => setFormData(prev => ({ ...prev, threshold: parseInt(e.target.value) || 0 }))}
                 />
+              </div>
+              
+              <div className="modal-section-divider" />
+              
+              <div className="form-group">
+                <label>Notification Email (optional)</label>
+                <input 
+                  type="email" 
+                  placeholder={emailSettings.address || "your@email.com"}
+                  className="form-input"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Alert Frequency</label>
+                <select 
+                  className="form-select"
+                  value={formData.frequency}
+                  onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value }))}
+                >
+                  <option value="instant">Instant - Get notified immediately</option>
+                  <option value="hourly">Hourly Digest - Once per hour</option>
+                  <option value="daily">Daily Digest - Once per day</option>
+                </select>
               </div>
             </div>
             <div className="modal-footer">
@@ -632,6 +751,14 @@ const RadarView: React.FC = () => {
           </div>
         </div>
       )}
+      
+      {/* Undo Toast */}
+      {showUndoToast && (
+        <div className="undo-toast">
+          <span>Wallet removed</span>
+          <button onClick={handleUndoDelete}>Undo</button>
+        </div>
+      )}
 
       {/* Custom Message Template Modal */}
       {showTemplateModal && (
@@ -639,7 +766,9 @@ const RadarView: React.FC = () => {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Custom Message Template</h3>
-              <button className="modal-close" onClick={() => setShowTemplateModal(false)}>×</button>
+              <button className="modal-close" onClick={() => setShowTemplateModal(false)}>
+                <CloseIcon size={20} />
+              </button>
             </div>
             <div className="modal-body">
               <p className="template-desc">Select a template for your alert notifications:</p>
