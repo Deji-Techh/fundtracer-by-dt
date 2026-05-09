@@ -10,6 +10,7 @@ import { buildContext, formatAnalysisForDisplay, type AnalysisData } from '../li
 import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
 import { cacheGet, cacheSet, cacheDel } from '../utils/redis.js';
 import { getFirestore } from '../firebase.js';
+import type { ChainId } from '@fundtracer/core';
 
 const router = Router();
 
@@ -34,11 +35,33 @@ const normalizeChainId = (chain: string): string => {
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 const SOL_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-// Analyze wallet using FundTracer's wallet analyzer
-async function analyzeWallet(address: string, chain: string): Promise<AnalysisData> {
+// Map frontend chain to analyzer-compatible chain
+function mapChainForAnalyzer(chain: string): string {
+  const chainLower = chain.toLowerCase();
+  switch (chainLower) {
+    case 'linea':
+      return 'ethereum'; // Linea data available via ethereum endpoints
+    case 'base':
+      return 'ethereum'; // Base data available via ethereum endpoints
+    case 'arbitrum':
+      return 'arbitrum';
+    case 'optimism':
+      return 'optimism';
+    case 'polygon':
+      return 'polygon';
+    case 'bsc':
+      return 'ethereum'; // BSC uses ethereum-compatible format
+    case 'solana':
+      return 'solana';
+    default:
+      return 'ethereum';
+  }
+}
+
+// Analyze wallet using internal WalletAnalyzer with correct chain mapping
+async function analyzeWallet(address: string, chain: string, userId: string): Promise<AnalysisData> {
   const { WalletAnalyzer } = await import('@fundtracer/core');
   
-  // Get Alchemy key pool for wallet analysis
   const sybilKeys = getSybilAlchemyKeys();
   
   const analyzer = new WalletAnalyzer({
@@ -47,19 +70,15 @@ async function analyzeWallet(address: string, chain: string): Promise<AnalysisDa
     sybilConfig: sybilKeys,
   });
   
-  // Use the requested chain - map 'linea' to 'ethereum' for the analyzer since it may not support Linea directly
-  const chainId = chain.toLowerCase() === 'linea' ? 'ethereum' : 
-                  chain.toLowerCase() === 'base' ? 'ethereum' :
-                  chain.toLowerCase() === 'arbitrum' ? 'arbitrum' :
-                  chain.toLowerCase() === 'optimism' ? 'optimism' :
-                  chain.toLowerCase() === 'polygon' ? 'polygon' : 'ethereum';
+  // Use the correct chain for the analyzer
+  const analyzerChain = mapChainForAnalyzer(chain);
   
-  const result = await analyzer.analyze(address, chainId) as any;
+  const result = await analyzer.analyze(address, analyzerChain as ChainId) as any;
   
   // Transform to our context format
   return {
     address: result.wallet?.address || address,
-    chain: chain,
+    chain: chain, // Return the original chain, not the mapped one
     riskScore: result.overallRiskScore,
     riskLevel: result.riskLevel,
     totalTransactions: result.transactions?.length || 0,
@@ -77,8 +96,8 @@ async function analyzeWallet(address: string, chain: string): Promise<AnalysisDa
 }
 
 // For contracts, use the wallet analyzer
-async function analyzeContract(address: string, chain: string): Promise<AnalysisData> {
-  return analyzeWallet(address, chain);
+async function analyzeContract(address: string, chain: string, userId: string): Promise<AnalysisData> {
+  return analyzeWallet(address, chain, userId);
 }
 
 // Main AI Chat endpoint with SSE
@@ -149,13 +168,15 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
       // Send initial status
       res.write(`data: ${JSON.stringify({ type: 'status', message: 'Analyzing ' + addressType + '...' })}\n\n`);
 
+      const userId = req.user?.uid || 'anonymous';
+      
       let analysisData: AnalysisData;
       
       try {
         if (addressType === 'wallet') {
-          analysisData = await analyzeWallet(address, normalizedChain);
+          analysisData = await analyzeWallet(address, normalizedChain, userId);
         } else {
-          analysisData = await analyzeContract(address, normalizedChain);
+          analysisData = await analyzeContract(address, normalizedChain, userId);
         }
       } catch (analysisError: any) {
         console.error('[AI-Chat] Analysis error:', analysisError.message);

@@ -105,41 +105,43 @@ function renderMarkdown(content: string): string {
   
   let html = content;
   
-  // Preserve original content before any processing
-  // Only parse tables if both | and --- exist (clear table indicator)
-  if (html.includes('|') && html.includes('---')) {
-    const lines = html.split('\n');
-    const tableLines: string[] = [];
-    let inTable = false;
-    let headerProcessed = false;
-    
-    for (const line of lines) {
-      if (line.includes('---')) {
-        inTable = true;
-        headerProcessed = false;
-        continue;
+  // Split into blocks and process each block
+  const blocks = html.split(/\n\n+/);
+  const processedBlocks = blocks.map(block => {
+    // Check if this block is a markdown table
+    if (block.includes('|') && block.includes('| --- |')) {
+      const lines = block.split('\n').filter(line => line.trim());
+      if (lines.length < 2) return block;
+      
+      const rows: string[] = [];
+      let isHeader = true;
+      
+      for (const line of lines) {
+        // Skip separator lines
+        if (line.match(/\|[\s:-]+/)) {
+          isHeader = false;
+          continue;
+        }
+        
+        const cells = line.split('|').filter(c => c.trim());
+        if (cells.length === 0) continue;
+        
+        if (isHeader) {
+          rows.push('<tr>' + cells.map(c => `<th>${c.trim()}</th>`).join('') + '</tr>');
+          isHeader = false;
+        } else {
+          rows.push('<tr>' + cells.map(c => `<td>${c.trim()}</td>`).join('') + '</tr>');
+        }
       }
       
-      if (inTable && line.trim().startsWith('|')) {
-        const cells = line.split('|').filter(c => c.trim());
-        
-        if (!headerProcessed) {
-          tableLines.push('<tr>' + cells.map(c => `<th>${c.trim()}</th>`).join('') + '</tr>');
-          headerProcessed = true;
-        } else {
-          tableLines.push('<tr>' + cells.map(c => `<td>${c.trim()}</td>`).join('') + '</tr>');
-        }
-      } else if (inTable && !line.trim().startsWith('|')) {
-        inTable = false;
+      if (rows.length > 1) {
+        return `<table class="ai-result-table"><thead>${rows[0]}</thead><tbody>${rows.slice(1).join('')}</tbody></table>`;
       }
     }
-    
-    if (tableLines.length > 0) {
-      const tableHtml = '<table><thead>' + tableLines[0] + '</thead><tbody>' + tableLines.slice(1).join('') + '</tbody></table>';
-      // Replace only the table portion, preserve rest of content
-      html = html.replace(/\|[\s\S]*?---[\s\S]*?(?=\n\n|\n[^|]|$)/g, tableHtml);
-    }
-  }
+    return block;
+  });
+  
+  html = processedBlocks.join('<br><br>');
   
   // Convert bold
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -149,10 +151,7 @@ function renderMarkdown(content: string): string {
   
   // Convert bullet lists
   html = html.replace(/^- (.*)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-  
-  // Convert newlines to <br>
-  html = html.split('\n').map(line => line.trim()).filter(line => line).join('<br>');
+  html = html.replace(/(<li>.*<\/li>)+/g, '<ul>$&</ul>');
   
   return html;
 }
