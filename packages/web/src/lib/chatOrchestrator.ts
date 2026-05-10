@@ -20,10 +20,12 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
 
 // ─── READ: load conversation history ──────────────────────────
 export async function loadHistory(uid: string, conversationId: string): Promise<ChatMessage[]> {
+  console.log('[Cache] loadHistory called for:', conversationId);
   // 1. Check IndexedDB first — 0ms, no network
   const local = await idb_get(conversationId);
+  console.log('[Cache] IndexedDB result:', local ? `got ${local.length} messages` : 'null/empty');
   if (local && local.length > 0) {
-    console.log('[Cache] IndexedDB hit');
+    console.log('[Cache] IndexedDB hit, returning messages');
     return local;
   }
 
