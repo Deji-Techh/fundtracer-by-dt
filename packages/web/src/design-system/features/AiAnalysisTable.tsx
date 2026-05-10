@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Shield, ShieldAlert, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
 
-interface AnalysisTableData {
+export interface AnalysisTableData {
   address: string;
   chain: string;
   type: 'wallet' | 'contract';

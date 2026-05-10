@@ -9,7 +9,6 @@ import {
   Wallet, 
   Clock, 
   MessageSquare,
-  Shield,
   FileText,
   CheckCircle2,
   Loader2,
@@ -39,9 +38,12 @@ import {
   FileJson,
   Table2,
   Shield,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { AiAnalysisTableSkeleton, AiAnalysisTable, type AnalysisTableData } from './AiAnalysisTable';
+import { AiAnalysisTableSkeleton, default as AnalysisTable } from './AiAnalysisTable';
+import type { AnalysisTableData } from './AiAnalysisTable';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHistory, type HistoryItem } from '../../utils/history';
 import { apiRequest, getAuthToken, API_BASE } from '../../api';
@@ -437,7 +439,14 @@ export function AiFullScreenView({
   const [isLoadingContext, setIsLoadingContext] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [selectedChain, setSelectedChain] = useState(currentChain);
-  const [analysisContext, setAnalysisContext] = useState<{ data: AnalysisTableData; contextText: string } | null>(null);
+  const [analysisContext, setAnalysisContext] = useState<{
+    data: AnalysisTableData | null;
+    contextText: string;
+    loading: boolean;
+    address?: string;
+    chain?: string;
+    type?: 'wallet' | 'contract';
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Persist active session to localStorage
@@ -712,7 +721,7 @@ const contractSuggestions = [
           body: JSON.stringify({
             question: inputValue,
             attachedFiles,
-            history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+            history: buildHistoryWithContext()
           }),
           signal: abortControllerRef.current.signal
         });
@@ -810,7 +819,7 @@ const contractSuggestions = [
           },
           body: JSON.stringify({
             question: inputValue,
-            history: messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+            history: buildHistoryWithContext()
           }),
           signal: abortControllerRef.current.signal
         });
@@ -822,16 +831,17 @@ const contractSuggestions = [
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
 
+        if (!reader) {
+          throw new Error('No response stream');
+        }
+
+        // Add placeholder for streaming response
         const placeholderId = Date.now();
         setMessages(prev => [...prev, {
           role: 'assistant',
           content: '',
           timestamp: placeholderId
         }]);
-
-        if (!reader) {
-          throw new Error('No response stream');
-        }
 
         let fullResponse = '';
         let streamComplete = false;
@@ -976,6 +986,47 @@ const handleSelectScan = async (scan: RecentScan) => {
     setInputValue('');
   };
 
+  function buildHistoryWithContext(): Array<{ role: string; content: string }> {
+    const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
+    if (analysisContext?.contextText) {
+      history.unshift({ role: 'system' as any, content: analysisContext.contextText });
+    }
+    return history;
+  }
+
+  function buildContextFromTable(data: AnalysisTableData): string {
+    const isWallet = data.type === 'wallet';
+    let ctx = `${isWallet ? 'WALLET' : 'CONTRACT'} ANALYSIS CONTEXT\n`;
+    ctx += '='.repeat(30) + '\n';
+    ctx += `Address: ${data.address}\n`;
+    ctx += `Chain: ${data.chain}\n`;
+    ctx += `Risk Score: ${data.riskScore ?? 'N/A'}\n`;
+    ctx += `Risk Level: ${data.riskLevel ?? 'N/A'}\n`;
+    if (isWallet) {
+      ctx += `Total Transactions: ${data.totalTransactions ?? 'N/A'}\n`;
+      ctx += `Total Value Sent: ${data.totalValueSent !== undefined ? data.totalValueSent.toFixed(4) + ' ETH' : 'N/A'}\n`;
+      ctx += `Total Value Received: ${data.totalValueReceived !== undefined ? data.totalValueReceived.toFixed(4) + ' ETH' : 'N/A'}\n`;
+      ctx += `Activity Period: ${data.activityPeriodDays ? data.activityPeriodDays + ' days' : 'N/A'}\n`;
+      ctx += `First Seen: ${data.firstSeen || 'N/A'}\n`;
+      ctx += `Last Active: ${data.lastSeen || 'N/A'}\n`;
+    } else {
+      if (data.contractName) ctx += `Contract Name: ${data.contractName}\n`;
+      if (data.contractType) ctx += `Contract Type: ${data.contractType}\n`;
+      ctx += `Verified: ${data.contractVerified ? 'Yes' : 'No'}\n`;
+      ctx += `Risk Score: ${data.riskScore ?? 'N/A'}\n`;
+    }
+    if (data.flags && data.flags.length > 0) {
+      ctx += `\nFlags: ${data.flags.join(', ')}\n`;
+    }
+    if (isWallet && data.topInteractions && data.topInteractions.length > 0) {
+      ctx += `\nTop Interactions:\n`;
+      data.topInteractions.forEach(i => {
+        ctx += `  - ${i.label}: ${i.count} txns (${i.address})\n`;
+      });
+    }
+    return ctx;
+  }
+
   const handleAcceptWallet = async () => {
     if (!inputValue.trim()) return;
 
@@ -985,113 +1036,103 @@ const handleSelectScan = async (scan: RecentScan) => {
 
     const isWallet = attachmentMode === 'wallet';
     const address = inputValue.trim();
-    
-    setWalletAttachment({
-      address: address,
-      chain: currentChain,
-      status: 'analyzing'
-    });
-    setIsAnalyzing(true);
+    const chain = selectedChain;
+
+    // Reset to chat-only mode — wallet/contract was only to identify the scan type
     setInputValue('');
+    setAttachmentMode('none');
+    setWalletAttachment(null);
+
+    // Show skeleton loading
+    setAnalysisContext({ data: null as any, contextText: '', loading: true, address, chain, type: isWallet ? 'wallet' : 'contract' });
+
+    // Save a user message to show what was scanned
+    const userMessage = {
+      role: 'user' as const,
+      content: `Scan ${isWallet ? 'wallet' : 'contract'} ${address} on ${chain.toUpperCase()}`,
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, userMessage]);
+    try { await saveMessage(userMessage); } catch (e) { console.error('[Chat] Failed to save scan message:', e); }
 
     try {
       const token = getAuthToken();
       abortControllerRef.current = new AbortController();
-      const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
+
+      const apiBody = isWallet
+        ? JSON.stringify({ address, chain, options: { skipFundingTree: true } })
+        : JSON.stringify({ contractAddress: address, chain, options: { maxInteractors: 50, analyzeFunding: false } });
+
+      const response = await fetch(`${API_BASE}/api/analyze/${isWallet ? 'wallet' : 'contract'}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
-        body: JSON.stringify({
-          address,
-          addressType: isWallet ? 'wallet' : 'contract',
-          chain: currentChain,
-          question: 'Analyze this address and tell me about it',
-          history: []
-        }),
+        body: apiBody,
         signal: abortControllerRef.current.signal
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Analysis failed (${response.status})`);
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullResponse = '';
-      let analysisData = null;
-      let streamComplete = false;
+      const data = await response.json();
+      const result = data.result;
 
-      if (!reader) {
-        throw new Error('No response stream');
-      }
+      // Transform to AnalysisTableData
+      const summary = result.summary;
+      const tableData: AnalysisTableData = {
+        address,
+        chain,
+        type: isWallet ? 'wallet' : 'contract',
+        riskScore: result.overallRiskScore,
+        riskLevel: result.riskLevel,
+        totalTransactions: result.transactions?.length ?? summary?.totalTransactions,
+        totalValueSent: summary?.totalValueSentEth,
+        totalValueReceived: summary?.totalValueReceivedEth,
+        activityPeriodDays: summary?.activityPeriodDays ?? (result.wallet?.createdAt ? Math.round((Date.now() - new Date(result.wallet.createdAt).getTime()) / 86400000) : undefined),
+        balance: result.wallet?.balance,
+        firstSeen: result.wallet?.createdAt,
+        lastSeen: result.wallet?.lastActive,
+        flags: (result.suspiciousIndicators || []).map((s: any) => s.description || s),
+        topInteractions: (result.projectsInteracted || []).slice(0, 10).map((p: any) => ({
+          address: p.contractAddress || p.address || '',
+          label: p.projectName || p.label || 'Unknown',
+          count: p.interactionCount || p.count || 0,
+        })),
+        fundingSources: (result.fundingSources?.nodes || result.fundingSources || []).map((n: any) => n.address || n),
+        sybilCluster: result.sybilCluster,
+        contractName: result.wallet?.contractName || result.contract?.name,
+        contractType: result.contract?.type,
+        contractVerified: result.contract?.verified,
+        deployer: result.contract?.deployer,
+        holders: result.holders,
+        isHoneypot: result.isHoneypot,
+        isMintable: result.isMintable,
+        isPaused: result.isPaused,
+        securityFindings: result.securityFindings,
+      };
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Build AI context text from table data
+      const contextText = buildContextFromTable(tableData);
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+      setAnalysisContext({ data: tableData, contextText, loading: false, address, chain, type: isWallet ? 'wallet' : 'contract' });
 
-        for (const line of lines) {
-          const data = line.slice(6);
-          if (data === '[DONE]') { streamComplete = true; continue; }
-
-          try {
-            const parsed = JSON.parse(data);
-            
-            if (parsed.type === 'analysis') {
-              analysisData = parsed.message;
-            } else if (parsed.type === 'chunk') {
-              fullResponse += parsed.content;
-            } else if (parsed.type === 'error') {
-              throw new Error(parsed.message);
-            } else if (parsed.type === 'complete') {
-              streamComplete = true;
-              if (parsed.fullResponse) fullResponse = parsed.fullResponse;
-            }
-          } catch (e) {
-            if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
-          }
-        }
-        if (streamComplete) break;
-      }
-
-      if (analysisData || fullResponse) {
-        setWalletAttachment({
-          address,
-          chain: currentChain,
-          status: 'ready'
-        });
-
-        const assistantMessage = {
-          role: 'assistant' as const,
-          content: analysisData || `Address ${address.slice(0, 6)}...${address.slice(-4)} analyzed successfully. Ask me anything!`,
-          timestamp: Date.now(),
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-        try { await saveMessage(assistantMessage); } catch (e) { console.error('[Chat] Failed to save analysis result:', e); }
-      } else {
-        throw new Error('No response from AI');
-      }
     } catch (error: any) {
       console.error('Analysis error:', error);
-      setWalletAttachment({
-        address,
-        chain: currentChain,
-        status: 'error'
-      });
-      
-      const errorMessage = {
+      const errorMsg = error.message?.includes('aborted')
+        ? 'Analysis cancelled.'
+        : `Sorry, I couldn't analyze this ${isWallet ? 'wallet' : 'contract'}. ${error.message || 'Please check the address and try again.'}`;
+
+      setMessages(prev => [...prev, {
         role: 'assistant' as const,
-        content: `Sorry, I couldn't analyze this ${isWallet ? 'wallet' : 'contract'}. ${error.message || 'Please check the address and try again.'}`,
+        content: errorMsg,
         timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
-      try { await saveMessage(errorMessage); } catch (e) { console.error('[Chat] Failed to save error message:', e); }
-    } finally {
-      setIsAnalyzing(false);
+      }]);
+
+      setAnalysisContext(null);
     }
   };
 
@@ -1716,7 +1757,15 @@ if (!fullResponse) {
                       ))}
                     </>
                   ) : (
-                    messages.map((msg, index) => (
+                    <>
+                    {/* Analysis Table */}
+                    {analysisContext && (analysisContext.loading ? (
+                      <AiAnalysisTableSkeleton />
+                    ) : analysisContext.data ? (
+                      <AnalysisTable data={analysisContext.data} />
+                    ) : null)}
+
+                    {messages.map((msg, index) => (
                     <motion.div 
                       key={index} 
                       className={`ai-message ai-message-${msg.role}`}
@@ -1767,6 +1816,8 @@ if (!fullResponse) {
                       </motion.div>
                     </motion.div>
                   ))
+                }
+                  </>
                   )}
                   {isLoading && messages.filter(m => m.role === 'assistant').slice(-1)[0]?.content.length < 5 && (
                     <motion.div 
