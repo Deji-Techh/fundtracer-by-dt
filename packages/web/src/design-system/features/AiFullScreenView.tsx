@@ -1852,7 +1852,7 @@ if (!fullResponse) {
                             <X size={12} />
                           </button>
                         </motion.div>
-                      ))}
+                      )})}
                     </motion.div>
                   )}
                 </AnimatePresence>
