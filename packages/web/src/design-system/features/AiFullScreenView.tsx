@@ -1306,6 +1306,8 @@ if (!fullResponse) {
 
     for (const file of Array.from(files)) {
       const fileId = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const sizeLabel = formatFileSize(file.size);
       
       setUploadedFiles(prev => [...prev, {
         id: fileId,
@@ -1314,6 +1316,15 @@ if (!fullResponse) {
         type: file.type,
         status: 'uploading'
       }]);
+
+      // Add skeleton user message immediately
+      const placeholderId = Date.now();
+      const loadingMsg = {
+        role: 'user' as const,
+        content: JSON.stringify({ t: 'file', n: file.name, s: sizeLabel, id: fileId, e: ext, loading: true }),
+        timestamp: placeholderId,
+      };
+      setMessages(prev => [...prev, loadingMsg]);
 
       try {
         // Read file as base64
@@ -1362,15 +1373,14 @@ if (!fullResponse) {
               extractedText: data.file.extractedText,
             } : f
           ));
-          // Add as a user message on the right side
-          const ext = (file.name.split('.').pop() || '').toLowerCase();
-          const fileMsg = {
-            role: 'user' as const,
-            content: JSON.stringify({ t: 'file', n: file.name, s: formatFileSize(file.size), id: fileId, e: ext }),
-            timestamp: Date.now(),
-          };
-          setMessages(prev => [...prev, fileMsg]);
-          try { await saveMessage(fileMsg); } catch (e) { console.error('[Chat] Failed to save file message:', e); }
+          // Replace skeleton message with real file chip
+          const readyContent = JSON.stringify({ t: 'file', n: file.name, s: sizeLabel, id: fileId, e: ext, loading: false });
+          setMessages(prev => prev.map(m =>
+            m.timestamp === placeholderId ? { ...m, content: readyContent } : m
+          ));
+          // Save the real message
+          const readyMsg = { role: 'user' as const, content: readyContent, timestamp: placeholderId };
+          try { await saveMessage(readyMsg); } catch (e) { console.error('[Chat] Failed to save file message:', e); }
         } else {
           throw new Error(data.error || 'Upload failed');
         }
@@ -1378,6 +1388,11 @@ if (!fullResponse) {
         console.error('File upload error:', error);
         setUploadedFiles(prev => prev.map(f => 
           f.id === fileId ? { ...f, status: 'error' } : f
+        ));
+        // Replace skeleton with error state
+        const errorContent = JSON.stringify({ t: 'file', n: file.name, s: sizeLabel, id: fileId, e: ext, loading: false, error: true });
+        setMessages(prev => prev.map(m =>
+          m.timestamp === placeholderId ? { ...m, content: errorContent } : m
         ));
       }
     }
@@ -1401,6 +1416,32 @@ if (!fullResponse) {
     try {
       const p = JSON.parse(msg.content);
       if (p?.t === 'file') {
+        // Skeleton loading state
+        if (p.loading) {
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(30,30,35,0.8)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', minWidth: 180, maxWidth: 260 }}>
+              <div style={{ width: 32, height: 32, background: 'linear-gradient(90deg, #1a1a1f 25%, #25252a 50%, #1a1a1f 75%)', backgroundSize: '200% 100%', borderRadius: 6, flexShrink: 0, animation: 'shimmer 1.5s ease-in-out infinite' }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                <div style={{ height: 12, width: '80%', background: 'linear-gradient(90deg, #1a1a1f 25%, #25252a 50%, #1a1a1f 75%)', backgroundSize: '200% 100%', borderRadius: 4, animation: 'shimmer 1.5s ease-in-out infinite', animationDelay: '0.1s' }} />
+                <div style={{ height: 10, width: '40%', background: 'linear-gradient(90deg, #1a1a1f 25%, #25252a 50%, #1a1a1f 75%)', backgroundSize: '200% 100%', borderRadius: 4, animation: 'shimmer 1.5s ease-in-out infinite', animationDelay: '0.2s' }} />
+              </div>
+            </div>
+          );
+        }
+        // Error state
+        if (p.error) {
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(239,68,68,0.08)', borderRadius: 10, border: '1px solid rgba(239,68,68,0.15)', minWidth: 180, maxWidth: 260 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'rgba(239,68,68,0.12)', borderRadius: 6, color: '#ef4444', flexShrink: 0 }}>
+                <AlertCircle size={14} />
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: '#ef4444', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.n}</span>
+                <span style={{ fontSize: 11, color: 'rgba(239,68,68,0.7)' }}>Upload failed</span>
+              </div>
+            </div>
+          );
+        }
         let FIcon: React.ComponentType<{ size?: number }> = FileText;
         if (p.e === 'json') FIcon = FileJson;
         else if (p.e === 'csv') FIcon = Table2;
