@@ -1704,31 +1704,29 @@ if (!fullResponse) {
                           else if (ext === 'csv') DocIcon = Table2;
                           else if (ext === 'pdf') DocIcon = FileWarning;
                           else if (['js', 'ts', 'py', 'sol'].includes(ext)) DocIcon = FileCode;
+                          const isError = file.status === 'error';
                           return (
                         <motion.div 
                           key={file.id}
-                          className={`ai-context-card ai-document-card ${file.status === 'error' ? 'ai-document-error' : 'ai-document-uploading'}`}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                            background: isError ? 'rgba(239,68,68,0.08)' : 'linear-gradient(135deg, rgba(40,40,45,0.95), rgba(30,30,35,0.95))',
+                            border: `1px solid ${isError ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)'}`,
+                            borderRadius: 12, minWidth: 200, maxWidth: 320,
+                          }}
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                         >
-                          <div className="ai-document-icon">
-                            {file.status === 'uploading' ? (
-                              <Loader2 size={16} className="ai-spin" />
-                            ) : file.status === 'error' ? (
-                              <AlertCircle size={16} />
-                            ) : (
-                              <DocIcon size={16} />
-                            )}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, background: isError ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.06)', borderRadius: 8, color: isError ? '#ef4444' : '#707078', flexShrink: 0 }}>
+                            {file.status === 'uploading' ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <AlertCircle size={16} />}
                           </div>
-                          <div className="ai-document-info">
-                            <span className="ai-document-name">{file.name}</span>
-                            <span className="ai-document-size">
-                              {file.status === 'uploading' ? 'Uploading...' : file.status === 'error' ? 'Upload failed' : formatFileSize(file.size)}
-                            </span>
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: isError ? '#ef4444' : '#c0c0c8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</span>
+                            <span style={{ fontSize: 11, color: isError ? 'rgba(239,68,68,0.7)' : '#707078' }}>{file.status === 'uploading' ? 'Uploading...' : 'Upload failed'}</span>
                           </div>
                           <button 
-                            className="ai-document-remove"
                             onClick={() => handleRemoveFile(file.id)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', borderRadius: 5, background: 'rgba(255,255,255,0.05)', color: '#606068', cursor: 'pointer', flexShrink: 0 }}
                           >
                             <X size={14} />
                           </button>
@@ -1744,20 +1742,25 @@ if (!fullResponse) {
                           return (
                         <motion.div 
                           key={file.id}
-                          className="ai-context-card ai-document-card"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                            background: 'linear-gradient(135deg, rgba(40,40,45,0.95), rgba(30,30,35,0.95))',
+                            border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, minWidth: 200, maxWidth: 320,
+                          }}
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                         >
-                          <div className="ai-document-icon">
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, background: 'rgba(127,119,221,0.15)', borderRadius: 8, color: '#7F77DD', flexShrink: 0 }}>
                             <DocIcon size={16} />
                           </div>
-                          <div className="ai-document-info">
-                            <span className="ai-document-name">{file.name}</span>
-                            <span className="ai-document-size">{formatFileSize(file.size)}</span>
+                          <div className="ai-document-info" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                            <span className="ai-document-name" style={{ fontSize: 13, fontWeight: 500, color: '#c0c0c8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</span>
+                            <span className="ai-document-size" style={{ fontSize: 11, color: '#707078' }}>{formatFileSize(file.size)}</span>
                           </div>
                           <button 
                             className="ai-document-remove"
                             onClick={() => handleRemoveFile(file.id)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', borderRadius: 5, background: 'rgba(255,255,255,0.05)', color: '#606068', cursor: 'pointer', flexShrink: 0 }}
                           >
                             <X size={14} />
                           </button>
