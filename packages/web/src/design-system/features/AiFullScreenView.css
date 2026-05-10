@@ -1114,53 +1114,76 @@
 }
 
 /* Markdown Table Styling - Claude-style */
+.ai-message-content .ai-result-table,
+.ai-message-content table.ai-result-table,
 .ai-message-content table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  max-width: 100%;
+  border-collapse: collapse;
   margin: 16px 0;
   font-size: 13px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a1f;
+  border-radius: 8px;
   overflow: hidden;
+  border: 1px solid #2a2a30;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+.ai-message-content .ai-result-table thead,
+.ai-message-content table.ai-result-table thead,
+.ai-message-content table thead {
+  background: linear-gradient(180deg, #25252d 0%, #1e1e24 100%);
+  border-bottom: 1px solid #3a3a42;
+}
+
+.ai-message-content .ai-result-table th,
+.ai-message-content table.ai-result-table th,
 .ai-message-content table th {
-  background: linear-gradient(180deg, rgba(127, 119, 221, 0.12) 0%, rgba(127, 119, 221, 0.06) 100%);
-  color: #a8a4d4;
-  font-weight: 500;
+  color: #9999a8;
+  font-weight: 600;
   text-align: left;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(127, 119, 221, 0.2);
+  padding: 10px 14px;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
+.ai-message-content .ai-result-table td,
+.ai-message-content table.ai-result-table td,
 .ai-message-content table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: #e0e0e8;
-  font-family: 'SF Mono', 'JetBrains Mono', 'Monaco', monospace;
-  font-size: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #2a2a30;
+  color: #e8e8ed;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
+.ai-message-content .ai-result-table tr:last-child td,
+.ai-message-content table.ai-result-table tr:last-child td,
 .ai-message-content table tr:last-child td {
   border-bottom: none;
 }
 
-.ai-message-content table tr:hover td {
-  background: rgba(127, 119, 221, 0.06);
+.ai-message-content .ai-result-table tr:hover,
+.ai-message-content table.ai-result-table tr:hover,
+.ai-message-content table tr:hover {
+  background: #25252d;
 }
 
-.ai-message-content table tr td:first-child {
+.ai-message-content .ai-result-table tr:hover td,
+.ai-message-content table.ai-result-table tr:hover td,
+.ai-message-content table tr:hover td {
+  background: transparent;
+}
+
+.ai-message-content .ai-result-table td:first-child,
+.ai-message-content table.ai-result-table td:first-child,
+.ai-message-content table td:first-child {
   color: #8b85c8;
   font-weight: 500;
-}
-
-.ai-message-content table tr:hover td:first-child {
-  color: #a8a4d4;
+  min-width: 120px;
 }
 
 .ai-message-content code {
