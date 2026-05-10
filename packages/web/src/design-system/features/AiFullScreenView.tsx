@@ -400,7 +400,13 @@ export function AiFullScreenView({
   const [inputValue, setInputValue] = useState('');
   const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
+    // Restore last active session from localStorage
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ft_active_session_id');
+    }
+    return null;
+  });
   
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; timestamp: number }[]>(() => {
     // Start with empty, will be filled by loadSessionMessages or fetchChatSessions
@@ -428,6 +434,13 @@ export function AiFullScreenView({
   const [selectedChain, setSelectedChain] = useState(currentChain);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
+  // Persist active session to localStorage
+  useEffect(() => {
+    if (activeSessionId && typeof window !== 'undefined') {
+      localStorage.setItem('ft_active_session_id', activeSessionId);
+    }
+  }, [activeSessionId]);
+
   // Computed: is anything running
   const isRunning = isLoading || isAnalyzing || isLoadingContext || isUploading;
   
@@ -526,8 +539,21 @@ const contractSuggestions = [
       const data = await apiRequest<{ sessions: any[] }>('/api/chat/sessions');
       if (data.sessions && data.sessions.length > 0) {
         setChatSessions(data.sessions);
-        setActiveSessionId(data.sessions[0].id);
-        loadSessionMessages(data.sessions[0].id);
+        
+        // Find the session to load: prefer saved activeSessionId, otherwise first one
+        let sessionToLoad = data.sessions[0].id;
+        
+        // Check if saved activeSessionId exists in the list
+        if (activeSessionId) {
+          const savedSessionExists = data.sessions.find((s: any) => s.id === activeSessionId);
+          if (savedSessionExists) {
+            sessionToLoad = activeSessionId;
+            console.log('[Chat] Restoring saved session:', sessionToLoad);
+          }
+        }
+        
+        setActiveSessionId(sessionToLoad);
+        loadSessionMessages(sessionToLoad);
       } else {
         // No sessions exist - create a new one
         createNewSession();
