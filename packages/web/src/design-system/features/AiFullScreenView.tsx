@@ -35,7 +35,9 @@ import {
   UserPlus,
   Zap,
   Brain,
-  XCircle
+  XCircle,
+  FileJson,
+  Table2,
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAuth } from '../../contexts/AuthContext';
@@ -377,6 +379,7 @@ interface UploadedFile {
   status: 'uploading' | 'processing' | 'ready' | 'error';
   fileUri?: string;
   mimeType?: string;
+  extractedText?: string;
 }
 
 interface WalletAttachment {
@@ -692,6 +695,7 @@ const contractSuggestions = [
           fileUri: f.fileUri,
           mimeType: f.mimeType,
           displayName: f.name,
+          extractedText: f.extractedText,
         }));
 
         const token = getAuthToken();
@@ -1124,6 +1128,7 @@ const handleSelectScan = async (scan: RecentScan) => {
         fileUri: f.fileUri,
         mimeType: f.mimeType,
         displayName: f.name,
+        extractedText: f.extractedText,
       }));
 
       const token = getAuthToken();
@@ -1309,6 +1314,7 @@ if (!fullResponse) {
               status: 'ready',
               fileUri: data.file.fileUri,
               mimeType: data.file.mimeType,
+              extractedText: data.file.extractedText,
             } : f
           ));
         } else {
@@ -1646,7 +1652,14 @@ if (!fullResponse) {
                           </button>
                         </motion.div>
                       )}
-                      {uploadedFiles.filter(f => f.status === 'ready').map((file) => (
+                      {uploadedFiles.filter(f => f.status === 'ready').map((file) => {
+                          const ext = (file.name.split('.').pop() || '').toLowerCase();
+                          let DocIcon: React.ComponentType<{ size?: number }> = FileText;
+                          if (ext === 'json') DocIcon = FileJson;
+                          else if (ext === 'csv') DocIcon = Table2;
+                          else if (ext === 'pdf') DocIcon = FileWarning;
+                          else if (['js', 'ts', 'py', 'sol'].includes(ext)) DocIcon = FileCode;
+                          return (
                         <motion.div 
                           key={file.id}
                           className="ai-context-card ai-document-card"
@@ -1654,7 +1667,7 @@ if (!fullResponse) {
                           animate={{ opacity: 1, y: 0 }}
                         >
                           <div className="ai-document-icon">
-                            <FileText size={16} />
+                            <DocIcon size={16} />
                           </div>
                           <div className="ai-document-info">
                             <span className="ai-document-name">{file.name}</span>
@@ -1667,7 +1680,7 @@ if (!fullResponse) {
                             <X size={14} />
                           </button>
                         </motion.div>
-                      ))}
+                      )}))}
                     </div>
                   )}
                   {isLoadingSession ? (
@@ -1793,17 +1806,26 @@ if (!fullResponse) {
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      {uploadedFiles.map((file) => (
+                      {uploadedFiles.map((file) => {
+                          const ext = (file.name.split('.').pop() || '').toLowerCase();
+                          let typeClass = '';
+                          let FileIcon: React.ComponentType<{ size?: number }> = FileText;
+                          if (ext === 'json') { typeClass = 'type-json'; FileIcon = FileJson; }
+                          else if (ext === 'csv') { typeClass = 'type-csv'; FileIcon = Table2; }
+                          else if (ext === 'pdf') { typeClass = 'type-pdf'; FileIcon = FileWarning; }
+                          else if (['js', 'ts', 'py', 'sol'].includes(ext)) { typeClass = 'type-code'; FileIcon = FileCode; }
+                          
+                          return (
                         <motion.div 
                           key={file.id}
-                          className={`ai-file-item ai-file-${file.status}`}
+                          className={`ai-file-item ai-file-${file.status} ${typeClass}`}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 20 }}
                           transition={{ duration: 0.2 }}
                         >
                           <div className="ai-file-icon">
-                            <FileText size={14} />
+                            <FileIcon size={14} />
                           </div>
                           <span className="ai-file-name">{file.name}</span>
                           {file.status === 'uploading' && (

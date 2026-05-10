@@ -4,6 +4,8 @@
 // ============================================================
 
 import OpenAI from 'openai';
+import fs from 'fs';
+import path from 'path';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
 
@@ -180,16 +182,59 @@ export async function callGemini(
   return response.choices[0]?.message?.content || '';
 }
 
-// Legacy export for file upload (not needed for Groq, but kept for compatibility)
+// Text-extractable file extensions and their MIME types
+const TEXT_EXTRACTABLE: Record<string, string> = {
+  'txt': 'text/plain',
+  'json': 'application/json',
+  'csv': 'text/csv',
+  'js': 'text/javascript',
+  'ts': 'text/typescript',
+  'py': 'text/x-python',
+  'sol': 'text/plain',
+};
+
+const MAX_TEXT_SIZE = 100000; // 100KB limit for extracted text
+
+function getFileExtension(displayName: string): string {
+  return (displayName.split('.').pop() || '').toLowerCase();
+}
+
+function extractTextContent(filePath: string, extension: string): string | undefined {
+  try {
+    if (!fs.existsSync(filePath)) return undefined;
+    const stat = fs.statSync(filePath);
+    if (stat.size > MAX_TEXT_SIZE) {
+      console.log(`[Upload] File too large for text extraction: ${stat.size} bytes`);
+      return undefined;
+    }
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return content.trim();
+  } catch (error) {
+    console.error(`[Upload] Failed to extract text from ${filePath}:`, error);
+    return undefined;
+  }
+}
+
 export async function uploadFileToGemini(
   filePath: string,
   displayName: string
 ): Promise<UploadedFile> {
-  // Groq doesn't have file API - return placeholder
-  // The file text extraction should be done elsewhere
+  const extension = getFileExtension(displayName);
+  const mimeType = TEXT_EXTRACTABLE[extension] || 'application/octet-stream';
+
+  let extractedText: string | undefined;
+
+  if (TEXT_EXTRACTABLE[extension]) {
+    extractedText = extractTextContent(filePath, extension);
+    if (extractedText) {
+      console.log(`[Upload] Extracted ${extractedText.length} chars from ${displayName}`);
+    }
+  }
+
   return {
     fileUri: filePath,
-    mimeType: 'application/octet-stream',
+    mimeType,
     displayName,
+    extractedText,
   };
 }

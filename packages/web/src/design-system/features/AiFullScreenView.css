@@ -883,29 +883,75 @@
 
 /* Uploaded Files - Hidden, using context cards instead */
 .ai-uploaded-files {
-  display: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 8px 16px;
 }
 
 .ai-file-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #141418;
-  border: 1px solid #1a1a1f;
-  border-radius: 8px;
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(30, 30, 35, 0.95) 0%, rgba(20, 20, 25, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  position: relative;
+  min-width: 180px;
+  max-width: 260px;
+}
+
+.ai-file-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #7F77DD;
+  border-radius: 10px 0 0 10px;
+  opacity: 0.6;
+}
+
+.ai-file-item.type-json::before {
+  background: #fbbf24;
+}
+
+.ai-file-item.type-csv::before {
+  background: #34d399;
+}
+
+.ai-file-item.type-pdf::before {
+  background: #ef4444;
+}
+
+.ai-file-item.type-code::before {
+  background: #60a5fa;
 }
 
 .ai-file-icon {
   display: flex;
   align-items: center;
-  color: #5a5a68;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(127, 119, 221, 0.12);
+  border-radius: 6px;
+  color: #7F77DD;
+  flex-shrink: 0;
 }
+
+.ai-file-item.type-json .ai-file-icon { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
+.ai-file-item.type-csv .ai-file-icon { background: rgba(52, 211, 153, 0.12); color: #34d399; }
+.ai-file-item.type-pdf .ai-file-icon { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+.ai-file-item.type-code .ai-file-icon { background: rgba(96, 165, 250, 0.12); color: #60a5fa; }
 
 .ai-file-name {
   flex: 1;
-  font-size: 11px;
-  color: #8a8a98;
+  font-size: 12px;
+  font-weight: 500;
+  color: #c0c0c8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -915,18 +961,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: #5a5a68;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #606068;
   cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .ai-file-remove:hover {
-  background: #1a1a1f;
-  color: #8a8a98;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ef4444;
 }
 
 /* Right Column - Chat History */

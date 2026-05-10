@@ -55,7 +55,12 @@ router.post('/file', async (req, res) => {
 
     res.json({
       success: true,
-      file: uploadedFile,
+      file: {
+        fileUri: uploadedFile.fileUri,
+        mimeType: uploadedFile.mimeType,
+        displayName: uploadedFile.displayName,
+        extractedText: uploadedFile.extractedText,
+      },
     });
   } catch (error: any) {
     console.error('[Upload] Error:', error);
