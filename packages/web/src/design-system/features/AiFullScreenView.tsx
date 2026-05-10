@@ -730,6 +730,14 @@ const contractSuggestions = [
           throw new Error('No response from AI');
         }
 
+        // Save assistant message to cache
+        const assistantMsg = {
+          role: 'assistant' as const,
+          content: fullResponse,
+          timestamp: Date.now(),
+        };
+        saveMessage(assistantMsg);
+
       } catch (error: any) {
         clearTimeout(loadingTimeout);
         const errorMsg = error.message?.includes('network') 
@@ -816,6 +824,14 @@ const contractSuggestions = [
         if (!fullResponse) {
           throw new Error('No response from AI');
         }
+
+        // Save assistant message to cache
+        const assistantMsg = {
+          role: 'assistant' as const,
+          content: fullResponse,
+          timestamp: Date.now(),
+        };
+        saveMessage(assistantMsg);
 
       } catch (error: any) {
         clearTimeout(loadingTimeout);
