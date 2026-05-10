@@ -38,8 +38,10 @@ import {
   XCircle,
   FileJson,
   Table2,
+  Shield,
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { AiAnalysisTableSkeleton, AiAnalysisTable, type AnalysisTableData } from './AiAnalysisTable';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHistory, type HistoryItem } from '../../utils/history';
 import { apiRequest, getAuthToken, API_BASE } from '../../api';
@@ -435,6 +437,7 @@ export function AiFullScreenView({
   const [isLoadingContext, setIsLoadingContext] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [selectedChain, setSelectedChain] = useState(currentChain);
+  const [analysisContext, setAnalysisContext] = useState<{ data: AnalysisTableData; contextText: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Persist active session to localStorage

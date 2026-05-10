@@ -371,7 +371,10 @@ export async function redis_getChat(uid: string, conversationId: string): Promis
     if (!r) return null;
     
     const data = await r.get(chatKey(uid, conversationId));
-    return data ? JSON.parse(data as string) : null;
+    if (!data) return null;
+    // Upstash auto-deserializes — data may already be an object or a string
+    if (typeof data === 'string') return JSON.parse(data);
+    return Array.isArray(data) ? data : null;
   } catch (error) {
     console.error('[Redis] Get chat error:', error);
     return null;
@@ -384,7 +387,7 @@ export async function redis_setChat(uid: string, conversationId: string, message
     if (!r) return;
     
     const trimmed = messages.slice(-MAX_CACHED_MESSAGES);
-    await r.setex(chatKey(uid, conversationId), CHAT_TTL, JSON.stringify(trimmed));
+    await r.setex(chatKey(uid, conversationId), CHAT_TTL, trimmed);
   } catch (error) {
     console.error('[Redis] Set chat error:', error);
   }
@@ -397,10 +400,17 @@ export async function redis_appendChat(uid: string, conversationId: string, mess
     
     const key = chatKey(uid, conversationId);
     const existing = await r.get(key);
-    const messages: ChatMessage[] = existing ? JSON.parse(existing as string) : [];
+    let messages: ChatMessage[] = [];
+    if (existing) {
+      if (typeof existing === 'string') {
+        try { messages = JSON.parse(existing); } catch { messages = []; }
+      } else if (Array.isArray(existing)) {
+        messages = existing;
+      }
+    }
     messages.push(message);
     const trimmed = messages.slice(-MAX_CACHED_MESSAGES);
-    await r.setex(key, CHAT_TTL, JSON.stringify(trimmed));
+    await r.setex(key, CHAT_TTL, trimmed);
   } catch (error) {
     console.error('[Redis] Append chat error:', error);
   }

@@ -226,7 +226,8 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
     res.write(`data: ${JSON.stringify({ type: 'status', message: 'Getting AI response...' })}\n\n`);
 
     let fullResponse = '';
-    
+    let responseEnded = false;
+
     try {
       for await (const chunk of callGeminiStream(context, question, geminiHistory, modelType, hasFiles ? attachedFiles : undefined)) {
         fullResponse += chunk;
@@ -241,9 +242,11 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
         })}\n\n`);
         res.write('data: [DONE]\n\n');
         res.end();
+        responseEnded = true;
       }
-      // If fullResponse has content, fall through to send complete + DONE below
     }
+
+    if (responseEnded) return;
 
     // Send completion
     if (fullResponse) {
@@ -256,6 +259,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
     res.end();
 
   } catch (error: any) {
+    if (responseEnded) return;
     console.error('[AI-Chat] Error:', error.message);
     res.write(`data: ${JSON.stringify({ 
       type: 'error', 

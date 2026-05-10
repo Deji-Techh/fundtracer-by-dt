@@ -32,7 +32,7 @@ const groq = new OpenAI({
 // Model mapping
 const MODELS = {
   flash: 'meta-llama/llama-4-scout-17b-16e-instruct',
-  pro: 'meta-llama/llama-4-maverick-17b-128e-instruct',
+  pro: 'llama-3.3-70b-versatile',
 };
 
 const SYSTEM_PROMPT = `You are FundTracer AI, an expert blockchain forensics analyst embedded inside FundTracer (fundtracer.xyz).
