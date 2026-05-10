@@ -196,10 +196,9 @@ export function AiAnalysisTable({ data }: { data: AnalysisTableData }) {
               <>
                 <TableRow label="Risk Level" value={<RiskBadge score={data.riskScore} level={data.riskLevel} />} />
                 <TableRow label="Total Transactions" value={data.totalTransactions?.toLocaleString() ?? 'N/A'} />
-                <TableRow label="Total Value Sent" value={data.totalValueSent !== undefined ? `${data.totalValueSent.toFixed(4)} ETH` : 'N/A'} />
-                <TableRow label="Total Value Received" value={data.totalValueReceived !== undefined ? `${data.totalValueReceived.toFixed(4)} ETH` : 'N/A'} />
-                <TableRow label="Activity Period" value={data.activityPeriodDays ? `${data.activityPeriodDays} days` : 'N/A'} />
-                <TableRow label="Balance" value={data.balance !== undefined ? `${data.balance.toFixed(4)} ETH` : 'N/A'} />
+                <TableRow label="Total Value Sent" value={data.totalValueSent !== undefined ? `${Number(data.totalValueSent).toFixed(4)} ETH` : 'N/A'} />
+                <TableRow label="Total Value Received" value={data.totalValueReceived !== undefined ? `${Number(data.totalValueReceived).toFixed(4)} ETH` : 'N/A'} />
+                <TableRow label="Balance" value={data.balance !== undefined ? `${Number(data.balance).toFixed(4)} ETH` : 'N/A'} />
                 <TableRow label="First Seen" value={data.firstSeen || 'N/A'} />
                 <TableRow label="Last Active" value={data.lastSeen || 'N/A'} />
               </>

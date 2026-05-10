@@ -1331,7 +1331,7 @@ if (!fullResponse) {
         // Upload to backend
         const token = getAuthToken();
         const uploadController = new AbortController();
-        const response = await fetch('/api/upload/file', {
+        const response = await fetch(`${API_BASE}/api/upload/file`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
