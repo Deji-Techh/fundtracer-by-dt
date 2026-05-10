@@ -1362,6 +1362,15 @@ if (!fullResponse) {
               extractedText: data.file.extractedText,
             } : f
           ));
+          // Add as a user message on the right side
+          const ext = (file.name.split('.').pop() || '').toLowerCase();
+          const fileMsg = {
+            role: 'user' as const,
+            content: JSON.stringify({ t: 'file', n: file.name, s: formatFileSize(file.size), id: fileId, e: ext }),
+            timestamp: Date.now(),
+          };
+          setMessages(prev => [...prev, fileMsg]);
+          try { await saveMessage(fileMsg); } catch (e) { console.error('[Chat] Failed to save file message:', e); }
         } else {
           throw new Error(data.error || 'Upload failed');
         }
@@ -1830,7 +1839,7 @@ if (!fullResponse) {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.1 }}
                       >
-                        <MDContent content={msg.content} />
+                        {renderMessageContent(msg)}
                         <div className="ai-message-footer">
                           {msg.role === 'assistant' && (
                             <div className="ai-model-badges">
