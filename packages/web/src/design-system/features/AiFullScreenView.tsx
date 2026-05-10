@@ -635,6 +635,7 @@ const contractSuggestions = [
       setUploadedFiles([]);
       setAttachmentMode('none');
       setInputValue('');
+      setAnalysisContext(null);
       
       const newSessionId = await createConversation(user.uid, 'New Conversation');
       
@@ -1093,7 +1094,7 @@ const handleSelectScan = async (scan: RecentScan) => {
         totalValueSent: summary?.totalValueSentEth,
         totalValueReceived: summary?.totalValueReceivedEth,
         activityPeriodDays: summary?.activityPeriodDays ?? (result.wallet?.createdAt ? Math.round((Date.now() - new Date(result.wallet.createdAt).getTime()) / 86400000) : undefined),
-        balance: result.wallet?.balance,
+        balance: result.wallet?.balanceInEth != null ? Number(result.wallet.balanceInEth) : undefined,
         firstSeen: result.wallet?.createdAt,
         lastSeen: result.wallet?.lastActive,
         flags: (result.suspiciousIndicators || []).map((s: any) => s.description || s),
