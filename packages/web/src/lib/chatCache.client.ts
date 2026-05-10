@@ -19,6 +19,22 @@ interface ConversationRecord {
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
+// In-memory lock per conversationId to serialize concurrent idb_append calls
+const appendLocks = new Map<string, Promise<void>>();
+
+async function acquireAppendLock(conversationId: string): Promise<() => void> {
+  while (appendLocks.has(conversationId)) {
+    await appendLocks.get(conversationId);
+  }
+  let release: () => void;
+  const lock = new Promise<void>((resolve) => { release = resolve; });
+  appendLocks.set(conversationId, lock);
+  return () => {
+    appendLocks.delete(conversationId);
+    release!();
+  };
+}
+
 async function getDB(): Promise<IDBPDatabase> {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
@@ -62,13 +78,13 @@ export async function idb_save(conversationId: string, uid: string, messages: Ch
 }
 
 export async function idb_append(conversationId: string, message: ChatMessage): Promise<void> {
+  const release = await acquireAppendLock(conversationId);
   try {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
     let record = await tx.store.get(conversationId);
     
     if (!record) {
-      // Create new record if doesn't exist
       record = {
         id: conversationId,
         uid: '',
@@ -79,12 +95,14 @@ export async function idb_append(conversationId: string, message: ChatMessage): 
     
     record.messages.push(message);
     record.updatedAt = Date.now();
-    console.log('[IDB] Message being added:', message.role, 'content length:', message.content.length);
+    console.log('[IDB] Appending message:', message.role, 'content length:', message.content.length);
     await tx.store.put(record);
     await tx.done;
-    console.log('[IDB] Appended message, total messages:', record.messages.length, 'last role:', record.messages[record.messages.length - 1].role);
+    console.log('[IDB] Appended message, total messages:', record.messages.length);
   } catch (error) {
     console.error('[IDB] Append error:', error);
+  } finally {
+    release();
   }
 }
 

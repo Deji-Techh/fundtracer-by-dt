@@ -673,7 +673,7 @@ const contractSuggestions = [
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
-    saveMessage(userMessage);
+    try { await saveMessage(userMessage); } catch (e) { console.error('[Chat] Failed to save user message:', e); }
     
     // Safety timeout - ensure loading is reset after 5 seconds (backup)
     const loadingTimeout = setTimeout(() => {
@@ -767,7 +767,7 @@ const contractSuggestions = [
           content: fullResponse,
           timestamp: Date.now(),
         };
-        saveMessage(assistantMsg);
+        try { await saveMessage(assistantMsg); } catch (e) { console.error('[Chat] Failed to save assistant message:', e); }
 
       } catch (error: any) {
         clearTimeout(loadingTimeout);
@@ -862,7 +862,7 @@ const contractSuggestions = [
           content: fullResponse,
           timestamp: Date.now(),
         };
-        saveMessage(assistantMsg);
+        try { await saveMessage(assistantMsg); } catch (e) { console.error('[Chat] Failed to save assistant message:', e); }
 
       } catch (error: any) {
         clearTimeout(loadingTimeout);
@@ -904,7 +904,7 @@ const contractSuggestions = [
     createNewSession();
   };
 
-const handleSelectScan = (scan: RecentScan) => {
+const handleSelectScan = async (scan: RecentScan) => {
     setSelectedScanId(scan.id);
     setIsLoadingContext(true);
     
@@ -945,6 +945,8 @@ const handleSelectScan = (scan: RecentScan) => {
     };
     
     setMessages(prev => [...prev, userMessage, assistantMessage]);
+    try { await saveMessage(userMessage); } catch (e) { console.error('[Chat] Failed to save scan user message:', e); }
+    try { await saveMessage(assistantMessage); } catch (e) { console.error('[Chat] Failed to save scan assistant message:', e); }
     setIsLoadingContext(false);
   };
 
@@ -1038,7 +1040,7 @@ const handleSelectScan = (scan: RecentScan) => {
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, assistantMessage]);
-        saveMessage(assistantMessage);
+        try { await saveMessage(assistantMessage); } catch (e) { console.error('[Chat] Failed to save analysis result:', e); }
       } else {
         throw new Error('No response from AI');
       }
@@ -1056,7 +1058,7 @@ const handleSelectScan = (scan: RecentScan) => {
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, errorMessage]);
-      saveMessage(errorMessage);
+      try { await saveMessage(errorMessage); } catch (e) { console.error('[Chat] Failed to save error message:', e); }
     } finally {
       setIsAnalyzing(false);
     }
@@ -1074,6 +1076,7 @@ const handleSelectScan = (scan: RecentScan) => {
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
+    try { await saveMessage(userMessage); } catch (e) { console.error('[Chat] Failed to save user message:', e); }
     
     // Safety timeout
     const loadingTimeout = setTimeout(() => {
@@ -1173,7 +1176,7 @@ if (!fullResponse) {
           content: fullResponse,
           timestamp: Date.now(),
         };
-        saveMessage(assistantMsg);
+        try { await saveMessage(assistantMsg); } catch (e) { console.error('[Chat] Failed to save assistant message:', e); }
 
       } catch (error: any) {
       // Handle abort errors gracefully
@@ -1191,11 +1194,13 @@ if (!fullResponse) {
         ? 'Network error. Please check your connection and try again.' 
         : `Sorry, something went wrong. ${error.message || 'Please try again.'}`;
       
-      setMessages(prev => [...prev, {
-        role: 'assistant',
+      const errorMessage = {
+        role: 'assistant' as const,
         content: errorMsg,
-        timestamp: Date.now()
-      }]);
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      try { await saveMessage(errorMessage); } catch (e) { console.error('[Chat] Failed to save error message:', e); }
     } finally {
       clearTimeout(loadingTimeout);
       setIsLoading(false);
