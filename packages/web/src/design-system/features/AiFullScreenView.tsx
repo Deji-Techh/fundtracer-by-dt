@@ -774,11 +774,13 @@ const contractSuggestions = [
         const errorMsg = error.message?.includes('network') 
           ? 'Network error. Please check your connection and try again.' 
           : `Sorry, something went wrong. ${error.message || 'Please try again.'}`;
-        setMessages(prev => [...prev, {
-          role: 'assistant',
+        const docErrMsg = {
+          role: 'assistant' as const,
           content: errorMsg,
-          timestamp: Date.now()
-        }]);
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, docErrMsg]);
+        try { await saveMessage(docErrMsg); } catch (e) { console.error('[Chat] Failed to save error message:', e); }
       } finally {
         clearTimeout(loadingTimeout);
         setIsLoading(false);
@@ -881,11 +883,13 @@ const contractSuggestions = [
         const errorMsg = error.message?.includes('network') 
           ? 'Network error. Please check your connection and try again.' 
           : `Sorry, something went wrong. ${error.message || 'Please try again.'}`;
-        setMessages(prev => [...prev, {
-          role: 'assistant',
+        const errMessage = {
+          role: 'assistant' as const,
           content: errorMsg,
-          timestamp: Date.now()
-        }]);
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, errMessage]);
+        try { await saveMessage(errMessage); } catch (e) { console.error('[Chat] Failed to save error message:', e); }
       } finally {
         clearTimeout(loadingTimeout);
         setIsLoading(false);

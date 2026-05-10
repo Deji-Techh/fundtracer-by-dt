@@ -21,11 +21,50 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
 // ─── READ: load conversation history ──────────────────────────
 export async function loadHistory(uid: string, conversationId: string): Promise<ChatMessage[]> {
   console.log('[Cache] loadHistory called for:', conversationId);
-  // 1. Check IndexedDB first — 0ms, no network
   const local = await idb_get(conversationId);
   console.log('[Cache] IndexedDB result:', local ? `got ${local.length} messages` : 'null/empty');
+
   if (local && local.length > 0) {
-    console.log('[Cache] IndexedDB hit, returning messages');
+    // Always check remote for newer/more messages — IDB may be stale
+    // if user navigated away before an async save completed
+    try {
+      const response = await fetchWithAuth(`${API_BASE}/api/chat/cache?cid=${conversationId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const remote = data.messages || [];
+        if (remote.length > local.length) {
+          console.log('[Cache] Redis has more messages than IDB, using Redis. IDB:', local.length, 'Redis:', remote.length);
+          await idb_save(conversationId, uid, remote);
+          return remote;
+        }
+      }
+    } catch {
+      // Redis unavailable — fall through to IDB result
+    }
+
+    // Even without Redis, try Firestore before trusting IDB
+    if (local.length <= 1) {
+      try {
+        const fsRes = await fetchWithAuth(`${API_BASE}/api/chat/sessions/${conversationId}/messages`);
+        if (fsRes.ok) {
+          const fsData = await fsRes.json();
+          const fsMessages = fsData.messages || [];
+          if (fsMessages.length > local.length) {
+            console.log('[Cache] Firestore has more messages than IDB. IDB:', local.length, 'FS:', fsMessages.length);
+            await idb_save(conversationId, uid, fsMessages);
+            fetchWithAuth(`${API_BASE}/api/chat/cache`, {
+              method: 'POST',
+              body: JSON.stringify({ conversationId, messages: fsMessages }),
+            });
+            return fsMessages;
+          }
+        }
+      } catch {
+        // Firestore unavailable — fall through
+      }
+    }
+
+    console.log('[Cache] IndexedDB is most complete, returning local messages');
     return local;
   }
 
@@ -36,7 +75,6 @@ export async function loadHistory(uid: string, conversationId: string): Promise<
       const data = await response.json();
       if (data.messages && data.messages.length > 0) {
         console.log('[Cache] Redis hit');
-        // Backfill IndexedDB for next time
         await idb_save(conversationId, uid, data.messages);
         return data.messages;
       }
@@ -52,9 +90,7 @@ export async function loadHistory(uid: string, conversationId: string): Promise<
     if (response.ok) {
       const data = await response.json();
       const messages = data.messages || [];
-      // Backfill both caches
       await idb_save(conversationId, uid, messages);
-      // Also update Redis cache in background
       fetchWithAuth(`${API_BASE}/api/chat/cache`, {
         method: 'POST',
         body: JSON.stringify({ conversationId, messages }),
