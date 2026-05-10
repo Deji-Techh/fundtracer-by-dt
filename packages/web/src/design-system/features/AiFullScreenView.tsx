@@ -1697,6 +1697,43 @@ if (!fullResponse) {
                           </button>
                         </motion.div>
                       )}
+                      {uploadedFiles.filter(f => f.status !== 'ready').map((file) => {
+                          const ext = (file.name.split('.').pop() || '').toLowerCase();
+                          let DocIcon: React.ComponentType<{ size?: number }> = FileText;
+                          if (ext === 'json') DocIcon = FileJson;
+                          else if (ext === 'csv') DocIcon = Table2;
+                          else if (ext === 'pdf') DocIcon = FileWarning;
+                          else if (['js', 'ts', 'py', 'sol'].includes(ext)) DocIcon = FileCode;
+                          return (
+                        <motion.div 
+                          key={file.id}
+                          className={`ai-context-card ai-document-card ${file.status === 'error' ? 'ai-document-error' : 'ai-document-uploading'}`}
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          <div className="ai-document-icon">
+                            {file.status === 'uploading' ? (
+                              <Loader2 size={16} className="ai-spin" />
+                            ) : file.status === 'error' ? (
+                              <AlertCircle size={16} />
+                            ) : (
+                              <DocIcon size={16} />
+                            )}
+                          </div>
+                          <div className="ai-document-info">
+                            <span className="ai-document-name">{file.name}</span>
+                            <span className="ai-document-size">
+                              {file.status === 'uploading' ? 'Uploading...' : file.status === 'error' ? 'Upload failed' : formatFileSize(file.size)}
+                            </span>
+                          </div>
+                          <button 
+                            className="ai-document-remove"
+                            onClick={() => handleRemoveFile(file.id)}
+                          >
+                            <X size={14} />
+                          </button>
+                        </motion.div>
+                      )})}
                       {uploadedFiles.filter(f => f.status === 'ready').map((file) => {
                           const ext = (file.name.split('.').pop() || '').toLowerCase();
                           let DocIcon: React.ComponentType<{ size?: number }> = FileText;

@@ -881,12 +881,9 @@
   font-size: 11px;
 }
 
-/* Uploaded Files - Hidden, using context cards instead */
+/* Uploaded Files - Show in context cards instead */
 .ai-uploaded-files {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0 16px 8px 16px;
+  display: none;
 }
 
 .ai-file-item {
@@ -1184,8 +1181,31 @@
 }
 
 .ai-document-remove:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #a0a0a8;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ef4444;
+}
+
+.ai-document-uploading .ai-document-icon {
+  background: rgba(255, 255, 255, 0.06);
+  color: #707078;
+}
+
+.ai-document-error .ai-document-icon {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.ai-document-error .ai-document-name {
+  color: #ef4444;
+}
+
+.ai-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .ai-context-card-icon {
