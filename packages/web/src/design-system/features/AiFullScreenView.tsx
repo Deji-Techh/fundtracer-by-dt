@@ -1330,7 +1330,7 @@ if (!fullResponse) {
 
         // Upload to backend
         const token = getAuthToken();
-        abortControllerRef.current = new AbortController();
+        const uploadController = new AbortController();
         const response = await fetch('/api/upload/file', {
           method: 'POST',
           headers: {
@@ -1342,7 +1342,7 @@ if (!fullResponse) {
             fileName: file.name,
             mimeType: file.type,
           }),
-          signal: abortControllerRef.current.signal
+          signal: uploadController.signal
         });
 
         if (!response.ok) {
