@@ -105,38 +105,46 @@ function renderMarkdown(content: string): string {
   
   let html = content;
   
-  // Split into blocks and process each block
+  // First, normalize tables by splitting rows that are on same line
+  // Match patterns like: | X | Y | |---|-| | A | B |
+  html = html.replace(/(\|[^\n|]+)\|(\s*)(\|[^\n|]+\|)+/g, (match) => {
+    return match.replace(/\|(\s*)\|/g, '\n|$1|');
+  });
+  
+  // Now split into blocks and process
   const blocks = html.split(/\n\n+/);
   const processedBlocks = blocks.map(block => {
-    // Check if this block is a markdown table
-    if (block.includes('|') && block.includes('| --- |')) {
-      const lines = block.split('\n').filter(line => line.trim());
-      if (lines.length < 2) return block;
-      
-      const rows: string[] = [];
-      let isHeader = true;
-      
-      for (const line of lines) {
-        // Skip separator lines
-        if (line.match(/\|[\s:-]+/)) {
-          isHeader = false;
-          continue;
-        }
-        
-        const cells = line.split('|').filter(c => c.trim());
-        if (cells.length === 0) continue;
-        
-        if (isHeader) {
-          rows.push('<tr>' + cells.map(c => `<th>${c.trim()}</th>`).join('') + '</tr>');
-          isHeader = false;
-        } else {
-          rows.push('<tr>' + cells.map(c => `<td>${c.trim()}</td>`).join('') + '</tr>');
-        }
+    // Check if this block contains table-like structure
+    const hasTableStart = block.includes('|') && block.match(/\|[^\n|]+\|[^\n|]*\|/);
+    if (!hasTableStart) return block;
+    
+    // Split by lines and filter
+    const lines = block.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return block;
+    
+    const rows: string[] = [];
+    let isHeader = true;
+    
+    for (const line of lines) {
+      // Skip separator lines (contains --- or :-)
+      if (line.match(/\|[\s:-]+/) || line.match(/\|[\s]*---[\s]*\|/)) {
+        isHeader = false;
+        continue;
       }
       
-      if (rows.length > 1) {
-        return `<table class="ai-result-table"><thead>${rows[0]}</thead><tbody>${rows.slice(1).join('')}</tbody></table>`;
+      const cells = line.split('|').filter(c => c.trim());
+      if (cells.length < 2) continue;
+      
+      if (isHeader) {
+        rows.push('<tr>' + cells.map(c => `<th>${c.trim()}</th>`).join('') + '</tr>');
+        isHeader = false;
+      } else {
+        rows.push('<tr>' + cells.map(c => `<td>${c.trim()}</td>`).join('') + '</tr>');
       }
+    }
+    
+    if (rows.length > 1) {
+      return `<table class="ai-result-table"><thead>${rows[0]}</thead><tbody>${rows.slice(1).join('')}</tbody></table>`;
     }
     return block;
   });
