@@ -1102,7 +1102,7 @@ const handleSelectScan = async (scan: RecentScan) => {
           label: p.projectName || p.label || 'Unknown',
           count: p.interactionCount || p.count || 0,
         })),
-        fundingSources: (result.fundingSources?.nodes || result.fundingSources || []).map((n: any) => n.address || n),
+        fundingSources: (result.fundingSources?.nodes && Array.isArray(result.fundingSources.nodes) ? result.fundingSources.nodes.map((n: any) => n.address || n) : []),
         sybilCluster: result.sybilCluster,
         contractName: result.wallet?.contractName || result.contract?.name,
         contractType: result.contract?.type,
