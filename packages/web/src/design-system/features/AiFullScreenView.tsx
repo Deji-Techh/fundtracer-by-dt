@@ -1680,7 +1680,7 @@ if (!fullResponse) {
                             <X size={14} />
                           </button>
                         </motion.div>
-                      )}))}
+                      )})}
                     </div>
                   )}
                   {isLoadingSession ? (
