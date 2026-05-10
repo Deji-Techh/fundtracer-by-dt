@@ -571,11 +571,16 @@ const contractSuggestions = [
   };
 
   const saveMessage = async (message: { role: 'user' | 'assistant'; content: string; timestamp: number }) => {
-    if (!activeSessionId || !user?.uid) return;
+    console.log('[SaveMessage] Called:', { hasSession: !!activeSessionId, hasUser: !!user?.uid, role: message.role, contentLength: message.content.length });
+    if (!activeSessionId || !user?.uid) {
+      console.log('[SaveMessage] Skipped - missing session or user');
+      return;
+    }
     try {
       await orchestratorSaveMessage(user.uid, activeSessionId, message.role, message.content);
+      console.log('[SaveMessage] Saved successfully');
     } catch (error) {
-      console.error('Failed to save message:', error);
+      console.error('[SaveMessage] Failed to save message:', error);
     }
   };
 

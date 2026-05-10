@@ -68,22 +68,32 @@ export async function loadHistory(uid: string, conversationId: string): Promise<
 
 // ─── WRITE: save a message to all three layers ─────────────────
 export async function saveMessage(uid: string, conversationId: string, role: 'user' | 'assistant', content: string): Promise<void> {
+  console.log('[Orchestrator] saveMessage called:', { uid, conversationId, role, contentLength: content.length });
   const message: ChatMessage = { role, content, timestamp: Date.now() };
 
   // 1. IndexedDB — instant, no network (do this FIRST for UI speed)
-  await idb_append(conversationId, message);
+  try {
+    await idb_append(conversationId, message);
+    console.log('[Orchestrator] IndexedDB saved');
+  } catch (err) {
+    console.error('[Orchestrator] IndexedDB failed:', err);
+  }
 
   // 2. Redis — fire and forget (via backend)
   fetchWithAuth(`${API_BASE}/api/chat/message`, {
     method: 'POST',
     body: JSON.stringify({ conversationId, role, content }),
-  }).catch(err => console.error('[Cache] Redis save error:', err));
+  })
+    .then(() => console.log('[Orchestrator] Redis saved'))
+    .catch(err => console.error('[Orchestrator] Redis save error:', err));
 
   // 3. Firestore — fire and forget
   fetchWithAuth(`${API_BASE}/api/chat/sessions/${conversationId}/messages`, {
     method: 'POST',
     body: JSON.stringify({ role, content, timestamp: Date.now() }),
-  }).catch(err => console.error('[Cache] Firestore save error:', err));
+  })
+    .then(() => console.log('[Orchestrator] Firestore saved'))
+    .catch(err => console.error('[Orchestrator] Firestore save error:', err));
 }
 
 // ─── CREATE: create new conversation ──────────────────────────

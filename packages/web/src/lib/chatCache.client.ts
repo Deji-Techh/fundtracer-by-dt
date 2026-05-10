@@ -63,15 +63,23 @@ export async function idb_append(conversationId: string, message: ChatMessage): 
   try {
     const db = await getDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    const record = await tx.store.get(conversationId);
+    let record = await tx.store.get(conversationId);
     
-    if (record) {
-      record.messages.push(message);
-      record.updatedAt = Date.now();
-      await tx.store.put(record);
+    if (!record) {
+      // Create new record if doesn't exist
+      record = {
+        id: conversationId,
+        uid: '',
+        messages: [],
+        updatedAt: Date.now()
+      };
     }
     
+    record.messages.push(message);
+    record.updatedAt = Date.now();
+    await tx.store.put(record);
     await tx.done;
+    console.log('[IDB] Appended message, total messages:', record.messages.length);
   } catch (error) {
     console.error('[IDB] Append error:', error);
   }
