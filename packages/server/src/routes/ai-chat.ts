@@ -185,6 +185,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
           message: `Failed to analyze ${addressType}: ${analysisError.message}` 
         })}\n\n`);
         res.write('data: [DONE]\n\n');
+        res.end();
         return;
       }
 
@@ -238,7 +239,10 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
           type: 'error', 
           message: 'Failed to get AI response. Please try again.' 
         })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
       }
+      // If fullResponse has content, fall through to send complete + DONE below
     }
 
     // Send completion
@@ -249,6 +253,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
       })}\n\n`);
     }
     res.write('data: [DONE]\n\n');
+    res.end();
 
   } catch (error: any) {
     console.error('[AI-Chat] Error:', error.message);
@@ -257,6 +262,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
       message: error.message || 'An unexpected error occurred' 
     })}\n\n`);
     res.write('data: [DONE]\n\n');
+    res.end();
   }
 });
 

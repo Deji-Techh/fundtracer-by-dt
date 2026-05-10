@@ -827,6 +827,7 @@ const contractSuggestions = [
         }
 
         let fullResponse = '';
+        let streamComplete = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -837,7 +838,7 @@ const contractSuggestions = [
 
           for (const line of lines) {
             const data = line.slice(6);
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') { streamComplete = true; continue; }
 
             try {
               const parsed = JSON.parse(data);
@@ -851,9 +852,15 @@ const contractSuggestions = [
                 ));
               } else if (parsed.type === 'error') {
                 throw new Error(parsed.message);
+              } else if (parsed.type === 'complete') {
+                streamComplete = true;
+                if (parsed.fullResponse) fullResponse = parsed.fullResponse;
               }
-            } catch {}
+            } catch (e) {
+              if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
+            }
           }
+          if (streamComplete) break;
         }
 
         if (!fullResponse) {
@@ -1007,6 +1014,7 @@ const handleSelectScan = async (scan: RecentScan) => {
       const decoder = new TextDecoder();
       let fullResponse = '';
       let analysisData = null;
+      let streamComplete = false;
 
       if (!reader) {
         throw new Error('No response stream');
@@ -1021,7 +1029,7 @@ const handleSelectScan = async (scan: RecentScan) => {
 
         for (const line of lines) {
           const data = line.slice(6);
-          if (data === '[DONE]') continue;
+          if (data === '[DONE]') { streamComplete = true; continue; }
 
           try {
             const parsed = JSON.parse(data);
@@ -1032,9 +1040,15 @@ const handleSelectScan = async (scan: RecentScan) => {
               fullResponse += parsed.content;
             } else if (parsed.type === 'error') {
               throw new Error(parsed.message);
+            } else if (parsed.type === 'complete') {
+              streamComplete = true;
+              if (parsed.fullResponse) fullResponse = parsed.fullResponse;
             }
-          } catch {}
+          } catch (e) {
+            if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
+          }
         }
+        if (streamComplete) break;
       }
 
       if (analysisData || fullResponse) {
@@ -1150,35 +1164,42 @@ const handleSelectScan = async (scan: RecentScan) => {
         throw new Error('No response stream');
       }
 
-      let fullResponse = '';
+        let fullResponse = '';
+        let streamComplete = false;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
 
-        for (const line of lines) {
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
+          for (const line of lines) {
+            const data = line.slice(6);
+            if (data === '[DONE]') { streamComplete = true; continue; }
 
-          try {
-            const parsed = JSON.parse(data);
-            
-            if (parsed.type === 'chunk') {
-              fullResponse += parsed.content;
-              setMessages(prev => prev.map(m => 
-                m.timestamp === placeholderId 
-                  ? { ...m, content: fullResponse }
-                  : m
-              ));
-            } else if (parsed.type === 'error') {
-              throw new Error(parsed.message);
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.type === 'chunk') {
+                fullResponse += parsed.content;
+                setMessages(prev => prev.map(m => 
+                  m.timestamp === placeholderId 
+                    ? { ...m, content: fullResponse }
+                    : m
+                ));
+              } else if (parsed.type === 'error') {
+                throw new Error(parsed.message);
+              } else if (parsed.type === 'complete') {
+                streamComplete = true;
+                if (parsed.fullResponse) fullResponse = parsed.fullResponse;
+              }
+            } catch (e) {
+              if (e instanceof Error && !(e instanceof SyntaxError)) throw e;
             }
-          } catch {}
+          }
+          if (streamComplete) break;
         }
-      }
 
 if (!fullResponse) {
           throw new Error('No response from AI');
