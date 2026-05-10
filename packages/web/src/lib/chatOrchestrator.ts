@@ -106,7 +106,7 @@ export async function loadHistory(uid: string, conversationId: string): Promise<
 
 // ─── WRITE: save a message to all three layers ─────────────────
 export async function saveMessage(uid: string, conversationId: string, role: 'user' | 'assistant', content: string): Promise<void> {
-  console.log('[Orchestrator] saveMessage called:', { uid, conversationId, role, contentLength: content.length });
+  console.log('[Orchestrator] saveMessage conv:', conversationId, 'role:', role, 'len:', content.length);
   const message: ChatMessage = { role, content, timestamp: Date.now() };
 
   // 1. IndexedDB — instant, no network (do this FIRST for UI speed)

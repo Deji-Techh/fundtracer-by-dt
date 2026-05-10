@@ -597,16 +597,18 @@ const contractSuggestions = [
   };
 
   const saveMessage = async (message: { role: 'user' | 'assistant'; content: string; timestamp: number }) => {
-    console.log('[SaveMessage] Called:', { hasSession: !!activeSessionId, hasUser: !!user?.uid, role: message.role, contentLength: message.content.length });
-    if (!activeSessionId || !user?.uid) {
+    const sid = activeSessionId;
+    const uid = user?.uid;
+    console.log('[SaveMessage] Called - session:', sid, 'hasUser:', !!uid, 'role:', message.role, 'len:', message.content.length);
+    if (!sid || !uid) {
       console.log('[SaveMessage] Skipped - missing session or user');
       return;
     }
     try {
-      await orchestratorSaveMessage(user.uid, activeSessionId, message.role, message.content);
-      console.log('[SaveMessage] Saved successfully');
+      await orchestratorSaveMessage(uid, sid, message.role, message.content);
+      console.log('[SaveMessage] Saved OK');
     } catch (error) {
-      console.error('[SaveMessage] Failed to save message:', error);
+      console.error('[SaveMessage] Failed:', error);
     }
   };
 
@@ -963,6 +965,10 @@ const handleSelectScan = async (scan: RecentScan) => {
   const handleAcceptWallet = async () => {
     if (!inputValue.trim()) return;
 
+    if (!activeSessionId) {
+      await createNewSession();
+    }
+
     const isWallet = attachmentMode === 'wallet';
     const address = inputValue.trim();
     
@@ -1070,6 +1076,10 @@ const handleSelectScan = async (scan: RecentScan) => {
 
   const handleSendWithAttachment = async () => {
     if (!inputValue.trim() || !walletAttachment || isLoading) return;
+
+    if (!activeSessionId) {
+      await createNewSession();
+    }
 
     const userMessage = {
       role: 'user' as const,
