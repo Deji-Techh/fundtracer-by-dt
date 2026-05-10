@@ -88,6 +88,43 @@
   letter-spacing: -0.01em;
 }
 
+.ai-header-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #6a6a75;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  margin-left: 8px;
+}
+
+.ai-header-status.analyzing {
+  color: #EF9F27;
+  background: rgba(239, 159, 39, 0.1);
+}
+
+.ai-header-status.idle {
+  color: #1DB87A;
+  background: rgba(29, 184, 122, 0.08);
+}
+
+.ai-status-dot-header {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.ai-status-dot-header.analyzing {
+  background: #EF9F27;
+  animation: pulse-amber 1.5s ease-in-out infinite;
+}
+
+.ai-status-dot-header.idle {
+  background: #1DB87A;
+}
+
 .ai-header-actions {
   display: flex;
   align-items: center;
@@ -380,6 +417,73 @@
   color: #4a4a55;
   margin-top: 6px;
   display: block;
+}
+
+.ai-message-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-model-badges {
+  display: flex;
+  gap: 6px;
+}
+
+.ai-model-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ai-model-badge.maverick {
+  background: rgba(127, 119, 221, 0.15);
+  color: #7F77DD;
+  border: 0.5px solid rgba(127, 119, 221, 0.3);
+}
+
+.ai-model-badge.scout {
+  background: rgba(29, 184, 122, 0.12);
+  color: #1DB87A;
+  border: 0.5px solid rgba(29, 184, 122, 0.25);
+}
+
+.ai-chain-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 0.5px solid;
+}
+
+.ai-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ai-status-dot.analyzing {
+  background: #EF9F27;
+  box-shadow: 0 0 6px rgba(239, 159, 39, 0.5);
+  animation: pulse-amber 1.5s ease-in-out infinite;
+}
+
+.ai-status-dot.idle {
+  background: #1DB87A;
+  box-shadow: 0 0 4px rgba(29, 184, 122, 0.3);
+}
+
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Typing Indicator */

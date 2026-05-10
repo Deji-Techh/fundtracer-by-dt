@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { 
   X, 
   Plus, 
@@ -18,7 +20,22 @@ import {
   Check,
   ChevronDown,
   AlertCircle,
-  Square
+  Square,
+  Search,
+  GitBranch,
+  Users,
+  AlertTriangle,
+  BarChart3,
+  Link2,
+  FileWarning,
+  Key,
+  Droplets,
+  Printer,
+  Skull,
+  UserPlus,
+  Zap,
+  Brain,
+  XCircle
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,6 +43,47 @@ import { getHistory, type HistoryItem } from '../../utils/history';
 import { apiRequest, getAuthToken, API_BASE } from '../../api';
 import { loadHistory, saveMessage as orchestratorSaveMessage, createConversation } from '../../lib/chatOrchestrator';
 import './AiFullScreenView.css';
+
+// Design tokens
+const T = {
+  bg: '#08080f',
+  surface: '#0f0f1a',
+  surfaceAlt: '#13131f',
+  border: 'rgba(255,255,255,0.07)',
+  borderHov: 'rgba(255,255,255,0.14)',
+  accent: '#7F77DD',
+  accentDim: 'rgba(127,119,221,0.14)',
+  accentBord: 'rgba(127,119,221,0.32)',
+  green: '#1DB87A',
+  greenDim: 'rgba(29,184,122,0.12)',
+  red: '#E24B4A',
+  redDim: 'rgba(226,75,74,0.1)',
+  amber: '#EF9F27',
+  amberDim: 'rgba(239,159,39,0.1)',
+  text: '#eaeaf4',
+  textSub: 'rgba(234,234,244,0.52)',
+  textMuted: 'rgba(234,234,244,0.28)',
+};
+
+// Suggestion sets with icons (no emojis)
+const SUGGESTIONS = {
+  wallet: [
+    { icon: Shield, text: 'Is this wallet safe to interact with?' },
+    { icon: GitBranch, text: 'Trace the full funding source' },
+    { icon: Users, text: 'Is this a sybil farming wallet?' },
+    { icon: AlertTriangle, text: 'Show all risk flags detected' },
+    { icon: BarChart3, text: 'Break down transaction patterns' },
+    { icon: Link2, text: 'Find linked wallets' },
+  ],
+  contract: [
+    { icon: AlertCircle, text: 'Is this contract a honeypot?' },
+    { icon: Key, text: 'What permissions does the owner have?' },
+    { icon: Droplets, text: 'Is liquidity locked?' },
+    { icon: Printer, text: 'Check for hidden mint functions' },
+    { icon: Skull, text: 'Has this contract been exploited?' },
+    { icon: UserPlus, text: 'Who deployed this contract?' },
+  ],
+};
 
 interface AiFullScreenViewProps {
   isOpen: boolean;
@@ -163,6 +221,128 @@ function renderMarkdown(content: string): string {
   html = html.replace(/(<li>.*<\/li>)+/g, '<ul>$&</ul>');
   
   return html;
+}
+
+// Premium Markdown renderer with Claude-style design
+function MDContent({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        table: ({ children }: { children?: React.ReactNode }) => (
+          <div style={{
+            overflowX: 'auto', margin: '12px 0',
+            borderRadius: 10, border: `0.5px solid ${T.border}`,
+            background: T.surface,
+          }}>
+            <table style={{
+              width: '100%', borderCollapse: 'collapse',
+              fontSize: 12, color: T.text,
+            }}>
+              {children}
+            </table>
+          </div>
+        ),
+        thead: ({ children }: { children?: React.ReactNode }) => (
+          <thead style={{ background: T.surfaceAlt }}>{children}</thead>
+        ),
+        th: ({ children }: { children?: React.ReactNode }) => (
+          <th style={{
+            padding: '9px 14px', textAlign: 'left',
+            borderBottom: `0.5px solid ${T.border}`,
+            color: T.accent, fontWeight: 500, fontSize: 11,
+            whiteSpace: 'nowrap', letterSpacing: '0.03em',
+            textTransform: 'uppercase',
+          }}>
+            {children}
+          </th>
+        ),
+        td: ({ children }: { children?: React.ReactNode }) => (
+          <td style={{
+            padding: '8px 14px',
+            borderBottom: 'rgba(255,255,255,0.04)',
+            color: T.text, fontSize: 12, lineHeight: 1.5,
+          }}>
+            {children}
+          </td>
+        ),
+        tr: ({ children }: { children?: React.ReactNode }) => (
+          <tr style={{ transition: 'background 0.15s' }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = T.surfaceAlt)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            {children}
+          </tr>
+        ),
+        code: ({ children, className, ...props }: { children?: React.ReactNode; className?: string }) => {
+          const isInline = !className;
+          if (isInline) {
+            return (
+              <code style={{
+                background: T.accentDim,
+                padding: '1px 5px', borderRadius: 4,
+                fontSize: 11, color: T.accent,
+                fontFamily: '"JetBrains Mono", monospace', wordBreak: 'break-all',
+              }}>
+                {children}
+              </code>
+            );
+          }
+          return (
+            <pre style={{
+              background: '#0d0d18', padding: '12px 14px',
+              borderRadius: 8, overflowX: 'auto',
+              fontSize: 11, color: '#c8c8e8',
+              border: `0.5px solid ${T.border}`,
+              margin: '8px 0', fontFamily: '"JetBrains Mono", monospace',
+            }}>
+              <code {...props}>{children}</code>
+            </pre>
+          );
+        },
+        blockquote: ({ children }: { children?: React.ReactNode }) => (
+          <blockquote style={{
+            borderLeft: '3px solid ' + T.red,
+            paddingLeft: 12, margin: '8px 0',
+            background: T.redDim,
+            borderRadius: '0 8px 8px 0',
+            padding: '8px 12px',
+            color: '#f0a0a0',
+          }}>
+            {children}
+          </blockquote>
+        ),
+        strong: ({ children }: { children?: React.ReactNode }) => (
+          <strong style={{ color: '#c8c8f8', fontWeight: 500 }}>
+            {children}
+          </strong>
+        ),
+        p: ({ children }: { children?: React.ReactNode }) => (
+          <p style={{ margin: '4px 0', lineHeight: 1.6 }}>{children}</p>
+        ),
+        ul: ({ children }: { children?: React.ReactNode }) => (
+          <ul style={{ margin: '4px 0', paddingLeft: 20 }}>{children}</ul>
+        ),
+        ol: ({ children }: { children?: React.ReactNode }) => (
+          <ol style={{ margin: '4px 0', paddingLeft: 20 }}>{children}</ol>
+        ),
+        li: ({ children }: { children?: React.ReactNode }) => (
+          <li style={{ margin: '2px 0', lineHeight: 1.6 }}>{children}</li>
+        ),
+        h3: ({ children }: { children?: React.ReactNode }) => (
+          <h3 style={{
+            color: T.accent, fontSize: 12, fontWeight: 500,
+            textTransform: 'uppercase', letterSpacing: '0.05em',
+            margin: '12px 0 6px 0',
+          }}>
+            {children}
+          </h3>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
 }
 
 interface RecentScan {
@@ -1111,6 +1291,13 @@ if (!fullResponse) {
                   <Sparkles size={18} />
                 </motion.div>
                 <span className="ai-header-title">FundTracer AI</span>
+                <span 
+                  className={`ai-header-status ${isRunning ? 'analyzing' : 'idle'}`}
+                  title={isRunning ? 'Analyzing...' : 'Ready'}
+                >
+                  <span className={`ai-status-dot-header ${isRunning ? 'analyzing' : 'idle'}`} />
+                  {isRunning ? 'Analyzing' : 'Ready'}
+                </span>
               </div>
               <div className="ai-header-actions">
                 <motion.button 
@@ -1450,13 +1637,30 @@ if (!fullResponse) {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.1 }}
                       >
-                        <div 
-                          className="ai-message-markdown"
-                          dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
-                        />
-                        <span className="ai-message-time">
-                          {formatRelativeTime(msg.timestamp)}
-                        </span>
+                        <MDContent content={msg.content} />
+                        <div className="ai-message-footer">
+                          {msg.role === 'assistant' && (
+                            <div className="ai-model-badges">
+                              <span className="ai-model-badge maverick">Maverick</span>
+                              {walletAttachment && (
+                                <span 
+                                  className="ai-chain-badge"
+                                  style={{ 
+                                    background: `${CHAIN_COLORS[walletAttachment.chain] || '#888'}20`,
+                                    color: CHAIN_COLORS[walletAttachment.chain] || '#888',
+                                    borderColor: CHAIN_COLORS[walletAttachment.chain] || '#888'
+                                  }}
+                                >
+                                  {walletAttachment.chain.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <span className={`ai-status-dot ${isRunning ? 'analyzing' : 'idle'}`} title={isRunning ? 'Analyzing...' : 'Ready'} />
+                          <span className="ai-message-time">
+                            {formatRelativeTime(msg.timestamp)}
+                          </span>
+                        </div>
                       </motion.div>
                     </motion.div>
                   ))
