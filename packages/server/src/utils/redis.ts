@@ -347,3 +347,72 @@ export async function closeRedis(): Promise<void> {
   isConnected = false;
   memoryFallback.clear();
 }
+
+// ============================================================
+// Chat Message Caching (Hot Cache Layer)
+// ============================================================
+
+const CHAT_TTL = 60 * 60 * 24; // 24 hours
+const MAX_CACHED_MESSAGES = 100;
+
+function chatKey(uid: string, conversationId: string): string {
+  return `chat:${uid}:${conversationId}`;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
+export async function redis_getChat(uid: string, conversationId: string): Promise<ChatMessage[] | null> {
+  try {
+    const r = await getRedis();
+    if (!r) return null;
+    
+    const data = await r.get(chatKey(uid, conversationId));
+    return data ? JSON.parse(data as string) : null;
+  } catch (error) {
+    console.error('[Redis] Get chat error:', error);
+    return null;
+  }
+}
+
+export async function redis_setChat(uid: string, conversationId: string, messages: ChatMessage[]): Promise<void> {
+  try {
+    const r = await getRedis();
+    if (!r) return;
+    
+    const trimmed = messages.slice(-MAX_CACHED_MESSAGES);
+    await r.setex(chatKey(uid, conversationId), CHAT_TTL, JSON.stringify(trimmed));
+  } catch (error) {
+    console.error('[Redis] Set chat error:', error);
+  }
+}
+
+export async function redis_appendChat(uid: string, conversationId: string, message: ChatMessage): Promise<void> {
+  try {
+    const r = await getRedis();
+    if (!r) return;
+    
+    const key = chatKey(uid, conversationId);
+    const existing = await r.get(key);
+    const messages: ChatMessage[] = existing ? JSON.parse(existing as string) : [];
+    messages.push(message);
+    const trimmed = messages.slice(-MAX_CACHED_MESSAGES);
+    await r.setex(key, CHAT_TTL, JSON.stringify(trimmed));
+  } catch (error) {
+    console.error('[Redis] Append chat error:', error);
+  }
+}
+
+export async function redis_deleteChat(uid: string, conversationId: string): Promise<void> {
+  try {
+    const r = await getRedis();
+    if (!r) return;
+    
+    await r.del(chatKey(uid, conversationId));
+  } catch (error) {
+    console.error('[Redis] Delete chat error:', error);
+  }
+}

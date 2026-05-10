@@ -24,6 +24,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHistory, type HistoryItem } from '../../utils/history';
 import { apiRequest, getAuthToken, API_BASE } from '../../api';
+import { loadHistory, saveMessage as orchestratorSaveMessage, createConversation } from '../../lib/chatOrchestrator';
 import './AiFullScreenView.css';
 
 interface AiFullScreenViewProps {
@@ -361,10 +362,15 @@ const contractSuggestions = [
   const loadSessionMessages = async (sessionId: string) => {
     setIsLoadingSession(true);
     try {
-      const data = await apiRequest<{ messages: any[] }>(`/api/chat/sessions/${sessionId}/messages`);
+      const userId = user?.uid;
+      if (!userId) {
+        throw new Error('Not authenticated');
+      }
       
-      if (data.messages && data.messages.length > 0) {
-        setMessages(data.messages);
+      const messages = await loadHistory(userId, sessionId);
+      
+      if (messages && messages.length > 0) {
+        setMessages(messages);
       } else {
         setMessages([{
           role: 'assistant',
@@ -385,30 +391,41 @@ const contractSuggestions = [
   };
 
   const saveMessage = async (message: { role: 'user' | 'assistant'; content: string; timestamp: number }) => {
-    if (!activeSessionId) return;
+    if (!activeSessionId || !user?.uid) return;
     try {
-      await apiRequest(`/api/chat/sessions/${activeSessionId}/messages`, 'POST', message);
+      await orchestratorSaveMessage(user.uid, activeSessionId, message.role, message.content);
     } catch (error) {
       console.error('Failed to save message:', error);
     }
   };
 
   const createNewSession = async () => {
+    if (!user?.uid) return;
+    
     try {
       setWalletAttachment(null);
       setUploadedFiles([]);
       setAttachmentMode('none');
       setInputValue('');
       
-      const data = await apiRequest<{ session: any }>('/api/chat/sessions', 'POST', { title: 'New Conversation' });
-      const newSession = data.session;
-      setChatSessions(prev => [newSession, ...prev]);
-      setActiveSessionId(newSession.id);
-      setMessages([{
-        role: 'assistant',
-        content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
-        timestamp: Date.now(),
-      }]);
+      const newSessionId = await createConversation(user.uid, 'New Conversation');
+      
+      if (newSessionId) {
+        const newSession = { 
+          id: newSessionId, 
+          title: 'New Conversation',
+          lastMessage: '',
+          timestamp: Date.now(),
+          messageCount: 0
+        };
+        setChatSessions(prev => [newSession, ...prev]);
+        setActiveSessionId(newSessionId);
+        setMessages([{
+          role: 'assistant',
+          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+          timestamp: Date.now(),
+        }]);
+      }
     } catch (error) {
       console.error('Failed to create session:', error);
     }

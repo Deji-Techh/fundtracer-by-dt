@@ -34,6 +34,7 @@
         "framer-motion": "^12.38.0",
         "fundtracer-core": "*",
         "html2canvas": "^1.4.1",
+        "idb": "^7.1.1",
         "jspdf": "^4.1.0",
         "jspdf-autotable": "^5.0.7",
         "lightweight-charts": "^5.1.0",

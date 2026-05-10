@@ -139,5 +139,81 @@ router.patch('/sessions/:sessionId', authMiddleware, async (req: AuthenticatedRe
   }
 });
 
+// ============================================================
+// Redis Cache Endpoints (Hot Cache Layer)
+// ============================================================
+
+import { redis_getChat, redis_setChat, redis_appendChat } from '../utils/redis.js';
+
+// GET /api/chat/cache?cid=conversationId - Get cached messages from Redis
+router.get('/cache', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user?.uid;
+    const conversationId = req.query.cid as string;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!conversationId) {
+      return res.status(400).json({ error: 'Missing conversationId' });
+    }
+
+    const messages = await redis_getChat(userId, conversationId);
+    res.json({ messages: messages || [] });
+  } catch (error: any) {
+    console.error('[ChatHistory] Redis get error:', error);
+    res.status(500).json({ error: 'Failed to get cache' });
+  }
+});
+
+// POST /api/chat/cache - Set/update cached messages in Redis
+router.post('/cache', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user?.uid;
+    const { conversationId, messages } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!conversationId || !messages) {
+      return res.status(400).json({ error: 'Missing conversationId or messages' });
+    }
+
+    await redis_setChat(userId, conversationId, messages);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[ChatHistory] Redis set error:', error);
+    res.status(500).json({ error: 'Failed to set cache' });
+  }
+});
+
+// POST /api/chat/message - Append a message to Redis cache
+router.post('/message', authMiddleware, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user?.uid;
+    const { conversationId, role, content } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!conversationId || !role || !content) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    await redis_appendChat(userId, conversationId, {
+      role,
+      content,
+      timestamp: Date.now(),
+    });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[ChatHistory] Redis append error:', error);
+    res.status(500).json({ error: 'Failed to append message' });
+  }
+});
+
 export default router;
 export { router as chatHistoryRoutes };
