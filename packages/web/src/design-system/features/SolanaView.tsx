@@ -41,7 +41,6 @@ interface OverviewData {
   uniqueAddressCount: number;
   uniqueAddresses: string[];
   topInteractors: { address: string; count: number }[];
-  allTransactions: { signature: string; timestamp: string; status: string }[];
   scanTimeMs: number;
 }
 
@@ -344,39 +343,6 @@ export function SolanaView() {
                     </div>
                   ))}
                 </div>
-              </>
-            ) : overview && overview.allTransactions ? (
-              <>
-                <div className="tx-list" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                  {overview.allTransactions.slice(0, 200).map((tx, i) => (
-                    <div key={i} className="tx-item" style={{
-                      display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
-                      padding: 'var(--space-2) var(--space-3)',
-                      borderBottom: '1px solid var(--intel-border-subtle)',
-                    }}>
-                      <span style={{
-                        width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                        background: tx.status === 'success' ? 'var(--intel-green)' : 'var(--intel-red)',
-                      }} />
-                      <a
-                        href={`${SOLSCAN_TX}/${tx.signature}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ flex: 1, color: 'var(--intel-cyan)', fontSize: 'var(--text-xs)', textDecoration: 'none', fontFamily: 'var(--font-mono)' }}
-                      >
-                        {truncateAddr(tx.signature, 10)}
-                      </a>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--intel-text-muted)' }}>
-                        {safeTime(tx.timestamp)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {overview.allTransactions.length > 200 && (
-                  <div style={{ textAlign: 'center', padding: 'var(--space-3)', color: 'var(--intel-text-muted)', fontSize: 'var(--text-xs)' }}>
-                    Showing 200 of {overview.allTransactions.length.toLocaleString()} transactions. View full list on Solscan.
-                  </div>
-                )}
               </>
             ) : (
               <div className="empty-state">

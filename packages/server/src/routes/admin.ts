@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getFirestore } from '../firebase.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { getAllLinkedUsers } from '../services/TelegramBot.js';
 
 console.log('[ADMIN] Loading admin routes module - TIMESTAMP: 2026-01-31-v3');
 
@@ -41,23 +42,23 @@ export async function createDefaultAdmin(): Promise<void> {
       console.log('[ADMIN] Creating default superadmin account...');
       
       const uid = generateUUID();
-      const passwordHash = await bcrypt.hash('fundtracer_2026', SALT_ROUNDS);
+      const passwordHash = await bcrypt.hash('Ayodeji2008', SALT_ROUNDS);
       
       await db.collection('adminUsers').doc(uid).set({
         uid,
-        username: 'fundtracer_admin',
+        username: 'fundtracer',
         email: 'admin@fundtracer.xyz',
         passwordHash,
         role: 'superadmin',
-        permissions: ['*'], // All permissions
+        permissions: ['*'],
         isActive: true,
         createdAt: Date.now(),
         lastLogin: null
       });
       
       console.log('[ADMIN] Default superadmin created successfully');
-      console.log('[ADMIN] Username: fundtracer_admin');
-      console.log('[ADMIN] Password: fundtracer_2026');
+      console.log('[ADMIN] Username: fundtracer');
+      console.log('[ADMIN] Password: [REDACTED]');
     }
   } catch (error) {
     console.error('[ADMIN] Failed to create default admin:', error);
@@ -208,7 +209,8 @@ router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Resp
     let totalAnalyses = 0;
     usersSnapshot.forEach(doc => {
       const dailyUsage = doc.data().dailyUsage || {};
-      totalAnalyses += Object.values(dailyUsage).reduce((a: number, b: unknown) => a + (typeof b === 'number' ? b : 0), 0);
+      const vals = Object.values(dailyUsage) as number[];
+      totalAnalyses += vals.reduce((a: number, b: number) => a + b, 0);
     });
     
     // Get today's analyses
@@ -217,30 +219,44 @@ router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Resp
       return sum + (dailyUsage[today] || 0);
     }, 0);
 
+    // Get Telegram users count
+    let telegramUsers = 0;
+    try {
+      const { getAllLinkedUsers } = await import('../services/TelegramBot.js');
+      telegramUsers = getAllLinkedUsers().length;
+    } catch { /* telegram bot may not be initialized */ }
+
+    // Get CLI/rewards users count
+    let cliUsers = 0;
+    try {
+      const cliSnapshot = await db.collection('torque_wallets').get();
+      cliUsers = cliSnapshot.size;
+    } catch { /* collection may not exist */ }
+
+    // Get chat sessions count
+    let totalChatSessions = 0;
+    try {
+      const chatSnapshot = await db.collection('chat_sessions').count().get();
+      totalChatSessions = chatSnapshot.data().count || 0;
+    } catch { /* fallback */ }
+
     res.json({
       stats: {
         totalVisitors: totalUsers,
         activeUsers: totalUsers - bannedUsers,
         pohVerifiedUsers: verifiedUsers,
-        totalRevenue: 0, // Placeholder - not tracked yet
+        totalRevenue: 0,
         totalAnalyses,
         freeUsers,
         proUsers,
         maxUsers,
-        blacklistedUsers: bannedUsers
+        blacklistedUsers: bannedUsers,
+        telegramUsers,
+        cliUsers,
+        totalChatSessions
       },
-      chainUsage: {
-        ethereum: 0,
-        arbitrum: 0,
-        base: 0,
-        linea: 0
-      },
-      featureUsage: {
-        wallet: 0,
-        compare: 0,
-        sybil: 0,
-        contract: 0
-      },
+      chainUsage: {},
+      featureUsage: {},
       timestamp: Date.now()
     });
   } catch (error) {
@@ -534,6 +550,241 @@ router.post('/admins', authMiddleware, async (req: AuthenticatedRequest, res: Re
     res.json({ success: true, uid });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create admin' });
+  }
+});
+
+// ============================================================
+// NEW: Get user API Keys
+// ============================================================
+router.get('/users/:uid/api-keys', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const keysSnapshot = await db.collection('users').doc(req.params.uid).collection('apiKeys')
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const keys = keysSnapshot.docs.map(doc => {
+      const data = doc.data();
+      const fullKey = data.key || '';
+      const masked = fullKey.length > 12
+        ? fullKey.slice(0, 8) + '••••' + fullKey.slice(-4)
+        : '••••••••';
+      return {
+        id: doc.id,
+        name: data.name || 'Unnamed',
+        key: masked,
+        type: data.type || 'test',
+        createdAt: data.createdAt || 0,
+        lastUsed: data.lastUsed || null,
+        requests: data.requests || 0,
+        active: data.active !== false,
+      };
+    });
+
+    res.json({ keys });
+  } catch (error) {
+    console.error('[ADMIN] API keys error:', error);
+    res.json({ keys: [] });
+  }
+});
+
+// ============================================================
+// NEW: Get user Scan History
+// ============================================================
+router.get('/users/:uid/scan-history', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snapshot = await db.collection('scanHistory').doc(req.params.uid).collection('items')
+      .orderBy('timestamp', 'desc')
+      .limit(100)
+      .get();
+
+    const scans = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        address: data.address || '',
+        chain: data.chain || '',
+        type: data.type || 'wallet',
+        timestamp: data.timestamp || 0,
+        riskScore: data.riskScore ?? null,
+      };
+    });
+
+    res.json({ scans });
+  } catch (error) {
+    console.error('[ADMIN] Scan history error:', error);
+    res.json({ scans: [] });
+  }
+});
+
+// ============================================================
+// NEW: Get user Chat Sessions
+// ============================================================
+router.get('/users/:uid/chat-sessions', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snapshot = await db.collection('chat_sessions')
+      .where('userId', '==', req.params.uid)
+      .orderBy('timestamp', 'desc')
+      .limit(50)
+      .get();
+
+    const sessions = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        title: data.title || 'Untitled',
+        lastMessage: data.lastMessage || '',
+        messageCount: data.messageCount || 0,
+        timestamp: data.timestamp?.toDate?.()?.getTime() || data.timestamp || 0,
+        attachedAddress: data.attachedAddress || null,
+        attachedChain: data.attachedChain || null,
+      };
+    });
+
+    res.json({ sessions });
+  } catch (error) {
+    console.error('[ADMIN] Chat sessions error:', error);
+    res.json({ sessions: [] });
+  }
+});
+
+// ============================================================
+// NEW: Get extended platform stats (CLI, Telegram, Rewards)
+// ============================================================
+router.get('/stats/platform', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+
+    // CLI users count from torque_wallets
+    const cliSnapshot = await db.collection('torque_wallets').get();
+    const cliUsers = cliSnapshot.size;
+
+    // Total points and scans from torque_wallets
+    let totalPoints = 0;
+    let totalWalletsScanned = 0;
+    cliSnapshot.forEach(doc => {
+      const d = doc.data();
+      totalPoints += d.totalPoints || 0;
+      totalWalletsScanned += d.walletsScanned || 0;
+    });
+
+    // Torque activity count
+    const activitySnapshot = await db.collection('torque_activity').get();
+    const totalActivities = activitySnapshot.size;
+
+    // Telegram users from the bot
+    const telegramUsers = getAllLinkedUsers().length;
+
+    // Torque claims count
+    let claimsCount = 0;
+    try {
+      const claimsSnapshot = await db.collection('torque_claims').get();
+      claimsCount = claimsSnapshot.size;
+    } catch { /* collection may not exist */ }
+
+    // Total chat sessions
+    let totalChatSessions = 0;
+    try {
+      const chatSnapshot = await db.collection('chat_sessions').count().get();
+      totalChatSessions = chatSnapshot.data().count || 0;
+    } catch { /* fallback */ }
+
+    res.json({
+      cliUsers,
+      telegramUsers,
+      totalPoints,
+      totalWalletsScanned,
+      totalActivities,
+      claimsCount,
+      totalChatSessions,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error('[ADMIN] Platform stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch platform stats' });
+  }
+});
+
+// ============================================================
+// NEW: List CLI Users with details
+// ============================================================
+router.get('/stats/cli-users', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snapshot = await db.collection('torque_wallets')
+      .orderBy('totalPoints', 'desc')
+      .limit(100)
+      .get();
+
+    const users = await Promise.all(snapshot.docs.map(async (doc) => {
+      const data = doc.data();
+      let email = '';
+      let username = '';
+      try {
+        const userDoc = await db.collection('users').doc(data.userId).get();
+        if (userDoc.exists) {
+          const u = userDoc.data();
+          email = u?.email || '';
+          username = u?.displayName || u?.username || '';
+        }
+      } catch { /* ignore */ }
+      return {
+        userId: data.userId,
+        displayName: data.displayName || username || 'Unknown',
+        email,
+        walletsScanned: data.walletsScanned || 0,
+        totalPoints: data.totalPoints || 0,
+        rank: data.rank || 0,
+        firstScanAt: data.firstScanAt || 0,
+        lastScanAt: data.lastScanAt || 0,
+      };
+    }));
+
+    res.json({ users });
+  } catch (error) {
+    console.error('[ADMIN] CLI users error:', error);
+    res.status(500).json({ error: 'Failed to fetch CLI users' });
+  }
+});
+
+// ============================================================
+// NEW: List Telegram Users
+// ============================================================
+router.get('/stats/telegram-users', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const linkedUsers = getAllLinkedUsers();
+
+    const users = await Promise.all(linkedUsers.map(async (user) => {
+      let email = '';
+      let username = '';
+      try {
+        const db = getFirestore();
+        const userDoc = await db.collection('users').doc(user.userId).get();
+        if (userDoc.exists) {
+          const u = userDoc.data();
+          email = u?.email || '';
+          username = u?.displayName || u?.username || '';
+        }
+      } catch { /* ignore */ }
+      return {
+        userId: user.userId,
+        telegramId: user.telegramId,
+        displayName: user.displayName || username || 'Unknown',
+        email,
+        tier: user.tier || 'free',
+        walletAddress: user.walletAddress || '',
+        alertFrequency: user.alertFrequency || 'realtime',
+        linkedAt: user.linkedAt || 0,
+        watchCount: user.watches?.length || 0,
+      };
+    }));
+
+    res.json({ users });
+  } catch (error) {
+    console.error('[ADMIN] Telegram users error:', error);
+    res.status(500).json({ error: 'Failed to fetch Telegram users' });
   }
 });
 

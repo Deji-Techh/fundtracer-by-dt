@@ -115,7 +115,6 @@ export interface SolanaOverviewResult {
     uniqueAddressCount: number;
     uniqueAddresses: string[];
     topInteractors: { address: string; count: number }[];
-    allTransactions: { signature: string; timestamp: string; status: string }[];
     scanTimeMs: number;
 }
 
@@ -162,17 +161,12 @@ export class SolanaPortfolioService {
             }
         }
 
-        const uniqueAddresses = Object.keys(interactors);
         const topInteractors = Object.entries(interactors)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 10)
             .map(([address, count]) => ({ address, count }));
 
-        const allTransactions = signatures.map(s => ({
-            signature: s.signature,
-            timestamp: s.blockTime ? new Date(s.blockTime * 1000).toISOString() : '',
-            status: s.err ? 'failed' : 'success',
-        }));
+        const uniqueAddresses = Object.keys(interactors).slice(0, 200);
 
         return {
             wallet: address,
@@ -182,10 +176,9 @@ export class SolanaPortfolioService {
             totalTransactions: signatures.length,
             totalSOLSent: totalSent.toFixed(6),
             totalSOLReceived: totalReceived.toFixed(6),
-            uniqueAddressCount: uniqueAddresses.length,
+            uniqueAddressCount: Object.keys(interactors).length,
             uniqueAddresses,
             topInteractors,
-            allTransactions,
             scanTimeMs: Date.now() - start,
         };
     }
@@ -209,12 +202,6 @@ export class SolanaPortfolioService {
             ? Math.round((lastSig.blockTime - firstSig.blockTime) / 86400)
             : 0;
 
-        const allTransactions = signatures.map(s => ({
-            signature: s.signature,
-            timestamp: s.blockTime ? new Date(s.blockTime * 1000).toISOString() : '',
-            status: s.err ? 'failed' : 'success',
-        }));
-
         return {
             wallet: address,
             firstTimestamp,
@@ -224,9 +211,8 @@ export class SolanaPortfolioService {
             totalSOLSent: result.totalSOLSent.toFixed(6),
             totalSOLReceived: result.totalSOLReceived.toFixed(6),
             uniqueAddressCount: result.topInteractors.length,
-            uniqueAddresses: result.topInteractors.map(i => i.address),
+            uniqueAddresses: result.topInteractors.map(i => i.address).slice(0, 200),
             topInteractors: result.topInteractors,
-            allTransactions,
             scanTimeMs: Date.now() - start,
         };
     }

@@ -894,7 +894,7 @@ export interface HeliusOverviewResult {
   uniqueAddressCount: number;
   uniqueAddresses: string[];
   topInteractors: { address: string; count: number }[];
-  allTransactions: { signature: string; timestamp: string; status: string }[];
+
   scanTimeMs: number;
 }
 
