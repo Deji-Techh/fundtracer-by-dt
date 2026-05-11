@@ -29,6 +29,7 @@ import CEXFlowView from '../../components/CEXFlowView';
 import SearchHistory from '../../components/SearchHistory';
 import AdvancedGraph from '../../components/graph/AdvancedGraph';
 import TrackView from './TrackView';
+import { SolanaView } from './SolanaView';
 
 interface InvestigateViewProps {
   prefillAddress?: string;
@@ -526,6 +527,11 @@ export function InvestigateView({
 
   // Render results based on active tab
   const renderResults = () => {
+    // Solana chain - render SolanaView instead of EVM analysis views
+    if (selectedChain === 'solana') {
+      return <SolanaView />;
+    }
+
     if (error) {
       return (
         <div className="investigate-error">

@@ -81,6 +81,140 @@ export class SolanaHeliusClient {
             sortBy: { sortBy: 'relevant', descending: false },
         }]);
     }
+
+    // ================================================================
+    // Helius-exclusive: getTransactionsForAddress
+    // Returns signatures + blockTime (fast mode) or full tx details
+    // ================================================================
+
+    async getTransactionsForAddress(
+        address: string,
+        options: {
+            transactionDetails?: 'signatures' | 'full';
+            limit?: number;
+            sortOrder?: 'asc' | 'desc';
+            paginationToken?: string;
+        } = {}
+    ): Promise<{ data: any[]; paginationToken?: string }> {
+        const key = getHeliusKey();
+        const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'getTransactionsForAddress',
+                params: [address, {
+                    transactionDetails: options.transactionDetails || 'signatures',
+                    limit: options.limit || 1000,
+                    sortOrder: options.sortOrder || 'desc',
+                    ...(options.paginationToken ? { paginationToken: options.paginationToken } : {}),
+                }]
+            }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        const result = data.result;
+        return {
+            data: result?.data || [],
+            paginationToken: result?.paginationToken || undefined,
+        };
+    }
+
+    // ================================================================
+    // Helius-exclusive: getTransfersByAddress
+    // Returns pre-parsed transfer records with source, destination, amount
+    // ================================================================
+
+    async getTransfersByAddress(
+        address: string,
+        options: {
+            limit?: number;
+            paginationToken?: string;
+        } = {}
+    ): Promise<{ data: any[]; paginationToken?: string }> {
+        const key = getHeliusKey();
+        const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'getTransfersByAddress',
+                params: [address, {
+                    limit: options.limit || 100,
+                    ...(options.paginationToken ? { paginationToken: options.paginationToken } : {}),
+                }]
+            }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        const result = data.result;
+        return {
+            data: result?.data || [],
+            paginationToken: result?.paginationToken || undefined,
+        };
+    }
+
+    // ================================================================
+    // Full wallet scan: runs getAllSignatures + getAllTransfers in parallel
+    // ================================================================
+
+    async scanWallet(address: string): Promise<{
+        signatures: { signature: string; blockTime: number; err: any }[];
+        transfers: any[];
+        totalTime: number;
+    }> {
+        const start = Date.now();
+
+        const [sigsResult, transfersResult] = await Promise.all([
+            this.getAllSignatures(address),
+            this.getAllTransfers(address),
+        ]);
+
+        return {
+            signatures: sigsResult,
+            transfers: transfersResult,
+            totalTime: Date.now() - start,
+        };
+    }
+
+    async getAllSignatures(address: string): Promise<{ signature: string; blockTime: number; err: any }[]> {
+        const all: { signature: string; blockTime: number; err: any }[] = [];
+        let paginationToken: string | undefined;
+
+        do {
+            const result = await this.getTransactionsForAddress(address, {
+                transactionDetails: 'signatures',
+                limit: 1000,
+                sortOrder: 'desc',
+                paginationToken,
+            });
+            all.push(...result.data);
+            paginationToken = result.paginationToken;
+        } while (paginationToken && all.length < 50000);
+
+        // Sort ascending by blockTime for age calculation
+        return all.sort((a, b) => a.blockTime - b.blockTime);
+    }
+
+    async getAllTransfers(address: string): Promise<any[]> {
+        const all: any[] = [];
+        let paginationToken: string | undefined;
+
+        do {
+            const result = await this.getTransfersByAddress(address, {
+                limit: 100,
+                paginationToken,
+            });
+            all.push(...result.data);
+            paginationToken = result.paginationToken;
+        } while (paginationToken && all.length < 10000);
+
+        return all;
+    }
 }
 
 export const solanaHeliusClient = SolanaHeliusClient.getInstance();

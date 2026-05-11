@@ -306,6 +306,59 @@
   color: var(--intel-cyan);
 }
 
+/* Interactors List */
+.interactors-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.interactor-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--intel-bg-elevated);
+  border: 1px solid var(--intel-border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.interactor-rank {
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+  width: 20px;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.interactor-addr {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--intel-cyan);
+  text-decoration: none;
+}
+
+.interactor-addr:hover {
+  text-decoration: underline;
+}
+
+.interactor-count {
+  font-size: var(--text-xs);
+  color: var(--intel-text-secondary);
+  font-weight: 500;
+}
+
+/* Funding Tree list */
+.funding-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.funding-item:hover {
+  background: var(--intel-bg-hover);
+}
+
 /* Empty text */
 .empty-text {
   text-align: center;

@@ -48,9 +48,9 @@ const KNOWN_PROTOCOLS: Record<string, { name: string; category: string }> = {
   'srmtE4LpXK7fFy7xF8L8N9pQz3G9K2d91pbT2': { name: 'Serum', category: 'DEX' },
   'MangoXNAk4sM4N9k4L8C4J8J4L8C4J8J4L8C4J8': { name: 'Mango', category: 'DeFi' },
   'FrkS7Z4K7DTHfK7pDzQwnYmm9K847G2d91pbT2': { name: 'Friktion', category: 'DeFi' },
-  'Knp1SmuT9L8N9pQz3G9K847G2d91pbT2': 'Kamino',
-  '4T4w1N9k4L8C4J8J4L8C4J8J4L8C4J8J4L8C4': 'Drift',
-  'Bridge2L8N9pQz3G9K847G2d91pbT2': 'Wormhole Bridge',
+  'Knp1SmuT9L8N9pQz3G9K847G2d91pbT2': { name: 'Kamino', category: 'DeFi' },
+  '4T4w1N9k4L8C4J8J4L8C4J8J4L8C4J8J4L8C4': { name: 'Drift', category: 'DeFi' },
+  'Bridge2L8N9pQz3G9K847G2d91pbT2': { name: 'Wormhole Bridge', category: 'Bridge' },
   'Stake1111111111111111111111111111111': { name: 'Solana Stake', category: 'Staking' },
 };
 
@@ -107,7 +107,7 @@ export async function analyzeSolanaWallet(address: string): Promise<SolanaAnalys
   ]);
 
   // Calculate portfolio value
-  const portfolio = calculatePortfolio(tokens, nfts);
+  const portfolio = calculatePortfolio(tokens, nfts.holdings || nfts as any);
 
   // Analyze program interactions
   const programInteractions = analyzeProgramInteractions(transactions);
@@ -870,6 +870,59 @@ function traceFunding(transactions: TransactionData[]): FundingTrace {
     hops,
     riskLevel,
   };
+}
+
+// ============================================================
+// Helius-powered overview scanner (uses backend proxy)
+// ============================================================
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://fundtracer-by-dt-production.up.railway.app';
+
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('fundtracer_token');
+  return token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+}
+
+export interface HeliusOverviewResult {
+  wallet: string;
+  firstTimestamp: string;
+  lastTimestamp: string;
+  activityPeriodDays: number;
+  totalTransactions: number;
+  totalSOLSent: string;
+  totalSOLReceived: string;
+  uniqueAddressCount: number;
+  uniqueAddresses: string[];
+  topInteractors: { address: string; count: number }[];
+  allTransactions: { signature: string; timestamp: string; status: string }[];
+  scanTimeMs: number;
+}
+
+export interface HeliusFundingTreeResult {
+  wallet: string;
+  fundingSources: { address: string; label: string | null; totalSol: string; txCount: number; lastActivity: string | null }[];
+  fundingDestinations: { address: string; label: string | null; totalSol: string; txCount: number; lastActivity: string | null }[];
+  totalSourcesFound: number;
+  totalDestinationsFound: number;
+  totalTransfers: number;
+}
+
+export async function getSolanaOverview(address: string): Promise<HeliusOverviewResult> {
+  const res = await fetch(`${API_BASE}/api/solana/overview/${address}`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error(await res.text().catch(() => 'Overview scan failed'));
+  return res.json();
+}
+
+export async function getSolanaTransactions(address: string, limit = 200): Promise<{ transactions: any[]; count: number }> {
+  const res = await fetch(`${API_BASE}/api/solana/transactions/${address}?limit=${limit}`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error(await res.text().catch(() => 'Failed to fetch transactions'));
+  return res.json();
+}
+
+export async function getSolanaFundingTree(address: string): Promise<HeliusFundingTreeResult> {
+  const res = await fetch(`${API_BASE}/api/solana/funding-tree/${address}`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error(await res.text().catch(() => 'Failed to build funding tree'));
+  return res.json();
 }
 
 // ============================================================

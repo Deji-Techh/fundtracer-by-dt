@@ -7,6 +7,7 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { usageMiddleware } from '../middleware/usage.js';
 import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
+import { solanaHeliusClient } from '../services/SolanaHeliusClient.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 
 const router = Router();
@@ -17,6 +18,118 @@ function isValidSolanaAddress(address: string): boolean {
   const base58Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   return Array.from(address).every(c => base58Chars.includes(c));
 }
+
+// GET /api/solana/overview/:address - Helius-powered wallet overview
+// Uses getTransactionsForAddress + getTransfersByAddress (parallel)
+// Returns first/last timestamps, totals, interactors, full tx list
+router.get('/overview/:address', authMiddleware, usageMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { address } = req.params;
+    const userId = req.user?.uid;
+
+    if (!isValidSolanaAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    const overview = await solanaPortfolioService.scanOverview(address);
+
+    if (userId) {
+      const displayName = req.user?.name || 'User';
+      await torqueServiceV2.incrementScan(userId, displayName).catch(() => {});
+      await torqueServiceV2.addActivity(userId, displayName, address, 'solana').catch(() => {});
+    }
+
+    res.json(overview);
+  } catch (error: any) {
+    console.error('Solana overview error:', error);
+    res.status(500).json({ error: 'Failed to scan wallet' });
+  }
+});
+
+// GET /api/solana/funding-tree/:address - Funding tree from Helius transfers
+router.get('/funding-tree/:address', authMiddleware, usageMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { address } = req.params;
+    const maxDepth = Math.min(parseInt(req.query.depth as string) || 2, 4);
+
+    if (!isValidSolanaAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Solana address' });
+    }
+
+    const helius = solanaHeliusClient;
+    const transfers = await helius.getAllTransfers(address);
+    const LAMPORTS = 1_000_000_000;
+
+    // Build funding sources (money COMING IN to this address)
+    const sources: Record<string, { total: number; count: number; lastTx: number }> = {};
+    for (const t of transfers) {
+      if (t.destination === address) {
+        const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
+        const amt = isSol ? t.amount / LAMPORTS : (t.amount || 0);
+        if (!sources[t.source]) sources[t.source] = { total: 0, count: 0, lastTx: 0 };
+        sources[t.source].total += amt;
+        sources[t.source].count += 1;
+        sources[t.source].lastTx = Math.max(sources[t.source].lastTx, t.blockTime || 0);
+      }
+    }
+
+    // Build funding destinations (money GOING OUT from this address)
+    const destinations: Record<string, { total: number; count: number; lastTx: number }> = {};
+    for (const t of transfers) {
+      if (t.source === address) {
+        const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
+        const amt = isSol ? t.amount / LAMPORTS : (t.amount || 0);
+        if (!destinations[t.destination]) destinations[t.destination] = { total: 0, count: 0, lastTx: 0 };
+        destinations[t.destination].total += amt;
+        destinations[t.destination].count += 1;
+        destinations[t.destination].lastTx = Math.max(destinations[t.destination].lastTx, t.blockTime || 0);
+      }
+    }
+
+    // Detect known entities
+    const KNOWN_PROGRAMS: Record<string, string> = {
+      'JUPyiwrYJFskUPiHa7hkeR8VUtAeJQpzG8NYK4QJbKdA': 'Jupiter DEX',
+      '675kPX9MHTjS2zt1ASj6D5UQJLwL5NXG8W6Jm8J6BGQ': 'Raydium AMM',
+      'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYNLxGkNqfN5f': 'Orca DEX',
+      'worm2ZoG2kUd4vFXhvjh93UUH596ayR3Q3M1m7ss9Th': 'Wormhole Bridge',
+      'Stake11111111111111111111111111111111111111': 'Solana Staking',
+    };
+
+    const topSources = Object.entries(sources)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 30)
+      .map(([addr, data]) => ({
+        address: addr,
+        label: KNOWN_PROGRAMS[addr] || null,
+        totalSol: data.total.toFixed(4),
+        txCount: data.count,
+        lastActivity: data.lastTx ? new Date(data.lastTx * 1000).toISOString() : null,
+      }));
+
+    const topDestinations = Object.entries(destinations)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 30)
+      .map(([addr, data]) => ({
+        address: addr,
+        label: KNOWN_PROGRAMS[addr] || null,
+        totalSol: data.total.toFixed(4),
+        txCount: data.count,
+        lastActivity: data.lastTx ? new Date(data.lastTx * 1000).toISOString() : null,
+      }));
+
+    res.json({
+      wallet: address,
+      fundingSources: topSources,
+      fundingDestinations: topDestinations,
+      totalSourcesFound: Object.keys(sources).length,
+      totalDestinationsFound: Object.keys(destinations).length,
+      totalTransfers: transfers.length,
+    });
+  } catch (error: any) {
+    console.error('Solana funding tree error:', error);
+    res.status(500).json({ error: 'Failed to build funding tree' });
+  }
+});
 
 // GET /api/solana/portfolio/:address - Full portfolio view
 // Query params: exclude_spam_tokens=true/false, exclude_unpriced=true/false, min_liquidity=number
@@ -53,7 +166,7 @@ router.get('/portfolio/:address', authMiddleware, usageMiddleware, async (req: A
   }
 });
 
-// GET /api/solana/transactions/:address - Transaction history
+// GET /api/solana/transactions/:address - Transaction history via Helius transfers
 router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req, res) => {
   try {
     const { address } = req.params;
@@ -63,7 +176,21 @@ router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    const transactions = await solanaPortfolioService.getTransactions(address, limit);
+    // Use Helius getTransfersByAddress for pre-parsed records
+    const helius = solanaHeliusClient;
+    const sigsResult = await helius.getTransactionsForAddress(address, {
+      transactionDetails: 'signatures',
+      limit: Math.min(limit, 1000),
+      sortOrder: 'desc',
+    });
+
+    const transactions = (sigsResult.data || []).map((s: any) => ({
+      signature: s.signature,
+      slot: s.slot,
+      blockTime: s.blockTime,
+      status: s.err ? 'failed' : 'success',
+    }));
+
     res.json({ transactions, count: transactions.length });
   } catch (error: any) {
     console.error('Solana transactions error:', error);

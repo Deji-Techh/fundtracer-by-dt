@@ -7,6 +7,7 @@
 import { solanaKeyPool } from './SolanaKeyPoolManager.js';
 import { cache } from '../utils/cache.js';
 import { duneSimClient, SimPortfolio, SimTransactionFormatted } from './DuneSimClient.js';
+import { solanaHeliusClient } from './SolanaHeliusClient.js';
 import fetch from 'node-fetch';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -103,8 +104,91 @@ export interface PortfolioFilterOptions {
     minLiquidity?: number;
 }
 
+export interface SolanaOverviewResult {
+    wallet: string;
+    firstTimestamp: string;
+    lastTimestamp: string;
+    activityPeriodDays: number;
+    totalTransactions: number;
+    totalSOLSent: string;
+    totalSOLReceived: string;
+    uniqueAddressCount: number;
+    uniqueAddresses: string[];
+    topInteractors: { address: string; count: number }[];
+    allTransactions: { signature: string; timestamp: string; status: string }[];
+    scanTimeMs: number;
+}
+
 export class SolanaPortfolioService {
     private priceCache = new Map<string, number>();
+
+    /**
+     * Helius-powered full overlay scan: signatures + transfers in parallel
+     */
+    async scanOverview(address: string): Promise<SolanaOverviewResult> {
+        const start = Date.now();
+        const helius = solanaHeliusClient;
+
+        const scan = await helius.scanWallet(address);
+        const signatures = scan.signatures;
+        const transfers = scan.transfers;
+
+        const LAMPORTS = 1_000_000_000;
+
+        // Signatures are already sorted ASC (oldest first)
+        const firstSig = signatures[0];
+        const lastSig = signatures[signatures.length - 1];
+        const firstTimestamp = firstSig?.blockTime ? new Date(firstSig.blockTime * 1000).toISOString() : '';
+        const lastTimestamp = lastSig?.blockTime ? new Date(lastSig.blockTime * 1000).toISOString() : '';
+        const activityPeriodDays = firstSig?.blockTime && lastSig?.blockTime
+            ? Math.round((lastSig.blockTime - firstSig.blockTime) / 86400)
+            : 0;
+
+        // Compute SOL sent/received from transfers
+        let totalSent = 0;
+        let totalReceived = 0;
+        const interactors: Record<string, number> = {};
+
+        for (const t of transfers) {
+            const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
+            const amt = isSol ? t.amount / LAMPORTS : t.amount;
+
+            if (t.source === address) {
+                totalSent += amt;
+                interactors[t.destination] = (interactors[t.destination] || 0) + 1;
+            } else if (t.destination === address) {
+                totalReceived += amt;
+                interactors[t.source] = (interactors[t.source] || 0) + 1;
+            }
+        }
+
+        const uniqueAddresses = Object.keys(interactors);
+        const topInteractors = Object.entries(interactors)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([address, count]) => ({ address, count }));
+
+        const allTransactions = signatures.map(s => ({
+            signature: s.signature,
+            timestamp: s.blockTime ? new Date(s.blockTime * 1000).toISOString() : '',
+            status: s.err ? 'failed' : 'success',
+        }));
+
+        return {
+            wallet: address,
+            firstTimestamp,
+            lastTimestamp,
+            activityPeriodDays,
+            totalTransactions: signatures.length,
+            totalSOLSent: totalSent.toFixed(6),
+            totalSOLReceived: totalReceived.toFixed(6),
+            uniqueAddressCount: uniqueAddresses.length,
+            uniqueAddresses,
+            topInteractors,
+            allTransactions,
+            scanTimeMs: Date.now() - start,
+        };
+    }
 
     /**
      * Get portfolio - tries SIM first, falls back to existing RPC-based method
