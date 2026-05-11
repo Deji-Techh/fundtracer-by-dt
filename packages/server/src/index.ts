@@ -350,6 +350,7 @@ app.use(cors({
         /^https:\/\/.*\.firebaseapp\.com$/,
         /^https:\/\/.*\.pxxl\.click$/,
         /^https:\/\/.*\.onrender\.com$/,
+        /^https:\/\/.*\.up\.railway\.app$/,
         'https://fundtracer.xyz',
         'https://www.fundtracer.xyz',
         'https://api.fundtracer.xyz',
