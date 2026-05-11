@@ -52,11 +52,11 @@ import './AiFullScreenView.css';
 
 // Design tokens
 const T = {
-  bg: '#08080f',
-  surface: '#0f0f1a',
-  surfaceAlt: '#13131f',
-  border: 'rgba(255,255,255,0.07)',
-  borderHov: 'rgba(255,255,255,0.14)',
+  bg: 'var(--color-bg-primary)',
+  surface: 'var(--color-bg-secondary)',
+  surfaceAlt: 'var(--color-bg-tertiary)',
+  border: 'var(--color-surface-border)',
+  borderHov: 'var(--color-border-hover)',
   accent: '#7F77DD',
   accentDim: 'rgba(127,119,221,0.14)',
   accentBord: 'rgba(127,119,221,0.32)',
@@ -66,9 +66,9 @@ const T = {
   redDim: 'rgba(226,75,74,0.1)',
   amber: '#EF9F27',
   amberDim: 'rgba(239,159,39,0.1)',
-  text: '#eaeaf4',
-  textSub: 'rgba(234,234,244,0.52)',
-  textMuted: 'rgba(234,234,244,0.28)',
+  text: 'var(--color-text-primary)',
+  textSub: 'var(--color-text-secondary)',
+  textMuted: 'var(--color-text-muted)',
 };
 
 // Suggestion sets with icons (no emojis)
