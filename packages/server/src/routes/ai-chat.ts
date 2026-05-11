@@ -210,7 +210,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
     } else {
       // Chat-only mode (no address, no files)
       res.write(`data: ${JSON.stringify({ type: 'status', message: 'Thinking...' })}\n\n`);
-      context = `You are FundTracer AI, a blockchain forensics analyst assistant. You help users analyze wallet addresses, understand transaction flows, assess risk levels, and answer questions about blockchain security.\n\n`;
+      context = `You are FT Maverick, FundTracer's blockchain forensics AI analyst. Help users analyze wallet addresses, understand transaction flows, assess risk levels, and answer questions about blockchain security.\n\n`;
     }
 
     // Classify question complexity and select model

@@ -244,7 +244,7 @@
 .ai-scan-chain {
   font-size: 10px;
   font-weight: 500;
-  color: #707078;
+  color: #8a8a98;
   padding: 2px 6px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.05);
@@ -530,7 +530,7 @@
 
 .ai-thinking-text {
   font-size: 11px;
-  color: #606068;
+  color: #888898;
   font-weight: 500;
 }
 
@@ -626,7 +626,7 @@
 }
 
 .ai-dropdown-item svg {
-  color: #5a5a68;
+  color: #787888;
 }
 
 /* Chain selector */
@@ -643,7 +643,7 @@
 .ai-chain-label {
   display: block;
   font-size: 10px;
-  color: #5a5a68;
+  color: #787888;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -711,7 +711,7 @@
 }
 
 .ai-chat-input::placeholder {
-  color: #5a5a68;
+  color: #787888;
 }
 
 .ai-chat-input:focus {
@@ -832,7 +832,7 @@
 .ai-suggestions-label {
   display: block;
   font-size: 10px;
-  color: #5a5a68;
+  color: #787888;
   margin-bottom: 10px;
 }
 
@@ -963,7 +963,7 @@
   border: none;
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.05);
-  color: #606068;
+  color: #888898;
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
@@ -990,7 +990,7 @@
   border: 1px solid #25252a;
   border-radius: 6px;
   background: transparent;
-  color: #5a5a68;
+  color: #787888;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1038,7 +1038,7 @@
   height: 28px;
   border-radius: 8px;
   background: #1a1a1f;
-  color: #5a5a68;
+  color: #787888;
   flex-shrink: 0;
 }
 
@@ -1065,7 +1065,7 @@
 
 .ai-session-preview {
   font-size: 11px;
-  color: #5a5a68;
+  color: #787888;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1163,7 +1163,7 @@
 
 .ai-document-size {
   font-size: 11px;
-  color: #606068;
+  color: #888898;
 }
 
 .ai-document-remove {
@@ -1175,7 +1175,7 @@
   border: none;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
-  color: #606068;
+  color: #888898;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1187,7 +1187,7 @@
 
 .ai-document-uploading .ai-document-icon {
   background: rgba(255, 255, 255, 0.06);
-  color: #707078;
+  color: #8a8a98;
 }
 
 .ai-document-error .ai-document-icon {
@@ -1242,7 +1242,7 @@
 
 .ai-context-card-chain {
   font-size: 10px;
-  color: #606068;
+  color: #888898;
 }
 
 .ai-context-card-clear {
@@ -1254,7 +1254,7 @@
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: #606068;
+  color: #888898;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -1273,7 +1273,7 @@
 }
 
 .ai-context-loading .ai-context-card-value {
-  color: #606068;
+  color: #888898;
 }
 
   .ai-column-left, .ai-column-right {
@@ -1470,7 +1470,7 @@
 .ai-table-label {
   font-size: 11px;
   font-weight: 500;
-  color: #707078;
+  color: #8a8a98;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -1524,7 +1524,7 @@
 
 .ai-badge-muted {
   background: rgba(255, 255, 255, 0.05);
-  color: #707078;
+  color: #8a8a98;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -1666,6 +1666,6 @@
   border: 1px solid rgba(127, 119, 221, 0.1);
   border-radius: 6px;
   font-size: 11px;
-  color: #707078;
+  color: #8a8a98;
   text-align: center;
 }

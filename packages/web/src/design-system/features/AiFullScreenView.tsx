@@ -419,7 +419,7 @@ export function AiFullScreenView({
     // Start with empty, will be filled by loadSessionMessages or fetchChatSessions
     return [{
       role: 'assistant',
-      content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+      content: 'Hi! I\'m FT Maverick, your FundTracer AI blockchain forensics analyst. Ask me about any wallet address to get an instant risk analysis.',
       timestamp: Date.now() - 3600000,
     }];
   });
@@ -595,7 +595,7 @@ const contractSuggestions = [
       } else {
         setMessages([{
           role: 'assistant',
-          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+          content: 'Hi! I\'m FT Maverick, your FundTracer AI blockchain forensics analyst. Ask me about any wallet address to get an instant risk analysis.',
           timestamp: Date.now(),
         }]);
       }
@@ -603,7 +603,7 @@ const contractSuggestions = [
       console.error('Failed to load session messages:', error);
       setMessages([{
         role: 'assistant',
-        content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+        content: 'Hi! I\'m FT Maverick, your FundTracer AI blockchain forensics analyst. Ask me about any wallet address to get an instant risk analysis.',
         timestamp: Date.now(),
       }]);
     } finally {
@@ -651,7 +651,7 @@ const contractSuggestions = [
         setActiveSessionId(newSessionId);
         setMessages([{
           role: 'assistant',
-          content: 'Hi! I\'m FundTracer AI. Ask me about any wallet address to get an instant risk analysis.',
+          content: 'Hi! I\'m FT Maverick, your FundTracer AI blockchain forensics analyst. Ask me about any wallet address to get an instant risk analysis.',
           timestamp: Date.now(),
         }]);
       }
@@ -1454,7 +1454,7 @@ if (!fullResponse) {
             </div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
               <span style={{ fontSize: 12, fontWeight: 500, color: '#c0c0c8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.n}</span>
-              <span style={{ fontSize: 11, color: '#707078' }}>{p.s}</span>
+              <span style={{ fontSize: 11, color: '#8a8a98' }}>{p.s}</span>
             </div>
           </div>
         );
@@ -1503,7 +1503,7 @@ if (!fullResponse) {
                 >
                   <Sparkles size={18} />
                 </motion.div>
-                <span className="ai-header-title">FundTracer AI</span>
+                <span className="ai-header-title">FT Maverick</span>
                 <span 
                   className={`ai-header-status ${isRunning ? 'analyzing' : 'idle'}`}
                   title={isRunning ? 'Analyzing...' : 'Ready'}
