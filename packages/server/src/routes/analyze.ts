@@ -362,61 +362,233 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
     }
 
-    // SOLANA WALLET ANALYZE - Use SolanaAdapter directly
+    // SOLANA WALLET ANALYZE - Full analysis using SolanaAdapter
     if (isSolana) {
         try {
             const { SolanaAdapter } = await import('@fundtracer/core');
             const solanaAdapter = new SolanaAdapter();
 
-            const [walletInfo, transactions] = await Promise.all([
+            // Run all adapter methods in parallel — utilises 3 Helius keys
+            const [walletInfo, transactions, riskScore, fundingTree] = await Promise.all([
                 solanaAdapter.getWalletInfo(address),
-                solanaAdapter.getTransactions(address, { limit: 100 })
+                solanaAdapter.getTransactions(address, { limit: 100 }),
+                solanaAdapter.getRiskScore(address),
+                solanaAdapter.getFundingSources(address, 3).catch(() => null),
             ]);
 
-            // Build analysis result - match AnalysisResult interface exactly
-            const uniqueContracts = new Set<string>();
-            transactions.forEach(tx => {
-                tx.programInteractions?.forEach(p => uniqueContracts.add(p));
-            });
-            const firstTx = transactions[transactions.length - 1];
-            const lastTx = transactions[0];
+            // ---- Compute interactors and totals from transactions ----
+            const interactors = new Map<string, { count: number; sent: number; received: number }>();
+            let totalValueSent = 0;
+            let totalValueReceived = 0;
 
+            for (const tx of transactions) {
+                const val = parseFloat(tx.value || '0');
+                if (tx.from === address) totalValueSent += val;
+                if (tx.to === address) totalValueReceived += val;
+
+                if (tx.from && tx.from !== address) {
+                    const e = interactors.get(tx.from) || { count: 0, sent: 0, received: 0 };
+                    e.count++; e.received += val;
+                    interactors.set(tx.from, e);
+                }
+                if (tx.to && tx.to !== address) {
+                    const e = interactors.get(tx.to) || { count: 0, sent: 0, received: 0 };
+                    e.count++; e.sent += val;
+                    interactors.set(tx.to, e);
+                }
+            }
+
+            // ---- Activity period ----
+            const sorted = [...transactions].sort((a, b) => a.timestamp - b.timestamp);
+            const firstTs = sorted[0]?.timestamp;
+            const lastTs = sorted[sorted.length - 1]?.timestamp;
+            const activityDays = firstTs && lastTs
+                ? Math.round((lastTs - firstTs) / 86400000)
+                : 0;
+
+            // ---- Map risk signals to SuspiciousIndicator ----
+            const suspiciousIndicators = (riskScore.signals || [])
+                .filter(s => s.detected)
+                .map(s => ({
+                    type: s.id as any,
+                    severity: s.severity,
+                    description: s.details,
+                    evidence: [s.details],
+                    score: s.weight,
+                }));
+
+            const riskLevel = riskScore.score > 70 ? 'high' as const
+                : riskScore.score > 30 ? 'medium' as const
+                : riskScore.score > 0 ? 'low' as const
+                : 'low' as const;
+
+            // ---- Build funding sources from adapter tree ----
+            const ftree = fundingTree;
+            const fundingSources = {
+                nodes: (ftree?.nodes || []).slice(0, 20).map(n => ({
+                    address: n.address,
+                    depth: n.depth,
+                    direction: 'source' as const,
+                    totalValue: (n.amount || 0).toString(),
+                    totalValueInEth: n.amount || 0,
+                    txCount: 1,
+                    labels: n.label ? [n.label] : [],
+                })),
+                edges: ftree?.edges || [],
+            };
+
+            // Destinations built from outgoing tx data (adapter is source-only)
+            const destMap = new Map<string, { total: number; count: number }>();
+            for (const tx of transactions) {
+                if (tx.from === address && tx.to && tx.to !== address) {
+                    const e = destMap.get(tx.to) || { total: 0, count: 0 };
+                    e.total += parseFloat(tx.value || '0');
+                    e.count++;
+                    destMap.set(tx.to, e);
+                }
+            }
+            const fundingDestinations = {
+                nodes: Array.from(destMap.entries()).slice(0, 20).map(([addr, data]) => ({
+                    address: addr,
+                    depth: 1,
+                    direction: 'destination' as const,
+                    totalValue: data.total.toString(),
+                    totalValueInEth: data.total,
+                    txCount: data.count,
+                    labels: [],
+                })),
+                edges: [],
+            };
+
+            // ---- Aggregate program interactions into projects ----
+            const projectMap = new Map<string, { count: number; first: number; last: number }>();
+            for (const tx of transactions) {
+                for (const programId of tx.programInteractions || []) {
+                    const e = projectMap.get(programId) || { count: 0, first: Infinity, last: 0 };
+                    e.count++;
+                    e.first = Math.min(e.first, tx.timestamp);
+                    e.last = Math.max(e.last, tx.timestamp);
+                    projectMap.set(programId, e);
+                }
+            }
+
+            // Known Solana programs for readable names
+            const SOLANA_PROGRAM_NAMES: Record<string, string> = {
+                'JUPyiwrYJFskUPiHa7hkeR8VUtAeJQpzG8NYK4QJbKdA': 'Jupiter DEX',
+                '675kPX9MHTjS2zt1ASj6D5UQJLwL5NXG8W6Jm8J6BGQ': 'Raydium AMM',
+                'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYNLxGkNqfN5f': 'Orca DEX',
+                'worm2ZoG2kUd4vFXhvjh93UUH596ayR3Q3M1m7ss9Th': 'Wormhole Bridge',
+                'Stake11111111111111111111111111111111111111': 'Solana Staking',
+                'srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELgVq7Wp8bH': 'Serum DEX',
+                'M2mx93ekt1fmXSVkTrUL9xVFHkmME8HTUi5Z4QNUiRn': 'Magic Eden',
+                'MEisE1Hzehtx1Q63Yohk3EkP2HtcNqGj1mCJkoJ3VgJ': 'Marginfi Lending',
+                'KaminoAcMb899Ls9Gxgmnx5HmRYKkPSJLwMN2PHPTf7': 'Kamino Lending',
+                'dRiftyHA39MWEi3m9aunc5MzRF1JYuBsbn6VPcn33UH': 'Drift Perps',
+            };
+
+            const projectsInteracted = Array.from(projectMap.entries()).map(([program, data]) => ({
+                contractAddress: program,
+                projectName: SOLANA_PROGRAM_NAMES[program] || undefined,
+                category: 'defi' as const,
+                interactionCount: data.count,
+                totalValueInEth: 0,
+                firstInteraction: data.first,
+                lastInteraction: data.last,
+            }));
+
+            // ---- Same-block transaction groups ----
+            const blockGroups = new Map<number, typeof transactions>();
+            for (const tx of transactions) {
+                const key = tx.timestamp;
+                const group = blockGroups.get(key) || [];
+                group.push(tx);
+                blockGroups.set(key, group);
+            }
+            const sameBlockTransactions = Array.from(blockGroups.entries())
+                .filter(([_, txs]) => txs.length > 1)
+                .map(([block, txs]) => ({
+                    blockNumber: block,
+                    timestamp: txs[0].timestamp,
+                    transactions: txs.map(tx => ({
+                        hash: tx.hash,
+                        from: tx.from,
+                        to: tx.to,
+                        value: tx.value,
+                        timestamp: tx.timestamp,
+                        status: tx.status,
+                        blockNumber: block,
+                        valueInEth: parseFloat(tx.value || '0') || 0,
+                        gasUsed: '0',
+                        gasPrice: '0',
+                        gasCostInEth: 0,
+                        category: 'unknown' as const,
+                        isIncoming: tx.to === address,
+                        tokenTransfers: tx.tokenTransfers || [],
+                    })),
+                    isSuspicious: txs.length > 3,
+                    reason: txs.length > 3 ? `High number of transactions (${txs.length}) in same block` : undefined,
+                }));
+
+            // ---- Top funders / destinations ----
+            const topFundingSources = Array.from(interactors.entries())
+                .sort((a, b) => b[1].received - a[1].received)
+                .slice(0, 10)
+                .map(([addr, data]) => ({ address: addr, valueEth: data.received }));
+
+            const topFundingDestinations = Array.from(interactors.entries())
+                .sort((a, b) => b[1].sent - a[1].sent)
+                .slice(0, 10)
+                .map(([addr, data]) => ({ address: addr, valueEth: data.sent }));
+
+            // ---- Assemble result ----
             const result = {
                 wallet: {
-                    ...walletInfo,
-                    chain: 'solana' as any,  // Add required chain property
+                    address: walletInfo.address,
+                    chain: 'solana' as any,
+                    balance: walletInfo.balance || '0',
+                    balanceInEth: parseFloat(walletInfo.balance || '0') || 0,
+                    txCount: transactions.length,
+                    firstTxTimestamp: firstTs || undefined,
+                    lastTxTimestamp: lastTs || undefined,
+                    isContract: false,
                 },
                 transactions: transactions.map(tx => ({
                     hash: tx.hash,
+                    blockNumber: 0,
+                    timestamp: tx.timestamp,
                     from: tx.from,
                     to: tx.to || null,
-                    value: tx.value,
-                    timestamp: tx.timestamp,
-                    fee: tx.fee,
+                    value: tx.value || '0',
+                    valueInEth: parseFloat(tx.value || '0') || 0,
+                    gasUsed: '0',
+                    gasPrice: '0',
+                    gasCostInEth: 0,
                     status: tx.status,
-                    blockNumber: null,
+                    category: 'unknown' as const,
+                    isIncoming: tx.to === address,
                     tokenTransfers: tx.tokenTransfers || [],
-                    programInteractions: tx.programInteractions || [],
                 })),
-                fundingSources: { nodes: [], edges: [] } as any,
-                fundingDestinations: { nodes: [], edges: [] } as any,
-                suspiciousIndicators: [],
-                overallRiskScore: 0,
-                riskLevel: 'low' as const,
-                projectsInteracted: [],
-                sameBlockTransactions: [],
+                fundingSources: fundingSources as any,
+                fundingDestinations: fundingDestinations as any,
+                suspiciousIndicators,
+                overallRiskScore: riskScore.score,
+                riskLevel,
+                projectsInteracted,
+                sameBlockTransactions,
                 summary: {
                     totalTransactions: transactions.length,
                     successfulTxs: transactions.filter(t => t.status === 'success').length,
                     failedTxs: transactions.filter(t => t.status === 'failed').length,
-                    totalValueSentEth: 0,
-                    totalValueReceivedEth: parseFloat(walletInfo.balance || '0') || 0,
-                    uniqueInteractedAddresses: uniqueContracts.size,
-                    topFundingSources: [],
-                    topFundingDestinations: [],
-                    activityPeriodDays: 0,
-                    averageTxPerDay: 0,
-                }
+                    totalValueSentEth: totalValueSent,
+                    totalValueReceivedEth: totalValueReceived,
+                    uniqueInteractedAddresses: interactors.size,
+                    topFundingSources,
+                    topFundingDestinations,
+                    activityPeriodDays: activityDays,
+                    averageTxPerDay: activityDays > 0
+                        ? Math.round(transactions.length / activityDays)
+                        : transactions.length,
+                },
             };
 
             return res.json({
@@ -552,46 +724,52 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             const { SolanaAdapter } = await import('@fundtracer/core');
             const solanaAdapter = new SolanaAdapter();
 
-            // Get transactions to find funders/destinations
-            const transactions = await solanaAdapter.getTransactions(address, { limit: 100 });
-            
-            // Find unique source and destination addresses
-            const sources = new Set<string>();
-            const destinations = new Set<string>();
-            transactions.forEach(tx => {
-                if (tx.from && tx.from !== address) sources.add(tx.from);
-                if (tx.to && tx.to !== address) destinations.add(tx.to);
-            });
+            // Use SolanaAdapter's getFundingSources for proper BFS tree
+            const [fundingTree, transactions] = await Promise.all([
+                solanaAdapter.getFundingSources(address, 3).catch(() => null),
+                solanaAdapter.getTransactions(address, { limit: 200 }),
+            ]);
 
-            // Build tree structure
-            const fundingSources = {
-                nodes: Array.from(sources).slice(0, 20).map((addr, i) => ({
-                    address: addr,
-                    depth: 1,
-                    direction: 'source' as const,
-                    totalValue: '0',
-                    totalValueInEth: 0,
-                    txCount: transactions.filter(t => t.from === addr).length,
-                    labels: [],
-                })),
-                edges: []
-            };
-            const fundingDestinations = {
-                nodes: Array.from(destinations).slice(0, 20).map((addr, i) => ({
+            // Build source nodes from tree
+            const sourceNodes = (fundingTree?.nodes || []).slice(0, 30).map(n => ({
+                address: n.address,
+                depth: n.depth,
+                direction: 'source' as const,
+                totalValue: (n.amount || 0).toString(),
+                totalValueInEth: n.amount || 0,
+                txCount: 1,
+                labels: n.label ? [n.label] : [],
+            }));
+
+            // Build destination nodes from transactions (outgoing)
+            const destMap = new Map<string, { total: number; count: number }>();
+            for (const tx of transactions) {
+                if (tx.from === address && tx.to && tx.to !== address) {
+                    const e = destMap.get(tx.to) || { total: 0, count: 0 };
+                    e.total += parseFloat(tx.value || '0');
+                    e.count++;
+                    destMap.set(tx.to, e);
+                }
+            }
+            const destNodes = Array.from(destMap.entries())
+                .sort((a, b) => b[1].total - a[1].total)
+                .slice(0, 30)
+                .map(([addr, data]) => ({
                     address: addr,
                     depth: 1,
                     direction: 'destination' as const,
-                    totalValue: '0',
-                    totalValueInEth: 0,
-                    txCount: transactions.filter(t => t.to === addr).length,
+                    totalValue: data.total.toString(),
+                    totalValueInEth: data.total,
+                    txCount: data.count,
                     labels: [],
-                })),
-                edges: []
-            };
+                }));
 
             return res.json({
                 success: true,
-                result: { fundingSources, fundingDestinations },
+                result: {
+                    fundingSources: { nodes: sourceNodes, edges: fundingTree?.edges || [] },
+                    fundingDestinations: { nodes: destNodes, edges: [] },
+                },
                 usageRemaining: res.locals.usageRemaining,
             });
         } catch (error: any) {
