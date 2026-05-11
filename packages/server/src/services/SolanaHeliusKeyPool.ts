@@ -1,13 +1,13 @@
 // ============================================================
-// FundTracer by DT - Helius Key Pool
-// Dedicated pool manager for Helius API keys with circuit breaker
-// Supports multiple named pools for different operation types
+// FundTracer by DT - RPC Key Pool
+// Manages mixed provider keys (Helius + Alchemy) for Solana RPC
+// Each slot stores a full RPC endpoint URL.
+// Supports multiple named pools with circuit breaker.
 // ============================================================
 
-import { cache } from '../utils/cache.js';
-
-interface KeySlot {
-    key: string;
+interface RpcEndpoint {
+    url: string;
+    label: string;
     requestsThisMinute: number;
     consecutiveErrors: number;
     lastErrorAt: number | null;
@@ -17,24 +17,23 @@ interface KeySlot {
     totalRequests: number;
 }
 
-const RPS_PER_KEY = 10;
 const CIRCUIT_OPEN_MS = 30_000;
 const ERROR_THRESHOLD = 5;
 
 /**
- * HeliusKeyPool — manages a set of Helius API keys with:
- * - Round-robin dispatch
- * - Per-key circuit breaker (opens after ERROR_THRESHOLD consecutive errors)
- * - Rate limit awareness (tracks requests/minute)
+ * RpcKeyPool — manages a set of Solana RPC endpoints with:
+ * - Round-robin dispatch across all URLs
+ * - Per-endpoint circuit breaker
  * - Latency tracking
  */
-export class HeliusKeyPool {
-    private slots: KeySlot[] = [];
+export class RpcKeyPool {
+    private slots: RpcEndpoint[] = [];
     private index = 0;
 
-    constructor(keys: string[], label: string) {
-        this.slots = keys.filter(Boolean).map(key => ({
-            key,
+    constructor(endpoints: Array<{ url: string; label: string }>, label: string) {
+        this.slots = endpoints.filter(e => e.url).map(e => ({
+            url: e.url,
+            label: e.label,
             requestsThisMinute: 0,
             consecutiveErrors: 0,
             lastErrorAt: null,
@@ -45,12 +44,11 @@ export class HeliusKeyPool {
         }));
 
         if (this.slots.length === 0) {
-            console.warn(`[HeliusKeyPool:${label}] No keys provided — will throw on dispatch`);
+            console.warn(`[RpcKeyPool:${label}] No endpoints configured`);
         } else {
-            console.log(`[HeliusKeyPool:${label}] Initialized with ${this.slots.length} key(s)`);
+            console.log(`[RpcKeyPool:${label}] Initialized with ${this.slots.length} endpoint(s): ${this.slots.map(s => s.label).join(', ')}`);
         }
 
-        // Reset minute counters every 60s
         setInterval(() => {
             for (const s of this.slots) s.requestsThisMinute = 0;
         }, 60_000).unref();
@@ -64,15 +62,13 @@ export class HeliusKeyPool {
         return this.slots.filter(s => !s.circuitOpen).length;
     }
 
-    /** True if this pool has at least one healthy key */
     get isOperational(): boolean {
         return this.slots.length > 0 && this.slots.some(s => !s.circuitOpen);
     }
 
-    /** Get next healthy key in round-robin. Throws if all keys are exhausted. */
-    private acquire(): KeySlot {
+    private acquire(): RpcEndpoint {
         if (this.slots.length === 0) {
-            throw new Error('HeliusKeyPool: No keys configured');
+            throw new Error('RpcKeyPool: No endpoints configured');
         }
 
         const now = Date.now();
@@ -92,18 +88,16 @@ export class HeliusKeyPool {
             return slot;
         }
 
-        throw new Error('HeliusKeyPool: All keys are circuit-open');
+        throw new Error('RpcKeyPool: All endpoints are circuit-open');
     }
 
-    /** Execute a fetch callback with a Helius key, with retries and circuit-breaker logic */
-    async fetch<R>(
-        urlBuilder: (key: string) => Promise<R>,
-    ): Promise<R> {
+    /** Execute an RPC method through the pool */
+    async rpc(method: string, params: any[]): Promise<any> {
         const maxRetries = 2;
         let lastError: Error | null = null;
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
-            let slot: KeySlot;
+            let slot: RpcEndpoint;
             try {
                 slot = this.acquire();
             } catch (e) {
@@ -114,12 +108,19 @@ export class HeliusKeyPool {
             slot.requestsThisMinute++;
 
             try {
-                const result = await urlBuilder(slot.key);
+                const res = await fetch(slot.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error.message);
+
                 const latency = Date.now() - start;
                 slot.consecutiveErrors = 0;
                 slot.avgLatencyMs = slot.avgLatencyMs * 0.9 + latency * 0.1;
                 slot.totalRequests++;
-                return result;
+                return data.result;
             } catch (err: any) {
                 lastError = err;
                 slot.consecutiveErrors++;
@@ -128,24 +129,21 @@ export class HeliusKeyPool {
                 if (slot.consecutiveErrors >= ERROR_THRESHOLD) {
                     slot.circuitOpen = true;
                     slot.circuitOpenUntil = Date.now() + CIRCUIT_OPEN_MS;
-                    console.warn(`[HeliusKeyPool] Circuit opened for key ${slot.key.slice(0, 8)}...`);
+                    console.warn(`[RpcKeyPool] Circuit opened for ${slot.label}`);
                 }
 
                 if (err.status === 429) {
                     await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
                 }
-
-                // On last retry, don't sleep
                 if (attempt < maxRetries) {
                     await new Promise(r => setTimeout(r, 50 * (attempt + 1)));
                 }
             }
         }
 
-        throw lastError || new Error('HeliusKeyPool: All retries exhausted');
+        throw lastError || new Error('RpcKeyPool: All retries exhausted');
     }
 
-    /** Snapshot for monitoring */
     stats() {
         return {
             totalSlots: this.slots.length,
@@ -155,38 +153,50 @@ export class HeliusKeyPool {
         };
     }
 
-    /** Transfer all healthy keys from another pool into this one */
-    absorb(other: HeliusKeyPool): void {
+    absorb(other: RpcKeyPool): void {
         const transferred = other.slots.filter(s => !s.circuitOpen);
         for (const s of transferred) {
             this.slots.push(s);
         }
-        console.log(`[HeliusKeyPool] Absorbed ${transferred.length} key(s) from another pool (now ${this.slots.length} total)`);
+        console.log(`[RpcKeyPool] Absorbed ${transferred.length} endpoint(s) from another pool (now ${this.slots.length} total)`);
     }
 }
 
 // ================================================================
-// Pool definitions — load from env, create named pools
+// Collect all available RPC endpoints from env vars
 // ================================================================
 
-const ALL_HELIUS_KEYS = [
-    process.env.HELIUS_KEY_1,
-    process.env.HELIUS_KEY_2,
-    process.env.HELIUS_KEY_3,
-].filter(Boolean) as string[];
+function buildEndpoints(): Array<{ url: string; label: string }> {
+    const eps: Array<{ url: string; label: string }> = [];
 
-if (ALL_HELIUS_KEYS.length === 0) {
-    console.warn('[HeliusKeyPool] No HELIUS_KEY_* environment variables found — Helius features will fail');
+    // Helius keys (3 max)
+    for (let i = 1; i <= 3; i++) {
+        const key = process.env[`HELIUS_KEY_${i}`];
+        if (key) {
+            eps.push({ url: `https://mainnet.helius-rpc.com/?api-key=${key}`, label: `Helius-${i}` });
+        }
+    }
+
+    // Alchemy Solana key
+    const alchemyKey = process.env.ALCHEMY_SOLANA_API_KEY;
+    if (alchemyKey) {
+        eps.push({ url: `https://solana-mainnet.g.alchemy.com/v2/${alchemyKey}`, label: 'Alchemy-Sol' });
+    }
+
+    return eps;
 }
 
-/** Pool A — signatures scanning (gets 2 of 3 keys) */
-export const sigHeliusPool = new HeliusKeyPool(
-    ALL_HELIUS_KEYS.slice(0, Math.min(2, ALL_HELIUS_KEYS.length)),
-    'signatures',
-);
+const ALL_ENDPOINTS = buildEndpoints();
 
-/** Pool B — transfers scanning (gets the remaining key) */
-export const xferHeliusPool = new HeliusKeyPool(
-    ALL_HELIUS_KEYS.slice(2),
-    'transfers',
-);
+if (ALL_ENDPOINTS.length === 0) {
+    console.warn('[RpcKeyPool] No Solana RPC endpoints found — Helius/Alchemy features will fail');
+} else {
+    console.log(`[RpcKeyPool] Found ${ALL_ENDPOINTS.length} Solana RPC endpoint(s)`);
+}
+
+/** Pool A — high-throughput RPC (2/3 of available endpoints) */
+const splitPoint = Math.max(1, Math.floor(ALL_ENDPOINTS.length * 0.66));
+export const sigRpcPool = new RpcKeyPool(ALL_ENDPOINTS.slice(0, splitPoint), 'sig-rpc');
+
+/** Pool B — secondary RPC (remaining endpoints) */
+export const xferRpcPool = new RpcKeyPool(ALL_ENDPOINTS.slice(splitPoint), 'xfer-rpc');

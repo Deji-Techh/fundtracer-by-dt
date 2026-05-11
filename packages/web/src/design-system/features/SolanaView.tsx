@@ -87,26 +87,38 @@ export function SolanaView() {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
+    // 30s timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
     try {
+      const fetchOpts = { headers, signal: controller.signal };
+      let res: Response;
+
       if (activeTab === 'overview') {
-        const res = await fetch(`${API_BASE}/api/solana/overview/${trimmed}`, { headers });
+        res = await fetch(`${API_BASE}/api/solana/overview/${trimmed}`, fetchOpts);
         if (!res.ok) throw new Error(await res.text().catch(() => 'Overview scan failed'));
         const data = await res.json();
         setOverview(data);
       } else if (activeTab === 'transactions') {
-        const res = await fetch(`${API_BASE}/api/solana/transactions/${trimmed}?limit=200`, { headers });
+        res = await fetch(`${API_BASE}/api/solana/transactions/${trimmed}?limit=200`, fetchOpts);
         if (!res.ok) throw new Error(await res.text().catch(() => 'Failed to fetch transactions'));
         const data = await res.json();
         setTransactions(data.transactions || []);
       } else if (activeTab === 'funding-tree') {
-        const res = await fetch(`${API_BASE}/api/solana/funding-tree/${trimmed}`, { headers });
+        res = await fetch(`${API_BASE}/api/solana/funding-tree/${trimmed}`, fetchOpts);
         if (!res.ok) throw new Error(await res.text().catch(() => 'Failed to build funding tree'));
         const data = await res.json();
         setFundingTree(data);
       }
     } catch (err: any) {
-      setError(err.message || 'Analysis failed');
+      if (err.name === 'AbortError') {
+        setError('Request timed out after 30s. Try a smaller wallet or check your connection.');
+      } else {
+        setError(err.message || 'Analysis failed');
+      }
     } finally {
+      clearTimeout(timeoutId);
       setIsAnalyzing(false);
     }
   }, [address, activeTab, authToken]);
