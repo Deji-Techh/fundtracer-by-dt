@@ -268,6 +268,226 @@ export class SolanaHeliusClient {
             transfersPool: xferHeliusPool.stats(),
         };
     }
+
+    // ================================================================
+    // FREE-TIER FALLBACK — standard RPC methods
+    // Used when Helius paid features are unavailable
+    // ================================================================
+
+    /**
+     * Standard RPC: getSignaturesForAddress
+     * Returns signatures with blockTime (free tier, 1000 per page)
+     */
+    async getSignaturesForAddressStdRpc(
+        address: string,
+        options: { limit?: number; before?: string } = {}
+    ): Promise<{ signature: string; blockTime: number; err: any; slot: number }[]> {
+        return sigHeliusPool.fetch(async (key) => {
+            const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'getSignaturesForAddress',
+                    params: [
+                        address,
+                        {
+                            limit: options.limit || 100,
+                            commitment: 'confirmed',
+                            ...(options.before ? { before: options.before } : {}),
+                        },
+                    ],
+                }),
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            return (data.result || []).map((s: any) => ({
+                signature: s.signature,
+                blockTime: s.blockTime || 0,
+                err: s.err,
+                slot: s.slot,
+            }));
+        });
+    }
+
+    /**
+     * Standard RPC: getTransaction
+     * Returns full transaction details (free tier)
+     */
+    async getTransactionStdRpc(signature: string): Promise<any> {
+        return sigHeliusPool.fetch(async (key) => {
+            const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'getTransaction',
+                    params: [
+                        signature,
+                        { commitment: 'confirmed', maxSupportedTransactionVersion: 0 },
+                    ],
+                }),
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            return data.result;
+        });
+    }
+
+    /**
+     * Free-tier wallet scan — uses getSignaturesForAddress RPC + batch getTransaction
+     * Gets all signatures (paginated), then parses first N txns for SOL transfer info
+     */
+    async scanWalletFallback(address: string): Promise<{
+        signatures: { signature: string; blockTime: number; err: any }[];
+        topInteractors: { address: string; count: number }[];
+        totalSOLSent: number;
+        totalSOLReceived: number;
+        totalTime: number;
+    }> {
+        const start = Date.now();
+        const LAMPORTS = 1_000_000_000;
+
+        // Step 1: get all signatures via paginated RPC
+        const allSigs: { signature: string; blockTime: number; err: any }[] = [];
+        let before: string | undefined;
+        let hasMore = true;
+
+        while (hasMore && allSigs.length < 10000) {
+            const page = await this.getSignaturesForAddressStdRpc(address, {
+                limit: 1000,
+                before,
+            });
+            if (page.length === 0) break;
+            allSigs.push(...page);
+            before = page[page.length - 1].signature;
+            hasMore = page.length === 1000;
+        }
+
+        allSigs.sort((a, b) => a.blockTime - b.blockTime);
+
+        // Step 2: parse first 50 transactions in parallel to extract SOL transfers
+        const parseCount = Math.min(allSigs.length, 50);
+        const recentSigs = allSigs.slice(-parseCount).reverse(); // most recent first
+
+        const txResults = await Promise.allSettled(
+            recentSigs.map(s => this.getTransactionStdRpc(s.signature))
+        );
+
+        let totalSOLSent = 0;
+        let totalSOLReceived = 0;
+        const interactors: Record<string, number> = {};
+
+        for (const result of txResults) {
+            if (result.status !== 'fulfilled' || !result.value) continue;
+            const tx = result.value;
+            const meta = tx.meta;
+            if (!meta) continue;
+
+            const preBal = meta.preBalances || [];
+            const postBal = meta.postBalances || [];
+            const accountKeys = tx.transaction?.message?.accountKeys || [];
+
+            // Compute SOL balance change = pre[0] - post[0] (positive = sent, negative = received)
+            if (preBal.length > 0 && postBal.length > 0) {
+                const diff = (preBal[0] - postBal[0]) / LAMPORTS;
+                // First account is always the fee payer (our wallet)
+                if (diff > 0.0001) {
+                    totalSOLSent += diff;
+                } else if (diff < -0.0001) {
+                    totalSOLReceived += Math.abs(diff);
+                }
+            }
+
+            // Extract interactors from account keys (skip first = wallet, last = program)
+            for (let i = 1; i < accountKeys.length - 1; i++) {
+                const pk = accountKeys[i]?.pubkey || accountKeys[i];
+                if (pk && typeof pk === 'string' && pk !== address) {
+                    interactors[pk] = (interactors[pk] || 0) + 1;
+                }
+            }
+        }
+
+        const topInteractors = Object.entries(interactors)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10)
+            .map(([address, count]) => ({ address, count }));
+
+        return {
+            signatures: allSigs,
+            topInteractors,
+            totalSOLSent,
+            totalSOLReceived,
+            totalTime: Date.now() - start,
+        };
+    }
+
+    /**
+     * Free-tier funding tree — uses batch getTransaction to extract counterparties
+     */
+    async getFundingTreeFallback(
+        address: string,
+        maxTransactions = 200
+    ): Promise<{
+        sources: Record<string, { total: number; count: number }>;
+        destinations: Record<string, { total: number; count: number }>;
+    }> {
+        const LAMPORTS = 1_000_000_000;
+
+        // Get recent signatures
+        const sigs = await this.getSignaturesForAddressStdRpc(address, { limit: Math.min(maxTransactions, 1000) });
+        if (sigs.length === 0) return { sources: {}, destinations: {} };
+
+        // Get full tx details in parallel
+        const txResults = await Promise.allSettled(
+            sigs.map(s => this.getTransactionStdRpc(s.signature))
+        );
+
+        const sources: Record<string, { total: number; count: number }> = {};
+        const destinations: Record<string, { total: number; count: number }> = {};
+
+        for (const result of txResults) {
+            if (result.status !== 'fulfilled' || !result.value) continue;
+            const tx = result.value;
+            const meta = tx.meta;
+            if (!meta) continue;
+
+            const preBal = meta.preBalances || [];
+            const postBal = meta.postBalances || [];
+            const accountKeys = tx.transaction?.message?.accountKeys || [];
+
+            if (preBal.length < 2 || postBal.length < 2) continue;
+
+            const diff = (preBal[0] - postBal[0]) / LAMPORTS;
+            if (Math.abs(diff) < 0.0001) continue;
+
+            // First account = fee payer (the wallet in most Solana txs)
+            const feePayer = accountKeys[0]?.pubkey || accountKeys[0] || '';
+
+            if (feePayer === address) {
+                // Wallet sent funds → find destination
+                if (accountKeys.length > 1) {
+                    const dest = accountKeys[1]?.pubkey || accountKeys[1] || 'unknown';
+                    if (!destinations[dest]) destinations[dest] = { total: 0, count: 0 };
+                    destinations[dest].total += diff;
+                    destinations[dest].count += 1;
+                }
+            } else {
+                // Some other account paid → treat as source
+                if (feePayer !== 'unknown' && feePayer) {
+                    if (!sources[feePayer]) sources[feePayer] = { total: 0, count: 0 };
+                    sources[feePayer].total += Math.abs(diff);
+                    sources[feePayer].count += 1;
+                }
+            }
+        }
+
+        return { sources, destinations };
+    }
 }
 
 export const solanaHeliusClient = SolanaHeliusClient.getInstance();

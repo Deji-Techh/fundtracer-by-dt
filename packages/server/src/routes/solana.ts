@@ -20,8 +20,7 @@ function isValidSolanaAddress(address: string): boolean {
 }
 
 // GET /api/solana/overview/:address - Helius-powered wallet overview
-// Uses getTransactionsForAddress + getTransfersByAddress (parallel)
-// Returns first/last timestamps, totals, interactors, full tx list
+// Tries paid Helius methods first, falls back to free RPC
 router.get('/overview/:address', authMiddleware, usageMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { address } = req.params;
@@ -31,7 +30,17 @@ router.get('/overview/:address', authMiddleware, usageMiddleware, async (req: Au
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    const overview = await solanaPortfolioService.scanOverview(address);
+    let overview;
+    try {
+      overview = await solanaPortfolioService.scanOverview(address);
+    } catch (paidErr: any) {
+      if (paidErr.message?.includes?.('paid plan') || paidErr.message?.includes?.('only available')) {
+        console.log('[Solana] Paid Helius features unavailable, using free-tier fallback for overview');
+        overview = await solanaPortfolioService.scanOverviewFallback(address);
+      } else {
+        throw paidErr; // rethrow non-paid errors
+      }
+    }
 
     if (userId) {
       const displayName = req.user?.name || 'User';
@@ -47,42 +56,64 @@ router.get('/overview/:address', authMiddleware, usageMiddleware, async (req: Au
 });
 
 // GET /api/solana/funding-tree/:address - Funding tree from Helius transfers
+// Tries paid getTransfersByAddress first, falls back to RPC batch
 router.get('/funding-tree/:address', authMiddleware, usageMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { address } = req.params;
-    const maxDepth = Math.min(parseInt(req.query.depth as string) || 2, 4);
 
     if (!isValidSolanaAddress(address)) {
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
     const helius = solanaHeliusClient;
-    const transfers = await helius.getAllTransfers(address);
     const LAMPORTS = 1_000_000_000;
 
-    // Build funding sources (money COMING IN to this address)
-    const sources: Record<string, { total: number; count: number; lastTx: number }> = {};
-    for (const t of transfers) {
-      if (t.destination === address) {
-        const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
-        const amt = isSol ? t.amount / LAMPORTS : (t.amount || 0);
-        if (!sources[t.source]) sources[t.source] = { total: 0, count: 0, lastTx: 0 };
-        sources[t.source].total += amt;
-        sources[t.source].count += 1;
-        sources[t.source].lastTx = Math.max(sources[t.source].lastTx, t.blockTime || 0);
-      }
-    }
+    let sources: Record<string, { total: number; count: number; lastTx: number }>;
+    let destinations: Record<string, { total: number; count: number; lastTx: number }>;
+    let totalTransfers: number;
 
-    // Build funding destinations (money GOING OUT from this address)
-    const destinations: Record<string, { total: number; count: number; lastTx: number }> = {};
-    for (const t of transfers) {
-      if (t.source === address) {
-        const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
-        const amt = isSol ? t.amount / LAMPORTS : (t.amount || 0);
-        if (!destinations[t.destination]) destinations[t.destination] = { total: 0, count: 0, lastTx: 0 };
-        destinations[t.destination].total += amt;
-        destinations[t.destination].count += 1;
-        destinations[t.destination].lastTx = Math.max(destinations[t.destination].lastTx, t.blockTime || 0);
+    try {
+      // Try paid Helius method first
+      const transfers = await helius.getAllTransfers(address);
+      totalTransfers = transfers.length;
+
+      sources = {};
+      destinations = {};
+      for (const t of transfers) {
+        if (t.destination === address) {
+          const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
+          const amt = isSol ? t.amount / LAMPORTS : (t.amount || 0);
+          if (!sources[t.source]) sources[t.source] = { total: 0, count: 0, lastTx: 0 };
+          sources[t.source].total += amt;
+          sources[t.source].count += 1;
+          sources[t.source].lastTx = Math.max(sources[t.source].lastTx, t.blockTime || 0);
+        }
+        if (t.source === address) {
+          const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
+          const amt = isSol ? t.amount / LAMPORTS : (t.amount || 0);
+          if (!destinations[t.destination]) destinations[t.destination] = { total: 0, count: 0, lastTx: 0 };
+          destinations[t.destination].total += amt;
+          destinations[t.destination].count += 1;
+          destinations[t.destination].lastTx = Math.max(destinations[t.destination].lastTx, t.blockTime || 0);
+        }
+      }
+    } catch (paidErr: any) {
+      if (paidErr.message?.includes?.('paid plan') || paidErr.message?.includes?.('only available')) {
+        console.log('[Solana] Paid Helius features unavailable, using free-tier fallback for funding tree');
+        const fallback = await helius.getFundingTreeFallback(address, 200);
+        sources = {};
+        destinations = {};
+        totalTransfers = 0;
+        for (const [addr, data] of Object.entries(fallback.sources)) {
+          sources[addr] = { total: data.total, count: data.count, lastTx: 0 };
+          totalTransfers += data.count;
+        }
+        for (const [addr, data] of Object.entries(fallback.destinations)) {
+          destinations[addr] = { total: data.total, count: data.count, lastTx: 0 };
+          totalTransfers += data.count;
+        }
+      } else {
+        throw paidErr;
       }
     }
 
@@ -123,7 +154,7 @@ router.get('/funding-tree/:address', authMiddleware, usageMiddleware, async (req
       fundingDestinations: topDestinations,
       totalSourcesFound: Object.keys(sources).length,
       totalDestinationsFound: Object.keys(destinations).length,
-      totalTransfers: transfers.length,
+      totalTransfers,
     });
   } catch (error: any) {
     console.error('Solana funding tree error:', error);
@@ -166,7 +197,8 @@ router.get('/portfolio/:address', authMiddleware, usageMiddleware, async (req: A
   }
 });
 
-// GET /api/solana/transactions/:address - Transaction history via Helius transfers
+// GET /api/solana/transactions/:address - Transaction history
+// Tries Helius paid method first, falls back to standard RPC
 router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req, res) => {
   try {
     const { address } = req.params;
@@ -176,20 +208,36 @@ router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    // Use Helius getTransfersByAddress for pre-parsed records
     const helius = solanaHeliusClient;
-    const sigsResult = await helius.getTransactionsForAddress(address, {
-      transactionDetails: 'signatures',
-      limit: Math.min(limit, 1000),
-      sortOrder: 'desc',
-    });
+    let transactions: any[];
 
-    const transactions = (sigsResult.data || []).map((s: any) => ({
-      signature: s.signature,
-      slot: s.slot,
-      blockTime: s.blockTime,
-      status: s.err ? 'failed' : 'success',
-    }));
+    try {
+      // Try paid Helius method first
+      const sigsResult = await helius.getTransactionsForAddress(address, {
+        transactionDetails: 'signatures',
+        limit: Math.min(limit, 1000),
+        sortOrder: 'desc',
+      });
+      transactions = (sigsResult.data || []).map((s: any) => ({
+        signature: s.signature,
+        slot: s.slot,
+        blockTime: s.blockTime,
+        status: s.err ? 'failed' : 'success',
+      }));
+    } catch (paidErr: any) {
+      if (paidErr.message?.includes?.('paid plan') || paidErr.message?.includes?.('only available')) {
+        console.log('[Solana] Paid Helius features unavailable, using free-tier fallback for transactions');
+        const sigs = await helius.getSignaturesForAddressStdRpc(address, { limit });
+        transactions = sigs.map((s: any) => ({
+          signature: s.signature,
+          slot: s.slot,
+          blockTime: s.blockTime,
+          status: s.err ? 'failed' : 'success',
+        }));
+      } else {
+        throw paidErr;
+      }
+    }
 
     res.json({ transactions, count: transactions.length });
   } catch (error: any) {

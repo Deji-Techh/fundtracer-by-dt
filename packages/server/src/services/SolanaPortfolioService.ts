@@ -191,6 +191,47 @@ export class SolanaPortfolioService {
     }
 
     /**
+     * Free-tier fallback: uses getSignaturesForAddress RPC + batch getTransaction
+     * No reliance on paid Helius features
+     */
+    async scanOverviewFallback(address: string): Promise<SolanaOverviewResult> {
+        const start = Date.now();
+        const helius = solanaHeliusClient;
+
+        const result = await helius.scanWalletFallback(address);
+        const signatures = result.signatures;
+
+        const firstSig = signatures[0];
+        const lastSig = signatures[signatures.length - 1];
+        const firstTimestamp = firstSig?.blockTime ? new Date(firstSig.blockTime * 1000).toISOString() : '';
+        const lastTimestamp = lastSig?.blockTime ? new Date(lastSig.blockTime * 1000).toISOString() : '';
+        const activityPeriodDays = firstSig?.blockTime && lastSig?.blockTime
+            ? Math.round((lastSig.blockTime - firstSig.blockTime) / 86400)
+            : 0;
+
+        const allTransactions = signatures.map(s => ({
+            signature: s.signature,
+            timestamp: s.blockTime ? new Date(s.blockTime * 1000).toISOString() : '',
+            status: s.err ? 'failed' : 'success',
+        }));
+
+        return {
+            wallet: address,
+            firstTimestamp,
+            lastTimestamp,
+            activityPeriodDays,
+            totalTransactions: signatures.length,
+            totalSOLSent: result.totalSOLSent.toFixed(6),
+            totalSOLReceived: result.totalSOLReceived.toFixed(6),
+            uniqueAddressCount: result.topInteractors.length,
+            uniqueAddresses: result.topInteractors.map(i => i.address),
+            topInteractors: result.topInteractors,
+            allTransactions,
+            scanTimeMs: Date.now() - start,
+        };
+    }
+
+    /**
      * Get portfolio - tries SIM first, falls back to existing RPC-based method
      */
     async getPortfolio(address: string, filterOptions?: PortfolioFilterOptions): Promise<SolanaPortfolio> {
