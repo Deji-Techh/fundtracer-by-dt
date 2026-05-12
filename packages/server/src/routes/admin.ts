@@ -5,6 +5,7 @@ import { getFirestore } from '../firebase.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { getAllLinkedUsers } from '../services/TelegramBot.js';
 import { sendEmail } from '../services/EmailService.js';
+import { adminCacheMiddleware } from '../utils/adminCache.js';
 
 console.log('[ADMIN] Loading admin routes module - TIMESTAMP: 2026-01-31-v3');
 
@@ -173,94 +174,56 @@ router.get('/auth/me', authMiddleware, async (req: AuthenticatedRequest, res: Re
   }
 });
 
-// Get Dashboard Stats (protected)
-router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+// Get Dashboard Stats (protected) — cached 60s
+router.get('/stats', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     
-    // Get all users count
+    // SINGLE users query — get all data in one read
     const usersSnapshot = await db.collection('users').get();
     const totalUsers = usersSnapshot.size;
     
-    // Get tier breakdown
-    let freeUsers = 0, proUsers = 0, maxUsers = 0;
+    // Derive all stats from the single scan
+    let freeUsers = 0, proUsers = 0, maxUsers = 0, bannedUsers = 0;
     usersSnapshot.forEach(doc => {
-      const tier = doc.data().tier || 'free';
+      const data = doc.data();
+      const tier = data.tier || 'free';
       if (tier === 'free') freeUsers++;
       else if (tier === 'pro') proUsers++;
       else if (tier === 'max') maxUsers++;
+      if (data.bannedAt) bannedUsers++;
     });
     
-    // Get verified users
-    const verifiedSnapshot = await db.collection('users')
-      .where('isVerified', '==', true)
-      .get();
-    const verifiedUsers = verifiedSnapshot.size;
-    
-    // Get banned users
-    const bannedSnapshot = await db.collection('users')
-      .where('bannedAt', '!=', null)
-      .get();
-    const bannedUsers = bannedSnapshot.size;
-    
-    // Get today's date
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Calculate total analyses - use daily_stats records first
+    // Count aggregations — 1 read each
     let totalAnalyses = 0;
     try {
       const dailyStatsSnap = await db.collection('analytics').doc('daily_stats').collection('records')
         .select('analysisCount').get();
-      if (!dailyStatsSnap.empty) {
-        dailyStatsSnap.forEach(doc => {
-          totalAnalyses += doc.data().analysisCount || 0;
-        });
-      } else {
-        // Fallback: count scanHistory items across all users
-        const users = await db.collection('users').select().get();
-        let scanCount = 0;
-        for (const userDoc of users.docs) {
-          const scanSnap = await db.collection('scanHistory').doc(userDoc.id).collection('items').get();
-          scanCount += scanSnap.size;
-          if (scanCount > 50000) break; // safety limit
-        }
-        totalAnalyses = scanCount;
-      }
+      dailyStatsSnap.forEach(doc => { totalAnalyses += doc.data().analysisCount || 0; });
     } catch { /* fallback */ }
     
-    // Get today's analyses
-    const todayAnalyses = usersSnapshot.docs.reduce((sum, doc) => {
-      const dailyUsage = doc.data().dailyUsage || {};
-      return sum + (dailyUsage[today] || 0);
-    }, 0);
-
-    // Get Telegram users count
+    // Count queries — 1 read each instead of full scans
+    let cliUsers = 0, totalChatSessions = 0;
+    try {
+      const cliCount = await db.collection('torque_wallets').count().get();
+      cliUsers = cliCount.data().count || 0;
+    } catch {}
+    try {
+      const chatCount = await db.collection('chat_sessions').count().get();
+      totalChatSessions = chatCount.data().count || 0;
+    } catch {}
+    
+    // Telegram from in-memory — 0 reads
     let telegramUsers = 0;
     try {
       const { getAllLinkedUsers } = await import('../services/TelegramBot.js');
       telegramUsers = getAllLinkedUsers().length;
-    } catch { /* telegram bot may not be initialized */ }
-
-    // Get CLI/rewards users count
-    let cliUsers = 0;
-    try {
-      const cliSnapshot = await db.collection('torque_wallets').get();
-      cliUsers = cliSnapshot.size;
-    } catch { /* collection may not exist */ }
-
-    // Get chat sessions count
-    let totalChatSessions = 0;
-    try {
-      const chatSnapshot = await db.collection('chat_sessions').count().get();
-      totalChatSessions = chatSnapshot.data().count || 0;
-    } catch { /* fallback */ }
+    } catch {}
 
     res.json({
       stats: {
         totalVisitors: totalUsers,
         activeUsers: totalUsers - bannedUsers,
-        pohVerifiedUsers: verifiedUsers,
-        totalRevenue: 0,
         totalAnalyses,
         freeUsers,
         proUsers,
@@ -281,7 +244,7 @@ router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Resp
 });
 
 // Get Recent Activity (protected)
-router.get('/activity', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/activity', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     
@@ -699,15 +662,13 @@ router.get('/users/:uid/chat-sessions', authMiddleware, async (req: Authenticate
 // ============================================================
 // NEW: Get extended platform stats (CLI, Telegram, Rewards)
 // ============================================================
-router.get('/stats/platform', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/platform', authMiddleware, adminCacheMiddleware(30_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
 
-    // CLI users count from torque_wallets
-    const cliSnapshot = await db.collection('torque_wallets').get();
+    // CLI users — select only needed fields to reduce read cost
+    const cliSnapshot = await db.collection('torque_wallets').select('totalPoints', 'walletsScanned').get();
     const cliUsers = cliSnapshot.size;
-
-    // Total points and scans from torque_wallets
     let totalPoints = 0;
     let totalWalletsScanned = 0;
     cliSnapshot.forEach(doc => {
@@ -716,26 +677,22 @@ router.get('/stats/platform', authMiddleware, async (req: AuthenticatedRequest, 
       totalWalletsScanned += d.walletsScanned || 0;
     });
 
-    // Torque activity count
-    const activitySnapshot = await db.collection('torque_activity').get();
-    const totalActivities = activitySnapshot.size;
+    // Count queries — 1 read each
+    let totalActivities = 0, claimsCount = 0, totalChatSessions = 0;
+    try {
+      const actCount = await db.collection('torque_activity').count().get();
+      totalActivities = actCount.data().count || 0;
+    } catch {}
+    try {
+      const claimCount = await db.collection('torque_claims').count().get();
+      claimsCount = claimCount.data().count || 0;
+    } catch {}
+    try {
+      const chatCount = await db.collection('chat_sessions').count().get();
+      totalChatSessions = chatCount.data().count || 0;
+    } catch {}
 
-    // Telegram users from the bot
     const telegramUsers = getAllLinkedUsers().length;
-
-    // Torque claims count
-    let claimsCount = 0;
-    try {
-      const claimsSnapshot = await db.collection('torque_claims').get();
-      claimsCount = claimsSnapshot.size;
-    } catch { /* collection may not exist */ }
-
-    // Total chat sessions
-    let totalChatSessions = 0;
-    try {
-      const chatSnapshot = await db.collection('chat_sessions').count().get();
-      totalChatSessions = chatSnapshot.data().count || 0;
-    } catch { /* fallback */ }
 
     res.json({
       cliUsers,
@@ -756,7 +713,7 @@ router.get('/stats/platform', authMiddleware, async (req: AuthenticatedRequest, 
 // ============================================================
 // NEW: List CLI Users with details
 // ============================================================
-router.get('/stats/cli-users', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/cli-users', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snapshot = await db.collection('torque_wallets')
@@ -798,7 +755,7 @@ router.get('/stats/cli-users', authMiddleware, async (req: AuthenticatedRequest,
 // ============================================================
 // NEW: List Telegram Users
 // ============================================================
-router.get('/stats/telegram-users', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/telegram-users', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const linkedUsers = getAllLinkedUsers();
 
@@ -837,7 +794,7 @@ router.get('/stats/telegram-users', authMiddleware, async (req: AuthenticatedReq
 // ============================================================
 // REVENUE: Get payment/revenue summary
 // ============================================================
-router.get('/revenue', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/revenue', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const paymentsSnap = await db.collectionGroup('payments').get();
@@ -864,7 +821,7 @@ router.get('/revenue', authMiddleware, async (req: AuthenticatedRequest, res: Re
 // ============================================================
 // REVENUE: Get all payments
 // ============================================================
-router.get('/revenue/payments', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/revenue/payments', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collectionGroup('payments').orderBy('timestamp', 'desc').limit(100).get();
@@ -895,7 +852,7 @@ router.get('/users/:uid/chat-messages/:sessionId', authMiddleware, async (req: A
 // ============================================================
 // NOTIFICATIONS: List all notifications
 // ============================================================
-router.get('/notifications', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/notifications', authMiddleware, adminCacheMiddleware(30_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('notifications').orderBy('createdAt', 'desc').limit(100).get();
@@ -964,7 +921,7 @@ router.post('/notifications/broadcast', authMiddleware, async (req: Authenticate
 // ============================================================
 // REFERRALS: Summary and top referrers
 // ============================================================
-router.get('/referrals', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/referrals', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const usersSnap = await db.collection('users')
@@ -1039,7 +996,7 @@ router.delete('/admins/:uid', authMiddleware, async (req: AuthenticatedRequest, 
 // ============================================================
 // TORQUE: V1 leaderboard
 // ============================================================
-router.get('/torque/leaderboard', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/torque/leaderboard', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('torque_user_stats')
@@ -1055,7 +1012,7 @@ router.get('/torque/leaderboard', authMiddleware, async (req: AuthenticatedReque
 // ============================================================
 // TORQUE: Events
 // ============================================================
-router.get('/torque/events', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/torque/events', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('torque_events')
@@ -1071,7 +1028,7 @@ router.get('/torque/events', authMiddleware, async (req: AuthenticatedRequest, r
 // ============================================================
 // TORQUE: Pool stats
 // ============================================================
-router.get('/torque/pool-stats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/torque/pool-stats', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const doc = await db.collection('torque_pool').doc('global').get();
@@ -1091,7 +1048,7 @@ router.get('/torque/pool-stats', authMiddleware, async (req: AuthenticatedReques
 // ============================================================
 // RADAR: All alerts
 // ============================================================
-router.get('/radar/alerts', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/radar/alerts', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('radar_alerts')
@@ -1107,7 +1064,7 @@ router.get('/radar/alerts', authMiddleware, async (req: AuthenticatedRequest, re
 // ============================================================
 // RADAR: Activity
 // ============================================================
-router.get('/radar/activity', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/radar/activity', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('radar_activity')
@@ -1123,7 +1080,7 @@ router.get('/radar/activity', authMiddleware, async (req: AuthenticatedRequest, 
 // ============================================================
 // SYSTEM: Health check
 // ============================================================
-router.get('/system/health', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/system/health', authMiddleware, adminCacheMiddleware(30_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     await db.collection('health').doc('check').get();
@@ -1169,7 +1126,7 @@ router.get('/export/users', authMiddleware, async (req: AuthenticatedRequest, re
 // ============================================================
 // DAILY STATS: Time-series analytics
 // ============================================================
-router.get('/stats/daily', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/daily', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('analytics').doc('daily_stats').collection('records')
@@ -1185,7 +1142,7 @@ router.get('/stats/daily', authMiddleware, async (req: AuthenticatedRequest, res
 // ============================================================
 // FAILED LOGINS: Auth failure monitoring
 // ============================================================
-router.get('/stats/failed-logins', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/failed-logins', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('analytics').doc('user_activity').collection('logins')
@@ -1215,7 +1172,7 @@ router.delete('/notifications/:id', authMiddleware, async (req: AuthenticatedReq
 // ============================================================
 // TORQUE: Groups
 // ============================================================
-router.get('/torque/groups', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/torque/groups', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('torque_groups')
@@ -1263,7 +1220,7 @@ router.post('/emails/send', authMiddleware, async (req: AuthenticatedRequest, re
 // ============================================================
 // MAINTENANCE: Get current maintenance config
 // ============================================================
-router.get('/maintenance', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/maintenance', authMiddleware, adminCacheMiddleware(30_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const doc = await db.collection('config').doc('maintenance').get();
@@ -1301,7 +1258,7 @@ router.post('/maintenance', authMiddleware, async (req: AuthenticatedRequest, re
 // ============================================================
 // FEATURE FLAGS: Get all feature flags
 // ============================================================
-router.get('/feature-flags', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/feature-flags', authMiddleware, adminCacheMiddleware(30_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('config').doc('featureFlags').get();
@@ -1422,15 +1379,15 @@ router.post('/users/:uid/impersonate', authMiddleware, async (req: Authenticated
 // ============================================================
 // DATABASE: Collection stats
 // ============================================================
-router.get('/database/stats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/database/stats', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const collections = ['users', 'chat_sessions', 'notifications', 'torque_wallets', 'torque_events', 'torque_claims', 'torque_user_stats', 'radar_alerts', 'radar_activity'];
     const stats: Record<string, number> = {};
     for (const name of collections) {
       try {
-        const snap = await db.collection(name).limit(1000).get();
-        stats[name] = snap.size;
+        const snap = await db.collection(name).count().get();
+        stats[name] = snap.data().count || 0;
       } catch { stats[name] = -1; }
     }
     res.json({ collections: stats });
@@ -1442,7 +1399,7 @@ router.get('/database/stats', authMiddleware, async (req: AuthenticatedRequest, 
 // ============================================================
 // SUBSCRIPTIONS: Get subscription management data
 // ============================================================
-router.get('/subscriptions', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/subscriptions', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const usersSnap = await db.collection('users')
