@@ -788,4 +788,390 @@ router.get('/stats/telegram-users', authMiddleware, async (req: AuthenticatedReq
   }
 });
 
+// ============================================================
+// REVENUE: Get payment/revenue summary
+// ============================================================
+router.get('/revenue', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const paymentsSnap = await db.collectionGroup('payments').get();
+    let totalRevenue = 0;
+    let paymentCount = 0;
+    const byTier: Record<string, number> = {};
+    const byChain: Record<string, number> = {};
+    paymentsSnap.forEach(doc => {
+      const d = doc.data();
+      totalRevenue += d.amount || 0;
+      paymentCount++;
+      const tier = d.tierUnlocked || 'unknown';
+      byTier[tier] = (byTier[tier] || 0) + (d.amount || 0);
+      const chain = d.chain || 'unknown';
+      byChain[chain] = (byChain[chain] || 0) + (d.amount || 0);
+    });
+    res.json({ totalRevenue, paymentCount, byTier, byChain });
+  } catch (error) {
+    console.error('[ADMIN] Revenue error:', error);
+    res.json({ totalRevenue: 0, paymentCount: 0, byTier: {}, byChain: {} });
+  }
+});
+
+// ============================================================
+// REVENUE: Get all payments
+// ============================================================
+router.get('/revenue/payments', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collectionGroup('payments').orderBy('timestamp', 'desc').limit(100).get();
+    const payments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ payments });
+  } catch (error) {
+    console.error('[ADMIN] Payments error:', error);
+    res.json({ payments: [] });
+  }
+});
+
+// ============================================================
+// CHAT: Get full conversation for a chat session
+// ============================================================
+router.get('/users/:uid/chat-messages/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('chat_sessions').doc(req.params.sessionId)
+      .collection('chat_messages').orderBy('timestamp', 'asc').get();
+    const messages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ messages });
+  } catch (error) {
+    console.error('[ADMIN] Chat messages error:', error);
+    res.json({ messages: [] });
+  }
+});
+
+// ============================================================
+// NOTIFICATIONS: List all notifications
+// ============================================================
+router.get('/notifications', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('notifications').orderBy('createdAt', 'desc').limit(100).get();
+    const notifications = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ notifications });
+  } catch (error) {
+    console.error('[ADMIN] Notifications error:', error);
+    res.json({ notifications: [] });
+  }
+});
+
+// ============================================================
+// NOTIFICATIONS: Broadcast to all users or by tier
+// ============================================================
+router.post('/notifications/broadcast', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { title, message, type, targetTier } = req.body;
+    if (!title || !message) {
+      return res.status(400).json({ error: 'Title and message required' });
+    }
+    const db = getFirestore();
+    let usersQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db.collection('users');
+    if (targetTier && targetTier !== 'all') {
+      usersQuery = usersQuery.where('tier', '==', targetTier);
+    }
+    const usersSnap = await usersQuery.select('uid').get();
+    const batch = db.batch();
+    let count = 0;
+    usersSnap.forEach(doc => {
+      const notifRef = db.collection('notifications').doc();
+      batch.set(notifRef, {
+        userId: doc.id,
+        title,
+        message,
+        type: type || 'admin',
+        read: false,
+        createdAt: Date.now(),
+      });
+      count++;
+    });
+    await batch.commit();
+    // Log admin action
+    await db.collection('admin_actions').add({
+      action: 'broadcast_notification',
+      userId: req.user?.uid || '',
+      userEmail: `${count} users`,
+      adminId: req.user?.uid,
+      details: { title, message, type, targetTier, recipientCount: count },
+      timestamp: Date.now(),
+    });
+    res.json({ success: true, recipientCount: count });
+  } catch (error) {
+    console.error('[ADMIN] Broadcast error:', error);
+    res.status(500).json({ error: 'Broadcast failed' });
+  }
+});
+
+// ============================================================
+// REFERRALS: Summary and top referrers
+// ============================================================
+router.get('/referrals', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const usersSnap = await db.collection('users')
+      .where('referralCount', '>', 0)
+      .orderBy('referralCount', 'desc')
+      .limit(50)
+      .get();
+    const referrers = usersSnap.docs.map(d => {
+      const u = d.data();
+      return {
+        uid: d.id,
+        username: u.username || u.displayName || 'Unknown',
+        email: u.email || '',
+        referralCode: u.referralCode || '',
+        referralCount: u.referralCount || 0,
+        referredUsers: u.referredUsers || [],
+        createdAt: u.createdAt || 0,
+      };
+    });
+    const codesSnap = await db.collection('referral_codes').get();
+    const codes = codesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ referrers, codes, totalReferrers: referrers.length });
+  } catch (error) {
+    console.error('[ADMIN] Referrals error:', error);
+    res.json({ referrers: [], codes: [], totalReferrers: 0 });
+  }
+});
+
+// ============================================================
+// ADMINS: List all admin accounts
+// ============================================================
+router.get('/admins/list', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('adminUsers').get();
+    const admins = snap.docs.map(d => {
+      const a = d.data();
+      return {
+        uid: d.id,
+        username: a.username,
+        email: a.email,
+        role: a.role,
+        isActive: a.isActive,
+        createdAt: a.createdAt,
+        lastLogin: a.lastLogin,
+      };
+    });
+    res.json({ admins });
+  } catch (error) {
+    console.error('[ADMIN] Admin list error:', error);
+    res.json({ admins: [] });
+  }
+});
+
+// ============================================================
+// ADMINS: Delete an admin account
+// ============================================================
+router.delete('/admins/:uid', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Only superadmins can delete admins' });
+    }
+    const db = getFirestore();
+    await db.collection('adminUsers').doc(req.params.uid).delete();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ADMIN] Delete admin error:', error);
+    res.status(500).json({ error: 'Failed to delete admin' });
+  }
+});
+
+// ============================================================
+// TORQUE: V1 leaderboard
+// ============================================================
+router.get('/torque/leaderboard', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('torque_user_stats')
+      .orderBy('points', 'desc').limit(100).get();
+    const entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ entries });
+  } catch (error) {
+    console.error('[ADMIN] Torque leaderboard error:', error);
+    res.json({ entries: [] });
+  }
+});
+
+// ============================================================
+// TORQUE: Events
+// ============================================================
+router.get('/torque/events', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('torque_events')
+      .orderBy('timestamp', 'desc').limit(100).get();
+    const events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ events });
+  } catch (error) {
+    console.error('[ADMIN] Torque events error:', error);
+    res.json({ events: [] });
+  }
+});
+
+// ============================================================
+// TORQUE: Pool stats
+// ============================================================
+router.get('/torque/pool-stats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const doc = await db.collection('torque_pool').doc('global').get();
+    const data = doc.data() || {};
+    res.json({
+      totalPointsClaimed: data.totalPointsClaimed || 0,
+      totalEquityClaimed: data.totalEquityClaimed || 0,
+      claimCount: data.claimCount || 0,
+      lastClaimedAt: data.lastClaimedAt || 0,
+    });
+  } catch (error) {
+    console.error('[ADMIN] Pool stats error:', error);
+    res.json({ totalPointsClaimed: 0, totalEquityClaimed: 0, claimCount: 0, lastClaimedAt: 0 });
+  }
+});
+
+// ============================================================
+// RADAR: All alerts
+// ============================================================
+router.get('/radar/alerts', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('radar_alerts')
+      .orderBy('createdAt', 'desc').limit(100).get();
+    const alerts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ alerts });
+  } catch (error) {
+    console.error('[ADMIN] Radar alerts error:', error);
+    res.json({ alerts: [] });
+  }
+});
+
+// ============================================================
+// RADAR: Activity
+// ============================================================
+router.get('/radar/activity', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('radar_activity')
+      .orderBy('timestamp', 'desc').limit(100).get();
+    const activity = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ activity });
+  } catch (error) {
+    console.error('[ADMIN] Radar activity error:', error);
+    res.json({ activity: [] });
+  }
+});
+
+// ============================================================
+// SYSTEM: Health check
+// ============================================================
+router.get('/system/health', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    await db.collection('health').doc('check').get();
+    res.json({
+      status: 'ok',
+      firebase: 'connected',
+      timestamp: Date.now(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+    });
+  } catch (error) {
+    res.json({ status: 'degraded', firebase: 'error', timestamp: Date.now(), uptime: process.uptime() });
+  }
+});
+
+// ============================================================
+// EXPORT: Users CSV
+// ============================================================
+router.get('/export/users', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('users').get();
+    const fields = ['uid', 'username', 'email', 'tier', 'createdAt', 'lastLogin', 'bannedAt', 'walletAddress', 'referralCount', 'analysisCount'];
+    let csv = fields.join(',') + '\n';
+    snap.docs.forEach(doc => {
+      const u = doc.data();
+      const row = fields.map(f => {
+        const val = u[f] ?? '';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      });
+      csv += row.join(',') + '\n';
+    });
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=fundtracer-users-${Date.now()}.csv`);
+    res.send(csv);
+  } catch (error) {
+    console.error('[ADMIN] Export error:', error);
+    res.status(500).json({ error: 'Export failed' });
+  }
+});
+
+// ============================================================
+// DAILY STATS: Time-series analytics
+// ============================================================
+router.get('/stats/daily', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('analytics').doc('daily_stats').collection('records')
+      .orderBy('date', 'desc').limit(90).get();
+    const daily = snap.docs.map(d => d.data()).filter(d => d.date);
+    res.json({ daily });
+  } catch (error) {
+    console.error('[ADMIN] Daily stats error:', error);
+    res.json({ daily: [] });
+  }
+});
+
+// ============================================================
+// FAILED LOGINS: Auth failure monitoring
+// ============================================================
+router.get('/stats/failed-logins', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('analytics').doc('user_activity').collection('logins')
+      .orderBy('timestamp', 'desc').limit(100).get();
+    const logins = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ logins });
+  } catch (error) {
+    console.error('[ADMIN] Failed logins error:', error);
+    res.json({ logins: [] });
+  }
+});
+
+// ============================================================
+// NOTIFICATIONS: Delete a notification
+// ============================================================
+router.delete('/notifications/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    await db.collection('notifications').doc(req.params.id).delete();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ADMIN] Delete notification error:', error);
+    res.status(500).json({ error: 'Failed to delete notification' });
+  }
+});
+
+// ============================================================
+// TORQUE: Groups
+// ============================================================
+router.get('/torque/groups', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('torque_groups')
+      .orderBy('totalPoints', 'desc').limit(50).get();
+    const groups = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    res.json({ groups });
+  } catch (error) {
+    console.error('[ADMIN] Torque groups error:', error);
+    res.json({ groups: [] });
+  }
+});
+
 export { router as adminRoutes };
