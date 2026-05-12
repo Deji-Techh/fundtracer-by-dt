@@ -1256,4 +1256,242 @@ router.post('/emails/send', authMiddleware, async (req: AuthenticatedRequest, re
   }
 });
 
+// ============================================================
+// MAINTENANCE: Get current maintenance config
+// ============================================================
+router.get('/maintenance', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const doc = await db.collection('config').doc('maintenance').get();
+    const data = doc.data() || {};
+    res.json({
+      siteDown: data.siteDown || false,
+      disabledChains: data.disabledChains || [],
+      message: data.message || 'Site is under maintenance. Please check back later.',
+    });
+  } catch (error) {
+    res.json({ siteDown: false, disabledChains: [], message: '' });
+  }
+});
+
+// ============================================================
+// MAINTENANCE: Update maintenance config
+// ============================================================
+router.post('/maintenance', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const { siteDown, disabledChains, message } = req.body;
+    await db.collection('config').doc('maintenance').set({
+      siteDown: siteDown === true,
+      disabledChains: Array.isArray(disabledChains) ? disabledChains : [],
+      message: message || 'Site is under maintenance.',
+      updatedAt: Date.now(),
+      updatedBy: req.user?.uid,
+    }, { merge: true });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update maintenance config' });
+  }
+});
+
+// ============================================================
+// FEATURE FLAGS: Get all feature flags
+// ============================================================
+router.get('/feature-flags', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('config').doc('featureFlags').get();
+    const data = snap.data() || {};
+    res.json({ flags: data.flags || {} });
+  } catch (error) {
+    res.json({ flags: {} });
+  }
+});
+
+// ============================================================
+// FEATURE FLAGS: Update a feature flag
+// ============================================================
+router.post('/feature-flags', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const { key, enabled, description } = req.body;
+    if (!key) return res.status(400).json({ error: 'Flag key required' });
+    await db.collection('config').doc('featureFlags').set({
+      [`flags.${key}`]: { enabled: enabled === true, description: description || '', updatedAt: Date.now() }
+    }, { merge: true });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update feature flag' });
+  }
+});
+
+// ============================================================
+// USERS: Bulk actions (batch ban/upgrade)
+// ============================================================
+router.post('/users/bulk', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const { action, uids, value } = req.body;
+    if (!Array.isArray(uids) || uids.length === 0) return res.status(400).json({ error: 'uids array required' });
+    if (uids.length > 100) return res.status(400).json({ error: 'Max 100 users per batch' });
+    let count = 0;
+    for (const uid of uids) {
+      const ref = db.collection('users').doc(uid);
+      if (action === 'ban') {
+        await ref.update({ bannedAt: Date.now(), bannedBy: req.user?.uid, banReason: value || 'Bulk ban' });
+      } else if (action === 'unban') {
+        await ref.update({ bannedAt: null, bannedBy: null, banReason: null });
+      } else if (action === 'upgrade') {
+        await ref.update({ tier: value || 'pro' });
+      }
+      count++;
+    }
+    await db.collection('admin_actions').add({
+      action: `bulk_${action}`, userId: 'bulk', userEmail: `${count} users`,
+      adminId: req.user?.uid, details: { uids, value }, timestamp: Date.now(),
+    });
+    res.json({ success: true, count });
+  } catch (error) {
+    console.error('[ADMIN] Bulk action error:', error);
+    res.status(500).json({ error: 'Bulk action failed' });
+  }
+});
+
+// ============================================================
+// USERS: Delete user entirely
+// ============================================================
+router.delete('/users/:uid', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const uid = req.params.uid;
+    // Delete user doc
+    await db.collection('users').doc(uid).delete();
+    // Clean up subcollections
+    const apiKeys = await db.collection('users').doc(uid).collection('apiKeys').get();
+    apiKeys.forEach(d => d.ref.delete());
+    const items = await db.collection('scanHistory').doc(uid).collection('items').get();
+    items.forEach(d => d.ref.delete());
+    // Delete chat sessions
+    const chats = await db.collection('chat_sessions').where('userId', '==', uid).get();
+    chats.forEach(d => d.ref.delete());
+    // Delete torque data
+    const wallets = await db.collection('torque_wallets').where('userId', '==', uid).get();
+    wallets.forEach(d => d.ref.delete());
+    const events = await db.collection('torque_events').where('userId', '==', uid).get();
+    events.forEach(d => d.ref.delete());
+    // Delete notifications
+    const notifs = await db.collection('notifications').where('userId', '==', uid).get();
+    notifs.forEach(d => d.ref.delete());
+    // Log
+    await db.collection('admin_actions').add({
+      action: 'delete_user', userId: uid, adminId: req.user?.uid, timestamp: Date.now(),
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ADMIN] Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// ============================================================
+// USERS: Impersonation link
+// ============================================================
+router.post('/users/:uid/impersonate', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const uid = req.params.uid;
+    const token = jwt.sign({
+      uid, type: 'impersonate', adminUid: req.user?.uid,
+      createdAt: Date.now(),
+    }, process.env.JWT_SECRET || 'fundtracer_jwt_secret_2024', { expiresIn: '1h' });
+    const link = `https://www.fundtracer.xyz/auth/impersonate?token=${token}`;
+    await db.collection('admin_actions').add({
+      action: 'impersonate', userId: uid, adminId: req.user?.uid, timestamp: Date.now(),
+    });
+    res.json({ link, expiresIn: '1 hour' });
+  } catch (error) {
+    console.error('[ADMIN] Impersonation error:', error);
+    res.status(500).json({ error: 'Failed to generate impersonation link' });
+  }
+});
+
+// ============================================================
+// DATABASE: Collection stats
+// ============================================================
+router.get('/database/stats', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const collections = ['users', 'chat_sessions', 'notifications', 'torque_wallets', 'torque_events', 'torque_claims', 'torque_user_stats', 'radar_alerts', 'radar_activity'];
+    const stats: Record<string, number> = {};
+    for (const name of collections) {
+      try {
+        const snap = await db.collection(name).limit(1000).get();
+        stats[name] = snap.size;
+      } catch { stats[name] = -1; }
+    }
+    res.json({ collections: stats });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get database stats' });
+  }
+});
+
+// ============================================================
+// SUBSCRIPTIONS: Get subscription management data
+// ============================================================
+router.get('/subscriptions', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const usersSnap = await db.collection('users')
+      .select('uid', 'username', 'email', 'tier', 'subscriptionExpiry', 'subscriptionId', 'createdAt')
+      .get();
+    const subs = usersSnap.docs.map(d => {
+      const u = d.data();
+      return {
+        uid: d.id, username: u.username || u.displayName || '', email: u.email || '',
+        tier: u.tier || 'free', expiry: u.subscriptionExpiry || null,
+        subscriptionId: u.subscriptionId || null,
+        createdAt: u.createdAt || 0,
+      };
+    });
+    res.json({ subscriptions: subs, total: subs.length });
+  } catch (error) {
+    res.json({ subscriptions: [], total: 0 });
+  }
+});
+
+// ============================================================
+// SEARCH: Global search across users, wallets, chats
+// ============================================================
+router.get('/search', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const q = (req.query.q as string || '').toLowerCase().trim();
+    if (!q || q.length < 2) return res.json({ users: [], wallets: [], chats: [] });
+    const results: { users: any[]; wallets: any[]; chats: any[] } = { users: [], wallets: [], chats: [] };
+    // Search users
+    const userSnap = await db.collection('users').get();
+    userSnap.forEach(d => {
+      const u = d.data();
+      const name = (u.username || u.displayName || '').toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      if (name.includes(q) || email.includes(q)) {
+        results.users.push({ uid: d.id, username: u.username || u.displayName, email: u.email, tier: u.tier });
+      }
+    });
+    // Search wallets
+    try {
+      const walletSnap = await db.collection('torque_wallets').get();
+      walletSnap.forEach(d => {
+        const w = d.data();
+        if ((w.displayName || '').toLowerCase().includes(q)) {
+          results.wallets.push({ userId: w.userId, displayName: w.displayName, walletsScanned: w.walletsScanned });
+        }
+      });
+    } catch {}
+    res.json(results);
+  } catch (error) {
+    res.json({ users: [], wallets: [], chats: [] });
+  }
+});
+
 export { router as adminRoutes };
