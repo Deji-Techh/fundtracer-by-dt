@@ -476,7 +476,29 @@ apiRouter.use('/contact', publicLimiter, contactRoutes); // Contact/sales form
 apiRouter.use('/tx', apiKeyAuthMiddleware, transactionRoutes); // Transaction lookup
 apiRouter.use('/gas', apiKeyAuthMiddleware, gasRoutes); // Gas prices
 apiRouter.use('/intel', publicLimiter, intelRoutes); // Intel page data (public)
-apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, analyzeLimiter, analyzeRoutes);
+
+// Chain maintenance middleware - blocks disabled chains
+async function chainMaintenanceMiddleware(req: any, res: any, next: any) {
+  try {
+    const chain = req.body?.chain || req.query?.chain || '';
+    if (!chain) return next();
+    const { getFirestore } = await import('./firebase.js');
+    const db = getFirestore();
+    const maintDoc = await db.collection('config').doc('maintenance').get();
+    const maint = maintDoc.data();
+    if (maint?.disabledChains?.includes(chain.toLowerCase())) {
+      return res.status(503).json({
+        error: 'chain_maintenance',
+        message: `The ${chain} network is currently under maintenance. Please try again later.`,
+        chain,
+        underMaintenance: true
+      });
+    }
+    next();
+  } catch { next(); }
+}
+
+apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, chainMaintenanceMiddleware, analyzeLimiter, analyzeRoutes);
 
 // AI Chat Routes - Context-aware AI analyst with smart model routing
 import { aiChatRoutes } from './routes/ai-chat.js';
@@ -558,7 +580,29 @@ import polymarketRoutes from './routes/polymarket.js';
 apiRouter.use('/polymarket', publicLimiter, polymarketRoutes);
 
 // Mount router at /api
-app.use('/api', apiRouter);
+// MAINTENANCE MIDDLEWARE: Check if site is in maintenance mode
+app.use('/api', async (req, res, next) => {
+  try {
+    // Skip maintenance check for admin routes and health check
+    if (req.path.startsWith('/admin/') || req.path === '/health' || req.path === '/keep-alive') {
+      return next();
+    }
+    const { getFirestore } = await import('./firebase.js');
+    const db = getFirestore();
+    const maintDoc = await db.collection('config').doc('maintenance').get();
+    const maint = maintDoc.data();
+    if (maint?.siteDown === true) {
+      return res.status(503).json({
+        error: 'maintenance',
+        message: maint.message || 'Site is under maintenance. Please check back later.',
+        underMaintenance: true
+      });
+    }
+    next();
+  } catch {
+    next();
+  }
+}, apiRouter);
 
 // Telegram webhook route - must be registered BEFORE catch-all
 // We create a router that will be populated once the bot initializes
