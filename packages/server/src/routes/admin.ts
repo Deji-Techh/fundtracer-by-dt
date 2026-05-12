@@ -344,11 +344,13 @@ router.get('/users', authMiddleware, async (req: AuthenticatedRequest, res: Resp
       users.push({
         uid: data.uid,
         username: data.username,
+        displayName: data.displayName,
         email: data.email,
         tier: data.tier || 'free',
         isVerified: data.isVerified || false,
         walletAddress: data.walletAddress || null,
         bannedAt: data.bannedAt || null,
+        authProvider: data.authProvider || null,
         createdAt: data.createdAt,
         lastLogin: data.lastLogin
       });
@@ -392,6 +394,7 @@ router.get('/users/:uid', authMiddleware, async (req: AuthenticatedRequest, res:
     res.json({
       uid: data?.uid,
       username: data?.username,
+      displayName: data?.displayName,
       email: data?.email,
       tier: data?.tier || 'free',
       isVerified: data?.isVerified || false,
@@ -401,7 +404,8 @@ router.get('/users/:uid', authMiddleware, async (req: AuthenticatedRequest, res:
       adminNotes: data?.adminNotes || null,
       createdAt: data?.createdAt,
       lastLogin: data?.lastLogin,
-      dailyUsage: data?.dailyUsage || {}
+      dailyUsage: data?.dailyUsage || {},
+      authProvider: data?.authProvider || null,
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch user' });
