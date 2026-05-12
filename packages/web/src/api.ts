@@ -46,6 +46,8 @@ export interface UserProfile {
     hasAlchemyApiKey?: boolean;
     tier?: 'free' | 'pro' | 'max';
     isVerified?: boolean;
+    bannedAt?: number | null;
+    banReason?: string | null;
     usage: {
         today: number;
         limit: number | 'unlimited';

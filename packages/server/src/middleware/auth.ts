@@ -176,12 +176,15 @@ export async function authMiddleware(
             }
         }
 
-        // Check Blacklist (Fail Closed)
-        if (userData?.blacklisted === true) {
-            console.warn(`[AUTH] Blocked blacklisted user: ${uid}`);
+        // Check Blacklist / Ban (Fail Closed)
+        if (userData?.blacklisted === true || userData?.bannedAt) {
+            console.warn(`[AUTH] Blocked banned/blacklisted user: ${uid}`);
+            const reason = userData?.banReason || 'Your account has been suspended.';
             return res.status(403).json({
                 error: 'Account suspended',
-                message: 'Your account has been blacklisted. Please contact support.'
+                bannedAt: userData?.bannedAt || true,
+                banReason: reason,
+                message: reason
             });
         }
 

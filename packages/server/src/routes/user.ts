@@ -87,6 +87,8 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
                 limit,
                 remaining,
             },
+            bannedAt: userData?.bannedAt || null,
+            banReason: userData?.banReason || null,
             createdAt: userData?.createdAt,
             profilePicture: userData?.profilePicture || req.user.photoURL || null,
             photoURL: userData?.profilePicture || req.user.photoURL || null,

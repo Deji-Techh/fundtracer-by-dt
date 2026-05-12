@@ -5,6 +5,7 @@ import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
 import AppPage from './pages/AppPage';
 import { useAuth } from './contexts/AuthContext';
 import MaintenancePage from './pages/MaintenancePage';
+import BanOverlay from './components/BanOverlay';
 import ErrorBoundary from './components/ErrorBoundary';
 import './design-system/tokens.css';
 
@@ -219,7 +220,7 @@ function App() {
   }
 
   // Global token URL processing - handles OAuth redirects from any page
-  const { setTokenFromExternal } = useAuth();
+  const { setTokenFromExternal, profile } = useAuth();
   const [searchParams] = useSearchParams();
   const [globalTokenProcessed, setGlobalTokenProcessed] = useState(false);
   
@@ -249,6 +250,10 @@ function App() {
   return (
     <ErrorBoundary>
       <SEOManager />
+      {profile?.bannedAt && (
+        <BanOverlay banReason={profile?.banReason} bannedAt={profile?.bannedAt} />
+      )}
+      {!profile?.bannedAt && (
       <Routes>
       <Route path="/" element={<IntelPage />} />
       <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
@@ -288,6 +293,7 @@ function App() {
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      )}
     </ErrorBoundary>
   );
 }
