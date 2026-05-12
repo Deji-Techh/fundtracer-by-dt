@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { getFirestore } from '../firebase.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { getAllLinkedUsers } from '../services/TelegramBot.js';
+import { sendEmail } from '../services/EmailService.js';
 
 console.log('[ADMIN] Loading admin routes module - TIMESTAMP: 2026-01-31-v3');
 
@@ -205,13 +206,27 @@ router.get('/stats', authMiddleware, async (req: AuthenticatedRequest, res: Resp
     // Get today's date
     const today = new Date().toISOString().split('T')[0];
     
-    // Calculate total analyses (sum of daily usage)
+    // Calculate total analyses - use daily_stats records first
     let totalAnalyses = 0;
-    usersSnapshot.forEach(doc => {
-      const dailyUsage = doc.data().dailyUsage || {};
-      const vals = Object.values(dailyUsage) as number[];
-      totalAnalyses += vals.reduce((a: number, b: number) => a + b, 0);
-    });
+    try {
+      const dailyStatsSnap = await db.collection('analytics').doc('daily_stats').collection('records')
+        .select('analysisCount').get();
+      if (!dailyStatsSnap.empty) {
+        dailyStatsSnap.forEach(doc => {
+          totalAnalyses += doc.data().analysisCount || 0;
+        });
+      } else {
+        // Fallback: count scanHistory items across all users
+        const users = await db.collection('users').select().get();
+        let scanCount = 0;
+        for (const userDoc of users.docs) {
+          const scanSnap = await db.collection('scanHistory').doc(userDoc.id).collection('items').get();
+          scanCount += scanSnap.size;
+          if (scanCount > 50000) break; // safety limit
+        }
+        totalAnalyses = scanCount;
+      }
+    } catch { /* fallback */ }
     
     // Get today's analyses
     const todayAnalyses = usersSnapshot.docs.reduce((sum, doc) => {
@@ -554,11 +569,11 @@ router.post('/admins', authMiddleware, async (req: AuthenticatedRequest, res: Re
 });
 
 // ============================================================
-// NEW: Get user API Keys
-// ============================================================
+// NEW: Get user API Keys (full=true returns unmasked keys)
 router.get('/users/:uid/api-keys', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
+    const showFull = req.query.full === 'true';
     const keysSnapshot = await db.collection('users').doc(req.params.uid).collection('apiKeys')
       .orderBy('createdAt', 'desc')
       .get();
@@ -572,7 +587,7 @@ router.get('/users/:uid/api-keys', authMiddleware, async (req: AuthenticatedRequ
       return {
         id: doc.id,
         name: data.name || 'Unnamed',
-        key: masked,
+        key: showFull ? fullKey : masked,
         type: data.type || 'test',
         createdAt: data.createdAt || 0,
         lastUsed: data.lastUsed || null,
@@ -585,6 +600,33 @@ router.get('/users/:uid/api-keys', authMiddleware, async (req: AuthenticatedRequ
   } catch (error) {
     console.error('[ADMIN] API keys error:', error);
     res.json({ keys: [] });
+  }
+});
+
+// NEW: Revoke (delete) a user's API key
+router.delete('/users/:uid/api-keys/:keyId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    await db.collection('users').doc(req.params.uid).collection('apiKeys').doc(req.params.keyId).delete();
+    // Also try to delete from top-level apiKeys collection if it exists
+    try {
+      const topLevelDoc = await db.collection('apiKeys').doc(req.params.keyId).get();
+      if (topLevelDoc.exists) {
+        await db.collection('apiKeys').doc(req.params.keyId).delete();
+      }
+    } catch { /* top-level may not exist */ }
+    // Log admin action
+    await db.collection('admin_actions').add({
+      action: 'revoke_api_key',
+      userId: req.params.uid,
+      adminId: req.user?.uid,
+      details: { keyId: req.params.keyId },
+      timestamp: Date.now(),
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ADMIN] Revoke API key error:', error);
+    res.status(500).json({ error: 'Failed to revoke API key' });
   }
 });
 
@@ -876,8 +918,9 @@ router.post('/notifications/broadcast', authMiddleware, async (req: Authenticate
       usersQuery = usersQuery.where('tier', '==', targetTier);
     }
     const usersSnap = await usersQuery.select('uid').get();
-    const batch = db.batch();
     let count = 0;
+    // Chunk into batches of 500 (Firestore batch limit)
+    let batch = db.batch();
     usersSnap.forEach(doc => {
       const notifRef = db.collection('notifications').doc();
       batch.set(notifRef, {
@@ -889,8 +932,15 @@ router.post('/notifications/broadcast', authMiddleware, async (req: Authenticate
         createdAt: Date.now(),
       });
       count++;
+      if (count % 500 === 0) {
+        batch.commit().catch(e => console.error('[ADMIN] Batch error:', e));
+        batch = db.batch();
+      }
     });
-    await batch.commit();
+    // Commit the final batch
+    if (count % 500 !== 0) {
+      await batch.commit();
+    }
     // Log admin action
     await db.collection('admin_actions').add({
       action: 'broadcast_notification',
@@ -1171,6 +1221,38 @@ router.get('/torque/groups', authMiddleware, async (req: AuthenticatedRequest, r
   } catch (error) {
     console.error('[ADMIN] Torque groups error:', error);
     res.json({ groups: [] });
+  }
+});
+
+// ============================================================
+// EMAILS: Send an email via Resend
+// ============================================================
+router.post('/emails/send', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { to, subject, body } = req.body;
+    if (!to || !subject || !body) {
+      return res.status(400).json({ error: 'To, subject, and body required' });
+    }
+    await sendEmail({
+      to,
+      subject,
+      html: body,
+      includeBcc: false,
+    });
+    // Log admin action
+    const db = getFirestore();
+    await db.collection('admin_actions').add({
+      action: 'send_email',
+      userId: req.user?.uid || '',
+      userEmail: to,
+      adminId: req.user?.uid,
+      details: { subject },
+      timestamp: Date.now(),
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[ADMIN] Email send error:', error);
+    res.status(500).json({ error: 'Failed to send email' });
   }
 });
 
