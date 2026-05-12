@@ -70,7 +70,6 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
 
     // Debug: log the incoming result
     if (typeof window !== 'undefined') {
-        console.log('[ContractGridView] Received result:', {
             hasResult: !!result,
             hasInteractors: !!(result && result.interactors),
             interactorCount: result?.interactors?.length || 0,
@@ -84,7 +83,6 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
     try {
         // Defensive: ensure result exists and has required fields
         if (!result) {
-            console.log('[ContractGridView] No result provided');
             return (
                 <div className="wallet-grid-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
                     <p>No contract data available</p>
@@ -97,7 +95,6 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
         const sharedFundingGroups = result?.sharedFundingGroups || [];
         const suspiciousPatterns = result?.suspiciousPatterns || [];
 
-        console.log('[ContractGridView] Processed data:', {
             interactors: interactors.length,
             sharedFundingGroups: sharedFundingGroups.length,
             suspiciousPatterns: suspiciousPatterns.length,

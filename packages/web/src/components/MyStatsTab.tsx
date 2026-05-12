@@ -74,16 +74,13 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
         let token = getAuthToken();
         
         if (!token) {
-          console.log('[MyStatsTab] No token found, waiting for auth...');
           // Retry after a short delay to allow auth to complete
           await new Promise(r => setTimeout(r, 500));
           token = getAuthToken();
           if (!token) {
-            console.log('[MyStatsTab] Still no token after retry');
             setLoading(false);
             return;
           }
-          console.log('[MyStatsTab] Token found after retry');
         }
 
         // Fetch claim status using apiRequest (handles auth automatically)
@@ -98,7 +95,6 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
           const historyData = await apiRequest<any>('/api/torque-v2/claim/history');
           setClaimHistory(historyData.history || []);
         } catch (historyErr) {
-          console.log('[MyStatsTab] No history available');
         }
 
         // Fetch user stats
@@ -113,7 +109,6 @@ export default function MyStatsTab({ user, onClaim }: MyStatsTabProps) {
       } catch (err: any) {
         // Ignore abort errors - they're expected when component unmounts
         if (err?.name === 'AbortError') {
-          console.log('[MyStatsTab] Request aborted (component unmounted)');
           return;
         }
         console.error('Failed to fetch stats:', err);

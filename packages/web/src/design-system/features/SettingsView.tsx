@@ -113,20 +113,13 @@ export function SettingsView() {
     try {
       const userId = profile?.uid;
       const altUserId = user?.uid;
-      console.log('[Referral] profile?.uid:', userId);
-      console.log('[Referral] user?.uid:', altUserId);
-      console.log('[Referral] profile object:', profile);
-      console.log('[Referral] user object:', user);
       if (!userId && !altUserId) {
-        console.log('[Referral] No user ID found, skipping');
         return;
       }
       const finalUserId = userId || altUserId;
       if (!finalUserId) return;
       const res = await fetch(`/api/torque/referrals?userId=${encodeURIComponent(finalUserId)}`);
-      console.log('[Referral] Response status:', res.status);
       const data = await res.json();
-      console.log('[Referral] Response:', data);
       setReferralData(data);
     } catch (err) {
       console.error('Failed to fetch referral data:', err);

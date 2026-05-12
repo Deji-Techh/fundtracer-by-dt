@@ -108,14 +108,11 @@ export function AppPage() {
       })
         .then(res => res.json())
         .then(data => {
-          console.log('[AppPage] Profile fetched, onboardingCompleted:', data.onboardingCompleted);
           if (!data.onboardingCompleted) {
-            console.log('[AppPage] Showing onboarding modal');
             setShowOnboarding(true);
           }
         })
         .catch(err => {
-          console.log('[AppPage] Profile fetch error:', err);
         });
     }
   }, [isAuthenticated]);

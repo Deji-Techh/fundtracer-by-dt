@@ -446,7 +446,6 @@ export function InvestigateView({
     try {
       const response = await compareWallets(addresses, chainId);
       if (response.result) {
-        console.log('[Compare] Raw response received:', typeof response.result, Object.keys(response.result));
         
         // Debug: Check for non-serializable objects
         const checkObj = (obj: any, path: string = '') => {

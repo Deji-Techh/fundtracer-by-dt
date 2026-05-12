@@ -48,11 +48,9 @@ async function getDB(): Promise<IDBPDatabase> {
 }
 
 export async function idb_get(conversationId: string): Promise<ChatMessage[] | null> {
-  console.log('[IDB] get conv:', conversationId);
   try {
     const db = await getDB();
     const record = await db.get(STORE_NAME, conversationId);
-    console.log('[IDB] get conv:', conversationId, 'found:', record ? 'yes count:' + record.messages.length : 'no');
     return record?.messages || null;
   } catch (error) {
     console.error('[IDB] Get error:', error);
@@ -95,10 +93,8 @@ export async function idb_append(conversationId: string, message: ChatMessage): 
     
     record.messages.push(message);
     record.updatedAt = Date.now();
-    console.log('[IDB] Appending message:', message.role, 'conv:', conversationId, 'content length:', message.content.length);
     await tx.store.put(record);
     await tx.done;
-    console.log('[IDB] Appended message, conv:', conversationId, 'total:', record.messages.length);
   } catch (error) {
     console.error('[IDB] Append error:', error);
   } finally {

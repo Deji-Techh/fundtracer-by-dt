@@ -225,14 +225,11 @@ function InvestigateMainApp() {
       })
         .then(res => res.json())
         .then(data => {
-          console.log('[Onboarding-Investigate] Profile fetched, onboardingCompleted:', data.onboardingCompleted);
           if (!data.onboardingCompleted) {
-            console.log('[Onboarding-Investigate] Showing modal - not complete');
             setShowOnboarding(true);
           }
         })
         .catch(err => {
-          console.log('[Onboarding-Investigate] Profile fetch error:', err);
         });
     }
   }, []); // Empty deps = run once on mount

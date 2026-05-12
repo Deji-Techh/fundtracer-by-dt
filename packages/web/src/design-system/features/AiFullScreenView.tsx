@@ -563,7 +563,6 @@ const contractSuggestions = [
           const savedSessionExists = data.sessions.find((s: any) => s.id === activeSessionId);
           if (savedSessionExists) {
             sessionToLoad = activeSessionId;
-            console.log('[Chat] Restoring saved session:', sessionToLoad);
           }
         }
         
@@ -614,14 +613,11 @@ const contractSuggestions = [
   const saveMessage = async (message: { role: 'user' | 'assistant'; content: string; timestamp: number }) => {
     const sid = activeSessionId;
     const uid = user?.uid;
-    console.log('[SaveMessage] Called - session:', sid, 'hasUser:', !!uid, 'role:', message.role, 'len:', message.content.length);
     if (!sid || !uid) {
-      console.log('[SaveMessage] Skipped - missing session or user');
       return;
     }
     try {
       await orchestratorSaveMessage(uid, sid, message.role, message.content);
-      console.log('[SaveMessage] Saved OK');
     } catch (error) {
       console.error('[SaveMessage] Failed:', error);
     }

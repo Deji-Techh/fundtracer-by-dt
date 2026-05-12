@@ -141,20 +141,14 @@ const handleSendMessage = async () => {
       const walletToAnalyze = lastScannedWallet;
       const chainToAnalyze = lastScannedChain || currentChain;
       
-      console.log('[Plus] lastScannedWallet:', lastScannedWallet);
-      console.log('[Plus] lastScannedChain:', lastScannedChain);
-      console.log('[Plus] currentChain:', currentChain);
       
       // Get wallet data from local history (has full scan data)
       const history = getHistory() as HistoryItem[];
-      console.log('[Plus] History items:', history.length);
-      console.log('[Plus] History addresses:', history.map(h => h.address.toLowerCase()));
       
       const scanData = history.find(h => 
         h.address.toLowerCase() === walletToAnalyze.toLowerCase()
       );
       
-      console.log('[Plus] Found scanData:', scanData);
       
       let walletDetails = '';
       if (scanData) {

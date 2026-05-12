@@ -165,7 +165,6 @@ const RadarView: React.FC = () => {
           }
         }
       } catch (error) {
-        console.log('[Radar] No authenticated profile, using guest mode');
       }
     };
 
