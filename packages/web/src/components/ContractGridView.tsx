@@ -70,14 +70,6 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
 
     // Debug: log the incoming result
     if (typeof window !== 'undefined') {
-            hasResult: !!result,
-            hasInteractors: !!(result && result.interactors),
-            interactorCount: result?.interactors?.length || 0,
-            hasSharedFunding: !!(result && result.sharedFundingGroups),
-            sharedFundingCount: result?.sharedFundingGroups?.length || 0,
-            hasSuspiciousPatterns: !!(result && result.suspiciousPatterns),
-            patternCount: result?.suspiciousPatterns?.length || 0,
-        });
     }
 
     try {
@@ -94,11 +86,6 @@ export default function ContractGridView({ result }: ContractGridViewProps) {
         const interactors = result?.interactors || [];
         const sharedFundingGroups = result?.sharedFundingGroups || [];
         const suspiciousPatterns = result?.suspiciousPatterns || [];
-
-            interactors: interactors.length,
-            sharedFundingGroups: sharedFundingGroups.length,
-            suspiciousPatterns: suspiciousPatterns.length,
-        });
 
     const chain = result?.chain || 'linea';
     const chainConfig = CHAINS[chain] || { explorer: 'https://etherscan.io' };
