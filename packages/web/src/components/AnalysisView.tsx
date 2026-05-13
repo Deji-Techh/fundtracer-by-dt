@@ -91,9 +91,11 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
 
             abortRef.current = new AbortController();
 
-            const url = `${API_BASE}/api/analyze/report`;
-            console.log(`[REPORT] Sending to ${url}, token exists: ${!!token}, token prefix: ${token.substring(0, 10)}...`);
-            const response = await fetch(`${API_BASE}/api/analyze/report`, {
+            // Use relative URL to route through Cloudflare Pages Function which preserves ALL headers
+            // Direct cross-origin fetch to api.fundtracer.xyz was having auth header stripped
+            const url = `/api/analyze/report`;
+            console.log(`[REPORT] Sending to ${url}, API_BASE=${API_BASE}, token exists: ${!!token}, token prefix: ${token.substring(0, 10)}...`);
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
