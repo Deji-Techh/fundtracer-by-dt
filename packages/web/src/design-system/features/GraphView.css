@@ -390,3 +390,32 @@
   font-size: 13px;
   color: var(--intel-text-muted, #666);
 }
+
+/* View mode toggle button */
+.fg-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--border-subtle, #2a2a3e);
+  border-radius: 5px;
+  color: var(--intel-text-muted, #666);
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-family: inherit;
+  transition: all 0.15s;
+  margin-left: auto;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.fg-view-toggle:hover {
+  border-color: var(--intel-accent, #61dfff);
+  color: var(--intel-accent, #61dfff);
+  background: rgba(97, 223, 255, 0.06);
+}
+
+.fg-view-toggle-label {
+  margin-left: 2px;
+}

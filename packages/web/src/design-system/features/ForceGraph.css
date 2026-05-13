@@ -1,0 +1,158 @@
+/**
+ * ForceGraph Styles - Interactive force-directed graph
+ */
+
+.force-graph-wrapper {
+  position: relative;
+  background: var(--intel-bg-secondary, #0d0d1a);
+  border: 1px solid var(--border-subtle, #2a2a3e);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.force-graph-wrapper.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  border-radius: 0;
+  border: none;
+  margin-top: 0;
+  background: #080812;
+}
+
+/* Toolbar */
+.fg-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle, #2a2a3e);
+  background: rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 10;
+}
+
+.fg-toolbar-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fg-stat {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--intel-text-secondary, #999);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.fg-stat-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-subtle, #2a2a3e);
+}
+
+.fg-toolbar-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.fg-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: 1px solid var(--border-subtle, #2a2a3e);
+  border-radius: 5px;
+  color: var(--intel-text-muted, #666);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.fg-toolbar-btn:hover {
+  border-color: var(--intel-accent, #61dfff);
+  color: var(--intel-accent, #61dfff);
+  background: rgba(97, 223, 255, 0.06);
+}
+
+.is-fullscreen .fg-toolbar-btn {
+  width: 32px;
+  height: 32px;
+}
+
+/* SVG canvas */
+.fg-svg {
+  display: block;
+  cursor: grab;
+}
+
+.fg-svg:active {
+  cursor: grabbing;
+}
+
+/* Tooltip */
+.fg-tooltip {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(8, 8, 18, 0.92);
+  border: 1px solid var(--border-subtle, #2a2a3e);
+  border-radius: 6px;
+  padding: 6px 12px;
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+  max-width: 90vw;
+}
+
+.fg-tooltip-addr {
+  font-size: 11px;
+  color: var(--intel-text-secondary, #999);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* Bottom hint */
+.fg-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--intel-text-muted, #555);
+  letter-spacing: 0.3px;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.is-fullscreen .fg-hint {
+  display: none;
+}
+
+/* Node hover effects */
+.fg-group .fg-circle {
+  transition: stroke-width 0.15s ease;
+}
+
+.fg-group .fg-label {
+  pointer-events: none;
+}
+
+.fg-group .fg-valuelabel {
+  pointer-events: none;
+}
+
+/* Fade-in animation for initial render */
+.fg-group circle,
+.fg-group line {
+  animation: fgFadeIn 0.4s ease both;
+}
+
+@keyframes fgFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

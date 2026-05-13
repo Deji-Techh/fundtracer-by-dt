@@ -6,7 +6,9 @@
 import React, { useState, useCallback } from 'react';
 import { ChainId } from '@fundtracer/core';
 import { getAuthToken, API_BASE } from '../../api';
+import { ForceGraph } from './ForceGraph';
 import './GraphView.css';
+import './ForceGraph.css';
 import './InvestigateView.css';
 
 interface GraphViewProps {
@@ -62,6 +64,7 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
   const [nodes, setNodes] = useState<FlowNode[]>([]);
   const [edges, setEdges] = useState<FlowEdge[]>([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'card' | 'graph'>('card');
 
   const handleLoadGraph = useCallback(async () => {
     if (!address.trim()) return;
@@ -243,6 +246,27 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
                 <span className="flow-stat-value">{activeCategories.length}</span>
                 <span className="flow-stat-label">entity types</span>
               </span>
+              <span className="flow-stat-divider" />
+              <button
+                className="fg-view-toggle"
+                onClick={() => setViewMode(m => m === 'card' ? 'graph' : 'card')}
+                title={viewMode === 'card' ? 'Switch to graph view' : 'Switch to card view'}
+              >
+                {viewMode === 'card' ? (
+                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 14, height: 14 }}>
+                    <circle cx="7" cy="4" r="2.5"/>
+                    <circle cx="3" cy="10" r="2.5"/>
+                    <circle cx="11" cy="10" r="2.5"/>
+                    <path d="M7 6.5v1M4.5 8.5l1.5 1M9.5 8.5l-1.5 1"/>
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 14, height: 14 }}>
+                    <rect x="1.5" y="1.5" width="11" height="11" rx="2"/>
+                    <path d="M5 4v6M9 4v6M4 5h6M4 9h6"/>
+                  </svg>
+                )}
+                <span className="fg-view-toggle-label">{viewMode === 'card' ? 'Graph' : 'Cards'}</span>
+              </button>
             </div>
 
             {/* Legend */}
@@ -258,8 +282,31 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
               })}
             </div>
 
-            {/* Flow diagram */}
-            <div className="flow-diagram">
+            {/* Force graph view */}
+            {viewMode === 'graph' ? (
+              <ForceGraph
+                nodes={nodes.map(n => ({
+                  id: n.address,
+                  address: n.address,
+                  name: n.name,
+                  category: n.category,
+                  totalValueInEth: n.totalValueInEth || 0,
+                  txCount: n.txCount || 0,
+                  depth: n.depth || 0,
+                  direction: n.direction || 'both',
+                }))}
+                edges={edges.map(e => ({
+                  source: e.source,
+                  target: e.target,
+                  value: e.value || 0,
+                }))}
+                selectedNode={selectedNode}
+                onNodeClick={handleNodeClick}
+                categoryStyles={CATEGORY_STYLES}
+              />
+            ) : (
+              /* Flow diagram */
+              <div className="flow-diagram">
               {/* Source wallets (funding sources) */}
               {sourceNodes.length > 0 && (
                 <div className="flow-section">
@@ -432,9 +479,10 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
                 </div>
               )}
             </div>
+            )}
 
             {/* Empty connections note */}
-            {sourceNodes.length === 0 && destNodes.length === 0 && connectedNodes.length === 0 && (
+            {viewMode === 'card' && sourceNodes.length === 0 && destNodes.length === 0 && connectedNodes.length === 0 && (
               <div className="flow-empty">
                 <p>No wallet connections found. The analyzed wallet may have no direct funding flows on this chain.</p>
               </div>
