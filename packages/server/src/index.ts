@@ -457,6 +457,14 @@ app.get('/keep-alive', (req, res) => {
     res.send('OK');
 });
 
+// Search route — handles ?q= from browser search bar (custom search engine)
+app.get('/search', (req, res) => {
+    const q = (req.query.q as string || '').trim();
+    if (!q) return res.redirect(301, 'https://fundtracer.xyz');
+    // Pass the raw input — frontend handles smart extraction
+    return res.redirect(301, `https://fundtracer.xyz/app-evm?address=${encodeURIComponent(q)}`);
+});
+
 // Start keep-alive pinger after server starts
 let keepAliveInterval: NodeJS.Timeout;
 
@@ -543,6 +551,7 @@ import { solanaRoutes } from './routes/solana.js';
 import notificationRoutes from './routes/notifications.js';
 import radarRoutes from './routes/radar.js';
 import entityRoutes from './routes/entities.js';
+import { shareRoutes } from './routes/share.js';
 
 // All API routes - restored from working commit
 apiRouter.use('/portfolio', portfolioRoutes);
@@ -568,6 +577,9 @@ apiRouter.use('/torque', torqueRoutes);
 // NOTE: Auth is handled inside torqueV2.ts routes - only /v2/mystats and /v2/scan require auth
 import { torqueRoutesV2 } from './routes/torqueV2.js';
 apiRouter.use('/torque-v2', torqueRoutesV2);
+
+// Share analysis routes — POST requires auth (handled inside), GET is public
+apiRouter.use('/share', shareRoutes);
 
 // NEW: Contract Scanner Routes
 import contractScannerRoutes from './routes/contractRoutes.js';

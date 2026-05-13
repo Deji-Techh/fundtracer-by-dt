@@ -35,6 +35,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/docs/wallet-risk-score': 'Wallet Risk Score | FundTracer',
   '/docs/api-reference': 'API Reference | FundTracer',
   '/docs/cli-guide': 'CLI Guide | FundTracer',
+  '/share': 'Shared Analysis | FundTracer',
 };
 
 // SEO Manager - sets dynamic meta tags for each page
@@ -99,6 +100,7 @@ const FundingTreeAnalysisPage = lazy(() => import('./pages/DocsFundingTreePage')
 const WalletRiskScorePage = lazy(() => import('./pages/DocsRiskScorePage').then(m => ({ default: m.WalletRiskScorePage })));
 const CliGuidePage = lazy(() => import('./pages/DocsCliGuidePage').then(m => ({ default: m.CliGuidePage })));
 const RewardsPage = lazy(() => import('./pages/RewardsPage').then(m => ({ default: m.default })));
+const SharePage = lazy(() => import('./pages/SharePage').then(m => ({ default: m.default })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -290,6 +292,11 @@ function App() {
             <AppPage />
           </Suspense>
         </ProtectedRoute>
+      } />
+      <Route path="/share/:id" element={
+        <Suspense fallback={<div style={{background:'#0a0a0a',minHeight:'100vh'}}/>}>
+          <SharePage />
+        </Suspense>
       } />
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

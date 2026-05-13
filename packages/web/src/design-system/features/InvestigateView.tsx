@@ -8,7 +8,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
-import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions } from '../../api';
+import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions, getAuthToken } from '../../api';
 import { addToHistory, getHistory, type HistoryItem } from '../../utils/history';
 import { getCachedResults, saveResultToCache } from '../../utils/resultsCache';
 import { useGasPayment } from '../../hooks/useGasPayment';
@@ -230,22 +230,26 @@ export function InvestigateView({
     return num.toString();
   };
 
-  // Handle prefill
+  // Handle prefill — auto-trigger analysis when address provided via URL params
   useEffect(() => {
     if (prefillAddress) {
       if (prefillChain) {
         handleChainChange(prefillChain as ChainId);
       }
-      
+
       const targetMode = (prefillType === 'sybil' || prefillType === 'contract' || prefillType === 'compare')
         ? prefillType as TabType
         : 'wallet';
       setActiveTab(targetMode);
-      
+
       setWalletResult(null);
       setContractResult(null);
       setMultiWalletResult(null);
       setError(null);
+      // Auto-trigger analysis with the pre-filled address
+      if (prefillAddress.trim()) {
+        handleAnalyzeWallet(prefillAddress.trim());
+      }
       onPrefillConsumed?.();
     }
   }, [prefillAddress, prefillChain, prefillType, onPrefillConsumed]);
@@ -397,6 +401,39 @@ export function InvestigateView({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Handle share — create a public share link
+  const handleShare = async () => {
+    if (!walletResult) {
+      alert('No analysis results to share. Please analyze a wallet first.');
+      return;
+    }
+
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          address: currentAnalysisAddress,
+          chain: selectedChain,
+          result: walletResult,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        await navigator.clipboard.writeText(data.url);
+        alert(`Share link copied!\n${data.url}`);
+      } else {
+        alert('Failed to create share link. Please try again.');
+      }
+    } catch (error) {
+      alert('Failed to create share link. Please ensure you are signed in.');
+    }
   };
 
   // Handle contract analysis
@@ -1003,6 +1040,12 @@ export function InvestigateView({
                     <path d="M6 1v8M2 6l4 4 4-4M1 11h10"/>
                   </svg>
                   Export
+                </button>
+                <button className="btn-ghost" onClick={handleShare}>
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M8 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM3 7.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM8 12a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM4.5 6.5l3 2M7.5 3.5l-3 2"/>
+                  </svg>
+                  Share
                 </button>
               </div>
             </>

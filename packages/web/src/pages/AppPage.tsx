@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, Suspense, lazy } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
 import AppShell from '../components/AppShell';
@@ -11,6 +11,35 @@ import { getAuthToken } from '../api';
 import './AppPage.css';
 
 type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'sui' | 'reports' | 'graph' | 'crosschain' | 'history' | 'settings' | 'radar';
+
+/** Extract blockchain address from raw input — handles full explorer URLs */
+function extractAddressFromInput(input: string): { address: string; chain?: string } {
+  // Raw address
+  if (/^0x[a-fA-F0-9]{40}$/.test(input)) return { address: input };
+  if (/^[a-zA-Z0-9]{32,44}$/.test(input)) return { address: input };
+
+  // Explorer URL — extract address + attempt chain detection from hostname
+  try {
+    const url = new URL(input);
+    const pathMatch = url.pathname.match(/(?:address|tx|token|account)\/(0x[a-fA-F0-9]{40}|[a-zA-Z0-9]{32,44})/);
+    if (pathMatch) {
+      const host = url.hostname.replace('www.', '');
+      const chainMap: Record<string, string> = {
+        'etherscan.io': 'ethereum',
+        'lineascan.build': 'linea',
+        'arbiscan.io': 'arbitrum',
+        'basescan.org': 'base',
+        'optimistic.etherscan.io': 'optimism',
+        'polygonscan.com': 'polygon',
+        'bscscan.com': 'bsc',
+        'solscan.io': 'solana',
+        'suiys.com': 'sui',
+      };
+      return { address: pathMatch[1], chain: chainMap[host] };
+    }
+  } catch {}
+  return { address: '' };
+}
 
 const PortfolioView = lazy(() => import('../design-system/features/PortfolioView'));
 const PolymarketView = lazy(() => import('../design-system/features/PolymarketView'));
@@ -73,10 +102,23 @@ import { CHAIN_CONFIG } from '../config/chains';
 
 export function AppPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { login: loginPrivy, user: privyUser } = usePrivy();
   const address = privyUser?.wallet?.address;
   const isConnected = !!address;
+
+  // Read prefill params from URL (from share links, search engine, etc.)
+  const rawAddress = searchParams.get('address') || '';
+  const prefilledChain = searchParams.get('chain') || '';
+  const prefilledMode = searchParams.get('mode') || '';
+
+  // Smart address extraction — handle full explorer URLs pasted into search
+  const extracted = extractAddressFromInput(rawAddress);
+  const prefilledAddress = extracted.address || rawAddress;
+  const detectedChain = extracted.chain;
+  // Use explicit ?chain= param, fall back to chain detected from explorer URL, then default to empty
+  const effectiveChain = prefilledChain || detectedChain || '';
 
   const [activeTab, setActiveTab] = useState<TabType>('investigate');
   const [selectedChain, setSelectedChain] = useState<ChainId>('linea');
@@ -246,7 +288,20 @@ export function AppPage() {
     }
     switch (activeTab) {
       case 'investigate':
-        return <InvestigateView selectedChain={selectedChain} onChainChange={(c) => setSelectedChain(c as ChainId)} />;
+        return <InvestigateView
+          selectedChain={selectedChain}
+          onChainChange={(c) => setSelectedChain(c as ChainId)}
+          prefillAddress={prefilledAddress || undefined}
+          prefillChain={effectiveChain || undefined}
+          prefillType={prefilledMode || undefined}
+          onPrefillConsumed={() => {
+            const params = new URLSearchParams(searchParams);
+            params.delete('address');
+            params.delete('chain');
+            params.delete('mode');
+            setSearchParams(params, { replace: true });
+          }}
+        />;
       case 'portfolio':
         return <Suspense fallback={<PageSkeleton />}><PortfolioView /></Suspense>;
       case 'polymarket':
@@ -266,7 +321,20 @@ export function AppPage() {
       case 'crosschain':
         return <Suspense fallback={<PageSkeleton />}><CrossChainView selectedChain={selectedChain} /></Suspense>;
       default:
-        return <InvestigateView selectedChain={selectedChain} onChainChange={(c) => setSelectedChain(c as ChainId)} />;
+        return <InvestigateView
+          selectedChain={selectedChain}
+          onChainChange={(c) => setSelectedChain(c as ChainId)}
+          prefillAddress={prefilledAddress || undefined}
+          prefillChain={effectiveChain || undefined}
+          prefillType={prefilledMode || undefined}
+          onPrefillConsumed={() => {
+            const params = new URLSearchParams(searchParams);
+            params.delete('address');
+            params.delete('chain');
+            params.delete('mode');
+            setSearchParams(params, { replace: true });
+          }}
+        />;
     }
   };
 

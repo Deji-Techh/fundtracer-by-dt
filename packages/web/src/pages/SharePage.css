@@ -1,0 +1,375 @@
+.share-page {
+  min-height: 100vh;
+  background: #0a0a0a;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.share-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.share-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.share-logo {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+}
+
+.share-badge {
+  font-size: 11px;
+  background: #1a1a2e;
+  color: #8888ff;
+  padding: 3px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.share-hero {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding: 24px;
+  background: #111;
+  border-radius: 12px;
+  border: 1px solid #1a1a1a;
+}
+
+.share-risk-section {
+  flex-shrink: 0;
+}
+
+.share-risk-badge {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-risk-score {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.share-risk-label {
+  font-size: 9px;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.share-address-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.share-wallet-title {
+  font-size: 14px;
+  color: #888;
+  font-weight: 400;
+  margin: 0 0 8px;
+}
+
+.share-address {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.share-addr-value {
+  font-family: 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.share-chain-tag {
+  font-size: 11px;
+  background: #1a1a2e;
+  color: #8888ff;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.share-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.share-stat {
+  background: #111;
+  border: 1px solid #1a1a1a;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.share-stat-value {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.share-stat-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.share-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.share-card {
+  background: #111;
+  border: 1px solid #1a1a1a;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.share-card h3 {
+  font-size: 13px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 14px;
+}
+
+.share-full {
+  grid-column: 1 / -1;
+  margin-bottom: 24px;
+}
+
+.share-funding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.share-funding-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.share-funding-addr {
+  font-family: 'SF Mono', 'Fira Code', 'Roboto Mono', monospace;
+  font-size: 12px;
+  color: #bbb;
+}
+
+.share-funding-value {
+  font-size: 12px;
+  color: #00cc88;
+  font-weight: 500;
+}
+
+.share-funding-more {
+  font-size: 11px;
+  color: #666;
+  padding: 4px 0;
+}
+
+.share-suspicions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-suspicion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.share-severity-critical { background: #2a0a0a; border-left: 3px solid #ff4444; }
+.share-severity-high { background: #2a1a00; border-left: 3px solid #ff8800; }
+.share-severity-medium { background: #2a2a00; border-left: 3px solid #ffcc00; }
+.share-severity-low { background: #0a1a0a; border-left: 3px solid #00cc88; }
+
+.share-suspicion-label {
+  font-weight: 600;
+  color: #ddd;
+  text-transform: capitalize;
+}
+
+.share-suspicion-desc {
+  color: #999;
+}
+
+.share-clean {
+  color: #00cc88;
+  font-size: 13px;
+}
+
+.share-empty {
+  color: #666;
+  font-size: 13px;
+}
+
+.share-projects {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.share-project {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: #0d0d0d;
+  border-radius: 6px;
+}
+
+.share-project-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #ccc;
+}
+
+.share-project-detail {
+  font-size: 11px;
+  color: #888;
+}
+
+.share-cta-section {
+  text-align: center;
+  padding: 32px;
+  background: linear-gradient(135deg, #111 0%, #1a1a2e 100%);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.share-cta-text {
+  font-size: 16px;
+  color: #ccc;
+  margin: 0 0 16px;
+}
+
+.share-cta-button {
+  display: inline-block;
+  padding: 12px 32px;
+  background: #fff;
+  color: #0a0a0a;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+.share-cta-button:hover {
+  opacity: 0.9;
+}
+
+.share-footer {
+  text-align: center;
+  padding: 16px;
+  color: #555;
+  font-size: 12px;
+}
+
+.share-footer-links a {
+  color: #666;
+  text-decoration: none;
+}
+
+.share-footer-links a:hover {
+  color: #aaa;
+}
+
+.share-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+}
+
+.share-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #222;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: share-spin 0.8s linear infinite;
+}
+
+@keyframes share-spin {
+  to { transform: rotate(360deg); }
+}
+
+.share-error {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.share-error h1 {
+  font-size: 24px;
+  color: #fff;
+  margin: 0 0 12px;
+}
+
+.share-error p {
+  color: #888;
+  margin: 0 0 24px;
+}
+
+.share-error .share-cta {
+  display: inline-block;
+  padding: 10px 24px;
+  background: #fff;
+  color: #0a0a0a;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .share-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .share-grid {
+    grid-template-columns: 1fr;
+  }
+  .share-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+  .share-address {
+    justify-content: center;
+  }
+  .share-projects {
+    grid-template-columns: 1fr;
+  }
+}
