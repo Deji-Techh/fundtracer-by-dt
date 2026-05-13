@@ -412,24 +412,26 @@ export function InvestigateView({
 
     try {
       const token = getAuthToken();
+      const body = JSON.stringify({
+        address: currentAnalysisAddress,
+        chain: selectedChain,
+        result: walletResult,
+      });
+      console.log('[Share] Sending:', { address: currentAnalysisAddress, chain: selectedChain, resultKeys: Object.keys(walletResult || {}), bodyLength: body.length });
       const res = await fetch(`${API_BASE}/api/share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          address: currentAnalysisAddress,
-          chain: selectedChain,
-          result: walletResult,
-        }),
+        body,
       });
       const data = await res.json();
       if (data.success && data.url) {
         await navigator.clipboard.writeText(data.url);
         alert(`Share link copied!\n${data.url}`);
       } else {
-        alert('Failed to create share link. Please try again.');
+        alert(`Share failed: ${data.error || 'Unknown server error'} (HTTP ${res.status})`);
       }
     } catch (error) {
       alert('Failed to create share link. Please ensure you are signed in.');
