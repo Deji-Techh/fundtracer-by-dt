@@ -194,6 +194,7 @@ export function InvestigateView({
 
   // Results
   const [walletResult, setWalletResult] = useState<AnalysisResult | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
   const [multiWalletResult, setMultiWalletResult] = useState<MultiWalletResult | null>(null);
   const [contractResult, setContractResult] = useState<ContractAnalysisResult | null>(null);
   const [pagination, setPagination] = useState<{ total: number; offset: number; limit: number; hasMore: boolean } | null>(null);
@@ -411,6 +412,7 @@ export function InvestigateView({
       notify.error('Analyze a wallet first before sharing.');
       return;
     }
+    setShareLoading(true);
 
     try {
       const token = getAuthToken();
@@ -436,6 +438,8 @@ export function InvestigateView({
       }
     } catch (error) {
       notify.error('Could not create share link. Are you signed in?');
+    } finally {
+      setShareLoading(false);
     }
   };
 
@@ -1044,10 +1048,16 @@ export function InvestigateView({
                   </svg>
                   Export
                 </button>
-                <button className="btn-ghost" onClick={handleShare}>
-                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M8 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM3 7.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM8 12a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM4.5 6.5l3 2M7.5 3.5l-3 2"/>
-                  </svg>
+                <button className="btn-ghost" onClick={handleShare} disabled={shareLoading} style={shareLoading ? { opacity: 0.6, pointerEvents: 'none' } : undefined}>
+                  {shareLoading ? (
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ animation: 'spin 0.8s linear infinite' }}>
+                      <circle cx="8" cy="8" r="6" strokeDasharray="30 10" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M8 3a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM3 7.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM8 12a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM4.5 6.5l3 2M7.5 3.5l-3 2"/>
+                    </svg>
+                  )}
                   Share
                 </button>
               </div>
