@@ -91,15 +91,16 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
 
             abortRef.current = new AbortController();
 
-            // Use relative URL to route through Cloudflare Pages Function which preserves ALL headers
-            // Direct cross-origin fetch to api.fundtracer.xyz was having auth header stripped
-            const url = `/api/analyze/report`;
+            // Use API_BASE for direct API access (same pattern as expand-node which works)
+            // Also send x-auth-token as fallback since Cloudflare edge strips Authorization for /report path
+            const url = `${API_BASE}/api/analyze/report`;
             console.log(`[REPORT] Sending to ${url}, API_BASE=${API_BASE}, token exists: ${!!token}, token prefix: ${token.substring(0, 10)}...`);
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
+                    'x-auth-token': token,
                 },
                 body: JSON.stringify({ address: result.wallet.address, chain: result.wallet.chain }),
                 credentials: 'include',

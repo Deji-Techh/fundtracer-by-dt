@@ -46,12 +46,13 @@ export async function authMiddleware(
     
     
     const authHeader = req.headers.authorization;
+    const xAuthToken = req.headers['x-auth-token'] as string | undefined;
     const hasAuth = !!authHeader && authHeader.startsWith('Bearer ');
-    const tokenPrefix = authHeader ? authHeader.substring(0, 20) + '...' : 'NONE';
+    const tokenPrefix = authHeader ? authHeader.substring(0, 20) + '...' : (xAuthToken ? 'x-auth-token present' : 'NONE');
 
     // DEBUG: Log auth header state for all requests to help debug 401 issues
     if (req.path && (req.path.includes('/analyze/report') || req.path.includes('/analyze/expand-node') || req.path.includes('/analyze/bridge-trace'))) {
-      console.log(`[AUTH-DEBUG] ${req.method} ${req.path} - authHeader: ${tokenPrefix}, hasAuth: ${hasAuth}, hasUser: ${!!req.user}, contentType: ${req.headers['content-type']}`);
+      console.log(`[AUTH-DEBUG] ${req.method} ${req.path} - authHeader: ${tokenPrefix}, hasAuth: ${hasAuth}, hasUser: ${!!req.user}, hasXAuth: ${!!xAuthToken}, contentType: ${req.headers['content-type']}`);
     }
 
     // SECURITY: JWT_SECRET must be set in environment
@@ -66,6 +67,24 @@ export async function authMiddleware(
         if (req.user) {
             return next();
         }
+
+        // Fallback: check x-auth-token header (workaround for Cloudflare edge stripping Authorization on /report)
+        if (xAuthToken) {
+            try {
+                const decoded = jwt.verify(xAuthToken, JWT_SECRET) as any;
+                if (decoded.type === 'admin') {
+                    return res.status(401).json({ error: 'Invalid auth method for admin' });
+                }
+                req.user = { uid: decoded.uid, email: decoded.email, name: decoded.name, photoURL: decoded.picture, type: 'user' };
+                res.locals.tier = decoded.tier || 'free';
+                console.log(`[AUTH-MIDDLEWARE] Authenticated via x-auth-token: ${decoded.uid}`);
+                return next();
+            } catch (e) {
+                console.error('[AUTH-MIDDLEWARE] x-auth-token verification failed:', (e as Error).message);
+                return res.status(401).json({ error: 'Invalid authentication token' });
+            }
+        }
+
         return res.status(401).json({ error: 'No authentication token provided' });
     }
 
