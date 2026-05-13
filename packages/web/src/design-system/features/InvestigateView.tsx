@@ -249,9 +249,9 @@ export function InvestigateView({
       setContractResult(null);
       setMultiWalletResult(null);
       setError(null);
-      // Auto-trigger analysis with the pre-filled address
+      // Auto-trigger analysis with the pre-filled address (pass chain to avoid stale state)
       if (prefillAddress.trim()) {
-        handleAnalyzeWallet(prefillAddress.trim());
+        handleAnalyzeWallet(prefillAddress.trim(), prefillChain || undefined);
       }
       onPrefillConsumed?.();
     }
@@ -273,21 +273,15 @@ export function InvestigateView({
   }, [isConnected, loginPrivy]);
 
   // Analyze wallet (removed PoH verification)
-  const handleAnalyzeWallet = async (address: string) => {
+  const handleAnalyzeWallet = async (address: string, overrideChain?: string) => {
     if (!address.trim()) return;
-
-    // Allow scanning without wallet connection - only portfolio needs wallet
-    // if (!isConnected) {
-    //   handleConnectWallet();
-    //   return;
-    // }
 
     setLoading(true);
     setError(null);
     setPagination(null);
     setCurrentAnalysisAddress(address);
 
-    const chainId = selectedChain as ChainId;
+    const chainId = (overrideChain || selectedChain) as ChainId;
     const cacheKey = `${address.toLowerCase()}-${chainId}`;
     if (resultsCache[cacheKey]) {
       setWalletResult(resultsCache[cacheKey]);
