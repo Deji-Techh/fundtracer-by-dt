@@ -74,11 +74,15 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
 
     try {
       const token = getAuthToken();
+      if (!token) {
+        throw new Error('Authentication required. Please log in to use the graph view.');
+      }
+
       const response = await fetch('/api/analyze/expand-node', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           address: address.trim(),
@@ -86,6 +90,7 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
           direction: 'both',
           depth: 2,
         }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -284,13 +289,16 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
       // Expand this node
       try {
         const token = getAuthToken();
+        if (!token) return; // silently skip if not authenticated
+
         const resp = await fetch('/api/analyze/expand-node', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ address: addr, chain: selectedChain, depth: 1 }),
+          credentials: 'include',
         });
         if (!resp.ok) return;
         const data = await resp.json();

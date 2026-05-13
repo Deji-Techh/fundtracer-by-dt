@@ -85,13 +85,17 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
 
         try {
             const token = getAuthToken();
+            if (!token) {
+                throw new Error('Authentication required. Please log in to generate reports.');
+            }
+
             abortRef.current = new AbortController();
 
             const response = await fetch('/api/analyze/report', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({ address: result.wallet.address, chain: result.wallet.chain }),
                 signal: abortRef.current.signal,
@@ -99,6 +103,9 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
 
             if (!response.ok) {
                 const err = await response.json().catch(() => ({ message: 'Failed to generate report' }));
+                if (response.status === 401) {
+                    throw new Error('Session expired. Please log in again.');
+                }
                 throw new Error(err.message || 'Failed to generate report');
             }
 

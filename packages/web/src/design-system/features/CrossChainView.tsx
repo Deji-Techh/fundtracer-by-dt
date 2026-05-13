@@ -46,17 +46,25 @@ export function CrossChainView({ selectedChain = 'linea' }: CrossChainViewProps)
 
     try {
       const token = getAuthToken();
+      if (!token) {
+        throw new Error('Authentication required. Please log in to use cross-chain tracing.');
+      }
+
       const response = await fetch('/api/analyze/bridge-trace', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ address: address.trim(), chain: selectedChain }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({ message: 'Trace failed' }));
+        if (response.status === 401) {
+          throw new Error('Session expired. Please log in again.');
+        }
         throw new Error(err.message || 'Bridge trace failed');
       }
 
