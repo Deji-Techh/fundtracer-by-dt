@@ -1,10 +1,9 @@
 /**
- * GraphView - Interactive Investigation Graph
- * Full-page Cytoscape.js-based graph exploration with entity labels, filters, and PNG export
+ * GraphView - Wallet Connection Flow
+ * Lightweight visual flow showing wallet connections with entity labels
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import cytoscape, { Core, EventObject } from 'cytoscape';
+import React, { useState, useCallback } from 'react';
 import { ChainId } from '@fundtracer/core';
 import { getAuthToken, API_BASE } from '../../api';
 import './GraphView.css';
@@ -14,7 +13,7 @@ interface GraphViewProps {
   selectedChain?: ChainId;
 }
 
-interface GraphNode {
+interface FlowNode {
   id: string;
   address: string;
   depth: number;
@@ -28,41 +27,41 @@ interface GraphNode {
   confidence?: number;
 }
 
-interface GraphEdge {
+interface FlowEdge {
   source: string;
   target: string;
   value: number;
 }
 
-// Entity category colors (matching AddressLabel/CATEGORY_STYLES)
-const ENTITY_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  cex:  { bg: '#1a1508', border: '#f59e0b', text: '#fbbf24' },
-  dex:  { bg: '#140a1a', border: '#9966ff', text: '#b388ff' },
+const CATEGORY_STYLES: Record<string, { bg: string; border: string; text: string }> = {
+  cex:     { bg: '#1a1508', border: '#f59e0b', text: '#fbbf24' },
+  dex:     { bg: '#140a1a', border: '#9966ff', text: '#b388ff' },
   bridge:  { bg: '#08151a', border: '#00d4ff', text: '#66e0ff' },
-  mixer: { bg: '#1a0808', border: '#ff3366', text: '#ff6688' },
+  mixer:   { bg: '#1a0808', border: '#ff3366', text: '#ff6688' },
   lending: { bg: '#0a1a14', border: '#00ff88', text: '#66ffaa' },
-  protocol: { bg: '#0a0a1a', border: '#4488ff', text: '#77aaff' },
-  known_scammer: { bg: '#1a0000', border: '#ff0000', text: '#ff4444' },
-  wallet: { bg: '#111118', border: '#555566', text: '#888899' },
+  protocol:{ bg: '#0a0a1a', border: '#4488ff', text: '#77aaff' },
+  wallet:  { bg: '#111118', border: '#555566', text: '#888899' },
 };
 
-const DEFAULT_COLOR = { bg: '#111118', border: '#555566', text: '#888899' };
+const DEFAULT_STYLE = { bg: '#111118', border: '#555566', text: '#888899' };
+
+function shortenAddress(addr: string) {
+  if (addr.length <= 12) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+function formatValue(eth: number): string {
+  if (eth >= 1000) return `${(eth / 1000).toFixed(1)}k ETH`;
+  return `${eth.toFixed(eth < 0.01 ? 6 : 4)} ETH`;
+}
 
 export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [nodes, setNodes] = useState<GraphNode[]>([]);
-  const [edges, setEdges] = useState<GraphEdge[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
-  const [showLegend, setShowLegend] = useState(true);
-
-  const cyRef = useRef<Core | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-
-  // Entity categories present in current graph
-  const activeCategories = Array.from(new Set(nodes.map(n => n.category || 'wallet')));
+  const [nodes, setNodes] = useState<FlowNode[]>([]);
+  const [edges, setEdges] = useState<FlowEdge[]>([]);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   const handleLoadGraph = useCallback(async () => {
     if (!address.trim()) return;
@@ -71,6 +70,7 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
     setError('');
     setNodes([]);
     setEdges([]);
+    setSelectedNode(null);
 
     try {
       const token = getAuthToken();
@@ -94,21 +94,16 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
       });
 
       if (!response.ok) {
-        const err = await response.json().catch(() => ({ message: 'Failed to load graph' }));
-        throw new Error(err.message);
+        const err = await response.json().catch(() => ({ error: 'Failed to load graph' }));
+        throw new Error(err.error || err.message || 'Failed to load graph');
       }
 
       const data = await response.json();
-      if (data?.result?.nodes) {
-        setNodes(data.result.nodes);
-      } else {
-        setNodes(data.nodes || []);
-      }
-      if (data?.result?.edges) {
-        setEdges(data.result.edges);
-      } else {
-        setEdges(data.edges || []);
-      }
+      const resultNodes: FlowNode[] = data?.result?.nodes || data?.nodes || [];
+      const resultEdges: FlowEdge[] = data?.result?.edges || data?.edges || [];
+
+      setNodes(resultNodes);
+      setEdges(resultEdges);
     } catch (err: any) {
       setError(err.message || 'Failed to load graph');
     } finally {
@@ -116,245 +111,28 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
     }
   }, [address, selectedChain]);
 
-  // Build cytoscape instance when nodes/edges change
-  useEffect(() => {
-    if (!containerRef.current || nodes.length === 0) return;
+  // Get node by address
+  const getNode = (addr: string) => nodes.find(n => n.address === addr);
+  const rootNode = nodes.find(n => n.depth === 0);
 
-    // Destroy previous instance
-    if (cyRef.current) {
-      cyRef.current.destroy();
-      cyRef.current = null;
-    }
+  // Group connected nodes
+  const sourceNodes = nodes.filter(n => n.depth > 0 && n.direction === 'source')
+    .sort((a, b) => (b.totalValueInEth || 0) - (a.totalValueInEth || 0));
+  const destNodes = nodes.filter(n => n.depth > 0 && n.direction === 'destination')
+    .sort((a, b) => (b.totalValueInEth || 0) - (a.totalValueInEth || 0));
+  const connectedNodes = nodes.filter(n => n.depth > 0 && n.direction === 'both')
+    .sort((a, b) => (b.totalValueInEth || 0) - (a.totalValueInEth || 0));
 
-    const filteredNodes = selectedFilter === 'all'
-      ? nodes
-      : nodes.filter(n => (n.category || 'wallet') === selectedFilter);
-
-    const filteredIds = new Set(filteredNodes.map(n => n.id));
-    const filteredEdges = edges.filter(e => filteredIds.has(e.source) && filteredIds.has(e.target));
-
-    // Map nodes to cytoscape format
-    const cyNodes = filteredNodes.map(n => {
-      const cat = n.category || 'wallet';
-      const color = ENTITY_COLORS[cat] || DEFAULT_COLOR;
-      const isRoot = n.depth === 0;
-      return {
-        data: {
-          id: n.id,
-          label: n.name || n.address.slice(0, 6) + '...' + n.address.slice(-4),
-          address: n.address,
-          fullLabel: n.name || '',
-          category: cat,
-          depth: n.depth,
-          totalValue: n.totalValue,
-          totalValueInEth: n.totalValueInEth,
-          txCount: n.txCount,
-          verified: n.verified,
-          confidence: n.confidence,
-        },
-        classes: isRoot ? 'root' : cat === 'wallet' ? 'unknown' : cat,
-        style: {
-          'background-color': color.border,
-          'border-color': color.border,
-          'border-width': n.verified ? 2 : 1,
-          width: Math.max(20, Math.min(60, (n.totalValueInEth || 0) / 10)),
-          height: Math.max(20, Math.min(60, (n.totalValueInEth || 0) / 10)),
-        },
-      };
-    });
-
-    const cyEdges = filteredEdges.map(e => ({
-      data: {
-        id: `${e.source}-${e.target}`,
-        source: e.source,
-        target: e.target,
-        value: e.value,
-        label: e.value ? `${e.value.toFixed(2)} ETH` : '',
-      },
-      style: {
-        width: Math.max(1, Math.min(6, (e.value || 0) / 50)),
-        'line-color': '#444466',
-        'target-arrow-color': '#666688',
-        'target-arrow-shape': 'triangle',
-      },
-    }));
-
-    const cy = cytoscape({
-      container: containerRef.current,
-      elements: [...cyNodes, ...cyEdges],
-      style: [
-        {
-          selector: 'node',
-          style: {
-            label: 'data(label)',
-            color: '#ccc',
-            'font-size': '10px',
-            'text-valign': 'bottom',
-            'text-halign': 'center',
-            'text-margin-y': 4,
-            'overlay-padding': 6,
-            'overlay-color': '#4488ff',
-            'overlay-opacity': 0.15,
-          },
-        },
-        {
-          selector: 'node.root',
-          style: {
-            'border-width': 3,
-            'border-color': '#ffffff',
-            width: 36,
-            height: 36,
-          },
-        },
-        {
-          selector: 'edge',
-          style: {
-            'curve-style': 'bezier',
-            'opacity': 0.6,
-            'label': 'data(label)',
-            'font-size': '8px',
-            'color': '#777',
-            'text-background-color': '#0d0d1a',
-            'text-background-opacity': 0.8,
-            'text-background-padding': '2px',
-          },
-        },
-        {
-          selector: ':selected',
-          style: {
-            'border-width': 3,
-            'border-color': '#61dfff',
-          },
-        },
-      ],
-      layout: {
-        name: 'cose',
-        animate: true,
-        animationDuration: 500,
-        gravity: 0.8,
-        numIter: 1000,
-        nodeRepulsion: () => 8000,
-        idealEdgeLength: () => 120,
-        padding: 40,
-      },
-      minZoom: 0.3,
-      maxZoom: 4,
-      wheelSensitivity: 0.3,
-    });
-
-    // Tooltip on hover
-    cy.on('mouseover', 'node', (evt: EventObject) => {
-      const node = evt.target;
-      const d = node.data();
-      const el = tooltipRef.current;
-      if (!el) return;
-      el.innerHTML = `
-        <div class="graph-tip-addr">${d.address}</div>
-        ${d.fullLabel ? `<div class="graph-tip-name">${d.fullLabel}</div>` : ''}
-        <div class="graph-tip-row"><span>Category:</span> ${d.category}</div>
-        <div class="graph-tip-row"><span>Value:</span> ${d.totalValueInEth?.toFixed(4) || '0'} ETH</div>
-        <div class="graph-tip-row"><span>Tx count:</span> ${d.txCount || 0}</div>
-        ${d.verified ? '<div class="graph-tip-verified">✓ Verified</div>' : ''}
-      `;
-      el.style.display = 'block';
-    });
-
-    cy.on('mouseout', 'node', () => {
-      if (tooltipRef.current) tooltipRef.current.style.display = 'none';
-    });
-
-    // Track mouse for tooltip positioning
-    cy.on('mousemove', (evt: EventObject) => {
-      const el = tooltipRef.current;
-      if (!el || el.style.display === 'none') return;
-      const pos = evt.originalEvent || (evt as any).position;
-      if (pos) {
-        el.style.left = `${pos.clientX + 12}px`;
-        el.style.top = `${pos.clientY - 10}px`;
-      }
-    });
-
-    // Click node to expand
-    cy.on('tap', 'node', async (evt: EventObject) => {
-      const node = evt.target;
-      const addr = node.data('address');
-
-      // Don't re-expand root
-      if (addr === address.trim().toLowerCase()) return;
-
-      // Check if already expanded (has children)
-      const hasChildren = edges.some(e => e.source === addr);
-      if (hasChildren) return;
-
-      // Expand this node
-      try {
-        const token = getAuthToken();
-        if (!token) return; // silently skip if not authenticated
-
-        const resp = await fetch(`${API_BASE}/api/analyze/expand-node`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ address: addr, chain: selectedChain, depth: 1 }),
-          credentials: 'include',
-        });
-        if (!resp.ok) return;
-        const data = await resp.json();
-        const newNodes: GraphNode[] = data?.result?.nodes || data?.nodes || [];
-        const newEdges: GraphEdge[] = data?.result?.edges || data?.edges || [];
-
-        if (newNodes.length > 0) {
-          setNodes(prev => {
-            const existing = new Map(prev.map(n => [n.address, n]));
-            for (const n of newNodes) existing.set(n.address, n);
-            return Array.from(existing.values());
-          });
-          setEdges(prev => {
-            const existing = new Map(prev.map(e => [`${e.source}-${e.target}`, e]));
-            for (const e of newEdges) existing.set(`${e.source}-${e.target}`, e);
-            return Array.from(existing.values());
-          });
-        }
-      } catch {}
-    });
-
-    cyRef.current = cy;
-
-    return () => {
-      cy.destroy();
-      cyRef.current = null;
-    };
-  }, [nodes, edges, selectedFilter, address]);
-
-  const handleZoomIn = useCallback(() => {
-    cyRef.current?.zoom(cyRef.current.zoom() * 1.3);
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    cyRef.current?.zoom(cyRef.current.zoom() / 1.3);
-  }, []);
-
-  const handleFit = useCallback(() => {
-    cyRef.current?.fit(undefined, 40);
-  }, []);
-
-  const handleReset = useCallback(() => {
-    if (!cyRef.current) return;
-    cyRef.current.reset();
-  }, []);
-
-  const handleExportPng = useCallback(() => {
-    if (!cyRef.current) return;
-    const png = cyRef.current.png({ full: true, scale: 2 });
-    const link = document.createElement('a');
-    link.download = `fundtracer-graph-${address.slice(0, 8)}-${Date.now()}.png`;
-    link.href = png;
-    link.click();
-  }, [address]);
+  // Active categories for filter
+  const activeCategories = Array.from(new Set(nodes.map(n => n.category || 'wallet')));
 
   const hasGraph = nodes.length > 0;
+
+  const handleNodeClick = (addr: string) => {
+    setSelectedNode(prev => prev === addr ? null : addr);
+  };
+
+  const rootStyle = rootNode ? (CATEGORY_STYLES[rootNode.category || 'wallet'] || DEFAULT_STYLE) : DEFAULT_STYLE;
 
   return (
     <div className="graph-view">
@@ -366,9 +144,9 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
             <circle cx="11" cy="11" r="2"/>
             <path d="M7 5v1M4 9l2 1M10 9l-2 1"/>
           </svg>
-          Investigation Graph
+          Wallet Connections
         </div>
-        <div className="page-desc">Interactive funding flow visualization — click nodes to expand, drag to rearrange, zoom to explore</div>
+        <div className="page-desc">Visualize funding flows and connected wallets — click cards to inspect</div>
       </div>
 
       {/* Input panel */}
@@ -397,7 +175,7 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
               <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="6" cy="6" r="4.5"/><path d="M9.5 9.5l3 3"/>
               </svg>
-              {loading ? 'Building...' : 'Build Graph'}
+              {loading ? 'Analyzing...' : 'Explore Connections'}
             </button>
           </div>
         </div>
@@ -410,13 +188,9 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
             <div className="graph-placeholder">
               <svg viewBox="0 0 120 80" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.15" style={{ width: 240, height: 160 }}>
                 <circle cx="60" cy="20" r="6"/><circle cx="20" cy="60" r="4"/><circle cx="100" cy="60" r="4"/>
-                <circle cx="40" cy="40" r="3"/><circle cx="80" cy="40" r="3"/><circle cx="10" cy="30" r="2"/><circle cx="110" cy="30" r="2"/>
                 <line x1="60" y1="20" x2="20" y2="60"/><line x1="60" y1="20" x2="100" y2="60"/>
-                <line x1="60" y1="20" x2="40" y2="40"/><line x1="60" y1="20" x2="80" y2="40"/>
-                <line x1="20" y1="60" x2="10" y2="30"/><line x1="100" y1="60" x2="110" y2="30"/>
-                <line x1="40" y1="40" x2="20" y2="60"/><line x1="80" y1="40" x2="100" y2="60"/>
               </svg>
-              <p>Enter a wallet address and click "Build Graph" to visualize funding flows.</p>
+              <p>Enter a wallet address and click "Explore Connections" to visualize funding flows.</p>
             </div>
           </div>
         </div>
@@ -428,7 +202,7 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
           <div className="panel-body">
             <div className="graph-loading">
               <div className="graph-loading-spinner" />
-              <p>Building graph from on-chain data...</p>
+              <p>Tracing wallet connections on-chain...</p>
             </div>
           </div>
         </div>
@@ -439,7 +213,7 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
         <div className="panel" style={{ marginTop: 16 }}>
           <div className="panel-body">
             <div className="investigate-error">
-              <div className="investigate-error__title">Error</div>
+              <div className="investigate-error__title">Connection Error</div>
               <p className="investigate-error__message">{error}</p>
               <button className="btn-ghost" onClick={handleLoadGraph} style={{ marginTop: 8 }}>
                 Retry
@@ -449,90 +223,220 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
         </div>
       )}
 
-      {/* Graph panel */}
+      {/* Flow visualization */}
       {hasGraph && (
-        <div className="panel graph-panel" style={{ marginTop: 16 }}>
-          {/* Toolbar */}
-          <div className="graph-toolbar">
-            <div className="graph-toolbar-left">
-              <span className="graph-toolbar-label">{nodes.length} nodes · {edges.length} edges</span>
-
-              <div className="graph-toolbar-divider" />
-
-              <label className="graph-filter-label">Filter:</label>
-              <select
-                className="graph-filter-select"
-                value={selectedFilter}
-                onChange={(e) => setSelectedFilter(e.target.value)}
-              >
-                <option value="all">All entities</option>
-                {activeCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+        <div className="panel" style={{ marginTop: 16 }}>
+          <div className="panel-body">
+            {/* Stats bar */}
+            <div className="flow-stats">
+              <span className="flow-stat">
+                <span className="flow-stat-value">{nodes.length}</span>
+                <span className="flow-stat-label">wallets</span>
+              </span>
+              <span className="flow-stat-divider" />
+              <span className="flow-stat">
+                <span className="flow-stat-value">{edges.length}</span>
+                <span className="flow-stat-label">connections</span>
+              </span>
+              <span className="flow-stat-divider" />
+              <span className="flow-stat">
+                <span className="flow-stat-value">{activeCategories.length}</span>
+                <span className="flow-stat-label">entity types</span>
+              </span>
             </div>
-
-            <div className="graph-toolbar-right">
-              <button className="graph-tool-btn" onClick={handleZoomIn} title="Zoom in">
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="5" cy="5" r="4"/><path d="M9 9l2 2"/><line x1="3" y1="5" x2="7" y2="5"/>
-                </svg>
-              </button>
-              <button className="graph-tool-btn" onClick={handleZoomOut} title="Zoom out">
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="5" cy="5" r="4"/><path d="M9 9l2 2"/><line x1="3" y1="5" x2="7" y2="5"/>
-                </svg>
-              </button>
-              <button className="graph-tool-btn" onClick={handleFit} title="Fit to screen">
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M1 4V1h3M8 1h3v3M4 11H1V8M11 8v3H8"/>
-                </svg>
-              </button>
-              <button className="graph-tool-btn" onClick={handleReset} title="Reset view">
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M1 6a5 5 0 119.9-1"/>
-                  <path d="M11 3v3H8"/>
-                </svg>
-              </button>
-
-              <div className="graph-toolbar-divider" />
-
-              <button className="graph-tool-btn" onClick={() => setShowLegend(!showLegend)} title="Toggle legend">
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="1" y="2" width="3" height="3" rx="0.5"/>
-                  <line x1="5" y1="3" x2="11" y2="3"/>
-                  <rect x="1" y="7" width="3" height="3" rx="0.5"/>
-                  <line x1="5" y1="8" x2="11" y2="8"/>
-                </svg>
-              </button>
-              <button className="graph-tool-btn" onClick={handleExportPng} title="Export PNG">
-                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M6 1v8M2 6l4 4 4-4M1 11h10"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Cytoscape container */}
-          <div className="graph-body">
-            <div ref={containerRef} className="graph-canvas" />
-
-            {/* Tooltip */}
-            <div ref={tooltipRef} className="graph-tooltip" />
 
             {/* Legend */}
-            {showLegend && (
-              <div className="graph-legend">
-                <div className="graph-legend-title">Legend</div>
-                {Object.entries(ENTITY_COLORS).map(([cat, colors]) => {
-                  if (!activeCategories.includes(cat) && cat !== 'wallet') return null;
-                  return (
-                    <div key={cat} className="graph-legend-item">
-                      <span className="graph-legend-dot" style={{ background: colors.border }} />
-                      <span className="graph-legend-label">{cat}</span>
+            <div className="flow-legend">
+              {activeCategories.map(cat => {
+                const style = CATEGORY_STYLES[cat] || DEFAULT_STYLE;
+                return (
+                  <span key={cat} className="flow-legend-item" style={{ '--dot-color': style.border } as React.CSSProperties}>
+                    <span className="flow-legend-dot" />
+                    {cat}
+                  </span>
+                );
+              })}
+            </div>
+
+            {/* Flow diagram */}
+            <div className="flow-diagram">
+              {/* Source wallets (funding sources) */}
+              {sourceNodes.length > 0 && (
+                <div className="flow-section">
+                  <div className="flow-section-label">Funding Sources</div>
+                  <div className="flow-nodes-row">
+                    {sourceNodes.slice(0, 8).map(node => {
+                      const style_ = CATEGORY_STYLES[node.category || 'wallet'] || DEFAULT_STYLE;
+                      const isSelected = selectedNode === node.address;
+                      return (
+                        <div
+                          key={node.address}
+                          className={`flow-card${isSelected ? ' selected' : ''}`}
+                          style={{ '--card-bg': style_.bg, '--card-border': style_.border, '--card-text': style_.text } as React.CSSProperties}
+                          onClick={() => handleNodeClick(node.address)}
+                        >
+                          <div className="flow-card-header">
+                            <span className="flow-card-type">{node.category || 'wallet'}</span>
+                            <span className="flow-card-value">{formatValue(node.totalValueInEth || 0)}</span>
+                          </div>
+                          <div className="flow-card-address">{node.name || shortenAddress(node.address)}</div>
+                          {node.name && <div className="flow-card-sub">{shortenAddress(node.address)}</div>}
+                          <div className="flow-card-footer">
+                            <span>{node.txCount} tx</span>
+                            <span className="flow-card-direction">incoming</span>
+                          </div>
+                          {isSelected && (
+                            <div className="flow-card-expand">
+                              <div className="flow-expand-row">Address: {node.address}</div>
+                              <div className="flow-expand-row">
+                                Value: {node.totalValue} ({node.totalValueInEth?.toFixed(4)} ETH)
+                              </div>
+                              {node.confidence !== undefined && (
+                                <div className="flow-expand-row">
+                                  Confidence: {(node.confidence * 100).toFixed(0)}%
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {sourceNodes.length > 8 && (
+                      <div className="flow-card flow-card-more">+{sourceNodes.length - 8} more</div>
+                    )}
+                  </div>
+                  {/* Connection arrows */}
+                  <svg className="flow-arrows" viewBox="0 0 100 20" preserveAspectRatio="none">
+                    <line x1="0" y1="10" x2="100" y2="10" stroke="var(--border-subtle, #2a2a3e)" strokeWidth="1" strokeDasharray="3 2"/>
+                    <polygon points="98,6 100,10 98,14" fill="var(--border-subtle, #2a2a3e)"/>
+                  </svg>
+                </div>
+              )}
+
+              {/* Root wallet */}
+              {rootNode && (
+                <div className="flow-section flow-section-root">
+                  <div className="flow-root-card" style={{ '--card-bg': rootStyle.bg, '--card-border': rootStyle.border, '--card-text': rootStyle.text } as React.CSSProperties}>
+                    <div className="flow-root-badge">ROOT</div>
+                    <div className="flow-root-address">{rootNode.name || shortenAddress(rootNode.address)}</div>
+                    {rootNode.name && <div className="flow-root-sub">{shortenAddress(rootNode.address)}</div>}
+                    <div className="flow-root-stats">
+                      <span>Value: {formatValue(rootNode.totalValueInEth || 0)}</span>
+                      <span>{rootNode.txCount} transactions</span>
                     </div>
-                  );
-                })}
+                    {selectedNode === rootNode.address && (
+                      <div className="flow-card-expand">
+                        <div className="flow-expand-row">Address: {rootNode.address}</div>
+                        <div className="flow-expand-row">Category: {rootNode.category || 'wallet'}</div>
+                      </div>
+                    )}
+                    <button className="flow-root-click" onClick={() => handleNodeClick(rootNode.address)}>
+                      {selectedNode === rootNode.address ? 'Less' : 'Details'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Destination wallets */}
+              {destNodes.length > 0 && (
+                <div className="flow-section">
+                  <svg className="flow-arrows flow-arrows-down" viewBox="0 0 100 20" preserveAspectRatio="none">
+                    <line x1="0" y1="10" x2="100" y2="10" stroke="var(--border-subtle, #2a2a3e)" strokeWidth="1" strokeDasharray="3 2"/>
+                    <polygon points="98,6 100,10 98,14" fill="var(--border-subtle, #2a2a3e)"/>
+                  </svg>
+                  <div className="flow-section-label">Fund Destinations</div>
+                  <div className="flow-nodes-row">
+                    {destNodes.slice(0, 8).map(node => {
+                      const style_ = CATEGORY_STYLES[node.category || 'wallet'] || DEFAULT_STYLE;
+                      const isSelected = selectedNode === node.address;
+                      return (
+                        <div
+                          key={node.address}
+                          className={`flow-card${isSelected ? ' selected' : ''}`}
+                          style={{ '--card-bg': style_.bg, '--card-border': style_.border, '--card-text': style_.text } as React.CSSProperties}
+                          onClick={() => handleNodeClick(node.address)}
+                        >
+                          <div className="flow-card-header">
+                            <span className="flow-card-type">{node.category || 'wallet'}</span>
+                            <span className="flow-card-value">{formatValue(node.totalValueInEth || 0)}</span>
+                          </div>
+                          <div className="flow-card-address">{node.name || shortenAddress(node.address)}</div>
+                          {node.name && <div className="flow-card-sub">{shortenAddress(node.address)}</div>}
+                          <div className="flow-card-footer">
+                            <span>{node.txCount} tx</span>
+                            <span className="flow-card-direction outgoing">outgoing</span>
+                          </div>
+                          {isSelected && (
+                            <div className="flow-card-expand">
+                              <div className="flow-expand-row">Address: {node.address}</div>
+                              <div className="flow-expand-row">
+                                Value: {node.totalValue} ({node.totalValueInEth?.toFixed(4)} ETH)
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {destNodes.length > 8 && (
+                      <div className="flow-card flow-card-more">+{destNodes.length - 8} more</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Connected (both directions) */}
+              {connectedNodes.length > 0 && (
+                <div className="flow-section">
+                  <svg className="flow-arrows flow-arrows-down" viewBox="0 0 100 20" preserveAspectRatio="none">
+                    <line x1="0" y1="10" x2="100" y2="10" stroke="var(--border-subtle, #2a2a3e)" strokeWidth="1" strokeDasharray="3 2"/>
+                    <polygon points="0,6 2,10 0,14" fill="var(--border-subtle, #2a2a3e)"/>
+                    <polygon points="98,6 100,10 98,14" fill="var(--border-subtle, #2a2a3e)"/>
+                  </svg>
+                  <div className="flow-section-label">Mutual Connections</div>
+                  <div className="flow-nodes-row">
+                    {connectedNodes.slice(0, 8).map(node => {
+                      const style_ = CATEGORY_STYLES[node.category || 'wallet'] || DEFAULT_STYLE;
+                      const isSelected = selectedNode === node.address;
+                      return (
+                        <div
+                          key={node.address}
+                          className={`flow-card${isSelected ? ' selected' : ''}`}
+                          style={{ '--card-bg': style_.bg, '--card-border': style_.border, '--card-text': style_.text } as React.CSSProperties}
+                          onClick={() => handleNodeClick(node.address)}
+                        >
+                          <div className="flow-card-header">
+                            <span className="flow-card-type">{node.category || 'wallet'}</span>
+                            <span className="flow-card-value">{formatValue(node.totalValueInEth || 0)}</span>
+                          </div>
+                          <div className="flow-card-address">{node.name || shortenAddress(node.address)}</div>
+                          {node.name && <div className="flow-card-sub">{shortenAddress(node.address)}</div>}
+                          <div className="flow-card-footer">
+                            <span>{node.txCount} tx</span>
+                            <span className="flow-card-direction both">both</span>
+                          </div>
+                          {isSelected && (
+                            <div className="flow-card-expand">
+                              <div className="flow-expand-row">Address: {node.address}</div>
+                              <div className="flow-expand-row">
+                                Value: {node.totalValue} ({node.totalValueInEth?.toFixed(4)} ETH)
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {connectedNodes.length > 8 && (
+                      <div className="flow-card flow-card-more">+{connectedNodes.length - 8} more</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Empty connections note */}
+            {sourceNodes.length === 0 && destNodes.length === 0 && connectedNodes.length === 0 && (
+              <div className="flow-empty">
+                <p>No wallet connections found. The analyzed wallet may have no direct funding flows on this chain.</p>
               </div>
             )}
           </div>

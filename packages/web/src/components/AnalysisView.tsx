@@ -99,14 +99,16 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                 },
                 body: JSON.stringify({ address: result.wallet.address, chain: result.wallet.chain }),
                 signal: abortRef.current.signal,
+                credentials: 'include',
+                cache: 'no-cache',
             });
 
             if (!response.ok) {
-                const err = await response.json().catch(() => ({ message: 'Failed to generate report' }));
+                const err = await response.json().catch(() => ({ error: 'Failed to generate report' }));
                 if (response.status === 401) {
                     throw new Error('Session expired. Please log in again.');
                 }
-                throw new Error(err.message || 'Failed to generate report');
+                throw new Error(err.error || err.message || 'Failed to generate report');
             }
 
             setReportStatus('streaming');

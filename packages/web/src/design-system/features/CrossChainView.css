@@ -3,7 +3,7 @@
  */
 
 .crosschain-view {
-  max-width: 960px;
+  max-width: 1060px;
   margin: 0 auto;
 }
 
@@ -182,4 +182,157 @@
   font-size: 11px;
   color: var(--intel-text-muted, #666);
   font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* Two-column layout */
+.crosschain-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.crosschain-trace-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.crosschain-scan-col {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+/* Scan panel */
+.crosschain-scan-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--intel-text-primary, #e0e0e0);
+  margin-bottom: 12px;
+}
+
+.crosschain-scan-header svg {
+  color: var(--intel-accent, #61dfff);
+}
+
+.crosschain-scan-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(97, 223, 255, 0.12);
+  color: var(--intel-accent, #61dfff);
+  animation: scanBadgePulse 1s ease-in-out infinite;
+}
+
+@keyframes scanBadgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.crosschain-scan-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--intel-text-muted, #555);
+  margin: 8px 0 4px;
+}
+
+.crosschain-scan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crosschain-scan-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--intel-text-secondary, #888);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s, color 0.2s;
+}
+
+.crosschain-scan-item.scanning {
+  background: rgba(97, 223, 255, 0.08);
+  color: var(--intel-text-bright, #fff);
+}
+
+.crosschain-scan-item.detected {
+  color: var(--intel-success, #00ff88);
+}
+
+.crosschain-scan-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--intel-text-muted, #555);
+}
+
+.crosschain-scan-item.detected .crosschain-scan-dot {
+  color: var(--intel-success, #00ff88);
+}
+
+.crosschain-scan-item.scanning .crosschain-scan-dot {
+  color: var(--intel-accent, #61dfff);
+}
+
+.crosschain-scan-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crosschain-scan-pulse {
+  position: absolute;
+  right: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--intel-accent, #61dfff);
+  animation: scanDotPulse 1s ease-in-out infinite;
+}
+
+@keyframes scanDotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.6); }
+}
+
+.crosschain-scan-divider {
+  height: 1px;
+  background: var(--intel-border, #2a2a3e);
+  margin: 8px 0;
+}
+
+.crosschain-scan-footer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding: 10px;
+  background: rgba(255, 197, 66, 0.04);
+  border: 1px solid rgba(255, 197, 66, 0.1);
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--intel-text-muted, #888);
+}
+
+@media (max-width: 768px) {
+  .crosschain-layout {
+    flex-direction: column;
+  }
+  .crosschain-scan-col {
+    width: 100%;
+  }
 }
