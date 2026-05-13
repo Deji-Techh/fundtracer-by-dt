@@ -6,7 +6,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import cytoscape, { Core, EventObject } from 'cytoscape';
 import { ChainId } from '@fundtracer/core';
-import { getAuthToken } from '../../api';
+import { getAuthToken, API_BASE } from '../../api';
 import './GraphView.css';
 import './InvestigateView.css';
 
@@ -78,7 +78,7 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
         throw new Error('Authentication required. Please log in to use the graph view.');
       }
 
-      const response = await fetch('/api/analyze/expand-node', {
+      const response = await fetch(`${API_BASE}/api/analyze/expand-node`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -291,7 +291,7 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
         const token = getAuthToken();
         if (!token) return; // silently skip if not authenticated
 
-        const resp = await fetch('/api/analyze/expand-node', {
+        const resp = await fetch(`${API_BASE}/api/analyze/expand-node`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

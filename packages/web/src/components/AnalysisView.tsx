@@ -23,7 +23,7 @@ import { AnalysisResult, SuspiciousIndicator, FundingNode, CHAINS } from '@fundt
 import FundingTree from './FundingTree';
 import TransactionList from './TransactionList';
 import AddressLabel from './AddressLabel';
-import { fetchFundingTree, getAuthToken } from '../api';
+import { fetchFundingTree, getAuthToken, API_BASE } from '../api';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { getChainTokenSymbol } from '../config/chains';
 import { exportReportPdf } from '../utils/exportReportPdf';
@@ -91,7 +91,7 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
 
             abortRef.current = new AbortController();
 
-            const response = await fetch('/api/analyze/report', {
+            const response = await fetch(`${API_BASE}/api/analyze/report`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
