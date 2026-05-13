@@ -1853,13 +1853,14 @@ router.post('/expand-node', async (req: AuthenticatedRequest, res: Response) => 
       });
 
       console.log(`[Expand-Node] Using 20-key pool (${alchemyKeyPool.length} keys) for ${address}...`);
-      const rootNode = await withTimeout(
+      const treeResult = await withTimeout(
         analyzer.buildFundingTree(address, chain as ChainId, {}),
         120000,
         'Expand node'
       );
 
       // Flatten tree into nodes/edges
+      // buildFundingTree returns { fundingSources: FundingNode, fundingDestinations: FundingNode }
       const nodeMap = new Map<string, any>();
       const edgeList: any[] = [];
 
@@ -1886,7 +1887,24 @@ router.post('/expand-node', async (req: AuthenticatedRequest, res: Response) => 
         }
       };
 
-      flattenTree(rootNode);
+      if (treeResult?.fundingSources) flattenTree(treeResult.fundingSources);
+      if (treeResult?.fundingDestinations) flattenTree(treeResult.fundingDestinations);
+
+      // Mark the root wallet node separately (depth 0 from source tree)
+      if (treeResult?.fundingSources?.address) {
+        if (!nodeMap.has(treeResult.fundingSources.address)) {
+          nodeMap.set(treeResult.fundingSources.address, {
+            id: treeResult.fundingSources.address,
+            address: treeResult.fundingSources.address,
+            depth: 0,
+            direction: 'both',
+            totalValue: treeResult.fundingSources.totalValue || '0',
+            totalValueInEth: treeResult.fundingSources.totalValueInEth || 0,
+            txCount: treeResult.fundingSources.txCount || 0,
+          });
+        }
+      }
+
       nodes = Array.from(nodeMap.values());
       edges = edgeList;
     }
