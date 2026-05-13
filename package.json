@@ -37,8 +37,5 @@
     "uuid": "^9.0.0",
     "viem": "^2.0.0",
     "wagmi": "^2.5.0"
-  },
-  "devDependencies": {
-    "@types/cytoscape": "^3.21.9"
   }
 }
