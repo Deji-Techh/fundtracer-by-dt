@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AppShell from '../components/AppShell';
 import Loader from '../components/Loader';
 import OnboardingModal from '../components/OnboardingModal';
+import { SearchSetupToast } from '../components/SearchSetupToast';
 import InvestigateView from '../design-system/features/InvestigateView';
 import { AiFullScreenView } from '../design-system/features/AiFullScreenView';
 import { getAuthToken } from '../api';
@@ -127,6 +128,7 @@ export function AppPage() {
   const [showLoader, setShowLoader] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
+  const [showSearchTip, setShowSearchTip] = useState(false);
 
   const currentChainName = CHAIN_CONFIG[selectedChain as keyof typeof CHAIN_CONFIG]?.name || 'Linea';
 
@@ -172,6 +174,14 @@ export function AppPage() {
       setWalletAddress('');
     }
   }, [isConnected, address]);
+
+  // Show search setup tip once after auth
+  useEffect(() => {
+    if (isAuthenticated && !localStorage.getItem('ft_search_tip_dismissed')) {
+      const timer = setTimeout(() => setShowSearchTip(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated]);
 
   const handleConnectWallet = useCallback(() => {
     if (!isWalletConnected) {
@@ -362,6 +372,13 @@ export function AppPage() {
       >
         {renderContent()}
       </AppShell>
+      <SearchSetupToast
+        isOpen={showSearchTip}
+        onDismiss={() => {
+          setShowSearchTip(false);
+          localStorage.setItem('ft_search_tip_dismissed', 'true');
+        }}
+      />
       <AiFullScreenView 
         isOpen={isAiOpen} 
         onClose={() => setIsAiOpen(false)}

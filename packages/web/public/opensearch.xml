@@ -2,10 +2,10 @@
 <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
   <ShortName>FundTracer</ShortName>
   <Description>Professional blockchain wallet analyzer and forensics platform</Description>
-  <Url type="text/html" template="https://fundtracer.xyz/search?q={searchTerms}"/>
+  <Url type="text/html" template="https://www.fundtracer.xyz/search?q={searchTerms}"/>
   <Url type="application/x-suggestions+json" template="https://api.fundtracer.xyz/suggest?q={searchTerms}"/>
-  <Image width="16" height="16">https://fundtracer.xyz/favicon.png</Image>
-  <Image width="64" height="64">https://fundtracer.xyz/logo.png</Image>
+  <Image width="16" height="16">https://www.fundtracer.xyz/favicon.png</Image>
+  <Image width="64" height="64">https://www.fundtracer.xyz/logo.png</Image>
   <Tags>blockchain ethereum wallet analyzer crypto forensics sybil</Tags>
   <Developer>FundTracer by DT</Developer>
   <Contact>fundtracerbydt@gmail.com</Contact>

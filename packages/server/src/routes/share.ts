@@ -32,7 +32,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
     console.log(`[Share] Created shared analysis ${id} for ${address} on ${chain}`);
 
-    res.json({ success: true, id, url: `https://fundtracer.xyz/share/${id}` });
+    res.json({ success: true, id, url: `https://www.fundtracer.xyz/share/${id}` });
   } catch (error: any) {
     console.error('[Share] Error creating share:', error);
     res.status(500).json({ error: 'Failed to create share link' });

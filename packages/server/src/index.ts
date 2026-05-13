@@ -460,9 +460,9 @@ app.get('/keep-alive', (req, res) => {
 // Search route — handles ?q= from browser search bar (custom search engine)
 app.get('/search', (req, res) => {
     const q = (req.query.q as string || '').trim();
-    if (!q) return res.redirect(301, 'https://fundtracer.xyz');
+    if (!q) return res.redirect(301, 'https://www.fundtracer.xyz');
     // Pass the raw input — frontend handles smart extraction
-    return res.redirect(301, `https://fundtracer.xyz/app-evm?address=${encodeURIComponent(q)}`);
+    return res.redirect(301, `https://www.fundtracer.xyz/app-evm?address=${encodeURIComponent(q)}`);
 });
 
 // Start keep-alive pinger after server starts
