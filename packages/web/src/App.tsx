@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useSearchParams, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import IntelPage from './pages/IntelPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
 import AppPage from './pages/AppPage';
@@ -35,6 +35,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/docs/wallet-risk-score': 'Wallet Risk Score | FundTracer',
   '/docs/api-reference': 'API Reference | FundTracer',
   '/docs/cli-guide': 'CLI Guide | FundTracer',
+  '/search': 'Search | FundTracer',
   '/share': 'Shared Analysis | FundTracer',
 };
 
@@ -101,6 +102,38 @@ const WalletRiskScorePage = lazy(() => import('./pages/DocsRiskScorePage').then(
 const CliGuidePage = lazy(() => import('./pages/DocsCliGuidePage').then(m => ({ default: m.CliGuidePage })));
 const RewardsPage = lazy(() => import('./pages/RewardsPage').then(m => ({ default: m.default })));
 const SharePage = lazy(() => import('./pages/SharePage').then(m => ({ default: m.default })));
+
+/** Extract address from search query — handles raw addresses and explorer URLs */
+function extractAddress(input: string): { address: string; chain?: string } {
+  if (/^0x[a-fA-F0-9]{40}$/.test(input)) return { address: input };
+  if (/^[a-zA-Z0-9]{32,44}$/.test(input)) return { address: input };
+  try {
+    const url = new URL(input);
+    const m = url.pathname.match(/(?:address|tx|token|account)\/(0x[a-fA-F0-9]{40}|[a-zA-Z0-9]{32,44})/);
+    if (m) {
+      const chainMap: Record<string, string> = {
+        'etherscan.io': 'ethereum', 'lineascan.build': 'linea', 'arbiscan.io': 'arbitrum',
+        'basescan.org': 'base', 'optimistic.etherscan.io': 'optimism', 'polygonscan.com': 'polygon',
+        'bscscan.com': 'bsc', 'solscan.io': 'solana',
+      };
+      return { address: m[1], chain: chainMap[url.hostname.replace('www.', '')] };
+    }
+  } catch {}
+  return { address: input };
+}
+
+function SearchRedirect() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    const { address, chain } = extractAddress(q);
+    const params = new URLSearchParams({ address });
+    if (chain) params.set('chain', chain);
+    navigate(`/app-evm?${params.toString()}`, { replace: true });
+  }, [searchParams, navigate]);
+  return null;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -298,6 +331,7 @@ function App() {
           <SharePage />
         </Suspense>
       } />
+      <Route path="/search" element={<SearchRedirect />} />
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       )}
