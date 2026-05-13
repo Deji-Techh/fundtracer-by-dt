@@ -91,6 +91,8 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
 
             abortRef.current = new AbortController();
 
+            const url = `${API_BASE}/api/analyze/report`;
+            console.log(`[REPORT] Sending to ${url}, token exists: ${!!token}, token prefix: ${token.substring(0, 10)}...`);
             const response = await fetch(`${API_BASE}/api/analyze/report`, {
                 method: 'POST',
                 headers: {
@@ -98,9 +100,7 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({ address: result.wallet.address, chain: result.wallet.chain }),
-                signal: abortRef.current.signal,
                 credentials: 'include',
-                cache: 'no-cache',
             });
 
             if (!response.ok) {

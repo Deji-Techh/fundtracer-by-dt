@@ -1552,7 +1552,13 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
 // AI Investigation Report
 // ============================================================
 router.post('/report', async (req: AuthenticatedRequest, res: Response) => {
+  const authHdr = req.headers.authorization;
+  const hasAuth = !!authHdr && authHdr.startsWith('Bearer ');
+  const authPreview = authHdr ? authHdr.substring(0, 18) + '...' : 'NONE';
+  console.log(`[REPORT-DEBUG] Handler reached. user: ${!!req.user}, hasAuth: ${hasAuth}, authPreview: ${authPreview}, body: ${JSON.stringify({ address: req.body?.address?.substring(0,10), chain: req.body?.chain })}`);
+
   if (!req.user) {
+    console.log(`[REPORT-DEBUG] req.user is falsy, returning 401`);
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
@@ -1743,6 +1749,11 @@ Be specific, cite exact values.`;
 // Expand Graph Node
 // ============================================================
 router.post('/expand-node', async (req: AuthenticatedRequest, res: Response) => {
+  const authHdr = req.headers.authorization;
+  const hasAuth = !!authHdr && authHdr.startsWith('Bearer ');
+  const authPreview = authHdr ? authHdr.substring(0, 18) + '...' : 'NONE';
+  console.log(`[EXPAND-DEBUG] Handler reached. user: ${!!req.user}, hasAuth: ${hasAuth}, authPreview: ${authPreview}, body: ${JSON.stringify({ address: req.body?.address?.substring(0,10), chain: req.body?.chain })}`);
+
   if (!req.user) {
     return res.status(401).json({ error: 'Not authenticated' });
   }

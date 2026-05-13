@@ -46,7 +46,14 @@ export async function authMiddleware(
     
     
     const authHeader = req.headers.authorization;
-    
+    const hasAuth = !!authHeader && authHeader.startsWith('Bearer ');
+    const tokenPrefix = authHeader ? authHeader.substring(0, 20) + '...' : 'NONE';
+
+    // DEBUG: Log auth header state for all requests to help debug 401 issues
+    if (req.path && (req.path.includes('/analyze/report') || req.path.includes('/analyze/expand-node') || req.path.includes('/analyze/bridge-trace'))) {
+      console.log(`[AUTH-DEBUG] ${req.method} ${req.path} - authHeader: ${tokenPrefix}, hasAuth: ${hasAuth}, hasUser: ${!!req.user}, contentType: ${req.headers['content-type']}`);
+    }
+
     // SECURITY: JWT_SECRET must be set in environment
     const JWT_SECRET = process.env.JWT_SECRET;
     if (!JWT_SECRET) {
