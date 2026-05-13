@@ -1,5 +1,7 @@
 {
     "compilerOptions": {
+        "target": "ES2022",
+        "downlevelIteration": true,
         "skipLibCheck": true,
         "outDir": "./dist",
         "baseUrl": ".",

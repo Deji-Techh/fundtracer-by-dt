@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Loader2 } from 'lucide-react';
+import './SolanaRiskView.css';
 
 interface RiskSignal {
   id: string;

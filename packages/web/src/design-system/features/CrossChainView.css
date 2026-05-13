@@ -1,0 +1,185 @@
+/**
+ * CrossChainView Styles
+ */
+
+.crosschain-view {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.crosschain-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 16px;
+}
+
+.crosschain-loading p {
+  color: var(--intel-text-secondary, #888);
+  font-size: 14px;
+}
+
+.crosschain-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.crosschain-empty h3 {
+  margin: 16px 0 8px;
+  color: var(--intel-text-primary, #e0e0e0);
+  font-size: 16px;
+}
+
+.crosschain-empty p {
+  color: var(--intel-text-secondary, #888);
+  font-size: 14px;
+}
+
+/* Summary banner */
+.crosschain-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(97, 223, 255, 0.05);
+  border: 1px solid rgba(97, 223, 255, 0.15);
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.crosschain-summary-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--intel-accent, #61dfff);
+}
+
+.crosschain-summary-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.crosschain-summary-text {
+  font-size: 14px;
+  color: var(--intel-text-primary, #e0e0e0);
+}
+
+.crosschain-summary-text strong {
+  color: var(--intel-accent, #61dfff);
+}
+
+/* Timeline */
+.crosschain-timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.crosschain-event {
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.crosschain-event:last-child {
+  padding-bottom: 0;
+}
+
+.crosschain-event-line {
+  position: absolute;
+  left: -12px;
+  top: 12px;
+  bottom: 0;
+  width: 2px;
+  background: var(--intel-border, #2a2a3e);
+}
+
+.crosschain-event:last-child .crosschain-event-line {
+  display: none;
+}
+
+.crosschain-event-dot {
+  position: absolute;
+  left: -16px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--intel-accent, #61dfff);
+  border: 2px solid var(--intel-bg-secondary, #0d0d1a);
+}
+
+/* Event card */
+.crosschain-event-card {
+  background: var(--intel-bg-tertiary, #1a1a2e);
+  border: 1px solid var(--intel-border, #2a2a3e);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.crosschain-event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.crosschain-event-bridge {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--intel-accent, #61dfff);
+  padding: 2px 8px;
+  background: rgba(97, 223, 255, 0.1);
+  border-radius: 4px;
+}
+
+.crosschain-event-amount {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--intel-text-bright, #fff);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* Chain badges */
+.crosschain-event-chains {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.crosschain-event-chains svg {
+  color: var(--intel-text-muted, #666);
+  flex-shrink: 0;
+}
+
+.crosschain-chain-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.crosschain-chain-source {
+  background: rgba(97, 223, 255, 0.1);
+  color: var(--intel-accent, #61dfff);
+}
+
+.crosschain-chain-dest {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--intel-success, #00ff88);
+}
+
+.crosschain-event-details {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--intel-text-muted, #666);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}

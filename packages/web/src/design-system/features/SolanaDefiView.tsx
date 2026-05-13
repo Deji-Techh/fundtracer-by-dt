@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Hexagon, Loader2 } from 'lucide-react';
+import './SolanaDefiView.css';
 
 interface DeFiPosition {
   protocol: string;

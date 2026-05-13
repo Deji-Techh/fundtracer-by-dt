@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Download, FileText, Loader2 } from 'lucide-react';
+import './SolanaTaxView.css';
 
 interface TaxPosition {
   token: string;

@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Transaction, ChainId, TxStatus, CHAINS } from '@fundtracer/core';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { getLabel } from '../utils/addressBook';
 import { getChainTokenSymbol } from '../config/chains';
+import AddressLabel from './AddressLabel';
 
 const TokenIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -90,7 +90,6 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
     const paginatedTxs = filteredAndSorted.slice(page * pageSize, (page + 1) * pageSize);
     const totalPages = Math.ceil(filteredAndSorted.length / pageSize);
 
-    const formatAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
     const formatDate = (timestamp: number) => new Date(timestamp * 1000).toLocaleString();
     const formatHash = (hash: string) => `${hash.slice(0, 10)}...${hash.slice(-8)}`;
 
@@ -193,15 +192,11 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                             </div>
                             <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-text-muted)' }}>
                                 <div style={{ marginBottom: 2 }}>
-                                    From: <span style={{ fontFamily: 'monospace' }}>
-                                        {getLabel(tx.from) || (tx as any).fromLabel || tx.from.slice(0, 10) + '...'}
-                                    </span>
+                                    From: <AddressLabel address={tx.from} chain={chain} showAddress />
                                 </div>
                                 {tx.to && (
                                     <div>
-                                        To: <span style={{ fontFamily: 'monospace' }}>
-                                            {getLabel(tx.to) || (tx as any).toLabel || tx.to.slice(0, 10) + '...'}
-                                        </span>
+                                        To: <AddressLabel address={tx.to} chain={chain} showAddress />
                                     </div>
                                 )}
                             </div>
@@ -260,10 +255,9 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="tx-address"
-                                            style={{ color: getLabel(tx.from) ? 'var(--color-primary-text)' : 'var(--color-text-primary)', fontWeight: getLabel(tx.from) ? 600 : 400 }}
                                             title={tx.from}
                                         >
-                                            {getLabel(tx.from) || (tx as any).fromLabel || formatAddress(tx.from)}
+                                            <AddressLabel address={tx.from} chain={chain} showAddress />
                                         </a>
                                         {(tx as any).fromType === 'token' && (
                                             <span style={{ marginLeft: '4px', color: 'var(--color-primary)' }} title="Token">
@@ -284,13 +278,9 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="tx-address"
-                                                    style={{
-                                                        color: getLabel(tx.to) || (tx as any).toLabel ? 'var(--color-primary)' : 'var(--color-text-primary)',
-                                                        fontWeight: getLabel(tx.to) || (tx as any).toLabel ? 500 : 400
-                                                    }}
                                                     title={tx.to}
                                                 >
-                                                    {getLabel(tx.to) || (tx as any).toLabel || formatAddress(tx.to)}
+                                                    <AddressLabel address={tx.to} chain={chain} showAddress />
                                                 </a>
                                                 {(tx as any).toType === 'token' && (
                                                     <span style={{ marginLeft: '4px', color: 'var(--color-primary)' }} title="Token Contract">

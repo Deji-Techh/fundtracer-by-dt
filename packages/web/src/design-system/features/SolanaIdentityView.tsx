@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BadgeCheck, Crown, Star, Layers, Image, Activity, EyeOff, Loader2 } from 'lucide-react';
+import './SolanaIdentityView.css';
 
 interface IdentityBadge {
   id: string;

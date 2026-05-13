@@ -20,3 +20,9 @@ export { default as RadarViewDefault } from './RadarView';
 export { default as RadarView } from './RadarView';
 
 export { AiFullScreenView, default as AiFullScreenViewDefault } from './AiFullScreenView';
+
+export { ReportsView, default as ReportsViewDefault } from './ReportsView';
+
+export { GraphView, default as GraphViewDefault } from './GraphView';
+
+export { CrossChainView, default as CrossChainViewDefault } from './CrossChainView';

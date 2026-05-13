@@ -19,6 +19,7 @@ import { validateAddressInput, sanitizeString, validateArrayLength, SOLANA_ADDRE
 import { getAlchemyKeyPool } from '../utils/quicknode.js';
 import { cacheGet, cacheSet } from '../utils/redis.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
+import { BridgeDetector } from '../services/BridgeDetector.js';
 
 // Deep sanitize function to prevent React Error #130 (objects not valid as React child)
 function sanitizeForFrontend(obj: any): any {
@@ -1545,6 +1546,438 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
             message: error.message,
         });
     }
+});
+
+// ============================================================
+// AI Investigation Report
+// ============================================================
+router.post('/report', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { address, chain } = req.body;
+
+  if (!address || !chain) {
+    return res.status(400).json({ error: 'Address and chain are required' });
+  }
+
+  const normalizedChain = normalizeChainId(chain);
+
+  if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+    return res.status(400).json({ error: `Invalid chain: ${chain}` });
+  }
+
+  const isSolana = normalizedChain === 'solana';
+  if (isSolana ? !SOL_ADDR_REGEX.test(address) : !ETH_ADDRESS_REGEX.test(address)) {
+    return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
+  }
+
+  try {
+    const { EntityService } = await import('../services/EntityService.js');
+    const { callGeminiStream, selectModel } = await import('../lib/gemini-client.js');
+
+    // Fetch wallet analysis first (reuse existing analysis logic)
+    const alchemyKeyPool = getAlchemyKeyPool();
+    const userKey = await getAlchemyKeyForUser(req.user.uid);
+
+    const sybilConfig = alchemyKeyPool.length > 0 ? {
+      defaultKey: userKey || alchemyKeyPool[0],
+      contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+      walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+      moralisKey: process.env.MORALIS_API_KEY,
+    } : undefined;
+
+    const analyzer = new WalletAnalyzer({
+      alchemy: userKey || alchemyKeyPool[0] || '',
+      sybilConfig,
+      moralis: process.env.MORALIS_API_KEY,
+      etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      arbiscan: process.env.ARBISCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+    });
+
+    console.log(`[Report] Using 20-key pool (${alchemyKeyPool.length} keys) for ${address}...`);
+    const analysis = await withTimeout(
+      analyzer.analyze(address, normalizedChain as ChainId, { skipFundingTree: true }),
+      120000,
+      'Wallet report analysis'
+    ) as any;
+
+    // Look up entity for this address
+    const entity = EntityService.lookupEntity(normalizedChain, address);
+
+    // Build entity map for counterparty labeling
+    const counterpartyAddresses = new Set<string>();
+    if (analysis.summary?.topFundingSources) {
+      for (const s of analysis.summary.topFundingSources) counterpartyAddresses.add(s.address);
+    }
+    if (analysis.summary?.topFundingDestinations) {
+      for (const d of analysis.summary.topFundingDestinations) counterpartyAddresses.add(d.address);
+    }
+    if (analysis.projectsInteracted) {
+      for (const p of analysis.projectsInteracted) counterpartyAddresses.add(p.contractAddress);
+    }
+    const entityMap: Record<string, any> = {};
+    for (const addr of counterpartyAddresses) {
+      const ent = EntityService.lookupEntity(normalizedChain, addr);
+      if (ent) {
+        entityMap[addr.toLowerCase()] = {
+          name: ent.name,
+          category: ent.category,
+          confidence: ent.confidence,
+          verified: ent.verified,
+        };
+      }
+    }
+
+    // Build rich report context using the new context builder
+    const { buildReportContext } = await import('../lib/context-builder.js');
+    const reportPrompt = buildReportContext({
+      address: analysis?.wallet?.address || address,
+      chain: chain,
+      balanceInEth: analysis.wallet?.balanceInEth,
+      isContract: analysis.wallet?.isContract,
+      riskScore: analysis.overallRiskScore || analysis.riskScore,
+      riskLevel: analysis.riskLevel,
+      summary: analysis.summary ? {
+        totalTransactions: analysis.summary.totalTransactions,
+        successfulTxs: analysis.summary.successfulTxs,
+        failedTxs: analysis.summary.failedTxs,
+        totalValueSentEth: analysis.summary.totalValueSentEth,
+        totalValueReceivedEth: analysis.summary.totalValueReceivedEth,
+        uniqueInteractedAddresses: analysis.summary.uniqueAddresses || analysis.summary.uniqueInteractedAddresses,
+        activityPeriodDays: analysis.summary.activityPeriodDays,
+        averageTxPerDay: analysis.summary.averageTxPerDay,
+        topFundingSources: analysis.summary.topFundingSources?.map((s: any) => ({ address: s.address, valueEth: s.valueEth })),
+        topFundingDestinations: analysis.summary.topFundingDestinations?.map((d: any) => ({ address: d.address, valueEth: d.valueEth })),
+      } : undefined,
+      transactions: analysis.transactions?.slice(-50).map((t: any) => ({
+        hash: t.hash,
+        timestamp: t.timestamp,
+        from: t.from,
+        to: t.to,
+        valueInEth: t.valueInEth || 0,
+        status: t.status,
+        method: t.method,
+      })),
+      suspiciousIndicators: analysis.suspiciousIndicators?.map((ind: any) => ({
+        type: ind.type,
+        severity: ind.severity,
+        score: ind.score,
+        description: ind.description,
+        evidence: ind.evidence,
+      })),
+      projectsInteracted: analysis.projectsInteracted?.map((p: any) => ({
+        contractAddress: p.contractAddress,
+        projectName: p.projectName,
+        category: p.category,
+        interactionCount: p.interactionCount,
+        totalValueInEth: p.totalValueInEth,
+      })),
+      sameBlockTransactions: analysis.sameBlockTransactions?.map((g: any) => ({
+        blockNumber: g.blockNumber,
+        isSuspicious: g.isSuspicious,
+        reason: g.reason,
+      })),
+      entity: entity ? {
+        name: entity.name,
+        category: entity.category,
+        confidence: entity.confidence,
+        verified: entity.verified,
+        tags: entity.tags,
+      } : undefined,
+      entityMap: Object.keys(entityMap).length > 0 ? entityMap : undefined,
+    });
+
+    // Determine model based on wallet complexity
+    const modelType = (analysis.summary?.totalTransactions || 0) > 500 ? 'pro' : 'flash';
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const reportInstruction = `Generate the investigation report based on the wallet analysis data above. Structure it with:
+
+## Executive Summary
+## Entity Profile
+## Fund Flow Analysis
+## Risk Assessment
+## Transaction Patterns
+## Suspicious Activity Indicators
+## Conclusion & Recommendations
+
+Be specific, cite exact values.`;
+
+    const stream = callGeminiStream(reportPrompt, reportInstruction, [], modelType);
+
+    for await (const chunk of stream) {
+      res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+    }
+
+    res.write(`data: [DONE]\n\n`);
+    res.end();
+
+    // Record to Torque
+    const userName = req.user?.name || req.user?.email || 'User';
+    await torqueServiceV2.incrementScan(req.user.uid, userName).catch(() => {});
+  } catch (error: any) {
+    console.error('[Report] Generation error:', error.message);
+    // If headers already sent, try to end stream with error
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+      return;
+    }
+    res.status(500).json({ error: 'Report generation failed', message: error.message });
+  }
+});
+
+// ============================================================
+// Expand Graph Node
+// ============================================================
+router.post('/expand-node', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { address, chain, direction = 'both', depth = 2 } = req.body;
+
+  if (!address || !chain) {
+    return res.status(400).json({ error: 'Address and chain are required' });
+  }
+
+  const normalizedChain = normalizeChainId(chain);
+
+  if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+    return res.status(400).json({ error: `Invalid chain: ${chain}` });
+  }
+
+  const isSolana = normalizedChain === 'solana';
+  if (isSolana ? !SOL_ADDR_REGEX.test(address) : !ETH_ADDRESS_REGEX.test(address)) {
+    return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
+  }
+
+  try {
+    let nodes: any[] = [];
+    let edges: any[] = [];
+
+    if (isSolana) {
+      const { SolanaAdapter } = await import('@fundtracer/core');
+      const solanaAdapter = new SolanaAdapter();
+      const [fundingTree, transactions] = await Promise.all([
+        solanaAdapter.getFundingSources(address, Math.min(depth, 3)).catch(() => null),
+        solanaAdapter.getTransactions(address, { limit: 200 }),
+      ]);
+
+      // Source nodes
+      for (const n of (fundingTree?.nodes || []).slice(0, 30)) {
+        nodes.push({
+          id: n.address,
+          address: n.address,
+          depth: n.depth,
+          direction: 'source',
+          totalValue: (n.amount || 0).toString(),
+          totalValueInEth: n.amount || 0,
+          txCount: 1,
+        });
+        if (n.parentAddress) {
+          edges.push({
+            source: n.parentAddress,
+            target: n.address,
+            value: n.amount || 0,
+          });
+        }
+      }
+
+      // Destination nodes from outgoing txs
+      const destMap = new Map<string, { total: number; count: number }>();
+      for (const tx of transactions) {
+        if (tx.from === address && tx.to && tx.to !== address) {
+          const d = destMap.get(tx.to) || { total: 0, count: 0 };
+          d.total += parseFloat(tx.value || '0');
+          d.count++;
+          destMap.set(tx.to, d);
+        }
+      }
+      for (const [addr, data] of Array.from(destMap.entries()).sort((a, b) => b[1].total - a[1].total).slice(0, 30)) {
+        nodes.push({
+          id: addr,
+          address: addr,
+          depth: 1,
+          direction: 'destination',
+          totalValue: data.total.toString(),
+          totalValueInEth: data.total,
+          txCount: data.count,
+        });
+        edges.push({ source: address, target: addr, value: data.total });
+      }
+    } else {
+      const alchemyKeyPool = getAlchemyKeyPool();
+      const userKey = await getAlchemyKeyForUser(req.user.uid);
+
+      const sybilConfig = alchemyKeyPool.length > 0 ? {
+        defaultKey: userKey || alchemyKeyPool[0],
+        contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+        walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+        moralisKey: process.env.MORALIS_API_KEY,
+      } : undefined;
+
+      const analyzer = new WalletAnalyzer({
+        alchemy: userKey || alchemyKeyPool[0] || '',
+        sybilConfig,
+        moralis: process.env.MORALIS_API_KEY,
+        etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        arbiscan: process.env.ARBISCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      });
+
+      console.log(`[Expand-Node] Using 20-key pool (${alchemyKeyPool.length} keys) for ${address}...`);
+      const rootNode = await withTimeout(
+        analyzer.buildFundingTree(address, chain as ChainId, {}),
+        120000,
+        'Expand node'
+      );
+
+      // Flatten tree into nodes/edges
+      const nodeMap = new Map<string, any>();
+      const edgeList: any[] = [];
+
+      const flattenTree = (node: any, parentAddr?: string) => {
+        if (!node || !node.address) return;
+        if (!nodeMap.has(node.address)) {
+          nodeMap.set(node.address, {
+            id: node.address,
+            address: node.address,
+            depth: node.depth || 0,
+            direction: node.direction || 'both',
+            totalValue: node.totalValue || '0',
+            totalValueInEth: node.totalValueInEth || 0,
+            txCount: node.txCount || 0,
+          });
+        }
+        if (parentAddr && parentAddr !== node.address) {
+          edgeList.push({ source: parentAddr, target: node.address, value: node.totalValueInEth || 0 });
+        }
+        if (node.children && Array.isArray(node.children)) {
+          for (const child of node.children) {
+            flattenTree(child, node.address);
+          }
+        }
+      };
+
+      flattenTree(rootNode);
+      nodes = Array.from(nodeMap.values());
+      edges = edgeList;
+    }
+
+    // Enhance nodes with entity labels
+    try {
+      const { EntityService } = await import('../services/EntityService.js');
+      for (const node of nodes) {
+        const entity = EntityService.lookupEntity(normalizedChain, node.address);
+        if (entity) {
+          node.name = entity.name;
+          node.category = entity.category;
+          node.verified = entity.verified;
+          node.confidence = entity.confidence;
+        }
+      }
+    } catch {}
+
+    res.json({ success: true, result: { nodes, edges } });
+  } catch (error: any) {
+    console.error('[Expand Node] Error:', error.message);
+    res.status(500).json({ error: 'Failed to expand node', message: error.message });
+  }
+});
+
+// ============================================================
+// Cross-Chain Bridge Trace
+// ============================================================
+router.post('/bridge-trace', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { address, chain } = req.body;
+
+  if (!address || !chain) {
+    return res.status(400).json({ error: 'Address and chain are required' });
+  }
+
+  const normalizedChain = normalizeChainId(chain);
+
+  if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+    return res.status(400).json({ error: `Invalid chain: ${chain}` });
+  }
+
+  const isSolana = normalizedChain === 'solana';
+  if (isSolana ? !SOL_ADDR_REGEX.test(address) : !ETH_ADDRESS_REGEX.test(address)) {
+    return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
+  }
+
+  try {
+    let transactions: any[] = [];
+
+    if (isSolana) {
+      const { SolanaAdapter } = await import('@fundtracer/core');
+      const solanaAdapter = new SolanaAdapter();
+      transactions = await solanaAdapter.getTransactions(address, { limit: 200 }).catch(() => []);
+    } else {
+      const alchemyKeyPool = getAlchemyKeyPool();
+      const userKey = await getAlchemyKeyForUser(req.user.uid);
+
+      const sybilConfig = alchemyKeyPool.length > 0 ? {
+        defaultKey: userKey || alchemyKeyPool[0],
+        contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+        walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+        moralisKey: process.env.MORALIS_API_KEY,
+      } : undefined;
+
+      const analyzer = new WalletAnalyzer({
+        alchemy: userKey || alchemyKeyPool[0] || '',
+        sybilConfig,
+        moralis: process.env.MORALIS_API_KEY,
+        etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        arbiscan: process.env.ARBISCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      });
+
+      console.log(`[Bridge-Trace] Using 20-key pool (${alchemyKeyPool.length} keys) for ${address}...`);
+
+      const analysis = await withTimeout(
+        analyzer.analyze(address, normalizedChain as ChainId, { skipFundingTree: true }),
+        120000,
+        'Bridge trace analysis'
+      ) as any;
+
+      transactions = (analysis.transactions || []).slice(0, 200);
+    }
+
+    const bridgeEvents = BridgeDetector.detectBridgeTransactions(transactions, normalizedChain);
+
+    res.json({
+      sourceChain: normalizedChain,
+      sourceAddress: address,
+      bridgeEvents,
+    });
+  } catch (error: any) {
+    console.error('[Bridge Trace] Error:', error.message);
+    res.status(500).json({ error: 'Bridge trace failed', message: error.message });
+  }
 });
 
 export { router as analyzeRoutes };

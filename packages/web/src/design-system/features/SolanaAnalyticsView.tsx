@@ -1,5 +1,6 @@
 import React from 'react';
 import { BarChart3 } from 'lucide-react';
+import './SolanaAnalyticsView.css';
 
 interface SolanaAnalyticsViewProps {
   address: string;

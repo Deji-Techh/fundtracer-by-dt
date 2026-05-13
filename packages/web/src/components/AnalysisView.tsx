@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useNavigate } from 'react-router-dom';
@@ -23,9 +23,10 @@ import { AnalysisResult, SuspiciousIndicator, FundingNode, CHAINS } from '@fundt
 import FundingTree from './FundingTree';
 import TransactionList from './TransactionList';
 import AddressLabel from './AddressLabel';
-import { fetchFundingTree } from '../api';
+import { fetchFundingTree, getAuthToken } from '../api';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { getChainTokenSymbol } from '../config/chains';
+import { exportReportPdf } from '../utils/exportReportPdf';
 
 interface AnalysisViewProps {
     result: AnalysisResult;
@@ -34,7 +35,7 @@ interface AnalysisViewProps {
     onLoadMore?: () => void;
 }
 
-type TabId = 'overview' | 'funding' | 'transactions' | 'suspicious';
+type TabId = 'overview' | 'funding' | 'transactions' | 'suspicious' | 'report';
 
 function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisViewProps) {
     const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -44,6 +45,11 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
     const [treeError, setTreeError] = useState<string | null>(null);
     const [treeDepth, setTreeDepth] = useState(2);
     const [hoveredAddress, setHoveredAddress] = useState<{ address: string; x: number; y: number } | null>(null);
+    const [reportStatus, setReportStatus] = useState<'idle' | 'loading' | 'streaming' | 'complete' | 'error'>('idle');
+    const [reportContent, setReportContent] = useState('');
+    const [reportError, setReportError] = useState('');
+    const abortRef = useRef<AbortController | null>(null);
+    const reportRef = useRef<HTMLDivElement>(null!) as React.RefObject<HTMLDivElement>;
     const isMobile = useIsMobile();
     const navigate = useNavigate();
 
@@ -71,6 +77,93 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
             setTreeLoading(false);
         }
     };
+
+    const handleGenerateReport = useCallback(async () => {
+        setReportStatus('loading');
+        setReportContent('');
+        setReportError('');
+
+        try {
+            const token = getAuthToken();
+            abortRef.current = new AbortController();
+
+            const response = await fetch('/api/analyze/report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ address: result.wallet.address, chain: result.wallet.chain }),
+                signal: abortRef.current.signal,
+            });
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({ message: 'Failed to generate report' }));
+                throw new Error(err.message || 'Failed to generate report');
+            }
+
+            setReportStatus('streaming');
+
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error('No response stream');
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') {
+                            setReportStatus('complete');
+                            continue;
+                        }
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.content) {
+                                setReportContent(prev => prev + parsed.content);
+                            }
+                        } catch {
+                            setReportContent(prev => prev + data);
+                        }
+                    }
+                }
+            }
+
+            setReportStatus('complete');
+        } catch (err: any) {
+            if (err.name === 'AbortError') {
+                setReportStatus('idle');
+                return;
+            }
+            setReportError(err.message || 'Failed to generate report');
+            setReportStatus('error');
+        }
+    }, [result.wallet.address, result.wallet.chain]);
+
+    const handleCancelReport = useCallback(() => {
+        abortRef.current?.abort();
+        setReportStatus('idle');
+    }, []);
+
+    const handleCopyReport = useCallback(() => {
+        navigator.clipboard.writeText(reportContent);
+    }, [reportContent]);
+
+    const handleExportPdf = useCallback(async () => {
+        const el = reportRef.current;
+        if (!el) return;
+        const filename = `fundtracer-report-${result.wallet.address.slice(0, 8)}-${Date.now()}.pdf`;
+        await exportReportPdf(el, filename);
+    }, [result.wallet.address]);
 
     // Use on-demand tree data if available, otherwise fall back to result data
     const displaySources = fundingSources || result.fundingSources;
@@ -113,6 +206,7 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                         <div style={{ marginBottom: 'var(--space-2)' }}>
                             <AddressLabel
                                 address={result.wallet.address}
+                                chain={result.wallet.chain}
                                 editable={true}
                                 showAddress={true}
                                 style={{
@@ -133,6 +227,11 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                             </span>
                             {result.wallet.isContract && (
                                 <span className="risk-badge medium">Contract</span>
+                            )}
+                            {(result as any).crossChainActivity && (
+                                <span className="risk-badge" style={{ background: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', border: '1px solid rgba(0, 212, 255, 0.3)' }}>
+                                    Cross-Chain
+                                </span>
                             )}
                         </div>
                     </div>
@@ -237,6 +336,16 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
                             <span className="tab-badge">{result.suspiciousIndicators?.length || 0}</span>
                         )}
                     </button>
+                    <button
+                        className={`tab-flat ${activeTab === 'report' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('report')}
+                    >
+                        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 18, height: 18 }}>
+                            <path d="M3 1h5l4 4v8H3V1z"/>
+                            <path d="M8 1v4h4M5 7h4M5 9.5h4"/>
+                        </svg>
+                        <span>Report</span>
+                    </button>
                 </div>
 
                 {/* Tab Content */}
@@ -283,6 +392,26 @@ function AnalysisView({ result, pagination, loadingMore, onLoadMore }: AnalysisV
 
                     {activeTab === 'suspicious' && (
                         <SuspiciousTab indicators={result.suspiciousIndicators} />
+                    )}
+
+                    {activeTab === 'report' && (
+                        <ReportTab
+                            address={result.wallet.address}
+                            chain={result.wallet.chain}
+                            reportStatus={reportStatus}
+                            reportContent={reportContent}
+                            reportError={reportError}
+                            reportRef={reportRef}
+                            onGenerate={handleGenerateReport}
+                            onCancel={handleCancelReport}
+                            onCopy={handleCopyReport}
+                            onExportPdf={handleExportPdf}
+                            onNew={() => {
+                                setReportStatus('idle');
+                                setReportContent('');
+                                setReportError('');
+                            }}
+                        />
                     )}
                 </motion.div>
 
@@ -638,7 +767,9 @@ function OverviewTab({
                                 onMouseEnter={(e) => setHoveredAddress({ address: source.address, x: e.clientX, y: e.clientY })}
                                 onMouseLeave={() => setHoveredAddress(null)}
                             >
-                                <span className="tx-address">{formatAddress(source.address)}</span>
+                                <span className="tx-address">
+                                    <AddressLabel address={source.address} chain={result.wallet.chain} showAddress={true} />
+                                </span>
                                 <span className="tx-value incoming">+{source.valueEth.toFixed(4)} {getChainTokenSymbol(result.wallet.chain)}</span>
                             </motion.div>
                         ))}
@@ -667,7 +798,9 @@ function OverviewTab({
                                 onMouseEnter={(e) => setHoveredAddress({ address: dest.address, x: e.clientX, y: e.clientY })}
                                 onMouseLeave={() => setHoveredAddress(null)}
                             >
-                                <span className="tx-address">{formatAddress(dest.address)}</span>
+                                <span className="tx-address">
+                                    <AddressLabel address={dest.address} chain={result.wallet.chain} showAddress={true} />
+                                </span>
                                 <span className="tx-value outgoing">-{dest.valueEth.toFixed(4)} {getChainTokenSymbol(result.wallet.chain)}</span>
                             </motion.div>
                         ))}
@@ -870,6 +1003,165 @@ function SuspiciousTab({ indicators }: { indicators: SuspiciousIndicator[] }) {
                 );
             })}
         </motion.div>
+    );
+}
+
+// Report Tab Component
+function ReportTab({
+    address,
+    chain,
+    reportStatus,
+    reportContent,
+    reportError,
+    reportRef,
+    onGenerate,
+    onCancel,
+    onCopy,
+    onExportPdf,
+    onNew,
+}: {
+    address: string;
+    chain: string;
+    reportStatus: 'idle' | 'loading' | 'streaming' | 'complete' | 'error';
+    reportContent: string;
+    reportError: string;
+    reportRef: React.RefObject<HTMLDivElement>;
+    onGenerate: () => void;
+    onCancel: () => void;
+    onCopy: () => void;
+    onExportPdf: () => void;
+    onNew: () => void;
+}) {
+    if (reportStatus === 'idle' && !reportContent) {
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 'var(--space-8)',
+                gap: 'var(--space-4)',
+            }}>
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 48, height: 48, color: 'var(--color-text-muted)' }}>
+                    <path d="M3 1h5l4 4v8H3V1z"/>
+                    <path d="M8 1v4h4M5 7h4M5 9.5h4"/>
+                </svg>
+                <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+                    AI Investigation Report
+                </h3>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', textAlign: 'center', maxWidth: 400, margin: 0 }}>
+                    Generate a professional investigation report with executive summary, fund flow analysis, risk assessment, and more.
+                </p>
+                <button
+                    className="btn btn-primary"
+                    onClick={onGenerate}
+                    style={{ padding: 'var(--space-3) var(--space-6)', fontSize: 'var(--text-sm)' }}
+                >
+                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                        <circle cx="6" cy="6" r="4.5"/><path d="M9.5 9.5l3 3"/>
+                    </svg>
+                    Generate Report
+                </button>
+            </div>
+        );
+    }
+
+    if (reportStatus === 'loading') {
+        return (
+            <div style={{ padding: 'var(--space-4)' }}>
+                <div className="report-skeleton">
+                    <div className="skeleton-line" style={{ width: '60%', height: 24, marginBottom: 16 }} />
+                    <div className="skeleton-line" style={{ width: '40%', height: 16, marginBottom: 8 }} />
+                    <div className="skeleton-line" style={{ width: '80%', height: 16, marginBottom: 8 }} />
+                    <div className="skeleton-line" style={{ width: '70%', height: 16, marginBottom: 24 }} />
+                    <div className="skeleton-section" style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                        <div className="skeleton-line" style={{ width: '30%', height: 20, marginBottom: 12 }} />
+                        <div className="skeleton-line" style={{ width: '90%', height: 14, marginBottom: 6 }} />
+                        <div className="skeleton-line" style={{ width: '85%', height: 14, marginBottom: 6 }} />
+                        <div className="skeleton-line" style={{ width: '75%', height: 14, marginBottom: 6 }} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (reportStatus === 'error') {
+        return (
+            <div style={{
+                padding: 'var(--space-6)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 'var(--space-3)',
+                background: 'var(--color-danger-bg)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-danger-text)',
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--color-danger-text)' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                    </svg>
+                    Report Generation Failed
+                </div>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--text-sm)', margin: 0 }}>{reportError}</p>
+                <button className="btn btn-primary" onClick={onGenerate} style={{ marginTop: 8 }}>
+                    Retry
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 'var(--space-4)',
+                paddingBottom: 'var(--space-3)',
+                borderBottom: '1px solid var(--color-border)',
+            }}>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', fontFamily: 'var(--font-mono)' }}>
+                    Report: {address.slice(0, 6)}...{address.slice(-4)}
+                </div>
+                {reportStatus === 'streaming' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-accent)' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-accent)', animation: 'pulse-dot 1s ease-in-out infinite' }} />
+                        Generating...
+                    </div>
+                )}
+            </div>
+            <div
+                ref={reportRef}
+                className="report-content"
+                style={{
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    color: 'var(--color-text-primary)',
+                }}
+                dangerouslySetInnerHTML={{
+                    __html: reportContent
+                        .replace(/^### (.+)$/gm, '<h3 style="font-size:15px;font-weight:600;margin:16px 0 8px;color:var(--color-accent)">$1</h3>')
+                        .replace(/^## (.+)$/gm, '<h2 style="font-size:18px;font-weight:600;margin:20px 0 10px;color:var(--color-text-primary);border-bottom:1px solid var(--color-border);padding-bottom:6px">$1</h2>')
+                        .replace(/^# (.+)$/gm, '<h1 style="font-size:22px;font-weight:700;margin:24px 0 12px;color:var(--color-text-primary)">$1</h1>')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--color-text-primary)">$1</strong>')
+                        .replace(/\n/g, '<br/>'),
+                }}
+            />
+            {reportStatus === 'complete' && (
+                <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
+                    <button className="btn btn-secondary btn-sm" onClick={onCopy}>
+                        Copy
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={onExportPdf}>
+                        Export PDF
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={onNew}>
+                        New Report
+                    </button>
+                </div>
+            )}
+        </div>
     );
 }
 

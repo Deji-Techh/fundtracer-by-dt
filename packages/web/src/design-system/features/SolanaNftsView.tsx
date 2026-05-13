@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Image, Loader2 } from 'lucide-react';
+import './SolanaNftsView.css';
 
 interface SolanaNFT {
   id: string;

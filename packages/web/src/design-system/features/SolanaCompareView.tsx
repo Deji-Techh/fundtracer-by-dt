@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { GitCompare, Loader2 } from 'lucide-react';
+import './SolanaCompareView.css';
 
 interface SolanaCompareViewProps {
   address: string;

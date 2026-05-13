@@ -542,6 +542,7 @@ import { walletCacheRoutes } from './routes/walletCache.js';
 import { solanaRoutes } from './routes/solana.js';
 import notificationRoutes from './routes/notifications.js';
 import radarRoutes from './routes/radar.js';
+import entityRoutes from './routes/entities.js';
 
 // All API routes - restored from working commit
 apiRouter.use('/portfolio', portfolioRoutes);
@@ -560,6 +561,7 @@ apiRouter.use('/radar', radarRoutes);
 
 // OLD: Torque Routes (has /referrals endpoint)
 // NOTE: Auth is handled inside torque.ts routes - each route handles its own auth
+apiRouter.use('/entities', publicLimiter, entityRoutes);
 apiRouter.use('/torque', torqueRoutes);
 
 // NEW: Torque Routes v2 (fresh start, mounted at /api/torque-v2 to avoid conflict)
