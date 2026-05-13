@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useNotify } from '../../contexts/ToastContext';
 import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
 import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions, getAuthToken, API_BASE } from '../../api';
 import { addToHistory, getHistory, type HistoryItem } from '../../utils/history';
@@ -67,6 +68,7 @@ export function InvestigateView({
   const { user, profile, isAuthenticated } = useAuth();
   const { login: loginPrivy, user: privyUser } = usePrivy();
   const { addNotification } = useNotifications();
+  const notify = useNotify();
   const address = privyUser?.wallet?.address;
   const isConnected = !!address;
 
@@ -406,7 +408,7 @@ export function InvestigateView({
   // Handle share — create a public share link
   const handleShare = async () => {
     if (!walletResult) {
-      alert('No analysis results to share. Please analyze a wallet first.');
+      notify.error('Analyze a wallet first before sharing.');
       return;
     }
 
@@ -417,7 +419,6 @@ export function InvestigateView({
         chain: selectedChain,
         result: walletResult,
       });
-      console.log('[Share] Sending:', { address: currentAnalysisAddress, chain: selectedChain, resultKeys: Object.keys(walletResult || {}), bodyLength: body.length });
       const res = await fetch(`${API_BASE}/api/share`, {
         method: 'POST',
         headers: {
@@ -429,12 +430,12 @@ export function InvestigateView({
       const data = await res.json();
       if (data.success && data.url) {
         await navigator.clipboard.writeText(data.url);
-        alert(`Share link copied!\n${data.url}`);
+        notify.success('Share link copied!', 3000);
       } else {
-        alert(`Share failed: ${data.error || 'Unknown server error'} (HTTP ${res.status})`);
+        notify.error(data.error || `Share failed (HTTP ${res.status})`);
       }
     } catch (error) {
-      alert('Failed to create share link. Please ensure you are signed in.');
+      notify.error('Could not create share link. Are you signed in?');
     }
   };
 
