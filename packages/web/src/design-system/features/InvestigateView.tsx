@@ -8,7 +8,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
-import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions, getAuthToken } from '../../api';
+import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions, getAuthToken, API_BASE } from '../../api';
 import { addToHistory, getHistory, type HistoryItem } from '../../utils/history';
 import { getCachedResults, saveResultToCache } from '../../utils/resultsCache';
 import { useGasPayment } from '../../hooks/useGasPayment';
@@ -412,7 +412,7 @@ export function InvestigateView({
 
     try {
       const token = getAuthToken();
-      const res = await fetch('/api/share', {
+      const res = await fetch(`${API_BASE}/api/share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
