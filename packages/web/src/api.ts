@@ -708,6 +708,58 @@ export async function deleteApiKey(keyId: string, twoFactorCode?: string): Promi
 }
 
 // ============================================================
+// Progressive Timestamp Streaming (SSE)
+// ============================================================
+
+/**
+ * Stream wallet timestamps via SSE after initial analysis returns with taskId.
+ * Patches timestamps onto transactions progressively as they arrive.
+ */
+export function streamWalletTimestamps(
+    taskId: string,
+    onBatch: (batch: { hashes: string[]; timestamps: number[] }) => void,
+    onDone: () => void,
+    onError: (error: Error) => void
+): () => void {
+    const token = getAuthToken();
+    const url = `${API_BASE}/api/analyze/timestamps/${taskId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+
+            if (data.done) {
+                eventSource.close();
+                onDone();
+                return;
+            }
+
+            if (data.error) {
+                eventSource.close();
+                onError(new Error(data.error));
+                return;
+            }
+
+            if (data.hashes && data.timestamps) {
+                onBatch({ hashes: data.hashes, timestamps: data.timestamps });
+            }
+        } catch (err: any) {
+            console.error('[SSE] Parse error:', err);
+        }
+    };
+
+    eventSource.onerror = () => {
+        eventSource.close();
+        onError(new Error('SSE connection failed'));
+    };
+
+    return () => {
+        eventSource.close();
+    };
+}
+
+// ============================================================
 // AI Chat Session Management
 // ============================================================
 

@@ -246,6 +246,9 @@ app.use(helmet({
             ],
             "script-src": [
                 "'self'",
+                // TODO: Tighten CSP — unsafe-inline is required by Google OAuth SDKs,
+                // unsafe-eval by React dev mode/Vite HMR. To remove these, adopt
+                // strict-dynamic with nonce-based CSP and migrate to production builds only.
                 "'unsafe-inline'",
                 "'unsafe-eval'",
                 "https://*.google.com",
@@ -294,10 +297,9 @@ webDistPath = possiblePaths.find(p => {
     }
 }) || possiblePaths[0]; // Default to first if none found
 
-// Serve whitepaper - multiple routes for flexibility
-app.get('/whitepaper.pdf', (req, res) => {
+// Serve whitepaper — served as HTML (not PDF spoofing)
+app.get('/whitepaper', (req, res) => {
     const whitepaperPath = path.join(webDistPath, 'fundtracer-whitepaper.html');
-    res.setHeader('Content-Disposition', 'attachment; filename="fundtracer-whitepaper.pdf"');
     res.sendFile(whitepaperPath, (err) => {
         if (err) {
             console.error('[WHITEPAPER] Error serving whitepaper:', err.message);
@@ -306,15 +308,12 @@ app.get('/whitepaper.pdf', (req, res) => {
     });
 });
 
+app.get('/whitepaper.pdf', (req, res) => {
+    res.redirect(301, '/whitepaper');
+});
+
 app.get('/fundtracer.pdf', (req, res) => {
-    const whitepaperPath = path.join(webDistPath, 'fundtracer-whitepaper.html');
-    res.setHeader('Content-Disposition', 'attachment; filename="fundtracer.pdf"');
-    res.sendFile(whitepaperPath, (err) => {
-        if (err) {
-            console.error('[WHITEPAPER] Error serving fundtracer.pdf:', err.message);
-            res.status(404).send('PDF not found');
-        }
-    });
+    res.redirect(301, '/whitepaper');
 });
 
 // Static files serving configured
@@ -338,6 +337,19 @@ app.get('/robots.txt', (req, res) => {
             res.status(404).send('Not found');
         }
     });
+});
+
+// Security.txt — vulnerability disclosure policy
+app.get('/.well-known/security.txt', (req, res) => {
+    const securityPolicy = `Contact: https://fundtracer.xyz/contact
+Contact: mailto:security@fundtracer.xyz
+Preferred-Languages: en
+Policy: https://fundtracer.xyz/security-policy
+Encryption: https://fundtracer.xyz/pgp-key.txt
+Canonical: https://fundtracer.xyz/.well-known/security.txt
+`;
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(securityPolicy);
 });
 
 
@@ -519,6 +531,10 @@ apiRouter.use('/upload', authMiddleware, uploadRoutes);
 // Chat History Routes - For AI chat session storage
 import { chatHistoryRoutes } from './routes/chat-history.js';
 apiRouter.use('/chat', authMiddleware, chatHistoryRoutes);
+
+// Groq AI Proxy - avoids exposing API keys to the browser
+import { groqProxyRoutes } from './routes/groq-proxy.js';
+apiRouter.use('/proxy/ai', groqProxyRoutes);
 
 apiRouter.use('/track', trackRoutes);
 import { smartMoneyRoutes } from './routes/smartMoney.js';

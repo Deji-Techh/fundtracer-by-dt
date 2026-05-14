@@ -48,13 +48,6 @@ export async function authMiddleware(
     const authHeader = req.headers.authorization;
     const xAuthToken = req.headers['x-auth-token'] as string | undefined;
     const hasAuth = !!authHeader && authHeader.startsWith('Bearer ');
-    const tokenPrefix = authHeader ? authHeader.substring(0, 20) + '...' : (xAuthToken ? 'x-auth-token present' : 'NONE');
-
-    // DEBUG: Log auth header state for all requests to help debug 401 issues
-    if (req.path && (req.path.includes('/analyze/report') || req.path.includes('/analyze/expand-node') || req.path.includes('/analyze/bridge-trace'))) {
-      console.log(`[AUTH-DEBUG] ${req.method} ${req.path} - authHeader: ${tokenPrefix}, hasAuth: ${hasAuth}, hasUser: ${!!req.user}, hasXAuth: ${!!xAuthToken}, contentType: ${req.headers['content-type']}`);
-    }
-
     // SECURITY: JWT_SECRET must be set in environment
     const JWT_SECRET = process.env.JWT_SECRET;
     if (!JWT_SECRET) {
@@ -434,83 +427,13 @@ export async function apiKeyAuthMiddleware(
                 return;
             }
             
-            // FALLBACK: Legacy lookup in users subcollection (for backwards compatibility)
-            console.log('[API-KEY-MIDDLEWARE] Falling back to legacy lookup...');
-            
-            // Try to find in the new collection by querying (if the key wasn't indexed directly)
-            // This fallback path is deprecated but kept for backwards compatibility
-            const usersSnapshot = await db.collection('users').get();
-            
-            for (const userDoc of usersSnapshot.docs) {
-                const userId = userDoc.id;
-                const apiKeysSnapshot = await db
-                    .collection('users')
-                    .doc(userId)
-                    .collection('apiKeys')
-                    .where('key', '==', apiKey)
-                    .limit(1)
-                    .get();
-                
-                if (!apiKeysSnapshot.empty) {
-                    const keyData = apiKeysSnapshot.docs[0].data();
-                    const userData = userDoc.data();
-                    
-                    if (keyData.active === false) {
-                        return res.status(401).json({ 
-                            error: 'API key has been revoked',
-                            code: 'KEY_REVOKED'
-                        });
-                    }
-                    
-                    // Cache the result for future requests
-                    const cachedData: CachedApiKeyData = {
-                        userId,
-                        active: keyData.active !== false,
-                        tier: userData?.tier || 'free',
-                        isVerified: userData?.isVerified || false,
-                        walletAddress: userData?.walletAddress || null,
-                        email: userData?.email || null,
-                        displayName: userData?.displayName || null,
-                        profilePicture: userData?.profilePicture || null
-                    };
-                    
-                    if (isRedisConnected()) {
-                        await cacheSet(apiKeyCacheKey, cachedData, API_KEY_CACHE_TTL);
-                    }
-                    
-                    req.user = {
-                        uid: userId,
-                        email: userData?.email || null,
-                        name: userData?.displayName || userId.slice(0, 8),
-                        photoURL: userData?.profilePicture || null,
-                        type: 'user'
-                    };
-                    
-                    res.locals.tier = userData?.tier || 'free';
-                    res.locals.isVerified = userData?.isVerified || false;
-                    res.locals.authProvider = 'api_key';
-                    res.locals.walletAddress = userData?.walletAddress || null;
-                    res.locals.apiKeyId = apiKeysSnapshot.docs[0].id;
-                    res.locals.apiKeyOwnerId = userId;
-                    
-                    const apiKeyDocId = apiKeysSnapshot.docs[0].id;
-                    console.log(`[API-KEY] About to increment usage for user: ${userId}, keyId: ${apiKeyDocId}`);
-                    incrementAPIKeyUsage(userId, apiKeyDocId)
-                        .then(() => console.log(`[API-KEY] Usage incremented successfully`))
-                        .catch(err => console.error('[API-KEY] Failed to track usage:', err));
-                    
-                    console.log(`[API-KEY] Authenticated (legacy fallback): ${userId}`);
-                    next();
-                    return;
-                }
-            }
-            
-            // API key not found in any user's collection
-            return res.status(401).json({ 
+            // API key not found in top-level apiKeys collection (the only authoritative source)
+            console.log('[API-KEY-MIDDLEWARE] Key not found in apiKeys collection');
+            return res.status(401).json({
                 error: 'Invalid API key',
                 code: 'KEY_INVALID'
             });
-            
+
         } catch (error) {
             console.error('[API-KEY] Auth error:', error);
             return res.status(500).json({ 

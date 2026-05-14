@@ -64,6 +64,7 @@ export class WalletAnalyzer {
             filters?: FilterOptions;
             transactionLimit?: number; // Limit number of transactions fetched
             skipFundingTree?: boolean; // Skip funding tree for fast initial load
+            skipTimestamps?: boolean; // Skip timestamp backfill for progressive streaming
         } = {}
     ): Promise<AnalysisResult> {
         const provider = this.providerFactory.getProvider(chainId);
@@ -75,7 +76,11 @@ export class WalletAnalyzer {
         // OPTIMIZATION: Fetch wallet info AND transactions in parallel
         // These are independent API calls - no reason to wait for one before starting the other
         const txLimit = options.transactionLimit || undefined;
-        const filterWithLimit = { ...options.filters, limit: txLimit };
+        const filterWithLimit = {
+            ...options.filters,
+            limit: txLimit,
+            skipTimestamps: options.skipTimestamps,
+        };
 
         const [walletInfo, normalTxs, internalTxs, tokenTransfers] = await Promise.all([
             provider.getWalletInfo(normalizedAddr),

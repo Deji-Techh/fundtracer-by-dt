@@ -7,7 +7,7 @@ import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 export type ModelType = 'flash' | 'pro';
 

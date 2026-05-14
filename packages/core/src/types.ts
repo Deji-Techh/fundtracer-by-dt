@@ -205,6 +205,7 @@ export interface FilterOptions {
     status?: TxStatus[];
     addressFilter?: string[]; // Only include txs with these addresses
     limit?: number; // Maximum number of transactions to fetch
+    skipTimestamps?: boolean; // Skip block timestamp backfill (return tx.timestamp=0)
 }
 
 /** API response from block explorers */

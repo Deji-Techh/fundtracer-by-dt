@@ -320,9 +320,9 @@ router.get('/activity', async (req: Request, res: Response) => {
 router.post('/admin/reset', async (req: Request, res: Response) => {
   try {
     const secretKey = req.query.secret as string;
-    const ADMIN_SECRET = process.env.ADMIN_SECRET || 'fundtracer-admin-2024';
-    
-    if (secretKey !== ADMIN_SECRET) {
+    const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
+    if (!ADMIN_SECRET || secretKey !== ADMIN_SECRET) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     

@@ -180,7 +180,7 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                 </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--color-text-muted)' }}>
-                                <span>{tx.timestamp > 0 ? new Date(tx.timestamp * 1000).toLocaleDateString() : '-'}</span>
+                                <span>{tx.timestamp > 0 ? new Date(tx.timestamp * 1000).toLocaleDateString() : <span className="ts-spinner" />}</span>
                                 <a
                                     href={`${chainConfig.explorer}/tx/${tx.hash}`}
                                     target="_blank"
@@ -247,7 +247,7 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                         </a>
                                     </td>
                                     <td style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
-                                        {tx.timestamp > 0 ? formatDate(tx.timestamp) : <span title="Timestamp missing">-</span>}
+                                        {tx.timestamp > 0 ? formatDate(tx.timestamp) : <span className="ts-spinner" />}
                                     </td>
                                     <td>
                                         <a

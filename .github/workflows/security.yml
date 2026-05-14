@@ -1,0 +1,44 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for leaked secrets
+        run: |
+          if git log --all --diff-filter=A -- '*.env' | grep -q .; then
+            echo "❌ .env files have been committed to git history"
+            exit 1
+          fi
+          echo "✅ No .env files in git history"
+
+      - name: Check for hardcoded secrets in code
+        run: |
+          PATTERNS='fundtracer_jwt_secret_2024|Ayodeji2008|fundtracer-admin-2024'
+          MATCHES=$(grep -rn "$PATTERNS" --include='*.ts' --include='*.tsx' --include='*.js' packages/ 2>/dev/null || true)
+          if [ -n "$MATCHES" ]; then
+            echo "❌ Hardcoded secrets found:"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets detected"
+
+      - name: Check for VITE_ prefixed API keys in backend
+        run: |
+          # VITE_ keys should only exist in web/ package, not server/
+          BAD=$(grep -rn 'VITE_GROQ_API_KEY' --include='*.ts' packages/server/ 2>/dev/null || true)
+          BAD2=$(grep -rn 'VITE_WALLET_KEY' --include='*.ts' packages/server/ 2>/dev/null || true)
+          if [ -n "$BAD$BAD2" ]; then
+            echo "❌ VITE_ prefixed keys found in server package:"
+            echo "$BAD$BAD2"
+            exit 1
+          fi
+          echo "✅ No VITE_ keys in backend code"

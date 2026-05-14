@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiRequest, getAuthToken } from '../../api';
+import { apiRequest, getAuthToken, API_BASE } from '../../api';
 import { getHistory, type HistoryItem } from '../../utils/history';
 
 export interface AIMessage {
@@ -10,16 +10,12 @@ export interface AIMessage {
 }
 
 export interface AIConfig {
-  apiKey: string;
   model: string;
 }
 
 const DEFAULT_CONFIG: AIConfig = {
-  apiKey: import.meta.env.VITE_GROQ_API_KEY || '',
   model: 'llama-3.3-70b-versatile',
 };
-
-const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 
 // Detect EVM addresses (0x... on eth, arbitrum, optimism, polygon, etc.)
 const EVM_ADDRESS_REGEX = /0x[a-fA-F0-9]{40}/g;
@@ -68,17 +64,14 @@ RESPONSE STYLE:
 
   const checkServerStatus = useCallback(async () => {
     if (typeof window === 'undefined') return false;
-    if (!config.apiKey) {
-      setIsServerReady(false);
-      return false;
-    }
     setIsServerReady(true);
     return true;
-  }, [config.apiKey]);
+  }, []);
 
   const sendMessage = useCallback(async (content: string, walletContext?: string) => {
-    if (!config.apiKey) {
-      setError('GROQ_API_KEY not configured');
+    const token = getAuthToken();
+    if (!token) {
+      setError('Not authenticated');
       return null;
     }
 
@@ -104,11 +97,11 @@ RESPONSE STYLE:
     ];
 
     try {
-      const response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
+      const response = await fetch(`${API_BASE}/api/proxy/ai/groq`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.apiKey}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           model: config.model,
@@ -126,7 +119,7 @@ RESPONSE STYLE:
 
       const data = await response.json();
       let rawContent = data.choices?.[0]?.message?.content || 'No response generated';
-      
+
       const cleanContent = rawContent
         .replace(/<0x[0-9a-fA-F]+>.*?<0x[0-9a-fA-F]+>/g, '')
         .replace(/<think>[\s\S]*?<\/thought>/g, '')
@@ -146,14 +139,14 @@ RESPONSE STYLE:
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
       setError(errorMessage);
-      
+
       const errorMsg: AIMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `Error: ${errorMessage}. Please check your GROQ_API_KEY configuration.`,
+        content: `Error: ${errorMessage}. Please try again.`,
         timestamp: Date.now(),
       };
-      
+
       setMessagesState(prev => [...prev, userMessage, errorMsg]);
       return errorMsg;
     } finally {
@@ -166,9 +159,10 @@ RESPONSE STYLE:
     walletContext?: string, 
     onChunk?: (chunk: string) => void
   ) => {
-    if (!config.apiKey) {
-      setError('GROQ_API_KEY not configured');
-      throw new Error('GROQ_API_KEY not configured');
+    const token = getAuthToken();
+    if (!token) {
+      setError('Not authenticated');
+      throw new Error('Not authenticated');
     }
 
     setIsLoading(true);
@@ -185,7 +179,7 @@ RESPONSE STYLE:
     if (walletContext) {
       fullContent = `Wallet Data:\n${walletContext}\n\nUser Question: ${content}`;
     }
-    
+
     // Use fullContent for the API call, not just content
     const userContent = walletContext ? fullContent : content;
 
@@ -197,11 +191,11 @@ RESPONSE STYLE:
 
 
     try {
-      const response = await fetch(`${GROQ_BASE_URL}/chat/completions`, {
+      const response = await fetch(`${API_BASE}/api/proxy/ai/groq`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.apiKey}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           model: config.model,

@@ -4,11 +4,13 @@
 // ============================================================
 
 import { Router, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { getFirestore } from '../firebase.js';
 import {
     WalletAnalyzer,
     SybilAnalyzer,
+    AlchemyProvider,
     ChainId,
     FilterOptions
 } from '@fundtracer/core';
@@ -20,6 +22,13 @@ import { getAlchemyKeyPool } from '../utils/quicknode.js';
 import { cacheGet, cacheSet } from '../utils/redis.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 import { BridgeDetector } from '../services/BridgeDetector.js';
+import { RedisBlockTsCache } from '../services/BlockTsCache.js';
+
+// Singleton block timestamp cache — no TTL, permanent
+const blockTsCache = new RedisBlockTsCache();
+
+// In-memory task store for SSE timestamp streaming
+const timestampTasks = new Map<string, { address: string; chain: string; userId: string }>();
 
 // Deep sanitize function to prevent React Error #130 (objects not valid as React child)
 function sanitizeForFrontend(obj: any): any {
@@ -629,7 +638,12 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
             polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            blockTimestampCache: blockTsCache,
         });
+
+        // Generate taskId for progressive timestamp streaming
+        const taskId = crypto.randomUUID();
+        timestampTasks.set(taskId, { address: address.toLowerCase(), chain: normalizedChain, userId: req.user.uid });
 
         // Pagination params
         const limit = Math.min(options?.limit || 10000, 10000); // Max 10000 per request
@@ -637,7 +651,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
         console.log(`[DEBUG] Starting wallet analysis with 20-key pool (${alchemyKeyPool.length} keys) for ${address}...`);
         const result = await withTimeout(
-            analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: 10000, skipFundingTree: true }),
+            analyzer.analyze(address, normalizedChain as ChainId, { ...options, transactionLimit: 10000, skipFundingTree: true, skipTimestamps: true }),
             120000, // Increased to 120s to handle large tx lists
             'Wallet analysis'
         );
@@ -661,6 +675,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     hasMore,
                     returned: paginatedTransactions.length,
                 },
+                taskId,
             }),
             usageRemaining: res.locals.usageRemaining,
         });
@@ -690,6 +705,185 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         console.error('Wallet analysis error:', error.message);
         const errInfo = getUserFriendlyError(error);
         res.status(errInfo.status).json(errInfo);
+    }
+});
+
+// ============================================================
+// SSE Timestamp Streaming — progressive backfill for high-TX wallets
+// ============================================================
+router.get('/timestamps/:taskId', async (req: AuthenticatedRequest, res: Response) => {
+    const { taskId } = req.params;
+    const task = timestampTasks.get(taskId);
+
+    if (!task) {
+        return res.status(404).json({ error: 'Timestamp task not found or expired' });
+    }
+
+    // Fallback auth: accept token from query param (EventSource can't set headers)
+    if (!req.user && req.query.token) {
+        try {
+            const decoded = jwt.verify(req.query.token as string, process.env.JWT_SECRET!) as any;
+            if (decoded.uid) {
+                req.user = { uid: decoded.uid, email: decoded.email, name: decoded.name, type: 'user' };
+            }
+        } catch {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+    }
+
+    if (!req.user || req.user.uid !== task.userId) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const { address, chain } = task;
+    if (chain === 'solana') {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        res.end();
+        return;
+    }
+
+    // Read cached transactions from wallet analysis
+    const cacheKey = `analyze:tx:${address}:${chain}`;
+    const cached = await cacheGet<{ transactions: any[]; timestamp: number }>(cacheKey);
+    if (!cached?.transactions?.length) {
+        return res.status(404).json({ error: 'No cached transactions found. Run wallet analysis first.' });
+    }
+
+    // Collect unique block numbers where timestamp is 0 (not yet backfilled)
+    const txMap = new Map<string, number>();
+    for (const tx of cached.transactions) {
+        if (tx.timestamp === 0 && tx.blockNumber > 0) {
+            txMap.set(tx.hash, tx.blockNumber);
+        }
+    }
+    if (txMap.size === 0) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        res.end();
+        return;
+    }
+
+    const txHashes: { hash: string; blockNumber: number }[] = Array.from(txMap.entries()).map(([hash, blockNumber]) => ({ hash, blockNumber }));
+    const blockNumbers = [...new Set(txHashes.map(t => t.blockNumber))];
+
+    // Get Alchemy keys
+    const alchemyKeyPool = getAlchemyKeyPool();
+    const defaultKey = await getAlchemyKeyForUser(task.userId);
+    const allKeys = alchemyKeyPool.length > 0 ? alchemyKeyPool : (defaultKey ? [defaultKey] : []);
+    if (allKeys.length === 0) {
+        return res.status(503).json({ error: 'No Alchemy API keys available' });
+    }
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const ALCHEMY_URLS: Record<string, string> = {
+        ethereum: 'https://eth-mainnet.g.alchemy.com/v2/',
+        linea: 'https://linea-mainnet.g.alchemy.com/v2/',
+        arbitrum: 'https://arb-mainnet.g.alchemy.com/v2/',
+        base: 'https://base-mainnet.g.alchemy.com/v2/',
+        optimism: 'https://opt-mainnet.g.alchemy.com/v2/',
+        polygon: 'https://polygon-mainnet.g.alchemy.com/v2/',
+    };
+    const baseUrl = ALCHEMY_URLS[chain];
+    if (!baseUrl) {
+        res.write(`data: ${JSON.stringify({ error: `Unsupported chain: ${chain}` })}\n\n`);
+        res.end();
+        return;
+    }
+
+    const BATCH_SIZE = 20;
+    let totalFetched = 0;
+    let closed = false;
+
+    const close = () => {
+        if (closed) return;
+        closed = true;
+        res.end();
+    };
+
+    req.on('close', close);
+
+    try {
+        for (let i = 0; i < blockNumbers.length; i += BATCH_SIZE) {
+            if (closed) break;
+
+            const batch = blockNumbers.slice(i, i + BATCH_SIZE);
+            const batchTimestamps: { blockNum: number; ts: number }[] = [];
+
+            const promises = batch.map(async (blockNum, idx) => {
+                try {
+                    const cachedTs = await blockTsCache.get(chain, blockNum);
+                    if (cachedTs !== null) {
+                        batchTimestamps.push({ blockNum, ts: cachedTs });
+                        return;
+                    }
+
+                    const key = allKeys[idx % allKeys.length];
+                    const response = await fetch(`${baseUrl}${key}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            method: 'eth_getBlockByNumber',
+                            params: [`0x${blockNum.toString(16)}`, false],
+                        }),
+                    });
+
+                    if (!response.ok) return;
+                    const data = await response.json();
+                    if (data?.result?.timestamp) {
+                        const ts = parseInt(data.result.timestamp, 16);
+                        batchTimestamps.push({ blockNum, ts });
+                    }
+                } catch {
+                    // Skip failed blocks
+                }
+            });
+
+            await Promise.all(promises);
+
+            // Store fetched timestamps in permanent cache
+            if (batchTimestamps.length > 0) {
+                await Promise.all(batchTimestamps.map(b => blockTsCache.set(chain, b.blockNum, b.ts)));
+            }
+
+            // Map block numbers back to tx hashes and emit
+            const tsByBlock = new Map(batchTimestamps.map(b => [b.blockNum, b.ts]));
+            const batchHashes: string[] = [];
+            const batchTsList: number[] = [];
+
+            for (const entry of txHashes) {
+                if (tsByBlock.has(entry.blockNumber)) {
+                    batchHashes.push(entry.hash);
+                    batchTsList.push(tsByBlock.get(entry.blockNumber)!);
+                }
+            }
+
+            if (batchHashes.length > 0) {
+                totalFetched += batchHashes.length;
+                res.write(`data: ${JSON.stringify({ hashes: batchHashes, timestamps: batchTsList })}\n\n`);
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        if (!closed) {
+            res.write(`data: ${JSON.stringify({ done: true, totalFetched })}\n\n`);
+            res.end();
+        }
+    } catch (error: any) {
+        console.error('[SSE Timestamps] Error:', error.message);
+        if (!closed) {
+            res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+            res.end();
+        }
     }
 });
 
@@ -1552,13 +1746,7 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
 // AI Investigation Report
 // ============================================================
 router.post('/report', async (req: AuthenticatedRequest, res: Response) => {
-  const authHdr = req.headers.authorization;
-  const hasAuth = !!authHdr && authHdr.startsWith('Bearer ');
-  const authPreview = authHdr ? authHdr.substring(0, 18) + '...' : 'NONE';
-  console.log(`[REPORT-DEBUG] Handler reached. user: ${!!req.user}, hasAuth: ${hasAuth}, authPreview: ${authPreview}, body: ${JSON.stringify({ address: req.body?.address?.substring(0,10), chain: req.body?.chain })}`);
-
   if (!req.user) {
-    console.log(`[REPORT-DEBUG] req.user is falsy, returning 401`);
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
@@ -1749,11 +1937,6 @@ Be specific, cite exact values.`;
 // Expand Graph Node
 // ============================================================
 router.post('/expand-node', async (req: AuthenticatedRequest, res: Response) => {
-  const authHdr = req.headers.authorization;
-  const hasAuth = !!authHdr && authHdr.startsWith('Bearer ');
-  const authPreview = authHdr ? authHdr.substring(0, 18) + '...' : 'NONE';
-  console.log(`[EXPAND-DEBUG] Handler reached. user: ${!!req.user}, hasAuth: ${hasAuth}, authPreview: ${authPreview}, body: ${JSON.stringify({ address: req.body?.address?.substring(0,10), chain: req.body?.chain })}`);
-
   if (!req.user) {
     return res.status(401).json({ error: 'Not authenticated' });
   }

@@ -1,14 +1,20 @@
-import { Router } from 'express';
-import { generateLinkCode, getPendingCode, isUserLinked, unlinkUser, getLinkedUserByUserId } from '../services/TelegramBot.js';
+import { Router, Request, Response } from 'express';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { generateLinkCode, isUserLinked, unlinkUser, getLinkedUserByUserId } from '../services/TelegramBot.js';
 
 const router = Router();
 
-router.post('/link-code', async (req, res) => {
+router.post('/link-code', authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
         const { userId, tier, walletAddress } = req.body;
-        
+
         if (!userId || !tier || !walletAddress) {
             return res.status(400).json({ error: 'userId, tier, and walletAddress are required' });
+        }
+
+        // Ensure the authenticated user can only generate a code for themselves
+        if (req.user?.uid !== userId) {
+            return res.status(403).json({ error: 'You can only generate a link code for your own account' });
         }
 
         // Validate wallet address format
@@ -56,12 +62,17 @@ router.get('/status/:userId', async (req, res) => {
     }
 });
 
-router.post('/unlink', async (req, res) => {
+router.post('/unlink', authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
         const { userId } = req.body;
-        
+
         if (!userId) {
             return res.status(400).json({ error: 'userId is required' });
+        }
+
+        // Ensure the authenticated user can only unlink their own account
+        if (req.user?.uid !== userId) {
+            return res.status(403).json({ error: 'You can only unlink your own account' });
         }
 
         const success = unlinkUser(userId);

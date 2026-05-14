@@ -353,11 +353,11 @@ router.post('/admin/init-users', async (req: Request, res: Response) => {
   try {
     // Accept either auth header OR a secret key for admin initialization
     const secretKey = req.query.secret as string;
-    const ADMIN_SECRET = process.env.ADMIN_SECRET || 'fundtracer-admin-2024';
-    
+    const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
     // Allow if authenticated OR if secret key matches
     const isAuthenticated = (req as any).user?.uid;
-    const isAuthorized = isAuthenticated || secretKey === ADMIN_SECRET;
+    const isAuthorized = isAuthenticated || (ADMIN_SECRET && secretKey === ADMIN_SECRET);
     
     if (!isAuthorized) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -375,9 +375,9 @@ router.post('/admin/init-users', async (req: Request, res: Response) => {
 router.post('/admin/generate-referral-codes', async (req: Request, res: Response) => {
   try {
     const secretKey = req.query.secret as string;
-    const ADMIN_SECRET = process.env.ADMIN_SECRET || 'fundtracer-admin-2024';
-    
-    const isAuthorized = secretKey === ADMIN_SECRET;
+    const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
+    const isAuthorized = ADMIN_SECRET ? secretKey === ADMIN_SECRET : false;
     if (!isAuthorized) {
       return res.status(401).json({ error: 'Unauthorized' });
     }

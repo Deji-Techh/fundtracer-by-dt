@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { getFirestore } from '../firebase.js';
-import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { AuthenticatedRequest, authMiddleware, requireAdminRole } from '../middleware/auth.js';
 import { getAllLinkedUsers } from '../services/TelegramBot.js';
 import { sendEmail } from '../services/EmailService.js';
 import { adminCacheMiddleware } from '../utils/adminCache.js';
@@ -43,9 +44,15 @@ export async function createDefaultAdmin(): Promise<void> {
     if (adminsQuery.empty) {
       console.log('[ADMIN] Creating default superadmin account...');
       
-      const uid = generateUUID();
-      const passwordHash = await bcrypt.hash('Ayodeji2008', SALT_ROUNDS);
-      
+      // Use ADMIN_SECRET env var as initial admin password, or skip if not set
+      const initialPassword = process.env.ADMIN_SECRET;
+      if (!initialPassword || initialPassword === 'fundtracer-admin-2024') {
+        console.log('[ADMIN] ADMIN_SECRET env var not set or using default. Skipping auto-creation.');
+        console.log('[ADMIN] Set ADMIN_SECRET to a strong password in environment variables, then restart.');
+        return;
+      }
+      const passwordHash = await bcrypt.hash(initialPassword, SALT_ROUNDS);
+
       await db.collection('adminUsers').doc(uid).set({
         uid,
         username: 'fundtracer',
@@ -57,33 +64,34 @@ export async function createDefaultAdmin(): Promise<void> {
         createdAt: Date.now(),
         lastLogin: null
       });
-      
-      console.log('[ADMIN] Default superadmin created successfully');
+
+      console.log('[ADMIN] Default superadmin created successfully from ADMIN_SECRET');
       console.log('[ADMIN] Username: fundtracer');
-      console.log('[ADMIN] Password: [REDACTED]');
     }
   } catch (error) {
     console.error('[ADMIN] Failed to create default admin:', error);
   }
 }
 
-// Admin Login
-router.post('/auth/login', async (req: Request, res: Response) => {
-  const { username, password } = req.body;
-  console.log(`[ADMIN] Login attempt v2: ${username}`);
-  console.log(`[ADMIN] Request body:`, req.body);
-  console.log(`[ADMIN] Headers:`, req.headers['content-type']);
+// Admin Login (with rate limiting)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per 15 minutes
+  message: { error: 'Too many login attempts. Try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
+router.post('/auth/login', loginLimiter, async (req: Request, res: Response) => {
+  const { username, password } = req.body;
   if (!username || !password) {
-    console.log(`[ADMIN] Missing credentials: username=${!!username}, password=${!!password}`);
     return res.status(400).json({ error: 'Username and password required' });
   }
 
   try {
     const db = getFirestore();
     const searchUsername = username.toLowerCase();
-    console.log(`[ADMIN] Searching for username (lowercase): ${searchUsername}`);
-    
+
     // Find admin by username
     const adminQuery = await db.collection('adminUsers')
       .where('username', '==', searchUsername)
@@ -94,12 +102,6 @@ router.post('/auth/login', async (req: Request, res: Response) => {
     console.log(`[ADMIN] Query result: ${adminQuery.empty ? 'EMPTY' : `Found ${adminQuery.docs.length} docs`}`);
     
     if (adminQuery.empty) {
-      // Debug: list all admin users to see what's in the database
-      const allAdmins = await db.collection('adminUsers').limit(5).get();
-      console.log(`[ADMIN] Total admin users in DB: ${allAdmins.size}`);
-      allAdmins.forEach(doc => {
-        console.log(`[ADMIN] Existing admin: ${doc.data().username} (isActive: ${doc.data().isActive})`);
-      });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -867,7 +869,7 @@ router.get('/notifications', authMiddleware, adminCacheMiddleware(30_000), async
 // ============================================================
 // NOTIFICATIONS: Broadcast to all users or by tier
 // ============================================================
-router.post('/notifications/broadcast', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/notifications/broadcast', authMiddleware, requireAdminRole('superadmin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { title, message, type, targetTier } = req.body;
     if (!title || !message) {
@@ -1188,7 +1190,7 @@ router.get('/torque/groups', authMiddleware, adminCacheMiddleware(60_000), async
 // ============================================================
 // EMAILS: Send an email via Resend
 // ============================================================
-router.post('/emails/send', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/emails/send', authMiddleware, requireAdminRole('superadmin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { to, subject, body } = req.body;
     if (!to || !subject || !body) {
@@ -1238,7 +1240,7 @@ router.get('/maintenance', authMiddleware, adminCacheMiddleware(30_000), async (
 // ============================================================
 // MAINTENANCE: Update maintenance config
 // ============================================================
-router.post('/maintenance', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/maintenance', authMiddleware, requireAdminRole('superadmin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const { siteDown, disabledChains, message } = req.body;
@@ -1272,7 +1274,7 @@ router.get('/feature-flags', authMiddleware, adminCacheMiddleware(30_000), async
 // ============================================================
 // FEATURE FLAGS: Update a feature flag
 // ============================================================
-router.post('/feature-flags', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/feature-flags', authMiddleware, requireAdminRole('superadmin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const { key, enabled, description } = req.body;
@@ -1289,7 +1291,7 @@ router.post('/feature-flags', authMiddleware, async (req: AuthenticatedRequest, 
 // ============================================================
 // USERS: Bulk actions (batch ban/upgrade)
 // ============================================================
-router.post('/users/bulk', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/users/bulk', authMiddleware, requireAdminRole('superadmin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const { action, uids, value } = req.body;
@@ -1321,7 +1323,7 @@ router.post('/users/bulk', authMiddleware, async (req: AuthenticatedRequest, res
 // ============================================================
 // USERS: Delete user entirely
 // ============================================================
-router.delete('/users/:uid', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/users/:uid', authMiddleware, requireAdminRole('superadmin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const uid = req.params.uid;
@@ -1357,14 +1359,14 @@ router.delete('/users/:uid', authMiddleware, async (req: AuthenticatedRequest, r
 // ============================================================
 // USERS: Impersonation link
 // ============================================================
-router.post('/users/:uid/impersonate', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/users/:uid/impersonate', authMiddleware, requireAdminRole('superadmin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const uid = req.params.uid;
     const token = jwt.sign({
       uid, type: 'impersonate', adminUid: req.user?.uid,
       createdAt: Date.now(),
-    }, process.env.JWT_SECRET || 'fundtracer_jwt_secret_2024', { expiresIn: '1h' });
+    }, process.env.JWT_SECRET!, { expiresIn: '1h' });
     const link = `https://www.fundtracer.xyz/auth/impersonate?token=${token}`;
     await db.collection('admin_actions').add({
       action: 'impersonate', userId: uid, adminId: req.user?.uid, timestamp: Date.now(),

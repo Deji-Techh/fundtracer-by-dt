@@ -289,7 +289,7 @@ Balance: ${scanData.balanceInEth ?? 'N/A'} ETH
             {/* Status bar */}
             <div className="ft-ai-status-bar">
               <span className={`ft-ai-status-dot ${isServerReady ? 'online' : 'offline'}`} />
-              <span>{isServerReady ? 'Groq Connected' : 'API Key Missing'}</span>
+              <span>{isServerReady ? 'AI Ready' : 'Not Available'}</span>
             </div>
 
             {/* Recent Scans */}

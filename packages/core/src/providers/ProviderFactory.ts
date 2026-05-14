@@ -7,6 +7,7 @@ import { ChainId } from '../types.js';
 import { ITransactionProvider } from './ITransactionProvider.js';
 import { AlchemyProvider } from './AlchemyProvider.js';
 import { SuiProvider } from './SuiProvider.js';
+import { type BlockTimestampCache } from './BlockTimestampCache.js';
 import type { SybilAlchemyConfig } from '../utils/AlchemyKeyPool.js';
 
 export interface ApiKeyConfig {
@@ -27,6 +28,8 @@ export interface ApiKeyConfig {
     polygonscan?: string;   // Polygon
     // Full Sybil config for multi-key support
     sybilConfig?: SybilAlchemyConfig;
+    // Block timestamp cache (immutable, permanent)
+    blockTimestampCache?: BlockTimestampCache;
 }
 
 /** Factory for creating chain-specific providers with auto-selection */
@@ -87,7 +90,9 @@ export class ProviderFactory {
                 chainId,
                 '', // No Alchemy key needed for BSC
                 this.apiKeys.moralis,
-                undefined // No explorer key needed when using Moralis
+                undefined, // No explorer key needed when using Moralis
+                undefined, // No sybil config
+                this.apiKeys.blockTimestampCache
             );
             this.providers.set(chainId, provider);
             return provider;
@@ -103,7 +108,8 @@ export class ProviderFactory {
                 this.apiKeys.alchemy,
                 this.apiKeys.moralis,
                 this.getExplorerKeyForChain(chainId),
-                this.apiKeys.sybilConfig // Pass sybil config for multi-key support
+                this.apiKeys.sybilConfig, // Pass sybil config for multi-key support
+                this.apiKeys.blockTimestampCache
             );
             this.providers.set(chainId, provider);
             return provider;

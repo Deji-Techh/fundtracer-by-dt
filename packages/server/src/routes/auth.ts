@@ -56,25 +56,36 @@ router.get('/google/start', (req: Request, res: Response) => {
 
 router.get('/twitter/start', (req: Request, res: Response) => {
   console.log('[AUTH] Twitter start - TWITTER_CLIENT_ID:', TWITTER_CLIENT_ID ? 'SET' : 'NOT SET');
-  
+
   if (!TWITTER_CLIENT_ID || !TWITTER_CLIENT_SECRET) {
     console.error('[AUTH] Twitter OAuth not configured');
     return res.status(500).json({ error: 'Twitter OAuth not configured' });
   }
-  
+
+  // Generate PKCE code_verifier and store in state JWT
+  const crypto = require('crypto');
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+
   // Include ref param for referral tracking
   const refParam = req.query.ref as string;
-  const state = jwt.sign({ timestamp: Date.now(), ref: refParam || null }, getJwtSecret(), { expiresIn: '10m' });
-  
+  const state = jwt.sign({
+    timestamp: Date.now(),
+    ref: refParam || null,
+    codeVerifier // Store verifier in state JWT (encrypted with JWT_SECRET)
+  }, getJwtSecret(), { expiresIn: '10m' });
+
   const scopes = 'tweet.read users.read';
   const authUrl = `https://twitter.com/i/oauth2/authorize?` +
     `client_id=${TWITTER_CLIENT_ID}` +
     `&redirect_uri=${encodeURIComponent(TWITTER_REDIRECT_URI)}` +
     `&response_type=code` +
     `&scope=${encodeURIComponent(scopes)}` +
-    `&state=${state}`;
+    `&state=${state}` +
+    `&code_challenge_method=S256` +
+    `&code_challenge=${codeChallenge}`;
   console.log('[AUTH] Redirecting to Twitter');
-  
+
   res.redirect(authUrl);
 });
 
@@ -281,7 +292,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       tier,
       walletAddress,
       authProvider: 'google'
-    }, getJwtSecret(), { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '7d' });
     
     // Only send welcome email for NEW users
     if (email && isNewUser) {
@@ -311,11 +322,12 @@ router.get('/twitter/callback', async (req: Request, res: Response) => {
   }
   
   try {
-    jwt.verify(state as string, getJwtSecret());
-    
+    const decoded = jwt.verify(state as string, getJwtSecret()) as any;
+    const codeVerifier = decoded.codeVerifier || 'challenge';
+
     const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Authorization': `Basic ${Buffer.from(`${TWITTER_CLIENT_ID}:${TWITTER_CLIENT_SECRET}`).toString('base64')}`
       },
@@ -323,7 +335,7 @@ router.get('/twitter/callback', async (req: Request, res: Response) => {
         code: code as string,
         grant_type: 'authorization_code',
         redirect_uri: TWITTER_REDIRECT_URI,
-        code_verifier: 'challenge',
+        code_verifier: codeVerifier,
       }),
     });
     
@@ -389,7 +401,7 @@ await userRef.set({
       tier,
       walletAddress,
       authProvider: 'twitter'
-    }, getJwtSecret(), { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '7d' });
     
     // Only send welcome email for NEW users
     if (email && isNewUser) {
@@ -636,7 +648,7 @@ const userDoc = await userRef.get();
       isVerified,
       displayName,
       authProvider: 'wallet'
-    }, getJwtSecret(), { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '7d' });
 
     console.log('[AUTH] Wallet Login SUCCESS');
     res.json({
@@ -770,7 +782,7 @@ router.post('/google-login', async (req: Request, res: Response) => {
       tier,
       walletAddress,
       authProvider: 'google'
-    }, getJwtSecret(), { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '7d' });
 
     console.log('[AUTH] Google Login SUCCESS');
     
@@ -876,7 +888,7 @@ await userRef.set({
       tier,
       walletAddress,
       authProvider: 'twitter'
-    }, getJwtSecret(), { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '7d' });
 
     console.log('[AUTH] Twitter Login SUCCESS');
     
@@ -1002,7 +1014,7 @@ router.post('/email-login', async (req: Request, res: Response) => {
       tier,
       walletAddress,
       authProvider: 'email'
-    }, getJwtSecret(), { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '7d' });
 
     console.log('[AUTH] Email Login SUCCESS');
     
@@ -1084,7 +1096,7 @@ router.post('/verify-2fa', async (req: Request, res: Response) => {
       tier: userData.tier || 'max',
       walletAddress: userData.walletAddress || '',
       authProvider: userData.authProvider || 'email'
-    }, getJwtSecret(), { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '7d' });
 
     console.log('[AUTH] 2FA Login SUCCESS for:', tempUid);
 
@@ -1148,7 +1160,7 @@ router.post('/link-wallet', async (req: Request, res: Response) => {
       isVerified,
       walletAddress: address.toLowerCase(),
       authProvider: 'wallet'
-    }, getJwtSecret(), { expiresIn: '30d' });
+    }, getJwtSecret(), { expiresIn: '7d' });
 
     res.json({
       success: true,

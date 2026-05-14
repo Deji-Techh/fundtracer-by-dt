@@ -18,6 +18,7 @@ import {
 } from '../types.js';
 import { getChainConfig } from '../chains.js';
 import { AlchemyKeyPool, type SybilAlchemyConfig } from '../utils/AlchemyKeyPool.js';
+import { type BlockTimestampCache } from './BlockTimestampCache.js';
 
 /** Debug flag - set FUNDTRACER_DEBUG=true to see verbose logs */
 const DEBUG = process.env.FUNDTRACER_DEBUG === 'true';
@@ -139,8 +140,9 @@ export class AlchemyProvider {
     private cache: ResponseCache;
     private keyPool?: AlchemyKeyPool;
     private useKeyPool: boolean = false;
+    private blockTsCache?: BlockTimestampCache;
 
-    constructor(chain: ChainId, apiKey: string, moralisKey?: string, explorerKey?: string, sybilConfig?: SybilAlchemyConfig) {
+    constructor(chain: ChainId, apiKey: string, moralisKey?: string, explorerKey?: string, sybilConfig?: SybilAlchemyConfig, blockTsCache?: BlockTimestampCache) {
         this.chainConfig = getChainConfig(chain);
         this.apiKey = apiKey;
         this.moralisKey = moralisKey;
@@ -162,6 +164,7 @@ export class AlchemyProvider {
         this.rateLimiter = new AlchemyRateLimiter();
         this.moralisRateLimiter = new MoralisRateLimiter();
         this.cache = new ResponseCache();
+        this.blockTsCache = blockTsCache;
 
         if (!this.rpcUrl && chain !== 'bsc') {
             throw new Error(`Alchemy not supported for chain: ${chain}`);
@@ -494,7 +497,8 @@ export class AlchemyProvider {
 
         // Fetch missing timestamps for transactions where timestamp is 0
         const txsNeedingTimestamp = transactions.filter(tx => tx.timestamp === 0);
-        if (txsNeedingTimestamp.length > 0) {
+        // Skip this step entirely when caller has indicated progressive streaming is used
+        if (txsNeedingTimestamp.length > 0 && !filters?.skipTimestamps) {
             console.log(`[AlchemyProvider] Wallet Fetch: Fetching timestamps for ${txsNeedingTimestamp.length} transactions (txs need timestamp: ${txsNeedingTimestamp.length}, total txs: ${transactions.length})`);
             await this.fetchMissingTimestamps(txsNeedingTimestamp);
         }
@@ -536,17 +540,36 @@ export class AlchemyProvider {
         const BATCH_SIZE = 20;
         const allKeys = this.keyPool!.getAllContractKeys();
         const numKeys = allKeys.length;
-        
-        console.log(`[AlchemyProvider] fetchTimestampsWithKeyPool: Fetching timestamps for ${blockNumbers.length} unique blocks using ${numKeys} keys (caller: ${getCallerContext()})`);
 
-        for (let i = 0; i < blockNumbers.length; i += BATCH_SIZE) {
-            const batch = blockNumbers.slice(i, i + BATCH_SIZE);
-            
+        // Check block timestamp cache first
+        let uncachedBlocks = blockNumbers;
+        if (this.blockTsCache) {
+            const cached = await this.blockTsCache.getMany(this.chainConfig.id, blockNumbers);
+            if (cached.size > 0) {
+                for (const [blockNum, ts] of cached) {
+                    blockTimestamps.set(blockNum, ts);
+                }
+                uncachedBlocks = blockNumbers.filter(b => !cached.has(b));
+                if (DEBUG) console.log(`[AlchemyProvider] Cache hit: ${cached.size}/${blockNumbers.length} blocks`);
+            }
+        }
+
+        if (uncachedBlocks.length === 0) {
+            console.log(`[AlchemyProvider] All ${blockNumbers.length} timestamps served from cache`);
+            return;
+        }
+
+        console.log(`[AlchemyProvider] fetchTimestampsWithKeyPool: Fetching timestamps for ${uncachedBlocks.length} unique blocks (${blockNumbers.length - uncachedBlocks.length} cached) using ${numKeys} keys (caller: ${getCallerContext()})`);
+
+        for (let i = 0; i < uncachedBlocks.length; i += BATCH_SIZE) {
+            const batch = uncachedBlocks.slice(i, i + BATCH_SIZE);
+            const fetchedThisBatch: { blockNum: number; timestamp: number }[] = [];
+
             // Distribute requests across keys (round-robin)
             const promises = batch.map(async (blockNum, idx) => {
                 const key = allKeys[idx % numKeys];
                 const rpcUrl = this.keyPool!.getRpcUrl(key);
-                
+
                 try {
                     const block = await this.rpcRequestWithUrl<{ timestamp: string }>(
                         'eth_getBlockByNumber',
@@ -556,24 +579,33 @@ export class AlchemyProvider {
                     if (block && block.timestamp) {
                         const timestamp = parseInt(block.timestamp, 16);
                         blockTimestamps.set(blockNum, timestamp);
+                        fetchedThisBatch.push({ blockNum, timestamp });
                     }
                 } catch (error) {
                     if (DEBUG) console.warn(`[AlchemyProvider] Failed to fetch block ${blockNum}:`, error);
                 }
             });
-            
+
             await Promise.all(promises);
-            
+
+            // Store fetched timestamps in cache
+            if (this.blockTsCache && fetchedThisBatch.length > 0) {
+                const chain = this.chainConfig.id;
+                await Promise.all(fetchedThisBatch.map(f =>
+                    this.blockTsCache!.set(chain, f.blockNum, f.timestamp)
+                ));
+            }
+
             // Rate limit between batches to respect per-key limits
             // 10ms between batches = ~100 req/sec per key = 1600 CU/sec per key (still safe for 330 CU/sec)
             // With 10 keys: ~16000 CU/sec total capacity
             // Reduced from 50ms to 10ms for faster processing
             await new Promise(resolve => setTimeout(resolve, 10));
-            
+
             // Progress logging
-            const processed = Math.min(i + BATCH_SIZE, blockNumbers.length);
-            if (processed % 100 === 0 || processed === blockNumbers.length) {
-                console.log(`[AlchemyProvider] Timestamp progress: ${processed}/${blockNumbers.length}`);
+            const processed = Math.min(i + BATCH_SIZE, uncachedBlocks.length);
+            if (processed % 100 === 0 || processed === uncachedBlocks.length) {
+                console.log(`[AlchemyProvider] Timestamp progress: ${processed}/${uncachedBlocks.length} uncached`);
             }
         }
     }
@@ -584,8 +616,28 @@ export class AlchemyProvider {
         blockTimestamps: Map<number, number>
     ): Promise<void> {
         const BATCH_SIZE = 20;
-        for (let i = 0; i < blockNumbers.length; i += BATCH_SIZE) {
-            const batch = blockNumbers.slice(i, i + BATCH_SIZE);
+
+        // Check block timestamp cache first
+        let uncachedBlocks = blockNumbers;
+        if (this.blockTsCache) {
+            const cached = await this.blockTsCache.getMany(this.chainConfig.id, blockNumbers);
+            if (cached.size > 0) {
+                for (const [blockNum, ts] of cached) {
+                    blockTimestamps.set(blockNum, ts);
+                }
+                uncachedBlocks = blockNumbers.filter(b => !cached.has(b));
+                if (DEBUG) console.log(`[AlchemyProvider] Cache hit: ${cached.size}/${blockNumbers.length} blocks`);
+            }
+        }
+
+        if (uncachedBlocks.length === 0) {
+            console.log(`[AlchemyProvider] All ${blockNumbers.length} timestamps served from cache`);
+            return;
+        }
+
+        for (let i = 0; i < uncachedBlocks.length; i += BATCH_SIZE) {
+            const batch = uncachedBlocks.slice(i, i + BATCH_SIZE);
+            const fetchedThisBatch: { blockNum: number; timestamp: number }[] = [];
             const promises = batch.map(async (blockNum) => {
                 try {
                     const block = await this.rpcRequest<{ timestamp: string }>('eth_getBlockByNumber', [
@@ -594,13 +646,22 @@ export class AlchemyProvider {
                     if (block && block.timestamp) {
                         const timestamp = parseInt(block.timestamp, 16);
                         blockTimestamps.set(blockNum, timestamp);
+                        fetchedThisBatch.push({ blockNum, timestamp });
                     }
                 } catch (error) {
                     console.warn(`[AlchemyProvider] Failed to fetch block ${blockNum}:`, error);
                 }
             });
             await Promise.all(promises);
-            
+
+            // Store fetched timestamps in cache
+            if (this.blockTsCache && fetchedThisBatch.length > 0) {
+                const chain = this.chainConfig.id;
+                await Promise.all(fetchedThisBatch.map(f =>
+                    this.blockTsCache!.set(chain, f.blockNum, f.timestamp)
+                ));
+            }
+
             // Add delay between batches to avoid rate limits (10ms = ~100 req/sec)
             await new Promise(resolve => setTimeout(resolve, 10));
         }

@@ -3,13 +3,13 @@
  * Uses simplified UI structure while maintaining API integration
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useNotify } from '../../contexts/ToastContext';
 import { ChainId, AnalysisResult, MultiWalletResult } from '@fundtracer/core';
-import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions, getAuthToken, API_BASE } from '../../api';
+import { analyzeWallet, compareWallets, analyzeContract, loadMoreTransactions, streamWalletTimestamps, getAuthToken, API_BASE } from '../../api';
 import { addToHistory, getHistory, type HistoryItem } from '../../utils/history';
 import { getCachedResults, saveResultToCache } from '../../utils/resultsCache';
 import { useGasPayment } from '../../hooks/useGasPayment';
@@ -85,6 +85,9 @@ export function InvestigateView({
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<{ message: string; hint?: string } | null>(null);
+
+  // SSE timestamp streaming
+  const sseCleanupRef = useRef<(() => void) | null>(null);
 
   // UI state for dropdowns
   const [showRecentDropdown, setShowRecentDropdown] = useState(false);
@@ -201,6 +204,14 @@ export function InvestigateView({
   const [currentAnalysisAddress, setCurrentAnalysisAddress] = useState<string>('');
   const [resultsCache, setResultsCache] = useState<Record<string, any>>({});
   
+  // Cleanup SSE connection on unmount
+  useEffect(() => {
+    return () => {
+      sseCleanupRef.current?.();
+      sseCleanupRef.current = null;
+    };
+  }, []);
+
   // Load cached results on mount
   useEffect(() => {
     const cached = getCachedResults();
@@ -316,7 +327,43 @@ export function InvestigateView({
         });
 
         await recordUsage();
-        
+
+        // Start SSE timestamp streaming if taskId is present
+        const responseTaskId = (response.result as any).taskId;
+        if (responseTaskId) {
+          // Clean up any previous SSE connection
+          sseCleanupRef.current?.();
+
+          sseCleanupRef.current = streamWalletTimestamps(
+            responseTaskId,
+            (batch) => {
+              // Patch timestamps onto matching transactions
+              setWalletResult(prev => {
+                if (!prev) return prev;
+                const tsMap = new Map<string, number>();
+                batch.hashes.forEach((hash, i) => tsMap.set(hash, batch.timestamps[i]));
+
+                const updatedTxs = prev.transactions.map(tx => {
+                  if (tx.timestamp === 0 && tsMap.has(tx.hash)) {
+                    return { ...tx, timestamp: tsMap.get(tx.hash)! };
+                  }
+                  return tx;
+                });
+
+                return { ...prev, transactions: updatedTxs };
+              });
+            },
+            () => {
+              // Done — clear ref
+              sseCleanupRef.current = null;
+            },
+            (error) => {
+              console.error('[SSE] Timestamp stream error:', error.message);
+              sseCleanupRef.current = null;
+            }
+          );
+        }
+
         // Send notification
         addNotification({
           type: 'scan_complete',
