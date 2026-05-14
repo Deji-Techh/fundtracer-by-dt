@@ -712,8 +712,9 @@ export async function deleteApiKey(keyId: string, twoFactorCode?: string): Promi
 // ============================================================
 
 /**
- * Stream wallet timestamps via SSE after initial analysis returns with taskId.
+ * Stream wallet timestamps via SSE fetch with ReadableStream.
  * Patches timestamps onto transactions progressively as they arrive.
+ * Returns a cleanup function that aborts the connection.
  */
 export function streamWalletTimestamps(
     taskId: string,
@@ -722,41 +723,93 @@ export function streamWalletTimestamps(
     onError: (error: Error) => void
 ): () => void {
     const token = getAuthToken();
-    const url = `${API_BASE}/api/analyze/timestamps/${taskId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
-    const eventSource = new EventSource(url);
+    const url = `${API_BASE}/api/analyze/timestamps/${taskId}`;
+    const controller = new AbortController();
+    let closed = false;
 
-    eventSource.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
+    const headers: Record<string, string> = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
 
-            if (data.done) {
-                eventSource.close();
+    const close = () => {
+        if (closed) return;
+        closed = true;
+        controller.abort();
+    };
+
+    fetch(url, { headers, signal: controller.signal })
+        .then(async (response) => {
+            if (!response.ok) {
+                const errText = await response.text().catch(() => '');
+                let errMsg = `HTTP ${response.status}`;
+                try {
+                    const errJson = JSON.parse(errText);
+                    errMsg = errJson.error || errJson.message || errMsg;
+                } catch {}
+                onError(new Error(errMsg));
+                return;
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                onError(new Error('No response body stream'));
+                return;
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    // Keep incomplete last line in buffer
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const jsonStr = line.slice(6);
+
+                        try {
+                            const data = JSON.parse(jsonStr);
+
+                            if (data.done) {
+                                await reader.cancel();
+                                onDone();
+                                return;
+                            }
+
+                            if (data.error) {
+                                onError(new Error(data.error));
+                                return;
+                            }
+
+                            if (data.hashes && data.timestamps) {
+                                onBatch({ hashes: data.hashes, timestamps: data.timestamps });
+                            }
+                        } catch {
+                            // Skip malformed JSON lines
+                        }
+                    }
+                }
                 onDone();
-                return;
+            } catch (err: any) {
+                if (err.name !== 'AbortError') {
+                    onError(err);
+                }
             }
-
-            if (data.error) {
-                eventSource.close();
-                onError(new Error(data.error));
-                return;
+        })
+        .catch((err) => {
+            if (err.name !== 'AbortError') {
+                onError(err);
             }
+        });
 
-            if (data.hashes && data.timestamps) {
-                onBatch({ hashes: data.hashes, timestamps: data.timestamps });
-            }
-        } catch (err: any) {
-            console.error('[SSE] Parse error:', err);
-        }
-    };
-
-    eventSource.onerror = () => {
-        eventSource.close();
-        onError(new Error('SSE connection failed'));
-    };
-
-    return () => {
-        eventSource.close();
-    };
+    return close;
 }
 
 // ============================================================
