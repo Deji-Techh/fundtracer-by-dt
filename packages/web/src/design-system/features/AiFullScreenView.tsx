@@ -44,6 +44,7 @@ import {
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { AiAnalysisTableSkeleton, default as AnalysisTable } from './AiAnalysisTable';
 import type { AnalysisTableData } from './AiAnalysisTable';
+import { ReportCard } from './ReportCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHistory, type HistoryItem } from '../../utils/history';
 import { apiRequest, getAuthToken, API_BASE } from '../../api';
@@ -393,7 +394,7 @@ interface WalletAttachment {
   status: 'pending' | 'analyzing' | 'ready' | 'error';
 }
 
-type AttachmentMode = 'none' | 'wallet' | 'contract' | 'document';
+type AttachmentMode = 'none' | 'wallet' | 'contract' | 'report' | 'document';
 
 export function AiFullScreenView({ 
   isOpen, 
@@ -1133,6 +1134,100 @@ const handleSelectScan = async (scan: RecentScan) => {
     }
   };
 
+  const updateLastReportMessage = (data: Record<string, any>) => {
+    setMessages(prev => {
+      const updated = [...prev];
+      if (updated.length > 0) {
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          content: JSON.stringify(data),
+        };
+      }
+      return updated;
+    });
+  };
+
+  const handleAcceptReport = async () => {
+    if (!inputValue.trim()) return;
+
+    const address = inputValue.trim();
+    const chain = selectedChain;
+
+    setInputValue('');
+    setAttachmentMode('none');
+    setWalletAttachment(null);
+
+    const userMsg = {
+      role: 'user' as const,
+      content: `Generate investigation report for ${address} on ${chain.toUpperCase()}`,
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+
+    const reportMsg = {
+      role: 'assistant' as const,
+      content: JSON.stringify({ t: 'report', status: 'loading', address, chain }),
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, reportMsg]);
+
+    try {
+      const token = getAuthToken();
+      if (!token) throw new Error('Authentication required. Please log in to generate reports.');
+
+      const response = await fetch(`${API_BASE}/api/analyze/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'x-auth-token': token,
+        },
+        body: JSON.stringify({ address, chain }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Report generation failed (${response.status})`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response stream');
+
+      updateLastReportMessage({ t: 'report', status: 'streaming', address, chain, content: '' });
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) fullContent += parsed.content;
+            } catch {
+              fullContent += data;
+            }
+          }
+        }
+        updateLastReportMessage({ t: 'report', status: 'streaming', address, chain, content: fullContent });
+      }
+
+      updateLastReportMessage({ t: 'report', status: 'complete', address, chain, content: fullContent });
+    } catch (err: any) {
+      updateLastReportMessage({ t: 'report', status: 'error', address, chain, error: err.message || 'Report failed' });
+    }
+  };
+
   const handleSendWithAttachment = async () => {
     if (!inputValue.trim() || !walletAttachment || isLoading) return;
 
@@ -1454,6 +1549,9 @@ if (!fullResponse) {
             </div>
           </div>
         );
+      }
+      if (p?.t === 'report') {
+        return <ReportCard data={p} />;
       }
     } catch {}
     return <MDContent content={msg.content} />;
@@ -2075,14 +2173,21 @@ if (!fullResponse) {
                               <Wallet size={16} />
                               <span>Wallet</span>
                             </button>
-                            <button 
+                            <button
                               className="ai-dropdown-item"
                               onClick={() => handleSelectAttachmentMode('contract')}
                             >
                               <FileCode size={16} />
                               <span>Contract</span>
                             </button>
-                            
+                            <button
+                              className="ai-dropdown-item"
+                              onClick={() => handleSelectAttachmentMode('report')}
+                            >
+                              <FileText size={16} />
+                              <span>Report</span>
+                            </button>
+
                             {attachmentMode !== 'none' && (
                               <>
                                 <div className="ai-dropdown-divider" />
@@ -2117,15 +2222,17 @@ if (!fullResponse) {
                       ref={inputRef}
                       className={`ai-chat-input ${attachmentMode !== 'none' ? 'attachment-input' : ''}`}
                       placeholder={
-                        attachmentMode === 'wallet' 
-                          ? 'Input wallet address...' 
+                        attachmentMode === 'wallet'
+                          ? 'Input wallet address...'
                           : attachmentMode === 'contract'
                             ? 'Input contract address...'
-                            : attachmentMode === 'document'
-                              ? 'Ask about the document...'
-                              : currentWallet 
-                                ? `Ask about ${currentWallet.slice(0, 6)}...` 
-                                : 'Enter wallet address or question...'
+                            : attachmentMode === 'report'
+                              ? 'Enter wallet address for report...'
+                              : attachmentMode === 'document'
+                                ? 'Ask about the document...'
+                                : currentWallet
+                                  ? `Ask about ${currentWallet.slice(0, 6)}...`
+                                  : 'Enter wallet address or question...'
                       }
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
@@ -2134,6 +2241,8 @@ if (!fullResponse) {
                           e.preventDefault();
                           if (attachmentMode === 'document' && uploadedFiles.length > 0) {
                             handleSendMessage();
+                          } else if (attachmentMode === 'report') {
+                            handleAcceptReport();
                           } else if (attachmentMode !== 'none' && !walletAttachment) {
                             handleAcceptWallet();
                           } else if (walletAttachment) {
@@ -2148,7 +2257,7 @@ if (!fullResponse) {
                     />
                     
                     {/* Send or Accept Button */}
-                    {attachmentMode !== 'none' && attachmentMode !== 'document' && !walletAttachment ? (
+                    {attachmentMode !== 'none' && attachmentMode !== 'document' && attachmentMode !== 'report' && !walletAttachment ? (
                       <motion.button 
                         className="ai-accept-btn"
                         onClick={handleAcceptWallet}
