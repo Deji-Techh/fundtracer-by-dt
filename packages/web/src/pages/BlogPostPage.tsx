@@ -35,6 +35,60 @@ const navItems = [
 ];
 
 const blogPostsData: Record<string, BlogPost> = {
+  'browser-search-engine-setup': {
+    id: 'search-engine',
+    title: 'Instant Wallet Lookups: Add FundTracer as a Browser Search Engine',
+    excerpt: 'Type "ft" in your address bar, paste any wallet address or explorer URL, and jump straight to analysis — no clicks needed. Works for all 10+ supported chains.',
+    category: 'Product',
+    date: '2026-05-14',
+    readTime: '2 min read',
+    author: 'FundTracer Team',
+    slug: 'browser-search-engine-setup',
+    content: `
+## Why Add a Custom Search Engine?
+
+FundTracer now supports browser custom search engines — the fastest way to analyze a wallet. Instead of opening the app, navigating, and pasting an address, you can type "ft" in your address bar, press Tab, paste, and hit Enter. The analysis loads instantly with no clicks.
+
+## How It Works
+
+- Type "ft", press Tab, paste any wallet address (e.g. 0xf8a319bcd9fff599c191f30eb7b2c876067cb2ad)
+- Or paste a full explorer URL from Etherscan, Lineascan, Arbiscan, Basescan, or Solscan
+- FundTracer auto-detects the chain from the URL and opens the correct analysis page
+- Free plan users can scan Linea addresses instantly; Pro users get all chains
+- No clicks, no navigation — just type, paste, enter
+
+## 20-Second Setup (Chrome)
+
+1. Open Chrome Settings → Search Engine → Manage Search Engines
+2. Click "Add"
+3. Name: FundTracer
+4. Keyword: ft
+5. URL: https://fundtracer.xyz/search?q=%s
+6. Click Save
+
+## Firefox and Edge
+- Firefox: Right-click the address bar → "Add a Keyword for this Search". Or go to Settings → Search — FundTracer is auto-detected if you've visited the site.
+- Edge: Same setup as Chrome — both use the same search engine settings path.
+
+## Supported Explorer URLs
+
+The search engine auto-detects the chain when you paste a full explorer URL:
+- etherscan.io → Ethereum
+- lineascan.build → Linea
+- arbiscan.io → Arbitrum
+- basescan.org → Base
+- polygonscan.com → Polygon
+- bscscan.com → BNB Chain
+- solscan.io → Solana
+
+## Try It Now
+
+Once set up, type "ft" + Tab, paste any of these and hit Enter:
+- 0xf8a319bcd9fff599c191f30eb7b2c876067cb2ad (raw Linea address)
+- https://lineascan.build/address/0xf8a319bcd9fff599c191f30eb7b2c876067cb2ad (Linea explorer)
+- https://etherscan.io/address/0x1f9090aaE28b8a3dCeaDf281B0F12828e676c326 (Ethereum explorer)
+`,
+  },
   'qvac-local-ai-integration': {
     id: 'qvac-integration',
     title: 'Introducing QVAC: Local AI for Wallet Analysis',

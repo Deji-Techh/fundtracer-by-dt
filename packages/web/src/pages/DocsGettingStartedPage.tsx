@@ -10,6 +10,7 @@ const sections = [
   { id: 'overview', title: 'Overview' },
   { id: 'features', title: 'Core Features' },
   { id: 'quickstart', title: 'Quick Start' },
+  { id: 'search-engine', title: 'Browser Search Engine' },
   { id: 'supported-chains', title: 'Supported Chains' },
   { id: 'authentication', title: 'Authentication' },
 ];
@@ -71,6 +72,40 @@ export function GettingStartedPage() {
         Receive comprehensive analysis within seconds. View transaction timelines, funding trees, 
         risk scores, and detailed behavioral patterns.
       </p>
+
+      <h2 id="search-engine">Browser Search Engine</h2>
+      <p>
+        Add FundTracer as a custom search engine in your browser for instant wallet lookups.
+        Type <code>ft</code> in your address bar, press Tab, paste any wallet address or explorer URL,
+        and jump straight to analysis. Works across all 10+ supported chains.
+      </p>
+
+      <div className="setup-card">
+        <div className="setup-card__icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" width="20" height="20">
+            <circle cx="9" cy="9" r="5"/><path d="M13 13l6 6"/>
+          </svg>
+        </div>
+        <div>
+          <h4 style={{margin: '0 0 8px', color: 'var(--color-text-primary)'}}>Setup takes 20 seconds</h4>
+          <ol className="setup-card__steps">
+            <li>Open <strong>Chrome Settings → Search Engine → Manage Search Engines</strong></li>
+            <li>Click <strong>Add</strong> and fill in:<br/>
+              <span style={{fontSize:'0.8rem',color:'var(--color-text-muted)'}}>
+                · Name: <code>FundTracer</code><br/>
+                · Keyword: <code>ft</code><br/>
+                · URL: <code>https://fundtracer.xyz/search?q=%s</code>
+              </span>
+            </li>
+            <li>Click <strong>Save</strong></li>
+          </ol>
+          <p style={{marginTop: 8, fontSize: '0.85rem'}}>
+            Now type <code>ft</code>, press Tab, paste an address like <code>0xf8a3...</code> or a full explorer
+            URL like <code>https://lineascan.build/address/0xf8a3...</code>, and hit Enter — the chain is
+            auto-detected from the explorer URL.
+          </p>
+        </div>
+      </div>
 
       <h2 id="supported-chains">Supported Chains</h2>
       <p>FundTracer supports analysis across the following blockchain networks:</p>
