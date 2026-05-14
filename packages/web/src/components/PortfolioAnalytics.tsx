@@ -33,12 +33,13 @@ import { ethers } from 'ethers';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { 
-  keyManager, 
-  resolveIPFSImageUrl, 
+import {
+  resolveIPFSImageUrl,
   getIPFSFallbacks,
   fetchWithTimeout,
-  executeBatches 
+  executeBatches,
+  buildAlchemyUrl,
+  buildAlchemyNftUrl
 } from '../utils/alchemyHelpers';
 import { useNotify } from '../contexts/ToastContext';
 import './PortfolioAnalytics.css';
@@ -903,9 +904,8 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
 
   // Fetch ETH Balance
   const fetchEthBalance = async () => {
-    const key = keyManager.getWalletKey();
     const response = await fetchWithTimeout(
-      `https://linea-mainnet.g.alchemy.com/v2/${key}`,
+      buildAlchemyUrl('linea'),
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -923,10 +923,8 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
 
   // Fetch Token Balances
   const fetchTokenBalances = async (): Promise<TokenBalance[]> => {
-    const key = keyManager.getWalletKey();
-    
     const response = await fetchWithTimeout(
-      `https://linea-mainnet.g.alchemy.com/v2/${key}`,
+      buildAlchemyUrl('linea'),
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -948,10 +946,9 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
 
     // Fetch metadata in parallel batches
     const metadataResults = await executeBatches(tokens, 10, async (token: any) => {
-      const metaKey = keyManager.getWalletKey();
       try {
         const metaResponse = await fetchWithTimeout(
-          `https://linea-mainnet.g.alchemy.com/v2/${metaKey}`,
+          buildAlchemyUrl('linea'),
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1026,10 +1023,8 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
 
   // Fetch NFTs
   const fetchNFTs = async (): Promise<NFTItem[]> => {
-    const key = keyManager.getWalletKey();
-    
     const response = await fetchWithTimeout(
-      `https://linea-mainnet.g.alchemy.com/v2/${key}/getNFTs?owner=${walletAddress}&pageSize=100&withMetadata=true`,
+      buildAlchemyNftUrl('linea', walletAddress),
       {},
       15000
     );
@@ -1057,11 +1052,11 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
 
   // Fetch Transactions
   const fetchTransactions = async (): Promise<Transaction[]> => {
-    const keys = keyManager.getContractKeys(2);
-    
+    const rpcUrl = buildAlchemyUrl('linea');
+
     const [fromResponse, toResponse] = await Promise.all([
       fetchWithTimeout(
-        `https://linea-mainnet.g.alchemy.com/v2/${keys[0]}`,
+        rpcUrl,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1082,7 +1077,7 @@ export const PortfolioAnalytics: React.FC<{ walletAddress: string }> = ({ wallet
         10000
       ),
       fetchWithTimeout(
-        `https://linea-mainnet.g.alchemy.com/v2/${keys[1] || keys[0]}`,
+        rpcUrl,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

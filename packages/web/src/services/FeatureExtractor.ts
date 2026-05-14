@@ -3,7 +3,7 @@
  * Extracts comprehensive behavioral features from wallet addresses client-side
  */
 
-import { keyManager, fetchWithTimeout } from '../utils/alchemyHelpers';
+import { fetchWithTimeout, buildAlchemyUrl } from '../utils/alchemyHelpers';
 
 // Types for extracted features
 export interface WalletFeatures {
@@ -226,12 +226,9 @@ export class FeatureExtractor {
   }
 
   private async fetchAssetTransfers(address: string): Promise<any[]> {
-    const key = keyManager.getWalletKey();
-    const rpcUrl = this.getRpcUrl();
-    
     try {
       const response = await fetchWithTimeout(
-        `${rpcUrl}/${key}`,
+        buildAlchemyUrl(this.chain),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -262,12 +259,9 @@ export class FeatureExtractor {
 
   private async fetchApprovals(address: string): Promise<any[]> {
     // Fetch Approval events for ERC20 tokens
-    const key = keyManager.getWalletKey();
-    const rpcUrl = this.getRpcUrl();
-    
     try {
       const response = await fetchWithTimeout(
-        `${rpcUrl}/${key}`,
+        buildAlchemyUrl(this.chain),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -298,14 +292,13 @@ export class FeatureExtractor {
   }
 
   private async fetchNativeTransactions(address: string): Promise<any[]> {
-    const key = keyManager.getWalletKey();
-    const rpcUrl = this.getRpcUrl();
-    
+    const rpcUrl = buildAlchemyUrl(this.chain);
+
     try {
       // Fetch both incoming and outgoing
       const [fromResponse, toResponse] = await Promise.all([
         fetchWithTimeout(
-          `${rpcUrl}/${key}`,
+          rpcUrl,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -327,7 +320,7 @@ export class FeatureExtractor {
           this.abortController.signal
         ),
         fetchWithTimeout(
-          `${rpcUrl}/${key}`,
+          rpcUrl,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

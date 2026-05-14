@@ -536,6 +536,10 @@ apiRouter.use('/chat', authMiddleware, chatHistoryRoutes);
 import { groqProxyRoutes } from './routes/groq-proxy.js';
 apiRouter.use('/proxy/ai', groqProxyRoutes);
 
+// Alchemy RPC Proxy - avoids exposing Alchemy keys to the browser
+import { alchemyProxyRoutes } from './routes/alchemy-proxy.js';
+apiRouter.use('/proxy/alchemy', alchemyProxyRoutes);
+
 apiRouter.use('/track', trackRoutes);
 import { smartMoneyRoutes } from './routes/smartMoney.js';
 apiRouter.use('/smart-money', smartMoneyRoutes); // Public smart money discovery
