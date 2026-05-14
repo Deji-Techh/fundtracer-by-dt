@@ -104,7 +104,7 @@ export function ForceGraph({ nodes, edges, selectedNode, onNodeClick, categorySt
       .attr('orient', 'auto')
       .append('path')
       .attr('d', 'M0,-4L8,0L0,4')
-      .attr('fill', '#3a3a5e');
+      .attr('class', 'fg-arrow-path');
 
     // Prepare data references for simulation
     const simNodes: any[] = nodes.map(n => ({ ...n }));
@@ -127,8 +127,7 @@ export function ForceGraph({ nodes, edges, selectedNode, onNodeClick, categorySt
       .selectAll('line')
       .data(simEdges)
       .join('line')
-      .attr('stroke', '#3a3a5e')
-      .attr('stroke-width', 1.5)
+      .attr('class', 'fg-link')
       .attr('marker-end', 'url(#fg-arrow)');
 
     // Edge labels (value)
@@ -137,10 +136,7 @@ export function ForceGraph({ nodes, edges, selectedNode, onNodeClick, categorySt
       .data(simEdges)
       .join('text')
       .text(d => d.value ? `${(d.value / 1000).toFixed(d.value >= 1000 ? 1 : 2)}k` : '')
-      .attr('fill', '#555')
-      .attr('font-size', 8)
-      .attr('font-family', 'monospace')
-      .attr('text-anchor', 'middle');
+      .attr('class', 'fg-link-label');
 
     // Node groups
     const nodeG = g.append('g')
@@ -153,7 +149,6 @@ export function ForceGraph({ nodes, edges, selectedNode, onNodeClick, categorySt
           if (!event.active) sim.alphaTarget(0.3).restart();
           d.fx = d.x;
           d.fy = d.y;
-          d3.select(this);
         })
         .on('drag', (event, d) => {
           d.fx = event.x;
@@ -190,8 +185,7 @@ export function ForceGraph({ nodes, edges, selectedNode, onNodeClick, categorySt
     nodeG.append('circle')
       .attr('r', 5)
       .attr('fill', d => DOT_COLORS[d.category || 'wallet'] || FALLBACK_DOT)
-      .attr('stroke', '#000')
-      .attr('stroke-width', 1)
+      .attr('class', 'fg-dot')
       .attr('cy', -2);
 
     // Name label
@@ -199,20 +193,14 @@ export function ForceGraph({ nodes, edges, selectedNode, onNodeClick, categorySt
       .attr('class', 'fg-label')
       .text(d => d.name || `${d.address.slice(0, 6)}...${d.address.slice(-3)}`)
       .attr('text-anchor', 'middle')
-      .attr('dy', 34)
-      .attr('fill', '#888')
-      .attr('font-size', 10)
-      .attr('font-family', "'SF Mono', 'Fira Code', monospace");
+      .attr('dy', 34);
 
     // Value label (below name)
     nodeG.append('text')
       .attr('class', 'fg-valuelabel')
       .text(d => d.totalValueInEth ? `${d.totalValueInEth.toFixed(d.totalValueInEth < 0.01 ? 4 : 2)} ETH` : '')
       .attr('text-anchor', 'middle')
-      .attr('dy', 46)
-      .attr('fill', '#555')
-      .attr('font-size', 8)
-      .attr('font-family', 'monospace');
+      .attr('dy', 46);
 
     // Hover events
     nodeG.on('mouseenter', function (event, d) {
@@ -222,10 +210,8 @@ export function ForceGraph({ nodes, edges, selectedNode, onNodeClick, categorySt
         .attr('stroke-width', 3);
       // Highlight connected edges
       link
-        .attr('stroke', (e: any) =>
-          (e.source.id === d.id || e.target.id === d.id) ? '#61dfff' : '#3a3a5e')
-        .attr('stroke-width', (e: any) =>
-          (e.source.id === d.id || e.target.id === d.id) ? 2 : 1);
+        .attr('class', (e: any) =>
+          (e.source.id === d.id || e.target.id === d.id) ? 'fg-link fg-link-highlighted' : 'fg-link');
     });
 
     nodeG.on('mouseleave', function () {
@@ -233,20 +219,17 @@ export function ForceGraph({ nodes, edges, selectedNode, onNodeClick, categorySt
       d3.select(this).select('.fg-circle')
         .transition().duration(150)
         .attr('stroke-width', 2);
-      link
-        .attr('stroke', '#3a3a5e')
-        .attr('stroke-width', 1.5);
+      link.attr('class', 'fg-link');
     });
 
     // Click to select
     nodeG.on('click', (event, d) => {
       event.stopPropagation();
       // Reset all rings
-      nodeG.select('.fg-ring').attr('stroke', 'transparent');
+      nodeG.select('.fg-ring').attr('class', 'fg-ring');
       // Highlight selected
       d3.select(event.currentTarget).select('.fg-ring')
-        .attr('stroke', '#61dfff')
-        .attr('stroke-opacity', 0.5);
+        .attr('class', 'fg-ring fg-ring-selected');
       onNodeClick(d.address);
     });
 
@@ -260,7 +243,7 @@ export function ForceGraph({ nodes, edges, selectedNode, onNodeClick, categorySt
 
     // Click background to deselect
     svg.on('click', () => {
-      nodeG.select('.fg-ring').attr('stroke', 'transparent');
+      nodeG.select('.fg-ring').attr('class', 'fg-ring');
     });
 
     // Tick simulation

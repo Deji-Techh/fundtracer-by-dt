@@ -1,5 +1,6 @@
 /**
  * ForceGraph Styles - Interactive force-directed graph
+ * Uses theme CSS variables for light/dark/dim support
  */
 
 .force-graph-wrapper {
@@ -11,6 +12,10 @@
   margin-top: 12px;
 }
 
+.is-fullscreen .force-graph-wrapper {
+  all: unset;
+}
+
 .force-graph-wrapper.is-fullscreen {
   position: fixed;
   inset: 0;
@@ -18,17 +23,17 @@
   border-radius: 0;
   border: none;
   margin-top: 0;
-  background: #080812;
+  background: var(--intel-bg-deep, #080812);
 }
 
-/* Toolbar */
+/* ─── Toolbar ─── */
 .fg-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border-subtle, #2a2a3e);
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--intel-bg-surface, rgba(0,0,0,0.3));
   position: relative;
   z-index: 10;
 }
@@ -82,7 +87,7 @@
   height: 32px;
 }
 
-/* SVG canvas */
+/* ─── SVG ─── */
 .fg-svg {
   display: block;
   cursor: grab;
@@ -92,13 +97,80 @@
   cursor: grabbing;
 }
 
-/* Tooltip */
+/* ─── Links ─── */
+.fg-link {
+  stroke: var(--intel-border-default, #3a3a5e);
+  stroke-width: 1.5;
+}
+
+.fg-link-highlighted {
+  stroke: var(--intel-accent, #61dfff);
+  stroke-width: 2;
+}
+
+.fg-link-label {
+  fill: var(--intel-text-muted, #555);
+  font-size: 8px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* ─── Arrow marker ─── */
+.fg-arrow-path {
+  fill: var(--intel-border-default, #3a3a5e);
+}
+
+/* ─── Nodes ─── */
+.fg-circle {
+  stroke-width: 2;
+  cursor: pointer;
+  transition: stroke-width 0.15s ease;
+}
+
+.fg-ring {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 2;
+}
+
+.fg-ring-selected {
+  stroke: var(--intel-accent, #61dfff);
+  stroke-opacity: 0.5;
+}
+
+/* ─── Category dot ─── */
+.fg-dot {
+  stroke: var(--intel-bg-base, #000);
+  stroke-width: 1;
+}
+
+/* ─── Labels ─── */
+.fg-label {
+  fill: var(--intel-text-secondary, #888);
+  font-size: 10px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.fg-valuelabel {
+  fill: var(--intel-text-muted, #555);
+  font-size: 8px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+/* ─── Tooltip ─── */
 .fg-tooltip {
   position: absolute;
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(8, 8, 18, 0.92);
+  background: var(--intel-bg-elevated, rgba(8,8,18,0.92));
   border: 1px solid var(--border-subtle, #2a2a3e);
   border-radius: 6px;
   padding: 6px 12px;
@@ -114,7 +186,7 @@
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
-/* Bottom hint */
+/* ─── Hint ─── */
 .fg-hint {
   position: absolute;
   bottom: 8px;
@@ -133,26 +205,13 @@
   display: none;
 }
 
-/* Node hover effects */
-.fg-group .fg-circle {
-  transition: stroke-width 0.15s ease;
-}
-
-.fg-group .fg-label {
-  pointer-events: none;
-}
-
-.fg-group .fg-valuelabel {
-  pointer-events: none;
-}
-
-/* Fade-in animation for initial render */
-.fg-group circle,
-.fg-group line {
-  animation: fgFadeIn 0.4s ease both;
-}
-
+/* ─── Animations ─── */
 @keyframes fgFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.fg-group circle,
+.fg-group line {
+  animation: fgFadeIn 0.4s ease both;
 }
