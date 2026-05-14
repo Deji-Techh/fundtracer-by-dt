@@ -540,6 +540,10 @@ apiRouter.use('/proxy/ai', groqProxyRoutes);
 import { alchemyProxyRoutes } from './routes/alchemy-proxy.js';
 apiRouter.use('/proxy/alchemy', alchemyProxyRoutes);
 
+// Helius RPC Proxy - avoids exposing Helius/Solana keys to the browser
+import { default as heliusProxyRoutes } from './routes/helius-proxy.js';
+apiRouter.use('/proxy/helius', heliusProxyRoutes);
+
 apiRouter.use('/track', trackRoutes);
 import { smartMoneyRoutes } from './routes/smartMoney.js';
 apiRouter.use('/smart-money', smartMoneyRoutes); // Public smart money discovery

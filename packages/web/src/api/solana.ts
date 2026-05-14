@@ -3,18 +3,23 @@
 // Comprehensive Solana wallet analysis with Sybil detection
 // ============================================================
 
-const HELIUS_KEYS = [
-  '77de5802-5beb-4647-bfbb-0ba215d47c81',
-  'b81bcc20-7710-40dc-b0f3-0865c03a8a1d',
-  'deae0411-c969-41ff-9420-f1a0f59d5639',
-];
+import { API_BASE } from '../api';
 
-let keyIndex = 0;
+// All Helius keys are now server-side via the proxy. Auth token is
+// injected automatically by apiRequest / getAuthToken in the call chain,
+// but these fetch calls are made directly so we pass the token inline.
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('fundtracer_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
-function getHeliusKey(): string {
-  const key = HELIUS_KEYS[keyIndex % HELIUS_KEYS.length];
-  keyIndex++;
-  return key;
+function heliusRpcUrl(): string {
+  return `${API_BASE}/api/proxy/helius`;
+}
+
+function heliusRestUrl(path: string, params?: Record<string, string>): string {
+  const query = new URLSearchParams(params).toString();
+  return `${API_BASE}/api/proxy/helius/rest/${path}${query ? '?' + query : ''}`;
 }
 
 function isValidSolanaAddress(address: string): boolean {
@@ -154,26 +159,27 @@ export interface WalletInfo {
 }
 
 async function getWalletInfo(address: string): Promise<WalletInfo> {
-  const key = getHeliusKey();
-  const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
-  
+  const rpcUrl = heliusRpcUrl();
+  const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
+
   const [balanceRes, accountRes, sigsRes, historyRes] = await Promise.all([
-    fetch(url, {
+    fetch(rpcUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getBalance', params: [address] }),
     }).then(r => r.json()),
-    fetch(url, {
+    fetch(rpcUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getAccountInfo', params: [address, { encoding: 'jsonParsed' }] }),
     }).then(r => r.json()),
-    fetch(url, {
+    fetch(rpcUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getSignaturesForAddress', params: [address, { limit: 100 }] }),
     }).then(r => r.json()),
-    fetch(`https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${key}&limit=100`).then(r => r.json()).catch(() => []),
+    fetch(heliusRestUrl(`addresses/${encodeURIComponent(address)}/transactions`, { limit: '100' }), { headers: getAuthHeaders() })
+      .then(r => r.json()).catch(() => []),
   ]);
 
   const isProgram = accountRes.result?.value?.executable ?? false;
@@ -221,11 +227,10 @@ interface TokenTransfer {
 }
 
 async function getTransactions(address: string, limit: number = 100): Promise<TransactionData[]> {
-  const key = getHeliusKey();
-  const url = `https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${key}&limit=${limit}`;
+  const url = heliusRestUrl(`addresses/${encodeURIComponent(address)}/transactions`, { limit: String(limit) });
 
   try {
-    const txs = await fetch(url).then(r => r.json());
+    const txs = await fetch(url, { headers: getAuthHeaders() }).then(r => r.json());
     if (!Array.isArray(txs)) return [];
 
     return txs.map((tx: any) => ({
@@ -254,11 +259,10 @@ async function getTransactions(address: string, limit: number = 100): Promise<Tr
 }
 
 async function enrichTransactions(address: string): Promise<any[]> {
-  const key = getHeliusKey();
-  const url = `https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${key}&limit=100`;
+  const url = heliusRestUrl(`addresses/${encodeURIComponent(address)}/transactions`, { limit: '100' });
 
   try {
-    return await fetch(url).then(r => r.json());
+    return await fetch(url, { headers: getAuthHeaders() }).then(r => r.json());
   } catch {
     return [];
   }
@@ -311,13 +315,12 @@ interface TokenInfo {
 }
 
 async function getTokenBalances(address: string): Promise<TokenInfo[]> {
-  const key = getHeliusKey();
-  const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
+  const url = heliusRpcUrl();
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 'token-balances',
@@ -396,13 +399,12 @@ export interface NFTData {
 }
 
 async function getNFTBalances(address: string): Promise<NFTData> {
-  const key = getHeliusKey();
-  const url = `https://mainnet.helius-rpc.com/?api-key=${key}`;
+  const url = heliusRpcUrl();
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 'nft-balances',

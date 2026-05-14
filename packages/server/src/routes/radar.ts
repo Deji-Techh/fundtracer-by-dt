@@ -4,6 +4,7 @@
  */
 import { Router, Request, Response } from 'express';
 import { getFirestore, admin } from '../firebase.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { alertService, RadarAlert, RadarActivity } from '../services/AlertService.js';
 import { sendEmail } from '../services/EmailService.js';
 import { buildRadarAlertEmail } from '../services/RadarEmailService.js';
@@ -11,21 +12,13 @@ import { buildRadarAlertEmail } from '../services/RadarEmailService.js';
 const router = Router();
 const RADAR_FROM = 'Fundtracer Radar <alert@fundtracer.xyz>';
 
-// Middleware to get userId from request (simplified - would use auth middleware in production)
-function getUserId(req: Request): string {
-    // In production, this would come from auth middleware
-    // For now, accept userId from query or body
-    return req.query.userId as string || req.body.userId as string || 'anonymous';
-}
+// All radar routes require authentication
+router.use(authMiddleware);
 
 // GET /api/radar/alerts - Get user's alerts
-router.get('/alerts', async (req: Request, res: Response) => {
+router.get('/alerts', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const userId = getUserId(req);
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
-
+        const userId = req.user!.uid;
         const alerts = await alertService.getAlertsByUser(userId);
         res.json({ alerts });
     } catch (error) {
@@ -35,20 +28,15 @@ router.get('/alerts', async (req: Request, res: Response) => {
 });
 
 // POST /api/radar/alerts - Create a new alert
-router.post('/alerts', async (req: Request, res: Response) => {
+router.post('/alerts', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const userId = getUserId(req);
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
-
+        const userId = req.user!.uid;
         const { address, label, chain, alertType, threshold, email, customMessage } = req.body;
 
         if (!address) {
             return res.status(400).json({ error: 'wallet address required' });
         }
 
-        // Allow creating without email (not required), threshold must be defined if provided
         const alertThreshold = threshold === undefined || threshold === null || threshold === 0 ? undefined : threshold;
 
         // Check for duplicate
@@ -76,11 +64,19 @@ router.post('/alerts', async (req: Request, res: Response) => {
     }
 });
 
-// PUT /api/radar/alerts/:id - Update an alert
-router.put('/alerts/:id', async (req: Request, res: Response) => {
+// PUT /api/radar/alerts/:id - Update an alert (owner only)
+router.put('/alerts/:id', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id } = req.params;
+        const userId = req.user!.uid;
         const { label, alertType, threshold, email, customMessage, enabled } = req.body;
+
+        // Verify ownership
+        const alerts = await alertService.getAlertsByUser(userId);
+        const owned = alerts.find(a => a.id === id);
+        if (!owned) {
+            return res.status(404).json({ error: 'Alert not found' });
+        }
 
         await alertService.updateAlert(id, {
             label,
@@ -98,10 +94,19 @@ router.put('/alerts/:id', async (req: Request, res: Response) => {
     }
 });
 
-// DELETE /api/radar/alerts/:id - Delete an alert
-router.delete('/alerts/:id', async (req: Request, res: Response) => {
+// DELETE /api/radar/alerts/:id - Delete an alert (owner only)
+router.delete('/alerts/:id', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id } = req.params;
+        const userId = req.user!.uid;
+
+        // Verify ownership
+        const alerts = await alertService.getAlertsByUser(userId);
+        const owned = alerts.find(a => a.id === id);
+        if (!owned) {
+            return res.status(404).json({ error: 'Alert not found' });
+        }
+
         await alertService.deleteAlert(id);
         res.json({ success: true });
     } catch (error) {
@@ -110,11 +115,19 @@ router.delete('/alerts/:id', async (req: Request, res: Response) => {
     }
 });
 
-// POST /api/radar/alerts/:id/toggle - Toggle alert enabled
-router.post('/alerts/:id/toggle', async (req: Request, res: Response) => {
+// POST /api/radar/alerts/:id/toggle - Toggle alert enabled (owner only)
+router.post('/alerts/:id/toggle', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id } = req.params;
+        const userId = req.user!.uid;
         const { enabled } = req.body;
+
+        // Verify ownership
+        const alerts = await alertService.getAlertsByUser(userId);
+        const owned = alerts.find(a => a.id === id);
+        if (!owned) {
+            return res.status(404).json({ error: 'Alert not found' });
+        }
 
         await alertService.toggleAlert(id, enabled);
         res.json({ success: true });
@@ -125,21 +138,16 @@ router.post('/alerts/:id/toggle', async (req: Request, res: Response) => {
 });
 
 // GET /api/radar/activity - Get live activity for user's alerts
-router.get('/activity', async (req: Request, res: Response) => {
+router.get('/activity', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const userId = getUserId(req);
-        if (!userId) {
-            return res.status(400).json({ error: 'userId required' });
-        }
-
+        const userId = req.user!.uid;
         const limit = parseInt(req.query.limit as string) || 100;
         const activities = await alertService.getLiveActivity(userId, limit);
 
-        // Convert timestamps to ISO strings
         const serialized = activities.map(a => ({
             ...a,
-            timestamp: a.timestamp instanceof admin.firestore.Timestamp 
-                ? a.timestamp.toDate().toISOString() 
+            timestamp: a.timestamp instanceof admin.firestore.Timestamp
+                ? a.timestamp.toDate().toISOString()
                 : a.timestamp
         }));
 
@@ -150,18 +158,26 @@ router.get('/activity', async (req: Request, res: Response) => {
     }
 });
 
-// GET /api/radar/activity/:alertId - Get activity for specific alert
-router.get('/activity/:alertId', async (req: Request, res: Response) => {
+// GET /api/radar/activity/:alertId - Get activity for specific alert (owner only)
+router.get('/activity/:alertId', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { alertId } = req.params;
+        const userId = req.user!.uid;
         const limit = parseInt(req.query.limit as string) || 50;
+
+        // Verify ownership
+        const alerts = await alertService.getAlertsByUser(userId);
+        const owned = alerts.find(a => a.id === alertId);
+        if (!owned) {
+            return res.status(404).json({ error: 'Alert not found' });
+        }
 
         const activities = await alertService.getRecentActivity(alertId, limit);
 
         const serialized = activities.map(a => ({
             ...a,
-            timestamp: a.timestamp instanceof admin.firestore.Timestamp 
-                ? a.timestamp.toDate().toISOString() 
+            timestamp: a.timestamp instanceof admin.firestore.Timestamp
+                ? a.timestamp.toDate().toISOString()
                 : a.timestamp
         }));
 
@@ -172,16 +188,15 @@ router.get('/activity/:alertId', async (req: Request, res: Response) => {
     }
 });
 
-// POST /api/radar/test-email - Test radar email (for setup)
-router.post('/test-email', async (req: Request, res: Response) => {
+// POST /api/radar/test-email - Test radar email (for setup, authenticated)
+router.post('/test-email', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { email } = req.body;
-        
+
         if (!email) {
             return res.status(400).json({ error: 'email required' });
         }
 
-        // Send test email
         await sendEmail({
             to: email,
             subject: 'Radar Alerts Test - Fundtracer',
@@ -203,16 +218,16 @@ router.post('/test-email', async (req: Request, res: Response) => {
     }
 });
 
-// POST /api/radar/verify-email - Send verification email
-router.post('/verify-email', async (req: Request, res: Response) => {
+// POST /api/radar/verify-email - Send verification email (authenticated)
+router.post('/verify-email', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { email, userId } = req.body;
-        
+        const userId = req.user!.uid;
+        const { email } = req.body;
+
         if (!email) {
             return res.status(400).json({ error: 'Email required' });
         }
 
-        // Send verification email
         await sendEmail({
             to: email,
             subject: 'Verify your Radar alert email - Fundtracer',
@@ -220,7 +235,7 @@ router.post('/verify-email', async (req: Request, res: Response) => {
 <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <h2 style="color: #1e293b;">Verify your Radar alerts</h2>
   <p style="color: #475569;">Click the button below to verify your email for Radar wallet alerts:</p>
-  <a href="${process.env.APP_URL || 'https://fundtracer.xyz'}/radar/verify?email=${encodeURIComponent(email)}&userId=${userId}" 
+  <a href="${process.env.APP_URL || 'https://fundtracer.xyz'}/radar/verify?email=${encodeURIComponent(email)}&userId=${userId}"
      style="display: inline-block; background: #00ff88; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">
     Verify Email
   </a>

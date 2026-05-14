@@ -29,10 +29,14 @@ import {
 } from './entities.js';
 
 const HELIUS_KEYS = [
-  '77de5802-5beb-4647-bfbb-0ba215d47c81',
-  'b81bcc20-7710-40dc-b0f3-0865c03a8a1d',
-  'deae0411-c969-41ff-9420-f1a0f59d5639',
-];
+  process.env.HELIUS_KEY_1,
+  process.env.HELIUS_KEY_2,
+  process.env.HELIUS_KEY_3,
+].filter((k): k is string => !!k);
+
+if (HELIUS_KEYS.length === 0) {
+  console.warn('[SolanaAdapter] No Helius keys configured via HELIUS_KEY_1/2/3 env vars');
+}
 
 const SOLANA_CHAIN: ChainIdentifier = {
   type: 'solana',
