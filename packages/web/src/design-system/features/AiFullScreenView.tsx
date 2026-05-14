@@ -1148,7 +1148,7 @@ const handleSelectScan = async (scan: RecentScan) => {
   };
 
   const handleAcceptReport = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isAnalyzing) return;
 
     const address = inputValue.trim();
     const chain = selectedChain;
@@ -1156,6 +1156,7 @@ const handleSelectScan = async (scan: RecentScan) => {
     setInputValue('');
     setAttachmentMode('none');
     setWalletAttachment(null);
+    setIsAnalyzing(true);
 
     const userMsg = {
       role: 'user' as const,
@@ -1164,18 +1165,69 @@ const handleSelectScan = async (scan: RecentScan) => {
     };
     setMessages(prev => [...prev, userMsg]);
 
-    const reportMsg = {
-      role: 'assistant' as const,
-      content: JSON.stringify({ t: 'report', status: 'loading', address, chain }),
-      timestamp: Date.now(),
-    };
-    setMessages(prev => [...prev, reportMsg]);
+    // Show analysis skeleton while wallet analysis runs
+    setAnalysisContext({ data: null as any, contextText: '', loading: true, address, chain, type: 'wallet' });
 
     try {
       const token = getAuthToken();
       if (!token) throw new Error('Authentication required. Please log in to generate reports.');
 
-      const response = await fetch(`${API_BASE}/api/analyze/report`, {
+      // Step 1: Run wallet analysis to get structured data
+      const analysisResponse = await fetch(`${API_BASE}/api/analyze/wallet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ address, chain, options: { skipFundingTree: true } }),
+        credentials: 'include',
+      });
+
+      if (!analysisResponse.ok) {
+        const errData = await analysisResponse.json().catch(() => ({}));
+        throw new Error(errData.error || `Analysis failed (${analysisResponse.status})`);
+      }
+
+      const analysisData = await analysisResponse.json();
+      const result = analysisData.result;
+      const summary = result.summary;
+
+      // Build AnalysisTableData from wallet analysis
+      const tableData: AnalysisTableData = {
+        address,
+        chain,
+        type: 'wallet',
+        riskScore: result.overallRiskScore,
+        riskLevel: result.riskLevel,
+        totalTransactions: result.transactions?.length ?? summary?.totalTransactions,
+        totalValueSent: summary?.totalValueSentEth,
+        totalValueReceived: summary?.totalValueReceivedEth,
+        activityPeriodDays: summary?.activityPeriodDays ?? (result.wallet?.createdAt ? Math.round((Date.now() - new Date(result.wallet.createdAt).getTime()) / 86400000) : undefined),
+        balance: result.wallet?.balanceInEth != null ? Number(result.wallet.balanceInEth) : undefined,
+        firstSeen: result.wallet?.createdAt,
+        lastSeen: result.wallet?.lastActive,
+        flags: (result.suspiciousIndicators || []).map((s: any) => s.description || s),
+        topInteractions: (result.projectsInteracted || []).slice(0, 10).map((p: any) => ({
+          address: p.contractAddress || p.address || '',
+          label: p.projectName || p.label || 'Unknown',
+          count: p.interactionCount || p.count || 0,
+        })),
+        fundingSources: (result.fundingSources?.nodes && Array.isArray(result.fundingSources.nodes) ? result.fundingSources.nodes.map((n: any) => n.address || n) : []),
+        sybilCluster: result.sybilCluster,
+      };
+
+      const contextText = buildContextFromTable(tableData);
+      setAnalysisContext({ data: tableData, contextText, loading: false, address, chain, type: 'wallet' });
+
+      // Step 2: Stream AI-generated report narrative
+      const reportMsg = {
+        role: 'assistant' as const,
+        content: JSON.stringify({ t: 'report', status: 'loading', address, chain }),
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, reportMsg]);
+
+      const reportResponse = await fetch(`${API_BASE}/api/analyze/report`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1183,14 +1235,15 @@ const handleSelectScan = async (scan: RecentScan) => {
           'x-auth-token': token,
         },
         body: JSON.stringify({ address, chain }),
+        credentials: 'include',
       });
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `Report generation failed (${response.status})`);
+      if (!reportResponse.ok) {
+        const err = await reportResponse.json().catch(() => ({}));
+        throw new Error(err.error || `Report generation failed (${reportResponse.status})`);
       }
 
-      const reader = response.body?.getReader();
+      const reader = reportResponse.body?.getReader();
       if (!reader) throw new Error('No response stream');
 
       updateLastReportMessage({ t: 'report', status: 'streaming', address, chain, content: '' });
@@ -1224,7 +1277,10 @@ const handleSelectScan = async (scan: RecentScan) => {
 
       updateLastReportMessage({ t: 'report', status: 'complete', address, chain, content: fullContent });
     } catch (err: any) {
+      setAnalysisContext(null);
       updateLastReportMessage({ t: 'report', status: 'error', address, chain, error: err.message || 'Report failed' });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 

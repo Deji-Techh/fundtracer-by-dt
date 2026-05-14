@@ -10,7 +10,7 @@ import { AiFullScreenView } from '../design-system/features/AiFullScreenView';
 import { getAuthToken } from '../api';
 import './AppPage.css';
 
-type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'sui' | 'reports' | 'graph' | 'crosschain' | 'history' | 'settings' | 'radar';
+type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'sui' | 'graph' | 'crosschain' | 'history' | 'settings' | 'radar';
 
 /** Extract blockchain address from raw input — handles full explorer URLs */
 function extractAddressFromInput(input: string): { address: string; chain?: string } {
@@ -46,7 +46,7 @@ const PolymarketView = lazy(() => import('../design-system/features/PolymarketVi
 const HistoryView = lazy(() => import('../design-system/features/HistoryView'));
 const SettingsView = lazy(() => import('../design-system/features/SettingsView'));
 const RadarView = lazy(() => import('../design-system/features/RadarView'));
-const ReportsView = lazy(() => import('../design-system/features/ReportsView'));
+
 const GraphView = lazy(() => import('../design-system/features/GraphView'));
 const CrossChainView = lazy(() => import('../design-system/features/CrossChainView'));
 
@@ -237,13 +237,6 @@ export function AppPage() {
         <circle cx="7" cy="7" r="3" fill="#fff" />
       </svg>
     )},
-    { id: 'reports', label: 'Reports', icon: (
-      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M3 1h8l2 2v10H3V1z"/>
-        <path d="M5 4h4M5 6.5h4M5 9h2"/>
-        <path d="M11 3v2H9V3"/>
-      </svg>
-    )},
     { id: 'graph', label: 'Graph', icon: (
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
         <circle cx="7" cy="3" r="2"/>
@@ -314,8 +307,6 @@ export function AppPage() {
         return <Suspense fallback={<PageSkeleton />}><RadarView /></Suspense>;
       case 'sui':
         return <Suspense fallback={<PageSkeleton />}><InvestigateView suiMode={true} selectedChain={selectedChain} onChainChange={(c) => setSelectedChain(c as ChainId)} /></Suspense>;
-      case 'reports':
-        return <Suspense fallback={<PageSkeleton />}><ReportsView selectedChain={selectedChain} /></Suspense>;
       case 'graph':
         return <Suspense fallback={<PageSkeleton />}><GraphView selectedChain={selectedChain} /></Suspense>;
       case 'crosschain':

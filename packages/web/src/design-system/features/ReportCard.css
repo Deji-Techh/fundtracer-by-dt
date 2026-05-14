@@ -1,5 +1,5 @@
 /**
- * ReportCard Styles - AI-generated report card with share options
+ * ReportCard Styles - Styled report card with share bar
  */
 
 .rc-card {
@@ -7,7 +7,7 @@
   border: 1px solid var(--border-subtle, #2a2a3e);
   border-radius: 10px;
   overflow: hidden;
-  max-width: 620px;
+  max-width: 640px;
   animation: rcFadeIn 0.3s ease;
 }
 
@@ -21,7 +21,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: var(--intel-bg-elevated, #0d0d1a);
   border-bottom: 1px solid var(--border-subtle, #2a2a3e);
   gap: 8px;
@@ -35,75 +35,67 @@
 }
 
 .rc-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   color: var(--intel-accent, #61dfff);
   flex-shrink: 0;
 }
 
 .rc-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--intel-text-primary, #e0e0e0);
 }
 
-.rc-addr {
-  font-size: 11px;
+.rc-meta {
+  font-size: 10px;
   color: var(--intel-text-muted, #666);
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
 
-.rc-streaming-badge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  color: var(--intel-accent, #61dfff);
+.rc-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.rc-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--intel-accent, #61dfff);
-  animation: rcPulse 1s ease-in-out infinite;
+.rc-badge.streaming {
+  background: rgba(97, 223, 255, 0.1);
+  color: var(--intel-accent, #61dfff);
+  animation: rcPulse 1.5s ease-in-out infinite;
 }
 
 @keyframes rcPulse {
-  0%, 100% { opacity: 0.4; }
+  0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
 
-.rc-complete-badge {
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 6px;
-  border-radius: 4px;
+.rc-badge.complete {
   background: rgba(0, 255, 136, 0.1);
   color: var(--intel-success, #00ff88);
 }
 
 /* ─── Body ─── */
 .rc-body {
-  padding: 16px 20px;
+  padding: 14px 18px;
   font-size: 13px;
   line-height: 1.7;
   color: var(--intel-text-primary, #e0e0e0);
-  min-height: 60px;
-  max-height: 480px;
+  max-height: 500px;
   overflow-y: auto;
 }
 
-.rc-body h1 {
+.rc-content h1 {
   font-size: 20px;
   font-weight: 700;
   color: var(--intel-text-primary, #fff);
   margin: 22px 0 10px;
 }
 
-.rc-body h2 {
+.rc-content h2 {
   font-size: 16px;
   font-weight: 600;
   color: var(--intel-text-primary, #fff);
@@ -112,20 +104,16 @@
   margin: 18px 0 10px;
 }
 
-.rc-body h3 {
+.rc-content h3 {
   font-size: 14px;
   font-weight: 600;
   color: var(--intel-accent, #61dfff);
   margin: 14px 0 6px;
 }
 
-.rc-body strong {
+.rc-content strong {
   color: var(--intel-text-bright, #fff);
   font-weight: 600;
-}
-
-.rc-body em {
-  color: var(--intel-text-secondary, #ccc);
 }
 
 .rc-stream-hint {
@@ -134,12 +122,39 @@
   font-style: italic;
 }
 
-/* ─── Footer ─── */
+/* ─── Error ─── */
+.rc-error-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.rc-error-icon {
+  width: 20px;
+  height: 20px;
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.rc-error-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.rc-error-msg {
+  font-size: 12px;
+  color: var(--intel-text-muted, #888);
+  margin-top: 2px;
+}
+
+/* ─── Footer / Share bar ─── */
 .rc-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 8px 14px;
   border-top: 1px solid var(--border-subtle, #2a2a3e);
   background: var(--intel-bg-elevated, #0d0d1a);
 }
@@ -149,41 +164,36 @@
   color: var(--intel-text-muted, #555);
 }
 
-/* ─── Share button & menu ─── */
+/* ─── Share button ─── */
 .rc-share-wrapper {
   position: relative;
 }
 
 .rc-share-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 5px 10px;
   background: var(--intel-bg-surface, #1a1a24);
   border: 1px solid var(--border-subtle, #2a2a3e);
   border-radius: 6px;
   color: var(--intel-text-secondary, #999);
-  font-size: 12px;
+  font-size: 11px;
+  font-family: inherit;
   cursor: pointer;
   transition: all 0.15s;
 }
 
-.rc-share-btn:hover:not(:disabled) {
+.rc-share-btn:hover {
   border-color: var(--intel-accent, #61dfff);
   color: var(--intel-accent, #61dfff);
   background: rgba(97, 223, 255, 0.06);
 }
 
-.rc-share-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 .rc-share-menu {
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% + 6px);
   left: 0;
-  margin-bottom: 6px;
   background: var(--intel-bg-elevated, #151520);
   border: 1px solid var(--border-subtle, #2a2a3e);
   border-radius: 8px;
@@ -192,7 +202,7 @@
   flex-direction: column;
   gap: 2px;
   min-width: 160px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   z-index: 50;
   animation: rcSlideUp 0.15s ease;
 }
@@ -206,15 +216,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 7px 10px;
   background: none;
   border: none;
   border-radius: 5px;
   color: var(--intel-text-secondary, #bbb);
   font-size: 12px;
+  font-family: inherit;
   cursor: pointer;
   transition: all 0.12s;
   text-align: left;
+  white-space: nowrap;
 }
 
 .rc-share-item:hover:not(:disabled) {
@@ -227,7 +239,7 @@
   cursor: wait;
 }
 
-/* ─── Loading skeleton ─── */
+/* ─── Skeleton ─── */
 .rc-skeleton {
   background: linear-gradient(90deg,
     var(--intel-bg-surface, #1a1a24) 25%,
@@ -242,38 +254,4 @@
 @keyframes rcShimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
-}
-
-/* ─── Error ─── */
-.rc-error {
-  background: var(--intel-bg-surface, #111118);
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-.rc-error .rc-body {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.rc-error-icon {
-  color: #ef4444;
-  flex-shrink: 0;
-}
-
-.rc-error-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rc-error-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #ef4444;
-}
-
-.rc-error-msg {
-  font-size: 12px;
-  color: var(--intel-text-muted, #888);
 }
