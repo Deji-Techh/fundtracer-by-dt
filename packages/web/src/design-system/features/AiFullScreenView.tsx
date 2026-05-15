@@ -802,7 +802,59 @@ const contractSuggestions = [
         setIsLoading(false);
       }
     } else {
-      // Chat-only mode - call API without address or files
+      // Chat-only mode — detect wallet addresses and show structured table
+      const EVM_RE = /0x[a-fA-F0-9]{40}/g;
+      const evmMatch = inputValue.match(EVM_RE);
+      const detectedAddress = evmMatch?.[0] || null;
+
+      // If a wallet address is detected, fetch structured data for the table
+      const activeChain = selectedChain || 'ethereum';
+      if (detectedAddress) {
+        try {
+          const token = getAuthToken();
+          const extRes = await fetch(`${API_BASE}/api/ai-chat/analyze-wallet`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+            body: JSON.stringify({ address: detectedAddress, chain: activeChain }),
+            signal: abortControllerRef.current?.signal,
+          });
+          const extData = await extRes.json();
+          if (extData.success && extData.analysis) {
+            const a = extData.analysis;
+            const activityPeriod = a.firstSeen
+              ? Math.round((Date.now() - new Date(a.firstSeen).getTime()) / 86400000)
+              : undefined;
+            const tableData: AnalysisTableData = {
+              address: detectedAddress,
+              chain: activeChain,
+              type: 'wallet',
+              riskScore: a.riskScore,
+              riskLevel: a.riskLevel,
+              totalTransactions: a.totalTransactions,
+              totalValueSent: a.totalValueSentEth,
+              totalValueReceived: a.totalValueReceivedEth,
+              activityPeriodDays: activityPeriod,
+              balance: a.balance,
+              firstSeen: a.firstSeen,
+              lastSeen: a.lastSeen,
+              flags: a.flags,
+              topInteractions: a.topInteractions,
+              fundingSources: a.fundingSources,
+              externalTransfers: extData.externalTransfers,
+              externalBalance: extData.externalBalanceWei,
+            };
+            const contextText = buildContextFromTable(tableData);
+            setAnalysisContext({ data: tableData, contextText, loading: false, address: detectedAddress, chain: activeChain, type: 'wallet' });
+          }
+        } catch (e) {
+          // Table fetch is additive — don't block the AI text response
+        }
+      }
+
+      // Still send to AI chat for the text response
       try {
         const token = getAuthToken();
         if (!token) {
@@ -1034,7 +1086,7 @@ const handleSelectScan = async (scan: RecentScan) => {
 
     const isWallet = attachmentMode === 'wallet';
     const address = inputValue.trim();
-    const chain = selectedChain;
+    const chain = selectedChain || 'ethereum';
 
     // Reset to chat-only mode — wallet/contract was only to identify the scan type
     setInputValue('');
