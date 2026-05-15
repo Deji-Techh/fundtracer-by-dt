@@ -53,7 +53,12 @@ interface FundingTreeData {
   totalTransfers: number;
 }
 
-export function SolanaView() {
+interface SolanaViewProps {
+  prefillAddress?: string;
+  onPrefillConsumed?: () => void;
+}
+
+export function SolanaView({ prefillAddress, onPrefillConsumed }: SolanaViewProps) {
   const [address, setAddress] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
@@ -68,9 +73,9 @@ export function SolanaView() {
 
   const authToken = typeof window !== 'undefined' ? localStorage.getItem('fundtracer_token') : null;
 
-  const handleAnalyze = useCallback(async () => {
-    if (!address.trim()) return;
-    if (!isValidSolanaAddress(address.trim())) {
+  const runAnalysis = useCallback(async (addr: string) => {
+    if (!addr.trim()) return;
+    if (!isValidSolanaAddress(addr.trim())) {
       setError('Please enter a valid Solana address');
       return;
     }
@@ -81,7 +86,7 @@ export function SolanaView() {
     setTransactions([]);
     setFundingTree(null);
 
-    const trimmed = address.trim();
+    const trimmed = addr.trim();
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
@@ -120,7 +125,23 @@ export function SolanaView() {
       clearTimeout(timeoutId);
       setIsAnalyzing(false);
     }
-  }, [address, activeTab, authToken]);
+  }, [activeTab, authToken]);
+
+  const handleAnalyze = useCallback(async () => {
+    await runAnalysis(address);
+  }, [address, runAnalysis]);
+
+  // Auto-analyze when prefillAddress is provided (from URL params in AppPage)
+  useEffect(() => {
+    if (prefillAddress && isValidSolanaAddress(prefillAddress.trim()) && !isAnalyzing) {
+      setAddress(prefillAddress.trim());
+      const t = setTimeout(() => {
+        runAnalysis(prefillAddress.trim());
+        onPrefillConsumed?.();
+      }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [prefillAddress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (address && isValidSolanaAddress(address.trim())) {

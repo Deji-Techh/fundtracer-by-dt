@@ -69,40 +69,121 @@ function mapChainForAnalyzer(chain: string): string {
 }
 
 // Analyze wallet using internal WalletAnalyzer with correct chain mapping
+// Falls back to Alchemy external data for chains that WalletAnalyzer maps to 'ethereum'
 async function analyzeWallet(address: string, chain: string, userId: string): Promise<AnalysisData> {
   const { WalletAnalyzer } = await import('@fundtracer/core');
-  
+
   const sybilKeys = getSybilAlchemyKeys();
-  
+
   const analyzer = new WalletAnalyzer({
     alchemy: sybilKeys.defaultKey || '',
     moralis: sybilKeys.moralisKey,
     sybilConfig: sybilKeys,
   });
-  
-  // Use the correct chain for the analyzer
+
   const analyzerChain = mapChainForAnalyzer(chain);
-  
-  const result = await analyzer.analyze(address, analyzerChain as ChainId) as any;
-  
-  // Transform to our context format
-  return {
-    address: result.wallet?.address || address,
-    chain: chain, // Return the original chain, not the mapped one
-    riskScore: result.overallRiskScore,
-    riskLevel: result.riskLevel,
-    totalTransactions: result.transactions?.length || 0,
+
+  let result: any;
+  let walletAnalyzerFailed = false;
+  try {
+    result = await analyzer.analyze(address, analyzerChain as ChainId) as any;
+  } catch {
+    walletAnalyzerFailed = true;
+  }
+
+  const hasAnalyzerData = result && result.transactions?.length > 0;
+  const analysis = {
+    address: result?.wallet?.address || address,
+    chain,
+    riskScore: result?.overallRiskScore,
+    riskLevel: result?.riskLevel,
+    totalTransactions: hasAnalyzerData ? result.transactions.length : 0,
+    balance: result?.wallet?.balanceInEth != null ? Number(result.wallet.balanceInEth) : undefined,
+    totalReceived: result?.totalReceived ?? result?.summary?.totalValueReceivedEth?.toString(),
+    totalSent: result?.totalSent ?? result?.summary?.totalValueSentEth?.toString(),
     tokenHoldings: [],
-    topInteractions: (result.projectsInteracted || []).slice(0, 10).map((p: any) => ({
+    topInteractions: (result?.projectsInteracted || []).slice(0, 10).map((p: any) => ({
       address: p.contractAddress || '',
       label: p.projectName || '',
       count: p.interactionCount || 0
     })),
-    flags: (result.suspiciousIndicators || []).map((s: any) => s.description),
-    fundingSources: result.fundingSources?.nodes?.map((n: any) => n.address) || [],
-    firstSeen: result.wallet?.createdAt,
-    lastSeen: result.wallet?.lastActive,
-  };
+    flags: (result?.suspiciousIndicators || []).map((s: any) => s.description),
+    fundingSources: result?.fundingSources?.nodes?.map((n: any) => n.address) || [],
+    firstSeen: result?.wallet?.createdAt,
+    lastSeen: result?.wallet?.lastActive,
+  } as AnalysisData;
+
+  // Fall back to Alchemy data when WalletAnalyzer found no data
+  // (happens for Linea, Base, BSC — chains mapped to 'ethereum')
+  if (!hasAnalyzerData && !walletAnalyzerFailed) {
+    const subdomain = CHAIN_TO_ALCHEMY[chain];
+    const apiKey = sybilKeys.defaultKey || '';
+    if (subdomain && apiKey) {
+      const alchemyUrl = `https://${subdomain}.g.alchemy.com/v2/${apiKey}`;
+
+      const [balanceRes, outgoingRes, incomingRes] = await Promise.all([
+        fetch(alchemyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [address, 'latest'] }),
+        }).catch(() => null),
+        fetch(alchemyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 2, method: 'alchemy_getAssetTransfers',
+            params: [{ fromBlock: '0x0', toBlock: 'latest', fromAddress: address, order: 'desc', maxCount: '0x3E8', category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'], withMetadata: true, excludeZeroValue: true }],
+          }),
+        }).catch(() => null),
+        fetch(alchemyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 3, method: 'alchemy_getAssetTransfers',
+            params: [{ fromBlock: '0x0', toBlock: 'latest', toAddress: address, order: 'desc', maxCount: '0x3E8', category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'], withMetadata: true, excludeZeroValue: true }],
+          }),
+        }).catch(() => null),
+      ]);
+
+      const balanceData = balanceRes ? await balanceRes.json().catch(() => null) : null;
+      const balanceWei = balanceData?.result || '0x0';
+      const balanceEth = parseFloat((parseInt(balanceWei, 16) / 1e18).toFixed(6));
+
+      const allTransfers = [
+        ...(outgoingRes ? (await outgoingRes.json().catch(() => ({ result: { transfers: [] } }))).result?.transfers || [] : []),
+        ...(incomingRes ? (await incomingRes.json().catch(() => ({ result: { transfers: [] } }))).result?.transfers || [] : []),
+      ]
+        .filter(Boolean)
+        .sort((a: any, b: any) => parseInt(b.blockNum || '0x0', 16) - parseInt(a.blockNum || '0x0', 16));
+
+      const txCount = allTransfers.length;
+      let sent = 0;
+      let received = 0;
+      for (const tx of allTransfers) {
+        const val = parseFloat(tx.value || '0');
+        if (tx.from?.toLowerCase() === address.toLowerCase()) sent += val;
+        if (tx.to?.toLowerCase() === address.toLowerCase()) received += val;
+      }
+
+      (analysis as any).totalTransactions = txCount;
+      (analysis as any).balance = balanceEth.toString();
+      (analysis as any).totalSent = sent.toString();
+      (analysis as any).totalReceived = received.toString();
+      if (!(analysis as any).riskScore) (analysis as any).riskScore = 0;
+      if (!(analysis as any).riskLevel) (analysis as any).riskLevel = 'unknown';
+
+      const timestamps = allTransfers
+        .map((t: any) => t.metadata?.blockTimestamp)
+        .filter(Boolean)
+        .sort();
+      if (timestamps.length > 0) {
+        (analysis as any).firstSeen = timestamps[0];
+        (analysis as any).lastSeen = timestamps[timestamps.length - 1];
+      }
+    }
+  }
+
+  return analysis;
 }
 
 // For contracts, use the wallet analyzer
@@ -252,6 +333,41 @@ router.post('/analyze-wallet', async (req: AuthenticatedRequest, res: Response) 
       console.warn('[AI-Chat] WalletAnalyzer failed, using external data only:', (analysisError as Error).message);
     }
 
+    // Step 2.5: If WalletAnalyzer found no data but Alchemy has external transfers,
+    // compute the table fields from Alchemy data (handles Linea, Base, BSC — chains
+    // where WalletAnalyzer maps to 'ethereum' and finds nothing)
+    if ((totalTransactions === 0 || !totalTransactions) && cached.transfers.length > 0) {
+      totalTransactions = cached.transfers.length;
+
+      let sent = 0;
+      let received = 0;
+      for (const tx of cached.transfers) {
+        const val = parseFloat(tx.value) || 0;
+        if (tx.from.toLowerCase() === address.toLowerCase()) sent += val;
+        if (tx.to.toLowerCase() === address.toLowerCase()) received += val;
+      }
+      totalValueSentEth = sent;
+      totalValueReceivedEth = received;
+
+      if (balance === undefined || balance === 0) {
+        balance = cached.balance;
+      }
+
+      const timestamps = cached.transfers
+        .map((t: any) => t.timestamp)
+        .filter(Boolean)
+        .sort();
+      if (timestamps.length > 0) {
+        firstSeen = timestamps[0];
+        lastSeen = timestamps[timestamps.length - 1];
+      }
+
+      if (riskScore === undefined) {
+        riskScore = 0;
+        riskLevel = 'unknown';
+      }
+    }
+
     // Step 3: Return combined result for tabular display
     const combined = {
       success: true,
@@ -260,6 +376,7 @@ router.post('/analyze-wallet', async (req: AuthenticatedRequest, res: Response) 
       externalBalanceWei: cached.balance,
       externalTransfers: cached.transfers,
       fromCache: cached?.fromCache || false,
+      fromAlchemyFallback: (totalTransactions === cached.transfers.length) && cached.transfers.length > 0,
       analysis: {
         riskScore,
         riskLevel,

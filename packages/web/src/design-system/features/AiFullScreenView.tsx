@@ -809,6 +809,7 @@ const contractSuggestions = [
 
       // If a wallet address is detected, fetch structured data for the table
       const activeChain = selectedChain || 'ethereum';
+      let contextText: string | undefined;
       if (detectedAddress) {
         try {
           const token = getAuthToken();
@@ -846,7 +847,7 @@ const contractSuggestions = [
               externalTransfers: extData.externalTransfers,
               externalBalance: extData.externalBalanceWei,
             };
-            const contextText = buildContextFromTable(tableData);
+            contextText = buildContextFromTable(tableData);
             setAnalysisContext({ data: tableData, contextText, loading: false, address: detectedAddress, chain: activeChain, type: 'wallet' });
           }
         } catch (e) {
@@ -869,7 +870,8 @@ const contractSuggestions = [
           },
           body: JSON.stringify({
             question: inputValue,
-            history: buildHistoryWithContext()
+            ...(detectedAddress ? { address: detectedAddress, addressType: 'wallet', chain: activeChain } : {}),
+            history: buildHistoryWithContext(contextText)
           }),
           signal: abortControllerRef.current.signal
         });
@@ -1036,10 +1038,11 @@ const handleSelectScan = async (scan: RecentScan) => {
     setInputValue('');
   };
 
-  function buildHistoryWithContext(): Array<{ role: string; content: string }> {
+  function buildHistoryWithContext(contextOverride?: string): Array<{ role: string; content: string }> {
     const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
-    if (analysisContext?.contextText) {
-      history.unshift({ role: 'system' as any, content: analysisContext.contextText });
+    const ctx = contextOverride || analysisContext?.contextText;
+    if (ctx) {
+      history.unshift({ role: 'system' as any, content: ctx });
     }
     return history;
   }

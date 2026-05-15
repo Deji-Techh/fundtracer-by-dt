@@ -7,6 +7,7 @@ import Loader from '../components/Loader';
 import OnboardingModal from '../components/OnboardingModal';
 import InvestigateView from '../design-system/features/InvestigateView';
 import { AiFullScreenView } from '../design-system/features/AiFullScreenView';
+import { SolanaView } from '../design-system/features/SolanaView';
 import { getAuthToken } from '../api';
 import './AppPage.css';
 
@@ -173,6 +174,15 @@ export function AppPage() {
     }
   }, [isConnected, address]);
 
+  // Apply URL chain param on mount (e.g. ?chain=solana from shared link)
+  useEffect(() => {
+    if (effectiveChain) {
+      setSelectedChain(effectiveChain as ChainId);
+    }
+    // Only on mount — subsequent URL changes are user-driven
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleConnectWallet = useCallback(() => {
     if (!isWalletConnected) {
       loginPrivy();
@@ -336,6 +346,10 @@ export function AppPage() {
       <AppShell
         activeNav={activeTab}
         onNavChange={(id) => {
+          // When on Solana and navigating away from investigate, switch back to EVM
+          if (selectedChain === 'solana' && id !== 'investigate' && !id.startsWith('section-')) {
+            setSelectedChain('linea' as ChainId);
+          }
           const item = navItems.find(n => n.id === id);
           if (item && (item as any).onClick) {
             (item as any).onClick();
@@ -348,10 +362,28 @@ export function AppPage() {
         walletAddress={walletAddress}
         onConnectWallet={handleConnectWallet}
         selectedChain={selectedChain}
-        onChainChange={(chain) => setSelectedChain(chain as ChainId)}
+        onChainChange={(chain) => {
+          setSelectedChain(chain as ChainId);
+          if (chain === 'solana') {
+            setActiveTab('investigate');
+          }
+        }}
         onOpenAi={() => setIsAiOpen(true)}
       >
-        {renderContent()}
+        {selectedChain === 'solana' ? (
+          <SolanaView
+            prefillAddress={prefilledAddress || undefined}
+            onPrefillConsumed={() => {
+              const params = new URLSearchParams(searchParams);
+              params.delete('address');
+              params.delete('chain');
+              params.delete('mode');
+              setSearchParams(params, { replace: true });
+            }}
+          />
+        ) : (
+          renderContent()
+        )}
       </AppShell>
       <AiFullScreenView
         isOpen={isAiOpen} 
