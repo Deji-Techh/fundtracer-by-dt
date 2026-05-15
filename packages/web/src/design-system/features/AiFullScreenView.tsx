@@ -1057,88 +1057,96 @@ const handleSelectScan = async (scan: RecentScan) => {
       const token = getAuthToken();
       abortControllerRef.current = new AbortController();
 
-      // Step 1: Fetch external wallet data from Alchemy (cached server-side)
-      let externalTransfers: any[] = [];
-      let externalBalance = 0;
+      let tableData: AnalysisTableData;
+
       if (isWallet) {
-        try {
-          const extRes = await fetch(`${API_BASE}/api/ai-chat/external-wallet-data`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token && { 'Authorization': `Bearer ${token}` }),
-            },
-            body: JSON.stringify({ address, chain }),
-            signal: abortControllerRef.current.signal,
-          });
-          const extData = await extRes.json();
-          if (extData.success && extData.transfers) {
-            externalTransfers = extData.transfers;
-            externalBalance = extData.balance || 0;
-          }
-        } catch (e) {
-          // External fetch is additive — don't block the main analysis
+        // New flow: single combined endpoint fetches external data → caches → runs WalletAnalyzer → returns everything
+        const extRes = await fetch(`${API_BASE}/api/ai-chat/analyze-wallet`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          body: JSON.stringify({ address, chain }),
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!extRes.ok) {
+          const errData = await extRes.json().catch(() => ({}));
+          throw new Error(errData.error || `Wallet analysis failed (${extRes.status})`);
         }
+
+        const extData = await extRes.json();
+        if (!extData.success) throw new Error(extData.error || 'Wallet analysis failed');
+
+        const a = extData.analysis;
+        const activityPeriod = a.firstSeen
+          ? Math.round((Date.now() - new Date(a.firstSeen).getTime()) / 86400000)
+          : undefined;
+
+        tableData = {
+          address,
+          chain,
+          type: 'wallet',
+          riskScore: a.riskScore,
+          riskLevel: a.riskLevel,
+          totalTransactions: a.totalTransactions,
+          totalValueSent: a.totalValueSentEth,
+          totalValueReceived: a.totalValueReceivedEth,
+          activityPeriodDays: activityPeriod,
+          balance: a.balance,
+          firstSeen: a.firstSeen,
+          lastSeen: a.lastSeen,
+          flags: a.flags,
+          topInteractions: a.topInteractions,
+          fundingSources: a.fundingSources,
+          externalTransfers: extData.externalTransfers,
+          externalBalance: extData.externalBalanceWei,
+        };
+      } else {
+        // Contracts: call existing analyze endpoint
+        const apiBody = JSON.stringify({ contractAddress: address, chain, options: { maxInteractors: 50, analyzeFunding: false } });
+        const response = await fetch(`${API_BASE}/api/analyze/contract`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          body: apiBody,
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Contract analysis failed (${response.status})`);
+        }
+
+        const data = await response.json();
+        const result = data.result;
+        tableData = {
+          address,
+          chain,
+          type: 'contract',
+          riskScore: result.overallRiskScore,
+          riskLevel: result.riskLevel,
+          contractName: result.wallet?.contractName || result.contract?.name,
+          contractType: result.contract?.type,
+          contractVerified: result.contract?.verified,
+          deployer: result.contract?.deployer,
+          holders: result.holders,
+          isHoneypot: result.isHoneypot,
+          isMintable: result.isMintable,
+          isPaused: result.isPaused,
+          securityFindings: result.securityFindings,
+          flags: (result.suspiciousIndicators || []).map((s: any) => s.description || s),
+          topInteractions: (result.projectsInteracted || []).slice(0, 10).map((p: any) => ({
+            address: p.contractAddress || p.address || '',
+            label: p.projectName || p.label || 'Unknown',
+            count: p.interactionCount || p.count || 0,
+          })),
+          fundingSources: (result.fundingSources?.nodes && Array.isArray(result.fundingSources.nodes) ? result.fundingSources.nodes.map((n: any) => n.address || n) : []),
+        };
       }
-
-      // Step 2: Run FundTracer analysis
-      const apiBody = isWallet
-        ? JSON.stringify({ address, chain, options: { skipFundingTree: true } })
-        : JSON.stringify({ contractAddress: address, chain, options: { maxInteractors: 50, analyzeFunding: false } });
-
-      const response = await fetch(`${API_BASE}/api/analyze/${isWallet ? 'wallet' : 'contract'}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: apiBody,
-        signal: abortControllerRef.current.signal
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Analysis failed (${response.status})`);
-      }
-
-      const data = await response.json();
-      const result = data.result;
-
-      // Transform to AnalysisTableData
-      const summary = result.summary;
-      const tableData: AnalysisTableData = {
-        address,
-        chain,
-        type: isWallet ? 'wallet' : 'contract',
-        riskScore: result.overallRiskScore,
-        riskLevel: result.riskLevel,
-        totalTransactions: result.transactions?.length ?? summary?.totalTransactions,
-        totalValueSent: summary?.totalValueSentEth,
-        totalValueReceived: summary?.totalValueReceivedEth,
-        activityPeriodDays: summary?.activityPeriodDays ?? (result.wallet?.createdAt ? Math.round((Date.now() - new Date(result.wallet.createdAt).getTime()) / 86400000) : undefined),
-        balance: result.wallet?.balanceInEth != null ? Number(result.wallet.balanceInEth) : undefined,
-        firstSeen: result.wallet?.createdAt,
-        lastSeen: result.wallet?.lastActive,
-        flags: (result.suspiciousIndicators || []).map((s: any) => s.description || s),
-        topInteractions: (result.projectsInteracted || []).slice(0, 10).map((p: any) => ({
-          address: p.contractAddress || p.address || '',
-          label: p.projectName || p.label || 'Unknown',
-          count: p.interactionCount || p.count || 0,
-        })),
-        fundingSources: (result.fundingSources?.nodes && Array.isArray(result.fundingSources.nodes) ? result.fundingSources.nodes.map((n: any) => n.address || n) : []),
-        sybilCluster: result.sybilCluster,
-        contractName: result.wallet?.contractName || result.contract?.name,
-        contractType: result.contract?.type,
-        contractVerified: result.contract?.verified,
-        deployer: result.contract?.deployer,
-        holders: result.holders,
-        isHoneypot: result.isHoneypot,
-        isMintable: result.isMintable,
-        isPaused: result.isPaused,
-        securityFindings: result.securityFindings,
-        externalTransfers,
-        externalBalance,
-      };
 
       // Build AI context text from table data
       const contextText = buildContextFromTable(tableData);

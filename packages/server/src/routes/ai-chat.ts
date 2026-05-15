@@ -111,11 +111,13 @@ async function analyzeContract(address: string, chain: string, userId: string): 
 }
 
 // ============================================================
-// External Wallet Data Endpoint
-// Fetches raw wallet data from Alchemy, caches in Redis
-// POST /api/ai-chat/external-wallet-data
+// Combined Wallet Analysis Endpoint
+// 1. Fetches raw wallet data from Alchemy → caches in Redis
+// 2. Runs FundTracer WalletAnalyzer on the address
+// 3. Returns everything combined for tabular display
+// POST /api/ai-chat/analyze-wallet
 // ============================================================
-router.post('/external-wallet-data', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/analyze-wallet', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { address, chain } = req.body;
 
@@ -126,99 +128,156 @@ router.post('/external-wallet-data', async (req: AuthenticatedRequest, res: Resp
     const normalizedChain = normalizeChainId(chain);
     const cacheKey = `ext:wallet:${normalizedChain}:${address.toLowerCase()}`;
 
-    // Check cache first
-    const cached = await cacheGet<any>(cacheKey);
-    if (cached?.transfers) {
-      return res.json({ success: true, ...cached, fromCache: true });
+    // Step 1: Check cache for external data, or fetch from Alchemy
+    let cached = await cacheGet<any>(cacheKey);
+    if (!cached?.transfers) {
+      const sybilKeys = getSybilAlchemyKeys();
+      const apiKey = sybilKeys.defaultKey || '';
+      const subdomain = CHAIN_TO_ALCHEMY[normalizedChain];
+
+      if (subdomain && apiKey) {
+        const alchemyUrl = `https://${subdomain}.g.alchemy.com/v2/${apiKey}`;
+
+        // Fetch balance
+        const balanceRes = await fetch(alchemyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [address, 'latest'] }),
+        }).catch(() => null);
+        const balanceData = balanceRes ? await balanceRes.json().catch(() => null) : null;
+        const balanceWei = balanceData?.result || '0x0';
+        const balanceEth = parseFloat((parseInt(balanceWei, 16) / 1e18).toFixed(6));
+
+        // Fetch outgoing transfers
+        const outgoingRes = await fetch(alchemyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 2, method: 'alchemy_getAssetTransfers',
+            params: [{
+              fromBlock: '0x0', toBlock: 'latest',
+              fromAddress: address,
+              order: 'desc', maxCount: '0x3E8',
+              category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'],
+              withMetadata: true, excludeZeroValue: true,
+            }],
+          }),
+        }).catch(() => null);
+        const outgoingData = outgoingRes ? await outgoingRes.json().catch(() => null) : null;
+
+        // Fetch incoming transfers
+        const incomingRes = await fetch(alchemyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0', id: 3, method: 'alchemy_getAssetTransfers',
+            params: [{
+              fromBlock: '0x0', toBlock: 'latest',
+              toAddress: address,
+              order: 'desc', maxCount: '0x3E8',
+              category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'],
+              withMetadata: true, excludeZeroValue: true,
+            }],
+          }),
+        }).catch(() => null);
+        const incomingData = incomingRes ? await incomingRes.json().catch(() => null) : null;
+
+        const allTransfers = [...(outgoingData?.result?.transfers || []), ...(incomingData?.result?.transfers || [])]
+          .filter(Boolean)
+          .sort((a: any, b: any) => parseInt(b.blockNum || '0x0', 16) - parseInt(a.blockNum || '0x0', 16))
+          .slice(0, 50)
+          .map((t: any) => ({
+            hash: t.hash,
+            from: t.from,
+            to: t.to,
+            value: t.value || '0',
+            asset: t.asset || 'ETH',
+            category: t.category || 'external',
+            timestamp: t.metadata?.blockTimestamp || null,
+            blockNum: t.blockNum,
+          }));
+
+        cached = { balance: balanceEth, transfers: allTransfers };
+
+        // Cache for 30 minutes (don't block on cache failure)
+        await cacheSet(cacheKey, cached, 1800).catch(() => {});
+      } else {
+        cached = { balance: 0, transfers: [] };
+      }
     }
 
-    // Fetch from Alchemy
-    const sybilKeys = getSybilAlchemyKeys();
-    const apiKey = sybilKeys.defaultKey || '';
-    const subdomain = CHAIN_TO_ALCHEMY[normalizedChain];
+    // Step 2: Run FundTracer WalletAnalyzer directly for full analysis data
+    const userId = req.user?.uid || 'anonymous';
+    let riskScore: number | undefined;
+    let riskLevel: string | undefined;
+    let totalTransactions = 0;
+    let totalValueSentEth: number | undefined;
+    let totalValueReceivedEth: number | undefined;
+    let firstSeen: string | undefined;
+    let lastSeen: string | undefined;
+    let flags: string[] = [];
+    let topInteractions: Array<{ address: string; label: string; count: number }> = [];
+    let fundingSources: string[] = [];
+    let balance: number | undefined;
 
-    if (!subdomain || !apiKey) {
-      return res.json({ success: true, balance: 0, transfers: [], fromCache: false });
-    }
+    try {
+      const { WalletAnalyzer } = await import('@fundtracer/core');
+      const sybilKeys = getSybilAlchemyKeys();
+      const analyzer = new WalletAnalyzer({
+        alchemy: sybilKeys.defaultKey || '',
+        moralis: sybilKeys.moralisKey,
+        sybilConfig: sybilKeys,
+      });
+      const analyzerChain = mapChainForAnalyzer(normalizedChain);
+      const result = await analyzer.analyze(address, analyzerChain as ChainId) as any;
 
-    const alchemyUrl = `https://${subdomain}.g.alchemy.com/v2/${apiKey}`;
-
-    // Fetch balance
-    const balanceRes = await fetch(alchemyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [address, 'latest'] }),
-    }).catch(() => null);
-    const balanceData = balanceRes ? await balanceRes.json().catch(() => null) : null;
-    const balanceWei = balanceData?.result || '0x0';
-    const balanceEth = parseFloat((parseInt(balanceWei, 16) / 1e18).toFixed(6));
-
-    // Fetch outgoing transfers
-    const outgoingRes = await fetch(alchemyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 2, method: 'alchemy_getAssetTransfers',
-        params: [{
-          fromBlock: '0x0', toBlock: 'latest',
-          fromAddress: address,
-          order: 'desc', maxCount: '0x3E8',
-          category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'],
-          withMetadata: true, excludeZeroValue: true,
-        }],
-      }),
-    }).catch(() => null);
-    const outgoingData = outgoingRes ? await outgoingRes.json().catch(() => null) : null;
-    const outgoing = outgoingData?.result?.transfers || [];
-
-    // Fetch incoming transfers
-    const incomingRes = await fetch(alchemyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 3, method: 'alchemy_getAssetTransfers',
-        params: [{
-          fromBlock: '0x0', toBlock: 'latest',
-          toAddress: address,
-          order: 'desc', maxCount: '0x3E8',
-          category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'],
-          withMetadata: true, excludeZeroValue: true,
-        }],
-      }),
-    }).catch(() => null);
-    const incomingData = incomingRes ? await incomingRes.json().catch(() => null) : null;
-    const incoming = incomingData?.result?.transfers || [];
-
-    // Merge and sort by block number (desc)
-    const allTransfers = [...outgoing, ...incoming]
-      .filter(Boolean)
-      .sort((a: any, b: any) => {
-        const blockA = parseInt(a.blockNum || '0x0', 16);
-        const blockB = parseInt(b.blockNum || '0x0', 16);
-        return blockB - blockA;
-      })
-      .slice(0, 50)
-      .map((t: any) => ({
-        hash: t.hash,
-        from: t.from,
-        to: t.to,
-        value: t.value || '0',
-        asset: t.asset || 'ETH',
-        logo: t.erc1155Metadata?.tokenType ? null : t.tokenMetadata?.logo,
-        category: t.category || 'external',
-        timestamp: t.metadata?.blockTimestamp || null,
-        blockNum: t.blockNum,
+      riskScore = result.overallRiskScore;
+      riskLevel = result.riskLevel;
+      totalTransactions = result.transactions?.length ?? result.summary?.totalTransactions ?? 0;
+      totalValueSentEth = result.summary?.totalValueSentEth;
+      totalValueReceivedEth = result.summary?.totalValueReceivedEth;
+      firstSeen = result.wallet?.createdAt;
+      lastSeen = result.wallet?.lastActive;
+      balance = result.wallet?.balanceInEth != null ? Number(result.wallet.balanceInEth) : undefined;
+      flags = (result.suspiciousIndicators || []).map((s: any) => s.description || s);
+      topInteractions = (result.projectsInteracted || []).slice(0, 10).map((p: any) => ({
+        address: p.contractAddress || p.address || '',
+        label: p.projectName || p.label || 'Unknown',
+        count: p.interactionCount || p.count || 0,
       }));
+      fundingSources = (result.fundingSources?.nodes && Array.isArray(result.fundingSources.nodes)
+        ? result.fundingSources.nodes.map((n: any) => n.address || n)
+        : []);
+    } catch (analysisError) {
+      console.warn('[AI-Chat] WalletAnalyzer failed, using external data only:', (analysisError as Error).message);
+    }
 
-    const result = { balance: balanceEth, transfers: allTransfers, fromCache: false };
-
-    // Cache for 30 minutes
-    await cacheSet(cacheKey, result, 1800).catch(() => {});
-
-    res.json({ success: true, ...result, fromCache: false });
+    // Step 3: Return combined result for tabular display
+    const combined = {
+      success: true,
+      address,
+      chain: normalizedChain,
+      externalBalanceWei: cached.balance,
+      externalTransfers: cached.transfers,
+      fromCache: cached?.fromCache || false,
+      analysis: {
+        riskScore,
+        riskLevel,
+        totalTransactions,
+        totalValueSentEth,
+        totalValueReceivedEth,
+        balance,
+        firstSeen,
+        lastSeen,
+        flags,
+        topInteractions,
+        fundingSources,
+      },
+    };
+    res.json(combined);
   } catch (error: any) {
-    console.error('[AI-Chat] External wallet data error:', error.message);
-    res.status(500).json({ success: false, error: 'An internal error occurred' });
+    console.error('[AI-Chat] Analyze-wallet error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
