@@ -79,6 +79,68 @@ class TorqueServiceV2 {
     });
   }
 
+  // Award 1 point for API key requests and add activity
+  async incrementAPIPoints(userId: string, displayName: string = ''): Promise<boolean> {
+    try {
+      const db = getDb();
+      const docRef = db.collection(this.collection).doc(userId);
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        await this.initWallet(userId, displayName);
+      }
+
+      await docRef.update({
+        totalPoints: FieldValue.increment(1),
+        updatedAt: Date.now()
+      });
+
+      await this.recalculateRanks();
+
+      if (isRedisConnected()) {
+        await cacheDel('torque:v2:leaderboard').catch(() => {});
+        await cacheDel(`torque:v2:user:${userId}`).catch(() => {});
+      }
+
+      // Add activity entry (fire-and-forget)
+      this.addAPIActivity(userId, displayName).catch(() => {});
+
+      return true;
+    } catch (error) {
+      console.error('[TorqueV2] incrementAPIPoints error:', error);
+      return false;
+    }
+  }
+
+  // Lightweight activity entry for API requests
+  private async addAPIActivity(userId: string, displayName: string): Promise<void> {
+    try {
+      const db = getDb();
+      await db.collection(this.activityCollection).add({
+        userId,
+        displayName: displayName || 'Anonymous',
+        walletAddress: 'API Request',
+        chain: 'api',
+        points: 1,
+        timestamp: Date.now()
+      });
+
+      // Clean up old entries - keep only last 20
+      const snapshot = await db.collection(this.activityCollection)
+        .orderBy('timestamp', 'desc')
+        .get();
+
+      if (snapshot.size > this.maxActivityEntries) {
+        const toDelete = snapshot.docs.slice(this.maxActivityEntries);
+        const batch = db.batch();
+        toDelete.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      }
+    } catch (error) {
+      console.error('[TorqueV2] addAPIActivity error:', error);
+    }
+  }
+
   // Increment scan count AND update rank atomically
   async incrementScan(userId: string, displayName: string = ''): Promise<boolean> {
     try {
@@ -187,7 +249,7 @@ class TorqueServiceV2 {
           rank,
           userId: doc.id,
           displayName,
-          score: (data.walletsScanned || 0) * 10,
+          score: data.totalPoints || 0,
           walletsScanned: data.walletsScanned || 0,
           totalPoints: data.totalPoints || 0
         });

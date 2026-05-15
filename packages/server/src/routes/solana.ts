@@ -44,8 +44,10 @@ router.get('/overview/:address', authMiddleware, usageMiddleware, async (req: Au
 
     if (userId) {
       const displayName = req.user?.name || 'User';
-      await torqueServiceV2.incrementScan(userId, displayName).catch(() => {});
-      await torqueServiceV2.addActivity(userId, displayName, address, 'solana').catch(() => {});
+      if (res.locals.authProvider !== 'api_key') {
+        await torqueServiceV2.incrementScan(userId, displayName).catch(() => {});
+        await torqueServiceV2.addActivity(userId, displayName, address, 'solana').catch(() => {});
+      }
     }
 
     res.json(overview);
@@ -186,8 +188,10 @@ router.get('/portfolio/:address', authMiddleware, usageMiddleware, async (req: A
     // Add to Torque leaderboard and activity (if authenticated)
     if (userId) {
       const displayName = req.user?.name || 'User';
-      await torqueServiceV2.incrementScan(userId, displayName).catch(() => {});
-      await torqueServiceV2.addActivity(userId, displayName, address, 'solana').catch(() => {});
+      if (res.locals.authProvider !== 'api_key') {
+        await torqueServiceV2.incrementScan(userId, displayName).catch(() => {});
+        await torqueServiceV2.addActivity(userId, displayName, address, 'solana').catch(() => {});
+      }
     }
     
     res.json(portfolio);
@@ -316,8 +320,10 @@ router.get('/risk/:address', authMiddleware, usageMiddleware, async (req: Authen
     // Add to Torque leaderboard and activity (if authenticated)
     if (userId) {
       const displayName = req.user?.name || 'User';
-      await torqueServiceV2.incrementScan(userId, displayName).catch(() => {});
-      await torqueServiceV2.addActivity(userId, displayName, address, 'solana').catch(() => {});
+      if (res.locals.authProvider !== 'api_key') {
+        await torqueServiceV2.incrementScan(userId, displayName).catch(() => {});
+        await torqueServiceV2.addActivity(userId, displayName, address, 'solana').catch(() => {});
+      }
     }
     
     res.json(risk);

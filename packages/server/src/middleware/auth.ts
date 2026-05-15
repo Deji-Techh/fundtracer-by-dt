@@ -7,6 +7,7 @@ import express, { Response, NextFunction } from 'express';
 import { getFirestore } from '../firebase.js';
 import jwt from 'jsonwebtoken';
 import { incrementAPIKeyUsage } from '../models/apiKey.js';
+import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 import { isRedisConnected, cacheGet, cacheSet } from '../utils/redis.js';
 
 export type AdminRole = 'superadmin' | 'admin' | 'moderator';
@@ -358,6 +359,9 @@ export async function apiKeyAuthMiddleware(
                     
                     incrementAPIKeyUsage(cachedData.userId, apiKey)
                         .catch(err => console.error('[API-KEY] Failed to track usage:', err));
+
+                    torqueServiceV2.incrementAPIPoints(cachedData.userId, cachedData.displayName)
+                        .catch(err => console.error('[API-KEY] Failed to award points:', err));
                     
                     console.log(`[API-KEY] Authenticated from cache: ${cachedData.userId}`);
                     next();
@@ -421,12 +425,15 @@ export async function apiKeyAuthMiddleware(
                 incrementAPIKeyUsage(userId, apiKey)
                     .then(() => console.log(`[API-KEY] Usage incremented successfully`))
                     .catch(err => console.error('[API-KEY] Failed to track usage:', err));
-                
+
+                torqueServiceV2.incrementAPIPoints(userId, cachedData.displayName)
+                    .catch(err => console.error('[API-KEY] Failed to award points:', err));
+
                 console.log(`[API-KEY] Authenticated from apiKeys collection: ${userId}`);
                 next();
                 return;
             }
-            
+
             // API key not found in top-level apiKeys collection (the only authoritative source)
             console.log('[API-KEY-MIDDLEWARE] Key not found in apiKeys collection');
             return res.status(401).json({
