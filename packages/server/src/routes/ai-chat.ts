@@ -45,48 +45,49 @@ const normalizeChainId = (chain: string): string => {
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 const SOL_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-// Map frontend chain to analyzer-compatible chain
-function mapChainForAnalyzer(chain: string): string {
-  const chainLower = chain.toLowerCase();
-  switch (chainLower) {
-    case 'linea':
-      return 'ethereum'; // Linea data available via ethereum endpoints
-    case 'base':
-      return 'ethereum'; // Base data available via ethereum endpoints
-    case 'arbitrum':
-      return 'arbitrum';
-    case 'optimism':
-      return 'optimism';
-    case 'polygon':
-      return 'polygon';
-    case 'bsc':
-      return 'ethereum'; // BSC uses ethereum-compatible format
-    case 'solana':
-      return 'solana';
-    default:
-      return 'ethereum';
-  }
-}
-
-// Analyze wallet using internal WalletAnalyzer with correct chain mapping
-// Falls back to Alchemy external data for chains that WalletAnalyzer maps to 'ethereum'
+// Analyze wallet using WalletAnalyzer — passes chain directly (no mapping) and includes
+// explorer API keys so WalletAnalyzer can fetch on-chain data for each chain natively.
+// Falls back to Alchemy RPC data as a last resort.
 async function analyzeWallet(address: string, chain: string, userId: string): Promise<AnalysisData> {
   const { WalletAnalyzer } = await import('@fundtracer/core');
 
   const sybilKeys = getSybilAlchemyKeys();
 
-  const analyzer = new WalletAnalyzer({
-    alchemy: sybilKeys.defaultKey || '',
-    moralis: sybilKeys.moralisKey,
-    sybilConfig: sybilKeys,
-  });
+  // Build sybil config matching the standard analyze endpoint (20-key pool)
+  const defaultKey = sybilKeys.defaultKey || '';
+  const walletKeys = sybilKeys.walletKeys || [];
+  const contractKeys = sybilKeys.contractKeys || [];
+  const sybilConfig = (walletKeys.length > 0 || contractKeys.length > 0) ? {
+    defaultKey,
+    contractKeys: contractKeys.slice(0, Math.min(10, contractKeys.length)),
+    walletKeys: walletKeys.slice(0, Math.min(10, walletKeys.length)),
+    moralisKey: sybilKeys.moralisKey,
+  } : undefined;
 
-  const analyzerChain = mapChainForAnalyzer(chain);
+  const explorerKey = process.env.DEFAULT_ETHERSCAN_API_KEY || process.env.ETHERSCAN_API_KEY || '';
+
+  const analyzer = new WalletAnalyzer({
+    alchemy: defaultKey,
+    sybilConfig,
+    moralis: sybilKeys.moralisKey,
+    etherscan: explorerKey,
+    lineascan: process.env.LINEASCAN_API_KEY || explorerKey,
+    arbiscan: process.env.ARBISCAN_API_KEY || explorerKey,
+    basescan: process.env.BASESCAN_API_KEY || explorerKey,
+    optimism: process.env.OPTIMISM_API_KEY || explorerKey,
+    polygonscan: process.env.POLYGONSCAN_API_KEY || explorerKey,
+  });
 
   let result: any;
   let walletAnalyzerFailed = false;
   try {
-    result = await analyzer.analyze(address, analyzerChain as ChainId) as any;
+    // Pass chain directly — no mapping — so WalletAnalyzer uses the correct
+    // explorer API per chain (lineascan for Linea, arbiscan for Arbitrum, etc.)
+    result = await analyzer.analyze(address, chain as ChainId, {
+      transactionLimit: 10000,
+      skipFundingTree: true,
+      skipTimestamps: true,
+    }) as any;
   } catch {
     walletAnalyzerFailed = true;
   }
@@ -113,8 +114,8 @@ async function analyzeWallet(address: string, chain: string, userId: string): Pr
     lastSeen: result?.wallet?.lastActive,
   } as AnalysisData;
 
-  // Fall back to Alchemy data when WalletAnalyzer found no data
-  // (happens for Linea, Base, BSC — chains mapped to 'ethereum')
+  // Fall back to Alchemy RPC data when WalletAnalyzer still found no data
+  // (covers chains where no explorer API key is configured)
   if (!hasAnalyzerData && !walletAnalyzerFailed) {
     const subdomain = CHAIN_TO_ALCHEMY[chain];
     const apiKey = sybilKeys.defaultKey || '';
@@ -287,7 +288,7 @@ router.post('/analyze-wallet', async (req: AuthenticatedRequest, res: Response) 
       }
     }
 
-    // Step 2: Run FundTracer WalletAnalyzer directly for full analysis data
+    // Step 2: Run FundTracer WalletAnalyzer — pass chain directly with explorer keys
     const userId = req.user?.uid || 'anonymous';
     let riskScore: number | undefined;
     let riskLevel: string | undefined;
@@ -304,13 +305,39 @@ router.post('/analyze-wallet', async (req: AuthenticatedRequest, res: Response) 
     try {
       const { WalletAnalyzer } = await import('@fundtracer/core');
       const sybilKeys = getSybilAlchemyKeys();
+
+      // Build sybil config matching the standard analyze endpoint
+      const defaultKey = sybilKeys.defaultKey || '';
+      const walletKeys = sybilKeys.walletKeys || [];
+      const contractKeys = sybilKeys.contractKeys || [];
+      const sybilConfig = (walletKeys.length > 0 || contractKeys.length > 0) ? {
+        defaultKey,
+        contractKeys: contractKeys.slice(0, Math.min(10, contractKeys.length)),
+        walletKeys: walletKeys.slice(0, Math.min(10, walletKeys.length)),
+        moralisKey: sybilKeys.moralisKey,
+      } : undefined;
+
+      const explorerKey = process.env.DEFAULT_ETHERSCAN_API_KEY || process.env.ETHERSCAN_API_KEY || '';
+
       const analyzer = new WalletAnalyzer({
-        alchemy: sybilKeys.defaultKey || '',
+        alchemy: defaultKey,
+        sybilConfig,
         moralis: sybilKeys.moralisKey,
-        sybilConfig: sybilKeys,
+        etherscan: explorerKey,
+        lineascan: process.env.LINEASCAN_API_KEY || explorerKey,
+        arbiscan: process.env.ARBISCAN_API_KEY || explorerKey,
+        basescan: process.env.BASESCAN_API_KEY || explorerKey,
+        optimism: process.env.OPTIMISM_API_KEY || explorerKey,
+        polygonscan: process.env.POLYGONSCAN_API_KEY || explorerKey,
       });
-      const analyzerChain = mapChainForAnalyzer(normalizedChain);
-      const result = await analyzer.analyze(address, analyzerChain as ChainId) as any;
+
+      // Pass normalizedChain directly — no mapping — so WalletAnalyzer fetches
+      // data using the correct explorer API for the chain
+      const result = await analyzer.analyze(address, normalizedChain as ChainId, {
+        transactionLimit: 10000,
+        skipFundingTree: true,
+        skipTimestamps: true,
+      }) as any;
 
       riskScore = result.overallRiskScore;
       riskLevel = result.riskLevel;
@@ -334,8 +361,8 @@ router.post('/analyze-wallet', async (req: AuthenticatedRequest, res: Response) 
     }
 
     // Step 2.5: If WalletAnalyzer found no data but Alchemy has external transfers,
-    // compute the table fields from Alchemy data (handles Linea, Base, BSC — chains
-    // where WalletAnalyzer maps to 'ethereum' and finds nothing)
+    // compute the table fields from Alchemy data (fallback when no explorer key
+    // is configured for a particular chain)
     if ((totalTransactions === 0 || !totalTransactions) && cached.transfers.length > 0) {
       totalTransactions = cached.transfers.length;
 
