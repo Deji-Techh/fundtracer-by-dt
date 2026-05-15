@@ -68,7 +68,10 @@ function AddressLabel({ address, chain = 'ethereum', editable = false, showAddre
 
     // Fetch entity from server
     useEffect(() => {
-      if (!address) return;
+      // Skip entity lookup for Solana — the backend only has ~50 curated
+      // Solana entities, so most lookups 404. The SolanaView already handles
+      // its own entity labeling for known programs internally.
+      if (!address || chain === 'solana') return;
       setEntityLoading(true);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 3000);

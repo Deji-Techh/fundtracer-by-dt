@@ -95,17 +95,27 @@ export class SolanaHeliusClient {
         poolOverride?: RpcKeyPool,
     ): Promise<{ data: any[]; paginationToken?: string }> {
         const pool = poolOverride || xferRpcPool;
-        const result = await pool.rpc('getTransfersByAddress', [
-            address,
-            {
-                limit: options.limit || 100,
-                ...(options.paginationToken ? { paginationToken: options.paginationToken } : {}),
-            },
-        ]);
-        return {
-            data: result?.data || [],
-            paginationToken: result?.paginationToken || undefined,
-        };
+        try {
+            const result = await pool.rpc('getTransfersByAddress', [
+                address,
+                {
+                    limit: options.limit || 100,
+                    ...(options.paginationToken ? { paginationToken: options.paginationToken } : {}),
+                },
+            ]);
+            return {
+                data: result?.data || [],
+                paginationToken: result?.paginationToken || undefined,
+            };
+        } catch (err: any) {
+            // Helius-only method — standard RPC endpoints (Alchemy, etc.)
+            // throw "Unsupported method" which isn't caught by the "paid plan"
+            // checks in callers. Convert it so they fall through to free tier.
+            if (err.message?.includes?.('Unsupported method')) {
+                throw new Error('only available on paid Helius plan');
+            }
+            throw err;
+        }
     }
 
     // ================================================================
