@@ -211,30 +211,61 @@ export async function getUserAPIKeys(userId: string): Promise<APIKey[]> {
 }
 
 // Update API key usage
-export async function incrementAPIKeyUsage(userId: string, keyId: string): Promise<void> {
-  console.log(`[INCREMENT] Starting - userId: ${userId}, keyId: ${keyId}`);
+export async function incrementAPIKeyUsage(userId: string, rawKey: string): Promise<void> {
+  console.log(`[INCREMENT] Starting - userId: ${userId}, rawKey: ${rawKey.substring(0, 15)}...`);
   const db = getFirestore();
-  const keyRef = db.collection('users').doc(userId).collection('apiKeys').doc(keyId);
-  
-  // First check if the document exists
-  const keyDoc = await keyRef.get();
-  if (!keyDoc.exists) {
-    console.error(`[INCREMENT] API key document not found: users/${userId}/apiKeys/${keyId}`);
-    throw new Error('API key document not found');
-  }
-  
-  console.log(`[INCREMENT] Found key document, current data:`, keyDoc.data());
-  
   const now = Date.now();
-  const dailyReset = getDailyResetTimestamp();
-  
-  await keyRef.update({
-    dailyUsage: FieldValue.increment(1),
-    dailyUsageReset: dailyReset,
-    lastUsed: now,
-  });
-  
-  console.log(`[INCREMENT] Successfully updated dailyUsage for key: ${keyId}`);
+
+  // 1. Update top-level apiKeys/{rawKey} document (used by middleware validation)
+  try {
+    const topLevelRef = db.collection('apiKeys').doc(rawKey);
+    await topLevelRef.update({
+      lastUsed: now,
+      requests: FieldValue.increment(1),
+    });
+    console.log(`[INCREMENT] Updated top-level apiKeys/${rawKey.substring(0, 15)}...`);
+  } catch (err) {
+    console.error(`[INCREMENT] Failed to update top-level apiKeys doc:`, err);
+  }
+
+  // 2. Update users/{userId}/apiKeys/{autoDocId} (used by dashboard)
+  // Need to find the doc by querying where key == rawKey
+  try {
+    const subSnapshot = await db.collection('users').doc(userId)
+      .collection('apiKeys')
+      .where('key', '==', rawKey)
+      .limit(1)
+      .get();
+
+    if (!subSnapshot.empty) {
+      const subDoc = subSnapshot.docs[0];
+      await subDoc.ref.update({
+        lastUsed: now,
+        requests: FieldValue.increment(1),
+      });
+      console.log(`[INCREMENT] Updated subcollection doc ${subDoc.id} for key`);
+    } else {
+      console.warn(`[INCREMENT] No subcollection doc found for key ${rawKey.substring(0, 15)}...`);
+    }
+  } catch (err) {
+    console.error(`[INCREMENT] Failed to update subcollection doc:`, err);
+  }
+
+  // 3. Also update daily usage tracking (for rate limiting context)
+  try {
+    const topLevelDoc = await db.collection('apiKeys').doc(rawKey).get();
+    if (topLevelDoc.exists) {
+      const dailyReset = getDailyResetTimestamp();
+      await topLevelDoc.ref.update({
+        dailyUsage: FieldValue.increment(1),
+        dailyUsageReset: dailyReset,
+      });
+    }
+  } catch (err) {
+    console.error(`[INCREMENT] Failed to update daily usage:`, err);
+  }
+
+  console.log(`[INCREMENT] Usage tracking complete for key: ${rawKey.substring(0, 15)}...`);
 }
 
 // Reset daily usage if needed

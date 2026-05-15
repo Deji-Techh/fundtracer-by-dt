@@ -64,10 +64,13 @@ async function tryInit(): Promise<void> {
       const resp = await fetch('/api/config/firebase');
       if (resp.ok) {
         const serverConfig = await resp.json();
-        // Merge - server values fill in gaps where import.meta.env is undefined
+        // Only keep defined import.meta.env values so they don't override server config with undefined
+        const definedLocal = Object.fromEntries(
+          Object.entries(firebaseConfig).filter(([_, v]) => v != null)
+        );
         firebaseConfig = {
-          ...serverConfig, // server config is the full source
-          ...firebaseConfig, // import.meta.env values override if they exist
+          ...serverConfig,
+          ...definedLocal,
         };
       }
     } catch {

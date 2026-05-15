@@ -114,16 +114,7 @@ export async function usageMiddleware(
                 return res.status(400).json({ error: 'Invalid chain' });
             }
 
-            const isAllowed = tier === 'max' ||
-                (tier === 'pro' && ['linea', 'arbitrum', 'base'].includes(normalizedChain)) ||
-                (tier === 'free' && normalizedChain === 'linea');
-
-            if (!isAllowed) {
-                return res.status(403).json({
-                    error: 'Chain restricted',
-                    message: `The ${chain} chain is not available on the ${tier} tier. Please upgrade.`
-                });
-            }
+            // All chains available for all tiers
         }
 
         // If Redis is available, use it

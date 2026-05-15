@@ -538,7 +538,22 @@ router.delete('/api-keys/:keyId', async (req: AuthenticatedRequest, res: Respons
             return res.status(404).json({ error: 'API key not found' });
         }
 
+        const keyData = keyDoc.data();
         await keyRef.update({ active: false });
+
+        // Also deactivate the top-level apiKeys/{rawKey} doc for middleware consistency
+        if (keyData?.key) {
+          try {
+            const topLevelRef = db.collection('apiKeys').doc(keyData.key);
+            const topLevelDoc = await topLevelRef.get();
+            if (topLevelDoc.exists) {
+              await topLevelRef.update({ active: false });
+              console.log(`[User] Also deactivated top-level key: ${keyData.key.substring(0, 15)}...`);
+            }
+          } catch (topLevelErr) {
+            console.error('[User] Failed to deactivate top-level key:', topLevelErr);
+          }
+        }
 
         res.json({ success: true });
     } catch (error: any) {
