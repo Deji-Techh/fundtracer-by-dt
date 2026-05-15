@@ -493,6 +493,7 @@ apiRouter.use('/auth', authLimiter, authRoutes); // Public auth route with stric
 apiRouter.use('/contracts', publicLimiter, contractRoutes); // Public contract lookup with rate limiting
 apiRouter.use('/payment', publicLimiter, paymentRoutes); // Payment verification with rate limiting
 apiRouter.use('/contact', publicLimiter, contactRoutes); // Contact/sales form
+apiRouter.use('/config', configRoutes); // Runtime client config (no auth needed)
 apiRouter.use('/tx', apiKeyAuthMiddleware, transactionRoutes); // Transaction lookup
 apiRouter.use('/gas', apiKeyAuthMiddleware, gasRoutes); // Gas prices
 apiRouter.use('/intel', publicLimiter, intelRoutes); // Intel page data (public)
@@ -576,6 +577,7 @@ import notificationRoutes from './routes/notifications.js';
 import radarRoutes from './routes/radar.js';
 import entityRoutes from './routes/entities.js';
 import { shareRoutes } from './routes/share.js';
+import configRoutes from './routes/config.js';
 
 // All API routes - restored from working commit
 apiRouter.use('/portfolio', portfolioRoutes);

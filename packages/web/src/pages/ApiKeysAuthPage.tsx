@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Key, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Check, X, Sparkles, Shield, Zap, Loader2 } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { signUpWithEmail, signInWithEmail, verifyEmail } from '../firebase';
+import { signUpWithEmail, signInWithEmail, verifyEmail, getFirebaseStatus } from '../firebase';
 import { loginWithEmail as apiLoginWithEmail } from '../api';
 import './ApiKeysAuthPage.css';
 
@@ -27,6 +27,35 @@ export function ApiKeysAuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
+  const [firebaseReady, setFirebaseReady] = useState<boolean | null>(null);
+
+  // Wait for Firebase to initialize (async if fetching runtime config)
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      // Give Firebase a moment to init (it may be fetching config from server)
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 300));
+        const status = getFirebaseStatus();
+        if (cancelled) return;
+        if (status.initialized) {
+          setFirebaseReady(true);
+          return;
+        }
+      }
+      if (!cancelled) {
+        // Timed out — show Firebase status
+        const status = getFirebaseStatus();
+        setFirebaseReady(false);
+        setError(
+          'Email sign-in is not available (Firebase not configured). ' +
+          'Please try signing in with Google instead.'
+        );
+      }
+    };
+    check();
+    return () => { cancelled = true; };
+  }, []);
 
   const resetForm = () => {
     setEmail('');
@@ -39,6 +68,11 @@ export function ApiKeysAuthPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!firebaseReady) {
+      setError('Email sign-up is not available (Firebase not configured). Please use Google sign-in instead.');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -76,6 +110,12 @@ export function ApiKeysAuthPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!firebaseReady) {
+      setError('Email sign-in is not available (Firebase not configured). Please use Google sign-in instead.');
+      return;
+    }
+
     setLoading(true);
 
     try {

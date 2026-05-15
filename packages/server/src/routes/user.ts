@@ -415,7 +415,7 @@ router.get('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
     }
 });
 
-router.post('/api-keys', requireTwoFactor, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -485,6 +485,25 @@ router.post('/api-keys', requireTwoFactor, async (req: AuthenticatedRequest, res
 
         const docRef = await keysRef.add(keyData);
 
+        // ALSO store in top-level apiKeys/{rawKey} for middleware validation
+        try {
+            const topLevelKeyRef = db.collection('apiKeys').doc(fullKey);
+            await topLevelKeyRef.set({
+                userId: req.user.uid,
+                active: true,
+                tier: userTier,
+                email: userData?.email || null,
+                displayName: userData?.displayName || null,
+                profilePicture: userData?.profilePicture || null,
+                isVerified: userData?.isVerified || false,
+                walletAddress: userData?.walletAddress || null,
+                createdAt: now,
+            });
+            console.log(`[User] API key also stored in top-level apiKeys collection: ${fullKey.substring(0, 15)}...`);
+        } catch (topLevelErr) {
+            console.error('[User] Failed to store key in top-level apiKeys collection:', topLevelErr);
+        }
+
         res.status(201).json({
             success: true,
             key: {
@@ -504,7 +523,7 @@ router.post('/api-keys', requireTwoFactor, async (req: AuthenticatedRequest, res
     }
 });
 
-router.delete('/api-keys/:keyId', requireTwoFactor, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/api-keys/:keyId', async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
