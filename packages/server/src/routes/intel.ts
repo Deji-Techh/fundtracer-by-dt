@@ -104,7 +104,7 @@ router.get('/market-stats', async (req, res) => {
         console.error('[Intel] Error fetching market stats:', error);
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'An internal error occurred'
         });
     }
 });
@@ -188,7 +188,7 @@ router.get('/live-transactions', async (req, res) => {
         console.error('[Intel] Error fetching live transactions:', error);
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'An internal error occurred'
         });
     }
 });

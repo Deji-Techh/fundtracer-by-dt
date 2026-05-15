@@ -610,7 +610,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             console.error('[Solana Analyze] Error:', error);
             return res.status(500).json({
                 error: 'Solana analysis failed',
-                message: error.message
+
             });
         }
     }
@@ -881,7 +881,7 @@ router.get('/timestamps/:taskId', async (req: AuthenticatedRequest, res: Respons
     } catch (error: any) {
         console.error('[SSE Timestamps] Error:', error.message);
         if (!closed) {
-            res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+            res.write(`data: ${JSON.stringify({ error: 'An internal error occurred' })}\n\n`);
             res.end();
         }
     }
@@ -969,7 +969,7 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             });
         } catch (error: any) {
             console.error('[Solana Funding Tree] Error:', error);
-            return res.status(500).json({ error: 'Solana funding tree failed', message: error.message });
+            return res.status(500).json({ error: 'Solana funding tree failed' });
         }
     }
 
@@ -1225,7 +1225,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
             console.error('[Solana Compare] Error:', error);
             return res.status(500).json({
                 error: 'Solana compare failed',
-                message: error.message
+
             });
         }
     }
@@ -1633,7 +1633,7 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
         await torqueServiceV2.addActivity(req.user.uid, userName, `${analyzed} wallets batch analyzed`, chain).catch(err => console.error('[TorqueV2] Activity failed:', err));
     } catch (error: any) {
         console.error('[Batch] Error:', error.message);
-        res.status(500).json({ error: 'Batch analysis failed', message: error.message });
+        res.status(500).json({ error: 'Batch analysis failed' });
     }
 });
 
@@ -1737,7 +1737,6 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
         console.error('Sybil address analysis error:', error.message);
         res.status(500).json({
             error: 'Sybil analysis failed',
-            message: error.message,
         });
     }
 });
@@ -1925,11 +1924,11 @@ Be specific, cite exact values.`;
     console.error('[Report] Generation error:', error.message);
     // If headers already sent, try to end stream with error
     if (res.headersSent) {
-      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: 'An internal error occurred' })}\n\n`);
       res.end();
       return;
     }
-    res.status(500).json({ error: 'Report generation failed', message: error.message });
+    res.status(500).json({ error: 'Report generation failed' });
   }
 });
 
@@ -2109,7 +2108,7 @@ router.post('/expand-node', async (req: AuthenticatedRequest, res: Response) => 
     res.json({ success: true, result: { nodes, edges } });
   } catch (error: any) {
     console.error('[Expand Node] Error:', error.message);
-    res.status(500).json({ error: 'Failed to expand node', message: error.message });
+    res.status(500).json({ error: 'Failed to expand node' });
   }
 });
 
@@ -2188,7 +2187,7 @@ router.post('/bridge-trace', async (req: AuthenticatedRequest, res: Response) =>
     });
   } catch (error: any) {
     console.error('[Bridge Trace] Error:', error.message);
-    res.status(500).json({ error: 'Bridge trace failed', message: error.message });
+    res.status(500).json({ error: 'Bridge trace failed' });
   }
 });
 

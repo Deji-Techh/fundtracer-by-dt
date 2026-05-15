@@ -9,12 +9,20 @@ const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 async function sendSalesEmail(data: {
     name: string;
     company: string;
     email: string;
     message: string;
 }): Promise<void> {
+    const safeName = escapeHtml(data.name);
+    const safeCompany = escapeHtml(data.company || 'Not provided');
+    const safeEmail = escapeHtml(data.email);
+    const safeMessage = escapeHtml(data.message).replace(/\n/g, '<br>');
     const subject = `Enterprise Sales Inquiry from ${data.name}${data.company ? ` (${data.company})` : ''}`;
 
     const htmlContent = `
@@ -22,19 +30,19 @@ async function sendSalesEmail(data: {
         <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
             <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; width: 120px;">Name</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${data.name}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${safeName}</td>
             </tr>
             <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Company</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${data.company || 'Not provided'}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${safeCompany}</td>
             </tr>
             <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Email</td>
-                <td style="padding: 8px; border: 1px solid #ddd;"><a href="mailto:${data.email}">${data.email}</a></td>
+                <td style="padding: 8px; border: 1px solid #ddd;"><a href="mailto:${safeEmail}">${safeEmail}</a></td>
             </tr>
             <tr>
                 <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Message</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${data.message.replace(/\n/g, '<br>')}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${safeMessage}</td>
             </tr>
         </table>
         <p style="margin-top: 16px; color: #666; font-size: 12px;">

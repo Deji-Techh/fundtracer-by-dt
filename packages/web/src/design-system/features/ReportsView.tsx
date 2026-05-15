@@ -246,12 +246,16 @@ export function ReportsView({ selectedChain = 'linea' }: ReportsViewProps) {
               ref={reportRef}
               className="report-content markdown-body"
               dangerouslySetInnerHTML={{
-                __html: report
-                  .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-                  .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-                  .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-                  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                  .replace(/\n/g, '<br/>'),
+                __html: (() => {
+                  const escaped = report
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                  return escaped
+                    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n/g, '<br/>');
+                })(),
               }}
             />
           </div>

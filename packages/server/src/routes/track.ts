@@ -62,7 +62,7 @@ router.get('/', async (req, res) => {
         res.json({ success: true, wallets });
     } catch (error: any) {
         console.error('[Track API] Error fetching watchlist:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 
@@ -107,7 +107,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
         res.json({ success: true, address: walletAddress });
     } catch (error: any) {
         console.error('[Track API] Error adding wallet:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 
@@ -141,7 +141,7 @@ router.delete('/:address', authMiddleware, async (req: AuthenticatedRequest, res
         res.json({ success: true, message: 'Wallet removed from watchlist' });
     } catch (error: any) {
         console.error('[Track API] Error removing wallet:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 
@@ -189,7 +189,7 @@ router.get('/track/:address/activity', async (req, res) => {
         res.json({ success: true, activities });
     } catch (error: any) {
         console.error('[Track API] Error fetching activity:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 
@@ -211,7 +211,7 @@ router.get('/track/:address/cluster', async (req, res) => {
         res.json({ success: true, cluster: fundingTree });
     } catch (error: any) {
         console.error('[Track API] Error fetching cluster:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 
@@ -240,7 +240,7 @@ router.get('/smart-money/top-traders', async (req, res) => {
         res.json({ success: true, traders });
     } catch (error: any) {
         console.error('[Track API] Error fetching top traders:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 
@@ -290,7 +290,7 @@ router.get('/smart-money/compare', async (req, res) => {
         });
     } catch (error: any) {
         console.error('[Track API] Error comparing wallet:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 
@@ -424,7 +424,7 @@ router.get('/smart-money/discover', async (req, res) => {
         });
     } catch (error: any) {
         console.error('[Track API] Error discovering smart money:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 

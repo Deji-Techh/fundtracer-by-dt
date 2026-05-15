@@ -12,6 +12,16 @@ import { cacheGet, cacheSet, cacheDel } from '../utils/redis.js';
 import { getFirestore } from '../firebase.js';
 import type { ChainId } from '@fundtracer/core';
 
+const CHAIN_TO_ALCHEMY: Record<string, string> = {
+  ethereum: 'eth-mainnet',
+  linea: 'linea-mainnet',
+  arbitrum: 'arb-mainnet',
+  optimism: 'opt-mainnet',
+  polygon: 'polygon-mainnet',
+  base: 'base-mainnet',
+  bsc: 'bsc-mainnet',
+};
+
 const router = Router();
 
 // Chain validation
@@ -99,6 +109,118 @@ async function analyzeWallet(address: string, chain: string, userId: string): Pr
 async function analyzeContract(address: string, chain: string, userId: string): Promise<AnalysisData> {
   return analyzeWallet(address, chain, userId);
 }
+
+// ============================================================
+// External Wallet Data Endpoint
+// Fetches raw wallet data from Alchemy, caches in Redis
+// POST /api/ai-chat/external-wallet-data
+// ============================================================
+router.post('/external-wallet-data', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { address, chain } = req.body;
+
+    if (!address || !chain) {
+      return res.status(400).json({ success: false, error: 'address and chain required' });
+    }
+
+    const normalizedChain = normalizeChainId(chain);
+    const cacheKey = `ext:wallet:${normalizedChain}:${address.toLowerCase()}`;
+
+    // Check cache first
+    const cached = await cacheGet<any>(cacheKey);
+    if (cached?.transfers) {
+      return res.json({ success: true, ...cached, fromCache: true });
+    }
+
+    // Fetch from Alchemy
+    const sybilKeys = getSybilAlchemyKeys();
+    const apiKey = sybilKeys.defaultKey || '';
+    const subdomain = CHAIN_TO_ALCHEMY[normalizedChain];
+
+    if (!subdomain || !apiKey) {
+      return res.json({ success: true, balance: 0, transfers: [], fromCache: false });
+    }
+
+    const alchemyUrl = `https://${subdomain}.g.alchemy.com/v2/${apiKey}`;
+
+    // Fetch balance
+    const balanceRes = await fetch(alchemyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [address, 'latest'] }),
+    }).catch(() => null);
+    const balanceData = balanceRes ? await balanceRes.json().catch(() => null) : null;
+    const balanceWei = balanceData?.result || '0x0';
+    const balanceEth = parseFloat((parseInt(balanceWei, 16) / 1e18).toFixed(6));
+
+    // Fetch outgoing transfers
+    const outgoingRes = await fetch(alchemyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 2, method: 'alchemy_getAssetTransfers',
+        params: [{
+          fromBlock: '0x0', toBlock: 'latest',
+          fromAddress: address,
+          order: 'desc', maxCount: '0x3E8',
+          category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'],
+          withMetadata: true, excludeZeroValue: true,
+        }],
+      }),
+    }).catch(() => null);
+    const outgoingData = outgoingRes ? await outgoingRes.json().catch(() => null) : null;
+    const outgoing = outgoingData?.result?.transfers || [];
+
+    // Fetch incoming transfers
+    const incomingRes = await fetch(alchemyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 3, method: 'alchemy_getAssetTransfers',
+        params: [{
+          fromBlock: '0x0', toBlock: 'latest',
+          toAddress: address,
+          order: 'desc', maxCount: '0x3E8',
+          category: ['external', 'internal', 'erc20', 'erc721', 'erc1155'],
+          withMetadata: true, excludeZeroValue: true,
+        }],
+      }),
+    }).catch(() => null);
+    const incomingData = incomingRes ? await incomingRes.json().catch(() => null) : null;
+    const incoming = incomingData?.result?.transfers || [];
+
+    // Merge and sort by block number (desc)
+    const allTransfers = [...outgoing, ...incoming]
+      .filter(Boolean)
+      .sort((a: any, b: any) => {
+        const blockA = parseInt(a.blockNum || '0x0', 16);
+        const blockB = parseInt(b.blockNum || '0x0', 16);
+        return blockB - blockA;
+      })
+      .slice(0, 50)
+      .map((t: any) => ({
+        hash: t.hash,
+        from: t.from,
+        to: t.to,
+        value: t.value || '0',
+        asset: t.asset || 'ETH',
+        logo: t.erc1155Metadata?.tokenType ? null : t.tokenMetadata?.logo,
+        category: t.category || 'external',
+        timestamp: t.metadata?.blockTimestamp || null,
+        blockNum: t.blockNum,
+      }));
+
+    const result = { balance: balanceEth, transfers: allTransfers, fromCache: false };
+
+    // Cache for 30 minutes
+    await cacheSet(cacheKey, result, 1800).catch(() => {});
+
+    res.json({ success: true, ...result, fromCache: false });
+  } catch (error: any) {
+    console.error('[AI-Chat] External wallet data error:', error.message);
+    res.status(500).json({ success: false, error: 'An internal error occurred' });
+  }
+});
 
 // Main AI Chat endpoint with SSE
 router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
@@ -263,7 +385,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
     console.error('[AI-Chat] Error:', error.message);
     res.write(`data: ${JSON.stringify({ 
       type: 'error', 
-      message: error.message || 'An unexpected error occurred' 
+      message: 'An unexpected error occurred'
     })}\n\n`);
     res.write('data: [DONE]\n\n');
     res.end();

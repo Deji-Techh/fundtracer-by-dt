@@ -122,9 +122,8 @@ router.get('/:walletAddress', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[Portfolio Route] Error:', error);
     console.error('[Portfolio Route] Stack:', error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch portfolio data',
-      message: error.message || String(error),
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
@@ -213,7 +212,6 @@ router.get('/:walletAddress/tokens', async (req: Request, res: Response) => {
     console.error('[Portfolio Tokens Route] Error:', error);
     res.status(500).json({ 
       error: 'Failed to fetch tokens',
-      message: error.message,
     });
   }
 });
@@ -264,7 +262,6 @@ router.get('/:walletAddress/nfts', async (req: Request, res: Response) => {
     console.error('[Portfolio NFTs Route] Error:', error);
     res.status(500).json({ 
       error: 'Failed to fetch NFTs',
-      message: error.message,
     });
   }
 });
@@ -317,7 +314,6 @@ router.get('/:walletAddress/activity', async (req: Request, res: Response) => {
     console.error('[Portfolio Activity Route] Error:', error);
     res.status(500).json({ 
       error: 'Failed to fetch activity',
-      message: error.message,
     });
   }
 });
@@ -360,7 +356,6 @@ router.get('/:walletAddress/stablecoins', async (req: Request, res: Response) =>
     console.error('[Portfolio Stablecoins Route] Error:', error);
     res.status(500).json({ 
       error: 'Failed to fetch stablecoins',
-      message: error.message,
     });
   }
 });

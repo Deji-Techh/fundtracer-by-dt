@@ -11,11 +11,33 @@ import { randomUUID } from 'crypto';
 
 const router = Router();
 
-// Allowed file extensions
+// Allowed file extensions and their corresponding MIME types
 const ALLOWED_EXTENSIONS = [
   'pdf', 'txt', 'csv', 'json', 'js', 'ts', 'py', 'sol',
   'png', 'jpg', 'jpeg', 'webp', 'gif'
 ];
+
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'text/plain',
+  'text/csv',
+  'application/json',
+  'text/javascript',
+  'application/javascript',
+  'text/typescript',
+  'text/x-python',
+  'application/x-python-code',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+];
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+function sanitizeFileName(name: string): string {
+  return path.basename(name).replace(/[^a-zA-Z0-9._-]/g, '_');
+}
 
 // POST /api/upload/file - accepts base64 encoded file
 router.post('/file', async (req, res) => {
@@ -29,10 +51,26 @@ router.post('/file', async (req, res) => {
     // Validate file extension
     const ext = fileName.split('.').pop()?.toLowerCase();
     if (!ext || !ALLOWED_EXTENSIONS.includes(ext)) {
-      return res.status(400).json({ 
-        error: `Unsupported file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}` 
+      return res.status(400).json({
+        error: `Unsupported file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`
       });
     }
+
+    // Validate MIME type if provided
+    if (mimeType && !ALLOWED_MIME_TYPES.includes(mimeType)) {
+      return res.status(400).json({ error: `Unsupported MIME type: ${mimeType}` });
+    }
+
+    // Decode base64 and check size before writing
+    const buffer = Buffer.from(fileData, 'base64');
+    if (buffer.length > MAX_FILE_SIZE) {
+      return res.status(400).json({
+        error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB`
+      });
+    }
+
+    // Sanitize filename to prevent path traversal
+    const safeName = sanitizeFileName(fileName);
 
     // Create temp directory if it doesn't exist
     const tempDir = path.join(os.tmpdir(), 'fundtracer-uploads');
@@ -40,15 +78,13 @@ router.post('/file', async (req, res) => {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    // Decode base64 and save to temp
-    const tempFileName = `${randomUUID()}-${fileName}`;
+    const tempFileName = `${randomUUID()}-${safeName}`;
     const tempFilePath = path.join(tempDir, tempFileName);
-    
-    const buffer = Buffer.from(fileData, 'base64');
+
     fs.writeFileSync(tempFilePath, buffer);
 
     // Upload to Gemini File API
-    const uploadedFile = await uploadFileToGemini(tempFilePath, fileName);
+    const uploadedFile = await uploadFileToGemini(tempFilePath, safeName);
 
     // Clean up temp file
     fs.unlinkSync(tempFilePath);
@@ -64,9 +100,7 @@ router.post('/file', async (req, res) => {
     });
   } catch (error: any) {
     console.error('[Upload] Error:', error);
-    res.status(500).json({ 
-      error: error.message || 'Failed to upload file' 
-    });
+    res.status(500).json({ error: 'Failed to upload file' });
   }
 });
 

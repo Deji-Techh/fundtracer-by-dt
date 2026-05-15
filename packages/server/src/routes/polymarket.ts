@@ -41,7 +41,7 @@ router.get('/markets', async (req, res) => {
     console.error('[Polymarket API] Error fetching markets:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch markets'
+      error: 'Failed to fetch markets'
     });
   }
 });
@@ -70,7 +70,7 @@ router.get('/markets/:slug', async (req, res) => {
     console.error('[Polymarket API] Error fetching market:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch market'
+      error: 'Failed to fetch market'
     });
   }
 });
@@ -95,7 +95,7 @@ router.get('/trending', async (req, res) => {
     console.error('[Polymarket API] Error fetching trending:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch trending markets'
+      error: 'Failed to fetch trending markets'
     });
   }
 });
@@ -122,7 +122,7 @@ router.get('/spikes', async (req, res) => {
     console.error('[Polymarket API] Error detecting spikes:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to detect volume spikes'
+      error: 'Failed to detect volume spikes'
     });
   }
 });
@@ -147,7 +147,7 @@ router.get('/movers', async (req, res) => {
     console.error('[Polymarket API] Error fetching movers:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch price movers'
+      error: 'Failed to fetch price movers'
     });
   }
 });
@@ -175,7 +175,7 @@ router.get('/events', async (req, res) => {
     console.error('[Polymarket API] Error fetching events:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch events'
+      error: 'Failed to fetch events'
     });
   }
 });
@@ -200,7 +200,7 @@ router.get('/leaderboard', async (req, res) => {
     console.error('[Polymarket API] Error fetching leaderboard:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch leaderboard'
+      error: 'Failed to fetch leaderboard'
     });
   }
 });
@@ -230,7 +230,7 @@ router.get('/trader/:address', async (req, res) => {
     console.error('[Polymarket API] Error fetching trader:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch trader profile'
+      error: 'Failed to fetch trader profile'
     });
   }
 });
@@ -252,7 +252,7 @@ router.get('/orderbook/:tokenId', async (req, res) => {
     console.error('[Polymarket API] Error fetching orderbook:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch order book'
+      error: 'Failed to fetch order book'
     });
   }
 });
@@ -280,7 +280,7 @@ router.get('/trades/:conditionId', async (req, res) => {
     console.error('[Polymarket API] Error fetching trades:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch trades'
+      error: 'Failed to fetch trades'
     });
   }
 });
@@ -309,7 +309,7 @@ router.get('/history/:conditionId', async (req, res) => {
     console.error('[Polymarket API] Error fetching history:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch price history'
+      error: 'Failed to fetch price history'
     });
   }
 });

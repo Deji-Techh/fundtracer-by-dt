@@ -1057,6 +1057,31 @@ const handleSelectScan = async (scan: RecentScan) => {
       const token = getAuthToken();
       abortControllerRef.current = new AbortController();
 
+      // Step 1: Fetch external wallet data from Alchemy (cached server-side)
+      let externalTransfers: any[] = [];
+      let externalBalance = 0;
+      if (isWallet) {
+        try {
+          const extRes = await fetch(`${API_BASE}/api/ai-chat/external-wallet-data`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+            body: JSON.stringify({ address, chain }),
+            signal: abortControllerRef.current.signal,
+          });
+          const extData = await extRes.json();
+          if (extData.success && extData.transfers) {
+            externalTransfers = extData.transfers;
+            externalBalance = extData.balance || 0;
+          }
+        } catch (e) {
+          // External fetch is additive — don't block the main analysis
+        }
+      }
+
+      // Step 2: Run FundTracer analysis
       const apiBody = isWallet
         ? JSON.stringify({ address, chain, options: { skipFundingTree: true } })
         : JSON.stringify({ contractAddress: address, chain, options: { maxInteractors: 50, analyzeFunding: false } });
@@ -1111,6 +1136,8 @@ const handleSelectScan = async (scan: RecentScan) => {
         isMintable: result.isMintable,
         isPaused: result.isPaused,
         securityFindings: result.securityFindings,
+        externalTransfers,
+        externalBalance,
       };
 
       // Build AI context text from table data

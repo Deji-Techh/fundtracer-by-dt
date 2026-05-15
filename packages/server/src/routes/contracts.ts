@@ -106,7 +106,7 @@ router.post('/refresh', async (req: AuthenticatedRequest, res: Response) => {
     } catch (error: any) {
         res.status(500).json({
             success: false,
-            error: error.message
+            error: 'An internal error occurred'
         });
     }
 });

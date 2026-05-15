@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Shield, ShieldAlert, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertTriangle, Shield, ShieldAlert, ShieldCheck, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 
 export interface AnalysisTableData {
   address: string;
@@ -30,6 +30,17 @@ export interface AnalysisTableData {
   isMintable?: boolean;
   isPaused?: boolean;
   securityFindings?: string[];
+  externalTransfers?: Array<{
+    hash: string;
+    from: string;
+    to: string;
+    value: string;
+    asset: string;
+    category: string;
+    timestamp?: string;
+    blockNum?: string;
+  }>;
+  externalBalance?: number;
 }
 
 function AnimatedSkeleton({ rows = 8 }: { rows?: number }) {
@@ -228,6 +239,36 @@ export function AiAnalysisTable({ data }: { data: AnalysisTableData }) {
                   </li>
                 ))}
               </ul>
+            </ExpandableSection>
+          )}
+
+          {/* Recent Transfers (from external API) */}
+          {isWallet && data.externalTransfers && data.externalTransfers.length > 0 && (
+            <ExpandableSection title="Recent Transfers" count={data.externalTransfers.length}>
+              <div className="ai-table">
+                <div className="ai-table-row ai-table-header">
+                  <div className="ai-table-label">Type</div>
+                  <div className="ai-table-value mono">Value</div>
+                  <div className="ai-table-value">Asset</div>
+                </div>
+                {data.externalTransfers.slice(0, 20).map((tx, i) => {
+                  const isOutgoing = tx.from.toLowerCase() === data.address.toLowerCase();
+                  return (
+                    <div className="ai-table-row" key={i} style={{ opacity: 0.85 }}>
+                      <div className="ai-table-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {isOutgoing ? <ArrowUpRight size={10} color="#f97316" /> : <ArrowDownLeft size={10} color="#4ade80" />}
+                        <span>{isOutgoing ? 'Out' : 'In'}</span>
+                      </div>
+                      <div className="ai-table-value mono" style={{ fontSize: 11 }}>
+                        {parseFloat(tx.value).toFixed(4)}
+                      </div>
+                      <div className="ai-table-value" style={{ fontSize: 11 }}>
+                        {tx.asset === 'ETH' ? 'ETH' : (tx.asset?.length > 8 ? tx.asset.slice(0, 6) + '...' : tx.asset)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </ExpandableSection>
           )}
 

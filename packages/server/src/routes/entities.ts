@@ -39,7 +39,7 @@ router.get('/:address', async (req, res) => {
     });
   } catch (error: any) {
     console.error('[Entities] Lookup error:', error.message);
-    return res.status(500).json({ error: 'Entity lookup failed', message: error.message });
+    return res.status(500).json({ error: 'Entity lookup failed' });
   }
 });
 
@@ -68,7 +68,7 @@ router.post('/bulk', async (req, res) => {
     });
   } catch (error: any) {
     console.error('[Entities] Bulk lookup error:', error.message);
-    return res.status(500).json({ error: 'Bulk lookup failed', message: error.message });
+    return res.status(500).json({ error: 'Bulk lookup failed' });
   }
 });
 
@@ -95,7 +95,7 @@ router.get('/search', async (req, res) => {
     });
   } catch (error: any) {
     console.error('[Entities] Search error:', error.message);
-    return res.status(500).json({ error: 'Entity search failed', message: error.message });
+    return res.status(500).json({ error: 'Entity search failed' });
   }
 });
 

@@ -104,7 +104,7 @@ router.post('/2fa/setup', async (req: AuthenticatedRequest, res: Response) => {
     } catch (error: any) {
         console.error('[2FA] Setup CRITICAL error:', error);
         console.error('[2FA] Stack:', error.stack);
-        res.status(500).json({ error: 'Failed to setup 2FA: ' + error.message });
+        res.status(500).json({ error: 'Failed to setup 2FA' });
     }
 });
 

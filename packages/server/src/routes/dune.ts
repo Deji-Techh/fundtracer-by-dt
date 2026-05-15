@@ -162,7 +162,7 @@ router.post('/fetch', async (req: AuthenticatedRequest, res: Response) => {
 
     } catch (error: any) {
         console.error('[Dune] Error:', error.message);
-        return res.status(500).json({ error: 'Dune API error', message: error.message });
+        return res.status(500).json({ error: 'Dune API error' });
     }
 });
 

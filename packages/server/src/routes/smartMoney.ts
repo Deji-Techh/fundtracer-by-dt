@@ -123,7 +123,7 @@ router.get('/discover', async (req, res) => {
         res.json(responseData);
     } catch (error: any) {
         console.error('[SmartMoney API] Error discovering smart money:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 
@@ -151,7 +151,7 @@ router.get('/whales', async (req, res) => {
         });
     } catch (error: any) {
         console.error('[SmartMoney API] Error fetching whales:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An internal error occurred' });
     }
 });
 

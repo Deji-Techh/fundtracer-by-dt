@@ -3,6 +3,20 @@ import { cache } from '../utils/cache.js';
 
 const DUNE_API_KEY = process.env.DUNE_API_KEY;
 
+const ETH_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
+
+function validateContractAddress(address: string): void {
+  if (!ETH_ADDRESS_RE.test(address)) {
+    throw new Error(`Invalid contract address: ${address}`);
+  }
+}
+
+function clampLimit(limit: number, max: number = 1000): number {
+  const n = Math.floor(limit);
+  if (isNaN(n) || n < 1) return 100;
+  return Math.min(n, max);
+}
+
 export class DuneService {
     private apiKey: string;
     private baseUrl = 'https://api.dune.com/api/v1';
@@ -27,6 +41,8 @@ export class DuneService {
         totalValueIn: number;
         totalValueOut: number;
     }>> {
+        validateContractAddress(contractAddress);
+
         const chainTableMap: Record<string, string> = {
             ethereum: 'ethereum.transactions',
             polygon: 'polygon.transactions',
@@ -39,6 +55,7 @@ export class DuneService {
 
         const duneTable = chainTableMap[chain.toLowerCase()] || 'ethereum.transactions';
         const contractLower = contractAddress.toLowerCase();
+        const safeLimit = clampLimit(limit);
 
         // Query with actual transaction data - aggregate by wallet
         const query = `
@@ -53,7 +70,7 @@ export class DuneService {
             WHERE LOWER(CAST("to" AS VARCHAR)) = '${contractLower}'
             GROUP BY "from"
             ORDER BY tx_count DESC, first_block ASC
-            LIMIT ${limit}
+            LIMIT ${safeLimit}
         `;
 
         try {
@@ -81,6 +98,8 @@ export class DuneService {
      * Legacy method - returns only addresses (kept for backward compatibility)
      */
     async getContractInteractors(chain: string, contractAddress: string, limit: number = 1000): Promise<string[]> {
+        validateContractAddress(contractAddress);
+
         const chainTableMap: Record<string, string> = {
             ethereum: 'ethereum.transactions',
             polygon: 'polygon.transactions',
@@ -92,12 +111,13 @@ export class DuneService {
 
         const duneTable = chainTableMap[chain.toLowerCase()] || 'ethereum.transactions';
         const contractLower = contractAddress.toLowerCase();
+        const safeLimit = clampLimit(limit);
 
         const query = `
             SELECT DISTINCT "from" as wallet
             FROM ${duneTable}
             WHERE LOWER(CAST("to" AS VARCHAR)) = '${contractLower}'
-            LIMIT ${limit}
+            LIMIT ${safeLimit}
         `;
 
         try {

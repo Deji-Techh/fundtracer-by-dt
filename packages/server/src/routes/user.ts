@@ -288,8 +288,7 @@ router.post('/alchemy-api-key', async (req: AuthenticatedRequest, res: Response)
     } catch (error: any) {
         console.error('Alchemy API key save error:', error);
         res.status(500).json({
-            error: 'Failed to save Alchemy API key',
-            details: error.message
+            error: 'Failed to save Alchemy API key'
         });
     }
 });

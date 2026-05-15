@@ -20,7 +20,7 @@ router.get('/sessions', authMiddleware, async (req: AuthenticatedRequest, res) =
     res.json({ sessions });
   } catch (error: any) {
     console.error('[ChatHistory] Get sessions error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'An internal error occurred' });
   }
 });
 
@@ -37,7 +37,7 @@ router.post('/sessions', authMiddleware, async (req: AuthenticatedRequest, res) 
     res.json({ session });
   } catch (error: any) {
     console.error('[ChatHistory] Create session error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'An internal error occurred' });
   }
 });
 
@@ -56,7 +56,7 @@ router.get('/sessions/:sessionId', authMiddleware, async (req: AuthenticatedRequ
     res.json({ session });
   } catch (error: any) {
     console.error('[ChatHistory] Get session error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'An internal error occurred' });
   }
 });
 
@@ -72,7 +72,7 @@ router.delete('/sessions/:sessionId', authMiddleware, async (req: AuthenticatedR
     res.json({ success: true });
   } catch (error: any) {
     console.error('[ChatHistory] Delete session error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'An internal error occurred' });
   }
 });
 
@@ -88,7 +88,7 @@ router.get('/sessions/:sessionId/messages', authMiddleware, async (req: Authenti
     res.json({ messages });
   } catch (error: any) {
     console.error('[ChatHistory] Get messages error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'An internal error occurred' });
   }
 });
 
@@ -113,7 +113,7 @@ router.post('/sessions/:sessionId/messages', authMiddleware, async (req: Authent
     res.json({ success: true });
   } catch (error: any) {
     console.error('[ChatHistory] Add message error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'An internal error occurred' });
   }
 });
 
@@ -135,7 +135,7 @@ router.patch('/sessions/:sessionId', authMiddleware, async (req: AuthenticatedRe
     res.json({ success: true });
   } catch (error: any) {
     console.error('[ChatHistory] Update session error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'An internal error occurred' });
   }
 });
 
