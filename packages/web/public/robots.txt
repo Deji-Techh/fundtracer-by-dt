@@ -1,5 +1,5 @@
 # FundTracer Robots.txt
-# https://fundtracer.xyz
+# https://www.fundtracer.xyz
 
 User-agent: *
 Allow: /

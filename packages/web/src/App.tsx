@@ -42,7 +42,7 @@ const PAGE_TITLES: Record<string, string> = {
 // SEO Manager - sets dynamic meta tags for each page
 function SEOManager() {
   const location = useLocation();
-  const canonicalUrl = `https://fundtracer.xyz${location.pathname}`;
+  const canonicalUrl = `https://www.fundtracer.xyz${location.pathname}`;
   const title = PAGE_TITLES[location.pathname] || 'FundTracer | Professional Blockchain Wallet Analyzer';
 
   useEffect(() => {

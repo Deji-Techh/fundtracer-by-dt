@@ -16,10 +16,10 @@ Scope: https://www.fundtracer.xyz
 Scope: https://api.fundtracer.xyz
 
 # Policy
-Policy: https://fundtracer.xyz/privacy
+Policy: https://www.fundtracer.xyz/privacy
 
 # Hiring
-Hiring: https://fundtracer.xyz/careers
+Hiring: https://www.fundtracer.xyz/careers
 
 # Acknowledgments
 # Submit vulnerabilities responsibly through email

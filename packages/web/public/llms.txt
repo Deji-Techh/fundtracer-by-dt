@@ -67,18 +67,18 @@ Developer access via command line for automated workflows.
 
 ## Contact
 - Email: fundtracerbydt@gmail.com
-- Website: https://fundtracer.xyz
+- Website: https://www.fundtracer.xyz
 - Twitter: @fundtracer
 - Telegram: t.me/fundtracer_bot
 - GitHub: github.com/fundtracer
-- Chrome Extension: https://fundtracer.xyz/ext-install
+- Chrome Extension: https://www.fundtracer.xyz/ext-install
 
 ## Legal
-- Privacy Policy: https://fundtracer.xyz/privacy
-- Terms of Service: https://fundtracer.xyz/terms
-- FAQ: https://fundtracer.xyz/faq
-- Features: https://fundtracer.xyz/features
-- How It Works: https://fundtracer.xyz/how-it-works
+- Privacy Policy: https://www.fundtracer.xyz/privacy
+- Terms of Service: https://www.fundtracer.xyz/terms
+- FAQ: https://www.fundtracer.xyz/faq
+- Features: https://www.fundtracer.xyz/features
+- How It Works: https://www.fundtracer.xyz/how-it-works
 
 ---
 Generated for AI/LLM indexing. Last updated: April 2026

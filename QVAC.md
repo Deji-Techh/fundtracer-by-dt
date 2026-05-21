@@ -192,7 +192,7 @@ fundtracer qvac-setup
 |----------|------|
 | **QVAC Docs** | https://docs.qvac.tether.io |
 | **QVAC GitHub** | https://github.com/tetherto/qvac |
-| **FundTracer** | https://fundtracer.xyz |
+| **FundTracer** | https://www.fundtracer.xyz |
 | **CLI Source** | https://github.com/Deji-Tech/fundtracer-by-dt |
 
 ---

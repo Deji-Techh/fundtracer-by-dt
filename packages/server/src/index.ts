@@ -344,9 +344,9 @@ app.get('/.well-known/security.txt', (req, res) => {
     const securityPolicy = `Contact: https://fundtracer.xyz/contact
 Contact: mailto:security@fundtracer.xyz
 Preferred-Languages: en
-Policy: https://fundtracer.xyz/security-policy
-Encryption: https://fundtracer.xyz/pgp-key.txt
-Canonical: https://fundtracer.xyz/.well-known/security.txt
+Policy: https://www.fundtracer.xyz/security-policy
+Encryption: https://www.fundtracer.xyz/pgp-key.txt
+Canonical: https://www.fundtracer.xyz/.well-known/security.txt
 `;
     res.setHeader('Content-Type', 'text/plain');
     res.send(securityPolicy);
@@ -665,11 +665,11 @@ createTelegramBot().catch(err => {
 // Frontend routes that start with /api (must be handled by SPA)
 const frontendApiRoutes = ['/api/keys', '/api/docs'];
 
-// Redirect non-API routes on api.fundtracer.xyz to fundtracer.xyz
+// Redirect non-API routes on api.fundtracer.xyz to www.fundtracer.xyz
 app.use((req, res, next) => {
     const host = req.get('host') || '';
     if (host.includes('api.fundtracer.xyz') && !req.path.startsWith('/api/')) {
-        const targetUrl = `https://fundtracer.xyz${req.path}`;
+        const targetUrl = `https://www.fundtracer.xyz${req.path}`;
         return res.redirect(301, targetUrl);
     }
     next();
@@ -679,7 +679,7 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
     const host = req.get('host') || '';
     if (host.includes('api.fundtracer.xyz')) {
-        return res.redirect(301, 'https://fundtracer.xyz');
+        return res.redirect(301, 'https://www.fundtracer.xyz');
     }
     next();
 });
