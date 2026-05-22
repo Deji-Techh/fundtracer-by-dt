@@ -275,28 +275,6 @@ export function ApiKeysPage() {
                 <h1>API Keys</h1>
               </div>
 
-              {/* Usage Display */}
-              {profile?.usage && (
-                <div className="usage-stats-header">
-                  <span className="usage-tier-badge" style={{
-                    background: profile.tier === 'pro' ? '#3b82f6' : profile.tier === 'max' ? '#8b5cf6' : '#6b7280',
-                  }}>
-                    {profile.tier || 'free'}
-                  </span>
-                  <div className="usage-stats-compact">
-                    <span className="usage-stat" title="Per-minute usage">
-                      <span className="usage-stat-label">min</span>
-                      <span>{profile.usage.usedMinute ?? 0}/{profile.usage.minuteLimit ?? 100}</span>
-                    </span>
-                    <span className="usage-stat-sep">|</span>
-                    <span className="usage-stat" title="Daily usage">
-                      <span className="usage-stat-label">day</span>
-                      <span>{profile.usage.today || 0}/{profile.usage.dayLimit ?? 1000}</span>
-                    </span>
-                  </div>
-                </div>
-              )}
-
               <div className="profile-dropdown" ref={profileRef}>
                 <button 
                   className="profile-trigger"

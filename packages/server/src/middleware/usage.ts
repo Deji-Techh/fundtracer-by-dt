@@ -62,12 +62,24 @@ async function getUserTier(uid: string): Promise<string> {
     const userCacheKey = `auth:user:${uid}`;
     if (isRedisConnected()) {
         const cached = await cacheGet<{ tier?: string }>(userCacheKey);
-        if (cached?.tier) return cached.tier;
+        // Cache is only valid for 'free' — paid tiers need subscription check
+        if (cached?.tier === 'free') return 'free';
     }
     try {
         const db = getFirestore();
         const userDoc = await db.collection('users').doc(uid).get();
-        return userDoc.data()?.tier || 'free';
+        const data = userDoc.data();
+        const tier = data?.tier || 'free';
+
+        // Only honor paid API tiers if the user has an active subscription
+        if (tier !== 'free') {
+            const expiry = data?.subscriptionExpiry;
+            if (typeof expiry === 'number' && expiry > Date.now()) {
+                return tier;
+            }
+            return 'free';
+        }
+        return 'free';
     } catch {
         return 'free';
     }
