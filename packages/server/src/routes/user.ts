@@ -692,11 +692,20 @@ router.get('/mcp-keys', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const db = getFirestore();
 
-        const snapshot = await db.collection('apiKeys')
-            .where('userId', '==', req.user.uid)
-            .where('keyType', '==', 'mcp')
-            .orderBy('createdAt', 'desc')
-            .get();
+        let snapshot;
+        try {
+            snapshot = await db.collection('apiKeys')
+                .where('userId', '==', req.user.uid)
+                .where('keyType', '==', 'mcp')
+                .orderBy('createdAt', 'desc')
+                .get();
+        } catch {
+            // Fallback if composite index doesn't exist
+            snapshot = await db.collection('apiKeys')
+                .where('userId', '==', req.user.uid)
+                .where('keyType', '==', 'mcp')
+                .get();
+        }
 
         const keys = snapshot.docs
             .filter(doc => doc.data().active !== false && doc.data().isActive !== false)
@@ -714,7 +723,8 @@ router.get('/mcp-keys', async (req: AuthenticatedRequest, res: Response) => {
                     requests: data.requests || 0,
                     active: data.active !== false,
                 };
-            });
+            })
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         res.json({ success: true, keys });
     } catch (error: any) {
@@ -722,11 +732,19 @@ router.get('/mcp-keys', async (req: AuthenticatedRequest, res: Response) => {
         // Fallback: check subcollection
         try {
             const userRef = db.collection('users').doc(req.user.uid);
-            const keysSnapshot = await userRef
-                .collection('apiKeys')
-                .where('type', '==', 'mcp')
-                .orderBy('createdAt', 'desc')
-                .get();
+            let keysSnapshot;
+            try {
+                keysSnapshot = await userRef
+                    .collection('apiKeys')
+                    .where('type', '==', 'mcp')
+                    .orderBy('createdAt', 'desc')
+                    .get();
+            } catch {
+                keysSnapshot = await userRef
+                    .collection('apiKeys')
+                    .where('type', '==', 'mcp')
+                    .get();
+            }
 
             const keys = keysSnapshot.docs
                 .filter(doc => doc.data().active !== false)
@@ -744,7 +762,8 @@ router.get('/mcp-keys', async (req: AuthenticatedRequest, res: Response) => {
                         requests: k.requests || 0,
                         active: k.active !== false,
                     };
-                });
+                })
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
             res.json({ success: true, keys });
         } catch (fallbackErr) {
