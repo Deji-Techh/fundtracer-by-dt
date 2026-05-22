@@ -26,6 +26,7 @@ export async function logMcpRequest(entry: McpLogEntry): Promise<void> {
       return;
     }
     await db.collection('mcpLogs').add(entry);
+    console.log('[MCP-LOGGER] Logged:', entry.toolName, 'for user:', entry.userId, 'status:', entry.status);
   } catch (err: any) {
     // Log once every 10 failures to avoid noise
     mcpLogWarnings++;
