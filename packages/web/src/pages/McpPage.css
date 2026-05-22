@@ -659,12 +659,52 @@
 /* Responsive */
 @media (max-width: 768px) {
   .cli-page {
-    padding: 60px 16px 40px;
+    padding: 40px 12px 40px;
+  }
+
+  .cli-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .cli-logo span {
+    font-size: 1.35rem;
+  }
+
+  .cli-header p {
+    font-size: 0.875rem;
+  }
+
+  .cli-features h2,
+  .cli-usage h2,
+  .cli-cta h2,
+  .cli-link-section h2 {
+    font-size: 1.05rem;
+  }
+
+  .cli-feature {
+    padding: 16px;
+  }
+
+  .cli-feature h3 {
+    font-size: 0.9375rem;
+  }
+
+  .cli-feature p {
+    font-size: 0.8125rem;
   }
 
   .mcp-usage-stats {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
+  }
+
+  .mcp-stat {
+    min-width: unset;
+    padding: 14px 16px;
+  }
+
+  .mcp-stat__value {
+    font-size: 1.35rem;
   }
 
   .mcp-generate-row {
@@ -673,6 +713,7 @@
 
   .mcp-generate-row input {
     width: 100%;
+    min-width: unset;
   }
 
   .cli-code-block {
@@ -686,5 +727,69 @@
 
   .cli-features-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mcp-tabs {
+    gap: 2px;
+    padding: 3px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mcp-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 10px 8px;
+    font-size: 0.8125rem;
+    min-width: 0;
+  }
+
+  .mcp-table {
+    font-size: 0.75rem;
+  }
+
+  .mcp-table th,
+  .mcp-table td {
+    padding: 8px 6px;
+  }
+
+  .mcp-code-block {
+    padding: 12px;
+    font-size: 0.75rem;
+  }
+
+  .cli-generate-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 24px;
+  }
+
+  .cli-google-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 24px;
+  }
+
+  .mcp-btn--danger {
+    padding: 12px 20px;
+  }
+
+  .mcp-key-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .mcp-key-item__meta {
+    gap: 8px;
+  }
+
+  .mcp-key-reveal__row {
+    flex-direction: column;
+  }
+
+  .mcp-key-reveal__input {
+    width: 100%;
   }
 }

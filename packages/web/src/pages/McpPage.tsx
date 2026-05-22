@@ -220,13 +220,6 @@ export function McpPage() {
       navItems={navItems}
       showSearch={false}
       transparent
-      headerRight={
-        isAuthenticated ? (
-          <button className="mcp-btn mcp-btn--primary" onClick={() => navigate('/app-evm')}>
-            Launch App
-          </button>
-        ) : undefined
-      }
     >
     <div className="cli-page">
       <div className="cli-container">
