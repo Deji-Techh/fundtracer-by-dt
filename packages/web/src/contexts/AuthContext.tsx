@@ -377,10 +377,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             // Check for stored referral ref
             const refParam = localStorage.getItem('referral_ref');
-            const currentPath = window.location.pathname + window.location.search;
-            const redirectParam = `redirect=${encodeURIComponent(currentPath)}`;
-            const refQuery = refParam ? `&ref=${encodeURIComponent(refParam)}` : '';
-            const oauthUrl = `/api/auth/google/start?${redirectParam}${refQuery}`;
+            const currentPath = window.location.pathname;
+            // Only redirect back to current page for non-root paths
+            const params = new URLSearchParams();
+            if (currentPath !== '/') {
+              params.set('redirect', currentPath);
+            }
+            if (refParam) {
+              params.set('ref', refParam);
+            }
+            const qs = params.toString();
+            const oauthUrl = '/api/auth/google/start' + (qs ? '?' + qs : '');
             // Redirect to backend OAuth
             window.location.href = oauthUrl;
         } catch (error: any) {
