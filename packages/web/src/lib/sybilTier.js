@@ -2,7 +2,7 @@
 // Sybil Tier System & Payment Configuration
 // ============================================================
 
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 // Tier configurations
 export const SYBIL_TIERS = {
@@ -11,12 +11,12 @@ export const SYBIL_TIERS = {
     name: 'Free Tier',
     price: 0,
     monthly: false,
-    windowLimit: 7, // 7 operations per 4 hours
-    windowHours: 4,
+    windowLimit: 1000, // 1000 analyses per day
+    windowHours: 24,
     requiresGasPayment: true,
     paymentAddress: '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd',
     benefits: [
-      '7 analyses per 4 hours',
+      '1000 analyses/day',
       'Basic Sybil detection',
       'Manual address input',
       'Network graph view',
@@ -29,12 +29,12 @@ export const SYBIL_TIERS = {
     name: 'Pro Tier',
     price: 5,
     monthly: true,
-    windowLimit: 25, // 25 operations per 4 hours
-    windowHours: 4,
+    windowLimit: 10000, // 10,000 analyses per day
+    windowHours: 24,
     requiresGasPayment: false,
     paymentAddress: '0xFF1A1D11CB6bad91C6d9250082D1DF44d84e4b87',
     benefits: [
-      '25 analyses per 4 hours',
+      '10,000 analyses/day',
       'Advanced Sybil detection',
       'Auto-fetch from contracts',
       'Export to CSV/JSON/PDF',
@@ -68,13 +68,13 @@ export const SYBIL_TIERS = {
 const SYBIL_USAGE_KEY = 'fundtracer_sybil_usage';
 const SYBIL_PAYMENT_KEY = 'fundtracer_sybil_payment';
 
-// Get the start of current 4-hour window
+// Get the start of current 24-hour window
 function getWindowStart() {
   const now = Date.now();
-  return now - (now % FOUR_HOURS_MS);
+  return now - (now % TWENTY_FOUR_HOURS_MS);
 }
 
-// Check if usage needs reset (new 4-hour window)
+// Check if usage needs reset (new 24-hour window)
 function shouldResetUsage() {
   const stored = localStorage.getItem(SYBIL_USAGE_KEY);
   if (!stored) return true;
@@ -127,7 +127,7 @@ export async function incrementSybilUsage() {
     windowStart: usage.windowStart,
   };
   localStorage.setItem(SYBIL_USAGE_KEY, JSON.stringify(updated));
-  
+
   // Also increment on server
   try {
     const token = localStorage.getItem('auth_token');
@@ -143,7 +143,7 @@ export async function incrementSybilUsage() {
   } catch (error) {
     console.warn('Failed to sync usage to server:', error);
   }
-  
+
   return updated.operations;
 }
 
@@ -173,7 +173,7 @@ export function getRemainingOperations(tier) {
 export function getTimeUntilNextWindow() {
   const now = Date.now();
   const currentWindow = getWindowStart();
-  const nextWindow = currentWindow + FOUR_HOURS_MS;
+  const nextWindow = currentWindow + TWENTY_FOUR_HOURS_MS;
   const remainingMs = nextWindow - now;
   return Math.ceil(remainingMs / (60 * 1000)); // Convert to minutes
 }

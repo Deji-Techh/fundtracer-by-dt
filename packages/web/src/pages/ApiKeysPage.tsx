@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle, ExternalLink, Code, Loader2, User, LogOut, HelpCircle, ChevronDown, Mail } from 'lucide-react';
+import { Key, Copy, Check, Trash2, Plus, Eye, EyeOff, AlertCircle, ExternalLink, Code, Loader2, User, LogOut, HelpCircle, ChevronDown, Mail, Zap } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { listApiKeys as serverListApiKeys, createApiKey as serverCreateApiKey, deleteApiKey as serverDeleteApiKey } from '../api';
@@ -274,6 +274,29 @@ export function ApiKeysPage() {
                 <Key size={32} strokeWidth={1.5} />
                 <h1>API Keys</h1>
               </div>
+
+              {/* Usage Display */}
+              {profile?.usage && (
+                <div className="usage-stats-header">
+                  <span className="usage-tier-badge" style={{
+                    background: profile.tier === 'pro' ? '#3b82f6' : profile.tier === 'max' ? '#8b5cf6' : '#6b7280',
+                  }}>
+                    {profile.tier || 'free'}
+                  </span>
+                  <div className="usage-stats-compact">
+                    <span className="usage-stat" title="Per-minute usage">
+                      <span className="usage-stat-label">min</span>
+                      <span>{profile.usage.usedMinute ?? 0}/{profile.usage.minuteLimit ?? 100}</span>
+                    </span>
+                    <span className="usage-stat-sep">|</span>
+                    <span className="usage-stat" title="Daily usage">
+                      <span className="usage-stat-label">day</span>
+                      <span>{profile.usage.today || 0}/{profile.usage.dayLimit ?? 1000}</span>
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="profile-dropdown" ref={profileRef}>
                 <button 
                   className="profile-trigger"
@@ -326,6 +349,55 @@ export function ApiKeysPage() {
                           </div>
                         </div>
                       </div>
+                      {/* Usage Details */}
+                      {profile?.usage && (
+                        <div className="profile-usage-section">
+                          <div className="profile-usage-header">
+                            <Zap size={14} />
+                            <span>Rate Limit</span>
+                          </div>
+                          <div className="profile-usage-rows">
+                            <div className="profile-usage-row">
+                              <span className="profile-usage-label">Per Minute</span>
+                              <div className="profile-usage-bar-track">
+                                <div className="profile-usage-bar" style={{
+                                  width: `${Math.min(100, ((profile.usage.usedMinute ?? 0) / (typeof profile.usage.minuteLimit === 'number' ? profile.usage.minuteLimit : 100)) * 100)}%`,
+                                  background: profile.tier === 'pro' ? '#3b82f6' : profile.tier === 'max' ? '#8b5cf6' : '#00cc6e',
+                                }} />
+                              </div>
+                              <span className="profile-usage-numbers">
+                                <span className="profile-usage-used">{profile.usage.usedMinute ?? 0}</span>
+                                <span className="profile-usage-sep">/</span>
+                                <span className="profile-usage-limit">{profile.usage.minuteLimit ?? 100}</span>
+                                <span className="profile-usage-remaining">
+                                  ({typeof profile.usage.minuteLimit === 'number'
+                                    ? Math.max(0, profile.usage.minuteLimit - (profile.usage.usedMinute ?? 0))
+                                    : '∞'} left)
+                                </span>
+                              </span>
+                            </div>
+                            <div className="profile-usage-row">
+                              <span className="profile-usage-label">Per Day</span>
+                              <div className="profile-usage-bar-track">
+                                <div className="profile-usage-bar" style={{
+                                  width: `${Math.min(100, ((profile.usage.today || 0) / (typeof profile.usage.dayLimit === 'number' ? profile.usage.dayLimit : 1000)) * 100)}%`,
+                                  background: profile.tier === 'pro' ? '#3b82f6' : profile.tier === 'max' ? '#8b5cf6' : '#00cc6e',
+                                }} />
+                              </div>
+                              <span className="profile-usage-numbers">
+                                <span className="profile-usage-used">{profile.usage.today || 0}</span>
+                                <span className="profile-usage-sep">/</span>
+                                <span className="profile-usage-limit">{profile.usage.dayLimit ?? 1000}</span>
+                                <span className="profile-usage-remaining">
+                                  ({typeof profile.usage.dayLimit === 'number'
+                                    ? Math.max(0, profile.usage.dayLimit - (profile.usage.today || 0))
+                                    : '∞'} left)
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div className="profile-menu-divider" />
                       <a href="mailto:support@fundtracer.xyz" className="profile-menu-item">
                         <HelpCircle size={18} />

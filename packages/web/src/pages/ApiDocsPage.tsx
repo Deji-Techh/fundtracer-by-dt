@@ -97,7 +97,15 @@ Get comprehensive wallet analysis including balance, transactions, risk score, a
       }
     ]
   },
-  "usageRemaining": 95
+  "rateLimit": {
+        "usedMinute": 5,
+        "limitMinute": 100,
+        "remainingMinute": 95,
+        "usedDay": 905,
+        "limitDay": 1000,
+        "remainingDay": 95,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -139,7 +147,15 @@ Get funding flow graph showing sources and destinations of funds.
       { "address": "0x1111...2222", "totalFlow": "10.5 ETH" }
     ]
   },
-  "usageRemaining": 94
+  "rateLimit": {
+        "usedMinute": 6,
+        "limitMinute": 100,
+        "remainingMinute": 94,
+        "usedDay": 906,
+        "limitDay": 1000,
+        "remainingDay": 94,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -174,7 +190,15 @@ Compare multiple wallets to find shared interactions and connections.
     "commonTokens": ["USDC", "WBTC"],
     "similarityScore": 0.73
   },
-  "usageRemaining": 93
+  "rateLimit": {
+        "usedMinute": 7,
+        "limitMinute": 100,
+        "remainingMinute": 93,
+        "usedDay": 907,
+        "limitDay": 1000,
+        "remainingDay": 93,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -206,7 +230,15 @@ Detect Sybil attack patterns and coordinated behavior. Provide a contract addres
     "clusterCount": 3,
     "totalFlagged": 47
   },
-  "usageRemaining": 92
+  "rateLimit": {
+        "usedMinute": 8,
+        "limitMinute": 100,
+        "remainingMinute": 92,
+        "usedDay": 908,
+        "limitDay": 1000,
+        "remainingDay": 92,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -244,7 +276,15 @@ Analyze smart contracts and their interactions.
     ],
     "totalVolume": "12500 ETH"
   },
-  "usageRemaining": 91
+  "rateLimit": {
+        "usedMinute": 9,
+        "limitMinute": 100,
+        "remainingMinute": 91,
+        "usedDay": 909,
+        "limitDay": 1000,
+        "remainingDay": 91,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -280,7 +320,15 @@ Analyze multiple wallet addresses in a single batch request (max 50 addresses).
       { "address": "0xd8dA...", "balance": "0.8 ETH", "riskScore": 72 }
     ]
   },
-  "usageRemaining": 90
+  "rateLimit": {
+        "usedMinute": 10,
+        "limitMinute": 100,
+        "remainingMinute": 90,
+        "usedDay": 910,
+        "limitDay": 1000,
+        "remainingDay": 90,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -307,7 +355,15 @@ Get current gas prices (low, medium, high) for supported chains.
     },
     "lastUpdated": 1709234567
   },
-  "usageRemaining": 89
+  "rateLimit": {
+        "usedMinute": 11,
+        "limitMinute": 100,
+        "remainingMinute": 89,
+        "usedDay": 911,
+        "limitDay": 1000,
+        "remainingDay": 89,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -336,7 +392,15 @@ Get portfolio data including token balances, NFT holdings, and total value.
       { "collection": "Bored Ape", "tokenId": "1234" }
     ]
   },
-  "usageRemaining": 88
+  "rateLimit": {
+        "usedMinute": 12,
+        "limitMinute": 100,
+        "remainingMinute": 88,
+        "usedDay": 912,
+        "limitDay": 1000,
+        "remainingDay": 88,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -367,7 +431,15 @@ Fetch detailed information about a specific transaction including logs, gas cost
       { "address": "0x...", "topics": [...], "data": "..." }
     ]
   },
-  "usageRemaining": 87
+  "rateLimit": {
+        "usedMinute": 13,
+        "limitMinute": 100,
+        "remainingMinute": 87,
+        "usedDay": 913,
+        "limitDay": 1000,
+        "remainingDay": 87,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -378,7 +450,15 @@ Fetch detailed information about a specific transaction including logs, gas cost
 {
   "success": true,
   "result": {},
-  "usageRemaining": 95
+  "rateLimit": {
+        "usedMinute": 5,
+        "limitMinute": 100,
+        "remainingMinute": 95,
+        "usedDay": 905,
+        "limitDay": 1000,
+        "remainingDay": 95,
+        "tier": "free"
+    }
 }
 \`\`\`
 
@@ -394,7 +474,7 @@ Fetch detailed information about a specific transaction including logs, gas cost
 \`\`\`
 
 ## Rate Limits
-- Free tier: 100 requests/day, 2 API keys max
+- Free tier: 1000 requests/day, 2 API keys max
 - Pro tier: 10,000 requests/day, 10 API keys max
 - Enterprise tier: 100,000 requests/day, unlimited API keys
 
@@ -1126,22 +1206,32 @@ func main() {
   "result": {
     // Response data here
   },
-  "usageRemaining": 95
+  "rateLimit": {
+    "usedMinute": 5,
+    "limitMinute": 100,
+    "remainingMinute": 95,
+    "usedDay": 1,
+    "limitDay": 1000,
+    "remainingDay": 999,
+    "tier": "free"
+  }
 }`}</code></pre>
                     {copyBtn(`{
   "success": true,
   "result": {},
-  "usageRemaining": 95
+  "rateLimit": {}
 }`, 'success-response')}
                   </div>
 
                   <h3>Rate Limit Headers</h3>
-                  <p>Every response includes headers showing your current rate limit status:</p>
+                  <p>Every response includes per-minute and per-day rate limit status:</p>
                   <div className="api-code-block">
-                    <pre><code>{`X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1640000000`}</code></pre>
-                    {copyBtn(`X-RateLimit-Limit: 100`, 'rate-headers')}
+                    <pre><code>{`X-RateLimit-Limit-Minute: 100
+X-RateLimit-Remaining-Minute: 95
+X-RateLimit-Limit-Day: 1000
+X-RateLimit-Remaining-Day: 999
+X-RateLimit-Tier: free`}</code></pre>
+                    {copyBtn(`X-RateLimit-Limit-Minute: 100`, 'rate-headers')}
                   </div>
 
                   <h3>Wallet Analysis Response</h3>
@@ -1161,7 +1251,15 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
     "tokens": [...],
     "transactions": [...]
   },
-  "usageRemaining": 94
+  "rateLimit": {
+        "usedMinute": 6,
+        "limitMinute": 100,
+        "remainingMinute": 94,
+        "usedDay": 906,
+        "limitDay": 1000,
+        "remainingDay": 94,
+        "tier": "free"
+    }
 }`}</code></pre>
                   </div>
                 </motion.div>
@@ -1288,17 +1386,17 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
                     <div className="rate-limit-card">
                       <div className="rate-limit-icon"><Zap size={24} /></div>
                       <h3>100 requests</h3>
-                      <p>per minute</p>
+                      <p>per minute (Free)</p>
                     </div>
                     <div className="rate-limit-card">
                       <div className="rate-limit-icon"><Clock size={24} /></div>
                       <h3>1,000 requests</h3>
-                      <p>per hour</p>
+                      <p>per day (Free)</p>
                     </div>
                     <div className="rate-limit-card">
                       <div className="rate-limit-icon"><DollarSign size={24} /></div>
-                      <h3>Unlimited</h3>
-                      <p>with paid plans</p>
+                      <h3>10K - 100K</h3>
+                      <p>per day (Pro / Enterprise)</p>
                     </div>
                   </div>
 
@@ -1308,13 +1406,26 @@ X-RateLimit-Reset: 1640000000`}</code></pre>
                   </div>
 
                   <h3>Checking Your Rate Limit</h3>
-                  <p>Use the response headers to monitor your usage:</p>
+                  <p>Each response includes rate limit info in both headers and body:</p>
                   <div className="api-code-block">
-                    <pre><code>{`// Check these headers in every response
-X-RateLimit-Limit: 100      // Your limit per window
-X-RateLimit-Remaining: 95  // Requests remaining
-X-RateLimit-Reset: 1640000060  // Unix timestamp when limit resets`}</code></pre>
-                    {copyBtn(`X-RateLimit-Remaining: 95`, 'rate-usage')}
+                    <pre><code>{`// Response headers
+X-RateLimit-Limit-Minute: 100
+X-RateLimit-Remaining-Minute: 95
+X-RateLimit-Limit-Day: 1000
+X-RateLimit-Remaining-Day: 999
+X-RateLimit-Tier: free
+
+// Response body includes the rateLimit object
+"rateLimit": {
+  "usedMinute": 5,
+  "limitMinute": 100,
+  "remainingMinute": 95,
+  "usedDay": 1,
+  "limitDay": 1000,
+  "remainingDay": 999,
+  "tier": "free"
+}`}</code></pre>
+                    {copyBtn(`X-RateLimit-Remaining-Day: 999`, 'rate-usage')}
                   </div>
                 </motion.div>
               )}

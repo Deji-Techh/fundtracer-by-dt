@@ -1,16 +1,12 @@
 // ============================================================
-// Usage Tracking Middleware - Enforce 4-Hour Window Limits
-// OPTIMIZED: Uses Redis with TTL instead of Firestore transactions
-// Reduces Firestore writes from ~200/day to 0
+// Usage Tracking Middleware - Per-Minute + Per-Day Rate Limits
+// Uses Redis with TTL; falls back to Firestore
 // ============================================================
 
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth.js';
 import { getFirestore } from '../firebase.js';
 import { isRedisConnected, cacheGet, cacheSet, getRedis } from '../utils/redis.js';
-
-const FOUR_HOURS_MS = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
-const FOUR_HOURS_SECONDS = 4 * 60 * 60; // 4 hours in seconds
 
 // Chain configuration - support both frontend IDs and canonical names
 const ALLOWED_CHAINS = [
@@ -34,39 +30,44 @@ const normalizeChainId = (chain: string): string => {
     return mapping[chain.toLowerCase()] || chain.toLowerCase();
 };
 
-interface UsageWindow {
-    windowStart: number;
-    operations: number;
+export interface RateLimitInfo {
+    usedMinute: number;
+    limitMinute: number;
+    remainingMinute: number;
+    usedDay: number;
+    limitDay: number;
+    remainingDay: number;
     tier: string;
 }
 
-interface UsageResult {
-    success: boolean;
-    error?: string;
-    status?: number;
-    message?: string;
-    tier?: string;
-    operationLimit?: number;
-    remaining?: number;
-    limit?: number;
-    used?: number;
-    resetsAt?: string;
+function getMinuteKey(): string {
+    const d = new Date();
+    return `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}`;
 }
 
-async function getUserTierFromRedis(uid: string): Promise<string> {
-    // First try to get tier from user cache
-    const userCacheKey = `auth:user:${uid}`;
-    const cached = await cacheGet<{ tier?: string }>(userCacheKey);
-    if (cached?.tier) {
-        return cached.tier;
+function getDayKey(): string {
+    const d = new Date();
+    return `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+function getTierLimits(tier: string): { daily: number; perMinute: number } {
+    switch (tier) {
+        case 'enterprise': return { daily: 100000, perMinute: 300 };
+        case 'pro': return { daily: 10000, perMinute: 60 };
+        default: return { daily: 1000, perMinute: 100 };
     }
-    
-    // Fallback to Firestore if not cached
+}
+
+async function getUserTier(uid: string): Promise<string> {
+    const userCacheKey = `auth:user:${uid}`;
+    if (isRedisConnected()) {
+        const cached = await cacheGet<{ tier?: string }>(userCacheKey);
+        if (cached?.tier) return cached.tier;
+    }
     try {
         const db = getFirestore();
         const userDoc = await db.collection('users').doc(uid).get();
-        const userData = userDoc.data();
-        return userData?.tier || 'free';
+        return userDoc.data()?.tier || 'free';
     } catch {
         return 'free';
     }
@@ -85,151 +86,164 @@ export async function usageMiddleware(
     const redis = getRedis();
 
     try {
-        // OPTIMIZATION: Use Redis with TTL for usage tracking
-        // Key format: usage:{uid}:{current_window}
-        const now = Date.now();
-        const windowKey = `usage:${uid}:${Math.floor(now / FOUR_HOURS_MS)}`;
-        
-        let tier = 'free';
-        let operationLimit = 7;
-        
-        // Get tier from cache or Firestore
-        if (isRedisConnected()) {
-            const tierCacheKey = `auth:user:${uid}`;
-            const cachedUser = await cacheGet<{ tier?: string }>(tierCacheKey);
-            tier = cachedUser?.tier || 'free';
-        } else {
-            tier = await getUserTierFromRedis(uid);
-        }
-        
-        // Determine limit based on tier
-        operationLimit = tier === 'free' ? 7 : tier === 'pro' ? 25 : 999999;
+        // Get user tier
+        const tier = await getUserTier(uid);
+        const limits = getTierLimits(tier);
 
-        // Check chain access based on tier
+        // Validate chain (if present in request)
         const chain = req.body.chain;
         if (chain) {
             const normalizedChain = normalizeChainId(chain);
-            
             if (!ALLOWED_CHAINS.includes(normalizedChain)) {
                 return res.status(400).json({ error: 'Invalid chain' });
             }
-
-            // All chains available for all tiers
         }
 
-        // If Redis is available, use it
+        let usedMinute = 0;
+        let usedDay = 0;
+
         if (redis && isRedisConnected()) {
-            // Get current usage from Redis
-            const currentUsageStr = await redis.get<string>(windowKey);
-            let currentOperations = currentUsageStr ? parseInt(currentUsageStr, 10) : 0;
-            
-            // Check if we need a new window (check previous window)
-            if (currentUsageStr === null) {
-                // Check if previous window exists (user just crossed into new 4-hour window)
-                const prevWindowKey = `usage:${uid}:${Math.floor((now - FOUR_HOURS_MS) / FOUR_HOURS_MS)}`;
-                const prevUsageStr = await redis.get(prevWindowKey);
-                if (prevUsageStr) {
-                    // Previous window expired, reset
-                    currentOperations = 0;
-                }
-            }
-            
-            // Check limit
-            if (currentOperations >= operationLimit) {
-                const resetsAt = new Date(Math.floor(now / FOUR_HOURS_MS) * FOUR_HOURS_MS + FOUR_HOURS_MS);
+            // ---- Redis path ----
+            const minuteKey = `usage:${uid}:minute:${getMinuteKey()}`;
+            const dayKey = `usage:${uid}:day:${getDayKey()}`;
+
+            // Read current counts
+            const [minuteStr, dayStr] = await Promise.all([
+                redis.get<string>(minuteKey),
+                redis.get<string>(dayKey),
+            ]);
+            usedMinute = minuteStr ? parseInt(minuteStr, 10) : 0;
+            usedDay = dayStr ? parseInt(dayStr, 10) : 0;
+
+            // Check minute limit
+            if (usedMinute >= limits.perMinute) {
+                const retryAfter = 60 - new Date().getUTCSeconds();
+                res.setHeader('Retry-After', String(retryAfter));
                 return res.status(429).json({
                     error: 'Rate limit exceeded',
-                    message: `You have reached your limit of ${operationLimit} analyses per 4 hours.`,
-                    limit: operationLimit,
-                    used: currentOperations,
-                    resetsAt: resetsAt.toISOString(),
+                    message: `Minute limit of ${limits.perMinute} reached. Try again shortly.`,
+                    rateLimit: {
+                        usedMinute,
+                        limitMinute: limits.perMinute,
+                        remainingMinute: 0,
+                        usedDay,
+                        limitDay: limits.daily,
+                        remainingDay: Math.max(0, limits.daily - usedDay),
+                        tier,
+                    },
                 });
             }
-            
-            // Increment usage counter
-            await redis.incr(windowKey);
-            // Set TTL to 4 hours + 1 minute buffer
-            await redis.expire(windowKey, FOUR_HOURS_SECONDS + 60);
-            
-            // Attach remaining usage to response
-            res.locals.usageRemaining = operationLimit - currentOperations - 1;
-            res.locals.tier = tier;
-            
-            // Update user cache with lastActive timestamp (async, non-blocking)
+
+            // Check daily limit
+            if (usedDay >= limits.daily) {
+                const now = new Date();
+                const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+                const retryAfter = Math.ceil((tomorrow.getTime() - now.getTime()) / 1000);
+                res.setHeader('Retry-After', String(retryAfter));
+                return res.status(429).json({
+                    error: 'Rate limit exceeded',
+                    message: `Daily limit of ${limits.daily} reached. Resets at midnight UTC.`,
+                    rateLimit: {
+                        usedMinute,
+                        limitMinute: limits.perMinute,
+                        remainingMinute: limits.perMinute - usedMinute - 1,
+                        usedDay,
+                        limitDay: limits.daily,
+                        remainingDay: 0,
+                        tier,
+                    },
+                });
+            }
+
+            // Increment counters
+            await Promise.all([
+                redis.incr(minuteKey),
+                redis.incr(dayKey),
+            ]);
+            // Set TTLs
+            await Promise.all([
+                redis.expire(minuteKey, 90),
+                redis.expire(dayKey, 86400),
+            ]);
+
+            usedMinute += 1;
+            usedDay += 1;
+
+            // Attach rate limit info
+            const rateLimit: RateLimitInfo = {
+                usedMinute,
+                limitMinute: limits.perMinute,
+                remainingMinute: limits.perMinute - usedMinute,
+                usedDay,
+                limitDay: limits.daily,
+                remainingDay: limits.daily - usedDay,
+                tier,
+            };
+            res.locals.rateLimit = rateLimit;
+
+            // Set rate limit response headers
+            res.setHeader('X-RateLimit-Limit-Minute', String(limits.perMinute));
+            res.setHeader('X-RateLimit-Remaining-Minute', String(limits.perMinute - usedMinute));
+            res.setHeader('X-RateLimit-Limit-Day', String(limits.daily));
+            res.setHeader('X-RateLimit-Remaining-Day', String(limits.daily - usedDay));
+            res.setHeader('X-RateLimit-Tier', tier);
+
+            // Update user cache (non-blocking)
             const userCacheKey = `auth:user:${uid}`;
             cacheSet(userCacheKey, { tier }, 60).catch(() => {});
-            
-            console.log(`[USAGE] Redis: ${uid} - ${currentOperations + 1}/${operationLimit}`);
+
+            console.log(`[USAGE] ${uid} - min: ${usedMinute}/${limits.perMinute} day: ${usedDay}/${limits.daily}`);
             next();
             return;
         }
 
-        // FALLBACK: Firestore if Redis unavailable
+        // ---- Firestore fallback ----
         console.log('[USAGE] Redis unavailable, using Firestore fallback');
-        
         const db = getFirestore();
         const userRef = db.collection('users').doc(uid);
+        const today = getDayKey();
 
         const result = await db.runTransaction(async (transaction) => {
             const userDoc = await transaction.get(userRef);
             const userData = userDoc.data();
 
-            tier = (userData?.tier || 'free') as 'free' | 'pro' | 'max';
-            operationLimit = tier === 'free' ? 7 : tier === 'pro' ? 25 : Infinity;
+            const usageData = userData?.dailyUsage || {};
+            const currentDayUsage = usageData[today] || 0;
 
-            const usageData = userData?.usageWindow || {};
-            const windowStart = usageData.windowStart || 0;
-            let currentOperations = usageData.operations || 0;
-            let currentWindowStart = windowStart;
-            
-            if (now - windowStart >= FOUR_HOURS_MS) {
-                currentOperations = 0;
-                currentWindowStart = now;
-            }
-
-            if (currentOperations >= operationLimit) {
-                const resetTime = new Date(currentWindowStart + FOUR_HOURS_MS);
-                return {
-                    error: 'Rate limit exceeded',
-                    status: 429,
-                    message: `Limit reached. Reset at ${resetTime.toLocaleTimeString()}`,
-                    limit: operationLimit,
-                    used: currentOperations,
-                    resetsAt: resetTime.toISOString(),
-                };
+            if (currentDayUsage >= limits.daily) {
+                return { error: 'Daily limit reached', status: 429 as const };
             }
 
             transaction.update(userRef, {
-                'usageWindow.windowStart': currentWindowStart,
-                'usageWindow.operations': currentOperations + 1,
-                'lastActive': new Date().toISOString(),
+                [`dailyUsage.${today}`]: (currentDayUsage || 0) + 1,
+                lastActive: new Date().toISOString(),
             });
 
-            return {
-                success: true,
-                tier,
-                operationLimit,
-                remaining: operationLimit === Infinity ? 9999 : operationLimit - currentOperations - 1,
-            };
+            return { success: true as const, usedDay: currentDayUsage + 1 };
         });
 
-        if (result.error) {
-            return res.status(result.status || 400).json({
-                error: result.error,
-                message: result.message,
-                limit: result.limit,
-                used: result.used,
-                resetsAt: result.resetsAt,
+        if ('error' in result) {
+            return res.status(429).json({
+                error: 'Rate limit exceeded',
+                message: 'Daily limit reached.',
             });
         }
 
-        res.locals.usageRemaining = result.remaining;
-        res.locals.tier = result.tier;
+        const rateLimit: RateLimitInfo = {
+            usedMinute: 0,
+            limitMinute: limits.perMinute,
+            remainingMinute: limits.perMinute,
+            usedDay: result.usedDay,
+            limitDay: limits.daily,
+            remainingDay: limits.daily - result.usedDay,
+            tier,
+        };
+        res.locals.rateLimit = rateLimit;
 
-        console.log(`[USAGE] Firestore: ${uid} - ${result.remaining} remaining`);
+        console.log(`[USAGE] Firestore: ${uid} - day: ${result.usedDay}/${limits.daily}`);
         next();
     } catch (error) {
-        console.error('Usage tracking error:', error);
+        console.error('[USAGE] Error:', error);
         next();
     }
 }

@@ -7,7 +7,7 @@ import { getFirestore } from '../firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export type APITier = 'free' | 'pro' | 'enterprise';
-export type APIKeyType = 'live' | 'test';
+export type APIKeyType = 'live' | 'test' | 'mcp';
 
 export interface APIKey {
   id: string;
@@ -42,6 +42,7 @@ export const API_SCOPES = {
   WRITE_ALERTS: 'write:alerts',
   WRITE_WEBHOOKS: 'write:webhooks',
   ADMIN: 'admin',
+  MCP: 'mcp',
 } as const;
 
 export type APIScope = typeof API_SCOPES[keyof typeof API_SCOPES];
@@ -49,9 +50,9 @@ export type APIScope = typeof API_SCOPES[keyof typeof API_SCOPES];
 // Tier limits
 export const TIER_LIMITS = {
   free: {
-    daily: 100,
-    perMinute: 10,
-    burst: 20,
+    daily: 1000,
+    perMinute: 100,
+    burst: 200,
     maxKeys: 2,
     endpoints: ['address', 'transactions', 'tokens', 'risk'],
     features: ['basic_address_info', 'transaction_history'],
@@ -88,9 +89,14 @@ export const TIER_DEFAULT_SCOPES: Record<APITier, APIScope[]> = {
 
 // Generate a new API key
 export function generateAPIKey(type: APIKeyType = 'live'): string {
-  const prefix = type === 'live' ? 'ft_live_' : 'ft_test_';
+  const prefix = type === 'live' ? 'ft_live_' : type === 'mcp' ? 'ft_mcp_' : 'ft_test_';
   const randomPart = generateSecureRandom(32);
   return `${prefix}${randomPart}`;
+}
+
+/** Generate an MCP-specific API key */
+export function generateMcpKey(): string {
+  return generateAPIKey('mcp');
 }
 
 // Generate secure random string

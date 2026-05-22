@@ -604,7 +604,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             return res.json({
                 success: true,
                 result,
-                usageRemaining: res.locals.usageRemaining,
+                rateLimit: res.locals.rateLimit,
             });
         } catch (error: any) {
             console.error('[Solana Analyze] Error:', error);
@@ -677,7 +677,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 },
                 taskId,
             }),
-            usageRemaining: res.locals.usageRemaining,
+            rateLimit: res.locals.rateLimit,
         });
 
         // Cache transactions for funding tree reuse (5 min TTL)
@@ -968,7 +968,7 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
                     fundingSources: { nodes: sourceNodes, edges: fundingTree?.edges || [] },
                     fundingDestinations: { nodes: destNodes, edges: [] },
                 },
-                usageRemaining: res.locals.usageRemaining,
+                rateLimit: res.locals.rateLimit,
             });
         } catch (error: any) {
             console.error('[Solana Funding Tree] Error:', error);
@@ -1222,7 +1222,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
                     correlationScore,
                     isSybilLikely: correlationScore > 60,
                 },
-                usageRemaining: res.locals.usageRemaining,
+                rateLimit: res.locals.rateLimit,
             });
         } catch (error: any) {
             console.error('[Solana Compare] Error:', error);
@@ -1268,7 +1268,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         res.json({
             success: true,
             result,
-            usageRemaining: res.locals.usageRemaining,
+            rateLimit: res.locals.rateLimit,
         });
 
         // Track analytics
@@ -1410,7 +1410,7 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
         res.json({
             success: true,
             result: sanitizeForFrontend(enrichAnalysisResult(result)),
-            usageRemaining: res.locals.usageRemaining,
+            rateLimit: res.locals.rateLimit,
         });
 
         // Track analytics
@@ -1507,7 +1507,7 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
         res.json({
             success: true,
             result: sanitizeForFrontend(result),
-            usageRemaining: res.locals.usageRemaining,
+            rateLimit: res.locals.rateLimit,
         });
 
         // Track analytics
@@ -1633,7 +1633,7 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
                 analyzed,
                 failed: validAddresses.length - analyzed,
             },
-            usageRemaining: res.locals.usageRemaining,
+            rateLimit: res.locals.rateLimit,
         });
 
         // Record to Torque - award points for batch analysis
@@ -1737,7 +1737,7 @@ router.post('/sybil-addresses', async (req: AuthenticatedRequest, res: Response)
                 duration: `${duration}s`,
                 walletsAnalyzed: validAddresses.length,
             },
-            usageRemaining: res.locals.usageRemaining,
+            rateLimit: res.locals.rateLimit,
         });
 
         // Record to Torque - award points for sybil address analysis

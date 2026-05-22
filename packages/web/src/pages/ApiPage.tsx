@@ -637,7 +637,7 @@ const { data: gas } = await ft.getGasPrices('ethereum');`, 'js-sdk')}
                   <h3>Free</h3>
                   <div className="tier-price">$0<span>/month</span></div>
                   <ul className="tier-features">
-                    <li><Check size={16} /> 100 requests/day</li>
+                    <li><Check size={16} /> 1000 requests/day</li>
                     <li><Check size={16} /> 10 requests/minute</li>
                     <li><Check size={16} /> Basic endpoints</li>
                     <li><Check size={16} /> Community support</li>

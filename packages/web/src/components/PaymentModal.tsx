@@ -35,7 +35,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
             features: [
                 '30 days access',
                 'Access to Linea, Arb, Base',
-                '25 analyses per 4 hours',
+                '10,000 analyses/day',
                 '2s action delay',
                 'Fast API access',
                 'Priority support'

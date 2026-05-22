@@ -5,6 +5,7 @@ import '../styles/AppShell.css';
 import { NotificationBell, NotificationPanel } from './notifications';
 import { CHAIN_CONFIG, type ChainKey } from '../config/chains';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { UsageBadge } from './UsageBadge';
 
 interface NavItem {
   id: string;
@@ -237,12 +238,15 @@ export function AppShell({
           <div className="ft-topbar-divider"></div>
 
           {walletConnected ? (
-            <div className="ft-wallet-connected">
-              <div className="ft-wallet-dot"></div>
-              <span className="ft-wallet-addr">
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </span>
-            </div>
+            <>
+              <UsageBadge />
+              <div className="ft-wallet-connected">
+                <div className="ft-wallet-dot"></div>
+                <span className="ft-wallet-addr">
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </span>
+              </div>
+            </>
           ) : (
             <button 
               className="ft-btn-topbar-connect"

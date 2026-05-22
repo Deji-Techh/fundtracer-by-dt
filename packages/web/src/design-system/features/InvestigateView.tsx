@@ -1193,7 +1193,7 @@ export function InvestigateView({
                 rows={8}
               />
               <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--intel-text-muted)' }}>
-                Maximum 20 addresses per batch. Free tier: 7 analyses/day.
+                Maximum 20 addresses per batch. Free tier: 1000 analyses/day.
               </p>
               <button 
                 className="btn-analyze" 

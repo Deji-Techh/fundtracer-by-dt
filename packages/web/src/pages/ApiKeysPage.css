@@ -55,6 +55,153 @@
   color: #525252;
 }
 
+/* Usage Stats Header */
+.usage-stats-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+[data-theme="light"] .usage-stats-header {
+  background: #fff;
+  border-color: #e5e5e5;
+}
+
+.usage-tier-badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+
+.usage-stats-compact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-secondary);
+}
+
+.usage-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.usage-stat-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.usage-stat-sep {
+  opacity: 0.3;
+  font-size: 0.625rem;
+}
+
+[data-theme="light"] .usage-stats-compact {
+  color: #525252;
+}
+
+/* Profile Dropdown Usage Section */
+.profile-usage-section {
+  padding: 8px 12px;
+}
+
+.profile-usage-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+
+[data-theme="light"] .profile-usage-header {
+  color: #737373;
+}
+
+.profile-usage-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-usage-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-usage-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .profile-usage-label {
+  color: #525252;
+}
+
+.profile-usage-bar-track {
+  width: 100%;
+  height: 4px;
+  background: var(--color-bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+[data-theme="light"] .profile-usage-bar-track {
+  background: #e5e5e5;
+}
+
+.profile-usage-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.profile-usage-numbers {
+  font-size: 0.6875rem;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .profile-usage-numbers {
+  color: #525252;
+}
+
+.profile-usage-used {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+[data-theme="light"] .profile-usage-used {
+  color: #0a0a0a;
+}
+
+.profile-usage-sep {
+  opacity: 0.4;
+}
+
+.profile-usage-remaining {
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
 /* Profile Dropdown */
 .profile-dropdown {
   position: relative;
@@ -116,7 +263,7 @@
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  min-width: 240px;
+  min-width: 280px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;

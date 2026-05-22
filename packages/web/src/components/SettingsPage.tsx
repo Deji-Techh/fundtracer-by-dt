@@ -374,7 +374,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
           </div>
           <div>
             <div style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-              Usage (per 4 hours)
+              Usage (per day)
             </div>
             <div style={{ 
               fontSize: '1.25rem', 
@@ -382,7 +382,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
               color: 'var(--color-text-primary)',
               fontFamily: 'monospace',
             }}>
-              {profile?.tier === 'max' ? 'Unlimited' : `${profile?.usage?.today || 0} / ${profile?.tier === 'pro' ? 25 : 7}`}
+              {profile?.tier === 'max' ? 'Unlimited' : `${profile?.usage?.today || 0} / ${profile?.tier === 'pro' ? '10,000' : '1,000'}`}
             </div>
           </div>
         </div>
@@ -397,7 +397,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
             }}>
               <motion.div 
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, ((profile?.usage?.today || 0) / (profile?.tier === 'pro' ? 25 : 7)) * 100)}%` }}
+                animate={{ width: `${Math.min(100, ((profile?.usage?.today || 0) / (profile?.tier === 'pro' ? 10000 : 1000)) * 100)}%` }}
                 transition={{ duration: 1, ease: 'easeOut' }}
                 style={{
                   height: '100%',
@@ -412,7 +412,7 @@ export default function SettingsPage({ onConnectWallet, isWalletConnected, walle
               marginTop: 8,
               textAlign: 'right',
             }}>
-              Resets every 4 hours
+              Resets daily at midnight UTC
             </div>
           </div>
         )}

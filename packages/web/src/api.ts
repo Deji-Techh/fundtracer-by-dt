@@ -34,6 +34,15 @@ interface ApiResponse<T> {
     error?: string;
     message?: string;
     usageRemaining?: number | 'unlimited';
+    rateLimit?: {
+        usedMinute: number;
+        limitMinute: number;
+        remainingMinute: number;
+        usedDay: number;
+        limitDay: number;
+        remainingDay: number;
+        tier: string;
+    };
 }
 
 export interface UserProfile {
@@ -52,6 +61,9 @@ export interface UserProfile {
         today: number;
         limit: number | 'unlimited';
         remaining: number | 'unlimited';
+        minuteLimit?: number | 'unlimited';
+        dayLimit?: number | 'unlimited';
+        usedMinute?: number;
     };
     walletAddress?: string | null;
     profilePicture?: string | null;

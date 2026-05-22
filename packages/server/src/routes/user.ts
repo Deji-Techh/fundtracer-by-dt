@@ -6,7 +6,7 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest, requireWallet } from '../middleware/auth.js';
 import { requireTwoFactor } from '../middleware/twoFactor.js';
 import { getFirestore, getAuth } from '../firebase.js';
-import { cacheDel, cacheDelPattern } from '../utils/redis.js';
+import { cacheDel, cacheDelPattern, getRedis, isRedisConnected } from '../utils/redis.js';
 import axios from 'axios';
 
 const router = Router();
@@ -26,7 +26,7 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
         // Check PoH verification status - use JWT token value as source of truth
         // The auth middleware already verified this, so we trust res.locals.isVerified
         const isVerified = res.locals.isVerified === true;
-        
+
         // If verified in JWT but not in Firestore, update Firestore
         if (isVerified && userData && !userData.isVerified) {
             await userRef.update({ isVerified: true });
@@ -53,23 +53,41 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
 
         const today = new Date().toISOString().split('T')[0];
         const usageToday = userData?.dailyUsage?.[today] || 0;
-        const freeLimit = parseInt(process.env.FREE_DAILY_LIMIT || '7', 10);
-        const proLimit = 25;
-        const hasAlchemyKey = !!userData?.alchemyApiKey;
+
+        // Fetch per-minute usage from Redis
+        let usedMinute = 0;
+        try {
+            if (isRedisConnected()) {
+                const redis = getRedis();
+                if (redis) {
+                    const d = new Date();
+                    const minuteKey = `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}`;
+                    const minuteStr = await redis.get<string>(`usage:${req.user.uid}:minute:${minuteKey}`);
+                    usedMinute = minuteStr ? parseInt(minuteStr, 10) : 0;
+                }
+            }
+        } catch {
+            // Redis unavailable, per-minute stays 0
+        }
 
         const tier = userData?.tier || 'free';
+        const hasAlchemyKey = !!userData?.alchemyApiKey;
         const isUnlimited = tier === 'max' || hasAlchemyKey;
 
-        let limit: number | 'unlimited' = freeLimit;
+        // Tier-based limits (matching pricing page and usage middleware)
+        let dayLimit: number | 'unlimited' = 1000;  // free
+        let minuteLimit: number | 'unlimited' = 100;
         if (isUnlimited) {
-            limit = 'unlimited';
+            dayLimit = 'unlimited';
+            minuteLimit = 'unlimited';
         } else if (tier === 'pro') {
-            limit = proLimit;
+            dayLimit = 10000;
+            minuteLimit = 60;
         }
 
         let remaining: number | 'unlimited' = 'unlimited';
-        if (limit !== 'unlimited') {
-            remaining = Math.max(0, limit - usageToday);
+        if (dayLimit !== 'unlimited') {
+            remaining = Math.max(0, dayLimit - usageToday);
         }
 
         res.json({
@@ -84,8 +102,11 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
             hasCustomApiKey: hasAlchemyKey,
             usage: {
                 today: usageToday,
-                limit,
+                limit: dayLimit,
                 remaining,
+                minuteLimit,
+                dayLimit,
+                usedMinute,
             },
             bannedAt: userData?.bannedAt || null,
             banReason: userData?.banReason || null,

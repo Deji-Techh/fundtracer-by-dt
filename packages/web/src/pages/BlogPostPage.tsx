@@ -939,7 +939,7 @@ FundTracer is a professional blockchain forensics platform designed for research
 - Wallet risk scoring based on behavioral analysis
 - Contract analytics for security insights
 
-**Pricing:** Free tier with 7 analyses every 4 hours; Pro and Max plans for unlimited access.
+**Pricing:** Free tier with 1000 analyses/day; Pro and Enterprise plans for higher limits.
 
 **Best For:** Researchers, investors, compliance teams, and DeFi users.
 
