@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+#!/usr/bin/env node
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -219,6 +220,31 @@ var init_tools = __esm({
   }
 });
 
+// src/mcp/mcpLogger.ts
+import { getFirestore } from "../firebase.js";
+async function logMcpRequest(entry) {
+  try {
+    const db = getFirestore();
+    if (!db) {
+      console.warn("[MCP-LOGGER] getFirestore() returned null");
+      return;
+    }
+    await db.collection("mcpLogs").add(entry);
+    console.log("[MCP-LOGGER] Logged:", entry.toolName, "for user:", entry.userId, "status:", entry.status);
+  } catch (err2) {
+    mcpLogWarnings++;
+    if (mcpLogWarnings <= 3 || mcpLogWarnings % 10 === 0) {
+      console.error("[MCP-LOGGER] Failed to log MCP request:", err2?.message || err2);
+    }
+  }
+}
+var mcpLogWarnings;
+var init_mcpLogger = __esm({
+  "src/mcp/mcpLogger.ts"() {
+    mcpLogWarnings = 0;
+  }
+});
+
 // src/mcp/api-handlers.ts
 var api_handlers_exports = {};
 __export(api_handlers_exports, {
@@ -233,19 +259,60 @@ function err(message) {
 }
 function api() {
   const key = process.env.FUNDTRACER_MCP_API_KEY || "";
+  const headers = {
+    Authorization: `Bearer ${key}`,
+    "x-auth-token": key,
+    "Content-Type": "application/json"
+  };
+  if (_mcpCtx?.userId) {
+    headers["X-MCP-UserId"] = _mcpCtx.userId;
+  }
   return axios.create({
     baseURL: API_BASE,
     timeout: 6e4,
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json"
-    }
+    headers
   });
 }
-var API_BASE, analyzeWallet, traceFunds, compareWallets, analyzeContract, detectSybilClusters, getPortfolio, getTransactions, lookupEntity, getGasPrices, getTokenInfo, TOOL_HANDLERS;
+function withLogging(toolName, handler) {
+  return async (args, ctx) => {
+    _mcpCtx = ctx;
+    const start = Date.now();
+    try {
+      const result = await handler(args, ctx);
+      logMcpRequest({
+        userId: ctx.userId,
+        toolName,
+        args: JSON.stringify(args).substring(0, 500),
+        status: result.isError ? "error" : "success",
+        responsePreview: JSON.stringify(result).substring(0, 300),
+        duration: Date.now() - start,
+        createdAt: Date.now(),
+        keyPrefix: ctx.apiKeyPrefix
+      });
+      return result;
+    } catch (error) {
+      logMcpRequest({
+        userId: ctx.userId,
+        toolName,
+        args: JSON.stringify(args).substring(0, 500),
+        status: "error",
+        responsePreview: error.message.substring(0, 300),
+        duration: Date.now() - start,
+        createdAt: Date.now(),
+        keyPrefix: ctx.apiKeyPrefix
+      });
+      throw error;
+    } finally {
+      _mcpCtx = null;
+    }
+  };
+}
+var API_BASE, _mcpCtx, analyzeWallet, traceFunds, compareWallets, analyzeContract, detectSybilClusters, getPortfolio, getTransactions, lookupEntity, getGasPrices, getTokenInfo, TOOL_HANDLERS;
 var init_api_handlers = __esm({
   "src/mcp/api-handlers.ts"() {
+    init_mcpLogger();
     API_BASE = process.env.FUNDTRACER_API_URL || "https://api.fundtracer.xyz";
+    _mcpCtx = null;
     analyzeWallet = async (args, ctx) => {
       const { address, chainId, transactionLimit } = args;
       try {
@@ -399,16 +466,16 @@ var init_api_handlers = __esm({
       }
     };
     TOOL_HANDLERS = {
-      analyze_wallet: analyzeWallet,
-      trace_funds: traceFunds,
-      compare_wallets: compareWallets,
-      analyze_contract: analyzeContract,
-      detect_sybil_clusters: detectSybilClusters,
-      get_portfolio: getPortfolio,
-      get_transactions: getTransactions,
-      lookup_entity: lookupEntity,
-      get_gas_prices: getGasPrices,
-      get_token_info: getTokenInfo
+      analyze_wallet: withLogging("analyze_wallet", analyzeWallet),
+      trace_funds: withLogging("trace_funds", traceFunds),
+      compare_wallets: withLogging("compare_wallets", compareWallets),
+      analyze_contract: withLogging("analyze_contract", analyzeContract),
+      detect_sybil_clusters: withLogging("detect_sybil_clusters", detectSybilClusters),
+      get_portfolio: withLogging("get_portfolio", getPortfolio),
+      get_transactions: withLogging("get_transactions", getTransactions),
+      lookup_entity: withLogging("lookup_entity", lookupEntity),
+      get_gas_prices: withLogging("get_gas_prices", getGasPrices),
+      get_token_info: withLogging("get_token_info", getTokenInfo)
     };
   }
 });
@@ -430,8 +497,8 @@ async function validateMcpApiKey(rawKey) {
   return validateViaHttp(rawKey);
 }
 async function validateWithFirestore(rawKey) {
-  const { getFirestore } = await import("../firebase.js");
-  const db = getFirestore();
+  const { getFirestore: getFirestore2 } = await import("../firebase.js");
+  const db = getFirestore2();
   if (!db) return null;
   const keyDoc = await db.collection("apiKeys").doc(rawKey).get();
   if (keyDoc.exists) {

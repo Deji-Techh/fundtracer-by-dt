@@ -22,6 +22,7 @@ function api() {
   const key = process.env.FUNDTRACER_MCP_API_KEY || '';
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
+    'x-auth-token': key,
     'Content-Type': 'application/json',
   };
   if (_mcpCtx?.userId) {

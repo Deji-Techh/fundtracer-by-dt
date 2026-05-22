@@ -325,11 +325,19 @@ export async function apiKeyAuthMiddleware(
     next: NextFunction
 ) {
     const authHeader = req.headers.authorization;
-    
-    
-    // Check if this is an API key (starts with ft_live_, ft_test_, or ft_mcp_)
+    const xAuthToken = req.headers['x-auth-token'] as string | undefined;
+
+    // Determine the API key: prefer Authorization header, fallback to x-auth-token
+    // (Cloudflare strips Authorization on internal calls via public domain)
+    let apiKey: string | null = null;
     if (authHeader && authHeader.startsWith('Bearer ft_')) {
-        const apiKey = authHeader.split('Bearer ')[1];
+        apiKey = authHeader.split('Bearer ')[1];
+    } else if (xAuthToken && xAuthToken.startsWith('ft_')) {
+        apiKey = xAuthToken;
+    }
+
+    // Check if this is an API key (starts with ft_live_, ft_test_, or ft_mcp_)
+    if (apiKey) {
 
         // Scope enforcement: ft_mcp_ keys can only be used on MCP endpoints,
         // unless the X-MCP-UserId header is present (internal calls from MCP handlers).
