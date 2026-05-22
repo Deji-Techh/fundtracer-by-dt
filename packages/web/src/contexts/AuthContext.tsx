@@ -377,9 +377,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             // Check for stored referral ref
             const refParam = localStorage.getItem('referral_ref');
-            const oauthUrl = refParam 
-                ? `/api/auth/google/start?ref=${encodeURIComponent(refParam)}`
-                : '/api/auth/google/start';
+            const currentPath = window.location.pathname + window.location.search;
+            const redirectParam = `redirect=${encodeURIComponent(currentPath)}`;
+            const refQuery = refParam ? `&ref=${encodeURIComponent(refParam)}` : '';
+            const oauthUrl = `/api/auth/google/start?${redirectParam}${refQuery}`;
             // Redirect to backend OAuth
             window.location.href = oauthUrl;
         } catch (error: any) {
