@@ -1,6 +1,6 @@
 {
     "name": "@fundtracer/server",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "FundTracer API Server - Handles auth, rate limiting, and secure API key management",
     "main": "dist/mcp/stdio.js",
     "bin": {
