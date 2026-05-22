@@ -326,10 +326,19 @@ export async function apiKeyAuthMiddleware(
     const authHeader = req.headers.authorization;
     
     
-    // Check if this is an API key (starts with ft_live_ or ft_test_)
+    // Check if this is an API key (starts with ft_live_, ft_test_, or ft_mcp_)
     if (authHeader && authHeader.startsWith('Bearer ft_')) {
         const apiKey = authHeader.split('Bearer ')[1];
-        
+
+        // Scope enforcement: ft_mcp_ keys can only be used on MCP endpoints,
+        // unless the X-MCP-UserId header is present (internal calls from MCP handlers).
+        if (apiKey.startsWith('ft_mcp_') && !req.path.startsWith('/api/mcp/') && !req.headers['x-mcp-userid']) {
+            return res.status(403).json({
+                error: 'MCP API keys can only be used with MCP tools (POST /api/mcp/tools/:toolName)',
+                code: 'KEY_SCOPE_MCP_ONLY'
+            });
+        }
+
         try {
             // OPTIMIZATION 1: Try Redis cache first
             const apiKeyCacheKey = `apikey:${apiKey}`;
