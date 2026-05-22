@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken';
 import { incrementAPIKeyUsage } from '../models/apiKey.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 import { isRedisConnected, cacheGet, cacheSet } from '../utils/redis.js';
+import { logMcpRequest } from '../mcp/mcpLogger.js';
 
 export type AdminRole = 'superadmin' | 'admin' | 'moderator';
 
@@ -373,6 +374,18 @@ export async function apiKeyAuthMiddleware(
                     if (apiKey.startsWith('ft_mcp_')) {
                         torqueServiceV2.incrementMCPPoints(cachedData.userId, cachedData.displayName)
                             .catch(err => console.error('[API-KEY] Failed to award MCP points:', err));
+                        // Use X-MCP-UserId header if set (real end-user from handler context)
+                        const logUserId = (req.headers['x-mcp-userid'] as string) || cachedData.userId;
+                        logMcpRequest({
+                            userId: logUserId,
+                            toolName: req.path.replace(/^\/api\//, '').replace(/\//g, '_') || req.method + '_' + req.path.replace(/\//g, '_'),
+                            args: JSON.stringify(req.body || {}).substring(0, 500),
+                            status: 'success',
+                            responsePreview: '',
+                            duration: 0,
+                            createdAt: Date.now(),
+                            keyPrefix: apiKey.substring(0, 15),
+                        });
                     } else {
                         torqueServiceV2.incrementAPIPoints(cachedData.userId, cachedData.displayName)
                             .catch(err => console.error('[API-KEY] Failed to award API points:', err));
@@ -445,6 +458,18 @@ export async function apiKeyAuthMiddleware(
                 if (cachedData.keyType === 'mcp' || apiKey.startsWith('ft_mcp_')) {
                     torqueServiceV2.incrementMCPPoints(userId, cachedData.displayName)
                         .catch(err => console.error('[API-KEY] Failed to award MCP points:', err));
+                    // Use X-MCP-UserId header if set (real end-user from handler context)
+                    const logUserId = (req.headers['x-mcp-userid'] as string) || userId;
+                    logMcpRequest({
+                        userId: logUserId,
+                        toolName: req.path.replace(/^\/api\//, '').replace(/\//g, '_') || req.method + '_' + req.path.replace(/\//g, '_'),
+                        args: JSON.stringify(req.body || {}).substring(0, 500),
+                        status: 'success',
+                        responsePreview: '',
+                        duration: 0,
+                        createdAt: Date.now(),
+                        keyPrefix: apiKey.substring(0, 15),
+                    });
                 } else {
                     torqueServiceV2.incrementAPIPoints(userId, cachedData.displayName)
                         .catch(err => console.error('[API-KEY] Failed to award API points:', err));
