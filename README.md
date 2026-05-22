@@ -369,7 +369,22 @@ FundTracer exposes its blockchain analysis engine as an MCP server, letting AI a
   "mcpServers": {
     "fundtracer": {
       "command": "npx",
-      "args": ["-y", "@fundtracer/server"],
+      "args": ["-y", "@fundtracer/server", "fundtracer-mcp"],
+      "env": {
+        "FUNDTRACER_MCP_API_KEY": "ft_mcp_YOUR_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+**Claude Code** — add to `.claude/settings.json`:
+```json
+{
+  "mcpServers": {
+    "fundtracer": {
+      "command": "npx",
+      "args": ["-y", "@fundtracer/server", "fundtracer-mcp"],
       "env": {
         "FUNDTRACER_MCP_API_KEY": "ft_mcp_YOUR_KEY_HERE"
       }

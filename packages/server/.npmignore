@@ -1,0 +1,6 @@
+src/
+scripts/
+data/
+server.log
+.env.example
+tsconfig.json

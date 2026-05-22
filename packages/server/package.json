@@ -2,9 +2,12 @@
     "name": "@fundtracer/server",
     "version": "1.0.0",
     "description": "FundTracer API Server - Handles auth, rate limiting, and secure API key management",
-    "main": "dist/index.js",
+    "main": "dist/mcp/stdio.js",
+    "bin": {
+        "fundtracer-mcp": "dist/mcp/stdio.js"
+    },
     "scripts": {
-        "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/index.js && esbuild src/functions/api.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/functions/api.js && esbuild src/mcp/stdio.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/mcp/stdio.js",
+        "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --format=cjs --external:esbuild --outfile=dist/index.js 2>/dev/null; esbuild src/mcp/stdio.ts --bundle --platform=node --target=node18 --format=cjs --outfile=dist/mcp/stdio.js",
         "start": "node dist/index.js",
         "dev": "tsx watch src/index.ts",
         "mcp": "tsx src/mcp/stdio.ts",
