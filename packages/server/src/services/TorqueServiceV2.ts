@@ -416,7 +416,7 @@ class TorqueServiceV2 {
       
       const db = getDb();
       const snapshot = await db.collection(this.collection)
-        .where('walletsScanned', '>', 0)
+        .where('totalPoints', '>', 0)
         .count()
         .get();
       
