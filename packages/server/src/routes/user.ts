@@ -906,4 +906,76 @@ router.delete('/account', requireTwoFactor, async (req: AuthenticatedRequest, re
     }
 });
 
+// ---------------------------------------------------------------------------
+// MCP key validation endpoint (used by stdio MCP server via HTTP fallback)
+// ---------------------------------------------------------------------------
+router.post('/mcp-validate', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const bodyKey = req.body?.key;
+
+  const rawKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : bodyKey;
+  if (!rawKey || !rawKey.startsWith('ft_')) {
+    return res.status(401).json({ error: 'Invalid MCP API key format' });
+  }
+
+  try {
+    const db = getFirestore();
+
+    // Direct document lookup
+    const keyDoc = await db.collection('apiKeys').doc(rawKey).get();
+
+    if (keyDoc.exists) {
+      const data = keyDoc.data();
+      if (!data) return res.status(401).json({ error: 'Invalid MCP API key' });
+      if (data.expiresAt && data.expiresAt < Date.now()) return res.status(401).json({ error: 'MCP API key has expired' });
+      if (data.active === false) return res.status(401).json({ error: 'MCP API key has been revoked' });
+
+      const scopes = data.scopes || [];
+      if (data.keyType !== 'mcp' && !scopes.includes('mcp')) {
+        return res.status(403).json({ error: 'This API key does not have MCP access' });
+      }
+
+      // Track usage
+      try {
+        const { hashAPIKey, incrementAPIKeyUsage } = await import('../models/apiKey.js');
+        await incrementAPIKeyUsage(data.userId, rawKey);
+      } catch { /* non-blocking */ }
+
+      return res.json({ valid: true, userId: data.userId, tier: data.tier || 'free' });
+    }
+
+    // Hash-based fallback
+    const { hashAPIKey } = await import('../models/apiKey.js');
+    const keyHash = hashAPIKey(rawKey);
+    const snapshot = await db.collection('apiKeys')
+      .where('isActive', '==', true)
+      .get();
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      if (data.keyHash === keyHash) {
+        if (data.expiresAt && data.expiresAt < Date.now()) return res.status(401).json({ error: 'MCP API key has expired' });
+        if (!data.isActive) return res.status(401).json({ error: 'MCP API key has been revoked' });
+
+        const scopes = data.scopes || [];
+        if (data.keyType !== 'mcp' && !scopes.includes('mcp')) {
+          return res.status(403).json({ error: 'This API key does not have MCP access' });
+        }
+
+        try {
+          const { incrementAPIKeyUsage } = await import('../models/apiKey.js');
+          await incrementAPIKeyUsage(data.userId, rawKey);
+        } catch { /* non-blocking */ }
+
+        return res.json({ valid: true, userId: data.userId, tier: data.tier || 'free' });
+      }
+    }
+
+    return res.status(401).json({ error: 'Invalid MCP API key' });
+  } catch (err: any) {
+    console.error('[User] mcp-validate error:', err);
+    return res.status(500).json({ error: 'Validation failed' });
+  }
+});
+
 export { router as userRoutes };

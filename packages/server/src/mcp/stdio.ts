@@ -17,13 +17,14 @@ import { McpServer, StdioServerTransport, fromJsonSchema } from '@modelcontextpr
 
 async function main() {
   // Bootstrap Firestore (needed for API key validation)
+  let firebaseAvailable = false;
   try {
     const { initializeFirebase } = await import('../firebase.js');
     initializeFirebase();
+    firebaseAvailable = true;
     console.error('[MCP] Firebase initialized');
   } catch (err) {
-    console.error('[MCP] Firebase init failed:', err);
-    process.exit(1);
+    console.error('[MCP] Firebase not available — key validation will fail. Set Firebase credentials in env.');
   }
 
   const { ALL_MCP_TOOLS } = await import('./tools.js');
