@@ -310,6 +310,7 @@ interface CachedApiKeyData {
     userId: string;
     active: boolean;
     tier?: string;
+    keyType?: string;
     isVerified?: boolean;
     walletAddress?: string;
     email?: string;
@@ -360,9 +361,14 @@ export async function apiKeyAuthMiddleware(
                     incrementAPIKeyUsage(cachedData.userId, apiKey)
                         .catch(err => console.error('[API-KEY] Failed to track usage:', err));
 
-                    torqueServiceV2.incrementAPIPoints(cachedData.userId, cachedData.displayName)
-                        .catch(err => console.error('[API-KEY] Failed to award points:', err));
-                    
+                    if (apiKey.startsWith('ft_mcp_')) {
+                        torqueServiceV2.incrementMCPPoints(cachedData.userId, cachedData.displayName)
+                            .catch(err => console.error('[API-KEY] Failed to award MCP points:', err));
+                    } else {
+                        torqueServiceV2.incrementAPIPoints(cachedData.userId, cachedData.displayName)
+                            .catch(err => console.error('[API-KEY] Failed to award API points:', err));
+                    }
+
                     console.log(`[API-KEY] Authenticated from cache: ${cachedData.userId}`);
                     next();
                     return;
@@ -395,19 +401,20 @@ export async function apiKeyAuthMiddleware(
                     userId,
                     active: keyData.active !== false,
                     tier: userData?.tier || 'free',
+                    keyType: (keyData as any).keyType || (apiKey.startsWith('ft_mcp_') ? 'mcp' : undefined),
                     isVerified: userData?.isVerified || false,
                     walletAddress: userData?.walletAddress || null,
                     email: userData?.email || null,
-                    displayName: userData?.displayName || null,
+                    displayName: userData?.displayName || userData?.name || null,
                     profilePicture: userData?.profilePicture || null
                 };
-                
+
                 // Cache for 5 minutes
                 if (isRedisConnected()) {
                     await cacheSet(apiKeyCacheKey, cachedData, API_KEY_CACHE_TTL);
                     console.log(`[API-KEY] Cached key data for ${API_KEY_CACHE_TTL}s`);
                 }
-                
+
                 req.user = {
                     uid: userId,
                     email: cachedData.email || null,
@@ -415,19 +422,24 @@ export async function apiKeyAuthMiddleware(
                     photoURL: cachedData.profilePicture || null,
                     type: 'user'
                 };
-                
+
                 res.locals.tier = cachedData.tier || 'free';
                 res.locals.isVerified = cachedData.isVerified || false;
                 res.locals.authProvider = 'api_key';
                 res.locals.walletAddress = cachedData.walletAddress || null;
                 res.locals.apiKeyOwnerId = userId;
-                
+
                 incrementAPIKeyUsage(userId, apiKey)
                     .then(() => console.log(`[API-KEY] Usage incremented successfully`))
                     .catch(err => console.error('[API-KEY] Failed to track usage:', err));
 
-                torqueServiceV2.incrementAPIPoints(userId, cachedData.displayName)
-                    .catch(err => console.error('[API-KEY] Failed to award points:', err));
+                if (cachedData.keyType === 'mcp' || apiKey.startsWith('ft_mcp_')) {
+                    torqueServiceV2.incrementMCPPoints(userId, cachedData.displayName)
+                        .catch(err => console.error('[API-KEY] Failed to award MCP points:', err));
+                } else {
+                    torqueServiceV2.incrementAPIPoints(userId, cachedData.displayName)
+                        .catch(err => console.error('[API-KEY] Failed to award API points:', err));
+                }
 
                 console.log(`[API-KEY] Authenticated from apiKeys collection: ${userId}`);
                 next();

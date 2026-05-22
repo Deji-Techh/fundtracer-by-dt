@@ -79,6 +79,85 @@ class TorqueServiceV2 {
     });
   }
 
+  // Award 1 point for MCP requests and add activity
+  async incrementMCPPoints(userId: string, displayName: string = ''): Promise<boolean> {
+    try {
+      const db = getDb();
+      const docRef = db.collection(this.collection).doc(userId);
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        // Fetch display name from user doc if not provided
+        if (!displayName) {
+          const userDoc = await db.collection('users').doc(userId).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            displayName = userData?.displayName || userData?.name || '';
+          }
+        }
+        await this.initWallet(userId, displayName);
+      }
+
+      await docRef.update({
+        totalPoints: FieldValue.increment(1),
+        updatedAt: Date.now()
+      });
+
+      await this.recalculateRanks();
+
+      if (isRedisConnected()) {
+        await cacheDel('torque:v2:leaderboard').catch(() => {});
+        await cacheDel(`torque:v2:user:${userId}`).catch(() => {});
+      }
+
+      // Resolve display name for activity
+      if (!displayName) {
+        const userDoc = await db.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          displayName = userData?.displayName || userData?.name || '';
+        }
+      }
+
+      // Add MCP activity entry (fire-and-forget)
+      this.addMcpActivity(userId, displayName).catch(() => {});
+
+      return true;
+    } catch (error) {
+      console.error('[TorqueV2] incrementMCPPoints error:', error);
+      return false;
+    }
+  }
+
+  // Lightweight activity entry for MCP requests
+  private async addMcpActivity(userId: string, displayName: string): Promise<void> {
+    try {
+      const db = getDb();
+      await db.collection(this.activityCollection).add({
+        userId,
+        displayName: displayName || 'Anonymous',
+        walletAddress: 'MCP Request',
+        chain: 'mcp',
+        points: 1,
+        timestamp: Date.now()
+      });
+
+      // Clean up old entries - keep only last 20
+      const snapshot = await db.collection(this.activityCollection)
+        .orderBy('timestamp', 'desc')
+        .get();
+
+      if (snapshot.size > this.maxActivityEntries) {
+        const toDelete = snapshot.docs.slice(this.maxActivityEntries);
+        const batch = db.batch();
+        toDelete.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      }
+    } catch (error) {
+      console.error('[TorqueV2] addMcpActivity error:', error);
+    }
+  }
+
   // Award 1 point for API key requests and add activity
   async incrementAPIPoints(userId: string, displayName: string = ''): Promise<boolean> {
     try {
