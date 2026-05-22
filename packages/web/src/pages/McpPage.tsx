@@ -166,13 +166,11 @@ export function McpPage() {
   };
 
   const handleRevoke = async (keyId: string) => {
-    if (!window.confirm('Revoke this MCP API key? Any services using it will stop working.')) return;
-
     try {
       const res = await deleteMcpKey(keyId);
       if (res.success) {
         await loadKeys();
-        notify.success('Key revoked');
+        notify.success('MCP API key revoked');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to revoke key');
