@@ -1,5 +1,6 @@
 import type { McpToolHandler, McpToolResult } from './types.js';
 import { default as axios } from 'axios';
+import { logMcpRequest } from './mcpLogger.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -247,18 +248,54 @@ const getTokenInfo: McpToolHandler = async (args, ctx) => {
   }
 };
 
+/**
+ * Wraps a tool handler with MCP request logging to Firestore.
+ * Logs success/error, args, duration, and userId for the History tab.
+ */
+function withLogging(toolName: string, handler: McpToolHandler): McpToolHandler {
+  return async (args: any, ctx: any) => {
+    const start = Date.now();
+    try {
+      const result = await handler(args, ctx);
+      logMcpRequest({
+        userId: ctx.userId,
+        toolName,
+        args: JSON.stringify(args).substring(0, 500),
+        status: result.isError ? 'error' : 'success',
+        responsePreview: JSON.stringify(result).substring(0, 300),
+        duration: Date.now() - start,
+        createdAt: Date.now(),
+        keyPrefix: ctx.apiKeyPrefix,
+      });
+      return result;
+    } catch (error: any) {
+      logMcpRequest({
+        userId: ctx.userId,
+        toolName,
+        args: JSON.stringify(args).substring(0, 500),
+        status: 'error',
+        responsePreview: error.message.substring(0, 300),
+        duration: Date.now() - start,
+        createdAt: Date.now(),
+        keyPrefix: ctx.apiKeyPrefix,
+      });
+      throw error;
+    }
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Handler registry
 // ---------------------------------------------------------------------------
 export const TOOL_HANDLERS: Record<string, McpToolHandler> = {
-  analyze_wallet: analyzeWallet,
-  trace_funds: traceFunds,
-  compare_wallets: compareWallets,
-  analyze_contract: analyzeContract,
-  detect_sybil_clusters: detectSybilClusters,
-  get_portfolio: getPortfolio,
-  get_transactions: getTransactions,
-  lookup_entity: lookupEntity,
-  get_gas_prices: getGasPrices,
-  get_token_info: getTokenInfo,
+  analyze_wallet: withLogging('analyze_wallet', analyzeWallet),
+  trace_funds: withLogging('trace_funds', traceFunds),
+  compare_wallets: withLogging('compare_wallets', compareWallets),
+  analyze_contract: withLogging('analyze_contract', analyzeContract),
+  detect_sybil_clusters: withLogging('detect_sybil_clusters', detectSybilClusters),
+  get_portfolio: withLogging('get_portfolio', getPortfolio),
+  get_transactions: withLogging('get_transactions', getTransactions),
+  lookup_entity: withLogging('lookup_entity', lookupEntity),
+  get_gas_prices: withLogging('get_gas_prices', getGasPrices),
+  get_token_info: withLogging('get_token_info', getTokenInfo),
 };
