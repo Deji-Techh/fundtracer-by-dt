@@ -263,7 +263,7 @@ export function McpPage() {
                     </span>
                   </div>
                   <button
-                    onClick={() => handleRevoke(k.id === k.key ? k.id : k.key)}
+                    onClick={() => handleRevoke(k.id === k.key ? k.id : (k.key || k.id))}
                     style={{
                       padding: '6px 14px', background: 'transparent', color: '#ef4444',
                       border: '1px solid #ef4444', borderRadius: 6, cursor: 'pointer',

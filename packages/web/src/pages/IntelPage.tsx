@@ -298,6 +298,7 @@ export function IntelPage() {
     { label: 'How It Works', href: '/how-it-works' },
     { label: 'FAQ', href: '/faq' },
     { label: 'API', href: '/api-docs' },
+    { label: 'MCP', href: '/mcp' },
     { label: 'CLI', href: '/cli' },
     { label: 'About', href: '/about' },
   ];
