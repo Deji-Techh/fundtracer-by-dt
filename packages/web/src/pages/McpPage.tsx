@@ -276,11 +276,12 @@ export function McpPage() {
             <h2 className="mcp-card__title">Setup Instructions</h2>
 
             <div className="mcp-instruction">
-              <h3 className="mcp-instruction__title">Claude Desktop</h3>
-              <p className="mcp-instruction__desc">
-                Add to your <code className="mcp-inline-code">claude_desktop_config.json</code>:
-              </p>
-              <pre className="mcp-code-block">{`{
+            <h3 className="mcp-instruction__title">Option A: stdio (npx — auto-downloads, needs Node.js)</h3>
+            <p className="mcp-instruction__desc">
+              Works in Claude Desktop, Claude Code, Cursor, and any MCP client with stdio transport.
+              Add to your client's MCP server config:
+            </p>
+            <pre className="mcp-code-block">{`{
   "mcpServers": {
     "fundtracer": {
       "command": "npx",
@@ -291,29 +292,27 @@ export function McpPage() {
     }
   }
 }`}</pre>
-            </div>
+          </div>
 
-            <div className="mcp-instruction">
-              <h3 className="mcp-instruction__title">Claude Code</h3>
-              <p className="mcp-instruction__desc">
-                Add to your <code className="mcp-inline-code">.claude/settings.json</code>:
-              </p>
-              <pre className="mcp-code-block">{`{
+          <div className="mcp-instruction">
+            <h3 className="mcp-instruction__title">Option B: HTTP (zero install — direct API calls)</h3>
+            <p className="mcp-instruction__desc">
+              No package needed. Point your MCP client directly at the live API:
+            </p>
+            <pre className="mcp-code-block">{`{
   "mcpServers": {
     "fundtracer": {
-      "command": "npx",
-      "args": ["-y", "@fundtracer/server", "fundtracer-mcp"],
-      "env": {
-        "FUNDTRACER_MCP_API_KEY": "YOUR_FT_MCP_KEY"
+      "url": "https://api.fundtracer.xyz/api/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_FT_MCP_KEY"
       }
     }
   }
 }`}</pre>
-            </div>
-
-            <div className="mcp-instruction">
-              <h3 className="mcp-instruction__title">HTTP API (curl)</h3>
-              <pre className="mcp-code-block">{`# List available tools
+            <p className="mcp-instruction__desc" style={{ marginTop: 12 }}>
+              Or call directly with curl:
+            </p>
+            <pre className="mcp-code-block">{`# List available tools
 curl https://api.fundtracer.xyz/api/mcp/tools
 
 # Analyze a wallet
@@ -321,7 +320,7 @@ curl -X POST https://api.fundtracer.xyz/api/mcp/tools/analyze_wallet \\
   -H "Authorization: Bearer ft_mcp_YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045","chainId":"ethereum"}'`}</pre>
-            </div>
+          </div>
           </section>
 
           {/* Tools Reference */}

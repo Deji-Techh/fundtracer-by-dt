@@ -361,9 +361,14 @@ FundTracer exposes its blockchain analysis engine as an MCP server, letting AI a
 
 1. Visit **[fundtracer.xyz/mcp](https://fundtracer.xyz/mcp)** and sign in with Google
 2. Generate an MCP API key (prefix: `ft_mcp_`)
-3. Configure your AI client:
+3. Choose your transport:
 
-**Claude Desktop** — add to `claude_desktop_config.json`:
+---
+
+#### Option A: stdio (npx — auto-downloads, needs Node.js)
+
+Add to `claude_desktop_config.json`, `claude_code_settings.json`, or your AI client's MCP config:
+
 ```json
 {
   "mcpServers": {
@@ -378,23 +383,34 @@ FundTracer exposes its blockchain analysis engine as an MCP server, letting AI a
 }
 ```
 
-**Claude Code** — add to `.claude/settings.json`:
+Supports: Claude Desktop, Claude Code, Cursor, any MCP client with stdio transport.
+
+---
+
+#### Option B: HTTP (zero install — direct API calls)
+
+Point your MCP client directly at the live API — no package needed.
+
 ```json
 {
   "mcpServers": {
     "fundtracer": {
-      "command": "npx",
-      "args": ["-y", "@fundtracer/server", "fundtracer-mcp"],
-      "env": {
-        "FUNDTRACER_MCP_API_KEY": "ft_mcp_YOUR_KEY_HERE"
+      "url": "https://api.fundtracer.xyz/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ft_mcp_YOUR_KEY_HERE"
       }
     }
   }
 }
 ```
 
-**HTTP API** (direct access):
+Or call directly with curl:
+
 ```bash
+# List available tools
+curl https://api.fundtracer.xyz/api/mcp/tools
+
+# Analyze a wallet
 curl -X POST https://api.fundtracer.xyz/api/mcp/tools/analyze_wallet \
   -H "Authorization: Bearer ft_mcp_YOUR_KEY_HERE" \
   -H "Content-Type: application/json" \
