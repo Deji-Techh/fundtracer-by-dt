@@ -22,8 +22,8 @@ Multi-chain blockchain forensics platform for tracing wallet funds, detecting Sy
 | Arbitrum | Active |
 | Optimism | Active |
 | BSC | Active |
-| Solana | Active |
-| Sui | Coming Soon |
+| Solana | Beta |
+| Sui | Beta |
 
 ---
 
