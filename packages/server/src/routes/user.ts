@@ -978,4 +978,27 @@ router.post('/mcp-validate', async (req, res) => {
   }
 });
 
+// ============================================================
+// MCP Request History
+// ============================================================
+
+router.get('/mcp-history', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  try {
+    const { getMcpLogs } = await import('../mcp/mcpLogger.js');
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const startAfter = req.query.startAfter ? parseInt(req.query.startAfter as string) : undefined;
+    const tool = req.query.tool as string | undefined;
+
+    const result = await getMcpLogs(req.user.uid, { limit, startAfter, tool });
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    console.error('[User] mcp-history error:', error);
+    res.status(500).json({ error: 'Failed to fetch MCP history' });
+  }
+});
+
 export { router as userRoutes };

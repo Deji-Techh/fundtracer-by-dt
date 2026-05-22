@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { ALL_MCP_TOOLS } from './tools.js';
-import { TOOL_HANDLERS } from './handlers.js';
+import { TOOL_HANDLERS } from './api-handlers.js';
 import { mcpApiKeyAuth } from './mcpAuth.js';
+import { logMcpRequest } from './mcpLogger.js';
 
 const router = Router();
 
@@ -33,16 +34,38 @@ router.post('/tools/:toolName', mcpApiKeyAuth, async (req: any, res) => {
     });
   }
 
+  const start = Date.now();
   try {
     const result = await handler(req.body || {}, req.mcpContext);
+    logMcpRequest({
+      userId: req.mcpContext.userId,
+      toolName,
+      args: JSON.stringify(req.body).substring(0, 500),
+      status: 'success',
+      responsePreview: JSON.stringify(result).substring(0, 300),
+      duration: Date.now() - start,
+      createdAt: Date.now(),
+      keyPrefix: req.mcpContext.apiKeyPrefix,
+    });
     res.json(result);
   } catch (error: any) {
+    logMcpRequest({
+      userId: req.mcpContext.userId,
+      toolName,
+      args: JSON.stringify(req.body).substring(0, 500),
+      status: 'error',
+      responsePreview: error.message.substring(0, 300),
+      duration: Date.now() - start,
+      createdAt: Date.now(),
+      keyPrefix: req.mcpContext.apiKeyPrefix,
+    });
     res.status(500).json({
       content: [{ type: 'text', text: `Internal error: ${error.message}` }],
       isError: true,
     });
   }
 });
+
 
 /**
  * GET /api/mcp/health

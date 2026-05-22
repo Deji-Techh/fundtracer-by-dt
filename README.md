@@ -374,7 +374,7 @@ Add to `claude_desktop_config.json`, `claude_code_settings.json`, or your AI cli
   "mcpServers": {
     "fundtracer": {
       "command": "npx",
-      "args": ["-y", "@fundtracer/server", "fundtracer-mcp"],
+      "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"],
       "env": {
         "FUNDTRACER_MCP_API_KEY": "ft_mcp_YOUR_KEY_HERE"
       }

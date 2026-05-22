@@ -28,7 +28,7 @@ async function main() {
   }
 
   const { ALL_MCP_TOOLS } = await import('./tools.js');
-  const { TOOL_HANDLERS } = await import('./handlers.js');
+  const { TOOL_HANDLERS } = await import('./api-handlers.js');
   const { validateMcpApiKey } = await import('./mcpAuth.js');
 
   const server = new McpServer({

@@ -764,6 +764,42 @@ export async function deleteMcpKey(keyId: string): Promise<{ success: boolean }>
 }
 
 // ============================================================
+// MCP Request History
+// ============================================================
+
+export interface McpHistoryItem {
+  id: string;
+  userId: string;
+  toolName: string;
+  args: string;
+  status: 'success' | 'error';
+  responsePreview: string;
+  duration: number;
+  createdAt: number;
+  keyPrefix?: string;
+}
+
+export async function getMcpHistory(options?: {
+  limit?: number;
+  startAfter?: number;
+  tool?: string;
+}): Promise<{ success: boolean; logs: McpHistoryItem[]; hasMore: boolean }> {
+  const token = getAuthToken();
+  if (!token) return { success: true, logs: [], hasMore: false };
+
+  const params = new URLSearchParams();
+  if (options?.limit) params.append('limit', String(options.limit));
+  if (options?.startAfter) params.append('startAfter', String(options.startAfter));
+  if (options?.tool) params.append('tool', options.tool);
+
+  const response = await fetch(`${API_BASE}/api/user/mcp-history?${params.toString()}`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+
+  return response.json();
+}
+
+// ============================================================
 // Progressive Timestamp Streaming (SSE)
 // ============================================================
 
