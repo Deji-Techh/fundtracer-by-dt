@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotify } from '../contexts/ToastContext';
 import { createMcpKey, listMcpKeys, deleteMcpKey } from '../api';
 import { LandingLayout, Badge } from '../design-system';
 import './McpPage.css';
@@ -45,8 +46,31 @@ const navItems = [
   { label: 'About', href: '/about' },
 ];
 
+function CopyButton({ text, label }: { text: string; label?: string }) {
+  const notify = useNotify();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      notify.success('Copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      notify.error('Failed to copy');
+    }
+  };
+
+  return (
+    <button className="mcp-copy-btn" onClick={handleCopy}>
+      {copied ? 'Copied' : label || 'Copy'}
+    </button>
+  );
+}
+
 export function McpPage() {
   const navigate = useNavigate();
+  const notify = useNotify();
   const { isAuthenticated, loading, loginWithGoogle } = useAuth();
   const [keys, setKeys] = useState<McpKey[]>([]);
   const [keyName, setKeyName] = useState('');
@@ -104,19 +128,21 @@ export function McpPage() {
       const res = await deleteMcpKey(keyId);
       if (res.success) {
         await loadKeys();
+        notify.success('Key revoked');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to revoke key');
     }
   };
 
-  const handleCopyKey = (key: string) => {
-    navigator.clipboard.writeText(key).then(() => {
-      alert('API key copied to clipboard. Store it securely — you won\'t be able to see it again.');
-    }).catch(() => {
+  const handleCopyKey = async (key: string) => {
+    try {
+      await navigator.clipboard.writeText(key);
+      notify.success('API key copied to clipboard. Store it securely!');
+    } catch {
       const input = document.getElementById('generated-key-input') as HTMLInputElement;
-      if (input) { input.select(); document.execCommand('copy'); }
-    });
+      if (input) { input.select(); document.execCommand('copy'); notify.success('API key copied'); }
+    }
   };
 
   // ---- Loading state ----
@@ -134,11 +160,7 @@ export function McpPage() {
   // ---- Not authenticated ----
   if (!isAuthenticated) {
     return (
-      <LandingLayout
-        navItems={navItems}
-        showSearch={false}
-        transparent
-      >
+      <LandingLayout navItems={navItems} showSearch={false} transparent>
         <div className="mcp-hero">
           <div className="mcp-hero__content">
             <div className="mcp-hero__badge">
@@ -193,9 +215,7 @@ export function McpPage() {
             <h2 className="mcp-card__title">Your MCP API Keys</h2>
 
             {error && (
-              <div className="mcp-error">
-                {error}
-              </div>
+              <div className="mcp-error">{error}</div>
             )}
 
             <div className="mcp-generate-row">
@@ -230,10 +250,7 @@ export function McpPage() {
                     value={generatedKey}
                     className="mcp-key-reveal__input"
                   />
-                  <button
-                    onClick={() => handleCopyKey(generatedKey)}
-                    className="mcp-btn mcp-btn--copy"
-                  >
+                  <button onClick={() => handleCopyKey(generatedKey)} className="mcp-btn mcp-btn--copy">
                     Copy
                   </button>
                 </div>
@@ -254,9 +271,7 @@ export function McpPage() {
                         <code className="mcp-key-item__code">
                           {k.maskedKey || k.key?.substring(0, 15) + '...'}
                         </code>
-                        <span className="mcp-key-item__requests">
-                          {k.requests} requests
-                        </span>
+                        <span className="mcp-key-item__requests">{k.requests} requests</span>
                       </div>
                     </div>
                     <button
@@ -275,13 +290,16 @@ export function McpPage() {
           <section className="mcp-card">
             <h2 className="mcp-card__title">Setup Instructions</h2>
 
+            {/* Option A */}
             <div className="mcp-instruction">
-            <h3 className="mcp-instruction__title">Option A: stdio (npx — auto-downloads, needs Node.js)</h3>
-            <p className="mcp-instruction__desc">
-              Works in Claude Desktop, Claude Code, Cursor, and any MCP client with stdio transport.
-              Add to your client's MCP server config:
-            </p>
-            <pre className="mcp-code-block">{`{
+              <h3 className="mcp-instruction__title">Option A: stdio (npx — auto-downloads, needs Node.js)</h3>
+              <p className="mcp-instruction__desc">
+                Works in Claude Desktop, Claude Code, Cursor, and any MCP client with stdio transport.
+                Add to your client's MCP server config:
+              </p>
+              <div className="mcp-code-wrap">
+                <CopyButton text={`{\n  "mcpServers": {\n    "fundtracer": {\n      "command": "npx",\n      "args": ["-y", "@fundtracer/server", "fundtracer-mcp"],\n      "env": {\n        "FUNDTRACER_MCP_API_KEY": "YOUR_FT_MCP_KEY"\n      }\n    }\n  }\n}`} />
+                <pre className="mcp-code-block">{`{
   "mcpServers": {
     "fundtracer": {
       "command": "npx",
@@ -292,14 +310,18 @@ export function McpPage() {
     }
   }
 }`}</pre>
-          </div>
+              </div>
+            </div>
 
-          <div className="mcp-instruction">
-            <h3 className="mcp-instruction__title">Option B: HTTP (zero install — direct API calls)</h3>
-            <p className="mcp-instruction__desc">
-              No package needed. Point your MCP client directly at the live API:
-            </p>
-            <pre className="mcp-code-block">{`{
+            {/* Option B */}
+            <div className="mcp-instruction">
+              <h3 className="mcp-instruction__title">Option B: HTTP (zero install — direct API calls)</h3>
+              <p className="mcp-instruction__desc">
+                No package needed. Point your MCP client directly at the live API:
+              </p>
+              <div className="mcp-code-wrap">
+                <CopyButton text={`{\n  "mcpServers": {\n    "fundtracer": {\n      "url": "https://api.fundtracer.xyz/api/mcp",\n      "headers": {\n        "Authorization": "Bearer YOUR_FT_MCP_KEY"\n      }\n    }\n  }\n}`} />
+                <pre className="mcp-code-block">{`{
   "mcpServers": {
     "fundtracer": {
       "url": "https://api.fundtracer.xyz/api/mcp",
@@ -309,10 +331,13 @@ export function McpPage() {
     }
   }
 }`}</pre>
-            <p className="mcp-instruction__desc" style={{ marginTop: 12 }}>
-              Or call directly with curl:
-            </p>
-            <pre className="mcp-code-block">{`# List available tools
+              </div>
+              <p className="mcp-instruction__desc" style={{ marginTop: 12 }}>
+                Or call directly with curl:
+              </p>
+              <div className="mcp-code-wrap">
+                <CopyButton text={`# List available tools\ncurl https://api.fundtracer.xyz/api/mcp/tools\n\n# Analyze a wallet\ncurl -X POST https://api.fundtracer.xyz/api/mcp/tools/analyze_wallet \\\n  -H "Authorization: Bearer ft_mcp_YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045","chainId":"ethereum"}'`} />
+                <pre className="mcp-code-block">{`# List available tools
 curl https://api.fundtracer.xyz/api/mcp/tools
 
 # Analyze a wallet
@@ -320,7 +345,8 @@ curl -X POST https://api.fundtracer.xyz/api/mcp/tools/analyze_wallet \\
   -H "Authorization: Bearer ft_mcp_YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045","chainId":"ethereum"}'`}</pre>
-          </div>
+              </div>
+            </div>
           </section>
 
           {/* Tools Reference */}

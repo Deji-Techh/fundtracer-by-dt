@@ -391,3 +391,29 @@
 @keyframes mcp-spin {
   to { transform: rotate(360deg); }
 }
+
+/* Code block with copy button */
+.mcp-code-wrap {
+  position: relative;
+}
+
+.mcp-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--intel-border-default);
+  background: var(--intel-bg-hover);
+  color: var(--intel-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  z-index: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mcp-copy-btn:hover {
+  background: var(--intel-bg-active);
+  color: var(--intel-text-primary);
+}
