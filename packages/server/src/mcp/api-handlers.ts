@@ -15,20 +15,22 @@ function err(message: string): McpToolResult {
 
 const API_BASE = process.env.FUNDTRACER_API_URL || 'https://api.fundtracer.xyz';
 
-/**
- * Build axios instance with the user's MCP API key as auth.
- * Relies on the API key having been validated by mcpAuth.ts already.
- * We read the raw key again from the env (set by the MCP client config).
- */
+/** Module-level context set by withLogging — carries the real end-user identity */
+let _mcpCtx: any = null;
+
 function api() {
   const key = process.env.FUNDTRACER_MCP_API_KEY || '';
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${key}`,
+    'Content-Type': 'application/json',
+  };
+  if (_mcpCtx?.userId) {
+    headers['X-MCP-UserId'] = _mcpCtx.userId;
+  }
   return axios.create({
     baseURL: API_BASE,
     timeout: 60000,
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 }
 
@@ -254,6 +256,7 @@ const getTokenInfo: McpToolHandler = async (args, ctx) => {
  */
 function withLogging(toolName: string, handler: McpToolHandler): McpToolHandler {
   return async (args: any, ctx: any) => {
+    _mcpCtx = ctx; // Set context so api() passes X-MCP-UserId on internal calls
     const start = Date.now();
     try {
       const result = await handler(args, ctx);
@@ -280,6 +283,8 @@ function withLogging(toolName: string, handler: McpToolHandler): McpToolHandler 
         keyPrefix: ctx.apiKeyPrefix,
       });
       throw error;
+    } finally {
+      _mcpCtx = null; // Clear context
     }
   };
 }
