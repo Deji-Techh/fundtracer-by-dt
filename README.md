@@ -353,6 +353,62 @@ See [fundtracer.xyz/api-docs](https://fundtracer.xyz/api-docs) for full document
 
 ---
 
+## MCP Server (Model Context Protocol)
+
+FundTracer exposes its blockchain analysis engine as an MCP server, letting AI assistants like Claude Desktop and Cursor analyze wallets, trace fund flows, detect sybil clusters, and more — directly through natural language.
+
+### Setup
+
+1. Visit **[fundtracer.xyz/mcp](https://fundtracer.xyz/mcp)** and sign in with Google
+2. Generate an MCP API key (prefix: `ft_mcp_`)
+3. Configure your AI client:
+
+**Claude Desktop** — add to `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "fundtracer": {
+      "command": "npx",
+      "args": ["-y", "@fundtracer/server"],
+      "env": {
+        "FUNDTRACER_MCP_API_KEY": "ft_mcp_YOUR_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+**HTTP API** (direct access):
+```bash
+curl -X POST https://api.fundtracer.xyz/api/mcp/tools/analyze_wallet \
+  -H "Authorization: Bearer ft_mcp_YOUR_KEY_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045","chainId":"ethereum"}'
+```
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `analyze_wallet` | Full wallet analysis with risk scoring |
+| `trace_funds` | Recursive funding source/destination tracing |
+| `compare_wallets` | Multi-wallet comparison & sybil correlation |
+| `analyze_contract` | Smart contract interactor analysis |
+| `detect_sybil_clusters` | Cluster wallets sharing funding sources |
+| `get_portfolio` | Token/DeFi/NFT portfolio |
+| `get_transactions` | Transaction history |
+| `lookup_entity` | Known blockchain entity/address labels |
+| `get_gas_prices` | Current gas prices |
+| `get_token_info` | Token market data & price info |
+
+### Self-Hosted stdio
+
+```bash
+FUNDTRACER_MCP_API_KEY=ft_mcp_YOUR_KEY npx tsx src/mcp/stdio.ts
+```
+
+---
+
 ## Pricing
 
 All tiers are currently free to use.

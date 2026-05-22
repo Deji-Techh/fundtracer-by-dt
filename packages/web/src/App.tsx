@@ -36,6 +36,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/docs/api-reference': 'API Reference | FundTracer',
   '/docs/cli-guide': 'CLI Guide | FundTracer',
   '/search': 'Search | FundTracer',
+  '/mcp': 'MCP Server | FundTracer',
   '/share': 'Shared Analysis | FundTracer',
 };
 
@@ -102,6 +103,7 @@ const WalletRiskScorePage = lazy(() => import('./pages/DocsRiskScorePage').then(
 const CliGuidePage = lazy(() => import('./pages/DocsCliGuidePage').then(m => ({ default: m.CliGuidePage })));
 const RewardsPage = lazy(() => import('./pages/RewardsPage').then(m => ({ default: m.default })));
 const SharePage = lazy(() => import('./pages/SharePage').then(m => ({ default: m.default })));
+const McpPage = lazy(() => import('./pages/McpPage').then(m => ({ default: m.McpPage })));
 
 /** Extract address from search query — handles raw addresses and explorer URLs */
 function extractAddress(input: string): { address: string; chain?: string } {
@@ -302,6 +304,7 @@ function App() {
       <Route path="/ext-install" element={<Suspense fallback={null}><InstallPage /></Suspense>} />
       <Route path="/telegram" element={<Suspense fallback={null}><TelegramPage /></Suspense>} />
       <Route path="/cli" element={<Suspense fallback={null}><CliPage /></Suspense>} />
+      <Route path="/mcp" element={<Suspense fallback={null}><McpPage /></Suspense>} />
       <Route path="/api-docs" element={<Suspense fallback={null}><ApiPage /></Suspense>} />
       <Route path="/api/docs" element={<Suspense fallback={null}><ApiDocsPage /></Suspense>} />
       <Route path="/docs" element={<Navigate to="/docs/getting-started" replace />} />

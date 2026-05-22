@@ -720,6 +720,50 @@ export async function deleteApiKey(keyId: string, twoFactorCode?: string): Promi
 }
 
 // ============================================================
+// MCP API Key management
+// ============================================================
+
+export async function createMcpKey(name: string): Promise<{ success: boolean; key?: ApiKeyData; error?: string; limit?: number; current?: number }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/user/mcp-keys`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name }),
+    });
+
+    return response.json();
+}
+
+export async function listMcpKeys(): Promise<{ success: boolean; keys: any[] }> {
+    const token = getAuthToken();
+    if (!token) return { success: true, keys: [] };
+
+    const response = await fetch(`${API_BASE}/api/user/mcp-keys`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
+    });
+
+    return response.json();
+}
+
+export async function deleteMcpKey(keyId: string): Promise<{ success: boolean }> {
+    const token = getAuthToken();
+    if (!token) throw new Error('Not authenticated');
+
+    const response = await fetch(`${API_BASE}/api/user/mcp-keys/${encodeURIComponent(keyId)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+    });
+
+    return response.json();
+}
+
+// ============================================================
 // Progressive Timestamp Streaming (SSE)
 // ============================================================
 

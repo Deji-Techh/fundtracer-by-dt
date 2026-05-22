@@ -619,6 +619,10 @@ apiRouter.use('/telegram', telegramRoutes);
 import polymarketRoutes from './routes/polymarket.js';
 apiRouter.use('/polymarket', publicLimiter, polymarketRoutes);
 
+// MCP (Model Context Protocol) Routes
+import { mcpRoutes } from './mcp/routes.js';
+apiRouter.use('/mcp', mcpRoutes);
+
 // Mount router at /api
 // MAINTENANCE MIDDLEWARE: Check if site is in maintenance mode
 app.use('/api', async (req, res, next) => {

@@ -53,7 +53,7 @@ function getDayKey(): string {
 function getTierLimits(tier: string): { daily: number; perMinute: number } {
     switch (tier) {
         case 'enterprise': return { daily: 100000, perMinute: 300 };
-        case 'pro': return { daily: 10000, perMinute: 60 };
+        case 'pro': return { daily: 10000, perMinute: 200 };
         default: return { daily: 1000, perMinute: 100 };
     }
 }

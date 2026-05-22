@@ -82,7 +82,7 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
             minuteLimit = 'unlimited';
         } else if (tier === 'pro') {
             dayLimit = 10000;
-            minuteLimit = 60;
+            minuteLimit = 200;
         }
 
         let remaining: number | 'unlimited' = 'unlimited';
@@ -580,6 +580,208 @@ router.delete('/api-keys/:keyId', async (req: AuthenticatedRequest, res: Respons
     } catch (error: any) {
         console.error('[User] deleteApiKey error:', error);
         res.status(500).json({ error: 'Failed to delete API key' });
+    }
+});
+
+// ============================================================
+// MCP API Key endpoints
+// ============================================================
+
+router.post('/mcp-keys', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ error: 'Key name is required' });
+    }
+    if (name.length > 100) {
+        return res.status(400).json({ error: 'Key name too long (max 100 characters)' });
+    }
+
+    try {
+        const { generateMcpKey, hashAPIKey } = await import('../models/apiKey.js');
+        const db = getFirestore();
+
+        const userRef = db.collection('users').doc(req.user.uid);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+        const userTier = userData?.tier || 'free';
+
+        // Check MCP key limit (2 for free, 10 for pro, unlimited for enterprise)
+        const existingSnapshot = await db.collection('apiKeys')
+            .where('userId', '==', req.user.uid)
+            .where('keyType', '==', 'mcp')
+            .where('isActive', '==', true)
+            .get();
+
+        const maxKeys = userTier === 'enterprise' ? Infinity : userTier === 'pro' ? 10 : 2;
+        if (existingSnapshot.size >= maxKeys) {
+            return res.status(403).json({
+                error: `MCP key limit (${maxKeys}) reached for ${userTier} tier.`,
+                limit: maxKeys,
+                current: existingSnapshot.size,
+            });
+        }
+
+        const rawKey = generateMcpKey();
+        const keyHash = hashAPIKey(rawKey);
+        const now = Date.now();
+
+        // Store in users/{uid}/apiKeys subcollection
+        const keyData = {
+            name: name.trim(),
+            key: rawKey,
+            type: 'mcp',
+            keyType: 'mcp',
+            createdAt: now,
+            lastUsed: null,
+            requests: 0,
+            active: true,
+            userId: req.user.uid,
+            tier: userTier,
+        };
+
+        const keysRef = db.collection('users').doc(req.user.uid).collection('apiKeys');
+        const docRef = await keysRef.add(keyData);
+
+        // Also store in top-level apiKeys/{rawKey} for middleware validation
+        await db.collection('apiKeys').doc(rawKey).set({
+            userId: req.user.uid,
+            keyHash,
+            keyType: 'mcp',
+            scopes: ['mcp'],
+            tier: userTier,
+            isActive: true,
+            active: true,
+            createdAt: now,
+            email: userData?.email || null,
+            displayName: userData?.displayName || null,
+        });
+
+        res.status(201).json({
+            success: true,
+            key: {
+                id: docRef.id,
+                name: name.trim(),
+                key: rawKey,
+                type: 'mcp',
+                createdAt: new Date(now).toISOString(),
+                lastUsed: null,
+                requests: 0,
+                active: true,
+            },
+        });
+    } catch (error: any) {
+        console.error('[User] createMcpKey error:', error);
+        res.status(500).json({ error: 'Failed to create MCP API key' });
+    }
+});
+
+router.get('/mcp-keys', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const db = getFirestore();
+
+        const snapshot = await db.collection('apiKeys')
+            .where('userId', '==', req.user.uid)
+            .where('keyType', '==', 'mcp')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const keys = snapshot.docs
+            .filter(doc => doc.data().active !== false && doc.data().isActive !== false)
+            .map(doc => {
+                const data = doc.data();
+                const docId = doc.id;
+                return {
+                    id: docId,
+                    name: data.displayName || data.name || 'MCP Key',
+                    maskedKey: docId.substring(0, 12) + '...' + docId.slice(-4),
+                    key: docId,
+                    type: 'mcp',
+                    createdAt: data.createdAt ? new Date(data.createdAt).toISOString() : '',
+                    lastUsed: data.lastUsed ? new Date(data.lastUsed).toISOString() : null,
+                    requests: data.requests || 0,
+                    active: data.active !== false,
+                };
+            });
+
+        res.json({ success: true, keys });
+    } catch (error: any) {
+        console.error('[User] listMcpKeys error:', error);
+        // Fallback: check subcollection
+        try {
+            const userRef = db.collection('users').doc(req.user.uid);
+            const keysSnapshot = await userRef
+                .collection('apiKeys')
+                .where('type', '==', 'mcp')
+                .orderBy('createdAt', 'desc')
+                .get();
+
+            const keys = keysSnapshot.docs
+                .filter(doc => doc.data().active !== false)
+                .map(doc => {
+                    const k = doc.data();
+                    const maskedKey = k.key ? k.key.substring(0, 12) + '...' + k.key.slice(-4) : '';
+                    return {
+                        id: doc.id,
+                        name: k.name || 'MCP Key',
+                        maskedKey,
+                        key: k.key || '',
+                        type: 'mcp',
+                        createdAt: k.createdAt ? new Date(k.createdAt).toISOString() : '',
+                        lastUsed: k.lastUsed ? new Date(k.lastUsed).toISOString() : null,
+                        requests: k.requests || 0,
+                        active: k.active !== false,
+                    };
+                });
+
+            res.json({ success: true, keys });
+        } catch (fallbackErr) {
+            console.error('[User] listMcpKeys fallback error:', fallbackErr);
+            res.status(500).json({ error: 'Failed to load MCP keys' });
+        }
+    }
+});
+
+router.delete('/mcp-keys/:keyId', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const db = getFirestore();
+        const topLevelRef = db.collection('apiKeys').doc(req.params.keyId);
+        const topLevelDoc = await topLevelRef.get();
+
+        if (topLevelDoc.exists) {
+            const data = topLevelDoc.data();
+            if (data?.userId !== req.user.uid) {
+                return res.status(403).json({ error: 'Not authorized to revoke this key' });
+            }
+            await topLevelRef.update({ active: false, isActive: false });
+        }
+
+        // Also deactivate in subcollection
+        const userRef = db.collection('users').doc(req.user.uid);
+        const keysSnapshot = await userRef.collection('apiKeys')
+            .where('key', '==', req.params.keyId)
+            .limit(1)
+            .get();
+
+        if (!keysSnapshot.empty) {
+            await keysSnapshot.docs[0].ref.update({ active: false });
+        }
+
+        res.json({ success: true, message: 'MCP API key revoked' });
+    } catch (error: any) {
+        console.error('[User] deleteMcpKey error:', error);
+        res.status(500).json({ error: 'Failed to revoke MCP key' });
     }
 });
 

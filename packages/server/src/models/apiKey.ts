@@ -59,8 +59,8 @@ export const TIER_LIMITS = {
   },
   pro: {
     daily: 10000,
-    perMinute: 60,
-    burst: 100,
+    perMinute: 200,
+    burst: 400,
     maxKeys: 10,
     endpoints: ['address', 'transactions', 'tokens', 'risk', 'graph', 'sources', 'destinations', 'analyze', 'entities'],
     features: ['full_graph_analysis', 'async_analysis', 'entity_detection'],
