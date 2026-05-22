@@ -67,7 +67,7 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
   };
 
   return (
-    <button className="mcp-copy-btn" onClick={handleCopy}>
+    <button className="cli-copy-btn" onClick={handleCopy}>
       {copied ? <><Check size={14} /> Copied</> : label || 'Copy'}
     </button>
   );
@@ -194,9 +194,10 @@ export function McpPage() {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  // ---- Tabs ----
   const TABS: { key: McpTab; label: string; icon: React.ReactNode }[] = [
     { key: 'overview', label: 'Overview', icon: <Terminal size={16} /> },
-    { key: 'manage', label: 'Manage Keys', icon: <Key size={16} /> },
+    { key: 'manage', label: 'Manage', icon: <Key size={16} /> },
     { key: 'history', label: 'History', icon: <History size={16} /> },
     { key: 'documentation', label: 'Documentation', icon: <BookOpen size={16} /> },
   ];
@@ -204,6 +205,7 @@ export function McpPage() {
   const totalRequests = keys.reduce((sum, k) => sum + (k.requests || 0), 0);
   const activeKeyCount = keys.filter(k => k.active).length;
 
+  // ======== LOADING ========
   if (loading) {
     return (
       <LandingLayout navItems={navItems} showSearch={false} transparent>
@@ -215,459 +217,504 @@ export function McpPage() {
     );
   }
 
-  const renderSignIn = () => (
-    <div className="mcp-card" style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <Key size={48} style={{ color: 'var(--intel-cyan)', marginBottom: 16 }} />
-      <h2 style={{ margin: '0 0 12px' }}>Sign in Required</h2>
-      <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 24px' }}>
-        Sign in to manage your MCP API keys and view usage history.
-      </p>
-      <button className="mcp-google-btn" onClick={() => loginWithGoogle()}>
-        <svg width="20" height="20" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-        </svg>
-        Sign in with Google
-      </button>
-    </div>
-  );
-
   return (
-    <LandingLayout navItems={navItems} showSearch={false} transparent>
-      <div className="mcp-page">
-        <div className="mcp-container">
+    <LandingLayout
+      navItems={navItems}
+      showSearch={false}
+      transparent
+      headerRight={
+        isAuthenticated ? (
+          <button className="mcp-btn mcp-btn--primary" onClick={() => navigate('/app-evm')}>
+            Launch App
+          </button>
+        ) : undefined
+      }
+    >
+    <div className="cli-page">
+      <div className="cli-container">
 
-          {/* Header */}
-          <motion.div
-            className="mcp-header"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="mcp-header-row">
-              <div className="mcp-title">
-                <Key size={32} strokeWidth={1.5} />
-                <h1>MCP Server</h1>
-              </div>
-            </div>
-            <p>
-              Let Claude, Cursor, and any MCP-compatible AI analyze wallets, detect sybil clusters,
-              trace fund flows, and query on-chain data through natural language.
-            </p>
-          </motion.div>
-
-          {/* Tabs */}
-          <div className="mcp-tabs">
-            {TABS.map(tab => (
-              <button
-                key={tab.key}
-                className={`mcp-tab ${activeTab === tab.key ? 'mcp-tab--active' : ''}`}
-                onClick={() => setActiveTab(tab.key)}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
+        {/* ===== Header ===== */}
+        <motion.div
+          className="cli-header"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="cli-logo">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+            <span>FundTracer MCP</span>
           </div>
+          <h1>Blockchain Analysis for AI Assistants</h1>
+          <p>
+            Let Claude, Cursor, and any MCP-compatible AI analyze wallets, detect sybil clusters,
+            trace fund flows, and query on-chain data through natural language.
+          </p>
+        </motion.div>
 
-          {/* ============ OVERVIEW ============ */}
-          {activeTab === 'overview' && (
-            <div className="mcp-content">
-              {/* Stats */}
-              {isAuthenticated && (
-                <motion.div
-                  className="mcp-stats"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="mcp-stat">
-                    <span className="mcp-stat__value">{activeKeyCount}</span>
-                    <span className="mcp-stat__label">Active Keys</span>
-                  </div>
-                  <div className="mcp-stat">
-                    <span className="mcp-stat__value">{totalRequests.toLocaleString()}</span>
-                    <span className="mcp-stat__label">Total Requests</span>
-                  </div>
-                  <div className="mcp-stat">
-                    <span className="mcp-stat__value">10</span>
-                    <span className="mcp-stat__label">MCP Tools</span>
-                  </div>
-                </motion.div>
-              )}
+        {/* ===== Tab Bar ===== */}
+        <div className="mcp-tabs">
+          {TABS.map(tab => (
+            <button
+              key={tab.key}
+              className={`mcp-tab ${activeTab === tab.key ? 'mcp-tab--active' : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-              {/* CTA */}
-              {!isAuthenticated && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                >
-                  <div className="mcp-card" style={{ textAlign: 'center', padding: '60px 20px' }}>
-                    <Terminal size={48} style={{ color: 'var(--intel-cyan)', marginBottom: 16 }} />
-                    <h2 style={{ margin: '0 0 12px' }}>Get Started</h2>
-                    <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 24px' }}>
-                      Sign in to generate your MCP API key and connect AI assistants to blockchain analysis.
-                    </p>
-                    <button className="mcp-google-btn" onClick={() => loginWithGoogle()}>
-                      <svg width="20" height="20" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                      </svg>
-                      Sign in with Google
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Features */}
+        {/* ================================================================ */}
+        {/* TAB: Overview */}
+        {/* ================================================================ */}
+        {activeTab === 'overview' && (
+          <>
+            {/* Stats bar */}
+            {isAuthenticated && (
               <motion.div
-                className="mcp-card"
-                initial={{ opacity: 0, y: 20 }}
+                className="mcp-usage-stats"
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+                transition={{ duration: 0.3 }}
               >
-                <h2>Features</h2>
-                <div className="mcp-features-grid">
-                  <div className="mcp-feature">
-                    <div className="feature-icon"><Search size={22} /></div>
-                    <h3>Wallet Analysis</h3>
-                    <p>Full risk scoring, transaction history, and funding source tracing across 8+ chains</p>
-                  </div>
-                  <div className="mcp-feature">
-                    <div className="feature-icon"><Users size={22} /></div>
-                    <h3>Sybil Detection</h3>
-                    <p>Identify coordinated attack patterns and airdrop farmers with funding source clustering</p>
-                  </div>
-                  <div className="mcp-feature">
-                    <div className="feature-icon"><GitBranch size={22} /></div>
-                    <h3>Fund Tracing</h3>
-                    <p>Recursive funding tree analysis — trace where money comes from and goes to</p>
-                  </div>
-                  <div className="mcp-feature">
-                    <div className="feature-icon"><BarChart2 size={22} /></div>
-                    <h3>Portfolio & Markets</h3>
-                    <p>Token balances, DeFi positions, gas prices, and market data in real-time</p>
-                  </div>
+                <div className="mcp-stat">
+                  <span className="mcp-stat__value">{activeKeyCount}</span>
+                  <span className="mcp-stat__label">Active Keys</span>
+                </div>
+                <div className="mcp-stat">
+                  <span className="mcp-stat__value">{totalRequests.toLocaleString()}</span>
+                  <span className="mcp-stat__label">Total Requests</span>
+                </div>
+                <div className="mcp-stat">
+                  <span className="mcp-stat__value">10</span>
+                  <span className="mcp-stat__label">MCP Tools</span>
                 </div>
               </motion.div>
+            )}
 
-              {/* Quick Start */}
-              {isAuthenticated && (
-                <motion.div
-                  className="mcp-card"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                >
-                  <h2>Quick Start</h2>
-                  <p style={{ color: 'var(--color-text-secondary)', marginBottom: 16 }}>
-                    Add to any MCP client:
-                  </p>
-                  <div className="mcp-code-wrap">
-                    <CopyButton text={`"command": "npx", "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"]`} />
-                    <pre className="mcp-code-block">{`"command": "npx", "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"]`}</pre>
-                  </div>
-                  <p style={{ textAlign: 'center', marginTop: 16 }}>
-                    <button
-                      className="mcp-btn"
-                      onClick={() => setActiveTab('manage')}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                    >
-                      <Key size={16} />
-                      Manage Your Keys
-                    </button>
-                  </p>
-                </motion.div>
-              )}
-
-              {/* Need Help */}
+            {/* CTA / Sign in */}
+            {!isAuthenticated && (
               <motion.div
-                className="mcp-card"
+                className="cli-link-section"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                style={{ textAlign: 'center', padding: '40px 20px' }}
+                transition={{ duration: 0.5, delay: 0.1 }}
               >
-                <h2>Need Help?</h2>
-                <p style={{ color: 'var(--color-text-secondary)', margin: '0 0 24px' }}>
-                  Check the documentation for setup guides and tool reference
+                <h2 style={{ marginTop: 0, textAlign: 'center' }}>Get Started</h2>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
+                  Sign in to generate your MCP API key and connect AI assistants to blockchain analysis.
                 </p>
                 <button
-                  className="mcp-btn"
-                  onClick={() => setActiveTab('documentation')}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                  className="cli-google-btn"
+                  onClick={() => loginWithGoogle()}
                 >
-                  <BookOpen size={16} />
-                  View Documentation
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Sign in with Google
                 </button>
               </motion.div>
-            </div>
-          )}
+            )}
 
-          {/* ============ MANAGE KEYS ============ */}
-          {activeTab === 'manage' && (
-            !isAuthenticated ? renderSignIn() : (
-              <div className="mcp-content">
-                {/* Stats */}
-                <motion.div
-                  className="mcp-stats"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="mcp-stat">
-                    <span className="mcp-stat__value">{activeKeyCount}</span>
-                    <span className="mcp-stat__label">Active Keys</span>
-                  </div>
-                  <div className="mcp-stat">
-                    <span className="mcp-stat__value">{totalRequests.toLocaleString()}</span>
-                    <span className="mcp-stat__label">Total Requests</span>
-                  </div>
-                  <div className="mcp-stat">
-                    <span className="mcp-stat__value">{keys.filter(k => !k.active).length}</span>
-                    <span className="mcp-stat__label">Revoked</span>
-                  </div>
-                </motion.div>
-
-                {error && <div className="mcp-error">{error}</div>}
-
-                {/* Generate Key */}
-                <motion.div
-                  className="mcp-card"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  <h2>Generate MCP API Key</h2>
-                  <div className="mcp-generate-row">
-                    <input
-                      type="text"
-                      placeholder="Key name (e.g., Claude Desktop)"
-                      value={keyName}
-                      onChange={e => setKeyName(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleGenerate()}
-                      maxLength={100}
-                      className="mcp-input"
-                    />
-                    <button
-                      onClick={handleGenerate}
-                      disabled={creating || !keyName.trim()}
-                      className="mcp-btn"
-                    >
-                      {creating ? 'Generating...' : 'Generate Key'}
-                    </button>
-                  </div>
-
-                  {generatedKey && (
-                    <div className="mcp-key-reveal">
-                      <p className="mcp-key-reveal__warning">
-                        Copy this key now — you won't be able to see it again!
-                      </p>
-                      <div className="mcp-key-reveal__row">
-                        <input
-                          id="generated-key-input"
-                          type="text"
-                          readOnly
-                          value={generatedKey}
-                          className="mcp-key-reveal__input"
-                        />
-                        <button onClick={() => handleCopyKey(generatedKey)} className="mcp-btn" style={{ whiteSpace: 'nowrap' }}>
-                          Copy
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-
-                {/* Key List */}
-                <motion.div
-                  className="mcp-card"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                >
-                  <h2>Your MCP API Keys</h2>
-                  {loadingKeys ? (
-                    <div className="mcp-empty-state">
-                      <p>Loading keys...</p>
-                    </div>
-                  ) : keys.length === 0 ? (
-                    <div className="mcp-empty-state">
-                      <Key size={48} style={{ color: 'var(--color-text-secondary)', opacity: 0.4, marginBottom: 12 }} />
-                      <p>No MCP API keys yet. Generate one above.</p>
-                    </div>
-                  ) : (
-                    <div className="mcp-key-list">
-                      {keys.map(k => (
-                        <div key={k.id} className="mcp-key-item">
-                          <div className="mcp-key-item__info">
-                            <p className="mcp-key-item__name">{k.name}</p>
-                            <div className="mcp-key-item__meta">
-                              <code className="mcp-key-item__code">
-                                {k.maskedKey || k.key?.substring(0, 15) + '...'}
-                              </code>
-                              <span className="mcp-key-item__requests">{k.requests} requests</span>
-                              <span className="mcp-key-item__requests">
-                                {k.lastUsed ? `Last: ${formatDate(k.lastUsed)}` : 'Never used'}
-                              </span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleRevoke(k.key || k.id)}
-                            className="mcp-btn mcp-btn--danger"
-                          >
-                            Revoke
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
+            {/* Features */}
+            <motion.div
+              className="cli-features"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <h2>Features</h2>
+              <div className="cli-features-grid">
+                <div className="cli-feature">
+                  <div className="feature-icon"><Search size={24} /></div>
+                  <h3>Wallet Analysis</h3>
+                  <p>Full risk scoring, transaction history, and funding source tracing across 8+ chains</p>
+                </div>
+                <div className="cli-feature">
+                  <div className="feature-icon"><Users size={24} /></div>
+                  <h3>Sybil Detection</h3>
+                  <p>Identify coordinated attack patterns and airdrop farmers with funding source clustering</p>
+                </div>
+                <div className="cli-feature">
+                  <div className="feature-icon"><GitBranch size={24} /></div>
+                  <h3>Fund Tracing</h3>
+                  <p>Recursive funding tree analysis — trace where money comes from and goes to</p>
+                </div>
+                <div className="cli-feature">
+                  <div className="feature-icon"><BarChart2 size={24} /></div>
+                  <h3>Portfolio & Markets</h3>
+                  <p>Token balances, DeFi positions, gas prices, and market data in real-time</p>
+                </div>
               </div>
-            )
-          )}
+            </motion.div>
 
-          {/* ============ HISTORY ============ */}
-          {activeTab === 'history' && (
-            !isAuthenticated ? renderSignIn() : (
+            {/* Quick start */}
+            <motion.div
+              className="cli-usage"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <h2 style={{ textAlign: 'center' }}>Quick Start</h2>
+              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 'var(--space-4)' }}>
+                Add to any MCP client:
+              </p>
+              <div className="cli-code-block">
+                <code>{`"command": "npx", "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"]`}</code>
+                <CopyButton text={`"command": "npx", "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"]`} />
+              </div>
+              {isAuthenticated && (
+                <p style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
+                  <button
+                    className="cli-generate-btn"
+                    onClick={() => setActiveTab('manage')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <Key size={16} />
+                    Manage Your Keys
+                  </button>
+                </p>
+              )}
+            </motion.div>
+
+            {/* Help */}
+            <motion.div
+              className="cli-cta"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <h2>Need Help?</h2>
+              <p>Check the documentation for setup guides and tool reference</p>
+              <button
+                className="cli-generate-btn"
+                onClick={() => setActiveTab('documentation')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              >
+                <BookOpen size={16} />
+                View Documentation
+              </button>
+            </motion.div>
+          </>
+        )}
+
+        {/* ================================================================ */}
+        {/* TAB: Manage */}
+        {/* ================================================================ */}
+        {activeTab === 'manage' && (
+          !isAuthenticated ? (
+            <div className="cli-link-section">
+              <h2 style={{ marginTop: 0, textAlign: 'center' }}>Sign in Required</h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
+                Sign in to manage your MCP API keys.
+              </p>
+              <button className="cli-google-btn" onClick={() => loginWithGoogle()}>
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Usage Stats */}
               <motion.div
-                className="mcp-card"
+                className="mcp-usage-stats"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="mcp-stat">
+                  <span className="mcp-stat__value">{activeKeyCount}</span>
+                  <span className="mcp-stat__label">Active Keys</span>
+                </div>
+                <div className="mcp-stat">
+                  <span className="mcp-stat__value">{totalRequests.toLocaleString()}</span>
+                  <span className="mcp-stat__label">Total Requests</span>
+                </div>
+                <div className="mcp-stat">
+                  <span className="mcp-stat__value">{keys.filter(k => !k.active).length}</span>
+                  <span className="mcp-stat__label">Revoked</span>
+                </div>
+              </motion.div>
+
+              {/* Error */}
+              {error && (
+                <div className="mcp-error">{error}</div>
+              )}
+
+              {/* Generate Key Card */}
+              <motion.div
+                className="cli-usage"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
               >
-                <h2>Request History</h2>
-
-                {/* Filter row */}
-                <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <select
-                    value={historyToolFilter}
-                    onChange={e => { setHistoryToolFilter(e.target.value); setHistoryInit(false); }}
-                    className="mcp-select"
+                <h2>Generate MCP API Key</h2>
+                <div className="mcp-generate-row">
+                  <input
+                    type="text"
+                    placeholder="Key name (e.g., Claude Desktop)"
+                    value={keyName}
+                    onChange={e => setKeyName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleGenerate()}
+                    maxLength={100}
+                    className="cli-code-block"
+                    style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: '14px', padding: 'var(--space-3) var(--space-4)', outline: 'none' }}
+                  />
+                  <button
+                    onClick={handleGenerate}
+                    disabled={creating || !keyName.trim()}
+                    className="cli-generate-btn"
                   >
-                    <option value="">All Tools</option>
-                    {TOOLS_LIST.map(t => (
-                      <option key={t.name} value={t.name}>{t.name}</option>
-                    ))}
-                  </select>
-                  <span className="mcp-total-label">{totalRequests.toLocaleString()} total requests</span>
+                    {creating ? 'Generating...' : 'Generate Key'}
+                  </button>
                 </div>
 
-                {loadingHistory && historyLogs.length === 0 ? (
-                  <div className="mcp-empty-state">
-                    <div className="mcp-loading__spinner" style={{ marginBottom: 12 }} />
-                    <p>Loading history...</p>
-                  </div>
-                ) : historyLogs.length === 0 ? (
-                  <div className="mcp-empty-state">
-                    <History size={48} style={{ color: 'var(--color-text-secondary)', opacity: 0.4, marginBottom: 12 }} />
-                    <p>No MCP requests yet.</p>
-                    <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginTop: 8 }}>
-                      {historyToolFilter ? `No requests for "${historyToolFilter}".` : 'Connect an AI assistant with your MCP key to see usage here.'}
+                {generatedKey && (
+                  <div className="mcp-key-reveal">
+                    <p className="mcp-key-reveal__warning">
+                      Copy this key now — you won't be able to see it again!
                     </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="mcp-table-wrap">
-                      <table className="mcp-table">
-                        <thead>
-                          <tr>
-                            <th>Time</th>
-                            <th>Tool</th>
-                            <th>Args</th>
-                            <th>Duration</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {historyLogs.map(log => (
-                            <tr key={log.id}>
-                              <td style={{ whiteSpace: 'nowrap', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                                {formatDate(log.createdAt)}
-                              </td>
-                              <td>
-                                <code className="mcp-tool-name">{log.toolName}</code>
-                              </td>
-                              <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                                {(() => {
-                                  try {
-                                    const parsed = JSON.parse(log.args);
-                                    const addr = parsed.address || parsed.addresses || parsed.contractAddress || parsed.query || parsed.tokenAddress;
-                                    const chain = parsed.chainId;
-                                    const summary = [addr ? (typeof addr === 'string' ? addr.substring(0, 20) : JSON.stringify(addr).substring(0, 20)) : '', chain].filter(Boolean).join(' · ');
-                                    return summary || log.args.substring(0, 40);
-                                  } catch { return log.args.substring(0, 40); }
-                                })()}
-                              </td>
-                              <td style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
-                                {log.duration > 1000
-                                  ? `${(log.duration / 1000).toFixed(1)}s`
-                                  : `${log.duration}ms`
-                                }
-                              </td>
-                              <td>
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4,
-                                  color: log.status === 'success' ? 'var(--intel-cyan, #00cc6e)' : '#ef4444',
-                                  fontSize: '0.75rem',
-                                }}>
-                                  <span style={{
-                                    width: 6, height: 6, borderRadius: '50%',
-                                    background: log.status === 'success' ? 'var(--intel-cyan, #00cc6e)' : '#ef4444',
-                                    display: 'inline-block',
-                                  }} />
-                                  {log.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="mcp-key-reveal__row">
+                      <input
+                        id="generated-key-input"
+                        type="text"
+                        readOnly
+                        value={generatedKey}
+                        className="mcp-key-reveal__input"
+                      />
+                      <button onClick={() => handleCopyKey(generatedKey)} className="cli-generate-btn" style={{ whiteSpace: 'nowrap' }}>
+                        Copy
+                      </button>
                     </div>
-
-                    {hasMoreHistory && (
-                      <div style={{ textAlign: 'center', marginTop: 20 }}>
-                        <button
-                          onClick={() => fetchHistory(true)}
-                          disabled={loadingHistory}
-                          className="mcp-btn mcp-btn--secondary"
-                          style={{ opacity: loadingHistory ? 0.6 : 1 }}
-                        >
-                          {loadingHistory ? 'Loading...' : 'Load More'}
-                        </button>
-                      </div>
-                    )}
-                  </>
+                  </div>
                 )}
               </motion.div>
-            )
-          )}
 
-          {/* ============ DOCUMENTATION ============ */}
-          {activeTab === 'documentation' && (
-            <div className="mcp-content">
-              {/* Option A */}
+              {/* Key List */}
               <motion.div
-                className="mcp-card"
+                className="cli-usage"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                style={{ marginTop: 24 }}
               >
-                <h2>Option A: stdio (npx)</h2>
-                <p style={{ color: 'var(--color-text-secondary)', marginBottom: 16 }}>
-                  Works in Claude Desktop, Claude Code, Cursor, and any MCP client with stdio transport.
-                  Add to your client's MCP server config:
-                </p>
-                <div className="mcp-code-wrap">
-                  <CopyButton text={`{\n  "mcpServers": {\n    "fundtracer": {\n      "command": "npx",\n      "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"],\n      "env": {\n        "FUNDTRACER_MCP_API_KEY": "YOUR_FT_MCP_KEY"\n      }\n    }\n  }\n}`} />
-                  <pre className="mcp-code-block">{`{
+                <h2>Your API Keys</h2>
+                {loadingKeys ? (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Loading keys...</p>
+                ) : keys.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>No MCP API keys yet. Generate one above.</p>
+                ) : (
+                  <div className="mcp-key-list">
+                    {keys.map(k => (
+                      <div key={k.id} className="mcp-key-item">
+                        <div className="mcp-key-item__info">
+                          <p className="mcp-key-item__name">{k.name}</p>
+                          <div className="mcp-key-item__meta">
+                            <code className="mcp-key-item__code">
+                              {k.maskedKey || k.key?.substring(0, 15) + '...'}
+                            </code>
+                            <span className="mcp-key-item__requests">{k.requests} requests</span>
+                            <span className="mcp-key-item__requests">
+                              {k.lastUsed ? `Last: ${formatDate(k.lastUsed)}` : 'Never used'}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRevoke(k.key || k.id)}
+                          className="mcp-btn mcp-btn--danger"
+                        >
+                          Revoke
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </>
+          )
+        )}
+
+        {/* ================================================================ */}
+        {/* TAB: History */}
+        {/* ================================================================ */}
+        {activeTab === 'history' && (
+          !isAuthenticated ? (
+            <div className="cli-link-section">
+              <h2 style={{ marginTop: 0, textAlign: 'center' }}>Sign in Required</h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
+                Sign in to view your MCP usage history.
+              </p>
+              <button className="cli-google-btn" onClick={() => loginWithGoogle()}>
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+              </button>
+            </div>
+          ) : (
+            <motion.div
+              className="cli-usage"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <h2>Request History</h2>
+
+              {/* Tool filter */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--space-4)', alignItems: 'center' }}>
+                <select
+                  value={historyToolFilter}
+                  onChange={e => { setHistoryToolFilter(e.target.value); setHistoryInit(false); }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-elevated)',
+                    color: 'var(--text-primary)',
+                    fontSize: 13,
+                    outline: 'none',
+                  }}
+                >
+                  <option value="">All Tools</option>
+                  {TOOLS_LIST.map(t => (
+                    <option key={t.name} value={t.name}>{t.name}</option>
+                  ))}
+                </select>
+                <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                  {totalRequests.toLocaleString()} total requests
+                </span>
+              </div>
+
+              {/* Empty / loading state */}
+              {loadingHistory && historyLogs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 'var(--space-6) 0' }}>
+                  <div className="mcp-loading__spinner" style={{ margin: '0 auto var(--space-3)' }} />
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Loading history...</p>
+                </div>
+              ) : historyLogs.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 'var(--space-6) 0' }}>
+                  <History size={48} style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-3)', opacity: 0.4 }} />
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>No MCP requests yet.</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-2)' }}>
+                    {historyToolFilter ? `No requests for "${historyToolFilter}".` : 'Connect an AI assistant with your MCP key to see usage here.'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* History table */}
+                  <div className="mcp-table-wrap">
+                    <table className="mcp-table">
+                      <thead>
+                        <tr>
+                          <th>Time</th>
+                          <th>Tool</th>
+                          <th>Args</th>
+                          <th>Duration</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historyLogs.map(log => (
+                          <tr key={log.id}>
+                            <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-muted)' }}>
+                              {formatDate(log.createdAt)}
+                            </td>
+                            <td>
+                              <code className="mcp-tool-name" style={{ fontSize: 12 }}>{log.toolName}</code>
+                            </td>
+                            <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', fontSize: 12, color: 'var(--text-secondary)' }}>
+                              {(() => {
+                                try {
+                                  const parsed = JSON.parse(log.args);
+                                  const addr = parsed.address || parsed.addresses || parsed.contractAddress || parsed.query || parsed.tokenAddress;
+                                  const chain = parsed.chainId;
+                                  const summary = [addr ? (typeof addr === 'string' ? addr.substring(0, 20) : JSON.stringify(addr).substring(0, 20)) : '', chain].filter(Boolean).join(' · ');
+                                  return summary || log.args.substring(0, 40);
+                                } catch { return log.args.substring(0, 40); }
+                              })()}
+                            </td>
+                            <td style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                              {log.duration > 1000
+                                ? `${(log.duration / 1000).toFixed(1)}s`
+                                : `${log.duration}ms`
+                              }
+                            </td>
+                            <td>
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                color: log.status === 'success' ? 'var(--accent-green, #4ade80)' : 'var(--accent-red, #ff3366)',
+                                fontSize: 12,
+                              }}>
+                                <span style={{
+                                  width: 6, height: 6, borderRadius: '50%',
+                                  background: log.status === 'success' ? 'var(--accent-green, #4ade80)' : 'var(--accent-red, #ff3366)',
+                                  display: 'inline-block',
+                                }} />
+                                {log.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Load more */}
+                  {hasMoreHistory && (
+                    <div style={{ textAlign: 'center', marginTop: 'var(--space-4)' }}>
+                      <button
+                        onClick={() => fetchHistory(true)}
+                        disabled={loadingHistory}
+                        className="cli-generate-btn"
+                        style={{ opacity: loadingHistory ? 0.6 : 1 }}
+                      >
+                        {loadingHistory ? 'Loading...' : 'Load More'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </motion.div>
+          )
+        )}
+
+        {/* ================================================================ */}
+        {/* TAB: Documentation */}
+        {/* ================================================================ */}
+        {activeTab === 'documentation' && (
+          <>
+            {/* Option A */}
+            <motion.div
+              className="cli-usage"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <h2>Option A: stdio (npx)</h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+                Works in Claude Desktop, Claude Code, Cursor, and any MCP client with stdio transport.
+                Add to your client's MCP server config:
+              </p>
+              <div className="mcp-code-wrap">
+                <CopyButton text={`{\n  "mcpServers": {\n    "fundtracer": {\n      "command": "npx",\n      "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"],\n      "env": {\n        "FUNDTRACER_MCP_API_KEY": "YOUR_FT_MCP_KEY"\n      }\n    }\n  }\n}`} />
+                <pre className="mcp-code-block">{`{
   "mcpServers": {
     "fundtracer": {
       "command": "npx",
@@ -678,23 +725,24 @@ export function McpPage() {
     }
   }
 }`}</pre>
-                </div>
-              </motion.div>
+              </div>
+            </motion.div>
 
-              {/* Option B */}
-              <motion.div
-                className="mcp-card"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-              >
-                <h2>Option B: HTTP</h2>
-                <p style={{ color: 'var(--color-text-secondary)', marginBottom: 16 }}>
-                  No package needed. Point your MCP client directly at the live API:
-                </p>
-                <div className="mcp-code-wrap">
-                  <CopyButton text={`{\n  "mcpServers": {\n    "fundtracer": {\n      "url": "https://api.fundtracer.xyz/api/mcp",\n      "headers": {\n        "Authorization": "Bearer YOUR_FT_MCP_KEY"\n      }\n    }\n  }\n}`} />
-                  <pre className="mcp-code-block">{`{
+            {/* Option B */}
+            <motion.div
+              className="cli-usage"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              style={{ marginTop: 24 }}
+            >
+              <h2>Option B: HTTP</h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
+                No package needed. Point your MCP client directly at the live API:
+              </p>
+              <div className="mcp-code-wrap">
+                <CopyButton text={`{\n  "mcpServers": {\n    "fundtracer": {\n      "url": "https://api.fundtracer.xyz/api/mcp",\n      "headers": {\n        "Authorization": "Bearer YOUR_FT_MCP_KEY"\n      }\n    }\n  }\n}`} />
+                <pre className="mcp-code-block">{`{
   "mcpServers": {
     "fundtracer": {
       "url": "https://api.fundtracer.xyz/api/mcp",
@@ -704,13 +752,13 @@ export function McpPage() {
     }
   }
 }`}</pre>
-                </div>
-                <p style={{ color: 'var(--color-text-secondary)', marginTop: 16 }}>
-                  Or call directly with curl:
-                </p>
-                <div className="mcp-code-wrap">
-                  <CopyButton text={`# List available tools\ncurl https://api.fundtracer.xyz/api/mcp/tools\n\n# Analyze a wallet\ncurl -X POST https://api.fundtracer.xyz/api/mcp/tools/analyze_wallet \\\n  -H "Authorization: Bearer ft_mcp_YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045","chainId":"ethereum"}'`} />
-                  <pre className="mcp-code-block">{`# List available tools
+              </div>
+              <p style={{ color: 'var(--text-secondary)', marginTop: 'var(--space-3)' }}>
+                Or call directly with curl:
+              </p>
+              <div className="mcp-code-wrap">
+                <CopyButton text={`# List available tools\ncurl https://api.fundtracer.xyz/api/mcp/tools\n\n# Analyze a wallet\ncurl -X POST https://api.fundtracer.xyz/api/mcp/tools/analyze_wallet \\\n  -H "Authorization: Bearer ft_mcp_YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045","chainId":"ethereum"}'`} />
+                <pre className="mcp-code-block">{`# List available tools
 curl https://api.fundtracer.xyz/api/mcp/tools
 
 # Analyze a wallet
@@ -718,43 +766,44 @@ curl -X POST https://api.fundtracer.xyz/api/mcp/tools/analyze_wallet \\
   -H "Authorization: Bearer ft_mcp_YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045","chainId":"ethereum"}'`}</pre>
-                </div>
-              </motion.div>
+              </div>
+            </motion.div>
 
-              {/* Tools Reference */}
-              <motion.div
-                className="mcp-card"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-              >
-                <h2>Available Tools</h2>
-                <div className="mcp-table-wrap">
-                  <table className="mcp-table">
-                    <thead>
-                      <tr>
-                        <th>Tool</th>
-                        <th>Description</th>
-                        <th>Parameters</th>
+            {/* Tools Reference */}
+            <motion.div
+              className="cli-usage"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              style={{ marginTop: 24 }}
+            >
+              <h2>Available Tools</h2>
+              <div className="mcp-table-wrap">
+                <table className="mcp-table">
+                  <thead>
+                    <tr>
+                      <th>Tool</th>
+                      <th>Description</th>
+                      <th>Parameters</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {TOOLS_LIST.map(t => (
+                      <tr key={t.name}>
+                        <td><code className="mcp-tool-name">{t.name}</code></td>
+                        <td className="mcp-desc-cell">{t.description}</td>
+                        <td className="mcp-params-cell">{t.params}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {TOOLS_LIST.map(t => (
-                        <tr key={t.name}>
-                          <td><code className="mcp-tool-name">{t.name}</code></td>
-                          <td style={{ color: 'var(--color-text-secondary)' }}>{t.description}</td>
-                          <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', fontFamily: "'SF Mono', Monaco, 'Courier New', monospace" }}>{t.params}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </motion.div>
-            </div>
-          )}
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          </>
+        )}
 
-        </div>
       </div>
+    </div>
     </LandingLayout>
   );
 }
