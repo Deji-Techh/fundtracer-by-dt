@@ -329,15 +329,17 @@ export async function apiKeyAuthMiddleware(
 
     // Determine the API key: prefer Authorization header, fallback to x-auth-token
     // (Cloudflare strips Authorization on internal calls via public domain)
-    // x-auth-token may also carry a userId suffix: "ft_mcp_key:userId"
+    // x-auth-token may also carry a userId suffix: "ft_mcp_key:userId" for MCP scope bypass
     let apiKey: string | null = null;
     let xAuthUserId: string | null = null;
+    if (xAuthToken && xAuthToken.startsWith('ft_')) {
+        const parts = xAuthToken.split(':');
+        xAuthUserId = parts[1] || null;
+    }
     if (authHeader && authHeader.startsWith('Bearer ft_')) {
         apiKey = authHeader.split('Bearer ')[1];
     } else if (xAuthToken && xAuthToken.startsWith('ft_')) {
-        const parts = xAuthToken.split(':');
-        apiKey = parts[0];
-        xAuthUserId = parts[1] || null;
+        apiKey = xAuthToken.split(':')[0];
     }
 
     // Check if this is an API key (starts with ft_live_, ft_test_, or ft_mcp_)
