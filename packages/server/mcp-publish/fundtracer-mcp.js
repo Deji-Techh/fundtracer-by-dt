@@ -260,11 +260,11 @@ function api() {
   const key = _mcpCtx?.apiKey || process.env.FUNDTRACER_MCP_API_KEY || "";
   const headers = {
     Authorization: `Bearer ${key}`,
-    "x-auth-token": key,
     "Content-Type": "application/json"
   };
   if (_mcpCtx?.userId) {
     headers["X-MCP-UserId"] = _mcpCtx.userId;
+    headers["x-auth-token"] = `${key}:${_mcpCtx.userId}`;
   }
   return axios.create({
     baseURL: API_BASE,

@@ -22,11 +22,12 @@ function api() {
   const key = _mcpCtx?.apiKey || process.env.FUNDTRACER_MCP_API_KEY || '';
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
-    'x-auth-token': key,
     'Content-Type': 'application/json',
   };
   if (_mcpCtx?.userId) {
     headers['X-MCP-UserId'] = _mcpCtx.userId;
+    // x-auth-token survives Cloudflare header stripping; embed userId for scope bypass
+    headers['x-auth-token'] = `${key}:${_mcpCtx.userId}`;
   }
   return axios.create({
     baseURL: API_BASE,

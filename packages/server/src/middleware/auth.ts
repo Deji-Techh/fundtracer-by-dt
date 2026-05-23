@@ -329,11 +329,15 @@ export async function apiKeyAuthMiddleware(
 
     // Determine the API key: prefer Authorization header, fallback to x-auth-token
     // (Cloudflare strips Authorization on internal calls via public domain)
+    // x-auth-token may also carry a userId suffix: "ft_mcp_key:userId"
     let apiKey: string | null = null;
+    let xAuthUserId: string | null = null;
     if (authHeader && authHeader.startsWith('Bearer ft_')) {
         apiKey = authHeader.split('Bearer ')[1];
     } else if (xAuthToken && xAuthToken.startsWith('ft_')) {
-        apiKey = xAuthToken;
+        const parts = xAuthToken.split(':');
+        apiKey = parts[0];
+        xAuthUserId = parts[1] || null;
     }
 
     // Check if this is an API key (starts with ft_live_, ft_test_, or ft_mcp_)
@@ -341,7 +345,8 @@ export async function apiKeyAuthMiddleware(
 
         // Scope enforcement: ft_mcp_ keys can only be used on MCP endpoints,
         // unless the X-MCP-UserId header is present (internal calls from MCP handlers).
-        if (apiKey.startsWith('ft_mcp_') && !req.path.startsWith('/api/mcp/') && !req.headers['x-mcp-userid']) {
+        const mcpUserId = xAuthUserId || req.headers['x-mcp-userid'];
+        if (apiKey.startsWith('ft_mcp_') && !req.path.startsWith('/api/mcp/') && !mcpUserId) {
             return res.status(403).json({
                 error: 'MCP API keys can only be used with MCP tools (POST /api/mcp/tools/:toolName)',
                 code: 'KEY_SCOPE_MCP_ONLY'
