@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ALL_MCP_TOOLS } from './tools.js';
 import { TOOL_HANDLERS } from './api-handlers.js';
-import { mcpApiKeyAuth } from './mcpAuth.js';
+import { mcpApiKeyAuth, validateMcpApiKey } from './mcpAuth.js';
 
 const router = Router();
 
@@ -45,6 +45,29 @@ router.post('/tools/:toolName', mcpApiKeyAuth, async (req: any, res) => {
   }
 });
 
+
+/**
+ * POST /api/mcp/validate
+ * Validate an MCP API key and return user info.
+ * Used by stdio mode for HTTP-based key validation.
+ * No mcpApiKeyAuth middleware — validates the key from the Authorization header.
+ */
+router.post('/validate', async (req: any, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'API key required' });
+  }
+  const rawKey = authHeader.slice(7).trim();
+  if (!rawKey.startsWith('ft_')) {
+    return res.status(401).json({ error: 'Invalid API key format' });
+  }
+  try {
+    const ctx = await validateMcpApiKey(rawKey);
+    res.json({ userId: ctx.userId, tier: ctx.tier });
+  } catch (err: any) {
+    res.status(401).json({ error: err.message });
+  }
+});
 
 /**
  * GET /api/mcp/health

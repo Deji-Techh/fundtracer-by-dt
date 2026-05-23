@@ -543,13 +543,12 @@ async function validateWithFirestore(rawKey) {
 async function validateViaHttp(rawKey) {
   const API_URL = process.env.FUNDTRACER_API_URL || "https://api.fundtracer.xyz";
   const { default: fetch } = await import("node-fetch");
-  const res = await fetch(`${API_URL}/api/user/mcp-validate`, {
+  const res = await fetch(`${API_URL}/api/mcp/validate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${rawKey}`
-    },
-    body: JSON.stringify({ key: rawKey })
+    }
   });
   if (!res.ok) {
     const body = await res.text();
