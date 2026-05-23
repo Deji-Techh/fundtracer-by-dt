@@ -258,7 +258,7 @@ function err(message) {
   return { content: [{ type: "text", text: message }], isError: true };
 }
 function api() {
-  const key = process.env.FUNDTRACER_MCP_API_KEY || "";
+  const key = _mcpCtx?.apiKey || process.env.FUNDTRACER_MCP_API_KEY || "";
   const headers = {
     Authorization: `Bearer ${key}`,
     "x-auth-token": key,
@@ -514,7 +514,8 @@ async function validateWithFirestore(rawKey) {
     return {
       userId: data.userId,
       tier: data.tier || "free",
-      apiKeyPrefix: rawKey.substring(0, 15)
+      apiKeyPrefix: rawKey.substring(0, 15),
+      apiKey: rawKey
     };
   }
   const { hashAPIKey } = await import("../models/apiKey.js");
@@ -533,7 +534,8 @@ async function validateWithFirestore(rawKey) {
       return {
         userId: data.userId,
         tier: data.tier || "free",
-        apiKeyPrefix: rawKey.substring(0, 15)
+        apiKeyPrefix: rawKey.substring(0, 15),
+        apiKey: rawKey
       };
     }
   }
@@ -558,7 +560,8 @@ async function validateViaHttp(rawKey) {
   return {
     userId: data.userId,
     tier: data.tier || "free",
-    apiKeyPrefix: rawKey.substring(0, 15)
+    apiKeyPrefix: rawKey.substring(0, 15),
+    apiKey: rawKey
   };
 }
 async function trackUsage(userId, rawKey) {

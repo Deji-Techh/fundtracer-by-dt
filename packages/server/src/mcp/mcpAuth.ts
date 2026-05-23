@@ -50,6 +50,7 @@ async function validateWithFirestore(rawKey: string): Promise<McpContext | null>
       userId: data.userId,
       tier: data.tier || 'free',
       apiKeyPrefix: rawKey.substring(0, 15),
+      apiKey: rawKey,
     };
   }
 
@@ -77,6 +78,7 @@ async function validateWithFirestore(rawKey: string): Promise<McpContext | null>
         userId: data.userId,
         tier: data.tier || 'free',
         apiKeyPrefix: rawKey.substring(0, 15),
+        apiKey: rawKey,
       };
     }
   }
@@ -110,6 +112,7 @@ async function validateViaHttp(rawKey: string): Promise<McpContext> {
     userId: data.userId,
     tier: data.tier || 'free',
     apiKeyPrefix: rawKey.substring(0, 15),
+    apiKey: rawKey,
   };
 }
 

@@ -19,7 +19,7 @@ const API_BASE = process.env.FUNDTRACER_API_URL || 'https://api.fundtracer.xyz';
 let _mcpCtx: any = null;
 
 function api() {
-  const key = process.env.FUNDTRACER_MCP_API_KEY || '';
+  const key = _mcpCtx?.apiKey || process.env.FUNDTRACER_MCP_API_KEY || '';
   const headers: Record<string, string> = {
     Authorization: `Bearer ${key}`,
     'x-auth-token': key,

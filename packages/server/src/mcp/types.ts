@@ -25,6 +25,7 @@ export interface McpContext {
   userId: string;
   tier: string;
   apiKeyPrefix: string;
+  apiKey: string;
 }
 
 /** Result returned by a tool handler */
