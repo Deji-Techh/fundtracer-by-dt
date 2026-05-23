@@ -347,8 +347,10 @@ export async function apiKeyAuthMiddleware(
 
         // Scope enforcement: ft_mcp_ keys can only be used on MCP endpoints,
         // unless the X-MCP-UserId header is present (internal calls from MCP handlers).
+        // Also exempt /api/user/mcp-validate (MCP key validation endpoint used by stdio mode).
         const mcpUserId = xAuthUserId || req.headers['x-mcp-userid'];
-        if (apiKey.startsWith('ft_mcp_') && !req.path.startsWith('/api/mcp/') && !mcpUserId) {
+        const isAllowedPath = req.path.startsWith('/api/mcp/') || req.path === '/api/user/mcp-validate';
+        if (apiKey.startsWith('ft_mcp_') && !isAllowedPath && !mcpUserId) {
             return res.status(403).json({
                 error: 'MCP API keys can only be used with MCP tools (POST /api/mcp/tools/:toolName)',
                 code: 'KEY_SCOPE_MCP_ONLY'
