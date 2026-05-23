@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-#!/usr/bin/env node
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -221,9 +220,9 @@ var init_tools = __esm({
 });
 
 // src/mcp/mcpLogger.ts
-import { getFirestore } from "../firebase.js";
 async function logMcpRequest(entry) {
   try {
+    const { getFirestore } = await import("../firebase.js");
     const db = getFirestore();
     if (!db) {
       console.warn("[MCP-LOGGER] getFirestore() returned null");
@@ -497,8 +496,8 @@ async function validateMcpApiKey(rawKey) {
   return validateViaHttp(rawKey);
 }
 async function validateWithFirestore(rawKey) {
-  const { getFirestore: getFirestore2 } = await import("../firebase.js");
-  const db = getFirestore2();
+  const { getFirestore } = await import("../firebase.js");
+  const db = getFirestore();
   if (!db) return null;
   const keyDoc = await db.collection("apiKeys").doc(rawKey).get();
   if (keyDoc.exists) {

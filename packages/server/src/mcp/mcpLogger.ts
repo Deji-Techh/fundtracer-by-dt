@@ -1,4 +1,3 @@
-import { getFirestore } from '../firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export interface McpLogEntry {
@@ -20,6 +19,7 @@ let mcpLogWarnings = 0;
 
 export async function logMcpRequest(entry: McpLogEntry): Promise<void> {
   try {
+    const { getFirestore } = await import('../firebase.js');
     const db = getFirestore();
     if (!db) {
       console.warn('[MCP-LOGGER] getFirestore() returned null');
@@ -44,6 +44,7 @@ export async function getMcpLogs(
   options: { limit?: number; startAfter?: number; tool?: string } = {}
 ): Promise<{ logs: McpLogEntry[]; hasMore: boolean }> {
   const { limit = 50, startAfter, tool } = options;
+  const { getFirestore } = await import('../firebase.js');
   const db = getFirestore();
   if (!db) return { logs: [], hasMore: false };
 
