@@ -195,29 +195,76 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     const val = inputValue;
     setInputValue('');
 
-    // If replying, include parentMessageId
     const replyPayload = replyingTo ? { parentMessageId: replyingTo.id } : {};
 
-    // Let the server handle @FT MAVERIICK commands — show loading state while it processes
-    const isAiMention = val.toLowerCase().includes('@ft maveriick');
-    if (isAiMention) {
-      setIsProcessingAi(true);
-      if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current);
-      processingTimeoutRef.current = setTimeout(() => setIsProcessingAi(false), 45000);
-    }
-
+    // Send the original message to the room first
     try {
       await send(val, replyPayload);
-      setReplyingTo(null); // clear reply after sending
+      setReplyingTo(null);
     } catch {
       setInputValue(val);
+      return;
     }
-  }, [inputValue, send, replyingTo]);
+
+    // Handle @FT MAVERIICK commands on the client side (like the AI modal does)
+    // Server-side processMaverickCommand can't auth to the internal API
+    const isAiMention = val.toLowerCase().includes('@ft maveriick');
+    if (!isAiMention) return;
+
+    setIsProcessingAi(true);
+    if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current);
+    processingTimeoutRef.current = setTimeout(() => setIsProcessingAi(false), 30000);
+
+    const addressMatch = val.match(/0x[a-fA-F0-9]{40}/);
+    const address = addressMatch ? addressMatch[0] : null;
+
+    try {
+      const token = localStorage.getItem('fundtracer_token');
+      if (address) {
+        // Call the same analyze-wallet endpoint the AI modal uses
+        const res = await fetch(`${API_BASE}/api/ai-chat/analyze-wallet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+          body: JSON.stringify({ address, chain: roomDetails?.seedChain || currentChain || 'ethereum' }),
+        });
+
+        if (!res.ok) throw new Error('Analysis failed');
+
+        const data = await res.json();
+        const a = data.analysis || {};
+        const summary = [
+          `**FT MAVERIICK Analysis** — \`${address}\``,
+          `• Risk: **${a.riskLevel || 'unknown'}** (score: ${a.riskScore ?? 'N/A'})`,
+          `• Transactions: ${a.totalTransactions ?? 0}`,
+          a.balance != null ? `• Balance: ${Number(a.balance).toFixed(4)} ETH` : null,
+          a.totalValueSentEth != null ? `• Total sent: ${Number(a.totalValueSentEth).toFixed(2)} ETH` : null,
+          a.totalValueReceivedEth != null ? `• Total received: ${Number(a.totalValueReceivedEth).toFixed(2)} ETH` : null,
+          a.flags?.length ? `• Flags: ${a.flags.join(', ')}` : null,
+        ].filter(Boolean).join('\n');
+
+        await send(summary);
+      } else {
+        // No address — ask AI directly
+        const reply = await fetchSSE({ question: val.replace(/@FT\s+MAVERIICK/i, '').trim() || 'Analyze the current investigation context.' });
+        if (reply) {
+          await send(`@FT MAVERIICK ${reply}`);
+        }
+      }
+    } catch {
+      await send('@FT MAVERIICK Analysis failed. Please try again with a valid wallet address.');
+    }
+
+    setIsProcessingAi(false);
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
+    }
+  }, [inputValue, send, replyingTo, roomDetails?.seedChain, currentChain, fetchSSE]);
 
   useEffect(() => {
-    // Reset AI processing when a new AI card message arrives
+    // Reset AI processing when a new AI card message or Maverick response arrives
     const lastMsg = messages[messages.length - 1];
-    if (lastMsg?.contentType === 'ai_card') {
+    if (lastMsg?.contentType === 'ai_card' || lastMsg?.senderName === 'FT MAVERIICK') {
       setIsProcessingAi(false);
       if (processingTimeoutRef.current) {
         clearTimeout(processingTimeoutRef.current);

@@ -1056,17 +1056,24 @@ async function processMaverickCommand(roomId: string, messageId: string, parsed:
         senderName: 'FT MAVERIICK',
         senderPhotoURL: null,
         content: `Analysis failed: ${error.message}`,
-        contentType: 'system',
+        contentType: 'ai_card',
+        aiCard: {
+          command: parsed.type,
+          address: parsed.address,
+          chain: parsed.chain,
+          resultSummary: `Analysis failed: ${error.message}`,
+          resultData: null,
+        },
         mentions: [],
         isPinned: false,
         createdAt: Date.now(),
         roomId,
       });
 
-    // Broadcast error as system message via WebSocket
-    const errMessage = { id: errMsgRef.id, senderId: 'ai', senderName: 'FT MAVERIICK', senderPhotoURL: null, content: `Analysis failed: ${error.message}`, contentType: 'system', mentions: [], isPinned: false, createdAt: Date.now(), roomId };
+    // Broadcast error as ai_card via WebSocket so client clears loading state
+    const errMessage = { id: errMsgRef.id, senderId: 'ai', senderName: 'FT MAVERIICK', senderPhotoURL: null, content: `Analysis failed: ${error.message}`, contentType: 'ai_card', aiCard: { command: parsed.type, address: parsed.address, chain: parsed.chain, resultSummary: `Analysis failed: ${error.message}`, resultData: null }, mentions: [], isPinned: false, createdAt: Date.now(), roomId };
     const wss = getWSS();
-    if (wss) wss.broadcastRoomMessage(roomId, errMessage);
+    if (wss) wss.broadcastAiCard(roomId, errMessage);
   }
 }
 
