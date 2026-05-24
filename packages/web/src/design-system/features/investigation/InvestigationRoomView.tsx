@@ -27,6 +27,10 @@ import { InviteDialog } from './InviteDialog';
 import { useIsMobile } from '../../../hooks/useIsMobile';
 import { API_BASE } from '../../../api';
 import { CommandPalette } from './CommandPalette';
+import { ReplyBar } from './ReplyBar';
+import { MessageReactions } from './MessageReactions';
+import { MessageSearch } from './MessageSearch';
+import { PinnedBar } from './PinnedBar';
 import './InvestigationRoomView.css';
 
 interface MemberData {
@@ -99,6 +103,12 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
 
   // Command palette
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState<any>(null);
+
+  // Reactions (client-side for now)
+  const [reactions, setReactions] = useState<Record<string, Record<string, string[]>>>({});
 
   // Messages + Pins hooks
   const { messages, isLoading: msgsLoading, hasMore, loadMore, send } = useRoomMessages(activeRoomId, user?.uid, user?.displayName || user?.email);
@@ -255,6 +265,17 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       // fail silently
     }
   }, [unpinMessage]);
+
+  const handleReact = useCallback((messageId: string, emoji: string) => {
+    setReactions(prev => {
+      const msgReactions = { ...(prev[messageId] || {}) };
+      if (!msgReactions[emoji]) msgReactions[emoji] = [];
+      if (!msgReactions[emoji].includes(user?.uid || '')) {
+        msgReactions[emoji].push(user?.uid || '');
+      }
+      return { ...prev, [messageId]: msgReactions };
+    });
+  }, [user?.uid]);
 
   const handleInvite = useCallback(async () => {
     if (!activeRoomId) return;
