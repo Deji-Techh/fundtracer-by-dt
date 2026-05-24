@@ -3,9 +3,14 @@
 // Real-time messaging, typing indicators, presence
 // ============================================================
 
-import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import jwt from 'jsonwebtoken';
+import type { WebSocketServer as WSS_Server, WebSocket as WSS_Socket } from 'ws';
+
+// Use require to avoid esbuild CJS interop issues with ws package
+const WebSocketLib = require('ws') as typeof import('ws');
+const { WebSocketServer } = WebSocketLib;
+const { WebSocket } = WebSocketLib;
 import { getFirestore } from '../firebase.js';
 
 interface WSClient {
