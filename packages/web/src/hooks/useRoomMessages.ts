@@ -89,7 +89,7 @@ export function useRoomMessages(roomId: string | null, currentUserId?: string, c
     }
   }, [roomId, hasMore, messages]);
 
-  const send = useCallback(async (content: string) => {
+  const send = useCallback(async (content: string, parentMessageId?: string) => {
     if (!roomId) return;
     // Optimistic insert — show message immediately
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -107,7 +107,7 @@ export function useRoomMessages(roomId: string | null, currentUserId?: string, c
     setMessages(prev => [...prev, optimistic]);
 
     try {
-      const result = await sendRoomMessage(roomId, content);
+      const result = await sendRoomMessage(roomId, content, parentMessageId);
       // Replace optimistic message with real one, dedup by real ID
       if (result.message) {
         setMessages(prev => {

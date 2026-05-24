@@ -20,7 +20,6 @@ import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
 import { SidebarTabs, SidebarTab } from './SidebarTabs';
 import { MessageHistory } from './MessageHistory';
-import { EvidenceBoard } from './EvidenceBoard';
 import { EvidenceKanban } from './EvidenceKanban';
 import { MemberList } from './MemberList';
 import { CreateRoomModal } from './CreateRoomModal';
@@ -30,8 +29,6 @@ import { API_BASE } from '../../../api';
 import { CommandPalette } from './CommandPalette';
 import { ReplyBar } from './ReplyBar';
 import { MessageReactions } from './MessageReactions';
-import { MessageSearch } from './MessageSearch';
-import { PinnedBar } from './PinnedBar';
 import './InvestigationRoomView.css';
 
 interface MemberData {
@@ -118,6 +115,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   // AI Agent (FT MAVERIICK) proactive mode
   const [aiAgentActive, setAiAgentActive] = useState(true);
   const aiAgentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const aiInitializedRef = useRef(false);
 
   // Messages + Pins hooks
   const { messages, isLoading: msgsLoading, hasMore, loadMore, send } = useRoomMessages(activeRoomId, user?.uid, user?.displayName || user?.email);
@@ -185,6 +183,13 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     setMentionIndex(0);
   }, [mentionSuggestions.length]);
 
+  // Reload reactions from localStorage when switching rooms
+  useEffect(() => {
+    if (!activeRoomId) return;
+    const saved = localStorage.getItem(`ft_reactions_${activeRoomId}`);
+    setReactions(saved ? JSON.parse(saved) : {});
+  }, [activeRoomId]);
+
   const handleSend = useCallback(async () => {
     if (!inputValue.trim()) return;
     const val = inputValue;
@@ -193,39 +198,12 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     // If replying, include parentMessageId
     const replyPayload = replyingTo ? { parentMessageId: replyingTo.id } : {};
 
-    // Check for @FT MAVERIICK command — trigger real AI analysis
-    const isAiMention = val.toLowerCase().includes('@ft maverick');
-    
+    // Let the server handle @FT MAVERIICK commands — show loading state while it processes
+    const isAiMention = val.toLowerCase().includes('@ft maveriick');
     if (isAiMention) {
       setIsProcessingAi(true);
       if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current);
       processingTimeoutRef.current = setTimeout(() => setIsProcessingAi(false), 45000);
-
-      // Extract potential wallet address from the message
-      const addressMatch = val.match(/0x[a-fA-F0-9]{40}/);
-      const address = addressMatch ? addressMatch[0] : null;
-
-      if (address) {
-        try {
-          const token = localStorage.getItem('fundtracer_token');
-          const res = await fetch(`${API_BASE}/api/ai-chat/analyze-wallet`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token && { Authorization: `Bearer ${token}` }),
-            },
-            body: JSON.stringify({ address, chain: currentChain || 'ethereum' }),
-          });
-          const data = await res.json();
-          
-          // Send the AI result as a special message so it appears in chat
-          await send(`@FT MAVERIICK analyzed ${address}\n\n${data.summary || 'Analysis complete.'}`);
-        } catch (e) {
-          await send(val); // fallback to plain send
-        }
-        setIsProcessingAi(false);
-        return;
-      }
     }
 
     try {
@@ -234,7 +212,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     } catch {
       setInputValue(val);
     }
-  }, [inputValue, send, currentChain, replyingTo]);
+  }, [inputValue, send, replyingTo]);
 
   useEffect(() => {
     // Reset AI processing when a new AI card message arrives
@@ -245,6 +223,12 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
         clearTimeout(processingTimeoutRef.current);
         processingTimeoutRef.current = null;
       }
+    }
+
+    // Skip AI agent on initial mount — don't fire for pre-existing messages
+    if (!aiInitializedRef.current) {
+      aiInitializedRef.current = true;
+      return;
     }
 
     // === Proactive AI Agent (FT MAVERIICK) — Real AI calls ===
@@ -263,14 +247,8 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
             : `You are FT MAVERIICK in a group investigation chat. Give one short, useful lead or question based on the recent conversation (max 1 sentence).`;
 
           try {
-            const token = localStorage.getItem('fundtracer_token');
-            const res = await fetch(`${API_BASE}/api/ai-chat/chat`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
-              body: JSON.stringify({ message: prompt, roomId: activeRoomId }),
-            });
-            const data = await res.json();
-            await send(`@FT MAVERIICK ${data.reply || 'I have some thoughts on this.'}`);
+            const reply = await fetchSSE({ question: prompt });
+            await send(`@FT MAVERIICK ${reply || 'I have some thoughts on this.'}`);
           } catch {
             await send(`@FT MAVERIICK I noticed some interesting patterns. Want me to dig deeper?`);
           }
@@ -405,6 +383,44 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     setInputCursor(cursor);
   }, []);
 
+  // Helper: fetch from SSE endpoint and collect complete response
+  const fetchSSE = useCallback(async (body: Record<string, any>): Promise<string> => {
+    const token = localStorage.getItem('fundtracer_token');
+    const res = await fetch(`${API_BASE}/api/ai-chat/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('AI request failed');
+    const reader = res.body?.getReader();
+    if (!reader) return '';
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullResponse = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6);
+        if (jsonStr.trim() === '[DONE]') continue;
+        try {
+          const data = JSON.parse(jsonStr);
+          if (data.type === 'chunk' && data.content) fullResponse += data.content;
+          else if (data.type === 'complete' && data.fullResponse) fullResponse = data.fullResponse;
+          else if (data.type === 'error') throw new Error(data.message);
+        } catch (e: any) {
+          if (e instanceof SyntaxError) continue;
+          throw e;
+        }
+      }
+    }
+    return fullResponse;
+  }, []);
+
   // Clean up processing timeout on unmount
   useEffect(() => {
     return () => {
@@ -498,16 +514,9 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                  showExport={!!user}
                  onAISummary={async () => {
                    setIsProcessingAi(true);
-                   // Call AI to summarize the room
                    try {
-                     const token = localStorage.getItem('fundtracer_token');
-                     const res = await fetch(`${API_BASE}/api/ai-chat/chat`, {
-                       method: 'POST',
-                       headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
-                       body: JSON.stringify({ message: `Summarize the last 20 messages in this investigation room in 4 bullet points.`, roomId: activeRoomId })
-                     });
-                     const data = await res.json();
-                     await send(`@FT MAVERIICK Room Summary:\n${data.reply || 'Summary generated.'}`);
+                     const reply = await fetchSSE({ question: 'Summarize the last 20 messages in this investigation room in 4 bullet points.' });
+                     await send('@FT MAVERIICK Room Summary:\n' + (reply || 'Summary generated.'));
                    } catch {}
                    setIsProcessingAi(false);
                  }}

@@ -32,10 +32,27 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 
+  box-shadow:
     0 30px 120px rgba(0, 0, 0, 0.5),
     0 0 0 1px var(--color-surface-border);
   border: 1px solid var(--color-surface-border);
+
+  /* Chat bubble accent colors per theme - WhatsApp green for dark/light, Twitter blue for dim */
+  --ir-accent: #00a884;
+  --ir-accent-hover: #06cf9c;
+  --ir-accent-text: #fff;
+}
+
+[data-theme="dim"] .ir-panel {
+  --ir-accent: #1d9bf0;
+  --ir-accent-hover: #1a8cd8;
+  --ir-accent-text: #fff;
+}
+
+[data-theme="light"] .ir-panel {
+  --ir-accent: #00a884;
+  --ir-accent-hover: #06cf9c;
+  --ir-accent-text: #fff;
 }
 
 /* ---- Header ---- */
@@ -111,12 +128,8 @@
 .ir-btn-close:hover {
   background: var(--color-bg);
   color: var(--color-text-primary);
-  border-color: var(--color-accent-primary);
+  border-color: var(--ir-accent);
   transform: scale(1.05);
-}
-
-.ir-btn-close:hover {
-  background: rgba(255, 255, 255, 0.08);
 }
 
 /* ---- Layout Grid ---- */
@@ -199,7 +212,7 @@
 }
 
 .ir-msg-grouped .ir-msg-name,
-.ir-msg-grouped .ir-msg-header {
+.ir-msg-grouped .ir-msg-time {
   display: none;
 }
 
@@ -214,7 +227,7 @@
 }
 
 .ir-msg-own .ir-msg-name,
-.ir-msg-own .ir-msg-header {
+.ir-msg-own .ir-msg-time {
   display: none;
 }
 
@@ -222,21 +235,27 @@
 .ir-msg-content {
   font-size: 15px;
   line-height: 1.5;
-  word-break: normal;
+  word-break: break-word;
   white-space: pre-wrap;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   padding: 10px 16px;
-  max-width: min(70%, 620px);
+  max-width: min(88%, 780px);
   width: fit-content;
   display: inline-block;
   position: relative;
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
+.ir-msg-content code {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 13px;
+}
+
 /* Own bubble — Claude/Grok accent */
 .ir-msg-own .ir-msg-content {
-  background: var(--color-accent-primary);
-  color: var(--color-text-on-accent, #fff);
+  background: var(--ir-accent);
+  color: var(--ir-accent-text);
   border-radius: 20px 20px 6px 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
 }
@@ -267,11 +286,8 @@
 
 /* Mentions — Grok style */
 .ir-msg-content .mention {
-  color: var(--color-accent-highlight);
+  color: var(--ir-accent-hover);
   font-weight: 600;
-  background: rgba(255,255,255,0.1);
-  padding: 1px 6px;
-  border-radius: 4px;
 }
 
 /* Pin button — subtle, X style */
@@ -294,9 +310,9 @@
 }
 
 .ir-msg-pin-btn:hover {
-  color: var(--color-accent-primary);
+  color: var(--ir-accent);
   background: var(--color-bg);
-  border-color: var(--color-accent-primary);
+  border-color: var(--ir-accent);
 }
 
 .ir-msg-action-btn {
@@ -320,7 +336,7 @@
 }
 
 .ir-msg-pinned .ir-msg-content {
-  border-left: 3px solid var(--color-accent-primary);
+  border-left: 3px solid var(--ir-accent);
   padding-left: 13px;
 }
 
@@ -344,7 +360,7 @@
 }
 
 .ir-msg:hover .ir-msg-avatar {
-  border-color: var(--color-accent-primary);
+  border-color: var(--ir-accent);
 }
 
 .ir-msg-avatar img {
@@ -373,7 +389,7 @@
 .ir-msg-name {
   font-size: 13px;
   font-weight: 700;
-  color: var(--color-accent-primary);
+  color: var(--ir-accent);
   letter-spacing: 0.01em;
 }
 
@@ -422,7 +438,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--color-accent-primary);
+  background: var(--ir-accent);
   animation: irDot 1.3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
@@ -450,7 +466,7 @@
   gap: 8px;
   margin-bottom: 12px;
   font-size: 11px;
-  color: var(--color-accent-primary);
+  color: var(--ir-accent);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -519,7 +535,7 @@
 }
 
 .ir-scroll-fab:hover {
-  background: var(--color-accent-primary);
+  background: var(--ir-accent);
   color: #fff;
   transform: translateY(-2px);
 }
@@ -529,82 +545,7 @@
   100% { background-position: 200% 0; }
 }
 
-/* ---- Input Area: Claude/Grok Premium ---- */
-.ir-chat-input-area {
-  padding: 14px 20px;
-  background: var(--color-bg-secondary);
-  border-top: 1px solid var(--color-surface-border);
-  position: relative;
-}
-
-.ir-chat-input-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  position: relative;
-}
-
-.ir-input {
-  flex: 1;
-  background: var(--color-bg);
-  border: 1px solid var(--color-surface-border);
-  border-radius: 24px;
-  padding: 14px 20px;
-  color: var(--color-text-primary);
-  font-size: 15px;
-  font-family: inherit;
-  resize: none;
-  min-height: 48px;
-  max-height: 140px;
-  outline: none;
-  line-height: 1.5;
-  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.ir-input:focus {
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  background: var(--color-bg);
-}
-
-.ir-input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 0.7;
-}
-
-/* Send button — X style floating action */
-.ir-send-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: var(--color-accent-primary);
-  color: var(--color-text-on-accent, #fff);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-  flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-}
-
-.ir-send-btn:hover:not(:disabled) {
-  transform: scale(1.08) translateY(-1px);
-  background: var(--color-accent-highlight);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-}
-
-.ir-send-btn:active:not(:disabled) {
-  transform: scale(0.96);
-}
-
-.ir-send-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  transform: none;
-}
+/* ---- Input Area ---- */
 
 /* Command Palette */
 .ir-command-overlay {
@@ -689,7 +630,7 @@
   justify-content: space-between;
   padding: 8px 16px;
   background: var(--color-bg-tertiary);
-  border-left: 3px solid var(--color-accent-primary);
+  border-left: 3px solid var(--ir-accent);
   font-size: 13px;
   color: var(--color-text-muted);
 }
@@ -732,9 +673,9 @@
 }
 
 .ir-reaction.active {
-  background: var(--color-accent-primary);
+  background: var(--ir-accent);
   color: #fff;
-  border-color: var(--color-accent-primary);
+  border-color: var(--ir-accent);
 }
 
 /* Message Search */
@@ -754,7 +695,7 @@
 }
 
 .ir-search-input:focus {
-  border-color: var(--color-accent-primary);
+  border-color: var(--ir-accent);
   outline: none;
 }
 
@@ -767,7 +708,7 @@
   background: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-surface-border);
   font-size: 12px;
-  color: var(--color-accent-primary);
+  color: var(--ir-accent);
 }
 
 /* Presence */
@@ -846,7 +787,7 @@
 /* Address Preview */
 .ir-address-preview {
   background: var(--color-bg-secondary);
-  border: 1px solid var(--color-accent-primary);
+  border: 1px solid var(--ir-accent);
   border-radius: 12px;
   padding: 12px;
   margin: 6px 0;
@@ -858,12 +799,12 @@
   align-items: center;
   margin-bottom: 8px;
   font-size: 12px;
-  color: var(--color-accent-primary);
+  color: var(--ir-accent);
   font-weight: 600;
 }
 
 .ir-address-preview button {
-  background: var(--color-accent-primary);
+  background: var(--ir-accent);
   color: #fff;
   border: none;
   padding: 4px 10px;
@@ -991,16 +932,8 @@
 }
 
 .ir-input:focus {
-  border-color: var(--color-accent-primary);
+  border-color: var(--ir-accent);
   background: var(--color-bg);
-}
-
-.ir-input:focus {
-  background: #2a3942;
-}
-
-.ir-input::placeholder {
-  color: #8696a0;
 }
 
 .ir-send-btn {
@@ -1011,8 +944,8 @@
   height: 44px;
   border-radius: 50%;
   border: none;
-  background: var(--color-accent-primary);
-  color: var(--color-text-on-accent, #fff);
+  background: var(--ir-accent);
+  color: var(--ir-accent-text);
   cursor: pointer;
   transition: all 0.15s cubic-bezier(0.23, 1, 0.32, 1);
   flex-shrink: 0;
@@ -1021,7 +954,7 @@
 
 .ir-send-btn:hover {
   transform: scale(1.05);
-  background: var(--color-accent-highlight);
+  background: var(--ir-accent-hover);
 }
 
 .ir-send-btn:disabled {
@@ -1374,8 +1307,8 @@
 
 .ir-room-tab-new {
   padding: 9px 16px;
-  background: var(--color-accent-primary);
-  color: var(--color-text-on-accent, #fff);
+  background: var(--ir-accent);
+  color: var(--ir-accent-text);
   border: none;
   font-size: 12.5px;
   font-weight: 700;
@@ -1384,39 +1317,6 @@
   margin-left: 10px;
   transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-
-.ir-room-tab-new:hover {
-  background: var(--color-accent-highlight);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-}
-
-.ir-room-tab:hover {
-  background: rgba(255,255,255,0.04);
-  color: #aebac1;
-}
-
-.ir-room-tab.active {
-  background: rgba(0,168,132,0.12);
-  color: #00a884;
-}
-
-.ir-room-tab-new {
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1px dashed rgba(255,255,255,0.1);
-  background: transparent;
-  color: #8696a0;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-
-.ir-room-tab-new:hover {
-  border-color: #00a884;
-  color: #00a884;
 }
 
 /* ---- Modals ---- */
@@ -1648,26 +1548,11 @@
   max-width: 320px;
 }
 
-.ir-empty-text {
-  font-size: 14px;
-  color: #8696a0;
-  font-weight: 500;
-  margin: 0;
-}
-
-.ir-empty-sub {
-  font-size: 12px;
-  color: #667781;
-  line-height: 1.6;
-  max-width: 280px;
-  margin: 0;
-}
-
 .ir-empty-btn {
   margin-top: 24px;
   padding: 14px 32px;
-  background: var(--color-accent-primary);
-  color: var(--color-text-on-accent, #fff);
+  background: var(--ir-accent);
+  color: var(--ir-accent-text);
   border: none;
   border-radius: 999px;
   font-size: 14.5px;
@@ -1679,15 +1564,11 @@
 }
 
 .ir-empty-btn:hover {
-  background: var(--color-accent-highlight);
+  background: var(--ir-accent-hover);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 }
 
 .ir-empty-btn:active {
   transform: scale(0.985);
-}
-
-.ir-empty-btn:hover {
-  background: #06cf9c;
 }

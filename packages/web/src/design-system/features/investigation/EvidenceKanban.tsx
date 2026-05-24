@@ -125,12 +125,12 @@ export function EvidenceKanban({ pinnedMessages, onUnpin, roomId }: EvidenceKanb
                 onDragStart={(e) => onDragStart(e, item.id)}
               >
                 <div className="ir-kanban-card-header">
-                  <span>{item.senderName}</span>
+                  <span>{item.senderName || 'Unknown'}</span>
                   <button onClick={() => onUnpin(item.id)}>×</button>
                 </div>
                 <div className="ir-kanban-card-content">
-                  {item.content.slice(0, 120)}
-                  {item.content.length > 120 && '...'}
+                  {(item.content || '').slice(0, 120)}
+                  {(item.content || '').length > 120 && '...'}
                 </div>
               </div>
             ))}

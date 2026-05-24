@@ -1068,13 +1068,15 @@ export async function getRoomMessages(roomId: string, limit = 50, before?: numbe
   return res.json();
 }
 
-export async function sendRoomMessage(roomId: string, content: string): Promise<any> {
+export async function sendRoomMessage(roomId: string, content: string, parentMessageId?: string): Promise<any> {
   const token = getAuthToken();
   if (!token) throw new Error('Not authenticated');
+  const body: Record<string, any> = { content };
+  if (parentMessageId) body.parentMessageId = parentMessageId;
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to send message'); }
   return res.json();
