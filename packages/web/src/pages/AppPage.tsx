@@ -9,7 +9,7 @@ import InvestigateView from '../design-system/features/InvestigateView';
 import { AiFullScreenView } from '../design-system/features/AiFullScreenView';
 import { InvestigationRoomView } from '../design-system/features/investigation';
 import { SolanaView } from '../design-system/features/SolanaView';
-import { getAuthToken } from '../api';
+import { getAuthToken, getInvite, joinRoom } from '../api';
 import './AppPage.css';
 
 type TabType = 'investigate' | 'portfolio' | 'polymarket' | 'sui' | 'graph' | 'crosschain' | 'history' | 'settings' | 'radar';
@@ -130,6 +130,46 @@ export function AppPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isRoomOpen, setIsRoomOpen] = useState(false);
+  const [defaultRoomId, setDefaultRoomId] = useState<string | null>(null);
+
+  // Invite flow state
+  const inviteCode = searchParams.get('invite') || '';
+  const [inviteInfo, setInviteInfo] = useState<{ roomId: string; roomName: string } | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinError, setJoinError] = useState('');
+
+  // Look up invite code from URL
+  useEffect(() => {
+    if (!inviteCode || !isAuthenticated || inviteInfo) return;
+    (async () => {
+      try {
+        const data = await getInvite(inviteCode);
+        if (data?.invite) setInviteInfo(data.invite);
+      } catch {
+        // invalid or expired invite
+      }
+    })();
+  }, [inviteCode, isAuthenticated, inviteInfo]);
+
+  const handleJoinRoom = useCallback(async () => {
+    if (!inviteInfo) return;
+    setIsJoining(true);
+    setJoinError('');
+    try {
+      await joinRoom(inviteInfo.roomId, inviteCode);
+      setDefaultRoomId(inviteInfo.roomId);
+      setIsRoomOpen(true);
+      setInviteInfo(null);
+      // Clean invite param from URL
+      const params = new URLSearchParams(searchParams);
+      params.delete('invite');
+      setSearchParams(params, { replace: true });
+    } catch (err: any) {
+      setJoinError(err.message || 'Failed to join room');
+    } finally {
+      setIsJoining(false);
+    }
+  }, [inviteInfo, inviteCode, searchParams, setSearchParams]);
 
   const currentChainName = CHAIN_CONFIG[selectedChain as keyof typeof CHAIN_CONFIG]?.name || 'Linea';
 
@@ -399,7 +439,29 @@ export function AppPage() {
         onClose={() => setIsRoomOpen(false)}
         currentWallet={walletAddress}
         currentChain={selectedChain as string}
+        defaultRoomId={defaultRoomId}
       />
+
+      {/* Invite confirmation dialog */}
+      {inviteInfo && (
+        <div className="ir-invite-overlay">
+          <div className="ir-invite-dialog">
+            <h3 className="ir-invite-title">Room Invitation</h3>
+            <p className="ir-invite-text">
+              You've been invited to join <strong>{inviteInfo.roomName}</strong>
+            </p>
+            {joinError && <p className="ir-invite-error">{joinError}</p>}
+            <div className="ir-invite-actions">
+              <button className="ir-create-btn" onClick={() => setInviteInfo(null)}>
+                Cancel
+              </button>
+              <button className="ir-create-btn-primary" onClick={handleJoinRoom} disabled={isJoining}>
+                {isJoining ? 'Joining...' : 'Join Room'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

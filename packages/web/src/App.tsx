@@ -139,13 +139,14 @@ function SearchRedirect() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
-  
+  const location = useLocation();
+
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         height: '100vh',
         background: '#0a0a0a',
         color: '#fff'
@@ -154,14 +155,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
   if (!isAuthenticated) {
+    // Save current URL so we can redirect back after login
+    const returnUrl = location.pathname + location.search;
+    sessionStorage.setItem('postLoginRedirect', returnUrl);
+
     return (
-      <div style={{ 
-        display: 'flex', 
+      <div style={{
+        display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center', 
-        justifyContent: 'center', 
+        alignItems: 'center',
+        justifyContent: 'center',
         height: '100vh',
         background: '#0a0a0a',
         color: '#fff',
@@ -169,7 +174,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       }}>
         <h2 style={{ margin: 0 }}>Sign in to continue</h2>
         <p style={{ color: '#888', margin: 0 }}>You need to be signed in to access FundTracer</p>
-        <button 
+        <button
           onClick={() => window.location.href = '/auth'}
           style={{
             padding: '12px 24px',
@@ -186,7 +191,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
   return <>{children}</>;
 }
 

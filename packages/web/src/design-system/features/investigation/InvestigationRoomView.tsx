@@ -58,9 +58,10 @@ interface InvestigationRoomViewProps {
   onClose: () => void;
   currentWallet?: string;
   currentChain?: string;
+  defaultRoomId?: string | null;
 }
 
-export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentChain }: InvestigationRoomViewProps) {
+export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentChain, defaultRoomId }: InvestigationRoomViewProps) {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const notify = useNotify();
@@ -102,6 +103,13 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     useMentionAutocomplete(inputValue, inputCursor, members);
 
   const [mentionIndex, setMentionIndex] = useState(0);
+
+  // Use defaultRoomId when provided (e.g. from invite link)
+  useEffect(() => {
+    if (defaultRoomId && isOpen) {
+      setActiveRoomId(defaultRoomId);
+    }
+  }, [defaultRoomId, isOpen]);
 
   // Load rooms list
   useEffect(() => {
