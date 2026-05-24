@@ -54,6 +54,12 @@ export function ChatInput({
       e.preventDefault();
       onSend();
     }
+    
+    // Slash commands
+    if (e.key === 'Tab' && value.startsWith('/')) {
+      e.preventDefault();
+      // Could expand to show command suggestions
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -69,8 +75,18 @@ export function ChatInput({
     onCursorChange?.(e.currentTarget.selectionStart);
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    // Future: upload files
+    alert('File upload coming soon');
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
   return (
-    <div className="ir-chat-input-area" ref={containerRef}>
+    <div className="ir-chat-input-area" ref={containerRef} onDrop={handleDrop} onDragOver={handleDragOver}>
       <div className="ir-chat-input-row" style={{ position: 'relative' }}>
         {mentionActive && mentionSuggestions.length > 0 && (
           <MentionSuggestions
@@ -88,7 +104,7 @@ export function ChatInput({
           onClick={handleClick}
           onKeyUp={handleKeyUp}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder || 'Type a message...'}
+          placeholder={placeholder || 'Type a message...  •  /scan, /help, @mention'}
           disabled={disabled}
           rows={1}
         />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pin, User } from 'lucide-react';
+import { Pin, User, Copy, Edit2, Trash2 } from 'lucide-react';
 import { AiCardContent } from './AiCardContent';
 
 interface MessageData {
@@ -42,6 +42,11 @@ function renderContent(content: string) {
 export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin, onUnpin }: MessageBubbleProps) {
   const { id, senderName, senderPhotoURL, content, contentType, aiCard, isPinned, createdAt } = message;
 
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(content);
+    // Could add toast here
+  };
+
   return (
     <div className={`ir-msg ${isOwn ? 'ir-msg-own' : ''} ${isPinned ? 'ir-msg-pinned' : ''} ${isGrouped ? 'ir-msg-grouped' : ''}`}>
       <div className="ir-msg-avatar" title={senderName}>
@@ -62,6 +67,15 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
           >
             <Pin size={13} style={{ fill: isPinned ? 'currentColor' : 'none' }} />
           </button>
+          <button className="ir-msg-action-btn" onClick={handleCopy} title="Copy message">
+            <Copy size={12} />
+          </button>
+          {isOwn && (
+            <>
+              <button className="ir-msg-action-btn" title="Edit"><Edit2 size={12} /></button>
+              <button className="ir-msg-action-btn" title="Delete"><Trash2 size={12} /></button>
+            </>
+          )}
         </div>
 
         {contentType === 'ai_card' && aiCard ? (

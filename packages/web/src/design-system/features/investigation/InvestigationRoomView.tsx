@@ -26,6 +26,7 @@ import { CreateRoomModal } from './CreateRoomModal';
 import { InviteDialog } from './InviteDialog';
 import { useIsMobile } from '../../../hooks/useIsMobile';
 import { API_BASE } from '../../../api';
+import { CommandPalette } from './CommandPalette';
 import './InvestigationRoomView.css';
 
 interface MemberData {
@@ -95,6 +96,9 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
 
   // Force reconnect flag
   const forceReconnectRef = useRef(0);
+
+  // Command palette
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   // Messages + Pins hooks
   const { messages, isLoading: msgsLoading, hasMore, loadMore, send } = useRoomMessages(activeRoomId, user?.uid, user?.displayName || user?.email);
@@ -220,6 +224,21 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       }
     }
   }, [messages]);
+
+  // Command palette keyboard shortcut (⌘K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(true);
+      }
+      if (e.key === 'Escape' && showCommandPalette) {
+        setShowCommandPalette(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCommandPalette]);
 
   const handlePin = useCallback(async (messageId: string) => {
     try {
@@ -482,6 +501,20 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
         inviteUrl={inviteUrl}
         roomName={roomDetails?.name || 'Investigation Room'}
         onClose={() => setShowInvite(false)}
+      />
+
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onCreateRoom={() => {
+          setShowCommandPalette(false);
+          setShowCreateModal(true);
+        }}
+        onScrollToBottom={() => {
+          setShowCommandPalette(false);
+          // scroll logic handled in ChatMessageList
+        }}
+        currentRoomId={activeRoomId}
       />
     </>
   );

@@ -132,6 +132,15 @@ export function ChatMessageList({
 
       <TypingIndicator names={typingNames} />
       <div ref={bottomRef} />
+
+      {/* Scroll to bottom FAB */}
+      <button 
+        className="ir-scroll-fab"
+        onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        title="Scroll to bottom"
+      >
+        ↓
+      </button>
     </div>
   );
 }
