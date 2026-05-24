@@ -21,6 +21,7 @@ import { ChatInput } from './ChatInput';
 import { SidebarTabs, SidebarTab } from './SidebarTabs';
 import { MessageHistory } from './MessageHistory';
 import { EvidenceBoard } from './EvidenceBoard';
+import { EvidenceKanban } from './EvidenceKanban';
 import { MemberList } from './MemberList';
 import { CreateRoomModal } from './CreateRoomModal';
 import { InviteDialog } from './InviteDialog';
@@ -499,13 +500,12 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                             onSelectRoom={handleSelectRoom}
                           />
                         )}
-                        {activeTab === 'pins' && (
-                          <EvidenceBoard
-                            pins={pins}
-                            onUnpin={handleUnpin}
-                            canUnpin={!!currentUserRole}
-                          />
-                        )}
+                         {activeTab === 'pins' && (
+                           <EvidenceKanban
+                             pinnedMessages={pins}
+                             onUnpin={handleUnpin}
+                           />
+                         )}
                         {activeTab === 'members' && (
                           <MemberList
                             members={members}
