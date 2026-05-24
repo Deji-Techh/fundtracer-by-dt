@@ -88,7 +88,7 @@ export function ChatInput({
           onClick={handleClick}
           onKeyUp={handleKeyUp}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder || 'Type a message... Use @ to mention or @FT MAVERIICK for AI'}
+          placeholder={placeholder || 'Type a message...'}
           disabled={disabled}
           rows={1}
         />

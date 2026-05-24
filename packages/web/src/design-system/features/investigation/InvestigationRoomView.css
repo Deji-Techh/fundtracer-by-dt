@@ -222,7 +222,8 @@
 .ir-msg-content {
   font-size: 15px;
   line-height: 1.5;
-  word-break: break-word;
+  word-break: normal;
+  white-space: pre-wrap;
   padding: 10px 16px;
   max-width: min(70%, 620px);
   display: inline-block;

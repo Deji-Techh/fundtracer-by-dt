@@ -29,10 +29,11 @@ function formatTime(ts: number): string {
 }
 
 function renderContent(content: string) {
-  const parts = content.split(/(@\w+(?:\s+\w+)?)/g);
+  // Match @mentions including multi-word like @FT MAVERIICK
+  const parts = content.split(/(@[A-Za-z0-9_ ]{2,30})/g);
   return parts.map((part, i) => {
     if (part.startsWith('@') && part.length > 1) {
-      return <span key={i} className="mention">{part}</span>;
+      return <span key={i} className="mention">{part.trim()}</span>;
     }
     return part;
   });

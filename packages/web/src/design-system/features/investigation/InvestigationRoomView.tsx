@@ -25,6 +25,7 @@ import { MemberList } from './MemberList';
 import { CreateRoomModal } from './CreateRoomModal';
 import { InviteDialog } from './InviteDialog';
 import { useIsMobile } from '../../../hooks/useIsMobile';
+import { API_BASE } from '../../../api';
 import './InvestigationRoomView.css';
 
 interface MemberData {
@@ -166,12 +167,39 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     const val = inputValue;
     setInputValue('');
 
-    // Check for @FT MAVERIICK command
-    if (val.toLowerCase().includes('@ft maverick')) {
+    // Check for @FT MAVERIICK command — trigger real AI analysis
+    const isAiMention = val.toLowerCase().includes('@ft maverick');
+    
+    if (isAiMention) {
       setIsProcessingAi(true);
-      // Safety timeout — reset after 30s even if no AI card arrives
       if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current);
-      processingTimeoutRef.current = setTimeout(() => setIsProcessingAi(false), 30000);
+      processingTimeoutRef.current = setTimeout(() => setIsProcessingAi(false), 45000);
+
+      // Extract potential wallet address from the message
+      const addressMatch = val.match(/0x[a-fA-F0-9]{40}/);
+      const address = addressMatch ? addressMatch[0] : null;
+
+      if (address) {
+        try {
+          const token = localStorage.getItem('fundtracer_token');
+          const res = await fetch(`${API_BASE}/api/ai-chat/analyze-wallet`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            body: JSON.stringify({ address, chain: currentChain || 'ethereum' }),
+          });
+          const data = await res.json();
+          
+          // Send the AI result as a special message so it appears in chat
+          await send(`@FT MAVERIICK analyzed ${address}\n\n${data.summary || 'Analysis complete.'}`);
+        } catch (e) {
+          await send(val); // fallback to plain send
+        }
+        setIsProcessingAi(false);
+        return;
+      }
     }
 
     try {
@@ -179,8 +207,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     } catch {
       setInputValue(val);
     }
-    // AI processing completion is handled via WebSocket ai_card event
-  }, [inputValue, send]);
+  }, [inputValue, send, currentChain]);
 
   useEffect(() => {
     // Reset AI processing when a new AI card message arrives
@@ -344,12 +371,12 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                       {room.name}
                     </button>
                   ))}
-                  <button
-                    className="ir-room-tab-new"
-                    onClick={() => setShowCreateModal(true)}
-                  >
-                    + New
-                  </button>
+                   <button
+                     className="ir-room-tab-new"
+                     onClick={() => setShowCreateModal(true)}
+                   >
+                     + New Room
+                   </button>
                 </div>
               )}
 
