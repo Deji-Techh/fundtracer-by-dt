@@ -1188,3 +1188,15 @@ export async function exportRoomPdf(roomId: string): Promise<any> {
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to export'); }
   return res.json();
 }
+
+export async function sendAiResponse(roomId: string, content: string, aiCard?: any): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/ai-response`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content, aiCard }),
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to send AI response'); }
+  return res.json();
+}

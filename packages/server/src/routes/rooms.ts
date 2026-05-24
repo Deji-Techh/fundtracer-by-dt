@@ -8,7 +8,6 @@ import { Router } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { getFirestore, admin } from '../firebase.js';
 import { cacheGet, cacheSet, cacheDel, isRedisConnected } from '../utils/redis.js';
-import { parseMaverickCommand, hasMaverickTrigger } from '../lib/maverickCommand.js';
 import { generateInviteCode, generateInviteUrl, getExpiryDate } from '../lib/roomInvite.js';
 import { checkRoomAccess, checkRoomLimit, checkMemberLimit } from '../lib/roomAccess.js';
 import { getWSS } from '../services/websocket.js';
@@ -362,18 +361,6 @@ router.post('/:roomId/messages', async (req: AuthenticatedRequest, res) => {
           read: false,
           createdAt: new Date(now),
         });
-      }
-    }
-
-    // Check for @FT MAVERIICK command
-    let aiCard: any = null;
-    if (hasMaverickTrigger(content)) {
-      const parsed = parseMaverickCommand(content);
-      if (parsed) {
-        // Enqueue AI processing — results streamed via WebSocket
-        processMaverickCommand(roomId, msgRef.id, parsed).catch(e =>
-          console.error('[Rooms] Maverick command error:', e)
-        );
       }
     }
 
@@ -809,7 +796,66 @@ router.get('/:roomId/pins', async (req: AuthenticatedRequest, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// 6. AI Command (SSE)
+// 6a. AI Response — post a message as FT MAVERIICK (left-aligned)
+// ---------------------------------------------------------------------------
+
+router.post('/:roomId/ai-response', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user?.uid;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { roomId } = req.params;
+    const { allowed } = await checkRoomAccess(req, res, roomId);
+    if (!allowed) return res.status(403).json({ error: 'Not a room member' });
+
+    const { content, aiCard } = req.body;
+    if (!content || !content.trim()) return res.status(400).json({ error: 'Content required' });
+
+    const db = getDb();
+    const now = Date.now();
+
+    const messageData = {
+      senderId: 'ft_maverick',
+      senderName: 'FT MAVERIICK',
+      senderPhotoURL: null,
+      content: content.trim(),
+      contentType: aiCard ? 'ai_card' : 'text',
+      aiCard: aiCard || null,
+      mentions: [],
+      isPinned: false,
+      createdAt: now,
+      roomId,
+    };
+
+    const msgRef = await db.collection('investigation_rooms').doc(roomId)
+      .collection('messages').add(messageData);
+
+    // Update room metadata
+    await db.collection('investigation_rooms').doc(roomId).update({
+      lastMessageAt: now,
+      lastMessagePreview: content.trim().slice(0, 100),
+      updatedAt: now,
+    });
+
+    if (isRedisConnected()) {
+      await cacheDel(`room:msgs:${roomId}`);
+    }
+
+    const message = { id: msgRef.id, ...messageData };
+
+    // Broadcast via WebSocket so all clients (including sender) see the AI message on the left
+    const wss = getWSS();
+    if (wss) wss.broadcastAiCard(roomId, message);
+
+    res.status(201).json({ success: true, message });
+  } catch (error: any) {
+    console.error('[Rooms] AI response error:', error);
+    res.status(500).json({ error: 'Failed to post AI response' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 6b. AI Command (SSE)
 // ---------------------------------------------------------------------------
 
 router.post('/:roomId/ai-command', async (req: AuthenticatedRequest, res) => {
@@ -983,97 +1029,6 @@ function extractSummary(commandType: string, data: any): string {
     }
   } catch {
     return 'Analysis complete';
-  }
-}
-
-async function processMaverickCommand(roomId: string, messageId: string, parsed: { type: string; address: string; chain: string }) {
-  try {
-    const apiBase = process.env.FUNDTRACER_API_URL || 'http://localhost:3001';
-    const axios = (await import('axios')).default;
-    const db = getFirestore();
-
-    let endpoint: string;
-    let body: any;
-
-    switch (parsed.type) {
-      case 'analyze':
-        endpoint = '/api/analyze/wallet';
-        body = { address: parsed.address, chain: parsed.chain };
-        break;
-      case 'compare':
-        endpoint = '/api/analyze/compare';
-        body = { addresses: [parsed.address], chain: parsed.chain };
-        break;
-      case 'risk':
-        endpoint = '/api/analyze/wallet';
-        body = { address: parsed.address, chain: parsed.chain, options: { riskOnly: true } };
-        break;
-      case 'trace':
-        endpoint = '/api/analyze/funding-tree';
-        body = { address: parsed.address, chain: parsed.chain, maxDepth: 3 };
-        break;
-      default: return;
-    }
-
-    const result = await axios.post(`${apiBase}${endpoint}`, body, {
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 60000,
-    });
-
-    const card = {
-      command: parsed.type,
-      address: parsed.address,
-      chain: parsed.chain,
-      resultSummary: extractSummary(parsed.type, result.data),
-      resultData: result.data,
-    };
-
-    // Save AI card as a message
-    const aiMsgRef = await db.collection('investigation_rooms').doc(roomId)
-      .collection('messages').add({
-        senderId: 'ai',
-        senderName: 'FT MAVERIICK',
-        senderPhotoURL: null,
-        content: `${parsed.type} analysis for ${parsed.address}`,
-        contentType: 'ai_card',
-        aiCard: card,
-        mentions: [],
-        isPinned: false,
-        createdAt: Date.now(),
-        roomId,
-      });
-
-    // Broadcast via WebSocket so clients see it in real-time
-    const aiMessage = { id: aiMsgRef.id, senderId: 'ai', senderName: 'FT MAVERIICK', senderPhotoURL: null, content: `${parsed.type} analysis for ${parsed.address}`, contentType: 'ai_card', aiCard: card, mentions: [], isPinned: false, createdAt: Date.now(), roomId };
-    const wss = getWSS();
-    if (wss) wss.broadcastAiCard(roomId, aiMessage);
-  } catch (error: any) {
-    console.error('[Maverick] Command processing failed:', error.message);
-    const db = getFirestore();
-    const errMsgRef = await db.collection('investigation_rooms').doc(roomId)
-      .collection('messages').add({
-        senderId: 'ai',
-        senderName: 'FT MAVERIICK',
-        senderPhotoURL: null,
-        content: `Analysis failed: ${error.message}`,
-        contentType: 'ai_card',
-        aiCard: {
-          command: parsed.type,
-          address: parsed.address,
-          chain: parsed.chain,
-          resultSummary: `Analysis failed: ${error.message}`,
-          resultData: null,
-        },
-        mentions: [],
-        isPinned: false,
-        createdAt: Date.now(),
-        roomId,
-      });
-
-    // Broadcast error as ai_card via WebSocket so client clears loading state
-    const errMessage = { id: errMsgRef.id, senderId: 'ai', senderName: 'FT MAVERIICK', senderPhotoURL: null, content: `Analysis failed: ${error.message}`, contentType: 'ai_card', aiCard: { command: parsed.type, address: parsed.address, chain: parsed.chain, resultSummary: `Analysis failed: ${error.message}`, resultData: null }, mentions: [], isPinned: false, createdAt: Date.now(), roomId };
-    const wss = getWSS();
-    if (wss) wss.broadcastAiCard(roomId, errMessage);
   }
 }
 

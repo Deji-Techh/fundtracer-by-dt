@@ -13,6 +13,7 @@ import {
   leaveRoom,
   createRoom,
   getRooms,
+  sendAiResponse,
 } from '../../../api';
 import { RoomHeader } from './RoomHeader';
 import { RoomLayout } from './RoomLayout';
@@ -111,11 +112,6 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     const saved = localStorage.getItem(`ft_reactions_${activeRoomId}`);
     return saved ? JSON.parse(saved) : {};
   });
-
-  // AI Agent (FT MAVERIICK) proactive mode
-  const [aiAgentActive, setAiAgentActive] = useState(true);
-  const aiAgentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const aiInitializedRef = useRef(false);
 
   // Messages + Pins hooks
   const { messages, isLoading: msgsLoading, hasMore, loadMore, send } = useRoomMessages(activeRoomId, user?.uid, user?.displayName || user?.email);
@@ -249,9 +245,8 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     }
 
     // Handle @FT MAVERIICK commands on the client side (like the AI modal does)
-    // Server-side processMaverickCommand can't auth to the internal API
     const isAiMention = val.toLowerCase().includes('@ft maveriick');
-    if (!isAiMention) return;
+    if (!isAiMention || !activeRoomId) return;
 
     setIsProcessingAi(true);
     if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current);
@@ -284,16 +279,22 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
           a.flags?.length ? `• Flags: ${a.flags.join(', ')}` : null,
         ].filter(Boolean).join('\n');
 
-        await send(summary);
+        await sendAiResponse(activeRoomId, summary, {
+          command: 'analyze',
+          address,
+          chain: roomDetails?.seedChain || currentChain || 'ethereum',
+          resultSummary: summary,
+          resultData: data,
+        });
       } else {
         // No address — ask AI directly
         const reply = await fetchSSE({ question: val.replace(/@FT\s+MAVERIICK/i, '').trim() || 'Analyze the current investigation context.' });
         if (reply) {
-          await send(`@FT MAVERIICK ${reply}`);
+          await sendAiResponse(activeRoomId, reply);
         }
       }
     } catch {
-      await send('@FT MAVERIICK Analysis failed. Please try again with a valid wallet address.');
+      await sendAiResponse(activeRoomId, 'Analysis failed. Please try again with a valid wallet address.');
     }
 
     setIsProcessingAi(false);
@@ -301,7 +302,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       clearTimeout(processingTimeoutRef.current);
       processingTimeoutRef.current = null;
     }
-  }, [inputValue, send, replyingTo, roomDetails?.seedChain, currentChain, fetchSSE]);
+  }, [inputValue, send, replyingTo, roomDetails?.seedChain, currentChain, fetchSSE, activeRoomId]);
 
   useEffect(() => {
     // Reset AI processing when a new AI card message or Maverick response arrives
@@ -313,38 +314,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
         processingTimeoutRef.current = null;
       }
     }
-
-    // Skip AI agent on initial mount — don't fire for pre-existing messages
-    if (!aiInitializedRef.current) {
-      aiInitializedRef.current = true;
-      return;
-    }
-
-    // === Proactive AI Agent (FT MAVERIICK) — Real AI calls ===
-    if (aiAgentActive && activeRoomId && messages.length > 0) {
-      const humanMessages = messages.filter(m => m.senderId !== 'ft_maverick');
-      
-      if (humanMessages.length > 0 && humanMessages.length % 4 === 0) {
-        if (aiAgentTimeoutRef.current) clearTimeout(aiAgentTimeoutRef.current);
-        
-        aiAgentTimeoutRef.current = setTimeout(async () => {
-          const lastHuman = humanMessages[humanMessages.length - 1];
-          const addressMatch = lastHuman.content.match(/0x[a-fA-F0-9]{40}/);
-          
-          const prompt = addressMatch 
-            ? `You are FT MAVERIICK, an expert blockchain investigator in a group chat. A user just mentioned ${addressMatch[0]}. Give one short, actionable lead about this address (max 1 sentence).`
-            : `You are FT MAVERIICK in a group investigation chat. Give one short, useful lead or question based on the recent conversation (max 1 sentence).`;
-
-          try {
-            const reply = await fetchSSE({ question: prompt });
-            await send(`@FT MAVERIICK ${reply || 'I have some thoughts on this.'}`);
-          } catch {
-            await send(`@FT MAVERIICK I noticed some interesting patterns. Want me to dig deeper?`);
-          }
-        }, 4500);
-      }
-    }
-  }, [messages, aiAgentActive, activeRoomId, send]);
+  }, [messages]);
 
   // Command palette keyboard shortcut (⌘K / Ctrl+K)
   useEffect(() => {
@@ -542,15 +512,6 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                    </div>
                  ))}
                  {members.length > 5 && <span className="ir-presence-more">+{members.length - 5}</span>}
-                 
-                 {/* AI Agent Status */}
-                 <div 
-                   className={`ir-ai-agent-badge ${aiAgentActive ? 'active' : ''}`}
-                   onClick={() => setAiAgentActive(!aiAgentActive)}
-                   title={aiAgentActive ? 'FT MAVERIICK is actively suggesting leads' : 'AI Agent is paused'}
-                 >
-                   🤖 FT MAVERIICK {aiAgentActive ? 'ON' : 'OFF'}
-                 </div>
                </div>
 
                <RoomHeader
@@ -563,7 +524,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                    setIsProcessingAi(true);
                    try {
                      const reply = await fetchSSE({ question: 'Summarize the last 20 messages in this investigation room in 4 bullet points.' });
-                     await send('@FT MAVERIICK Room Summary:\n' + (reply || 'Summary generated.'));
+                     if (activeRoomId) await sendAiResponse(activeRoomId, reply || 'Summary generated.');
                    } catch {}
                    setIsProcessingAi(false);
                  }}
