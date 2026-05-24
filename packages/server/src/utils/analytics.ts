@@ -71,6 +71,25 @@ export async function trackPayment(data: {
 /**
  * Track visitor (page view)
  */
+/**
+ * Track Try Now preview (public, no auth)
+ */
+export async function trackPreview(chain: string) {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const dailyStatsRef = getDb().collection('analytics').doc('daily_stats').collection('records').doc(today);
+
+        await dailyStatsRef.set({
+            date: today,
+            previewCount: FieldValue.increment(1),
+            [`previewChainUsage.${chain}`]: FieldValue.increment(1),
+            lastUpdated: Date.now(),
+        }, { merge: true });
+    } catch (error) {
+        console.error('Failed to track preview:', error);
+    }
+}
+
 export async function trackVisitor(userId?: string) {
     try {
         const today = new Date().toISOString().split('T')[0];

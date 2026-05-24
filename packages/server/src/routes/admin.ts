@@ -198,10 +198,21 @@ router.get('/stats', authMiddleware, adminCacheMiddleware(60_000), async (req: A
     
     // Count aggregations — 1 read each
     let totalAnalyses = 0;
+    let totalPreviews = 0;
+    const previewChainUsage: Record<string, number> = {};
     try {
       const dailyStatsSnap = await db.collection('analytics').doc('daily_stats').collection('records')
-        .select('analysisCount').get();
-      dailyStatsSnap.forEach(doc => { totalAnalyses += doc.data().analysisCount || 0; });
+        .select('analysisCount', 'previewCount', 'previewChainUsage').get();
+      dailyStatsSnap.forEach(doc => {
+        const d = doc.data();
+        totalAnalyses += d.analysisCount || 0;
+        totalPreviews += d.previewCount || 0;
+        if (d.previewChainUsage) {
+          for (const [chain, count] of Object.entries(d.previewChainUsage)) {
+            previewChainUsage[chain] = (previewChainUsage[chain] || 0) + (count as number);
+          }
+        }
+      });
     } catch { /* fallback */ }
     
     // Count queries — 1 read each instead of full scans
@@ -227,6 +238,7 @@ router.get('/stats', authMiddleware, adminCacheMiddleware(60_000), async (req: A
         totalVisitors: totalUsers,
         activeUsers: totalUsers - bannedUsers,
         totalAnalyses,
+        totalPreviews,
         freeUsers,
         proUsers,
         maxUsers,
@@ -237,6 +249,7 @@ router.get('/stats', authMiddleware, adminCacheMiddleware(60_000), async (req: A
       },
       chainUsage: {},
       featureUsage: {},
+      previewChainUsage,
       timestamp: Date.now()
     });
   } catch (error) {
@@ -696,6 +709,16 @@ router.get('/stats/platform', authMiddleware, adminCacheMiddleware(30_000), asyn
 
     const telegramUsers = getAllLinkedUsers().length;
 
+    let totalMcpRequests = 0, mcpUsers = 0;
+    try {
+      const mcpCount = await db.collection('mcpLogs').count().get();
+      totalMcpRequests = mcpCount.data().count || 0;
+    } catch {}
+    try {
+      const mcpUserSnap = await db.collection('mcpLogs').select('userId').get();
+      mcpUsers = new Set(mcpUserSnap.docs.map(d => d.data().userId)).size;
+    } catch {}
+
     res.json({
       cliUsers,
       telegramUsers,
@@ -704,6 +727,8 @@ router.get('/stats/platform', authMiddleware, adminCacheMiddleware(30_000), asyn
       totalActivities,
       claimsCount,
       totalChatSessions,
+      totalMcpRequests,
+      mcpUsers,
       timestamp: Date.now(),
     });
   } catch (error) {
@@ -1381,6 +1406,51 @@ router.post('/users/:uid/impersonate', authMiddleware, requireAdminRole('superad
 // ============================================================
 // DATABASE: Collection stats
 // ============================================================
+// ============================================================
+// MCP LOGS: Get all MCP tool usage logs
+// ============================================================
+router.get('/mcp-logs', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const userId = req.query.userId as string | undefined;
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const tool = req.query.tool as string | undefined;
+
+    let query: FirebaseFirestore.Query = db.collection('mcpLogs').orderBy('createdAt', 'desc').limit(limit);
+    if (userId) query = query.where('userId', '==', userId);
+    if (tool) query = query.where('toolName', '==', tool);
+
+    const snapshot = await query.get();
+    const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    res.json({ logs, count: logs.length });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch MCP logs' });
+  }
+});
+
+// ============================================================
+// MCP LOGS: Get MCP logs for a specific user
+// ============================================================
+router.get('/users/:uid/mcp-logs', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+
+    const query = db.collection('mcpLogs')
+      .where('userId', '==', req.params.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(limit);
+
+    const snapshot = await query.get();
+    const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    res.json({ logs, count: logs.length });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch user MCP logs' });
+  }
+});
+
 router.get('/database/stats', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();

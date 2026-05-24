@@ -16,7 +16,7 @@ import {
 } from '@fundtracer/core';
 import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
-import { trackAnalysis } from '../utils/analytics.js';
+import { trackAnalysis, trackPreview } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength, SOLANA_ADDRESS_REGEX } from '../utils/validation.js';
 import { getAlchemyKeyPool } from '../utils/quicknode.js';
 import { cacheGet, cacheSet } from '../utils/redis.js';
@@ -2262,6 +2262,9 @@ previewRouter.get('/', async (req: Request, res: Response) => {
       category: p.category,
       interactionCount: p.interactionCount,
     }));
+
+    // Track preview usage (async, fire-and-forget)
+    trackPreview(normalizedChain).catch(err => console.error('[Preview] Track error:', err));
 
     res.json({
       success: true,
