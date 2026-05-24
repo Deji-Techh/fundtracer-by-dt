@@ -1,9 +1,11 @@
 import React from 'react';
 import { Pin, User, Copy, Edit2, Trash2 } from 'lucide-react';
 import { AiCardContent } from './AiCardContent';
+import { API_BASE, getAuthToken } from '../../../api';
 
 interface MessageData {
   id: string;
+  roomId?: string;
   senderId: string;
   senderName: string;
   senderPhotoURL?: string;
@@ -81,11 +83,21 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
               <button 
                 className="ir-msg-action-btn" 
                 title="Edit"
-                onClick={() => {
+                onClick={async () => {
                   const newContent = prompt('Edit message:', content);
-                  if (newContent !== null) {
-                    // TODO: call edit API
-                    console.log('Edit message', id, newContent);
+                  if (newContent !== null && newContent.trim() !== content) {
+                    try {
+                      const token = getAuthToken();
+                      await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+                        body: JSON.stringify({ content: newContent.trim() }),
+                      });
+                      // Optimistic update would be handled by parent via WebSocket or refetch
+                      window.location.reload(); // simple refresh for now
+                    } catch (e) {
+                      alert('Failed to edit message');
+                    }
                   }
                 }}
               >
@@ -94,10 +106,18 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
               <button 
                 className="ir-msg-action-btn" 
                 title="Delete"
-                onClick={() => {
+                onClick={async () => {
                   if (confirm('Delete this message?')) {
-                    // TODO: call delete API
-                    console.log('Delete message', id);
+                    try {
+                      const token = getAuthToken();
+                      await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
+                        method: 'DELETE',
+                        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+                      });
+                      window.location.reload();
+                    } catch (e) {
+                      alert('Failed to delete message');
+                    }
                   }
                 }}
               >

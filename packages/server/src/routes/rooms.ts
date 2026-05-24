@@ -670,10 +670,71 @@ router.post('/:roomId/messages/:messageId/pin', async (req: AuthenticatedRequest
       await cacheDel(`room:pins:${roomId}`);
     }
 
+  } catch (error: any) {
+    console.error('[Rooms] Unpin message error:', error);
+    res.status(500).json({ error: error.message || 'Failed to unpin message' });
+  }
+});
+
+// PATCH /api/rooms/:roomId/messages/:messageId — edit message
+router.patch('/:roomId/messages/:messageId', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user?.uid;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { roomId, messageId } = req.params;
+    const { allowed } = await checkRoomAccess(req, res, roomId);
+    if (!allowed) return res.status(403).json({ error: 'Not a room member' });
+
+    const { content } = req.body;
+    if (!content || !content.trim()) return res.status(400).json({ error: 'Content required' });
+
+    const db = getDb();
+    const msgRef = db.collection('investigation_rooms').doc(roomId).collection('messages').doc(messageId);
+    const msgDoc = await msgRef.get();
+
+    if (!msgDoc.exists) return res.status(404).json({ error: 'Message not found' });
+    if (msgDoc.data()?.senderId !== userId) return res.status(403).json({ error: 'Can only edit your own messages' });
+
+    await msgRef.update({
+      content: content.trim(),
+      editedAt: Date.now(),
+    });
+
+    if (isRedisConnected()) await cacheDel(`room:msgs:${roomId}`);
+
     res.json({ success: true });
   } catch (error: any) {
-    console.error('[Rooms] Pin error:', error);
-    res.status(500).json({ error: 'Failed to pin message' });
+    console.error('[Rooms] Edit message error:', error);
+    res.status(500).json({ error: error.message || 'Failed to edit message' });
+  }
+});
+
+// DELETE /api/rooms/:roomId/messages/:messageId — delete message
+router.delete('/:roomId/messages/:messageId', async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.user?.uid;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { roomId, messageId } = req.params;
+    const { allowed } = await checkRoomAccess(req, res, roomId);
+    if (!allowed) return res.status(403).json({ error: 'Not a room member' });
+
+    const db = getDb();
+    const msgRef = db.collection('investigation_rooms').doc(roomId).collection('messages').doc(messageId);
+    const msgDoc = await msgRef.get();
+
+    if (!msgDoc.exists) return res.status(404).json({ error: 'Message not found' });
+    if (msgDoc.data()?.senderId !== userId) return res.status(403).json({ error: 'Can only delete your own messages' });
+
+    await msgRef.delete();
+
+    if (isRedisConnected()) await cacheDel(`room:msgs:${roomId}`);
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[Rooms] Delete message error:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete message' });
   }
 });
 
