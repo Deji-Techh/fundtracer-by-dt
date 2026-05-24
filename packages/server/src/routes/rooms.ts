@@ -87,6 +87,9 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
       isRevoked: false,
     });
 
+    // Track membership in flat collection
+    await addUserRoom(userId, roomRef.id);
+
     // Cache
     if (isRedisConnected()) {
       await cacheSet(`room:${roomRef.id}`, room, CACHE_TTL);
@@ -113,10 +116,11 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
     }
 
     const db = getDb();
-    const memberSnapshots = await db.collectionGroup('members')
-      .where('uid', '==', userId).get();
 
-    const roomIds = memberSnapshots.docs.map(d => d.ref.parent.parent!.id);
+    // Read room memberships from flat collection (avoids composite index requirement)
+    const membershipDoc = await db.collection('user_rooms').doc(userId).get();
+    const roomIds: string[] = membershipDoc.exists ? (membershipDoc.data()?.roomIds || []) : [];
+
     if (roomIds.length === 0) return res.json({ success: true, rooms: [] });
 
     const rooms: any[] = [];
@@ -458,6 +462,9 @@ router.post('/:roomId/join', async (req: AuthenticatedRequest, res) => {
 
     await roomRef.update({ memberCount: admin.firestore.FieldValue.increment(1), updatedAt: now });
 
+    // Track membership in flat collection
+    await addUserRoom(userId, roomId);
+
     // Update invite use count
     if (inviteCode) {
       await db.collection('investigation_invites').doc(inviteCode).update({
@@ -502,6 +509,9 @@ router.post('/:roomId/leave', async (req: AuthenticatedRequest, res) => {
       memberCount: admin.firestore.FieldValue.increment(-1),
     });
 
+    // Remove from flat membership collection
+    await removeUserRoom(userId, roomId);
+
     const now = Date.now();
     await db.collection('investigation_rooms').doc(roomId).collection('messages').add({
       senderId: 'system', senderName: 'System', contentType: 'system',
@@ -536,6 +546,9 @@ router.delete('/:roomId/members/:uid', async (req: AuthenticatedRequest, res) =>
     await db.collection('investigation_rooms').doc(roomId).update({
       memberCount: admin.firestore.FieldValue.increment(-1),
     });
+
+    // Remove from flat membership collection
+    await removeUserRoom(targetUid, roomId);
 
     const now = Date.now();
     await db.collection('investigation_rooms').doc(roomId).collection('messages').add({
@@ -866,6 +879,24 @@ router.get('/:roomId/export', async (req: AuthenticatedRequest, res) => {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+async function addUserRoom(userId: string, roomId: string) {
+  const db = getDb();
+  const ref = db.collection('user_rooms').doc(userId);
+  await ref.set({
+    roomIds: admin.firestore.FieldValue.arrayUnion(roomId),
+    updatedAt: Date.now(),
+  }, { merge: true });
+}
+
+async function removeUserRoom(userId: string, roomId: string) {
+  const db = getDb();
+  const ref = db.collection('user_rooms').doc(userId);
+  await ref.set({
+    roomIds: admin.firestore.FieldValue.arrayRemove(roomId),
+    updatedAt: Date.now(),
+  }, { merge: true });
+}
 
 function extractSummary(commandType: string, data: any): string {
   try {
