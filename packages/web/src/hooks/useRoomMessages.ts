@@ -108,9 +108,12 @@ export function useRoomMessages(roomId: string | null, currentUserId?: string, c
 
     try {
       const result = await sendRoomMessage(roomId, content);
-      // Replace optimistic message with real one
+      // Replace optimistic message with real one, dedup by real ID
       if (result.message) {
-        setMessages(prev => prev.map(m => m.id === tempId ? result.message : m));
+        setMessages(prev => {
+          const filtered = prev.filter(m => m.id !== result.message.id);
+          return filtered.map(m => m.id === tempId ? result.message : m);
+        });
       } else {
         // API succeeded but no message returned — remove optimistic
         setMessages(prev => prev.filter(m => m.id !== tempId));

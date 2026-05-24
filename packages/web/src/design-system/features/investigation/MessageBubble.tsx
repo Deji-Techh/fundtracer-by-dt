@@ -18,6 +18,7 @@ interface MessageData {
 interface MessageBubbleProps {
   message: MessageData;
   isOwn: boolean;
+  isGrouped?: boolean;
   currentUserId?: string;
   onPin?: (messageId: string) => void;
   onUnpin?: (messageId: string) => void;
@@ -38,11 +39,11 @@ function renderContent(content: string) {
   });
 }
 
-export function MessageBubble({ message, isOwn, currentUserId, onPin, onUnpin }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin, onUnpin }: MessageBubbleProps) {
   const { id, senderName, senderPhotoURL, content, contentType, aiCard, isPinned, createdAt } = message;
 
   return (
-    <div className={`ir-msg ${isOwn ? 'ir-msg-own' : ''} ${isPinned ? 'ir-msg-pinned' : ''}`}>
+    <div className={`ir-msg ${isOwn ? 'ir-msg-own' : ''} ${isPinned ? 'ir-msg-pinned' : ''} ${isGrouped ? 'ir-msg-grouped' : ''}`}>
       <div className="ir-msg-avatar">
         {senderPhotoURL ? (
           <img src={senderPhotoURL} alt={senderName} />
@@ -59,7 +60,7 @@ export function MessageBubble({ message, isOwn, currentUserId, onPin, onUnpin }:
             onClick={() => isPinned ? onUnpin?.(id) : onPin?.(id)}
             title={isPinned ? 'Unpin' : 'Pin to evidence board'}
           >
-            <Pin size={12} style={{ fill: isPinned ? '#6ab2f2' : 'none', color: isPinned ? '#6ab2f2' : undefined }} />
+            <Pin size={12} style={{ fill: isPinned ? '#00a884' : 'none', color: isPinned ? '#00a884' : undefined }} />
           </button>
         </div>
 

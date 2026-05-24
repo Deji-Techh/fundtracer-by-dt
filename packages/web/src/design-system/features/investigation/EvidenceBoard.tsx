@@ -19,10 +19,10 @@ interface EvidenceBoardProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  evidence: '#4ade80',
-  finding: '#fbbf24',
-  note: '#6ab2f2',
-  action_item: '#f97316',
+  evidence: '#00a884',
+  finding: '#f5c542',
+  note: '#53bdeb',
+  action_item: '#f57c42',
 };
 
 export function EvidenceBoard({ pins, onUnpin, canUnpin }: EvidenceBoardProps) {
@@ -41,7 +41,7 @@ export function EvidenceBoard({ pins, onUnpin, canUnpin }: EvidenceBoardProps) {
     <div>
       {pins.map((pin) => (
         <div key={pin.messageId} className="ir-evidence-item">
-          <div className="ir-evidence-category" style={{ color: CATEGORY_COLORS[pin.category] || '#6ab2f2' }}>
+          <div className="ir-evidence-category" style={{ color: CATEGORY_COLORS[pin.category] || '#00a884' }}>
             {pin.category.replace('_', ' ')}
           </div>
           {pin.content && (

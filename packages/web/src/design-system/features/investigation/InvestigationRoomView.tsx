@@ -5,7 +5,6 @@ import { useRoomMessages } from '../../../hooks/useRoomMessages';
 import { useRoomPins } from '../../../hooks/useRoomPins';
 import { useMentionAutocomplete } from '../../../hooks/useMentionAutocomplete';
 import { useInvestigationSocket } from '../../../hooks/useInvestigationSocket';
-import { useNotify } from '../../../contexts/ToastContext';
 import {
   getRoomDetails,
   createInvite,
@@ -24,6 +23,7 @@ import { MessageHistory } from './MessageHistory';
 import { EvidenceBoard } from './EvidenceBoard';
 import { MemberList } from './MemberList';
 import { CreateRoomModal } from './CreateRoomModal';
+import { InviteDialog } from './InviteDialog';
 import { useIsMobile } from '../../../hooks/useIsMobile';
 import './InvestigationRoomView.css';
 
@@ -64,7 +64,6 @@ interface InvestigationRoomViewProps {
 export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentChain, defaultRoomId }: InvestigationRoomViewProps) {
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const notify = useNotify();
 
   // Room list + active room
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -78,6 +77,10 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
 
+  // Invite dialog
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState('');
+
   // Chat input
   const [inputValue, setInputValue] = useState('');
   const [inputCursor, setInputCursor] = useState(0);
@@ -87,6 +90,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
 
   // Processing AI
   const [isProcessingAi, setIsProcessingAi] = useState(false);
+  const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Force reconnect flag
   const forceReconnectRef = useRef(0);
@@ -165,6 +169,9 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     // Check for @FT MAVERIICK command
     if (val.toLowerCase().includes('@ft maverick')) {
       setIsProcessingAi(true);
+      // Safety timeout — reset after 30s even if no AI card arrives
+      if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = setTimeout(() => setIsProcessingAi(false), 30000);
     }
 
     try {
@@ -180,6 +187,10 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     const lastMsg = messages[messages.length - 1];
     if (lastMsg?.contentType === 'ai_card') {
       setIsProcessingAi(false);
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+        processingTimeoutRef.current = null;
+      }
     }
   }, [messages]);
 
@@ -203,15 +214,15 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     if (!activeRoomId) return;
     try {
       const data = await createInvite(activeRoomId);
-      const inviteUrl = data.inviteUrl || data.url;
-      if (inviteUrl) {
-        await navigator.clipboard.writeText(inviteUrl);
-        notify.success('Invite link copied to clipboard');
+      const url = data.inviteUrl || data.url;
+      if (url) {
+        setInviteUrl(url);
+        setShowInvite(true);
       }
     } catch {
       // fail silently
     }
-  }, [activeRoomId, notify]);
+  }, [activeRoomId]);
 
   const handleRemoveMember = useCallback(async (uid: string) => {
     if (!activeRoomId) return;
@@ -275,6 +286,13 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
 
   const handleCursorChange = useCallback((cursor: number) => {
     setInputCursor(cursor);
+  }, []);
+
+  // Clean up processing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (processingTimeoutRef.current) clearTimeout(processingTimeoutRef.current);
+    };
   }, []);
 
   const userMemberData = members.find((m) => m.uid === user?.uid);
@@ -429,6 +447,13 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
         error={createError}
         seedAddress={currentWallet}
         seedChain={currentChain}
+      />
+
+      <InviteDialog
+        isOpen={showInvite}
+        inviteUrl={inviteUrl}
+        roomName={roomDetails?.name || 'Investigation Room'}
+        onClose={() => setShowInvite(false)}
       />
     </>
   );

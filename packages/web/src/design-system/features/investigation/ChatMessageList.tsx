@@ -93,7 +93,7 @@ export function ChatMessageList({
           <p className="ir-empty-text">No messages yet</p>
           <p className="ir-empty-sub">
             Send a message to start the conversation.<br />
-            Type <span style={{ color: '#6ab2f2' }}>@FT MAVERIICK</span> to run blockchain analysis in the chat.
+            Type <span style={{ color: '#00a884' }}>@FT MAVERIICK</span> to run blockchain analysis in the chat.
           </p>
         </div>
       </div>
@@ -108,11 +108,11 @@ export function ChatMessageList({
         </div>
       )}
 
-      {messages.map((msg) => {
-        if (msg.contentType === 'system') {
-          return <SystemMessage key={msg.id} text={msg.content} timestamp={msg.createdAt} />;
-        }
-        if (msg.contentType === 'pin_notice') {
+      {messages.map((msg, idx) => {
+        const prev = idx > 0 ? messages[idx - 1] : null;
+        const isGrouped = prev !== null && prev.senderId === msg.senderId && msg.contentType !== 'system' && prev.contentType !== 'system';
+
+        if (msg.contentType === 'system' || msg.contentType === 'pin_notice') {
           return <SystemMessage key={msg.id} text={msg.content} timestamp={msg.createdAt} />;
         }
         return (
@@ -120,6 +120,7 @@ export function ChatMessageList({
             key={msg.id}
             message={msg}
             isOwn={msg.senderId === currentUserId}
+            isGrouped={isGrouped}
             currentUserId={currentUserId}
             onPin={onPin}
             onUnpin={onUnpin}
