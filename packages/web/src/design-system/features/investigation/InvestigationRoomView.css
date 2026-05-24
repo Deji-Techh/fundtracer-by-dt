@@ -815,6 +815,32 @@
   padding-left: 4px;
 }
 
+.ir-ai-agent-badge {
+  margin-left: 12px;
+  padding: 4px 10px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ir-ai-agent-badge.active {
+  background: #052e16;
+  border-color: #22c55e;
+  color: #4ade80;
+}
+
+.ir-ai-agent-badge:hover {
+  transform: scale(1.03);
+}
+
 /* Address Preview */
 .ir-address-preview {
   background: var(--color-bg-secondary);

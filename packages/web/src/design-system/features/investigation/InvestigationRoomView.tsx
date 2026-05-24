@@ -111,6 +111,10 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   // Reactions (client-side for now)
   const [reactions, setReactions] = useState<Record<string, Record<string, string[]>>>({});
 
+  // AI Agent (FT MAVERIICK) proactive mode
+  const [aiAgentActive, setAiAgentActive] = useState(true);
+  const aiAgentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Messages + Pins hooks
   const { messages, isLoading: msgsLoading, hasMore, loadMore, send } = useRoomMessages(activeRoomId, user?.uid, user?.displayName || user?.email);
   const { pins, pinMessage, unpinMessage } = useRoomPins(activeRoomId);
@@ -234,7 +238,38 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
         processingTimeoutRef.current = null;
       }
     }
-  }, [messages]);
+
+    // === Proactive AI Agent (FT MAVERIICK) — Real AI calls ===
+    if (aiAgentActive && activeRoomId && messages.length > 0) {
+      const humanMessages = messages.filter(m => m.senderId !== 'ft_maverick');
+      
+      if (humanMessages.length > 0 && humanMessages.length % 4 === 0) {
+        if (aiAgentTimeoutRef.current) clearTimeout(aiAgentTimeoutRef.current);
+        
+        aiAgentTimeoutRef.current = setTimeout(async () => {
+          const lastHuman = humanMessages[humanMessages.length - 1];
+          const addressMatch = lastHuman.content.match(/0x[a-fA-F0-9]{40}/);
+          
+          const prompt = addressMatch 
+            ? `You are FT MAVERIICK, an expert blockchain investigator in a group chat. A user just mentioned ${addressMatch[0]}. Give one short, actionable lead about this address (max 1 sentence).`
+            : `You are FT MAVERIICK in a group investigation chat. Give one short, useful lead or question based on the recent conversation (max 1 sentence).`;
+
+          try {
+            const token = localStorage.getItem('fundtracer_token');
+            const res = await fetch(`${API_BASE}/api/ai-chat/chat`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+              body: JSON.stringify({ message: prompt, roomId: activeRoomId }),
+            });
+            const data = await res.json();
+            await send(`@FT MAVERIICK ${data.reply || 'I have some thoughts on this.'}`);
+          } catch {
+            await send(`@FT MAVERIICK I noticed some interesting patterns. Want me to dig deeper?`);
+          }
+        }, 4500);
+      }
+    }
+  }, [messages, aiAgentActive, activeRoomId, send]);
 
   // Command palette keyboard shortcut (⌘K / Ctrl+K)
   useEffect(() => {
@@ -421,7 +456,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                 </div>
               )}
 
-               {/* Online Presence */}
+               {/* Online Presence + AI Agent */}
                <div className="ir-presence-row">
                  {members.slice(0, 5).map((m, idx) => (
                    <div key={idx} className="ir-presence-avatar" title={m.displayName}>
@@ -430,6 +465,15 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                    </div>
                  ))}
                  {members.length > 5 && <span className="ir-presence-more">+{members.length - 5}</span>}
+                 
+                 {/* AI Agent Status */}
+                 <div 
+                   className={`ir-ai-agent-badge ${aiAgentActive ? 'active' : ''}`}
+                   onClick={() => setAiAgentActive(!aiAgentActive)}
+                   title={aiAgentActive ? 'FT MAVERIICK is actively suggesting leads' : 'AI Agent is paused'}
+                 >
+                   🤖 FT MAVERIICK {aiAgentActive ? 'ON' : 'OFF'}
+                 </div>
                </div>
 
                <RoomHeader
@@ -504,6 +548,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                            <EvidenceKanban
                              pinnedMessages={pins}
                              onUnpin={handleUnpin}
+                             roomId={activeRoomId}
                            />
                          )}
                         {activeTab === 'members' && (

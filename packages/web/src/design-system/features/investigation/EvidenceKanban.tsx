@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pin } from 'lucide-react';
+import { pinMessage } from '../../../api';
 
 interface KanbanItem {
   id: string;
@@ -11,22 +12,43 @@ interface KanbanItem {
 interface EvidenceKanbanProps {
   pinnedMessages: any[];
   onUnpin: (id: string) => void;
+  roomId: string | null;
 }
 
 const COLUMNS = ['Suspect', 'Evidence', 'Cleared', 'Archived'] as const;
 
-export function EvidenceKanban({ pinnedMessages, onUnpin }: EvidenceKanbanProps) {
+export function EvidenceKanban({ pinnedMessages, onUnpin, roomId }: EvidenceKanbanProps) {
   const [kanban, setKanban] = useState<Record<string, KanbanItem[]>>({
     Suspect: [],
-    Evidence: pinnedMessages.map(m => ({
-      id: m.id,
-      content: m.content,
-      senderName: m.senderName,
-      createdAt: m.createdAt,
-    })),
+    Evidence: [],
     Cleared: [],
     Archived: [],
   });
+
+  // Load initial pins into columns based on their category
+  useEffect(() => {
+    const newKanban: Record<string, KanbanItem[]> = {
+      Suspect: [], Evidence: [], Cleared: [], Archived: []
+    };
+    
+    pinnedMessages.forEach(m => {
+      const col = m.category || 'Evidence';
+      if (newKanban[col]) {
+        newKanban[col].push({
+          id: m.id,
+          content: m.content,
+          senderName: m.senderName,
+          createdAt: m.createdAt,
+        });
+      } else {
+        newKanban.Evidence.push({
+          id: m.id, content: m.content, senderName: m.senderName, createdAt: m.createdAt
+        });
+      }
+    });
+    
+    setKanban(newKanban);
+  }, [pinnedMessages]);
 
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
@@ -35,9 +57,10 @@ export function EvidenceKanban({ pinnedMessages, onUnpin }: EvidenceKanbanProps)
     e.dataTransfer.setData('text/plain', id);
   };
 
-  const onDrop = (e: React.DragEvent, column: string) => {
+  const onDrop = async (e: React.DragEvent, column: string) => {
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain');
+    if (!roomId) return;
     
     const newKanban = { ...kanban };
     
@@ -61,6 +84,13 @@ export function EvidenceKanban({ pinnedMessages, onUnpin }: EvidenceKanbanProps)
     
     if (movedItem) {
       newKanban[column].push(movedItem);
+      
+      // Persist to backend
+      try {
+        await pinMessage(roomId, id, column);
+      } catch (err) {
+        console.error('Failed to update pin category', err);
+      }
     }
     
     setKanban(newKanban);
