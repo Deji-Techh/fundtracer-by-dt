@@ -14,9 +14,9 @@ export function RoomHeader({ name, memberCount, onInvite, onExport, onClose, sho
   return (
     <div className="ir-header">
       <div className="ir-header-left">
-        <Users size={18} style={{ color: '#7F77DD' }} />
+        <Users size={18} style={{ color: '#6ab2f2' }} />
         <span className="ir-room-name">{name}</span>
-        <span style={{ fontSize: 12, color: 'var(--color-text-muted, #555)' }}>
+        <span style={{ fontSize: 12, color: '#6a6a7a' }}>
           {memberCount} {memberCount === 1 ? 'member' : 'members'}
         </span>
       </div>

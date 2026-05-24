@@ -93,7 +93,7 @@ export function ChatMessageList({
           <p className="ir-empty-text">No messages yet</p>
           <p className="ir-empty-sub">
             Send a message to start the conversation.<br />
-            Type <span style={{ color: 'var(--green, #00e676)' }}>@FT MAVERIICK</span> to run blockchain analysis in the chat.
+            Type <span style={{ color: '#6ab2f2' }}>@FT MAVERIICK</span> to run blockchain analysis in the chat.
           </p>
         </div>
       </div>

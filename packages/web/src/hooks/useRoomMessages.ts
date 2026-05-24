@@ -20,7 +20,7 @@ interface RoomMessage {
   roomId: string;
 }
 
-export function useRoomMessages(roomId: string | null) {
+export function useRoomMessages(roomId: string | null, currentUserId?: string, currentUserName?: string) {
   const [messages, setMessages] = useState<RoomMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -95,8 +95,8 @@ export function useRoomMessages(roomId: string | null) {
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const optimistic: RoomMessage = {
       id: tempId,
-      senderId: 'local',
-      senderName: 'You',
+      senderId: currentUserId || 'local',
+      senderName: currentUserName || 'You',
       content,
       contentType: 'text',
       mentions: [],
@@ -121,7 +121,7 @@ export function useRoomMessages(roomId: string | null) {
       setMessages(prev => prev.filter(m => m.id !== tempId));
       throw new Error('Failed to send message');
     }
-  }, [roomId]);
+  }, [roomId, currentUserId, currentUserName]);
 
   return { messages, isLoading, hasMore, loadMore, send };
 }

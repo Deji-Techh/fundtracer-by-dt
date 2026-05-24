@@ -59,7 +59,7 @@ export function MessageBubble({ message, isOwn, currentUserId, onPin, onUnpin }:
             onClick={() => isPinned ? onUnpin?.(id) : onPin?.(id)}
             title={isPinned ? 'Unpin' : 'Pin to evidence board'}
           >
-            <Pin size={12} style={{ fill: isPinned ? 'var(--green, #00e676)' : 'none', color: isPinned ? 'var(--green, #00e676)' : undefined }} />
+            <Pin size={12} style={{ fill: isPinned ? '#6ab2f2' : 'none', color: isPinned ? '#6ab2f2' : undefined }} />
           </button>
         </div>
 

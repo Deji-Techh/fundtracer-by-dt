@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useRoomMessages } from '../../../hooks/useRoomMessages';
@@ -92,7 +92,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   const forceReconnectRef = useRef(0);
 
   // Messages + Pins hooks
-  const { messages, isLoading: msgsLoading, hasMore, loadMore, send } = useRoomMessages(activeRoomId);
+  const { messages, isLoading: msgsLoading, hasMore, loadMore, send } = useRoomMessages(activeRoomId, user?.uid, user?.displayName || user?.email);
   const { pins, pinMessage, unpinMessage } = useRoomPins(activeRoomId);
 
   // WebSocket
@@ -277,12 +277,6 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     setInputCursor(cursor);
   }, []);
 
-  // History messages for sidebar
-  const historyMessages = useMemo(() =>
-    messages.filter((m) => m.contentType !== 'system').slice(-50).reverse(),
-    [messages]
-  );
-
   const userMemberData = members.find((m) => m.uid === user?.uid);
   const currentUserRole = userMemberData?.role;
 
@@ -387,7 +381,11 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                       />
                       <div className="ir-sidebar-content">
                         {activeTab === 'history' && (
-                          <MessageHistory messages={historyMessages} />
+                          <MessageHistory
+                            rooms={rooms}
+                            activeRoomId={activeRoomId}
+                            onSelectRoom={handleSelectRoom}
+                          />
                         )}
                         {activeTab === 'pins' && (
                           <EvidenceBoard

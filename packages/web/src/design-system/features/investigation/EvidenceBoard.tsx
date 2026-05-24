@@ -21,7 +21,7 @@ interface EvidenceBoardProps {
 const CATEGORY_COLORS: Record<string, string> = {
   evidence: '#4ade80',
   finding: '#fbbf24',
-  note: '#7F77DD',
+  note: '#6ab2f2',
   action_item: '#f97316',
 };
 
@@ -41,7 +41,7 @@ export function EvidenceBoard({ pins, onUnpin, canUnpin }: EvidenceBoardProps) {
     <div>
       {pins.map((pin) => (
         <div key={pin.messageId} className="ir-evidence-item">
-          <div className="ir-evidence-category" style={{ color: CATEGORY_COLORS[pin.category] || '#7F77DD' }}>
+          <div className="ir-evidence-category" style={{ color: CATEGORY_COLORS[pin.category] || '#6ab2f2' }}>
             {pin.category.replace('_', ' ')}
           </div>
           {pin.content && (
@@ -53,7 +53,7 @@ export function EvidenceBoard({ pins, onUnpin, canUnpin }: EvidenceBoardProps) {
             </div>
           )}
           <div style={{ fontSize: 10, color: 'var(--color-text-muted, #555)', marginTop: 4 }}>
-            Pinned by {pin.pinnedByName || pin.pinnedBy} — {senderName ? `${senderName} · ` : ''}{new Date(pin.pinnedAt).toLocaleDateString()}
+            Pinned by {pin.pinnedByName || pin.pinnedBy} — {pin.senderName ? `${pin.senderName} · ` : ''}{new Date(pin.pinnedAt).toLocaleDateString()}
           </div>
           {canUnpin && onUnpin && (
             <div className="ir-evidence-actions">
