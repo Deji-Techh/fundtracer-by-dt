@@ -190,6 +190,48 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     setReactions(saved ? JSON.parse(saved) : {});
   }, [activeRoomId]);
 
+  const handleCursorChange = useCallback((cursor: number) => {
+    setInputCursor(cursor);
+  }, []);
+
+  // Helper: fetch from SSE endpoint and collect complete response
+  const fetchSSE = useCallback(async (body: Record<string, any>): Promise<string> => {
+    const token = localStorage.getItem('fundtracer_token');
+    const res = await fetch(`${API_BASE}/api/ai-chat/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('AI request failed');
+    const reader = res.body?.getReader();
+    if (!reader) return '';
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullResponse = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6);
+        if (jsonStr.trim() === '[DONE]') continue;
+        try {
+          const data = JSON.parse(jsonStr);
+          if (data.type === 'chunk' && data.content) fullResponse += data.content;
+          else if (data.type === 'complete' && data.fullResponse) fullResponse = data.fullResponse;
+          else if (data.type === 'error') throw new Error(data.message);
+        } catch (e: any) {
+          if (e instanceof SyntaxError) continue;
+          throw e;
+        }
+      }
+    }
+    return fullResponse;
+  }, []);
+
   const handleSend = useCallback(async () => {
     if (!inputValue.trim()) return;
     const val = inputValue;
@@ -425,48 +467,6 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       startTyping();
     }
   }, [connected, startTyping]);
-
-  const handleCursorChange = useCallback((cursor: number) => {
-    setInputCursor(cursor);
-  }, []);
-
-  // Helper: fetch from SSE endpoint and collect complete response
-  const fetchSSE = useCallback(async (body: Record<string, any>): Promise<string> => {
-    const token = localStorage.getItem('fundtracer_token');
-    const res = await fetch(`${API_BASE}/api/ai-chat/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error('AI request failed');
-    const reader = res.body?.getReader();
-    if (!reader) return '';
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let fullResponse = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const jsonStr = line.slice(6);
-        if (jsonStr.trim() === '[DONE]') continue;
-        try {
-          const data = JSON.parse(jsonStr);
-          if (data.type === 'chunk' && data.content) fullResponse += data.content;
-          else if (data.type === 'complete' && data.fullResponse) fullResponse = data.fullResponse;
-          else if (data.type === 'error') throw new Error(data.message);
-        } catch (e: any) {
-          if (e instanceof SyntaxError) continue;
-          throw e;
-        }
-      }
-    }
-    return fullResponse;
-  }, []);
 
   // Clean up processing timeout on unmount
   useEffect(() => {

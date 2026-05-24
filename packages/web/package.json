@@ -33,6 +33,7 @@
         "firebase": "^10.7.1",
         "framer-motion": "^12.38.0",
         "fundtracer-core": "*",
+        "gensync": "^1.0.0-beta.2",
         "html2canvas": "^1.4.1",
         "idb": "^7.1.1",
         "jspdf": "^4.1.0",
