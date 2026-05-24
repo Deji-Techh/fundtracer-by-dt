@@ -319,17 +319,18 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
             <motion.div
               className="ir-backdrop"
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.88 }}
+              animate={{ opacity: 0.92 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
+              style={{ backdropFilter: 'blur(20px)' }}
             />
 
             <motion.div
               className="ir-panel"
-              initial={{ opacity: 0, scale: 0.98, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.98, y: 10 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
+              initial={{ opacity: 0, scale: 0.985, y: 16, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 0.985, y: 16, filter: 'blur(4px)' }}
+              transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
             >
               {/* Room Selector (if multiple rooms) + Header */}
               {rooms.length > 1 && (

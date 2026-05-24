@@ -9,7 +9,7 @@ export function SystemMessage({ text, timestamp }: SystemMessageProps) {
   return (
     <div className="ir-system-msg">
       {text}
-      <span style={{ marginLeft: 8, opacity: 0.5 }}>
+      <span style={{ marginLeft: 6, opacity: 0.6, fontVariantNumeric: 'tabular-nums' }}>
         {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </span>
     </div>

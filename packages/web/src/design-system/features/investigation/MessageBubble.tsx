@@ -29,7 +29,6 @@ function formatTime(ts: number): string {
 }
 
 function renderContent(content: string) {
-  // Highlight @mentions — matches @word or @multi word
   const parts = content.split(/(@\w+(?:\s+\w+)?)/g);
   return parts.map((part, i) => {
     if (part.startsWith('@') && part.length > 1) {
@@ -44,11 +43,11 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
 
   return (
     <div className={`ir-msg ${isOwn ? 'ir-msg-own' : ''} ${isPinned ? 'ir-msg-pinned' : ''} ${isGrouped ? 'ir-msg-grouped' : ''}`}>
-      <div className="ir-msg-avatar">
+      <div className="ir-msg-avatar" title={senderName}>
         {senderPhotoURL ? (
           <img src={senderPhotoURL} alt={senderName} />
         ) : (
-          <User size={14} />
+          <User size={15} />
         )}
       </div>
       <div className="ir-msg-body">
@@ -58,9 +57,9 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
           <button
             className="ir-msg-pin-btn"
             onClick={() => isPinned ? onUnpin?.(id) : onPin?.(id)}
-            title={isPinned ? 'Unpin' : 'Pin to evidence board'}
+            title={isPinned ? 'Unpin from evidence' : 'Pin to evidence board'}
           >
-            <Pin size={12} style={{ fill: isPinned ? '#00a884' : 'none', color: isPinned ? '#00a884' : undefined }} />
+            <Pin size={13} style={{ fill: isPinned ? 'currentColor' : 'none' }} />
           </button>
         </div>
 
