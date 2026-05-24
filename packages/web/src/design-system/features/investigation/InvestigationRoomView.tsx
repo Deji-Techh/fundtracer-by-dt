@@ -420,13 +420,39 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                 </div>
               )}
 
-              <RoomHeader
-                name={roomDetails?.name || 'Investigation Room'}
-                memberCount={members.length}
-                onInvite={handleInvite}
-                onClose={onClose}
-                showExport={!!user}
-              />
+               {/* Online Presence */}
+               <div className="ir-presence-row">
+                 {members.slice(0, 5).map((m, idx) => (
+                   <div key={idx} className="ir-presence-avatar" title={m.displayName}>
+                     {m.photoURL ? <img src={m.photoURL} alt="" /> : m.displayName[0]}
+                     <span className="ir-presence-dot" />
+                   </div>
+                 ))}
+                 {members.length > 5 && <span className="ir-presence-more">+{members.length - 5}</span>}
+               </div>
+
+               <RoomHeader
+                 name={roomDetails?.name || 'Investigation Room'}
+                 memberCount={members.length}
+                 onInvite={handleInvite}
+                 onClose={onClose}
+                 showExport={!!user}
+                 onAISummary={async () => {
+                   setIsProcessingAi(true);
+                   // Call AI to summarize the room
+                   try {
+                     const token = localStorage.getItem('fundtracer_token');
+                     const res = await fetch(`${API_BASE}/api/ai-chat/chat`, {
+                       method: 'POST',
+                       headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+                       body: JSON.stringify({ message: `Summarize the last 20 messages in this investigation room in 4 bullet points.`, roomId: activeRoomId })
+                     });
+                     const data = await res.json();
+                     await send(`@FT MAVERIICK Room Summary:\n${data.reply || 'Summary generated.'}`);
+                   } catch {}
+                   setIsProcessingAi(false);
+                 }}
+               />
 
               {activeRoomId ? (
                 <RoomLayout

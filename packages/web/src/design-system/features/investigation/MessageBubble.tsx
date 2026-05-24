@@ -29,13 +29,19 @@ function formatTime(ts: number): string {
 }
 
 function renderContent(content: string) {
-  // Match @mentions including multi-word like @FT MAVERIICK
-  const parts = content.split(/(@[A-Za-z0-9_ ]{2,30})/g);
+  // Basic markdown + mentions
+  let processed = content
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+
+  // Mentions
+  const parts = processed.split(/(@[A-Za-z0-9_ ]{2,30})/g);
   return parts.map((part, i) => {
     if (part.startsWith('@') && part.length > 1) {
-      return <span key={i} className="mention">{part.trim()}</span>;
+      return <span key={i} className="mention" dangerouslySetInnerHTML={{ __html: part.trim() }} />;
     }
-    return part;
+    return <span key={i} dangerouslySetInnerHTML={{ __html: part }} />;
   });
 }
 
@@ -72,8 +78,31 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
           </button>
           {isOwn && (
             <>
-              <button className="ir-msg-action-btn" title="Edit"><Edit2 size={12} /></button>
-              <button className="ir-msg-action-btn" title="Delete"><Trash2 size={12} /></button>
+              <button 
+                className="ir-msg-action-btn" 
+                title="Edit"
+                onClick={() => {
+                  const newContent = prompt('Edit message:', content);
+                  if (newContent !== null) {
+                    // TODO: call edit API
+                    console.log('Edit message', id, newContent);
+                  }
+                }}
+              >
+                <Edit2 size={12} />
+              </button>
+              <button 
+                className="ir-msg-action-btn" 
+                title="Delete"
+                onClick={() => {
+                  if (confirm('Delete this message?')) {
+                    // TODO: call delete API
+                    console.log('Delete message', id);
+                  }
+                }}
+              >
+                <Trash2 size={12} />
+              </button>
             </>
           )}
         </div>
