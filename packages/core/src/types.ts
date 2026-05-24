@@ -248,3 +248,103 @@ export interface ContractAnalysisResult {
     suspiciousPatterns: SuspiciousIndicator[];
     riskScore: number;
 }
+
+// ============================================================
+// Investigation Rooms (Team Analysis)
+// ============================================================
+
+export interface InvestigationRoom {
+    id: string;
+    name: string;
+    description?: string;
+    createdBy: string;
+    createdAt: number;
+    updatedAt: number;
+    seedAddress?: string;
+    seedChain?: string;
+    seedSnapshot?: {
+        riskScore: number;
+        riskLevel: string;
+        totalTransactions: number;
+        balance: string;
+        flags: string[];
+    };
+    memberCount: number;
+    lastMessageAt: number;
+    lastMessagePreview: string;
+    isPublic: boolean;
+    inviteCode: string;
+    pinCount: number;
+}
+
+export interface RoomMember {
+    uid: string;
+    displayName: string;
+    photoURL?: string;
+    role: 'owner' | 'admin' | 'member';
+    joinedAt: number;
+    lastReadAt: number;
+    isOnline: boolean;
+    lastSeenAt: number;
+}
+
+export interface RoomMessage {
+    id: string;
+    roomId: string;
+    senderId: string;
+    senderName: string;
+    senderPhotoURL?: string;
+    content: string;
+    contentType: 'text' | 'ai_card' | 'system' | 'pin_notice';
+    aiCard?: {
+        command: string;
+        address: string;
+        chain: string;
+        resultSummary: string;
+        resultData: Record<string, any>;
+        modelUsed?: string;
+    };
+    mentions: string[];
+    isPinned: boolean;
+    pinnedAt?: number;
+    pinnedBy?: string;
+    createdAt: number;
+    editedAt?: number;
+}
+
+export interface InvestigationPin {
+    id: string;
+    messageId: string;
+    pinnedBy: string;
+    pinnedAt: number;
+    category: 'evidence' | 'finding' | 'note' | 'action_item';
+    note?: string;
+}
+
+export interface InvestigationInvite {
+    code: string;
+    roomId: string;
+    roomName: string;
+    createdBy: string;
+    createdAt: number;
+    expiresAt: number;
+    maxUses?: number;
+    useCount: number;
+    isRevoked: boolean;
+}
+
+export interface ParsedMaverickCommand {
+    type: 'analyze' | 'compare' | 'risk' | 'trace';
+    address: string;
+    chain: string;
+    rawCommand: string;
+}
+
+export interface AiCard {
+    command: string;
+    address: string;
+    chain: string;
+    resultSummary: string;
+    resultData: Record<string, any>;
+    modelUsed?: string;
+}

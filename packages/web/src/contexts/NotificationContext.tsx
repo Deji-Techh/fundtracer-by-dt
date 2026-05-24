@@ -2,14 +2,17 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { useAuth } from './AuthContext';
 import { getAuthToken, API_BASE } from '../api';
 
-export type NotificationType = 
-  | 'scan_complete' 
-  | 'login' 
-  | 'error' 
-  | 'price_alert' 
+export type NotificationType =
+  | 'scan_complete'
+  | 'login'
+  | 'error'
+  | 'price_alert'
   | 'wallet_activity'
   | 'sybil_complete'
-  | 'contract_complete';
+  | 'contract_complete'
+  | 'room_invite'
+  | 'room_mention'
+  | 'room_pin';
 
 export interface AppNotification {
   id: string;

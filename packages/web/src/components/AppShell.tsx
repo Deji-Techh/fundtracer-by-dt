@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap } from 'lucide-react';
+import { Zap, MessageSquare } from 'lucide-react';
 import '../styles/AppShell.css';
 import { NotificationBell, NotificationPanel } from './notifications';
 import { CHAIN_CONFIG, type ChainKey } from '../config/chains';
@@ -29,6 +29,8 @@ interface AppShellProps {
   chainBadge?: string;
   showAiButton?: boolean;
   onOpenAi?: () => void;
+  showRoomButton?: boolean;
+  onOpenRoom?: () => void;
   selectedChain?: string;
   onChainChange?: (chain: string) => void;
 }
@@ -48,6 +50,8 @@ export function AppShell({
   chainBadge,
   showAiButton = true,
   onOpenAi,
+  showRoomButton = true,
+  onOpenRoom,
   selectedChain = 'linea',
   onChainChange
 }: AppShellProps) {
@@ -219,8 +223,18 @@ export function AppShell({
 
           <div className="ft-topbar-gap"></div>
 
+          {showRoomButton && onOpenRoom && !isMobile && (
+            <button
+              className="ft-ai-trigger-new"
+              onClick={onOpenRoom}
+              title="Open Investigation Rooms"
+              style={{ marginRight: 4 }}
+            >
+              <MessageSquare size={18} />
+            </button>
+          )}
           {showAiButton && onOpenAi && !isMobile && (
-            <button 
+            <button
               className="ft-ai-trigger-new"
               onClick={onOpenAi}
               title="Open FundTracer AI"

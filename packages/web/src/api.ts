@@ -1010,3 +1010,179 @@ export async function deleteChatSession(sessionId: string): Promise<{ success: b
     }
     return response.json();
 }
+
+// ============================================================
+// Investigation Room API Functions
+// ============================================================
+
+export interface CreateRoomParams {
+  name: string;
+  description?: string;
+  seedAddress?: string;
+  seedChain?: string;
+  seedSnapshot?: any;
+}
+
+export async function createRoom(params: CreateRoomParams): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to create room'); }
+  return res.json();
+}
+
+export async function getRooms(): Promise<any[]> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return [];
+  const d = await res.json();
+  return d.rooms || [];
+}
+
+export async function getRoomDetails(roomId: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to get room'); }
+  return res.json();
+}
+
+export async function getRoomMessages(roomId: string, limit = 50, before?: number): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (before) params.set('before', String(before));
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages?${params}`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return { messages: [], hasMore: false };
+  return res.json();
+}
+
+export async function sendRoomMessage(roomId: string, content: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to send message'); }
+  return res.json();
+}
+
+export async function joinRoom(roomId: string, inviteCode?: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/join`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ inviteCode }),
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to join room'); }
+  return res.json();
+}
+
+export async function leaveRoom(roomId: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/leave`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to leave room'); }
+  return res.json();
+}
+
+export async function removeMember(roomId: string, uid: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/members/${uid}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to remove member'); }
+  return res.json();
+}
+
+export async function promoteMember(roomId: string, uid: string, role: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/members/${uid}/role`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to update role'); }
+  return res.json();
+}
+
+export async function createInvite(roomId: string, expiresInHours?: number): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/invite`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expiresInHours }),
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to create invite'); }
+  return res.json();
+}
+
+export async function getInvite(inviteCode: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/api/invites/${inviteCode}`);
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Invalid invite'); }
+  return res.json();
+}
+
+export async function pinMessage(roomId: string, messageId: string, category?: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages/${messageId}/pin`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category }),
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to pin message'); }
+  return res.json();
+}
+
+export async function unpinMessage(roomId: string, messageId: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages/${messageId}/pin`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to unpin message'); }
+  return res.json();
+}
+
+export async function getRoomPins(roomId: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/pins`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return { pins: [] };
+  return res.json();
+}
+
+export async function exportRoomPdf(roomId: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/export`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to export'); }
+  return res.json();
+}

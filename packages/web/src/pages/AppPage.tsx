@@ -7,6 +7,7 @@ import Loader from '../components/Loader';
 import OnboardingModal from '../components/OnboardingModal';
 import InvestigateView from '../design-system/features/InvestigateView';
 import { AiFullScreenView } from '../design-system/features/AiFullScreenView';
+import { InvestigationRoomView } from '../design-system/features/investigation';
 import { SolanaView } from '../design-system/features/SolanaView';
 import { getAuthToken } from '../api';
 import './AppPage.css';
@@ -128,6 +129,7 @@ export function AppPage() {
   const [showLoader, setShowLoader] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
+  const [isRoomOpen, setIsRoomOpen] = useState(false);
 
   const currentChainName = CHAIN_CONFIG[selectedChain as keyof typeof CHAIN_CONFIG]?.name || 'Linea';
 
@@ -369,6 +371,7 @@ export function AppPage() {
           }
         }}
         onOpenAi={() => setIsAiOpen(true)}
+        onOpenRoom={() => setIsRoomOpen(true)}
       >
         {selectedChain === 'solana' ? (
           <SolanaView
@@ -386,8 +389,14 @@ export function AppPage() {
         )}
       </AppShell>
       <AiFullScreenView
-        isOpen={isAiOpen} 
+        isOpen={isAiOpen}
         onClose={() => setIsAiOpen(false)}
+        currentWallet={walletAddress}
+        currentChain={selectedChain as string}
+      />
+      <InvestigationRoomView
+        isOpen={isRoomOpen}
+        onClose={() => setIsRoomOpen(false)}
         currentWallet={walletAddress}
         currentChain={selectedChain as string}
       />

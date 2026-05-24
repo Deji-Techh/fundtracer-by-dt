@@ -643,6 +643,36 @@ apiRouter.use('/polymarket', publicLimiter, polymarketRoutes);
 import { mcpRoutes } from './mcp/routes.js';
 apiRouter.use('/mcp', mcpRoutes);
 
+// Investigation Rooms Routes (Team Analysis)
+import { roomRoutes } from './routes/rooms.js';
+apiRouter.use('/rooms', authMiddleware, roomRoutes);
+
+// Public invite lookup — no auth required (returns room name + validity)
+apiRouter.get('/invites/:code', publicLimiter, async (req: any, res: any) => {
+    try {
+        const { getFirestore } = await import('./firebase.js');
+        const db = getFirestore();
+        const doc = await db.collection('investigation_invites').doc(req.params.code).get();
+        if (!doc.exists) return res.status(404).json({ error: 'Invite not found' });
+        const data = doc.data();
+        if (data?.isRevoked || data?.expiresAt < Date.now()) {
+            return res.status(404).json({ error: 'Invite expired or revoked' });
+        }
+        res.json({
+            success: true,
+            invite: {
+                code: data.code,
+                roomId: data.roomId,
+                roomName: data.roomName,
+                createdBy: data.createdBy,
+                expiresAt: data.expiresAt,
+            },
+        });
+    } catch (err: any) {
+        res.status(500).json({ error: 'Failed to look up invite' });
+    }
+});
+
 // Mount router at /api
 // MAINTENANCE MIDDLEWARE: Check if site is in maintenance mode
 app.use('/api', async (req, res, next) => {
@@ -870,6 +900,15 @@ server = app.listen(PORT, async () => {
     }, 3 * 60 * 1000); // Every 3 minutes
 
     console.log(`[Keep-alive] Pinger started for ${RAILWAY_URL}`);
+
+    // Initialize WebSocket server for Investigation Rooms real-time
+    try {
+        const { createWebSocketServer } = await import('./services/websocket.js');
+        createWebSocketServer(server);
+        console.log('[WS] Investigation Room WebSocket server initialized');
+    } catch (error) {
+        console.error('[Server] Failed to initialize WebSocket server:', error);
+    }
 });
 
 export const handler = app;
