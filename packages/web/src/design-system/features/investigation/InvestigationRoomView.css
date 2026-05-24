@@ -224,8 +224,10 @@
   line-height: 1.5;
   word-break: normal;
   white-space: pre-wrap;
+  overflow-wrap: break-word;
   padding: 10px 16px;
   max-width: min(70%, 620px);
+  width: fit-content;
   display: inline-block;
   position: relative;
   transition: transform 0.1s ease, box-shadow 0.1s ease;

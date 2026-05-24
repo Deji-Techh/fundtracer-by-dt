@@ -108,8 +108,12 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   // Reply state
   const [replyingTo, setReplyingTo] = useState<any>(null);
 
-  // Reactions (client-side for now)
-  const [reactions, setReactions] = useState<Record<string, Record<string, string[]>>>({});
+  // Reactions persisted per room
+  const [reactions, setReactions] = useState<Record<string, Record<string, string[]>>>(() => {
+    if (!activeRoomId) return {};
+    const saved = localStorage.getItem(`ft_reactions_${activeRoomId}`);
+    return saved ? JSON.parse(saved) : {};
+  });
 
   // AI Agent (FT MAVERIICK) proactive mode
   const [aiAgentActive, setAiAgentActive] = useState(true);
@@ -186,6 +190,9 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     const val = inputValue;
     setInputValue('');
 
+    // If replying, include parentMessageId
+    const replyPayload = replyingTo ? { parentMessageId: replyingTo.id } : {};
+
     // Check for @FT MAVERIICK command — trigger real AI analysis
     const isAiMention = val.toLowerCase().includes('@ft maverick');
     
@@ -222,11 +229,12 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     }
 
     try {
-      await send(val);
+      await send(val, replyPayload);
+      setReplyingTo(null); // clear reply after sending
     } catch {
       setInputValue(val);
     }
-  }, [inputValue, send, currentChain]);
+  }, [inputValue, send, currentChain, replyingTo]);
 
   useEffect(() => {
     // Reset AI processing when a new AI card message arrives
@@ -309,9 +317,15 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       if (!msgReactions[emoji].includes(user?.uid || '')) {
         msgReactions[emoji].push(user?.uid || '');
       }
-      return { ...prev, [messageId]: msgReactions };
+      const newState = { ...prev, [messageId]: msgReactions };
+      
+      // Persist
+      if (activeRoomId) {
+        localStorage.setItem(`ft_reactions_${activeRoomId}`, JSON.stringify(newState));
+      }
+      return newState;
     });
-  }, [user?.uid]);
+  }, [user?.uid, activeRoomId]);
 
   const handleInvite = useCallback(async () => {
     if (!activeRoomId) return;
