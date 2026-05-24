@@ -21,6 +21,8 @@ import {
   Column
 } from '../design-system';
 import './IntelPage.css';
+import { TryNowModal } from '../components/TryNowModal';
+import '../components/TryNowModal.css';
 
 // API endpoints for live data
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
@@ -59,6 +61,7 @@ export function IntelPage() {
   const [liveFeed, setLiveFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [buttonLoading, setButtonLoading] = useState(true);
+  const [showTryNowModal, setShowTryNowModal] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setButtonLoading(false), 2500);
@@ -360,8 +363,8 @@ export function IntelPage() {
                 </>
               ) : (
                 <>
-                  <button className="intel-btn intel-btn--primary intel-btn--lg" onClick={handleLaunchApp}>
-                    Start Investigating
+                  <button className="intel-btn intel-btn--primary intel-btn--lg" onClick={() => setShowTryNowModal(true)}>
+                    Try Now
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
@@ -542,6 +545,9 @@ export function IntelPage() {
           </div>
         </section>
       </div>
+
+      {/* Try Now Modal — public wallet analysis preview */}
+      <TryNowModal isOpen={showTryNowModal} onClose={() => setShowTryNowModal(false)} />
     </LandingLayout>
   );
 }

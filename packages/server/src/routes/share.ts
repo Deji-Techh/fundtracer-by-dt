@@ -82,4 +82,39 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// POST /public — public share creation (no auth, for Try Now preview)
+export const publicShareRouter = Router();
+
+publicShareRouter.post('/', async (req: Request, res: Response) => {
+  try {
+    const { address, chain, result } = req.body;
+
+    if (!address || !chain || !result) {
+      return res.status(400).json({ error: 'Missing required fields: address, chain, result' });
+    }
+
+    const id = crypto.randomBytes(4).toString('hex'); // 8-char hex ID
+    const now = admin.firestore.Timestamp.now();
+
+    const db = getFirestore();
+    await db.collection('shared_analyses').doc(id).set({
+      id,
+      address,
+      chain,
+      result,
+      userId: 'anonymous-preview',
+      createdAt: now,
+      expiresAt: new admin.firestore.Timestamp(now.seconds + 7 * 24 * 60 * 60, 0), // 7 days
+      viewCount: 0,
+    });
+
+    console.log(`[Share] Created public share ${id} for ${address} on ${chain}`);
+
+    res.json({ success: true, id, url: `https://www.fundtracer.xyz/share/${id}` });
+  } catch (error: any) {
+    console.error('[Share] Error creating public share:', error);
+    res.status(500).json({ error: 'Failed to create share link' });
+  }
+});
+
 export { router as shareRoutes };

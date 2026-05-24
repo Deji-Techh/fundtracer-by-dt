@@ -86,7 +86,7 @@ initializeCEXDatabase()
 import { authMiddleware, apiKeyAuthMiddleware } from './middleware/auth.js';
 import { usageMiddleware } from './middleware/usage.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
-import { analyzeRoutes } from './routes/analyze.js';
+import { analyzeRoutes, previewRouter } from './routes/analyze.js';
 import trackRoutes from './routes/track.js';
 import { torqueRoutes } from './routes/torque.js';
 import { userRoutes } from './routes/user.js';
@@ -425,6 +425,20 @@ const scanHistoryLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
+// Preview analysis rate limiter — strict for public unauthenticated access
+const previewLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 preview requests per minute per IP
+  message: { error: 'Free preview limited to 10 requests per minute. Sign in for unlimited access.' },
+});
+
+// Public share rate limiter
+const shareLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // 50 public shares per 15 minutes per IP
+  message: { error: 'Share rate limit exceeded, please try again later.' },
+});
+
 // Public endpoint rate limiter - more permissive for unauthenticated endpoints
 const publicLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -519,6 +533,9 @@ async function chainMaintenanceMiddleware(req: any, res: any, next: any) {
   } catch { next(); }
 }
 
+// Public preview endpoint — no auth required, uses stricter rate limiter
+apiRouter.use('/analyze/preview', previewLimiter, previewRouter);
+
 apiRouter.use('/analyze', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, chainMaintenanceMiddleware, analyzeLimiter, analyzeRoutes);
 
 // AI Chat Routes - Context-aware AI analyst with smart model routing
@@ -576,7 +593,7 @@ import { solanaRoutes } from './routes/solana.js';
 import notificationRoutes from './routes/notifications.js';
 import radarRoutes from './routes/radar.js';
 import entityRoutes from './routes/entities.js';
-import { shareRoutes } from './routes/share.js';
+import { shareRoutes, publicShareRouter } from './routes/share.js';
 import configRoutes from './routes/config.js';
 
 // All API routes - restored from working commit
@@ -605,6 +622,9 @@ import { torqueRoutesV2 } from './routes/torqueV2.js';
 apiRouter.use('/torque-v2', torqueRoutesV2);
 
 // Share analysis routes — POST requires auth (handled inside), GET is public
+// Public share creation — no auth required (for Try Now preview)
+apiRouter.use('/share/public', shareLimiter, publicShareRouter);
+
 apiRouter.use('/share', shareRoutes);
 
 // NEW: Contract Scanner Routes

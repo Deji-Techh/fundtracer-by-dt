@@ -3,7 +3,7 @@
 // All requests use server-side API keys (never exposed to client)
 // ============================================================
 
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { getFirestore } from '../firebase.js';
@@ -2203,6 +2203,91 @@ router.post('/bridge-trace', async (req: AuthenticatedRequest, res: Response) =>
   } catch (error: any) {
     console.error('[Bridge Trace] Error:', error.message);
     res.status(500).json({ error: 'Bridge trace failed' });
+  }
+});
+
+// ============================================================
+// Public Preview Endpoint — no auth required, rate limited by IP
+// Returns lightweight preview data for the Try Now modal
+// ============================================================
+const PREVIEW_ALLOWED_CHAINS = ['linea', 'ethereum', 'eth', 'bsc', 'binance', 'arbitrum', 'arb', 'polygon', 'polygon_pos', 'matic'];
+
+export const previewRouter = Router();
+
+previewRouter.get('/', async (req: Request, res: Response) => {
+  try {
+    const address = (req.query.address as string || '').trim();
+    const chain = (req.query.chain as string || '').trim().toLowerCase();
+
+    if (!address || !chain) {
+      return res.status(400).json({ error: 'Missing address or chain', message: 'Both address and chain are required.', hint: 'Add ?address=0x...&chain=linea to the request.' });
+    }
+
+    const normalizedChain = normalizeChainId(chain);
+    if (!PREVIEW_ALLOWED_CHAINS.includes(normalizedChain)) {
+      return res.status(400).json({ error: 'Unsupported chain', message: `Chain "${chain}" is not available in the preview.`, hint: 'Supported chains: linea, ethereum, bsc, arbitrum, polygon' });
+    }
+
+    if (!ETH_ADDRESS_REGEX.test(address)) {
+      return res.status(400).json({ error: 'Invalid address', message: 'Please provide a valid EVM address (0x...).', hint: 'Enter a wallet address starting with 0x.' });
+    }
+
+    const alchemyKeyPool = getAlchemyKeyPool();
+    const analyzer = new WalletAnalyzer({
+      alchemy: alchemyKeyPool[0] || '',
+      moralis: process.env.MORALIS_API_KEY,
+      etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      arbiscan: process.env.ARBISCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+      blockTimestampCache: blockTsCache,
+    });
+
+    const result = await withTimeout(
+      analyzer.analyze(address, normalizedChain as ChainId, { transactionLimit: 50, skipFundingTree: true, skipTimestamps: true }),
+      60000,
+      'Preview analysis'
+    );
+
+    const indicators = (result.suspiciousIndicators || []).slice(0, 3).map((i: any) => ({
+      type: i.type,
+      severity: i.severity,
+      description: i.description,
+    }));
+
+    const projects = (result.projectsInteracted || []).slice(0, 5).map((p: any) => ({
+      projectName: p.projectName,
+      category: p.category,
+      interactionCount: p.interactionCount,
+    }));
+
+    res.json({
+      success: true,
+      preview: {
+        wallet: {
+          address: result.wallet?.address || address,
+          balanceInEth: result.wallet?.balanceInEth || 0,
+          txCount: result.wallet?.txCount || 0,
+        },
+        overallRiskScore: result.overallRiskScore || 0,
+        riskLevel: result.riskLevel || 'low',
+        summary: {
+          totalTransactions: result.summary?.totalTransactions || 0,
+          totalValueSentEth: result.summary?.totalValueSentEth || 0,
+          totalValueReceivedEth: result.summary?.totalValueReceivedEth || 0,
+          uniqueInteractedAddresses: result.summary?.uniqueInteractedAddresses || 0,
+          activityPeriodDays: result.summary?.activityPeriodDays || 0,
+        },
+        suspiciousIndicators: indicators,
+        projectsInteracted: projects,
+      },
+    });
+  } catch (error: any) {
+    console.error('[Preview] Analysis error:', error.message);
+    const errInfo = getUserFriendlyError(error);
+    res.status(errInfo.status).json(errInfo);
   }
 });
 
