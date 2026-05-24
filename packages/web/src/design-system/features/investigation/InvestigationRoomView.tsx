@@ -340,76 +340,76 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                 showExport={!!user}
               />
 
-              <RoomLayout
-                chat={
-                  <>
-                    <ChatMessageList
-                      messages={messages}
-                      isLoading={msgsLoading}
-                      hasMore={hasMore}
-                      isLoadingMore={false}
-                      onLoadMore={loadMore}
-                      currentUserId={user?.uid}
-                      typingNames={typingNames}
-                      onPin={handlePin}
-                      onUnpin={handleUnpin}
-                      isProcessingAi={isProcessingAi}
-                    />
-                    <ChatInput
-                      value={inputValue}
-                      onChange={handleInputChange}
-                      onCursorChange={handleCursorChange}
-                      onSend={handleSend}
-                      disabled={!connected && activeRoomId !== null}
-                      mentionSuggestions={mentionSuggestions}
-                      mentionActive={mentionActive}
-                      mentionActiveIndex={mentionIndex}
-                      onMentionSelect={handleMentionSelect}
-                    />
-                  </>
-                }
-                sidebar={
-                  <>
-                    <SidebarTabs
-                      activeTab={activeTab}
-                      onTabChange={setActiveTab}
-                      pinCount={pins.length}
-                      memberCount={members.length}
-                    />
-                    <div className="ir-sidebar-content">
-                      {activeTab === 'history' && (
-                        <MessageHistory messages={historyMessages} />
-                      )}
-                      {activeTab === 'pins' && (
-                        <EvidenceBoard
-                          pins={pins}
-                          onUnpin={handleUnpin}
-                          canUnpin={!!currentUserRole}
-                        />
-                      )}
-                      {activeTab === 'members' && (
-                        <MemberList
-                          members={members}
-                          currentUserId={user?.uid}
-                          currentUserRole={currentUserRole}
-                          onRemoveMember={currentUserRole === 'admin' || currentUserRole === 'owner' ? handleRemoveMember : undefined}
-                          onPromoteMember={currentUserRole === 'owner' ? handlePromoteMember : undefined}
-                        />
-                      )}
-                    </div>
-                  </>
-                }
-              />
-
-              {!activeRoomId && !isLoadingRooms && !showCreateModal && (
-                <div className="ir-empty" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+              {activeRoomId ? (
+                <RoomLayout
+                  chat={
+                    <>
+                      <ChatMessageList
+                        messages={messages}
+                        isLoading={msgsLoading}
+                        hasMore={hasMore}
+                        isLoadingMore={false}
+                        onLoadMore={loadMore}
+                        currentUserId={user?.uid}
+                        typingNames={typingNames}
+                        onPin={handlePin}
+                        onUnpin={handleUnpin}
+                        isProcessingAi={isProcessingAi}
+                      />
+                      <ChatInput
+                        value={inputValue}
+                        onChange={handleInputChange}
+                        onCursorChange={handleCursorChange}
+                        onSend={handleSend}
+                        disabled={!connected && activeRoomId !== null}
+                        mentionSuggestions={mentionSuggestions}
+                        mentionActive={mentionActive}
+                        mentionActiveIndex={mentionIndex}
+                        onMentionSelect={handleMentionSelect}
+                      />
+                    </>
+                  }
+                  sidebar={
+                    <>
+                      <SidebarTabs
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                        pinCount={pins.length}
+                        memberCount={members.length}
+                      />
+                      <div className="ir-sidebar-content">
+                        {activeTab === 'history' && (
+                          <MessageHistory messages={historyMessages} />
+                        )}
+                        {activeTab === 'pins' && (
+                          <EvidenceBoard
+                            pins={pins}
+                            onUnpin={handleUnpin}
+                            canUnpin={!!currentUserRole}
+                          />
+                        )}
+                        {activeTab === 'members' && (
+                          <MemberList
+                            members={members}
+                            currentUserId={user?.uid}
+                            currentUserRole={currentUserRole}
+                            onRemoveMember={currentUserRole === 'admin' || currentUserRole === 'owner' ? handleRemoveMember : undefined}
+                            onPromoteMember={currentUserRole === 'owner' ? handlePromoteMember : undefined}
+                          />
+                        )}
+                      </div>
+                    </>
+                  }
+                />
+              ) : !isLoadingRooms && !showCreateModal ? (
+                <div className="ir-empty" style={{ flex: 1 }}>
                   <p className="ir-empty-text">No investigation rooms yet</p>
                   <p className="ir-empty-sub">Create a room to start collaborating with your team on wallet investigations</p>
                   <button className="ir-empty-btn" onClick={() => setShowCreateModal(true)}>
                     Create Your First Room
                   </button>
                 </div>
-              )}
+              ) : null}
             </motion.div>
           </motion.div>
         )}
