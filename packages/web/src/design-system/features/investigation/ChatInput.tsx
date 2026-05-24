@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
+import React, { useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { Send } from 'lucide-react';
 import { MentionSuggestions } from './MentionSuggestions';
 
@@ -14,7 +14,7 @@ interface ChatInputProps {
   onChange: (value: string) => void;
   onSend: () => void;
   disabled?: boolean;
-  onMentionChange?: (filter: string, cursorPosition: number) => void;
+  onCursorChange?: (cursor: number) => void;
   mentionSuggestions: Member[];
   mentionActive: boolean;
   mentionActiveIndex: number;
@@ -27,6 +27,7 @@ export function ChatInput({
   onChange,
   onSend,
   disabled,
+  onCursorChange,
   mentionSuggestions,
   mentionActive,
   mentionActiveIndex,
@@ -57,6 +58,15 @@ export function ChatInput({
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
+    onCursorChange?.(e.target.selectionStart);
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLTextAreaElement>) => {
+    onCursorChange?.(e.currentTarget.selectionStart);
+  };
+
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    onCursorChange?.(e.currentTarget.selectionStart);
   };
 
   return (
@@ -75,6 +85,8 @@ export function ChatInput({
           className="ir-input"
           value={value}
           onChange={handleChange}
+          onClick={handleClick}
+          onKeyUp={handleKeyUp}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || 'Type a message... Use @ to mention or @FT MAVERIICK for AI'}
           disabled={disabled}

@@ -11,6 +11,13 @@ interface Member {
   role: string;
 }
 
+const FT_MAVERIICK: Member = {
+  uid: 'ft_maverick',
+  displayName: 'FT MAVERIICK',
+  photoURL: undefined,
+  role: 'ai',
+};
+
 export function useMentionAutocomplete(
   value: string,
   cursorPosition: number,
@@ -26,16 +33,19 @@ export function useMentionAutocomplete(
     const afterAt = before.slice(atIndex + 1);
     if (afterAt.includes(' ')) return null;
 
-    // Also support @FT MAVERIICK special trigger
-    const isFtTrigger = afterAt.toLowerCase().startsWith('ft') || before.toLowerCase().endsWith('@ft');
-
     const filter = afterAt.toLowerCase();
-    const suggestions = members.filter(m =>
-      m.displayName.toLowerCase().includes(filter) ||
-      m.uid.toLowerCase().includes(filter)
+
+    // Combine room members + FT MAVERIICK synthetic suggestion
+    const allSuggestions = [...members];
+    if (!allSuggestions.some(m => m.uid === 'ft_maverick')) {
+      allSuggestions.push(FT_MAVERIICK);
+    }
+
+    const suggestions = allSuggestions.filter(m =>
+      m.displayName.toLowerCase().includes(filter)
     );
 
-    return { filter, suggestions, atIndex, isFtTrigger };
+    return { filter, suggestions, atIndex };
   }, [members]);
 
   const mentionState = useMemo(
@@ -55,7 +65,6 @@ export function useMentionAutocomplete(
     suggestions: mentionState?.suggestions || [],
     filter: mentionState?.filter || '',
     atIndex: mentionState?.atIndex ?? -1,
-    isFtTrigger: mentionState?.isFtTrigger ?? false,
     applyMention,
   };
 }

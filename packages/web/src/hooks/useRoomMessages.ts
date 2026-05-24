@@ -91,11 +91,36 @@ export function useRoomMessages(roomId: string | null) {
 
   const send = useCallback(async (content: string) => {
     if (!roomId) return;
-    const result = await sendRoomMessage(roomId, content);
-    if (result.message) {
-      setMessages(prev => [...prev, result.message]);
+    // Optimistic insert — show message immediately
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: RoomMessage = {
+      id: tempId,
+      senderId: 'local',
+      senderName: 'You',
+      content,
+      contentType: 'text',
+      mentions: [],
+      isPinned: false,
+      createdAt: Date.now(),
+      roomId,
+    };
+    setMessages(prev => [...prev, optimistic]);
+
+    try {
+      const result = await sendRoomMessage(roomId, content);
+      // Replace optimistic message with real one
+      if (result.message) {
+        setMessages(prev => prev.map(m => m.id === tempId ? result.message : m));
+      } else {
+        // API succeeded but no message returned — remove optimistic
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+      }
+      return result.message;
+    } catch {
+      // API failed — remove optimistic
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      throw new Error('Failed to send message');
     }
-    return result.message;
   }, [roomId]);
 
   return { messages, isLoading, hasMore, loadMore, send };

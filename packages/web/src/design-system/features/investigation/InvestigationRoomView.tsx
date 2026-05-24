@@ -5,7 +5,7 @@ import { useRoomMessages } from '../../../hooks/useRoomMessages';
 import { useRoomPins } from '../../../hooks/useRoomPins';
 import { useMentionAutocomplete } from '../../../hooks/useMentionAutocomplete';
 import { useInvestigationSocket } from '../../../hooks/useInvestigationSocket';
-import { useNotifications } from '../../../contexts/NotificationContext';
+import { useNotify } from '../../../contexts/ToastContext';
 import {
   getRoomDetails,
   createInvite,
@@ -63,7 +63,7 @@ interface InvestigationRoomViewProps {
 export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentChain }: InvestigationRoomViewProps) {
   const isMobile = useIsMobile();
   const { user } = useAuth();
-  const { addNotification } = useNotifications();
+  const notify = useNotify();
 
   // Room list + active room
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -198,16 +198,12 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       const inviteUrl = data.inviteUrl || data.url;
       if (inviteUrl) {
         await navigator.clipboard.writeText(inviteUrl);
-        addNotification({
-          type: 'room_invite',
-          title: 'Invite Copied',
-          message: 'Room invite link copied to clipboard',
-        });
+        notify.success('Invite link copied to clipboard');
       }
     } catch {
       // fail silently
     }
-  }, [activeRoomId, addNotification]);
+  }, [activeRoomId, notify]);
 
   const handleRemoveMember = useCallback(async (uid: string) => {
     if (!activeRoomId) return;
@@ -268,6 +264,10 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       startTyping();
     }
   }, [connected, startTyping]);
+
+  const handleCursorChange = useCallback((cursor: number) => {
+    setInputCursor(cursor);
+  }, []);
 
   // History messages for sidebar
   const historyMessages = useMemo(() =>
@@ -358,6 +358,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                     <ChatInput
                       value={inputValue}
                       onChange={handleInputChange}
+                      onCursorChange={handleCursorChange}
                       onSend={handleSend}
                       disabled={!connected && activeRoomId !== null}
                       mentionSuggestions={mentionSuggestions}
