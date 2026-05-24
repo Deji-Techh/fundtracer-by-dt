@@ -3,44 +3,49 @@
    Fluid motion, perfect spacing, theme-aware, delightful UX
    ============================================================ */
 
-/* ---- Overlay & Panel ---- */
+/* ---- Overlay & Panel (matching AiFullScreenView theme) ---- */
 .ir-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
-  padding: 24px;
+  z-index: var(--z-modal);
+  padding: 3vh 4vw;
 }
 
 .ir-backdrop {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.78);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .ir-panel {
   position: relative;
-  width: 96vw;
-  height: 93vh;
-  max-width: 1680px;
-  background: var(--color-bg);
-  border-radius: 20px;
+  width: 95%;
+  height: 94%;
+  background: var(--color-bg-primary);
+  border: 1px solid #1f1f24;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow:
-    0 30px 120px rgba(0, 0, 0, 0.5),
-    0 0 0 1px var(--color-surface-border);
-  border: 1px solid var(--color-surface-border);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 
   /* Chat bubble accent colors per theme - WhatsApp green for dark/light, Twitter blue for dim */
   --ir-accent: #00a884;
   --ir-accent-hover: #06cf9c;
   --ir-accent-text: #fff;
+}
+
+@media (min-width: 1440px) {
+  .ir-panel { width: 92%; height: 92%; }
+}
+
+@media (min-width: 1920px) {
+  .ir-panel { width: 90%; height: 90%; }
 }
 
 [data-theme="dim"] .ir-panel {
@@ -60,11 +65,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
-  background: var(--color-bg-secondary);
+  padding: 16px 24px;
+  background: var(--color-bg-primary);
   flex-shrink: 0;
-  min-height: 56px;
-  border-bottom: 1px solid var(--color-surface-border);
+  border-bottom: 1px solid #1a1a1f;
   position: relative;
   z-index: 10;
 }
@@ -717,8 +721,8 @@
   align-items: center;
   gap: 4px;
   padding: 4px 16px;
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-surface-border);
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid #1a1a1f;
 }
 
 .ir-presence-avatar {
@@ -938,8 +942,8 @@
 
 /* ---- Sidebar ---- */
 .ir-sidebar {
-  border-left: 1px solid var(--color-surface-border);
-  background: var(--color-bg-secondary);
+  border-left: 1px solid #1a1a1f;
+  background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -947,9 +951,9 @@
 
 .ir-sidebar-tabs {
   display: flex;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid #1a1a1f;
   flex-shrink: 0;
-  background: #202c33;
+  background: var(--color-bg-primary);
 }
 
 .ir-sidebar-tab {
@@ -957,7 +961,7 @@
   padding: 12px 0;
   text-align: center;
   font-size: 11px;
-  color: #8696a0;
+  color: var(--color-text-muted);
   cursor: pointer;
   border: none;
   background: none;
@@ -969,19 +973,19 @@
 }
 
 .ir-sidebar-tab:hover {
-  color: #aebac1;
+  color: var(--color-text-secondary);
 }
 
 .ir-sidebar-tab.active {
-  color: #00a884;
-  border-bottom-color: #00a884;
+  color: var(--ir-accent);
+  border-bottom-color: var(--ir-accent);
 }
 
 .ir-sidebar-tab .ir-tab-badge {
   margin-left: 4px;
   font-size: 9px;
   background: rgba(0,168,132,0.12);
-  color: #00a884;
+  color: var(--ir-accent);
   padding: 1px 6px;
   border-radius: 8px;
   font-weight: 600;
@@ -1242,8 +1246,8 @@
   align-items: center;
   gap: 3px;
   padding: 10px 18px 0;
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-surface-border);
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid #1a1a1f;
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
