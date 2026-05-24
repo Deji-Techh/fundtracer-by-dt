@@ -24,6 +24,12 @@ const rooms = new Map<string, Set<WSClient>>();
 const TYPING_DEBOUNCE = 3000; // 3 sec per user
 const typingTimers = new Map<string, number>();
 
+let wssInstance: InvestigationWSS | null = null;
+
+export function getWSS(): InvestigationWSS | null {
+  return wssInstance;
+}
+
 function getJwtSecret(): string {
   return process.env.JWT_SECRET || 'dev-secret-key-change-in-prod';
 }
@@ -35,6 +41,7 @@ export class InvestigationWSS {
     this.wss = new WebSocketServer({ server, path: '/ws' });
     this.wss.on('connection', (ws, req) => this.handleConnection(ws, req));
     this.startHeartbeat();
+    wssInstance = this;
     console.log('[WS] Investigation WebSocket server started on /ws');
   }
 

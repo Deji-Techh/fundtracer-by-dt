@@ -27,12 +27,11 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function renderContent(content: string, mentions: string[]) {
-  if (!mentions || mentions.length === 0) return content;
-
-  const parts = content.split(/(@\w+)/g);
+function renderContent(content: string) {
+  // Highlight @mentions — matches @word or @multi word
+  const parts = content.split(/(@\w+(?:\s+\w+)?)/g);
   return parts.map((part, i) => {
-    if (part.startsWith('@') && mentions.some(m => part.includes(m))) {
+    if (part.startsWith('@') && part.length > 1) {
       return <span key={i} className="mention">{part}</span>;
     }
     return part;
@@ -60,14 +59,14 @@ export function MessageBubble({ message, isOwn, currentUserId, onPin, onUnpin }:
             onClick={() => isPinned ? onUnpin?.(id) : onPin?.(id)}
             title={isPinned ? 'Unpin' : 'Pin to evidence board'}
           >
-            <Pin size={12} style={{ fill: isPinned ? '#7F77DD' : 'none', color: isPinned ? '#7F77DD' : undefined }} />
+            <Pin size={12} style={{ fill: isPinned ? 'var(--green, #00e676)' : 'none', color: isPinned ? 'var(--green, #00e676)' : undefined }} />
           </button>
         </div>
 
         {contentType === 'ai_card' && aiCard ? (
           <AiCardContent data={aiCard} />
         ) : (
-          <div className="ir-msg-content">{renderContent(content, message.mentions)}</div>
+          <div className="ir-msg-content">{renderContent(content)}</div>
         )}
       </div>
     </div>

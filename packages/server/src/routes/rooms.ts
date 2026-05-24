@@ -11,6 +11,7 @@ import { cacheGet, cacheSet, cacheDel, isRedisConnected } from '../utils/redis.j
 import { parseMaverickCommand, hasMaverickTrigger } from '../lib/maverickCommand.js';
 import { generateInviteCode, generateInviteUrl, getExpiryDate } from '../lib/roomInvite.js';
 import { checkRoomAccess, checkRoomLimit, checkMemberLimit } from '../lib/roomAccess.js';
+import { getWSS } from '../services/websocket.js';
 
 const router = Router();
 const CACHE_TTL = 3600;
@@ -967,7 +968,7 @@ async function processMaverickCommand(roomId: string, messageId: string, parsed:
     };
 
     // Save AI card as a message
-    await db.collection('investigation_rooms').doc(roomId)
+    const aiMsgRef = await db.collection('investigation_rooms').doc(roomId)
       .collection('messages').add({
         senderId: 'ai',
         senderName: 'FT MAVERIICK',
@@ -980,10 +981,15 @@ async function processMaverickCommand(roomId: string, messageId: string, parsed:
         createdAt: Date.now(),
         roomId,
       });
+
+    // Broadcast via WebSocket so clients see it in real-time
+    const aiMessage = { id: aiMsgRef.id, senderId: 'ai', senderName: 'FT MAVERIICK', senderPhotoURL: null, content: `${parsed.type} analysis for ${parsed.address}`, contentType: 'ai_card', aiCard: card, mentions: [], isPinned: false, createdAt: Date.now(), roomId };
+    const wss = getWSS();
+    if (wss) wss.broadcastAiCard(roomId, aiMessage);
   } catch (error: any) {
     console.error('[Maverick] Command processing failed:', error.message);
     const db = getFirestore();
-    await db.collection('investigation_rooms').doc(roomId)
+    const errMsgRef = await db.collection('investigation_rooms').doc(roomId)
       .collection('messages').add({
         senderId: 'ai',
         senderName: 'FT MAVERIICK',
@@ -995,6 +1001,11 @@ async function processMaverickCommand(roomId: string, messageId: string, parsed:
         createdAt: Date.now(),
         roomId,
       });
+
+    // Broadcast error as system message via WebSocket
+    const errMessage = { id: errMsgRef.id, senderId: 'ai', senderName: 'FT MAVERIICK', senderPhotoURL: null, content: `Analysis failed: ${error.message}`, contentType: 'system', mentions: [], isPinned: false, createdAt: Date.now(), roomId };
+    const wss = getWSS();
+    if (wss) wss.broadcastRoomMessage(roomId, errMessage);
   }
 }
 
