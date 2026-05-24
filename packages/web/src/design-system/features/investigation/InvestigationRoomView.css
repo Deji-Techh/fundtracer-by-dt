@@ -80,7 +80,7 @@
 }
 
 .ir-btn:hover {
-  border-color: rgba(127,119,221,0.4);
+  border-color: var(--green-border, rgba(0,230,118,0.25));
   color: var(--color-text-primary, #e5e5e5);
 }
 
@@ -134,10 +134,10 @@
 .ir-chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 24px 24px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .ir-chat-messages::-webkit-scrollbar {
@@ -153,18 +153,18 @@
 .ir-msg {
   display: flex;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 8px;
   transition: background 0.1s;
   max-width: 100%;
 }
 
-.ir-msg:hover {
-  background: rgba(255,255,255,0.02);
+.ir-msg + .ir-msg {
+  margin-top: 2px;
 }
 
-.ir-msg-own {
-  /* own messages subtle highlight */
+.ir-msg:hover {
+  background: rgba(255,255,255,0.02);
 }
 
 .ir-msg-avatar {
@@ -180,6 +180,7 @@
   font-weight: 600;
   color: var(--color-text-secondary, #8a8a8a);
   overflow: hidden;
+  margin-top: 2px;
 }
 
 .ir-msg-avatar img {
@@ -197,12 +198,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 
 .ir-msg-name {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-primary, #e5e5e5);
 }
 
@@ -213,15 +214,15 @@
 
 .ir-msg-content {
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--color-text-primary, #e5e5e5);
   word-break: break-word;
 }
 
 .ir-msg-content .mention {
-  color: #7F77DD;
-  background: rgba(127,119,221,0.12);
-  padding: 1px 4px;
+  color: var(--green, #00e676);
+  background: var(--green-bg, rgba(0,230,118,0.1));
+  padding: 1px 5px;
   border-radius: 3px;
   font-weight: 500;
 }
@@ -242,13 +243,13 @@
 }
 
 .ir-msg-pinned {
-  border-left: 2px solid #7F77DD;
+  border-left: 2px solid var(--green, #00e676);
 }
 
 /* ---- System Message ---- */
 .ir-system-msg {
   text-align: center;
-  padding: 6px 0;
+  padding: 10px 0;
   font-size: 12px;
   color: var(--color-text-muted, #555);
   font-style: italic;
@@ -259,7 +260,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 12px;
+  padding: 8px 14px 4px;
   font-size: 11px;
   color: var(--color-text-muted, #555);
 }
@@ -273,7 +274,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--color-text-muted, #555);
+  background: var(--green, #00e676);
   animation: irDot 1.4s ease-in-out infinite;
 }
 
@@ -281,14 +282,14 @@
 .ir-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes irDot {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
   30% { transform: translateY(-4px); opacity: 1; }
 }
 
 /* ---- AI Card ---- */
 .ir-ai-card {
   background: var(--color-bg-tertiary, #111);
-  border: 1px solid rgba(127,119,221,0.2);
+  border: 1px solid var(--green-border, rgba(0,230,118,0.15));
   border-radius: 10px;
   padding: 14px 16px;
   margin: 6px 0;
@@ -300,7 +301,7 @@
   gap: 8px;
   margin-bottom: 10px;
   font-size: 12px;
-  color: #7F77DD;
+  color: var(--green, #00e676);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -310,6 +311,7 @@
   font-size: 13px;
   color: var(--color-text-secondary, #8a8a8a);
   margin-bottom: 8px;
+  line-height: 1.5;
 }
 
 .ir-ai-card-data {
@@ -322,6 +324,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 12px 14px;
 }
 
 .ir-ai-skeleton-row {
@@ -342,7 +345,7 @@
 
 /* ---- Chat Input ---- */
 .ir-chat-input-area {
-  padding: 12px 20px;
+  padding: 14px 24px 16px;
   border-top: 1px solid var(--color-surface-border, rgba(40,40,40,0.6));
   background: var(--color-bg-secondary, #0a0a0a);
 }
@@ -350,7 +353,8 @@
 .ir-chat-input-row {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
+  position: relative;
 }
 
 .ir-input {
@@ -358,31 +362,36 @@
   background: var(--color-bg-tertiary, #111);
   border: 1px solid var(--color-surface-border, rgba(40,40,40,0.6));
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 11px 16px;
   color: var(--color-text-primary, #e5e5e5);
   font-size: 13px;
   font-family: inherit;
   resize: none;
-  min-height: 42px;
+  min-height: 44px;
   max-height: 120px;
   outline: none;
   transition: border-color 0.15s;
+  line-height: 1.5;
 }
 
 .ir-input:focus {
-  border-color: rgba(127,119,221,0.4);
+  border-color: var(--green-border, rgba(0,230,118,0.3));
+}
+
+.ir-input::placeholder {
+  color: var(--color-text-muted, #555);
 }
 
 .ir-send-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
   border: none;
-  background: #7F77DD;
-  color: #fff;
+  background: var(--green, #00e676);
+  color: #000;
   cursor: pointer;
   transition: all 0.15s;
   flex-shrink: 0;
@@ -390,11 +399,13 @@
 
 .ir-send-btn:hover {
   opacity: 0.85;
+  box-shadow: 0 0 14px rgba(0, 230, 118, 0.3);
 }
 
 .ir-send-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ---- Sidebar ---- */
@@ -409,11 +420,12 @@
 .ir-sidebar-tabs {
   display: flex;
   border-bottom: 1px solid var(--color-surface-border, rgba(40,40,40,0.6));
+  flex-shrink: 0;
 }
 
 .ir-sidebar-tab {
   flex: 1;
-  padding: 10px 0;
+  padding: 11px 0;
   text-align: center;
   font-size: 11px;
   color: var(--color-text-muted, #555);
@@ -432,17 +444,18 @@
 }
 
 .ir-sidebar-tab.active {
-  color: var(--color-text-primary, #e5e5e5);
-  border-bottom-color: #7F77DD;
+  color: var(--green, #00e676);
+  border-bottom-color: var(--green, #00e676);
 }
 
 .ir-sidebar-tab .ir-tab-badge {
   margin-left: 4px;
   font-size: 10px;
-  background: rgba(127,119,221,0.2);
-  color: #7F77DD;
-  padding: 1px 5px;
+  background: var(--green-bg, rgba(0,230,118,0.12));
+  color: var(--green, #00e676);
+  padding: 1px 6px;
   border-radius: 8px;
+  font-weight: 600;
 }
 
 .ir-sidebar-content {
@@ -456,7 +469,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 9px 10px;
   border-radius: 8px;
   transition: background 0.1s;
 }
@@ -466,8 +479,8 @@
 }
 
 .ir-member-avatar {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--color-bg-tertiary, #111);
   overflow: hidden;
@@ -488,19 +501,21 @@
 .ir-member-name {
   font-size: 13px;
   color: var(--color-text-primary, #e5e5e5);
+  font-weight: 500;
 }
 
 .ir-member-role {
   font-size: 10px;
   color: var(--color-text-muted, #555);
   text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .ir-member-online {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #1DB87A;
+  background: var(--green, #00e676);
   flex-shrink: 0;
 }
 
@@ -522,9 +537,10 @@
   border: none;
   color: var(--color-text-muted, #555);
   cursor: pointer;
-  padding: 3px;
+  padding: 3px 6px;
   border-radius: 4px;
   font-size: 10px;
+  transition: all 0.1s;
 }
 
 .ir-member-btn:hover {
@@ -534,55 +550,56 @@
 
 /* ---- Sidebar: Evidence Board ---- */
 .ir-evidence-item {
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--color-surface-border, rgba(40,40,40,0.4));
   border-radius: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   background: var(--color-bg-tertiary, #111);
 }
 
 .ir-evidence-category {
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 4px;
-  color: #7F77DD;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  color: var(--green, #00e676);
 }
 
 .ir-evidence-text {
   font-size: 12px;
   color: var(--color-text-secondary, #8a8a8a);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .ir-evidence-actions {
   display: flex;
   gap: 4px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .ir-evidence-btn {
   font-size: 10px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 4px;
   border: 1px solid var(--color-surface-border, rgba(40,40,40,0.4));
   background: transparent;
   color: var(--color-text-muted, #555);
   cursor: pointer;
+  transition: all 0.1s;
 }
 
 .ir-evidence-btn:hover {
-  border-color: #7F77DD;
+  border-color: var(--green-border, rgba(0,230,118,0.3));
   color: var(--color-text-primary, #e5e5e5);
 }
 
 /* ---- Sidebar: History ---- */
 .ir-history-item {
-  padding: 8px 10px;
+  padding: 9px 10px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-muted, #555);
   transition: all 0.1s;
   border: none;
@@ -592,6 +609,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.5;
 }
 
 .ir-history-item:hover {
@@ -604,7 +622,7 @@
   position: absolute;
   bottom: 100%;
   left: 0;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   background: var(--color-bg-elevated, #181818);
   border: 1px solid var(--color-surface-border, rgba(40,40,40,0.6));
   border-radius: 10px;
@@ -612,7 +630,7 @@
   z-index: 10;
   max-height: 200px;
   overflow-y: auto;
-  min-width: 200px;
+  min-width: 220px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
 
@@ -620,7 +638,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 9px 12px;
   cursor: pointer;
   transition: background 0.1s;
   font-size: 12px;
@@ -632,15 +650,22 @@
 }
 
 .ir-mention-item:hover, .ir-mention-item.selected {
-  background: rgba(127,119,221,0.1);
+  background: var(--green-bg, rgba(0,230,118,0.08));
 }
 
 .ir-mention-avatar {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--color-bg-tertiary, #111);
   overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ir-mention-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* ---- Create Room Modal ---- */
@@ -700,10 +725,11 @@
   font-size: 13px;
   font-family: inherit;
   outline: none;
+  box-sizing: border-box;
 }
 
 .ir-create-input:focus {
-  border-color: rgba(127,119,221,0.4);
+  border-color: var(--green-border, rgba(0,230,118,0.3));
 }
 
 .ir-create-actions {
@@ -714,7 +740,7 @@
 }
 
 .ir-create-btn {
-  padding: 8px 20px;
+  padding: 9px 20px;
   border-radius: 8px;
   border: 1px solid var(--color-surface-border, rgba(40,40,40,0.6));
   background: var(--color-bg-tertiary, #111);
@@ -730,14 +756,22 @@
 }
 
 .ir-create-btn-primary {
-  background: #7F77DD;
-  border-color: #7F77DD;
-  color: #fff;
+  background: var(--green, #00e676);
+  border-color: var(--green, #00e676);
+  color: #000;
+  font-weight: 600;
 }
 
 .ir-create-btn-primary:hover {
   opacity: 0.85;
-  color: #fff;
+  color: #000;
+  box-shadow: 0 0 14px rgba(0, 230, 118, 0.25);
+}
+
+.ir-create-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ---- Empty State ---- */
@@ -747,33 +781,96 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 16px;
+  gap: 12px;
   color: var(--color-text-muted, #555);
+  text-align: center;
+  padding: 40px 32px;
 }
 
 .ir-empty-icon {
-  opacity: 0.3;
+  opacity: 0.25;
 }
 
 .ir-empty-text {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--color-text-secondary, #8a8a8a);
+  font-weight: 500;
+  margin: 0;
+}
+
+.ir-empty-sub {
+  font-size: 12px;
+  color: var(--color-text-muted, #555);
+  line-height: 1.5;
+  max-width: 280px;
+  margin: 0;
 }
 
 .ir-empty-btn {
   padding: 10px 24px;
   border-radius: 10px;
   border: none;
-  background: #7F77DD;
-  color: #fff;
+  background: var(--green, #00e676);
+  color: #000;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: all 0.15s;
+  margin-top: 8px;
 }
 
 .ir-empty-btn:hover {
   opacity: 0.85;
+  box-shadow: 0 0 14px rgba(0, 230, 118, 0.3);
+}
+
+/* ---- Room Tabs Row ---- */
+.ir-room-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--color-surface-border, rgba(40,40,40,0.4));
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.ir-room-tab {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted, #555);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.ir-room-tab:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--color-text-secondary, #8a8a8a);
+}
+
+.ir-room-tab.active {
+  background: var(--green-bg, rgba(0,230,118,0.1));
+  color: var(--green, #00e676);
+}
+
+.ir-room-tab-new {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px dashed var(--color-surface-border, rgba(40,40,40,0.4));
+  background: transparent;
+  color: var(--color-text-muted, #555);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.ir-room-tab-new:hover {
+  border-color: var(--green-border, rgba(0,230,118,0.3));
+  color: var(--green, #00e676);
 }
 
 /* Theme: Light */

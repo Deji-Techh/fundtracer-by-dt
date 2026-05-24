@@ -313,37 +313,19 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
             >
               {/* Room Selector (if multiple rooms) + Header */}
               {rooms.length > 1 && (
-                <div style={{
-                  display: 'flex', gap: 4, padding: '4px 16px',
-                  borderBottom: '1px solid var(--color-surface-border, rgba(40,40,40,0.4))',
-                  overflowX: 'auto',
-                }}>
+                <div className="ir-room-tabs">
                   {rooms.map((room) => (
                     <button
                       key={room.id}
+                      className={`ir-room-tab ${room.id === activeRoomId ? 'active' : ''}`}
                       onClick={() => handleSelectRoom(room.id)}
-                      style={{
-                        padding: '4px 12px',
-                        borderRadius: 6,
-                        border: 'none',
-                        background: room.id === activeRoomId ? 'rgba(127,119,221,0.15)' : 'transparent',
-                        color: room.id === activeRoomId ? '#7F77DD' : 'var(--color-text-muted, #555)',
-                        fontSize: 12,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
                     >
                       {room.name}
                     </button>
                   ))}
                   <button
+                    className="ir-room-tab-new"
                     onClick={() => setShowCreateModal(true)}
-                    style={{
-                      padding: '4px 10px', borderRadius: 6,
-                      border: '1px dashed var(--color-surface-border, rgba(40,40,40,0.4))',
-                      background: 'transparent', color: 'var(--color-text-muted, #555)',
-                      fontSize: 12, cursor: 'pointer',
-                    }}
                   >
                     + New
                   </button>
@@ -419,13 +401,12 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
               />
 
               {!activeRoomId && !isLoadingRooms && !showCreateModal && (
-                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }}>
-                  <div className="ir-empty">
-                    <p className="ir-empty-text">No investigation rooms</p>
-                    <button className="ir-empty-btn" onClick={() => setShowCreateModal(true)}>
-                      Create Your First Room
-                    </button>
-                  </div>
+                <div className="ir-empty" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                  <p className="ir-empty-text">No investigation rooms yet</p>
+                  <p className="ir-empty-sub">Create a room to start collaborating with your team on wallet investigations</p>
+                  <button className="ir-empty-btn" onClick={() => setShowCreateModal(true)}>
+                    Create Your First Room
+                  </button>
                 </div>
               )}
             </motion.div>
