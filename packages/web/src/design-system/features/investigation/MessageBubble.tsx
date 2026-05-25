@@ -2,6 +2,7 @@ import React from 'react';
 import { Pin, User, Copy, Edit2, Trash2 } from 'lucide-react';
 import { AiCardContent } from './AiCardContent';
 import { API_BASE, getAuthToken } from '../../../api';
+import { useNotify } from '../../../contexts/ToastContext';
 
 interface MessageData {
   id: string;
@@ -48,11 +49,16 @@ function renderContent(content: string) {
 }
 
 export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin, onUnpin }: MessageBubbleProps) {
+  const notify = useNotify();
   const { id, senderName, senderPhotoURL, content, contentType, aiCard, isPinned, createdAt } = message;
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
-    // Could add toast here
+    try {
+      await navigator.clipboard.writeText(content);
+      notify.success('Copied to clipboard');
+    } catch {
+      notify.error('Failed to copy');
+    }
   };
 
   return (
@@ -80,8 +86,8 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
           </button>
           {isOwn && (
             <>
-              <button 
-                className="ir-msg-action-btn" 
+              <button
+                className="ir-msg-action-btn"
                 title="Edit"
                 onClick={async () => {
                   const newContent = prompt('Edit message:', content);
@@ -93,31 +99,29 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
                         headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
                         body: JSON.stringify({ content: newContent.trim() }),
                       });
-                      // Optimistic update would be handled by parent via WebSocket or refetch
-                      window.location.reload(); // simple refresh for now
-                    } catch (e) {
-                      alert('Failed to edit message');
+                      window.location.reload();
+                    } catch {
+                      notify.error('Failed to edit message');
                     }
                   }
                 }}
               >
                 <Edit2 size={12} />
               </button>
-              <button 
-                className="ir-msg-action-btn" 
+              <button
+                className="ir-msg-action-btn"
                 title="Delete"
                 onClick={async () => {
-                  if (confirm('Delete this message?')) {
-                    try {
-                      const token = getAuthToken();
-                      await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
-                        method: 'DELETE',
-                        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
-                      });
-                      window.location.reload();
-                    } catch (e) {
-                      alert('Failed to delete message');
-                    }
+                  if (!confirm('Delete this message?')) return;
+                  try {
+                    const token = getAuthToken();
+                    await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
+                      method: 'DELETE',
+                      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+                    });
+                    notify.success('Message deleted');
+                  } catch {
+                    notify.error('Failed to delete message');
                   }
                 }}
               >

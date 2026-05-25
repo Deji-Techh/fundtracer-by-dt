@@ -1189,6 +1189,29 @@ export async function exportRoomPdf(roomId: string): Promise<any> {
   return res.json();
 }
 
+export async function deleteRoom(roomId: string): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to delete room'); }
+  return res.json();
+}
+
+export async function updateRoom(roomId: string, data: { name?: string; description?: string }): Promise<any> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Not authenticated');
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}`, {
+    method: 'PATCH',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to update room'); }
+  return res.json();
+}
+
 export async function sendAiResponse(roomId: string, content: string, aiCard?: any): Promise<any> {
   const token = getAuthToken();
   if (!token) throw new Error('Not authenticated');

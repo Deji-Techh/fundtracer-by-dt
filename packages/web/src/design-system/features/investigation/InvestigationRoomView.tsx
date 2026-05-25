@@ -14,6 +14,8 @@ import {
   createRoom,
   getRooms,
   sendAiResponse,
+  updateRoom,
+  deleteRoom as deleteRoomApi,
 } from '../../../api';
 import { RoomHeader } from './RoomHeader';
 import { RoomLayout } from './RoomLayout';
@@ -30,6 +32,7 @@ import { API_BASE } from '../../../api';
 import { CommandPalette } from './CommandPalette';
 import { ReplyBar } from './ReplyBar';
 import { MessageReactions } from './MessageReactions';
+import { RoomSettingsModal } from './RoomSettingsModal';
 import './InvestigationRoomView.css';
 
 interface MemberData {
@@ -66,6 +69,27 @@ interface InvestigationRoomViewProps {
   defaultRoomId?: string | null;
 }
 
+function extractChainFromMessage(text: string): string | null {
+  const lower = text.toLowerCase();
+  const chainAliases: [string, string[]][] = [
+    ['ethereum', ['ethereum', 'eth']],
+    ['base', ['base']],
+    ['arbitrum', ['arbitrum', 'arb']],
+    ['optimism', ['optimism', 'opt', 'op mainnet']],
+    ['polygon', ['polygon', 'matic']],
+    ['linea', ['linea']],
+    ['bsc', ['bsc', 'binance']],
+  ];
+  for (const [chain, aliases] of chainAliases) {
+    for (const alias of aliases) {
+      if (new RegExp(`(^|\\s)(on|in|for|using)\\s+${alias}(\\s|$|,|\\.)`, 'i').test(text)) {
+        return chain;
+      }
+    }
+  }
+  return null;
+}
+
 export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentChain, defaultRoomId }: InvestigationRoomViewProps) {
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -85,6 +109,9 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   // Invite dialog
   const [showInvite, setShowInvite] = useState(false);
   const [inviteUrl, setInviteUrl] = useState('');
+
+  // Settings modal
+  const [showSettings, setShowSettings] = useState(false);
 
   // Chat input
   const [inputValue, setInputValue] = useState('');
@@ -282,7 +309,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
         await sendAiResponse(activeRoomId, summary, {
           command: 'analyze',
           address,
-          chain: roomDetails?.seedChain || currentChain || 'ethereum',
+          chain: extractChainFromMessage(val) || roomDetails?.seedChain || currentChain || 'ethereum',
           resultSummary: summary,
           resultData: data,
         });
@@ -368,8 +395,9 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     if (!activeRoomId) return;
     try {
       const data = await createInvite(activeRoomId);
-      const url = data.inviteUrl || data.url;
-      if (url) {
+      const code = data.inviteCode;
+      if (code) {
+        const url = `${window.location.origin}/app-evm?invite=${code}`;
         setInviteUrl(url);
         setShowInvite(true);
       }
@@ -395,6 +423,36 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       setMembers((prev) =>
         prev.map((m) => (m.uid === uid ? { ...m, role: role as 'admin' | 'member' } : m))
       );
+    } catch {
+      // fail silently
+    }
+  }, [activeRoomId]);
+
+  const handleUpdateDescription = useCallback(async (description: string) => {
+    if (!activeRoomId) return;
+    await updateRoom(activeRoomId, { description });
+    setRoomDetails(prev => prev ? { ...prev, description } : prev);
+  }, [activeRoomId]);
+
+  const handleDeleteRoom = useCallback(async () => {
+    if (!activeRoomId) return;
+    try {
+      await deleteRoomApi(activeRoomId);
+      setRooms(prev => prev.filter(r => r.id !== activeRoomId));
+      setActiveRoomId(null);
+      setShowSettings(false);
+    } catch {
+      // fail silently
+    }
+  }, [activeRoomId]);
+
+  const handleLeaveRoom = useCallback(async () => {
+    if (!activeRoomId) return;
+    try {
+      await leaveRoom(activeRoomId);
+      setRooms(prev => prev.filter(r => r.id !== activeRoomId));
+      setActiveRoomId(null);
+      setShowSettings(false);
     } catch {
       // fail silently
     }
@@ -517,17 +575,8 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                <RoomHeader
                  name={roomDetails?.name || 'Investigation Room'}
                  memberCount={members.length}
-                 onInvite={handleInvite}
+                 onSettings={() => setShowSettings(true)}
                  onClose={onClose}
-                 showExport={!!user}
-                 onAISummary={async () => {
-                   setIsProcessingAi(true);
-                   try {
-                     const reply = await fetchSSE({ question: 'Summarize the last 20 messages in this investigation room in 4 bullet points.' });
-                     if (activeRoomId) await sendAiResponse(activeRoomId, reply || 'Summary generated.');
-                   } catch {}
-                   setIsProcessingAi(false);
-                 }}
                />
 
               {activeRoomId ? (
@@ -624,6 +673,26 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
         inviteUrl={inviteUrl}
         roomName={roomDetails?.name || 'Investigation Room'}
         onClose={() => setShowInvite(false)}
+      />
+
+      <RoomSettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        roomName={roomDetails?.name || 'Investigation Room'}
+        roomDescription={roomDetails?.description}
+        roomId={activeRoomId || ''}
+        members={members}
+        currentUserId={user?.uid}
+        currentUserRole={currentUserRole}
+        onInvite={() => {
+          setShowSettings(false);
+          handleInvite();
+        }}
+        onRemoveMember={handleRemoveMember}
+        onPromoteMember={handlePromoteMember}
+        onDeleteRoom={handleDeleteRoom}
+        onUpdateDescription={handleUpdateDescription}
+        onLeaveRoom={handleLeaveRoom}
       />
 
       <CommandPalette

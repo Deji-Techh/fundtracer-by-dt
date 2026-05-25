@@ -1,16 +1,14 @@
 import React from 'react';
-import { X, Link, FileText, Users } from 'lucide-react';
+import { X, Settings, Users } from 'lucide-react';
 
 interface RoomHeaderProps {
   name: string;
   memberCount: number;
-  onInvite: () => void;
-  onExport?: () => void;
+  onSettings: () => void;
   onClose: () => void;
-  showExport?: boolean;
 }
 
-export function RoomHeader({ name, memberCount, onInvite, onExport, onClose, showExport }: RoomHeaderProps) {
+export function RoomHeader({ name, memberCount, onSettings, onClose }: RoomHeaderProps) {
   return (
     <div className="ir-header">
       <div className="ir-header-left">
@@ -22,17 +20,9 @@ export function RoomHeader({ name, memberCount, onInvite, onExport, onClose, sho
       </div>
 
       <div className="ir-header-actions">
-        <button className="ir-btn" onClick={onInvite} title="Generate invite link">
-          <Link size={14} />
-          <span>Invite</span>
+        <button className="ir-btn" onClick={onSettings} title="Room settings">
+          <Settings size={16} />
         </button>
-
-        {showExport && onExport && (
-          <button className="ir-btn" onClick={onExport} title="Export as PDF (Pro)">
-            <FileText size={14} />
-            <span>Export</span>
-          </button>
-        )}
 
         <button className="ir-btn-close" onClick={onClose} title="Close room">
           <X size={20} />

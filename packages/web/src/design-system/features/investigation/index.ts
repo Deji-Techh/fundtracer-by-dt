@@ -14,3 +14,4 @@ export { EvidenceBoard } from './EvidenceBoard';
 export { MemberList } from './MemberList';
 export { CreateRoomModal } from './CreateRoomModal';
 export { InviteDialog } from './InviteDialog';
+export { RoomSettingsModal } from './RoomSettingsModal';
