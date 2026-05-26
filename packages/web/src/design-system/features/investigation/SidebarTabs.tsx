@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type SidebarTab = 'history' | 'pins' | 'members';
+export type SidebarTab = 'recents' | 'pins' | 'members';
 
 interface SidebarTabsProps {
   activeTab: SidebarTab;
@@ -12,7 +12,7 @@ interface SidebarTabsProps {
 
 export function SidebarTabs({ activeTab, onTabChange, pinCount, onlineCount, memberCount }: SidebarTabsProps) {
   const tabs: { id: SidebarTab; label: string; badge?: number }[] = [
-    { id: 'history', label: 'History' },
+    { id: 'recents', label: 'Recents' },
     { id: 'pins', label: 'Evidence', badge: pinCount },
     { id: 'members', label: 'Members', badge: memberCount },
   ];

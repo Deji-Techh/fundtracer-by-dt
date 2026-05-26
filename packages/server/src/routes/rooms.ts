@@ -470,7 +470,7 @@ router.post('/:roomId/join', async (req: AuthenticatedRequest, res) => {
     }
 
     // Send system message
-    await roomRef.collection('messages').add({
+    const systemMsg = await roomRef.collection('messages').add({
       senderId: 'system',
       senderName: 'System',
       contentType: 'system',
@@ -485,6 +485,21 @@ router.post('/:roomId/join', async (req: AuthenticatedRequest, res) => {
       await cacheDel(`room:${roomId}`);
       await cacheDel(`rooms:${userId}`);
     }
+
+    // Broadcast via WebSocket so other clients see the join in real-time
+    const joinSnapshot = await systemMsg.get();
+    const joinMessage = { id: systemMsg.id, ...(joinSnapshot.data() || {}) };
+    try {
+      const wss = getWSS();
+      if (wss) {
+        wss.broadcastRoomMessage(roomId, joinMessage);
+        wss.broadcastRoomUpdate(roomId, {
+          roomId,
+          event: 'member_joined',
+          member: { uid: userId, displayName: userData?.displayName || 'Unknown', role: 'member' },
+        });
+      }
+    } catch {}
 
     res.json({ success: true, member: { uid: userId, displayName: userData?.displayName || 'Unknown', role: 'member' } });
   } catch (error: any) {
@@ -510,7 +525,7 @@ router.post('/:roomId/leave', async (req: AuthenticatedRequest, res) => {
     await removeUserRoom(userId, roomId);
 
     const now = Date.now();
-    await db.collection('investigation_rooms').doc(roomId).collection('messages').add({
+    const leaveMsgRef = await db.collection('investigation_rooms').doc(roomId).collection('messages').add({
       senderId: 'system', senderName: 'System', contentType: 'system',
       content: `${req.user?.name || 'Someone'} left the room`,
       mentions: [], isPinned: false, createdAt: now, roomId,
@@ -520,6 +535,17 @@ router.post('/:roomId/leave', async (req: AuthenticatedRequest, res) => {
       await cacheDel(`room:${roomId}`);
       await cacheDel(`rooms:${userId}`);
     }
+
+    // Broadcast via WebSocket
+    const leaveSnapshot = await leaveMsgRef.get();
+    const leaveMessage = { id: leaveMsgRef.id, ...(leaveSnapshot.data() || {}) };
+    try {
+      const wss = getWSS();
+      if (wss) {
+        wss.broadcastRoomMessage(roomId, leaveMessage);
+        wss.broadcastRoomUpdate(roomId, { roomId, event: 'member_left', uid: userId });
+      }
+    } catch {}
 
     res.json({ success: true });
   } catch (error: any) {

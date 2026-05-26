@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, User, Copy, Edit2, Trash2 } from 'lucide-react';
+import { Pin, User, Copy, Edit2, Trash2, X } from 'lucide-react';
 import { AiCardContent } from './AiCardContent';
 import { API_BASE, getAuthToken } from '../../../api';
 import { useNotify } from '../../../contexts/ToastContext';
@@ -51,10 +51,13 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
   const { id, senderName, senderPhotoURL, content, contentType, aiCard, isPinned, createdAt } = message;
 
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const msgRef = useRef<HTMLDivElement>(null);
 
-  // Close on click outside or Escape
   useEffect(() => {
     if (!ctxMenu) return;
     const close = () => setCtxMenu(null);
@@ -77,36 +80,51 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
     setCtxMenu(null);
   }, [content, notify]);
 
-  const handleEdit = useCallback(async () => {
+  const openEdit = useCallback(() => {
     setCtxMenu(null);
-    const newContent = prompt('Edit message:', content);
-    if (newContent !== null && newContent.trim() !== content) {
-      try {
-        const token = getAuthToken();
-        await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
-          body: JSON.stringify({ content: newContent.trim() }),
-        });
-        window.location.reload();
-      } catch {
-        notify.error('Failed to edit message');
-      }
-    }
-  }, [content, id, message.roomId, notify]);
+    setEditValue(content);
+    setEditOpen(true);
+  }, [content]);
 
-  const handleDelete = useCallback(async () => {
+  const handleEditSave = useCallback(async () => {
+    if (!editValue.trim() || editValue.trim() === content) {
+      setEditOpen(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const token = getAuthToken();
+      await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+        body: JSON.stringify({ content: editValue.trim() }),
+      });
+      setEditOpen(false);
+      window.location.reload();
+    } catch {
+      notify.error('Failed to edit message');
+      setSaving(false);
+    }
+  }, [editValue, content, id, message.roomId, notify]);
+
+  const openDelete = useCallback(() => {
     setCtxMenu(null);
-    if (!confirm('Delete this message?')) return;
+    setDeleteOpen(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    setSaving(true);
     try {
       const token = getAuthToken();
       await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
         method: 'DELETE',
         headers: { ...(token && { Authorization: `Bearer ${token}` }) },
       });
+      setDeleteOpen(false);
       notify.success('Message deleted');
     } catch {
       notify.error('Failed to delete message');
+      setSaving(false);
     }
   }, [id, message.roomId, notify]);
 
@@ -150,28 +168,87 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
 
       {/* Right-click context menu */}
       {ctxMenu && (
-        <div
-          ref={menuRef}
-          className="ir-context-menu"
-          style={{ left: ctxMenu.x, top: ctxMenu.y }}
-        >
+        <div ref={menuRef} className="ir-context-menu" style={{ left: ctxMenu.x, top: ctxMenu.y }}>
           <button className="ir-context-item" onClick={handleCopy}>
             <Copy size={14} />
             <span>Copy</span>
           </button>
           {isOwn && (
             <>
-              <button className="ir-context-item" onClick={handleEdit}>
+              <button className="ir-context-item" onClick={openEdit}>
                 <Edit2 size={14} />
                 <span>Edit</span>
               </button>
               <div className="ir-context-divider" />
-              <button className="ir-context-item ir-context-item-danger" onClick={handleDelete}>
+              <button className="ir-context-item ir-context-item-danger" onClick={openDelete}>
                 <Trash2 size={14} />
                 <span>Delete</span>
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editOpen && (
+        <div className="ir-modal-overlay" onClick={() => setEditOpen(false)}>
+          <div className="ir-modal-backdrop" />
+          <div className="ir-modal-dialog" onClick={e => e.stopPropagation()}>
+            <div className="ir-modal-header">
+              <span className="ir-modal-title">Edit Message</span>
+              <button className="ir-modal-close" onClick={() => setEditOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <textarea
+              className="ir-modal-textarea"
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              rows={4}
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleEditSave();
+                if (e.key === 'Escape') setEditOpen(false);
+              }}
+            />
+            <div className="ir-modal-actions">
+              <button className="ir-settings-btn ir-settings-btn-secondary" onClick={() => setEditOpen(false)}>
+                Cancel
+              </button>
+              <button className="ir-settings-btn ir-settings-btn-primary" onClick={handleEditSave} disabled={saving}>
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteOpen && (
+        <div className="ir-modal-overlay" onClick={() => setDeleteOpen(false)}>
+          <div className="ir-modal-backdrop" />
+          <div className="ir-modal-dialog ir-modal-sm" onClick={e => e.stopPropagation()}>
+            <div className="ir-modal-header">
+              <span className="ir-modal-title">Delete Message</span>
+              <button className="ir-modal-close" onClick={() => setDeleteOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+            <p className="ir-modal-body-text">Delete this message permanently? This cannot be undone.</p>
+            <div className="ir-modal-actions">
+              <button className="ir-settings-btn ir-settings-btn-secondary" onClick={() => setDeleteOpen(false)}>
+                Cancel
+              </button>
+              <button
+                className="ir-settings-btn-primary"
+                onClick={handleDeleteConfirm}
+                disabled={saving}
+                style={{ background: '#ef4444', color: '#fff' }}
+              >
+                {saving ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

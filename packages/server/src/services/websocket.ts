@@ -211,6 +211,11 @@ export class InvestigationWSS {
     this.broadcast(roomId, { type: event, ...data });
   }
 
+  /** Broadcast a room-level update (member join/leave, metadata change) */
+  broadcastRoomUpdate(roomId: string, data: any) {
+    this.broadcast(roomId, { type: 'room_update', ...data });
+  }
+
   private startHeartbeat() {
     setInterval(() => {
       for (const [, clients] of rooms) {

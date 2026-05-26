@@ -396,6 +396,39 @@ interface WalletAttachment {
 
 type AttachmentMode = 'none' | 'wallet' | 'contract' | 'report' | 'document';
 
+export function buildContextFromTable(data: AnalysisTableData): string {
+  const isWallet = data.type === 'wallet';
+  let ctx = `${isWallet ? 'WALLET' : 'CONTRACT'} ANALYSIS CONTEXT\n`;
+  ctx += '='.repeat(30) + '\n';
+  ctx += `Address: ${data.address}\n`;
+  ctx += `Chain: ${data.chain}\n`;
+  ctx += `Risk Score: ${data.riskScore ?? 'N/A'}\n`;
+  ctx += `Risk Level: ${data.riskLevel ?? 'N/A'}\n`;
+  if (isWallet) {
+    ctx += `Total Transactions: ${data.totalTransactions ?? 'N/A'}\n`;
+    ctx += `Total Value Sent: ${data.totalValueSent !== undefined ? data.totalValueSent.toFixed(4) + ' ETH' : 'N/A'}\n`;
+    ctx += `Total Value Received: ${data.totalValueReceived !== undefined ? data.totalValueReceived.toFixed(4) + ' ETH' : 'N/A'}\n`;
+    ctx += `Activity Period: ${data.activityPeriodDays ? data.activityPeriodDays + ' days' : 'N/A'}\n`;
+    ctx += `First Seen: ${data.firstSeen || 'N/A'}\n`;
+    ctx += `Last Active: ${data.lastSeen || 'N/A'}\n`;
+  } else {
+    if (data.contractName) ctx += `Contract Name: ${data.contractName}\n`;
+    if (data.contractType) ctx += `Contract Type: ${data.contractType}\n`;
+    ctx += `Verified: ${data.contractVerified ? 'Yes' : 'No'}\n`;
+    ctx += `Risk Score: ${data.riskScore ?? 'N/A'}\n`;
+  }
+  if (data.flags && data.flags.length > 0) {
+    ctx += `\nFlags: ${data.flags.join(', ')}\n`;
+  }
+  if (isWallet && data.topInteractions && data.topInteractions.length > 0) {
+    ctx += `\nTop Interactions:\n`;
+    data.topInteractions.forEach(i => {
+      ctx += `  - ${i.label}: ${i.count} txns (${i.address})\n`;
+    });
+  }
+  return ctx;
+}
+
 export function AiFullScreenView({ 
   isOpen, 
   onClose, 
@@ -1045,39 +1078,6 @@ const handleSelectScan = async (scan: RecentScan) => {
       history.unshift({ role: 'system' as any, content: ctx });
     }
     return history;
-  }
-
-  function buildContextFromTable(data: AnalysisTableData): string {
-    const isWallet = data.type === 'wallet';
-    let ctx = `${isWallet ? 'WALLET' : 'CONTRACT'} ANALYSIS CONTEXT\n`;
-    ctx += '='.repeat(30) + '\n';
-    ctx += `Address: ${data.address}\n`;
-    ctx += `Chain: ${data.chain}\n`;
-    ctx += `Risk Score: ${data.riskScore ?? 'N/A'}\n`;
-    ctx += `Risk Level: ${data.riskLevel ?? 'N/A'}\n`;
-    if (isWallet) {
-      ctx += `Total Transactions: ${data.totalTransactions ?? 'N/A'}\n`;
-      ctx += `Total Value Sent: ${data.totalValueSent !== undefined ? data.totalValueSent.toFixed(4) + ' ETH' : 'N/A'}\n`;
-      ctx += `Total Value Received: ${data.totalValueReceived !== undefined ? data.totalValueReceived.toFixed(4) + ' ETH' : 'N/A'}\n`;
-      ctx += `Activity Period: ${data.activityPeriodDays ? data.activityPeriodDays + ' days' : 'N/A'}\n`;
-      ctx += `First Seen: ${data.firstSeen || 'N/A'}\n`;
-      ctx += `Last Active: ${data.lastSeen || 'N/A'}\n`;
-    } else {
-      if (data.contractName) ctx += `Contract Name: ${data.contractName}\n`;
-      if (data.contractType) ctx += `Contract Type: ${data.contractType}\n`;
-      ctx += `Verified: ${data.contractVerified ? 'Yes' : 'No'}\n`;
-      ctx += `Risk Score: ${data.riskScore ?? 'N/A'}\n`;
-    }
-    if (data.flags && data.flags.length > 0) {
-      ctx += `\nFlags: ${data.flags.join(', ')}\n`;
-    }
-    if (isWallet && data.topInteractions && data.topInteractions.length > 0) {
-      ctx += `\nTop Interactions:\n`;
-      data.topInteractions.forEach(i => {
-        ctx += `  - ${i.label}: ${i.count} txns (${i.address})\n`;
-      });
-    }
-    return ctx;
   }
 
   const handleAcceptWallet = async () => {

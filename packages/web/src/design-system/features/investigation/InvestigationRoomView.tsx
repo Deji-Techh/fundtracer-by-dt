@@ -5,6 +5,7 @@ import { useRoomMessages } from '../../../hooks/useRoomMessages';
 import { useRoomPins } from '../../../hooks/useRoomPins';
 import { useMentionAutocomplete } from '../../../hooks/useMentionAutocomplete';
 import { useInvestigationSocket } from '../../../hooks/useInvestigationSocket';
+import { on } from '../../../lib/investigationSocket';
 import {
   getRoomDetails,
   createInvite,
@@ -22,7 +23,8 @@ import { RoomLayout } from './RoomLayout';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
 import { SidebarTabs, SidebarTab } from './SidebarTabs';
-import { MessageHistory } from './MessageHistory';
+import { RecentScansList } from './RecentScansList';
+import { getHistory } from '../../../utils/history';
 import { EvidenceKanban } from './EvidenceKanban';
 import { MemberList } from './MemberList';
 import { CreateRoomModal } from './CreateRoomModal';
@@ -31,8 +33,10 @@ import { useIsMobile } from '../../../hooks/useIsMobile';
 import { API_BASE } from '../../../api';
 import { CommandPalette } from './CommandPalette';
 import { ReplyBar } from './ReplyBar';
+import { useNotify } from '../../../contexts/ToastContext';
 import { MessageReactions } from './MessageReactions';
 import { RoomSettingsModal } from './RoomSettingsModal';
+import { buildContextFromTable } from '../AiFullScreenView';
 import './InvestigationRoomView.css';
 
 interface MemberData {
@@ -93,6 +97,7 @@ function extractChainFromMessage(text: string): string | null {
 export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentChain, defaultRoomId }: InvestigationRoomViewProps) {
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const notify = useNotify();
 
   // Room list + active room
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -118,11 +123,13 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   const [inputCursor, setInputCursor] = useState(0);
 
   // Sidebar tab
-  const [activeTab, setActiveTab] = useState<SidebarTab>('history');
+  const [activeTab, setActiveTab] = useState<SidebarTab>('recents');
 
   // Processing AI
   const [isProcessingAi, setIsProcessingAi] = useState(false);
   const processingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stores the last analysis context text so follow-up AI questions have context
+  const [lastAnalysisContext, setLastAnalysisContext] = useState<string | null>(null);
 
   // Force reconnect flag
   const forceReconnectRef = useRef(0);
@@ -139,6 +146,16 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     const saved = localStorage.getItem(`ft_reactions_${activeRoomId}`);
     return saved ? JSON.parse(saved) : {};
   });
+
+  // Recent scans from global history
+  const [recentScans, setRecentScans] = useState<any[]>(() => getHistory());
+
+  // Refresh recent scans when history changes
+  useEffect(() => {
+    const handler = () => setRecentScans([...getHistory()]);
+    window.addEventListener('historyChanged', handler);
+    return () => window.removeEventListener('historyChanged', handler);
+  }, []);
 
   // Messages + Pins hooks
   const { messages, isLoading: msgsLoading, hasMore, loadMore, send } = useRoomMessages(activeRoomId, user?.uid, user?.displayName || user?.email);
@@ -159,6 +176,25 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       setActiveRoomId(defaultRoomId);
     }
   }, [defaultRoomId, isOpen]);
+
+  // Listen for room updates (member join/leave) via WebSocket
+  useEffect(() => {
+    const unsub = on('room_update', async (data: any) => {
+      if (!data.roomId || data.roomId !== activeRoomId) return;
+      if (data.event === 'member_joined' || data.event === 'member_left') {
+        try {
+          const details = await getRoomDetails(activeRoomId);
+          if (details) {
+            setRoomDetails(details);
+            setMembers(details.members || []);
+          }
+        } catch {
+          // fail silently
+        }
+      }
+    });
+    return unsub;
+  }, [activeRoomId]);
 
   // Load rooms list
   useEffect(() => {
@@ -331,9 +367,22 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
           resultSummary: summary,
           resultData: tableData,
         });
+
+        // Store analysis context for follow-up AI questions
+        setLastAnalysisContext(buildContextFromTable(tableData));
       } else {
-        // No address — ask AI directly
-        const reply = await fetchSSE({ question: val.replace(/@FT\s+MAVERIICK/i, '').trim() || 'Analyze the current investigation context.' });
+        // No address — ask AI directly with context from last analysis + recent room messages
+        const recentMessages = messages.slice(-20).map(m => ({
+          role: (m.senderId === 'ft_maverick' || m.senderName === 'FT MAVERIICK') ? 'assistant' : 'user',
+          content: m.content || '',
+        }));
+        const history = lastAnalysisContext
+          ? [{ role: 'system' as const, content: lastAnalysisContext }, ...recentMessages]
+          : recentMessages;
+        const reply = await fetchSSE({
+          question: val.replace(/@FT\s+MAVERIICK/i, '').trim() || 'Analyze the current investigation context.',
+          history,
+        });
         if (reply) {
           await sendAiResponse(activeRoomId, reply);
         }
@@ -408,6 +457,62 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
       return newState;
     });
   }, [user?.uid, activeRoomId]);
+
+  const handleScanSelect = useCallback(async (scan: any) => {
+    if (!activeRoomId) return;
+    setIsProcessingAi(true);
+    try {
+      const token = localStorage.getItem('fundtracer_token');
+      const res = await fetch(`${API_BASE}/api/ai-chat/analyze-wallet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+        body: JSON.stringify({ address: scan.address, chain: scan.chain || 'ethereum' }),
+      });
+      if (!res.ok) throw new Error('Analysis failed');
+
+      const data = await res.json();
+      const a = data.analysis || {};
+      const chain = scan.chain || 'ethereum';
+
+      const tableData = {
+        address: scan.address,
+        chain,
+        type: 'wallet' as const,
+        riskScore: a.riskScore,
+        riskLevel: a.riskLevel,
+        totalTransactions: a.totalTransactions,
+        totalValueSent: a.totalValueSentEth,
+        totalValueReceived: a.totalValueReceivedEth,
+        balance: a.balance,
+        flags: a.flags,
+        topInteractions: a.topInteractions,
+        fundingSources: a.fundingSources,
+      };
+
+      const summary = [
+        `**FT MAVERIICK Analysis** — \`${scan.address}\``,
+        `• Risk: **${a.riskLevel || 'unknown'}** (score: ${a.riskScore ?? 'N/A'})`,
+        `• Transactions: ${a.totalTransactions ?? 0}`,
+        a.balance != null ? `• Balance: ${Number(a.balance).toFixed(4)} ETH` : null,
+        a.totalValueSentEth != null ? `• Total sent: ${Number(a.totalValueSentEth).toFixed(2)} ETH` : null,
+        a.totalValueReceivedEth != null ? `• Total received: ${Number(a.totalValueReceivedEth).toFixed(2)} ETH` : null,
+        a.flags?.length ? `• Flags: ${a.flags.join(', ')}` : null,
+      ].filter(Boolean).join('\n');
+
+      await sendAiResponse(activeRoomId, summary, {
+        command: 'analyze',
+        address: scan.address,
+        chain,
+        resultSummary: summary,
+        resultData: tableData,
+      });
+
+      setLastAnalysisContext(buildContextFromTable(tableData));
+    } catch {
+      notify.error('Failed to analyze wallet');
+    }
+    setIsProcessingAi(false);
+  }, [activeRoomId, notify, sendAiResponse]);
 
   const handleInvite = useCallback(async () => {
     if (!activeRoomId) return;
@@ -635,11 +740,10 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                         memberCount={members.length}
                       />
                       <div className="ir-sidebar-content">
-                        {activeTab === 'history' && (
-                          <MessageHistory
-                            rooms={rooms}
-                            activeRoomId={activeRoomId}
-                            onSelectRoom={handleSelectRoom}
+                        {activeTab === 'recents' && (
+                          <RecentScansList
+                            scans={recentScans}
+                            onSelectScan={handleScanSelect}
                           />
                         )}
                          {activeTab === 'pins' && (
