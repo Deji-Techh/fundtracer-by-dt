@@ -3,6 +3,7 @@ import {
   getAuth,
   signInWithPopup,
   signInWithRedirect,
+  signInWithCredential,
   GoogleAuthProvider,
   TwitterAuthProvider,
   Auth,
@@ -192,6 +193,18 @@ export const verifyEmail = async (): Promise<void> => {
   await ensureInit();
   if (!auth?.currentUser) throw new Error('Firebase not initialized');
   await sendEmailVerification(auth.currentUser);
+};
+
+/**
+ * Exchange a Google One Tap credential (JWT) for a Firebase ID token.
+ * The credential is the response.credential from Google One Tap's callback.
+ */
+export const signInWithGoogleOneTap = async (credential: string): Promise<string> => {
+  await ensureInit();
+  if (!auth) throw new Error('Firebase not initialized');
+  const firebaseCredential = GoogleAuthProvider.credential(credential);
+  const result = await signInWithCredential(auth, firebaseCredential);
+  return result.user.getIdToken();
 };
 
 export const getFirebaseToken = async (): Promise<string | null> => {
