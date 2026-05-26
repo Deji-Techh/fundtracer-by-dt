@@ -319,26 +319,6 @@
   border-color: var(--ir-accent);
 }
 
-.ir-msg-action-btn {
-  display: none;
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  padding: 2px;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: all 0.1s ease;
-}
-
-.ir-msg:hover .ir-msg-action-btn {
-  display: inline-flex;
-}
-
-.ir-msg-action-btn:hover {
-  color: var(--color-text-primary);
-  opacity: 1;
-}
-
 .ir-msg-pinned .ir-msg-content {
   border-left: 3px solid var(--ir-accent);
   padding-left: 13px;
@@ -1867,4 +1847,67 @@
 .ir-settings-danger {
   padding-top: 16px;
   border-top: 1px solid #1a1a1f;
+}
+
+/* ============================================================
+   Right-Click Context Menu
+   ============================================================ */
+.ir-context-menu {
+  position: fixed;
+  z-index: 99999;
+  background: var(--color-bg);
+  border: 1px solid #1f1f24;
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 150px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: irCtxIn 0.12s ease;
+}
+
+@keyframes irCtxIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.ir-context-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.1s;
+  text-align: left;
+}
+
+.ir-context-item:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.ir-context-item svg {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.ir-context-item-danger {
+  color: #ef4444;
+}
+
+.ir-context-item-danger svg {
+  color: #ef4444;
+}
+
+.ir-context-item-danger:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.ir-context-divider {
+  height: 1px;
+  background: #1a1a1f;
+  margin: 4px 0;
 }

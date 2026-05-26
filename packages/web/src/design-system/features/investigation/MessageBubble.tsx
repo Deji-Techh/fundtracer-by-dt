@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Pin, User, Copy, Edit2, Trash2 } from 'lucide-react';
 import { AiCardContent } from './AiCardContent';
 import { API_BASE, getAuthToken } from '../../../api';
@@ -32,14 +32,12 @@ function formatTime(ts: number): string {
 }
 
 function renderContent(content: string) {
-  // Basic markdown + mentions
   let processed = content
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code>$1</code>');
 
-  // Mentions
-  const parts = processed.split(/(@[A-Za-z0-9_ ]{2,30})/g);
+  const parts = processed.split(/(@\w{2,30})\b/g);
   return parts.map((part, i) => {
     if (part.startsWith('@') && part.length > 1) {
       return <span key={i} className="mention" dangerouslySetInnerHTML={{ __html: part.trim() }} />;
@@ -52,17 +50,77 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
   const notify = useNotify();
   const { id, senderName, senderPhotoURL, content, contentType, aiCard, isPinned, createdAt } = message;
 
-  const handleCopy = async () => {
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const msgRef = useRef<HTMLDivElement>(null);
+
+  // Close on click outside or Escape
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [ctxMenu]);
+
+  const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(content);
       notify.success('Copied to clipboard');
     } catch {
       notify.error('Failed to copy');
     }
-  };
+    setCtxMenu(null);
+  }, [content, notify]);
+
+  const handleEdit = useCallback(async () => {
+    setCtxMenu(null);
+    const newContent = prompt('Edit message:', content);
+    if (newContent !== null && newContent.trim() !== content) {
+      try {
+        const token = getAuthToken();
+        await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
+          body: JSON.stringify({ content: newContent.trim() }),
+        });
+        window.location.reload();
+      } catch {
+        notify.error('Failed to edit message');
+      }
+    }
+  }, [content, id, message.roomId, notify]);
+
+  const handleDelete = useCallback(async () => {
+    setCtxMenu(null);
+    if (!confirm('Delete this message?')) return;
+    try {
+      const token = getAuthToken();
+      await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
+        method: 'DELETE',
+        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      });
+      notify.success('Message deleted');
+    } catch {
+      notify.error('Failed to delete message');
+    }
+  }, [id, message.roomId, notify]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setCtxMenu({ x: e.clientX, y: e.clientY });
+  }, []);
 
   return (
-    <div className={`ir-msg ${isOwn ? 'ir-msg-own' : ''} ${isPinned ? 'ir-msg-pinned' : ''} ${isGrouped ? 'ir-msg-grouped' : ''}`}>
+    <div
+      ref={msgRef}
+      className={`ir-msg ${isOwn ? 'ir-msg-own' : ''} ${isPinned ? 'ir-msg-pinned' : ''} ${isGrouped ? 'ir-msg-grouped' : ''}`}
+      onContextMenu={handleContextMenu}
+    >
       <div className="ir-msg-avatar" title={senderName}>
         {senderPhotoURL ? (
           <img src={senderPhotoURL} alt={senderName} />
@@ -81,54 +139,6 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
           >
             <Pin size={13} style={{ fill: isPinned ? 'currentColor' : 'none' }} />
           </button>
-          <button className="ir-msg-action-btn" onClick={handleCopy} title="Copy message">
-            <Copy size={12} />
-          </button>
-          {isOwn && (
-            <>
-              <button
-                className="ir-msg-action-btn"
-                title="Edit"
-                onClick={async () => {
-                  const newContent = prompt('Edit message:', content);
-                  if (newContent !== null && newContent.trim() !== content) {
-                    try {
-                      const token = getAuthToken();
-                      await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
-                        body: JSON.stringify({ content: newContent.trim() }),
-                      });
-                      window.location.reload();
-                    } catch {
-                      notify.error('Failed to edit message');
-                    }
-                  }
-                }}
-              >
-                <Edit2 size={12} />
-              </button>
-              <button
-                className="ir-msg-action-btn"
-                title="Delete"
-                onClick={async () => {
-                  if (!confirm('Delete this message?')) return;
-                  try {
-                    const token = getAuthToken();
-                    await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
-                      method: 'DELETE',
-                      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
-                    });
-                    notify.success('Message deleted');
-                  } catch {
-                    notify.error('Failed to delete message');
-                  }
-                }}
-              >
-                <Trash2 size={12} />
-              </button>
-            </>
-          )}
         </div>
 
         {contentType === 'ai_card' && aiCard ? (
@@ -137,6 +147,33 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
           <div className="ir-msg-content">{renderContent(content)}</div>
         )}
       </div>
+
+      {/* Right-click context menu */}
+      {ctxMenu && (
+        <div
+          ref={menuRef}
+          className="ir-context-menu"
+          style={{ left: ctxMenu.x, top: ctxMenu.y }}
+        >
+          <button className="ir-context-item" onClick={handleCopy}>
+            <Copy size={14} />
+            <span>Copy</span>
+          </button>
+          {isOwn && (
+            <>
+              <button className="ir-context-item" onClick={handleEdit}>
+                <Edit2 size={14} />
+                <span>Edit</span>
+              </button>
+              <div className="ir-context-divider" />
+              <button className="ir-context-item ir-context-item-danger" onClick={handleDelete}>
+                <Trash2 size={14} />
+                <span>Delete</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

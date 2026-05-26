@@ -371,6 +371,15 @@ router.post('/:roomId/messages', async (req: AuthenticatedRequest, res) => {
     }
 
     const message = { id: msgRef.id, ...messageData };
+
+    // Broadcast via WebSocket for real-time delivery
+    try {
+      const wss = getWSS();
+      if (wss) wss.broadcastRoomMessage(roomId, message);
+    } catch (wsErr) {
+      console.error('[Rooms] WebSocket broadcast error:', wsErr);
+    }
+
     res.status(201).json({ success: true, message });
   } catch (error: any) {
     console.error('[Rooms] Send message error:', error);

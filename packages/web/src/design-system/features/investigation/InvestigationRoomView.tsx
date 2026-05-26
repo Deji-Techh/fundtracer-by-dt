@@ -289,13 +289,31 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
         const res = await fetch(`${API_BASE}/api/ai-chat/analyze-wallet`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
-          body: JSON.stringify({ address, chain: roomDetails?.seedChain || currentChain || 'ethereum' }),
+          body: JSON.stringify({ address, chain: extractChainFromMessage(val) || roomDetails?.seedChain || currentChain || 'ethereum' }),
         });
 
         if (!res.ok) throw new Error('Analysis failed');
 
         const data = await res.json();
         const a = data.analysis || {};
+        const chain = extractChainFromMessage(val) || roomDetails?.seedChain || currentChain || 'ethereum';
+
+        // Build structured table data (same format AiFullScreenView uses)
+        const tableData = {
+          address,
+          chain,
+          type: 'wallet' as const,
+          riskScore: a.riskScore,
+          riskLevel: a.riskLevel,
+          totalTransactions: a.totalTransactions,
+          totalValueSent: a.totalValueSentEth,
+          totalValueReceived: a.totalValueReceivedEth,
+          balance: a.balance,
+          flags: a.flags,
+          topInteractions: a.topInteractions,
+          fundingSources: a.fundingSources,
+        };
+
         const summary = [
           `**FT MAVERIICK Analysis** — \`${address}\``,
           `• Risk: **${a.riskLevel || 'unknown'}** (score: ${a.riskScore ?? 'N/A'})`,
@@ -309,9 +327,9 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
         await sendAiResponse(activeRoomId, summary, {
           command: 'analyze',
           address,
-          chain: extractChainFromMessage(val) || roomDetails?.seedChain || currentChain || 'ethereum',
+          chain,
           resultSummary: summary,
-          resultData: data,
+          resultData: tableData,
         });
       } else {
         // No address — ask AI directly
