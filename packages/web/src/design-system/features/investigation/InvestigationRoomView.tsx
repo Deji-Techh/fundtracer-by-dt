@@ -181,7 +181,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   useEffect(() => {
     const unsub = on('room_update', async (data: any) => {
       if (!data.roomId || data.roomId !== activeRoomId) return;
-      if (data.event === 'member_joined' || data.event === 'member_left') {
+      if (data.event === 'member_joined' || data.event === 'member_left' || data.event === 'member_removed') {
         try {
           const details = await getRoomDetails(activeRoomId);
           if (details) {

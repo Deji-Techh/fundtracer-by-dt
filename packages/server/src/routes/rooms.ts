@@ -152,6 +152,20 @@ router.get('/:roomId', async (req: AuthenticatedRequest, res) => {
 
     const membersSnap = await roomDoc.ref.collection('members').get();
     const members = membersSnap.docs.map(d => d.data());
+    // Fill in missing display names from the users collection
+    for (const m of members) {
+      if (!m.displayName || m.displayName === 'Unknown' || m.displayName === m.uid) {
+        try {
+          const userDoc = await db.collection('users').doc(m.uid).get();
+          const userData = userDoc.data();
+          if (userData?.displayName) m.displayName = userData.displayName;
+          else if (userData?.email) m.displayName = userData.email;
+          else m.displayName = m.uid.slice(0, 6) + '...' + m.uid.slice(-4);
+        } catch {
+          m.displayName = m.uid.slice(0, 6) + '...' + m.uid.slice(-4);
+        }
+      }
+    }
     const isMember = members.some(m => m.uid === userId);
 
     res.json({
@@ -565,6 +579,11 @@ router.delete('/:roomId/members/:uid', async (req: AuthenticatedRequest, res) =>
     if (!allowed) return res.status(403).json({ error: 'Only admins can remove members' });
 
     const db = getDb();
+
+    // Fetch member data before deleting so we have the display name
+    const memberDoc = await db.collection('investigation_rooms').doc(roomId).collection('members').doc(targetUid).get();
+    const memberData = memberDoc.data();
+
     await db.collection('investigation_rooms').doc(roomId).collection('members').doc(targetUid).delete();
     await db.collection('investigation_rooms').doc(roomId).update({
       memberCount: admin.firestore.FieldValue.increment(-1),
@@ -573,16 +592,27 @@ router.delete('/:roomId/members/:uid', async (req: AuthenticatedRequest, res) =>
     // Remove from flat membership collection
     await removeUserRoom(targetUid, roomId);
 
+    const displayName = memberData?.displayName || targetUid;
     const now = Date.now();
     await db.collection('investigation_rooms').doc(roomId).collection('messages').add({
       senderId: 'system', senderName: 'System', contentType: 'system',
-      content: `${targetUid} was removed from the room`,
+      content: `${displayName} was removed from the room`,
       mentions: [], isPinned: false, createdAt: now, roomId,
     });
 
     if (isRedisConnected()) {
       await cacheDel(`room:${roomId}`);
       await cacheDel(`rooms:${targetUid}`);
+    }
+
+    // Broadcast removal so other clients update immediately
+    const wss = getWSS();
+    if (wss) {
+      wss.broadcastRoomUpdate(roomId, {
+        roomId,
+        event: 'member_removed',
+        member: { uid: targetUid, displayName },
+      });
     }
 
     res.json({ success: true });
