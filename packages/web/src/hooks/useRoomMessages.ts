@@ -57,7 +57,13 @@ export function useRoomMessages(roomId: string | null, currentUserId?: string, c
     const unsub = on('message', (data: any) => {
       if (data.message) {
         setMessages(prev => {
-          if (prev.some(m => m.id === data.message.id)) return prev;
+          const existing = prev.findIndex(m => m.id === data.message.id);
+          if (existing >= 0) {
+            // Replace in-place (handles edits)
+            const next = [...prev];
+            next[existing] = { ...next[existing], ...data.message };
+            return next;
+          }
           return [...prev, data.message];
         });
       }

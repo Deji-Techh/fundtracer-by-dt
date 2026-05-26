@@ -755,6 +755,17 @@ router.patch('/:roomId/messages/:messageId', async (req: AuthenticatedRequest, r
 
     if (isRedisConnected()) await cacheDel(`room:msgs:${roomId}`);
 
+    // Broadcast edit so other clients see the update in real-time
+    const wss = getWSS();
+    if (wss) {
+      wss.broadcastRoomMessage(roomId, {
+        id: messageId,
+        content: content.trim(),
+        editedAt: Date.now(),
+        senderId: userId,
+      });
+    }
+
     res.json({ success: true });
   } catch (error: any) {
     console.error('[Rooms] Edit message error:', error);

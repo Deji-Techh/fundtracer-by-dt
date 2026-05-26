@@ -94,13 +94,14 @@ export function MessageBubble({ message, isOwn, isGrouped, currentUserId, onPin,
     setSaving(true);
     try {
       const token = getAuthToken();
-      await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
+      const res = await fetch(`${API_BASE}/api/rooms/${message.roomId}/messages/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...(token && { Authorization: `Bearer ${token}` }) },
         body: JSON.stringify({ content: editValue.trim() }),
       });
+      if (!res.ok) throw new Error('Edit failed');
+      notify.success('Message updated');
       setEditOpen(false);
-      window.location.reload();
     } catch {
       notify.error('Failed to edit message');
       setSaving(false);
