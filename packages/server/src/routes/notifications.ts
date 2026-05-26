@@ -164,22 +164,61 @@ router.delete('/', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const db = getFirestore();
-    
+
     const batch = db.batch();
     const snapshot = await db.collection('notifications')
       .where('userId', '==', userId)
       .get();
-    
+
     snapshot.docs.forEach(doc => {
       batch.delete(doc.ref);
     });
-    
+
     await batch.commit();
-    
+
     res.json({ success: true, count: snapshot.size });
   } catch (error) {
     console.error('[Notifications] Clear all error:', error);
     res.status(500).json({ error: 'Failed to clear notifications' });
+  }
+});
+
+// Wipe ALL notifications for all users (admin only)
+router.post('/wipe-all', async (req: Request, res: Response) => {
+  try {
+    const adminKey = process.env.ADMIN_API_KEY;
+    const providedKey = req.headers['x-admin-key'] as string;
+
+    if (!adminKey || providedKey !== adminKey) {
+      return res.status(403).json({ error: 'Forbidden: invalid admin key' });
+    }
+
+    const db = getFirestore();
+    const snapshot = await db.collection('notifications').get();
+    const total = snapshot.size;
+
+    if (total === 0) {
+      return res.json({ success: true, count: 0 });
+    }
+
+    const batchSize = 500;
+    const docs = snapshot.docs;
+    let deleted = 0;
+
+    for (let i = 0; i < docs.length; i += batchSize) {
+      const batch = db.batch();
+      const chunk = docs.slice(i, i + batchSize);
+      for (const doc of chunk) {
+        batch.delete(doc.ref);
+      }
+      await batch.commit();
+      deleted += chunk.length;
+    }
+
+    res.json({ success: true, count: deleted });
+  } catch (error) {
+    console.error('[Notifications] Wipe all error:', error);
+    res.status(500).json({ error: 'Failed to wipe notifications' });
   }
 });
 

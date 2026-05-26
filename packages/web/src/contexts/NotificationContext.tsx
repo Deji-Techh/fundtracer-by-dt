@@ -282,11 +282,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const deleteNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-  }, []);
+
+    if (user) {
+      getAuthHeaders().then(headers => {
+        fetch(`${API_BASE}/api/notifications/${id}`, { method: 'DELETE', headers, credentials: 'include' }).catch(() => {});
+      });
+    }
+  }, [user]);
 
   const clearAll = useCallback(() => {
     setNotifications([]);
-  }, []);
+
+    if (user) {
+      getAuthHeaders().then(headers => {
+        fetch(`${API_BASE}/api/notifications`, { method: 'DELETE', headers, credentials: 'include' }).catch(() => {});
+      });
+    }
+  }, [user]);
 
   const snoozeType = useCallback((type: NotificationType, durationMs: number) => {
     const snoozeUntil = new Date(Date.now() + durationMs);
