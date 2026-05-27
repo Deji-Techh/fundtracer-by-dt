@@ -18,7 +18,7 @@ import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
 import { trackAnalysis, trackPreview } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength, SOLANA_ADDRESS_REGEX } from '../utils/validation.js';
-import { createNameResolutionMiddleware } from '../utils/nameResolver.js';
+import { createNameResolutionMiddleware, tryResolveAddress } from '../utils/nameResolver.js';
 import { getAlchemyKeyPool } from '../utils/quicknode.js';
 import { cacheGet, cacheSet } from '../utils/redis.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
@@ -2227,12 +2227,18 @@ previewRouter.get('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing address or chain', message: 'Both address and chain are required.', hint: 'Add ?address=0x...&chain=linea to the request.' });
     }
 
+    // Resolve ENS/basename/Linea names before validation
+    const { resolved: resolvedAddress, error: resolveError } = await tryResolveAddress(address);
+    if (resolveError) {
+      return res.status(400).json({ error: resolveError, message: `Could not resolve "${address}".`, hint: 'Enter a valid 0x address or registered ENS name.' });
+    }
+
     const normalizedChain = normalizeChainId(chain);
     if (!PREVIEW_ALLOWED_CHAINS.includes(normalizedChain)) {
       return res.status(400).json({ error: 'Unsupported chain', message: `Chain "${chain}" is not available in the preview.`, hint: 'Supported chains: linea, ethereum, bsc, arbitrum, polygon' });
     }
 
-    if (!ETH_ADDRESS_REGEX.test(address)) {
+    if (!ETH_ADDRESS_REGEX.test(resolvedAddress)) {
       return res.status(400).json({ error: 'Invalid address', message: 'Please provide a valid EVM address (0x...).', hint: 'Enter a wallet address starting with 0x.' });
     }
 
@@ -2250,7 +2256,7 @@ previewRouter.get('/', async (req: Request, res: Response) => {
     });
 
     const result = await withTimeout(
-      analyzer.analyze(address, normalizedChain as ChainId, { transactionLimit: 50, skipFundingTree: true, skipTimestamps: true }),
+      analyzer.analyze(resolvedAddress, normalizedChain as ChainId, { transactionLimit: 50, skipFundingTree: true, skipTimestamps: true }),
       60000,
       'Preview analysis'
     );
@@ -2274,7 +2280,7 @@ previewRouter.get('/', async (req: Request, res: Response) => {
       success: true,
       preview: {
         wallet: {
-          address: result.wallet?.address || address,
+          address: result.wallet?.address || resolvedAddress,
           balanceInEth: result.wallet?.balanceInEth || 0,
           txCount: result.wallet?.txCount || 0,
         },

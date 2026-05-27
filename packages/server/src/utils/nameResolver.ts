@@ -2,8 +2,11 @@ import { JsonRpcProvider, keccak256, toUtf8Bytes } from 'ethers';
 
 const ETH_ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 
-// Ethers v6 handles CCIP-Read natively for .eth and .base.eth via Ethereum mainnet
-// .linea.eth may use a custom LNS registry on Linea
+// Base L2 Basename resolver contract
+const BASENAME_RESOLVER = '0xC6d566A56A1aFf6508b41f6c90ff131615583BCD';
+const BASE_RPC = 'https://mainnet.base.org';
+
+// Linea Name Service registry
 const LNS_REGISTRY = '0x50130b669B28C339991d8676FA73CF122a121267';
 const LNS_ADDR_SELECTOR = '0x3b3b57de'; // addr(bytes32)
 
@@ -62,35 +65,11 @@ function namehash(name: string): string {
   return '0x' + node;
 }
 
-// -- Ethereum RPC provider for ENS --------------------------------------------
+// -- RPC call helper ----------------------------------------------------------
 
-function getEthProvider(): JsonRpcProvider {
-  const key = process.env.ALCHEMY_DEFAULT_KEY ||
-    process.env.ALCHEMY_API_KEY ||
-    '';
-  const url = `https://eth-mainnet.g.alchemy.com/v2/${key}`;
-  return new JsonRpcProvider(url);
-}
-
-// -- Resolvers ----------------------------------------------------------------
-
-async function resolveEns(name: string): Promise<string | null> {
-  const provider = getEthProvider();
-  const resolved = await provider.resolveName(name);
-  return resolved || null;
-}
-
-async function resolveLineaName(name: string): Promise<string | null> {
-  // Try Ethereum mainnet ENS first (CCIP-Read may handle it)
-  try {
-    const ensResult = await resolveEns(name);
-    if (ensResult) return ensResult;
-  } catch { /* fall through to direct contract call */ }
-
-  // Fallback: direct LNS registry call on Linea
+async function resolveViaContract(rpcUrl: string, resolverAddress: string, name: string): Promise<string | null> {
   try {
     const node = namehash(name);
-    const rpcUrl = process.env.LINEA_RPC_URL || 'https://rpc.linea.build';
     const res = await fetch(rpcUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -99,7 +78,7 @@ async function resolveLineaName(name: string): Promise<string | null> {
         id: 1,
         method: 'eth_call',
         params: [{
-          to: LNS_REGISTRY,
+          to: resolverAddress,
           data: LNS_ADDR_SELECTOR + node.slice(2),
         }, 'latest'],
       }),
@@ -111,6 +90,50 @@ async function resolveLineaName(name: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+// -- Resolvers ----------------------------------------------------------------
+
+async function resolveEns(name: string): Promise<string | null> {
+  const key = process.env.DEFAULT_ALCHEMY_API_KEY || process.env.ALCHEMY_API_KEY || '';
+  if (!key) {
+    console.error('[nameResolver] No Alchemy API key configured for ENS resolution');
+    return null;
+  }
+  const provider = new JsonRpcProvider(`https://eth-mainnet.g.alchemy.com/v2/${key}`);
+  try {
+    const resolved = await Promise.race([
+      provider.resolveName(name),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('ENS resolution timed out after 8s')), 8000)),
+    ]);
+    return resolved || null;
+  } catch (err: any) {
+    console.error(`[nameResolver] ENS resolveName("${name}") failed:`, err.message || err);
+    return null;
+  }
+}
+
+async function resolveBasename(name: string): Promise<string | null> {
+  // Try CCIP-Read via Ethereum mainnet first
+  try {
+    const ensResult = await resolveEns(name);
+    if (ensResult) return ensResult;
+  } catch { /* fall through */ }
+
+  // Fallback: direct Basename resolver on Base L2
+  return resolveViaContract(BASE_RPC, BASENAME_RESOLVER, name);
+}
+
+async function resolveLineaName(name: string): Promise<string | null> {
+  // Try Ethereum mainnet ENS first (CCIP-Read may handle it)
+  try {
+    const ensResult = await resolveEns(name);
+    if (ensResult) return ensResult;
+  } catch { /* fall through to direct contract call */ }
+
+  // Fallback: direct LNS registry call on Linea
+  const rpcUrl = process.env.LINEA_RPC_URL || 'https://rpc.linea.build';
+  return resolveViaContract(rpcUrl, LNS_REGISTRY, name);
 }
 
 // -- Primary API --------------------------------------------------------------
@@ -154,7 +177,9 @@ export async function tryResolveAddress(input: string): Promise<ResolveResult> {
   let resolved: string | null = null;
 
   try {
-    if (lower.endsWith('.linea.eth')) {
+    if (lower.endsWith('.base.eth')) {
+      resolved = await resolveBasename(trimmed);
+    } else if (lower.endsWith('.linea.eth')) {
       resolved = await resolveLineaName(trimmed);
     } else {
       resolved = await resolveEns(trimmed);
@@ -164,9 +189,17 @@ export async function tryResolveAddress(input: string): Promise<ResolveResult> {
   }
 
   if (!resolved) {
+    const hints: Record<string, string> = {
+      '.base.eth': 'Basename may not be registered on Base. Register at base.org/names.',
+      '.linea.eth': 'Linea name may not be registered. Register via Linea Name Service.',
+      '.eth': 'ENS name may not be registered. Check at app.ens.domains.',
+    };
+    const hint = hints[lower.match(/\.(?:base\.eth|linea\.eth|eth)$/)?.[0] || ''] ||
+      'ENS name may not be registered or is not resolvable.';
+
     return {
       resolved: trimmed,
-      error: `Could not resolve ENS name "${trimmed}": name not found or not registered`,
+      error: `Could not resolve "${trimmed}": ${hint}`,
     };
   }
 
