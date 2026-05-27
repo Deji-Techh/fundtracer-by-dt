@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { moralisService } from '../services/MoralisService.js';
 import { coinGeckoService } from '../services/CoinGeckoService.js';
 import { quickNodeService } from '../services/QuickNodeService.js';
+import { tryResolveAddress } from '../utils/nameResolver.js';
 
 const router = Router();
 
@@ -42,15 +43,20 @@ router.get('/:address', async (req: Request, res: Response) => {
     const { address } = req.params;
     const chain = (req.query.chain as string) || 'linea';
 
-    if (!address || !address.startsWith('0x')) {
+    const { resolved: resolvedAddr, error: resolveError } = await tryResolveAddress(address);
+    if (resolveError) {
+      return res.status(400).json({ error: resolveError });
+    }
+
+    if (!resolvedAddr || !resolvedAddr.startsWith('0x')) {
       return res.status(400).json({ error: 'Invalid token address' });
     }
 
     // Get token metadata from Moralis
-    const metadata = await moralisService.getTokenMetadata(address, chain);
-    
+    const metadata = await moralisService.getTokenMetadata(resolvedAddr, chain);
+
     // Get safety check from QuickNode
-    const safety = await quickNodeService.checkTokenSafety(address);
+    const safety = await quickNodeService.checkTokenSafety(resolvedAddr);
 
     res.json({
       address,

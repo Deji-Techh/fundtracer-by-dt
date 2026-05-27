@@ -10,6 +10,7 @@ import { buildContext, formatAnalysisForDisplay, type AnalysisData } from '../li
 import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
 import { cacheGet, cacheSet, cacheDel } from '../utils/redis.js';
 import { getFirestore } from '../firebase.js';
+import { createNameResolutionMiddleware } from '../utils/nameResolver.js';
 import type { ChainId } from '@fundtracer/core';
 
 const CHAIN_TO_ALCHEMY: Record<string, string> = {
@@ -23,6 +24,9 @@ const CHAIN_TO_ALCHEMY: Record<string, string> = {
 };
 
 const router = Router();
+
+// Resolve ENS/basename/Linea names before AI chat routes
+router.use(createNameResolutionMiddleware(['address']));
 
 // Chain validation
 const ALLOWED_CHAINS = [

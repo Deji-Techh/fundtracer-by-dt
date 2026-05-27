@@ -18,6 +18,7 @@ import { DuneService } from '../services/DuneService.js';
 import contractService from '../services/ContractService.js';
 import { trackAnalysis, trackPreview } from '../utils/analytics.js';
 import { validateAddressInput, sanitizeString, validateArrayLength, SOLANA_ADDRESS_REGEX } from '../utils/validation.js';
+import { createNameResolutionMiddleware } from '../utils/nameResolver.js';
 import { getAlchemyKeyPool } from '../utils/quicknode.js';
 import { cacheGet, cacheSet } from '../utils/redis.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
@@ -153,6 +154,9 @@ function getUserFriendlyError(error: any): { status: number; error: string; mess
 }
 
 const router = Router();
+
+// Resolve ENS/basename/Linea names before all analyze routes
+router.use(createNameResolutionMiddleware());
 
 // In-memory TTL cache for Alchemy API keys (avoids hitting Firestore on every request)
 const alchemyKeyCache = new Map<string, { key: string; expiresAt: number }>();
@@ -339,8 +343,8 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
     const { address, chain, options } = req.body;
 
-    // Use comprehensive validation
-    const validation = validateAddressInput(address, chain);
+    // Use comprehensive validation (async — resolves ENS names)
+    const validation = await validateAddressInput(address, chain);
     if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
     }

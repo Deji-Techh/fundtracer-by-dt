@@ -9,6 +9,7 @@ import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { GeckoTerminalService } from '../services/GeckoTerminalService.js';
 import { cache } from '../utils/cache.js';
 import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
+import { tryResolveAddress } from '../utils/nameResolver.js';
 
 const router = Router();
 const getDb = () => getFirestore();
@@ -71,11 +72,16 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res) => {
     try {
         const { address, chain = 'ethereum' } = req.body;
         
-        if (!address || !address.startsWith('0x')) {
+        const { resolved: resolvedAddr, error: resolveError } = await tryResolveAddress(address);
+        if (resolveError) {
+            return res.status(400).json({ error: resolveError });
+        }
+
+        if (!resolvedAddr || !resolvedAddr.startsWith('0x')) {
             return res.status(400).json({ error: 'Invalid wallet address' });
         }
 
-        const walletAddress = address.toLowerCase();
+        const walletAddress = resolvedAddr.toLowerCase();
         const userId = (req as any).user?.uid || (req as any).user?.id;
         
         // Check if already exists

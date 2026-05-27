@@ -1704,7 +1704,7 @@ function SybilDetector({ onBack, onAnalysisComplete }: SybilDetectorProps) {
       .replace(/[,;\t\n\r]+/g, ' ')
       .split(' ')
       .map(s => s.trim().toLowerCase())
-      .filter(s => /^0x[a-f0-9]{40}$/i.test(s));
+      .filter(s => /^0x[a-f0-9]{40}$/i.test(s) || /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.(eth|base\.eth|linea\.eth)$/i.test(s));
     return [...new Set(cleaned)];
   }, []);
 

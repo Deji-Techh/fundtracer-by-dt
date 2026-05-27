@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { ankrService } from '../services/AnkrService.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { tryResolveAddress } from '../utils/nameResolver.js';
 
 const router = Router();
 
@@ -9,14 +10,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { wallet, blockchain, pageToken, filters } = req.body;
 
-    if (!wallet || !wallet.startsWith('0x')) {
+    const { resolved: resolvedWallet, error: resolveError } = await tryResolveAddress(wallet);
+    if (resolveError) {
+      return res.status(400).json({ error: resolveError });
+    }
+
+    if (!resolvedWallet || !resolvedWallet.startsWith('0x')) {
       return res.status(400).json({ error: 'Invalid wallet address' });
     }
 
     const chain = blockchain || 'linea';
 
     // Fetch transactions from Ankr
-    const result = await ankrService.getTransactionsByAddress(wallet, chain, pageToken);
+    const result = await ankrService.getTransactionsByAddress(resolvedWallet, chain, pageToken);
 
     // Filter transactions if filters provided
     let transactions = result.transactions || [];

@@ -38,6 +38,7 @@ const CHAINS = [
 ];
 
 const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+const ENS_NAME_REGEX = /^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.(eth|base\.eth|linea\.eth)$/i;
 
 function formatNumber(num: number): string {
   if (num >= 1_000_000) return (num / 1_000_000).toFixed(2) + 'M';
@@ -92,8 +93,8 @@ export function TryNowModal({ isOpen, onClose }: TryNowModalProps) {
   const handleAnalyze = useCallback(async () => {
     const trimmedAddress = address.trim();
     if (!trimmedAddress) return;
-    if (!ETH_ADDRESS_REGEX.test(trimmedAddress)) {
-      setError({ message: 'Invalid wallet address', hint: 'Please enter a valid EVM address starting with 0x.' });
+    if (!ETH_ADDRESS_REGEX.test(trimmedAddress) && !ENS_NAME_REGEX.test(trimmedAddress)) {
+      setError({ message: 'Invalid wallet address or ENS name', hint: 'Please enter a valid EVM address (0x...) or ENS name (e.g., vitalik.eth).' });
       return;
     }
 

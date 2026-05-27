@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { quickNodeService } from '../services/QuickNodeService.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { tryResolveAddress } from '../utils/nameResolver.js';
 
 const router = Router();
 
@@ -9,12 +10,17 @@ router.post('/check', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { contractAddress } = req.body;
 
-    if (!contractAddress || !contractAddress.startsWith('0x')) {
+    const { resolved: resolvedAddr, error: resolveError } = await tryResolveAddress(contractAddress);
+    if (resolveError) {
+      return res.status(400).json({ error: resolveError });
+    }
+
+    if (!resolvedAddr || !resolvedAddr.startsWith('0x')) {
       return res.status(400).json({ error: 'Invalid contract address' });
     }
 
     // Get safety check from QuickNode
-    const safety = await quickNodeService.checkTokenSafety(contractAddress);
+    const safety = await quickNodeService.checkTokenSafety(resolvedAddr);
 
     res.json({
       contractAddress,

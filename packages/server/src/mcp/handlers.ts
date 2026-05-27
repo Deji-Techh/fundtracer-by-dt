@@ -1,4 +1,27 @@
 import type { McpToolHandler, McpToolResult } from './types.js';
+import { tryResolveAddress } from '../utils/nameResolver.js';
+
+// ---------------------------------------------------------------------------
+// Helper: resolve an address (ENS → 0x), returning err result if unresolved
+// ---------------------------------------------------------------------------
+async function resolveOrFail(address: string): Promise<{ resolved: string; error?: McpToolResult }> {
+  const { resolved, error } = await tryResolveAddress(address);
+  if (error) {
+    return { resolved, error: err(error) };
+  }
+  return { resolved };
+}
+
+async function resolveListOrFail(addresses: string): Promise<{ resolved: string[]; error?: McpToolResult }> {
+  const list = addresses.split(',').map(a => a.trim()).filter(Boolean);
+  const resolved: string[] = [];
+  for (const addr of list) {
+    const r = await tryResolveAddress(addr);
+    if (r.error) return { resolved: [], error: err(r.error) };
+    resolved.push(r.resolved);
+  }
+  return { resolved };
+}
 
 // ---------------------------------------------------------------------------
 // Helper: format a result consistently
@@ -19,13 +42,16 @@ const analyzeWallet: McpToolHandler = async (args, ctx) => {
     address: string; chainId: string; transactionLimit?: number;
   };
 
+  const { resolved: resolvedAddr, error: resolveErr } = await resolveOrFail(address);
+  if (resolveErr) return resolveErr;
+
   try {
     const { WalletAnalyzer } = await import('fundtracer-core');
     const analyzer = new WalletAnalyzer(buildApiKeyConfig(), (progress) => {
-      console.error(`[MCP] analyze_wallet ${address}: ${progress.stage} ${progress.current}/${progress.total}`);
+      console.error(`[MCP] analyze_wallet ${resolvedAddr}: ${progress.stage} ${progress.current}/${progress.total}`);
     });
 
-    const result = await analyzer.analyze(address, chainId as any, {
+    const result = await analyzer.analyze(resolvedAddr, chainId as any, {
       transactionLimit: (transactionLimit as number) || 500,
     });
 
@@ -62,6 +88,9 @@ const traceFunds: McpToolHandler = async (args, ctx) => {
     address: string; chainId: string; maxDepth?: number; direction?: string;
   };
 
+  const { resolved: resolvedAddr, error: resolveErr } = await resolveOrFail(address);
+  if (resolveErr) return resolveErr;
+
   try {
     const { WalletAnalyzer } = await import('fundtracer-core');
     const analyzer = new WalletAnalyzer(buildApiKeyConfig());
@@ -71,11 +100,11 @@ const traceFunds: McpToolHandler = async (args, ctx) => {
       const { SolanaFundingTreeService } = await import('../services/SolanaFundingTreeService.js');
       const heliusKey = process.env.HELIUS_KEY_1 || process.env.DEFAULT_ALCHEMY_API_KEY || '';
       const svc = new SolanaFundingTreeService(heliusKey.startsWith('http') ? process.env.DEFAULT_ALCHEMY_API_KEY || '' : heliusKey);
-      const tree = await svc.buildFundingTree(address, maxDepth as number);
+      const tree = await svc.buildFundingTree(resolvedAddr, maxDepth as number);
       return ok(JSON.stringify(tree, null, 2));
     }
 
-    const tree = await analyzer.buildFundingTree(address, chainId as any, { treeConfig });
+    const tree = await analyzer.buildFundingTree(resolvedAddr, chainId as any, { treeConfig });
 
     return ok(JSON.stringify({
       sources: summarizeTree(tree.fundingSources),
@@ -91,7 +120,8 @@ const traceFunds: McpToolHandler = async (args, ctx) => {
 // ---------------------------------------------------------------------------
 const compareWallets: McpToolHandler = async (args, ctx) => {
   const { addresses, chainId } = args as { addresses: string; chainId: string };
-  const addrList = addresses.split(',').map((a: string) => a.trim()).filter(Boolean);
+  const { resolved: addrList, error: resolveErr } = await resolveListOrFail(addresses);
+  if (resolveErr) return resolveErr;
 
   if (addrList.length < 2) return err('At least 2 addresses required');
 
@@ -124,11 +154,14 @@ const analyzeContract: McpToolHandler = async (args, ctx) => {
     contractAddress: string; chainId: string; maxInteractors?: number;
   };
 
+  const { resolved: resolvedAddr, error: resolveErr } = await resolveOrFail(contractAddress);
+  if (resolveErr) return resolveErr;
+
   try {
     const { WalletAnalyzer } = await import('fundtracer-core');
     const analyzer = new WalletAnalyzer(buildApiKeyConfig());
 
-    const result = await analyzer.analyzeContract(contractAddress, chainId as any, {
+    const result = await analyzer.analyzeContract(resolvedAddr, chainId as any, {
       maxInteractors: maxInteractors as number,
     });
 
@@ -150,7 +183,8 @@ const analyzeContract: McpToolHandler = async (args, ctx) => {
 // ---------------------------------------------------------------------------
 const detectSybilClusters: McpToolHandler = async (args, ctx) => {
   const { addresses, chainId } = args as { addresses: string; chainId: string };
-  const addrList = addresses.split(',').map((a: string) => a.trim()).filter(Boolean);
+  const { resolved: addrList, error: resolveErr } = await resolveListOrFail(addresses);
+  if (resolveErr) return resolveErr;
 
   if (addrList.length < 3) return err('At least 3 addresses required for cluster detection');
 
@@ -187,17 +221,20 @@ const detectSybilClusters: McpToolHandler = async (args, ctx) => {
 const getPortfolio: McpToolHandler = async (args, ctx) => {
   const { address, chainId } = args as { address: string; chainId: string };
 
+  const { resolved: resolvedAddr, error: resolveErr } = await resolveOrFail(address);
+  if (resolveErr) return resolveErr;
+
   try {
     if (chainId === 'solana') {
       const { solanaPortfolioService } = await import('../services/SolanaPortfolioService.js');
-      const portfolio = await solanaPortfolioService.getPortfolio(address);
+      const portfolio = await solanaPortfolioService.getPortfolio(resolvedAddr);
       return ok(JSON.stringify(portfolio, null, 2));
     }
 
     return ok(JSON.stringify({
-      address,
+      address: resolvedAddr,
       chainId,
-      note: 'For EVM chain portfolio data, use the FundTracer REST API: GET /api/portfolio?address=' + address + '&chain=' + chainId,
+      note: 'For EVM chain portfolio data, use the FundTracer REST API: GET /api/portfolio?address=' + resolvedAddr + '&chain=' + chainId,
     }, null, 2));
   } catch (error: any) {
     return err(`Portfolio fetch failed: ${error.message}`);
@@ -212,17 +249,20 @@ const getTransactions: McpToolHandler = async (args, ctx) => {
     address: string; chainId: string; limit?: number;
   };
 
+  const { resolved: resolvedAddr, error: resolveErr } = await resolveOrFail(address);
+  if (resolveErr) return resolveErr;
+
   try {
     const { WalletAnalyzer } = await import('fundtracer-core');
     const analyzer = new WalletAnalyzer(buildApiKeyConfig());
 
-    const result = await analyzer.analyze(address, chainId as any, {
+    const result = await analyzer.analyze(resolvedAddr, chainId as any, {
       transactionLimit: limit as number,
       skipFundingTree: true,
     });
 
     return ok(JSON.stringify({
-      address,
+      address: resolvedAddr,
       chainId,
       transactions: result.transactions.slice(0, limit as number).map(tx => ({
         hash: tx.hash,
@@ -248,21 +288,24 @@ const getTransactions: McpToolHandler = async (args, ctx) => {
 const lookupEntity: McpToolHandler = async (args, ctx) => {
   const { query, chainId } = args as { query: string; chainId?: string };
 
+  // Resolve ENS names before entity lookup
+  const { resolved: resolvedQuery } = await tryResolveAddress(query);
+
   try {
     const { EntityService } = await import('../services/EntityService.js');
     const chain = chainId || 'ethereum';
 
     // Try as address first
-    if (/^0x[a-fA-F0-9]{40}$/.test(query) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query)) {
-      const entity = EntityService.lookupEntity(chain, query);
+    if (/^0x[a-fA-F0-9]{40}$/.test(resolvedQuery) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(resolvedQuery)) {
+      const entity = EntityService.lookupEntity(chain, resolvedQuery);
       if (entity) return ok(JSON.stringify(entity, null, 2));
-      return ok(JSON.stringify({ address: query, label: 'Unknown address', chain }, null, 2));
+      return ok(JSON.stringify({ address: resolvedQuery, label: 'Unknown address', chain }, null, 2));
     }
 
     // Search by name — use the imported searchEntities from data/entities
     const { searchEntities } = await import('../data/entities.js');
-    const results = searchEntities(query);
-    return ok(JSON.stringify({ query, results: results.length > 0 ? results.slice(0, 20) : 'No entities found' }, null, 2));
+    const results = searchEntities(resolvedQuery);
+    return ok(JSON.stringify({ query: resolvedQuery, results: results.length > 0 ? results.slice(0, 20) : 'No entities found' }, null, 2));
   } catch (error: any) {
     return err(`Entity lookup failed: ${error.message}`);
   }
@@ -314,6 +357,9 @@ const getGasPrices: McpToolHandler = async (args, ctx) => {
 const getTokenInfo: McpToolHandler = async (args, ctx) => {
   const { tokenAddress, chainId } = args as { tokenAddress: string; chainId: string };
 
+  const { resolved: resolvedAddr, error: resolveErr } = await resolveOrFail(tokenAddress);
+  if (resolveErr) return resolveErr;
+
   try {
     const { default: axios } = await import('axios');
     const coingeckoUrl = 'https://api.coingecko.com/api/v3';
@@ -329,7 +375,7 @@ const getTokenInfo: McpToolHandler = async (args, ctx) => {
 
     const platform = platformMap[chainId];
     if (platform) {
-      const res = await axios.get(`${coingeckoUrl}/coins/${platform}/contract/${tokenAddress}`, {
+      const res = await axios.get(`${coingeckoUrl}/coins/${platform}/contract/${resolvedAddr}`, {
         timeout: 10000,
         headers: { 'Accept': 'application/json' },
       });
@@ -348,7 +394,7 @@ const getTokenInfo: McpToolHandler = async (args, ctx) => {
     }
 
     // Solana / unsupported: use DexScreener
-    const dsRes = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`, {
+    const dsRes = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${resolvedAddr}`, {
       timeout: 5000,
     });
 

@@ -9,6 +9,8 @@ export function detectAddressChain(input: string): 'evm' | 'solana' | null {
   const trimmed = input.trim();
   
   if (trimmed.endsWith('.sol')) return 'solana';
+  if (trimmed.endsWith('.base.eth')) return 'evm';
+  if (trimmed.endsWith('.linea.eth')) return 'evm';
   if (trimmed.endsWith('.eth')) return 'evm';
   
   if (trimmed.startsWith('0x') && trimmed.length === 42) {

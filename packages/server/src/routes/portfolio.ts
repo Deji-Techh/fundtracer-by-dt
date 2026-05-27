@@ -1,8 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { duneSimClient, EVM_CHAIN_IDS } from '../services/DuneSimClient.js';
 import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
+import { tryResolveAddress } from '../utils/nameResolver.js';
 
 const router = Router();
+
+// Resolve ENS names in :walletAddress param before route handlers
+router.param('walletAddress', async (req: any, _res: any, next: any, value: string) => {
+  const { resolved } = await tryResolveAddress(value);
+  req.params.walletAddress = resolved;
+  next();
+});
 
 // Helper: check if address is Solana (base58, not hex)
 function isSolanaAddress(addr: string): boolean {

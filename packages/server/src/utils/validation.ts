@@ -1,4 +1,5 @@
 // Input validation utilities for security
+import { tryResolveAddress } from './nameResolver.js';
 
 export const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 export const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -50,30 +51,37 @@ export interface ValidationResult {
   error?: string;
 }
 
-export function validateAddressInput(address: unknown, chain: unknown): ValidationResult {
+export async function validateAddressInput(address: unknown, chain: unknown): Promise<ValidationResult> {
   if (!address || typeof address !== 'string') {
     return { valid: false, error: 'Address is required' };
   }
-  
-  if (address.length < 40 || address.length > 120) {
+
+  // Resolve ENS names before validation — names like vitalik.eth are <40 chars
+  const { resolved, error: resolveError } = await tryResolveAddress(address);
+  if (resolveError) {
+    return { valid: false, error: resolveError };
+  }
+  const addrToValidate = resolved;
+
+  if (addrToValidate.length < 40 || addrToValidate.length > 120) {
     return { valid: false, error: 'Invalid address length' };
   }
-  
+
   if (!chain || typeof chain !== 'string') {
     return { valid: false, error: 'Chain is required' };
   }
-  
+
   const normalizedChain = chain.toLowerCase();
   const allowedChains = ['ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'bsc', 'avalanche', 'linea', 'solana', 'sui'];
-  
+
   if (!allowedChains.includes(normalizedChain)) {
     return { valid: false, error: `Invalid chain. Allowed: ${allowedChains.join(', ')}` };
   }
-  
-  if (!isValidAddress(address, normalizedChain)) {
+
+  if (!isValidAddress(addrToValidate, normalizedChain)) {
     return { valid: false, error: 'Invalid address format' };
   }
-  
+
   return { valid: true };
 }
 

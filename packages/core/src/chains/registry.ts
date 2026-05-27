@@ -72,6 +72,8 @@ export function detectChainType(address: string): 'evm' | 'solana' | null {
   if (!address) return null;
   
   if (address.endsWith('.sol')) return 'solana';
+  if (address.endsWith('.base.eth')) return 'evm';
+  if (address.endsWith('.linea.eth')) return 'evm';
   if (address.endsWith('.eth')) return 'evm';
   
   if (address.startsWith('0x') && address.length === 42) {
