@@ -657,6 +657,10 @@ apiRouter.use('/polymarket', publicLimiter, polymarketRoutes);
 import { mcpRoutes } from './mcp/routes.js';
 apiRouter.use('/mcp', mcpRoutes);
 
+// Watchtower Routes (desktop WebSocket key distribution)
+import { watchtowerRoutes } from './routes/watchtowerRoutes.js';
+apiRouter.use('/watchtower', authMiddleware, watchtowerRoutes);
+
 // Investigation Rooms Routes (Team Analysis)
 import { roomRoutes } from './routes/rooms.js';
 apiRouter.use('/rooms', authMiddleware, roomRoutes);
@@ -917,11 +921,21 @@ server = app.listen(PORT, async () => {
 
     // Initialize WebSocket server for Investigation Rooms real-time
     try {
-        const { createWebSocketServer } = await import('./services/websocket.js');
+        const { createWebSocketServer, createWatchtowerWSS } = await import('./services/websocket.js');
         createWebSocketServer(server);
-        console.log('[WS] Investigation Room WebSocket server initialized');
+        createWatchtowerWSS(server);
+        console.log('[WS] Investigation Room + Watchtower WebSocket servers initialized');
     } catch (error) {
         console.error('[Server] Failed to initialize WebSocket server:', error);
+    }
+
+    // Start watchtower monitor (24/7 Alchemy WebSocket based wallet monitoring)
+    try {
+        const { getWatchtowerMonitor } = await import('./services/WatchtowerMonitor.js');
+        await getWatchtowerMonitor().start();
+        console.log('[Watchtower] Monitor started');
+    } catch (error) {
+        console.error('[Watchtower] Failed to start monitor:', error);
     }
 });
 

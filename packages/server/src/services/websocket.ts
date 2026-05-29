@@ -234,3 +234,79 @@ export class InvestigationWSS {
 export function createWebSocketServer(server: Server): InvestigationWSS {
   return new InvestigationWSS(server);
 }
+
+// ─── Watchtower WebSocket ──────────────────────────────────────────
+
+import { getWatchtowerMonitor } from './WatchtowerMonitor.js';
+
+interface WTClient {
+  ws: WebSocket;
+  uid: string;
+}
+
+const wtClients = new Map<string, Set<WTClient>>();
+
+export function createWatchtowerWSS(server: Server): void {
+  const wss = new WebSocketServer({ server, path: '/ws/watchtower' });
+
+  wss.on('connection', (ws, req) => {
+    try {
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      const token = url.searchParams.get('token');
+      if (!token) { ws.close(4001, 'Missing token'); return; }
+
+      let decoded: any;
+      try {
+        decoded = jwt.verify(token, getJwtSecret());
+      } catch {
+        ws.close(4001, 'Invalid token'); return;
+      }
+
+      const uid = decoded.uid || decoded.address || decoded.sub;
+      if (!uid) { ws.close(4001, 'Invalid token payload'); return; }
+
+      const client: WTClient = { ws, uid };
+      if (!wtClients.has(uid)) wtClients.set(uid, new Set());
+      wtClients.get(uid)!.add(client);
+
+      console.log(`[Watchtower WS] User ${uid.slice(0, 8)}... connected`);
+
+      // Subscribe to monitor events for this user
+      const unsub = getWatchtowerMonitor().subscribe((eventUid, event) => {
+        if (eventUid === uid && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'tx', event }));
+        }
+      });
+
+      // Send recent activity on connect
+      getWatchtowerMonitor().getActivity(uid, 10).then(events => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'history', events }));
+        }
+      });
+
+      ws.on('close', () => {
+        unsub();
+        const set = wtClients.get(uid);
+        if (set) {
+          set.delete(client);
+          if (set.size === 0) wtClients.delete(uid);
+        }
+      });
+
+      ws.on('error', () => {
+        unsub();
+        const set = wtClients.get(uid);
+        if (set) {
+          set.delete(client);
+          if (set.size === 0) wtClients.delete(uid);
+        }
+      });
+
+    } catch {
+      ws.close(4000, 'Internal error');
+    }
+  });
+
+  console.log('[WS] Watchtower WebSocket server started on /ws/watchtower');
+}
