@@ -24,6 +24,7 @@ import { cacheGet, cacheSet } from '../utils/redis.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 import { BridgeDetector } from '../services/BridgeDetector.js';
 import { RedisBlockTsCache } from '../services/BlockTsCache.js';
+import { cexService } from '../services/CEXService.js';
 
 // Singleton block timestamp cache — no TTL, permanent
 const blockTsCache = new RedisBlockTsCache();
@@ -1024,6 +1025,7 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             analyzer.buildFundingTree(address, chain as ChainId, {
                 treeConfig: options?.treeConfig,
                 cachedTransactions: cachedTxs,
+                skipTimestamps: true,
             }),
             120000, // Increased to 120s timeout - with key pool this should be fast
             'Funding tree'
@@ -1264,7 +1266,7 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
 
         console.log(`[Compare] Comparing ${addresses.length} wallets with ${alchemyKeyPool.length} keys...`);
 
-        const rawResult = await analyzer.compareWallets(addresses, chain as ChainId, options);
+        const rawResult = await analyzer.compareWallets(addresses, chain as ChainId, { ...options, skipTimestamps: true });
 
         // Sanitize result to remove any non-serializable objects (prevents React Error #130)
         const result = sanitizeForFrontend(rawResult);
@@ -1404,7 +1406,8 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
                 maxInteractors: options?.maxInteractors || 100,
                 analyzeFunding: options?.analyzeFunding !== false,
                 externalInteractors: externalInteractors.length > 0 ? externalInteractors : undefined,
-                externalInteractorData: externalInteractorData.length > 0 ? externalInteractorData : undefined
+                externalInteractorData: externalInteractorData.length > 0 ? externalInteractorData : undefined,
+                skipTimestamps: true,
             }),
             180000, // 180 second timeout for complete contract analysis
             'Contract analysis'
@@ -1600,6 +1603,7 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
                 analyzer.analyze(addr, normalizedChain as ChainId, {
                     transactionLimit: 100,
                     skipFundingTree: true,
+                    skipTimestamps: true,
                 })
             )
         );
@@ -1812,7 +1816,7 @@ router.post('/report', async (req: AuthenticatedRequest, res: Response) => {
 
     console.log(`[Report] Using 20-key pool (${alchemyKeyPool.length} keys) for ${address}...`);
     const analysis = await withTimeout(
-      analyzer.analyze(address, normalizedChain as ChainId, { skipFundingTree: true }),
+      analyzer.analyze(address, normalizedChain as ChainId, { skipFundingTree: true, skipTimestamps: true }),
       120000,
       'Wallet report analysis'
     ) as any;
@@ -2055,7 +2059,7 @@ router.post('/expand-node', async (req: AuthenticatedRequest, res: Response) => 
 
       console.log(`[Expand-Node] Using 20-key pool (${alchemyKeyPool.length} keys) for ${address}...`);
       const treeResult = await withTimeout(
-        analyzer.buildFundingTree(address, chain as ChainId, {}),
+        analyzer.buildFundingTree(address, chain as ChainId, { skipTimestamps: true }),
         120000,
         'Expand node'
       );
@@ -2189,7 +2193,7 @@ router.post('/bridge-trace', async (req: AuthenticatedRequest, res: Response) =>
       console.log(`[Bridge-Trace] Using 20-key pool (${alchemyKeyPool.length} keys) for ${address}...`);
 
       const analysis = await withTimeout(
-        analyzer.analyze(address, normalizedChain as ChainId, { skipFundingTree: true }),
+        analyzer.analyze(address, normalizedChain as ChainId, { skipFundingTree: true, skipTimestamps: true }),
         120000,
         'Bridge trace analysis'
       ) as any;
@@ -2299,6 +2303,103 @@ previewRouter.get('/', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[Preview] Analysis error:', error.message);
+    const errInfo = getUserFriendlyError(error);
+    res.status(errInfo.status).json(errInfo);
+  }
+});
+
+// CEX Flow Analysis - Trace fund flows between a wallet and centralized exchanges
+router.post('/cex-flow', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { walletAddress, chain } = req.body;
+
+  if (!walletAddress || !chain) {
+    return res.status(400).json({ error: 'Wallet address and chain are required' });
+  }
+
+  const normalizedChain = normalizeChainId(chain);
+  if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+    return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
+  }
+
+  try {
+    const defaultKey = await getAlchemyKeyForUser(req.user.uid);
+    const provider = new AlchemyProvider(
+      normalizedChain as ChainId,
+      defaultKey,
+      process.env.MORALIS_API_KEY,
+    );
+
+    // Fetch wallet transactions
+    const coreTxs = await provider.getTransactions(walletAddress, {
+      chain: normalizedChain as ChainId,
+      limit: 500,
+      skipTimestamps: true,
+    } as FilterOptions);
+
+    // Map core Transaction type to CEXService Transaction type
+    const txs = coreTxs.map(tx => ({
+      hash: tx.hash,
+      from: tx.from,
+      to: tx.to || '',
+      value: tx.valueInEth,
+      timestamp: tx.timestamp,
+    }));
+
+    // Run CEX flow analysis
+    const result = await cexService.analyzeCEXFlow(walletAddress, normalizedChain as ChainId, {
+      transactions: txs,
+    });
+
+    // Compute deposit/withdrawal totals
+    let totalDeposited = 0;
+    let totalWithdrawn = 0;
+    const flowEvents: Array<Record<string, unknown>> = [];
+
+    for (const tx of txs) {
+      const isDeposit = tx.to.toLowerCase() === walletAddress.toLowerCase();
+      const cexInfo = isDeposit
+        ? cexService.getCEXDetails(tx.from, normalizedChain as ChainId)
+        : cexService.getCEXDetails(tx.to, normalizedChain as ChainId);
+
+      if (cexInfo) {
+        if (isDeposit) {
+          totalDeposited += tx.value;
+          flowEvents.push({ type: 'deposit', exchange: cexInfo.cexName, amount: tx.value, timestamp: tx.timestamp });
+        } else {
+          totalWithdrawn += tx.value;
+          flowEvents.push({ type: 'withdrawal', exchange: cexInfo.cexName, amount: tx.value, timestamp: tx.timestamp });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      // Match frontend CEXFlowView expectations
+      exchanges: result.connectedCEX.map(c => ({
+        name: c.cexName,
+        address: c.address,
+      })),
+      totalDeposited,
+      totalWithdrawn,
+      netFlow: totalDeposited - totalWithdrawn,
+      flowEvents,
+      stats: result.stats,
+      detectedCEX: result.detectedCEX,
+    });
+
+    trackAnalysis({
+      userId: req.user.uid,
+      userEmail: req.user.email,
+      chain: normalizedChain,
+      feature: 'cex-flow',
+      timestamp: Date.now(),
+    }).catch(err => console.error('Failed to track analytics:', err));
+  } catch (error: any) {
+    console.error('[CEX Flow] Error:', error.message);
     const errInfo = getUserFriendlyError(error);
     res.status(errInfo.status).json(errInfo);
   }

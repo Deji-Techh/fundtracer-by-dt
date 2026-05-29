@@ -196,6 +196,7 @@ export class WalletAnalyzer {
         options: {
             treeConfig?: Partial<FundingTreeConfig>;
             cachedTransactions?: Transaction[]; // Accept pre-fetched transactions
+            skipTimestamps?: boolean; // Skip timestamp backfill for faster analysis
         } = {}
     ): Promise<{ fundingSources: FundingNode; fundingDestinations: FundingNode }> {
         const provider = this.providerFactory.getProvider(chainId);
@@ -204,7 +205,7 @@ export class WalletAnalyzer {
         this.reportProgress('Fetching transactions', 1, 3, 'Loading transaction data...');
 
         // Use cached transactions if provided, otherwise fetch fresh
-        const txs = options.cachedTransactions || await provider.getTransactions(normalizedAddr);
+        const txs = options.cachedTransactions || await provider.getTransactions(normalizedAddr, { skipTimestamps: options.skipTimestamps });
 
         this.reportProgress('Building funding tree', 2, 3, 'Tracing funding sources and destinations...');
 
@@ -292,6 +293,8 @@ export class WalletAnalyzer {
             externalInteractors?: string[];
             // Rich data from external sources with actual timestamps and values
             externalInteractorData?: ExternalInteractorData[];
+            // Skip timestamp backfill for faster analysis (@see analyze skipTimestamps)
+            skipTimestamps?: boolean;
         } = {}
     ): Promise<{
         contractAddress: string;
@@ -368,28 +371,29 @@ export class WalletAnalyzer {
         } else {
             this.reportProgress('Fetching contract transactions', 1, 4, 'Getting transactions to contract...');
             // Fallback to slow RPC fetching
-            txs = await provider.getTransactions(normalizedAddr);
+            txs = await provider.getTransactions(normalizedAddr, { skipTimestamps: options.skipTimestamps });
 
             for (const tx of txs) {
                 // Skip if this is an outgoing tx from contract
                 if (tx.from === normalizedAddr) continue;
 
                 const addr = tx.from.toLowerCase();
+                const ts = tx.timestamp > 0 ? tx.timestamp : tx.blockNumber * 12;
                 const existing = interactorMap.get(addr);
 
                 if (existing) {
                     existing.count++;
                     existing.valueIn += tx.isIncoming ? tx.valueInEth : 0;
                     existing.valueOut += !tx.isIncoming ? tx.valueInEth : 0;
-                    existing.firstTs = Math.min(existing.firstTs, tx.timestamp);
-                    existing.lastTs = Math.max(existing.lastTs, tx.timestamp);
+                    existing.firstTs = Math.min(existing.firstTs, ts);
+                    existing.lastTs = Math.max(existing.lastTs, ts);
                 } else {
                     interactorMap.set(addr, {
                         count: 1,
                         valueIn: tx.isIncoming ? tx.valueInEth : 0,
                         valueOut: !tx.isIncoming ? tx.valueInEth : 0,
-                        firstTs: tx.timestamp,
-                        lastTs: tx.timestamp,
+                        firstTs: ts,
+                        lastTs: ts,
                     });
                 }
             }
