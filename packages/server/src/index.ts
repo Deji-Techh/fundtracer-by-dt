@@ -181,6 +181,7 @@ app.use((req, res, next) => {
 // Security middleware
 app.use(helmet({
     crossOriginOpenerPolicy: false, // Completely disable COOP for Google Sign-In
+    crossOriginResourcePolicy: false, // Allow cross-origin reads (CORS handles access control)
     contentSecurityPolicy: {
         directives: {
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
