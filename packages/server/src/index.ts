@@ -355,6 +355,17 @@ Canonical: https://www.fundtracer.xyz/.well-known/security.txt
 
 
 
+// DEBUG: Log Tauri CORS origin for OPTIONS preflight diagnostics
+app.use((req, res, next) => {
+    if (req.method === 'OPTIONS' && req.path === '/api/user/profile') {
+        const origin = req.get('origin') || 'NO_ORIGIN_HEADER';
+        const reqHeaders = req.get('access-control-request-headers') || 'NO_REQ_HEADERS';
+        const reqMethod = req.get('access-control-request-method') || 'NO_REQ_METHOD';
+        console.log(`[CORS-DEBUG] OPTIONS /api/user/profile | Origin: "${origin}" | Req-Method: "${reqMethod}" | Req-Headers: "${reqHeaders}" | Host: "${req.get('host') || 'N/A'}"`);
+    }
+    next();
+});
+
 app.use(cors({
     origin: [
         'http://localhost:5173',
