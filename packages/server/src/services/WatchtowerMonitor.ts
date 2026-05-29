@@ -227,7 +227,7 @@ export class WatchtowerMonitor {
           params: [
             'alchemy_minedTransactions',
             {
-              addresses: addrs.map((a) => ({ from: a, to: a })),
+              addresses: addrs.flatMap((a) => [{ from: a }, { to: a }]),
               includeRemoved: false,
               hashesOnly: false,
             },
