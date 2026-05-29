@@ -34,10 +34,12 @@ type EventCallback = (uid: string, event: WatchtowerEvent) => void;
 
 export class WatchtowerMonitor {
   private activeConnections: Map<string, { ws: any; subId: string | null }> = new Map();
-  private watchedAddresses: Map<string, Set<string>> = new Map(); // chain -> set of addresses
+  private watchedAddresses: Map<string, Set<string>> = new Map(); // chain -> set of addresses (lowercase)
   private addressWatchers: Map<string, Set<string>> = new Map(); // address -> set of user IDs
+  private addressOriginalCase: Map<string, string> = new Map(); // lowercase -> original case for Alchemy filter
   private eventSubscribers: Set<EventCallback> = new Set();
   private db: any;
+  private firstMessageLogged = false;
 
   constructor() {
     this.db = getFirestore();
@@ -68,6 +70,9 @@ export class WatchtowerMonitor {
   async addWallet(uid: string, address: string, chain: string): Promise<void> {
     const addr = address.toLowerCase();
     const key = this.chainAddrKey(chain, addr);
+
+    // Preserve original case for Alchemy's case-sensitive address filter
+    this.addressOriginalCase.set(addr, address);
 
     if (!this.addressWatchers.has(key)) {
       this.addressWatchers.set(key, new Set());
@@ -110,6 +115,7 @@ export class WatchtowerMonitor {
       watchers.delete(uid);
       if (watchers.size === 0) {
         this.addressWatchers.delete(key);
+        this.addressOriginalCase.delete(addr);
         // Remove from Firestore
         try {
           await this.db.collection('watchlist').doc(key).delete();
@@ -167,12 +173,14 @@ export class WatchtowerMonitor {
       const snapshot = await this.db.collection('watchlist').get();
       for (const doc of snapshot.docs) {
         const data = doc.data();
-        const addr = (data.address || doc.id).toLowerCase();
+        const original = data.address || doc.id;
+        const addr = original.toLowerCase();
         const chain = data.chain || data.chains?.[0] || 'ethereum';
         const watchers: string[] = data.watchers || (data.addedBy ? [data.addedBy] : []);
 
         const key = this.chainAddrKey(chain, addr);
         this.addressWatchers.set(key, new Set(watchers));
+        this.addressOriginalCase.set(addr, original);
 
         if (!this.watchedAddresses.has(chain)) {
           this.watchedAddresses.set(chain, new Set());
@@ -209,8 +217,10 @@ export class WatchtowerMonitor {
   }
 
   private connectChain(chain: string, wsUrl: string): void {
-    const addrs = Array.from(this.watchedAddresses.get(chain) || []);
-    if (addrs.length === 0) return;
+    // Resolve original-case addresses for Alchemy's case-sensitive filter
+    const addrsLower = Array.from(this.watchedAddresses.get(chain) || []);
+    if (addrsLower.length === 0) return;
+    const addrsOriginal = addrsLower.map((a) => this.addressOriginalCase.get(a) || a);
 
     // Use dynamic import for WebSocket to avoid blocking
     import('ws').then((WS) => {
@@ -227,7 +237,7 @@ export class WatchtowerMonitor {
           params: [
             'alchemy_minedTransactions',
             {
-              addresses: addrs.flatMap((a) => [{ from: a }, { to: a }]),
+              addresses: addrsOriginal.flatMap((a) => [{ from: a }, { to: a }]),
               includeRemoved: false,
               hashesOnly: false,
             },
@@ -246,15 +256,27 @@ export class WatchtowerMonitor {
       ws.on('message', (raw: Buffer) => {
         try {
           const msg = JSON.parse(raw.toString());
+
+          // Log first few messages for diagnostics
+          if (!this.firstMessageLogged) {
+            this.firstMessageLogged = true;
+            const preview = JSON.stringify(msg).slice(0, 500);
+            console.log(`[Watchtower] First message on ${chain}:`, preview);
+          }
+
           if (msg.id === 1 && msg.result) {
             subId = msg.result;
-            console.log(`[Watchtower] Subscribed on ${chain} (sub ${subId}) — watching ${addrs.length} addresses`);
+            console.log(`[Watchtower] Subscribed on ${chain} (sub ${subId}) — watching ${addrsLower.length} addresses`);
             return;
           }
           if (msg.method === 'eth_subscription' && msg.params) {
-            this.handleTxEvent(chain, addrs, msg.params.result);
+            // Skip removed (reorg'd) transactions
+            if (msg.params.result?.removed) return;
+            this.handleTxEvent(chain, addrsLower, msg.params.result);
           }
-        } catch {}
+        } catch (e: any) {
+          console.error(`[Watchtower] Message handler error on ${chain}:`, e.message);
+        }
       });
 
       ws.on('close', (code: number) => {
@@ -334,6 +356,7 @@ export class WatchtowerMonitor {
       const key = this.chainAddrKey(chain, addr);
       const watchers = this.addressWatchers.get(key);
       if (watchers) {
+        console.log(`[Watchtower] Tx: ${chain} ${direction} ${valueEth.toFixed(4)} ETH — ${hash.slice(0, 10)}...`);
         for (const uid of watchers) {
           this.storeEvent(uid, event);
           this.notifySubscribers(uid, event);
