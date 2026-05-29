@@ -371,6 +371,7 @@ app.use(cors({
         'http://localhost:5173',
         'http://localhost:3000',
         'https://tauri.localhost',
+        'tauri://localhost',         // Tauri v2 custom protocol on Linux (useHttpsScheme ineffective)
         /^https:\/\/.*\.netlify\.app$/,
         /^https:\/\/.*\.firebaseapp\.com$/,
         /^https:\/\/.*\.pxxl\.click$/,
