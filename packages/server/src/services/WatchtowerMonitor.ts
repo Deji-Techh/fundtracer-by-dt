@@ -217,65 +217,78 @@ export class WatchtowerMonitor {
   }
 
   private connectChain(chain: string, wsUrl: string): void {
-    // Resolve original-case addresses for Alchemy's case-sensitive filter
     const addrsLower = Array.from(this.watchedAddresses.get(chain) || []);
     if (addrsLower.length === 0) return;
-    const addrsOriginal = addrsLower.map((a) => this.addressOriginalCase.get(a) || a);
 
-    // Use dynamic import for WebSocket to avoid blocking
     import('ws').then((WS) => {
       const ws = new WS.default(wsUrl);
       let subId: string | null = null;
       let pingInterval: ReturnType<typeof setInterval>;
+      let msgCount = 0;
 
       ws.on('open', () => {
-        // Subscribe to alchemy_minedTransactions for all watched addresses
+        // Build filter identically to working Python implementation:
+        // all "from" entries first, then all "to" entries
+        const fromFilters = addrsLower.map((a) => ({ from: a }));
+        const toFilters = addrsLower.map((a) => ({ to: a }));
+        const addresses = [...fromFilters, ...toFilters];
+
         const subMsg = JSON.stringify({
           jsonrpc: '2.0',
-          id: 1,
           method: 'eth_subscribe',
           params: [
             'alchemy_minedTransactions',
             {
-              addresses: addrsOriginal.flatMap((a) => [{ from: a }, { to: a }]),
+              addresses,
               includeRemoved: false,
               hashesOnly: false,
             },
           ],
+          id: 1,
         });
+        console.log(`[Watchtower] Subscribing on ${chain} with ${addresses.length} filters for ${addrsLower.length} addresses`);
         ws.send(subMsg);
 
-        // Keep connection alive
         pingInterval = setInterval(() => {
           if (ws.readyState === WS.default.OPEN) {
             ws.ping();
           }
-        }, 30000);
+        }, 20000); // match Python's 20s ping_interval
       });
 
       ws.on('message', (raw: Buffer) => {
+        msgCount++;
         try {
-          const msg = JSON.parse(raw.toString());
+          const rawStr = raw.toString();
+          const msg = JSON.parse(rawStr);
 
-          // Log first few messages for diagnostics
-          if (!this.firstMessageLogged) {
-            this.firstMessageLogged = true;
-            const preview = JSON.stringify(msg).slice(0, 500);
-            console.log(`[Watchtower] First message on ${chain}:`, preview);
+          // Log first 3 messages for diagnostics
+          if (msgCount <= 3) {
+            console.log(`[Watchtower] Msg #${msgCount} on ${chain}:`, rawStr.slice(0, 400));
           }
 
-          if (msg.id === 1 && msg.result) {
+          // Match Python: skip messages that have top-level "result" but no "params"
+          // (subscription confirmation: {"jsonrpc":"2.0","id":1,"result":"0x..."})
+          if ('result' in msg && !('params' in msg)) {
             subId = msg.result;
             console.log(`[Watchtower] Subscribed on ${chain} (sub ${subId}) — watching ${addrsLower.length} addresses`);
             return;
           }
-          if (msg.method === 'eth_subscription' && msg.params) {
-            // Skip removed (reorg'd) transactions
-            if (msg.params.result?.removed) return;
-            this.handleTxEvent(chain, addrsLower, msg.params.result);
-          }
+
+          // Match Python: skip messages without "params"
+          if (!('params' in msg)) return;
+
+          // Match Python: extract result.transaction
+          const result = msg.params?.result;
+          const tx = result?.transaction;
+          if (!tx) return;
+
+          // Skip removed (reorg'd) transactions
+          if (result.removed) return;
+
+          this.handleTxEvent(chain, addrsLower, result);
         } catch (e: any) {
-          console.error(`[Watchtower] Message handler error on ${chain}:`, e.message);
+          console.error(`[Watchtower] Message handler error on ${chain} (msg #${msgCount}):`, e.message);
         }
       });
 
