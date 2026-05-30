@@ -9,7 +9,7 @@ import PDFDocument from 'pdfkit';
 import { getFirestore } from '../firebase.js';
 import { sendEmail, buildScheduledReportEmail } from './EmailService.js';
 
-const REPORT_FROM = 'Fundtracer Reports <reports@fundtracer.xyz>';
+const REPORT_FROM = 'FundTracer Reports <alert@fundtracer.xyz>';
 const REFRESH_INTERVAL = 60_000; // 60s — check for new/updated schedules
 const MAX_OUTPUT_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 
