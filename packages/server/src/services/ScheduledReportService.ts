@@ -128,16 +128,13 @@ class ScheduledReportService {
 
   private async executeSchedule(schedule: ReportSchedule): Promise<void> {
     const startTime = Date.now();
+    const db = getFirestore();
     console.log(`[ScheduledReports] Executing: ${schedule.name} (${schedule.id})`);
 
     try {
-      const db = getFirestore();
-
       // Generate report
       const reportData = await this.generateReportData(schedule);
       const { content, filename, contentType } = this.formatReport(schedule, reportData);
-
-      let outputId: string | null = null;
 
       if (schedule.deliveryMethod === 'email' && schedule.emailRecipient) {
         // Send via email with attachment
@@ -151,6 +148,8 @@ class ScheduledReportService {
           schedule.addresses.length,
           schedule.format
         );
+
+        console.log(`[ScheduledReports] Sending email: ${filename} (${base64Content.length} bytes base64)`);
 
         await sendEmail({
           to: schedule.emailRecipient,
@@ -166,7 +165,7 @@ class ScheduledReportService {
         console.log(`[ScheduledReports] Emailed report to: ${schedule.emailRecipient}`);
       } else {
         // Store for download
-        outputId = `out_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+        const outputId = `out_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
         const base64Content = Buffer.isBuffer(content)
           ? (content as Buffer).toString('base64')
           : Buffer.from(content as string).toString('base64');
