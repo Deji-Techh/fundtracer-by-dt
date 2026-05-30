@@ -185,6 +185,12 @@ class ScheduledReportService {
         };
 
         await db.collection('report_outputs').doc(outputId).set(output);
+
+        // Save lastOutputId on the schedule doc so the client can find it
+        await db.collection('scheduled_reports').doc(schedule.id).update({
+          lastOutputId: outputId,
+          lastOutputFilename: filename,
+        });
         console.log(`[ScheduledReports] Stored output: ${outputId}`);
       }
 

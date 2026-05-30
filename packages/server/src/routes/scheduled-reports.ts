@@ -186,6 +186,45 @@ router.post('/:id/run', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+// GET /api/scheduled-reports/:id/outputs — list available download outputs for a schedule
+router.get('/:id/outputs', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+
+    // Verify schedule ownership
+    const doc = await db.collection('scheduled_reports').doc(req.params.id).get();
+    if (!doc.exists) return res.status(404).json({ error: 'Schedule not found' });
+    const data = doc.data()!;
+    if (data.userId !== req.user!.uid) return res.status(403).json({ error: 'Not authorized' });
+
+    const snap = await db.collection('report_outputs')
+      .where('scheduleId', '==', req.params.id)
+      .where('userId', '==', req.user!.uid)
+      .limit(20)
+      .get();
+
+    // Sort in-memory to avoid requiring a composite index
+    const outputs = snap.docs
+      .map(d => {
+        const o = d.data();
+        return {
+          id: d.id,
+          filename: o.filename,
+          format: o.format,
+          contentType: o.contentType,
+          createdAt: o.createdAt,
+          expiresAt: o.expiresAt,
+        };
+      })
+      .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    res.json({ outputs });
+  } catch (error) {
+    console.error('[ScheduledReports] List outputs error:', error);
+    res.status(500).json({ error: 'Failed to list outputs' });
+  }
+});
+
 // GET /api/scheduled-reports/:id/download/:outputId — download stored report
 router.get('/:id/download/:outputId', async (req: AuthenticatedRequest, res: Response) => {
   try {
