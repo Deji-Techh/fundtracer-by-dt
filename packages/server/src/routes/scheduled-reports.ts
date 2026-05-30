@@ -30,10 +30,12 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     const db = getFirestore();
     const snap = await db.collection('scheduled_reports')
       .where('userId', '==', req.user!.uid)
-      .orderBy('createdAt', 'desc')
       .get();
 
-    const schedules = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Sort in-memory to avoid requiring a composite index
+    const schedules = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
     res.json({ schedules });
   } catch (error) {
     console.error('[ScheduledReports] List error:', error);
