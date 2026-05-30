@@ -380,13 +380,16 @@ export class WatchtowerMonitor {
 
   private async storeEvent(uid: string, event: WatchtowerEvent): Promise<void> {
     try {
+      // Use txHash + direction as doc ID so both incoming and outgoing
+      // perspectives are stored when the same user watches both parties.
+      const docId = `${event.txHash}_${event.direction}`;
       await this.db
         .collection('watchtower_events').doc(uid)
-        .collection('activity').doc(event.txHash)
+        .collection('activity').doc(docId)
         .set({
           ...event,
           createdAt: FieldValue.serverTimestamp(),
-        }, { merge: true });
+        });
     } catch (e: any) {
       console.error('[Watchtower] Failed to store event:', e.message);
     }
