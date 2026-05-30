@@ -44,7 +44,7 @@ export async function sendEmail({ to, subject, html, from, includeBcc, attachmen
   }
 
   try {
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: from || DEFAULT_FROM,
       to,
       bcc: includeBcc !== false ? BCC_ADDRESS : undefined,
@@ -53,9 +53,16 @@ export async function sendEmail({ to, subject, html, from, includeBcc, attachmen
       attachments: attachments?.map(a => ({
         filename: a.filename,
         content: a.content,
+        content_type: a.contentType,
       })),
     });
-    console.log(`[EmailService] Email sent to: ${to}, subject: ${subject}`);
+
+    if (error) {
+      console.error(`[EmailService] Resend error (${error.statusCode}): ${error.message}`, { to, subject, from: from || DEFAULT_FROM });
+      throw new Error(`Resend send failed: ${error.message} (status ${error.statusCode})`);
+    }
+
+    console.log(`[EmailService] Email sent to: ${to}, subject: ${subject}, id: ${data?.id}`);
   } catch (error) {
     console.error('[EmailService] Failed to send email:', error);
     throw error;
