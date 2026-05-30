@@ -123,13 +123,13 @@ router.get('/', async (req: AuthenticatedRequest, res) => {
 
     if (roomIds.length === 0) return res.json({ success: true, rooms: [] });
 
-    const rooms: any[] = [];
-    for (const rid of roomIds) {
-      const doc = await db.collection('investigation_rooms').doc(rid).get();
-      if (doc.exists) rooms.push({ id: doc.id, ...doc.data() });
-    }
-
-    rooms.sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
+    // Firestore getAll reads up to 100 docs in parallel (avoids N+1)
+    const roomRefs = roomIds.map(rid => db.collection('investigation_rooms').doc(rid));
+    const roomSnaps = await db.getAll(...roomRefs);
+    const rooms = roomSnaps
+      .filter((doc: any) => doc.exists)
+      .map((doc: any) => ({ id: doc.id, ...doc.data() }))
+      .sort((a: any, b: any) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
 
     if (isRedisConnected()) await cacheSet(`rooms:${userId}`, rooms, CACHE_TTL);
     res.json({ success: true, rooms });
