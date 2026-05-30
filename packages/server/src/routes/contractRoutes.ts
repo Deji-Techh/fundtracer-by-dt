@@ -23,10 +23,28 @@ router.post('/scan', async (req, res) => {
     );
     
     const result = await scanner.scan(address);
-    
+
     res.json({
       success: true,
-      ...result
+      // Flatten nested result to match what the frontend expects
+      contractAddress: result.contract.address,
+      contractName: result.contract.name,
+      contractSymbol: result.contract.symbol,
+      contractType: result.contract.type,
+      creator: result.contract.creator,
+      creationDate: result.contract.createdAt,
+      creationTx: result.contract.creationTxHash,
+      ethBalance: parseFloat(result.contract.balanceETH || '0'),
+      chain: result.contract.isContract ? 'ethereum' : undefined,
+      uniqueWallets: result.stats.uniqueWallets,
+      totalTransfers: result.stats.totalTransfers,
+      incomingTransfers: result.stats.incomingTransfers,
+      outgoingTransfers: result.stats.outgoingTransfers,
+      totalInteractors: result.stats.uniqueWallets,
+      categoryBreakdown: result.stats.categoryCounts,
+      walletInteractions: result.wallets,
+      riskScore: 0, // Contract scanner doesn't calculate risk score
+      scanDuration: result.scanDurationMs,
     });
   } catch (error) {
     console.error('[Contract Scan Error]', error);

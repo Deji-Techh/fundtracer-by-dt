@@ -851,12 +851,12 @@ export class DuneSimClient {
             totalValue += bal.value_usd || 0;
             
             if (bal.address === 'native') {
-                nativeBalance = bal.amount;
+                nativeBalance = bal.balance;
                 nativeValue = bal.value_usd || 0;
             } else {
                 tokens.push({
                     address: bal.address,
-                    balance: bal.amount,
+                    balance: bal.balance,
                     value_usd: bal.value_usd || 0,
                     symbol: bal.symbol,
                     name: bal.name,
@@ -882,7 +882,7 @@ export class DuneSimClient {
                 for (const bal of stableResult.balances || []) {
                     stablecoinsList.push({
                         address: bal.address,
-                        balance: bal.amount,
+                        balance: bal.balance,
                         value_usd: bal.value_usd || 0,
                         symbol: bal.symbol,
                     });

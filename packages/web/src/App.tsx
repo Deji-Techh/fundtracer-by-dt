@@ -276,6 +276,27 @@ function App() {
       localStorage.setItem('referral_ref', refParam);
     }
     
+    // Desktop app OAuth flow: redirect to desktop deep link
+    if (token && refParam === 'desktop') {
+      setGlobalTokenProcessed(true);
+      // Try custom protocol deep link first
+      window.location.href = `fundtracer://auth?token=${encodeURIComponent(token)}`;
+      // Fallback: if deep link doesn't work within 2s, show manual instructions
+      setTimeout(() => {
+        document.body.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f7;color:#1d1d1f;text-align:center;padding:24px;">
+            <div>
+              <h2 style="font-size:24px;font-weight:700;margin-bottom:8px;">Return to FundTracer Desktop</h2>
+              <p style="color:#86868b;margin-bottom:24px;">Click the button below to complete sign in.</p>
+              <a href="fundtracer://auth?token=${encodeURIComponent(token)}" style="display:inline-block;padding:12px 32px;background:#00cc66;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px;">Open FundTracer Desktop</a>
+              <p style="color:#aeaeb2;font-size:12px;margin-top:20px;">If the button doesn't work, copy this token and paste it in the app:</p>
+              <code style="display:block;margin-top:8px;padding:12px;background:#fff;border:1px solid #d2d2d7;border-radius:8px;word-break:break-all;font-size:11px;font-family:monospace;max-width:480px;margin-left:auto;margin-right:auto;">${token}</code>
+            </div>
+          </div>`;
+      }, 2000);
+      return;
+    }
+
     // Process token from URL (from OAuth callbacks like Google, etc.)
     if (token && !globalTokenProcessed) {
       setGlobalTokenProcessed(true);

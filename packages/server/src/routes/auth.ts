@@ -1203,4 +1203,145 @@ router.post('/unlink-wallet', async (req: Request, res: Response) => {
   }
 });
 
+// Privy token exchange — verifies a Privy access token and exchanges it for a FundTracer JWT
+const PRIVY_APP_ID = process.env.PRIVY_APP_ID || '';
+const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET || '';
+
+router.post('/privy-exchange', async (req: Request, res: Response) => {
+  const { privyToken } = req.body;
+  console.log('[AUTH] Privy Exchange Request');
+
+  if (!privyToken) {
+    return res.status(400).json({ error: 'Missing Privy token' });
+  }
+
+  if (!PRIVY_APP_ID || !PRIVY_APP_SECRET) {
+    console.error('[AUTH] Privy credentials not configured');
+    return res.status(500).json({ error: 'Privy integration not configured' });
+  }
+
+  try {
+    // Verify the Privy access token with Privy's API
+    const authHeader = Buffer.from(`${PRIVY_APP_ID}:${PRIVY_APP_SECRET}`).toString('base64');
+    const verifyRes = await fetch('https://auth.privy.io/api/v1/sessions/verify', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${authHeader}`,
+        'Content-Type': 'application/json',
+        'privy-app-id': PRIVY_APP_ID,
+      },
+      body: JSON.stringify({ token: privyToken }),
+    });
+
+    if (!verifyRes.ok) {
+      console.error('[AUTH] Privy token verification failed:', verifyRes.status);
+      return res.status(401).json({ error: 'Invalid Privy token' });
+    }
+
+    const session = await verifyRes.json() as Record<string, unknown>;
+    const user = session.user as Record<string, unknown> | undefined;
+    if (!user?.id) {
+      return res.status(401).json({ error: 'Invalid Privy session' });
+    }
+
+    const privyId = user.id as string;
+    const linkedAccounts = (user.linked_accounts || user.linkedAccounts || []) as Array<Record<string, unknown>>;
+
+    // Extract identity from linked accounts
+    let email = '';
+    let displayName = '';
+    let profilePicture = '';
+    let walletAddress = '';
+    let authProvider: string = 'privy';
+
+    for (const acc of linkedAccounts) {
+      const type = acc.type as string;
+      if (type === 'email' && !email) {
+        email = (acc.email || acc.address || '') as string;
+      }
+      if ((type === 'google_oauth' || type === 'google') && !email) {
+        email = (acc.email || '') as string;
+        displayName = (acc.name || displayName || '') as string;
+        profilePicture = (acc.picture || acc.profilePicture || profilePicture || '') as string;
+        authProvider = 'google';
+      }
+      if ((type === 'twitter_oauth' || type === 'twitter') && !displayName) {
+        displayName = (acc.name || acc.username || displayName || '') as string;
+        profilePicture = (acc.picture || acc.profilePicture || profilePicture || '') as string;
+        if (!authProvider || authProvider === 'privy') authProvider = 'twitter';
+      }
+      if (type === 'wallet' && !walletAddress) {
+        walletAddress = (acc.address || acc.walletAddress || '') as string;
+      }
+    }
+
+    // Fallback to Privy user fields
+    if (!email) email = (user.email as string) || '';
+    if (!displayName) displayName = (user.name as string) || (user.displayName as string) || email || 'Privy User';
+    if (!profilePicture) profilePicture = (user.picture as string) || (user.profilePicture as string) || '';
+    if (!walletAddress) walletAddress = (user.wallet?.address as string) || '';
+
+    const uid = `privy:${privyId}`;
+
+    // Upsert Firestore user
+    const db = getFirestore();
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+    const isNewUser = !userDoc.exists;
+
+    const tier = 'max';
+
+    await userRef.set({
+      uid,
+      email: email || null,
+      displayName,
+      profilePicture: profilePicture || null,
+      tier,
+      walletAddress: walletAddress || null,
+      lastLogin: Date.now(),
+      authProvider,
+      privyId,
+      onboardingCompleted: isNewUser ? false : (userDoc.data()?.onboardingCompleted ?? false),
+    }, { merge: true });
+
+    console.log(`[AUTH] Privy Exchange: ${email || privyId} (${authProvider}), isNew=${isNewUser}`);
+
+    // Send welcome email for new users
+    if (email && isNewUser) {
+      sendWelcomeEmail(email, displayName, authProvider).catch(err =>
+        console.error('[EMAIL] Failed to send welcome email:', err)
+      );
+    }
+
+    // Generate FundTracer JWT
+    const token = jwt.sign({
+      uid,
+      email: email || undefined,
+      displayName,
+      profilePicture: profilePicture || undefined,
+      tier,
+      walletAddress: walletAddress || undefined,
+      authProvider,
+    }, getJwtSecret(), { expiresIn: '7d' });
+
+    console.log('[AUTH] Privy Exchange SUCCESS');
+
+    res.json({
+      token,
+      user: {
+        uid,
+        email,
+        displayName,
+        profilePicture,
+        tier,
+        walletAddress,
+        isVerified: false,
+      },
+    });
+  } catch (error: any) {
+    console.error('[AUTH] Privy Exchange error:', error);
+    res.status(500).json({ error: 'Privy exchange failed' });
+  }
+});
+
 export { router as authRoutes };

@@ -2,6 +2,52 @@ import type { McpToolHandler, McpToolResult } from './types.js';
 import { tryResolveAddress } from '../utils/nameResolver.js';
 
 // ---------------------------------------------------------------------------
+// Scan history recording (fire-and-forget — does not block tool responses)
+// ---------------------------------------------------------------------------
+const MAX_HISTORY_ITEMS = 50;
+const COLLECTION = 'scanHistory';
+
+function recordScanHistory(
+  userId: string, address: string, chain: string,
+  type: 'wallet' | 'contract' | 'compare' | 'sybil',
+  extra?: { riskScore?: number; riskLevel?: string; totalTransactions?: number },
+): void {
+  if (!userId) return;
+  // Fire-and-forget — don't await, don't block the tool response
+  void (async () => {
+    try {
+      const { getFirestore } = await import('../firebase.js');
+      const db = getFirestore();
+      const userCol = db.collection(COLLECTION).doc(userId).collection('items');
+      const docId = address.toLowerCase().replace(/,/g, '_');
+
+      const item: Record<string, any> = {
+        address,
+        chain: chain || 'ethereum',
+        type,
+        timestamp: Date.now(),
+        updatedAt: Date.now(),
+      };
+      if (extra?.riskScore !== undefined) item.riskScore = extra.riskScore;
+      if (extra?.riskLevel !== undefined) item.riskLevel = extra.riskLevel;
+      if (extra?.totalTransactions !== undefined) item.totalTransactions = extra.totalTransactions;
+
+      await userCol.doc(docId).set(item, { merge: true });
+
+      // Enforce max items
+      const countSnapshot = await userCol.orderBy('timestamp', 'desc').get();
+      if (countSnapshot.size > MAX_HISTORY_ITEMS) {
+        const batch = db.batch();
+        countSnapshot.docs.slice(MAX_HISTORY_ITEMS).forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      }
+    } catch {
+      // Silently ignore — history recording must not break tool responses
+    }
+  })();
+}
+
+// ---------------------------------------------------------------------------
 // Helper: resolve an address (ENS → 0x), returning err result if unresolved
 // ---------------------------------------------------------------------------
 async function resolveOrFail(address: string): Promise<{ resolved: string; error?: McpToolResult }> {
@@ -55,6 +101,12 @@ const analyzeWallet: McpToolHandler = async (args, ctx) => {
       transactionLimit: (transactionLimit as number) || 500,
     });
 
+    recordScanHistory(ctx.userId, resolvedAddr, chainId, 'wallet', {
+      riskScore: result.overallRiskScore,
+      riskLevel: result.riskLevel,
+      totalTransactions: result.wallet?.txCount,
+    });
+
     return ok(JSON.stringify({
       address: result.wallet.address,
       chain: chainId,
@@ -106,6 +158,8 @@ const traceFunds: McpToolHandler = async (args, ctx) => {
 
     const tree = await analyzer.buildFundingTree(resolvedAddr, chainId as any, { treeConfig });
 
+    recordScanHistory(ctx.userId, resolvedAddr, chainId, 'wallet');
+
     return ok(JSON.stringify({
       sources: summarizeTree(tree.fundingSources),
       destinations: summarizeTree(tree.fundingDestinations),
@@ -130,6 +184,8 @@ const compareWallets: McpToolHandler = async (args, ctx) => {
     const analyzer = new WalletAnalyzer(buildApiKeyConfig());
 
     const result = await analyzer.compareWallets(addrList, chainId as any);
+
+    recordScanHistory(ctx.userId, addrList.join(','), chainId, 'compare');
 
     return ok(JSON.stringify({
       wallets: addrList,
@@ -165,6 +221,11 @@ const analyzeContract: McpToolHandler = async (args, ctx) => {
       maxInteractors: maxInteractors as number,
     });
 
+    recordScanHistory(ctx.userId, resolvedAddr, chainId, 'contract', {
+      riskScore: result.riskScore,
+      totalTransactions: result.totalInteractors,
+    });
+
     return ok(JSON.stringify({
       contractAddress,
       chain: chainId,
@@ -195,6 +256,8 @@ const detectSybilClusters: McpToolHandler = async (args, ctx) => {
 
     const analyzer = new SybilAnalyzer(chainId as any, sybilConfig);
     const result = await analyzer.analyzeAddresses(addrList, { minClusterSize: 2 });
+
+    recordScanHistory(ctx.userId, addrList.join(','), chainId, 'sybil');
 
     return ok(JSON.stringify({
       chain: chainId,

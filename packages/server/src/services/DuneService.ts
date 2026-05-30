@@ -57,18 +57,41 @@ export class DuneService {
         const contractLower = contractAddress.toLowerCase();
         const safeLimit = clampLimit(limit);
 
-        // Query with actual transaction data - aggregate by wallet
+        // Query with actual transaction data — tracks both incoming and outgoing
         const query = `
-            SELECT 
-                "from" as wallet,
-                MIN(block_number) as first_block,
-                MAX(block_number) as last_block,
-                COUNT(*) as tx_count,
-                SUM("value" / 1e18) as total_eth_in,
-                0 as total_eth_out
-            FROM ${duneTable}
-            WHERE LOWER(CAST("to" AS VARCHAR)) = '${contractLower}'
-            GROUP BY "from"
+            SELECT
+                wallet,
+                MIN(first_block) as first_block,
+                MAX(last_block) as last_block,
+                SUM(tx_count) as tx_count,
+                SUM(total_eth_in) as total_eth_in,
+                SUM(total_eth_out) as total_eth_out
+            FROM (
+                SELECT
+                    "from" as wallet,
+                    MIN(block_number) as first_block,
+                    MAX(block_number) as last_block,
+                    COUNT(*) as tx_count,
+                    SUM("value" / 1e18) as total_eth_in,
+                    0 as total_eth_out
+                FROM ${duneTable}
+                WHERE LOWER(CAST("to" AS VARCHAR)) = '${contractLower}'
+                GROUP BY "from"
+
+                UNION ALL
+
+                SELECT
+                    "to" as wallet,
+                    MIN(block_number) as first_block,
+                    MAX(block_number) as last_block,
+                    COUNT(*) as tx_count,
+                    0 as total_eth_in,
+                    SUM("value" / 1e18) as total_eth_out
+                FROM ${duneTable}
+                WHERE LOWER(CAST("from" AS VARCHAR)) = '${contractLower}'
+                GROUP BY "to"
+            )
+            GROUP BY wallet
             ORDER BY tx_count DESC, first_block ASC
             LIMIT ${safeLimit}
         `;
