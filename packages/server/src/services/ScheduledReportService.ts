@@ -255,12 +255,16 @@ class ScheduledReportService {
     // Aggregate portfolio totals from successful analyses
     let totalTxCount = 0;
     let highRiskCount = 0;
+    let totalValueEth = 0;
+    let totalUniqueAddresses = 0;
     const allIndicators: string[] = [];
     const allProjects = new Set<string>();
 
     for (const r of successful) {
       const d = (r as any).data;
-      totalTxCount += d.transactions?.length || 0;
+      totalTxCount += d.summary?.totalTransactions || 0;
+      totalValueEth += d.summary?.totalValueSentEth || 0;
+      totalUniqueAddresses += d.summary?.uniqueInteractedAddresses || 0;
       if (d.overallRiskScore >= 60) highRiskCount++;
       if (d.suspiciousIndicators) {
         for (const ind of d.suspiciousIndicators) {
@@ -269,7 +273,7 @@ class ScheduledReportService {
       }
       if (d.projectsInteracted) {
         for (const p of d.projectsInteracted) {
-          if (p && allProjects.size < 100) allProjects.add(p);
+          if (p?.projectName && allProjects.size < 100) allProjects.add(p.projectName);
         }
       }
     }
@@ -285,6 +289,8 @@ class ScheduledReportService {
         analyzed: successful.length,
         failed: failed.length,
         totalTransactions: totalTxCount,
+        totalValueEth: Math.round(totalValueEth * 100) / 100,
+        totalUniqueAddresses,
         highRiskWallets: highRiskCount,
         projectsInteracted: allProjects.size,
         topIndicators: [...new Set(allIndicators)].slice(0, 10),
@@ -431,9 +437,9 @@ class ScheduledReportService {
 
       const statCards = [
         { label: 'Wallets Analyzed', value: `${s.analyzed}/${s.totalAddresses}`, color: BLUE },
-        { label: 'Total Transactions', value: String(s.totalTransactions), color: GREEN },
+        { label: 'Total Txs', value: String(s.totalTransactions), color: GREEN },
+        { label: 'Value Moved', value: `${s.totalValueEth || 0} ETH`, color: BLUE_DARK },
         { label: 'High Risk', value: String(s.highRiskWallets), color: s.highRiskWallets > 0 ? RED : GREEN },
-        { label: 'Projects Seen', value: String(s.projectsInteracted), color: AMBER },
       ];
 
       const cardW = (CONTENT_W - 24) / 4;
@@ -480,7 +486,7 @@ class ScheduledReportService {
 
         // Wallet card background
         const cardTop = y;
-        const cardBottom = cardTop + 135;
+        const cardBottom = cardTop + 142;
 
         // Card bg
         doc.roundedRect(MARGIN, cardTop, CONTENT_W, cardBottom - cardTop, 6).fill(GRAY_100).stroke(GRAY_200);
@@ -500,8 +506,9 @@ class ScheduledReportService {
         }
 
         const d = w.data;
-        const balanceEth = d.wallet?.balance ? (Number(d.wallet.balance) / 1e18) : 0;
-        const txCount = d.transactions?.length || 0;
+        const wallet = d.wallet || {};
+        const balanceEth = wallet.balanceInEth || 0;
+        const txCount = d.summary?.totalTransactions || d.transactions?.length || 0;
         const risk = d.overallRiskScore ?? 0;
         const riskLevel = d.riskLevel || 'Unknown';
         const riskColor = risk >= 60 ? RED : risk >= 30 ? AMBER : GREEN;
@@ -510,15 +517,18 @@ class ScheduledReportService {
         const badgeX = PAGE_W - MARGIN - 80;
         doc.roundedRect(badgeX, cardTop + 10, 68, 22, 11).fill(riskColor).fillOpacity(0.12).stroke(riskColor).strokeOpacity(0.3).fillOpacity(1);
         doc.fontSize(10).font('Helvetica-Bold').fillColor(riskColor)
-          .text(riskLevel, badgeX, cardTop + 14, { width: 68, align: 'center' });
+          .text(riskLevel.toUpperCase(), badgeX, cardTop + 14, { width: 68, align: 'center' });
 
         // Stats row
         const statsY = cardTop + 34;
+        const firstSeenDate = wallet.firstTxTimestamp
+          ? new Date(wallet.firstTxTimestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'N/A';
         const statFields = [
           { label: 'Balance', value: `${balanceEth.toFixed(4)} ETH` },
           { label: 'Transactions', value: String(txCount) },
           { label: 'Risk Score', value: `${risk}/100` },
-          { label: 'First Seen', value: d.wallet?.firstSeen ? new Date(d.wallet.firstSeen * 1000).toLocaleDateString() : 'N/A' },
+          { label: 'First Activity', value: firstSeenDate },
         ];
         const statW = (CONTENT_W - 24) / statFields.length;
         for (let i = 0; i < statFields.length; i++) {
@@ -542,7 +552,7 @@ class ScheduledReportService {
           doc.fontSize(7).font('Helvetica').fillColor(GRAY_400).text('Flags:', MARGIN + 12, indY);
           let ix = MARGIN + 42;
           for (const ind of indicators.slice(0, 4)) {
-            const label = ind.type || ind.description || String(ind);
+            const label = ind.type?.replace(/_/g, ' ') || ind.description || String(ind);
             const iw = doc.widthOfString(label) + 14;
             if (ix + iw > PAGE_W - MARGIN) break;
             doc.roundedRect(ix, indY - 1, iw, 14, 7).fill(RED).fillOpacity(0.08).stroke(RED).strokeOpacity(0.2).fillOpacity(1);
@@ -551,20 +561,20 @@ class ScheduledReportService {
           }
         }
 
-        // Tokens row
-        const tokens = d.wallet?.tokens || [];
-        if (tokens.length > 0) {
-          const tokY = indicators.length > 0 ? barY + 30 : barY + 14;
-          doc.fontSize(7).font('Helvetica').fillColor(GRAY_400).text('Top Tokens:', MARGIN + 12, tokY);
-          let tx = MARGIN + 72;
-          for (const tok of tokens.slice(0, 5)) {
-            const label = `${tok.symbol || '???'}: ${tok.balance ? Number(tok.balance).toFixed(2) : '?'}`;
-            const tw = doc.widthOfString(label) + 14;
-            if (tx + tw > PAGE_W - MARGIN) break;
-            doc.roundedRect(tx, tokY - 1, tw, 14, 7).fill(BLUE).fillOpacity(0.06).stroke(BLUE).strokeOpacity(0.15).fillOpacity(1);
-            doc.fontSize(6.5).fillColor(BLUE).text(label, tx, tokY + 2, { width: tw, align: 'center' });
-            tx += tw + 5;
-          }
+        // Activity summary row (replaces non-existent tokens)
+        const sum = d.summary;
+        const sumY = indicators.length > 0 ? barY + 30 : barY + 14;
+        const sumFields = [
+          { label: 'Sent', value: `${(sum?.totalValueSentEth || 0).toFixed(2)} ETH` },
+          { label: 'Received', value: `${(sum?.totalValueReceivedEth || 0).toFixed(2)} ETH` },
+          { label: 'Counterparties', value: String(sum?.uniqueInteractedAddresses || 0) },
+          { label: 'Activity Span', value: sum?.activityPeriodDays ? `${sum.activityPeriodDays}d` : 'N/A' },
+        ];
+        const sumW = (CONTENT_W - 24) / sumFields.length;
+        for (let i = 0; i < sumFields.length; i++) {
+          const sx = MARGIN + 12 + i * sumW;
+          doc.fontSize(7).font('Helvetica').fillColor(GRAY_400).text(sumFields[i].label, sx, sumY, { width: sumW });
+          doc.fontSize(9).font('Helvetica').fillColor(GRAY_600).text(sumFields[i].value, sx, sumY + 10, { width: sumW });
         }
 
         y = cardBottom + 12;
