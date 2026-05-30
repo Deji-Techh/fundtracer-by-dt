@@ -220,12 +220,27 @@ class ScheduledReportService {
 
     const chainId = schedule.chain as ChainId;
 
-    console.log(`[ScheduledReports] Analyzing ${schedule.addresses.length} wallet(s) on ${schedule.chain}...`);
+    // Compute timeRange filter from timePeriod setting
+    const now = Math.floor(Date.now() / 1000);
+    const periodSeconds: Record<string, number> = {
+      '24h': 86400,
+      '7d': 604800,
+      '30d': 2592000,
+    };
+    const timeRange = schedule.timePeriod !== 'all'
+      ? { start: now - (periodSeconds[schedule.timePeriod] || 0), end: now }
+      : undefined;
+
+    console.log(`[ScheduledReports] Analyzing ${schedule.addresses.length} wallet(s) on ${schedule.chain} (period: ${schedule.timePeriod})...`);
 
     const walletResults = await Promise.all(
       schedule.addresses.map(async (addr) => {
         try {
-          const result = await analyzer.analyze(addr, chainId, { transactionLimit: 100, skipFundingTree: true });
+          const result = await analyzer.analyze(addr, chainId, {
+            transactionLimit: 100,
+            skipFundingTree: true,
+            filters: timeRange ? { timeRange } : undefined,
+          });
           return { address: addr, success: true, data: result };
         } catch (err: any) {
           console.error(`[ScheduledReports] Analysis failed for ${addr}:`, err?.message);
