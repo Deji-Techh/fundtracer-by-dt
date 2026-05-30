@@ -141,9 +141,11 @@ function gracefulShutdown(signal: string) {
             console.log('✅ HTTP server closed');
             
             try {
-                // Close database connections
-                // Close any active payment listeners
-                // Flush any pending analytics
+                // Stop scheduled report service
+                try {
+                    const { scheduledReportService } = await import('./services/ScheduledReportService.js');
+                    scheduledReportService.stop();
+                } catch {}
                 console.log('✅ All connections closed gracefully');
                 process.exit(0);
             } catch (error) {
@@ -642,6 +644,10 @@ apiRouter.use('/solana', apiKeyAuthMiddleware, authMiddleware, solanaRoutes);
 apiRouter.use('/notifications', apiKeyAuthMiddleware, authMiddleware, notificationRoutes);
 apiRouter.use('/radar', radarRoutes);
 
+// Scheduled Reports — CRUD for automated report generation
+import { scheduledReportRoutes } from './routes/scheduled-reports.js';
+apiRouter.use('/scheduled-reports', scheduledReportRoutes);
+
 // OLD: Torque Routes (has /referrals endpoint)
 // NOTE: Auth is handled inside torque.ts routes - each route handles its own auth
 apiRouter.use('/entities', publicLimiter, entityRoutes);
@@ -970,6 +976,15 @@ server = app.listen(PORT, async () => {
         console.log('[Watchtower] Monitor started');
     } catch (error) {
         console.error('[Watchtower] Failed to start monitor:', error);
+    }
+
+    // Start scheduled reports service (cron-based report generation and email delivery)
+    try {
+        const { scheduledReportService } = await import('./services/ScheduledReportService.js');
+        await scheduledReportService.start();
+        console.log('[ScheduledReports] Service started');
+    } catch (error) {
+        console.error('[ScheduledReports] Failed to start service:', error);
     }
 });
 

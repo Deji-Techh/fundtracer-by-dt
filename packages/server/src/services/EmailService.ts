@@ -16,21 +16,28 @@ function getResendClient(): Resend | null {
   return resendClient;
 }
 
+interface Attachment {
+  filename: string;
+  content: string;  // base64-encoded
+  contentType: string;
+}
+
 interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
   from?: string;
   includeBcc?: boolean;
+  attachments?: Attachment[];
 }
 
 const DEFAULT_FROM = 'Fundtracer <welcome@fundtracer.xyz>';
 const RADAR_FROM = 'Fundtracer Radar <alert@fundtracer.xyz>';
 const BCC_ADDRESS = 'fundtracer.xyz+9c127564b8@invite.trustpilot.com';
 
-export async function sendEmail({ to, subject, html, from, includeBcc }: SendEmailOptions): Promise<void> {
+export async function sendEmail({ to, subject, html, from, includeBcc, attachments }: SendEmailOptions): Promise<void> {
   const resend = getResendClient();
-  
+
   if (!resend) {
     console.log('[EmailService] Resend not configured, skipping email');
     return;
@@ -42,7 +49,11 @@ export async function sendEmail({ to, subject, html, from, includeBcc }: SendEma
       to,
       bcc: includeBcc !== false ? BCC_ADDRESS : undefined,
       subject,
-      html
+      html,
+      attachments: attachments?.map(a => ({
+        filename: a.filename,
+        content: a.content,
+      })),
     });
     console.log(`[EmailService] Email sent to: ${to}, subject: ${subject}`);
   } catch (error) {
@@ -304,12 +315,38 @@ export function buildClaimConfirmationEmail(name: string, equityPercent: number,
       Thank you for being part of the Fundtracer community.<br/>The Fundtracer Team
     </p>
   </div>
-  
+
   <div style="background: #f1f5f9; padding: 20px; text-align: center;">
     <p style="color: #94a3b8; font-size: 12px; margin: 0;">
       Fundtracer - Blockchain Intelligence for Everyone<br/>
       <a href="https://www.fundtracer.xyz" style="color: #3b82f6; text-decoration: none;">https://www.fundtracer.xyz</a>
     </p>
+  </div>
+</div>`
+  };
+}
+
+export function buildScheduledReportEmail(reportName: string, chain: string, addressCount: number, format: string): { subject: string; html: string } {
+  const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+  return {
+    subject: `[FundTracer] ${reportName} — ${chain.toUpperCase()} Report`,
+    html: `
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="padding: 32px 30px; background: #ffffff;">
+    <h2 style="color: #1e293b; margin: 0 0 8px; font-size: 22px; font-weight: 600;">${reportName}</h2>
+    <p style="color: #64748b; font-size: 14px; margin: 0 0 24px;">Generated ${now}</p>
+    <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin: 0 0 24px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr><td style="padding: 6px 0; color: #64748b; font-size: 13px;">Chain</td><td style="padding: 6px 0; color: #1e293b; font-size: 13px; font-weight: 600; text-transform: uppercase;">${chain}</td></tr>
+        <tr><td style="padding: 6px 0; color: #64748b; font-size: 13px;">Addresses</td><td style="padding: 6px 0; color: #1e293b; font-size: 13px; font-weight: 600;">${addressCount} wallet${addressCount > 1 ? 's' : ''}</td></tr>
+        <tr><td style="padding: 6px 0; color: #64748b; font-size: 13px;">Format</td><td style="padding: 6px 0; color: #1e293b; font-size: 13px; font-weight: 600;">${format.toUpperCase()}</td></tr>
+      </table>
+    </div>
+    <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px;">Your scheduled report is attached with wallet activity for the reporting period.</p>
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="https://www.fundtracer.xyz" style="background: #3b82f6; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; display: inline-block;">View in FundTracer</a>
+    </div>
+    <p style="color: #94a3b8; font-size: 12px; line-height: 1.5; margin: 24px 0 0;">Manage your schedules at <a href="https://www.fundtracer.xyz/settings" style="color: #3b82f6;">fundtracer.xyz/settings</a>.</p>
   </div>
 </div>`
   };
