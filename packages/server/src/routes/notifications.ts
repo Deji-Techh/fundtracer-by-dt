@@ -1,8 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { getFirestore } from '../firebase.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { cacheGet, cacheSet, cacheDel } from '../utils/redis.js';
 
 const router = Router();
+
+function invalidateNotifCache(userId: string) {
+    cacheDel(`notifications:${userId}`).catch(() => {});
+}
 
 interface Notification {
   id: string;
@@ -25,19 +30,25 @@ router.get('/', async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    const cached = await cacheGet<{ notifications: any[] }>(`notifications:${userId}`);
+    if (cached) {
+      return res.json({ notifications: cached.notifications });
+    }
+
     const db = getFirestore();
-    
     const snapshot = await db.collection('notifications')
       .where('userId', '==', userId)
       .orderBy('createdAt', 'desc')
       .limit(100)
       .get();
-    
+
     const notifications = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
     }));
-    
+
+    await cacheSet(`notifications:${userId}`, { notifications }, 25);
     res.json({ notifications });
   } catch (error) {
     console.error('[Notifications] Get error:', error);
@@ -69,6 +80,7 @@ router.post('/', async (req: Request, res: Response) => {
       createdAt: new Date(),
     });
     
+    invalidateNotifCache(userId);
     res.json({ id: docRef.id, success: true });
   } catch (error) {
     console.error('[Notifications] Create error:', error);
@@ -94,7 +106,7 @@ router.put('/:id/read', async (req: Request, res: Response) => {
     }
     
     await docRef.update({ read: true });
-    
+    invalidateNotifCache(userId);
     res.json({ success: true });
   } catch (error) {
     console.error('[Notifications] Mark read error:', error);
@@ -122,7 +134,7 @@ router.put('/read-all', async (req: Request, res: Response) => {
     });
     
     await batch.commit();
-    
+    invalidateNotifCache(userId);
     res.json({ success: true, count: snapshot.size });
   } catch (error) {
     console.error('[Notifications] Mark all read error:', error);
@@ -148,7 +160,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     }
     
     await docRef.delete();
-    
+    invalidateNotifCache(userId);
     res.json({ success: true });
   } catch (error) {
     console.error('[Notifications] Delete error:', error);
@@ -175,7 +187,7 @@ router.delete('/', async (req: Request, res: Response) => {
     });
 
     await batch.commit();
-
+    invalidateNotifCache(userId);
     res.json({ success: true, count: snapshot.size });
   } catch (error) {
     console.error('[Notifications] Clear all error:', error);

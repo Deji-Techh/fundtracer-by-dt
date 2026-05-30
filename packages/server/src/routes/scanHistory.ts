@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { getFirestore } from '../firebase.js';
+import { cacheGet, cacheSet, cacheDel } from '../utils/redis.js';
 
 const router = Router();
 
@@ -77,6 +78,10 @@ router.use(authMiddleware);
 const MAX_HISTORY_ITEMS = 50;
 const COLLECTION = 'scanHistory';
 
+function invalidateScanCache(uid: string) {
+    cacheDel(`scanhistory:${uid}`).catch(() => {});
+}
+
 /**
  * GET /api/scan-history
  * Fetch all scan history items for the authenticated user
@@ -86,6 +91,12 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
         const uid = req.user?.uid;
         if (!uid) {
             return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const cacheKey = `scanhistory:${uid}`;
+        const cached = await cacheGet<{ items: any[] }>(cacheKey);
+        if (cached) {
+            return res.json({ success: true, items: cached.items });
         }
 
         const db = getFirestore();
@@ -101,6 +112,8 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
             id: doc.id,
             ...doc.data(),
         }));
+
+        await cacheSet(cacheKey, { items }, 60);
 
         return res.json({ success: true, items });
     } catch (error: any) {
@@ -175,6 +188,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
             await batch.commit();
         }
 
+        invalidateScanCache(uid);
         return res.json({ success: true });
     } catch (error: any) {
         console.error('[ScanHistory] POST error:', error.message);
@@ -255,6 +269,7 @@ router.post('/sync', async (req: AuthenticatedRequest, res: Response) => {
             .sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0))
             .slice(0, MAX_HISTORY_ITEMS);
 
+        invalidateScanCache(uid);
         return res.json({ success: true, items: merged });
     } catch (error: any) {
         console.error('[ScanHistory] SYNC error:', error.message);
@@ -282,6 +297,7 @@ router.delete('/:address', async (req: AuthenticatedRequest, res: Response) => {
         const docId = address.toLowerCase().replace(/,/g, '_');
         await db.collection(COLLECTION).doc(uid).collection('items').doc(docId).delete();
 
+        invalidateScanCache(uid);
         return res.json({ success: true });
     } catch (error: any) {
         console.error('[ScanHistory] DELETE error:', error.message);
@@ -312,6 +328,7 @@ router.delete('/', async (req: AuthenticatedRequest, res: Response) => {
         snapshot.docs.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
 
+        invalidateScanCache(uid);
         return res.json({ success: true });
     } catch (error: any) {
         console.error('[ScanHistory] CLEAR error:', error.message);

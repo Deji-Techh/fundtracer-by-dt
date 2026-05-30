@@ -6,7 +6,7 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest, requireWallet } from '../middleware/auth.js';
 import { requireTwoFactor } from '../middleware/twoFactor.js';
 import { getFirestore, getAuth } from '../firebase.js';
-import { cacheDel, cacheDelPattern, getRedis, isRedisConnected } from '../utils/redis.js';
+import { cacheDel, cacheDelPattern, cacheGet, cacheSet, getRedis, isRedisConnected } from '../utils/redis.js';
 import axios from 'axios';
 
 const router = Router();
@@ -17,9 +17,21 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
+    const uid = req.user.uid;
+
+    // Check Redis cache first
+    const cachedProfile = await cacheGet<any>(`user:profile:${uid}`);
+    if (cachedProfile) {
+        // Fire-and-forget tracking even on cache hits
+        import('../utils/analytics.js').then(({ trackVisitor }) => {
+            trackVisitor(uid).catch(() => {});
+        }).catch(() => {});
+        return res.json(cachedProfile);
+    }
+
     try {
         const db = getFirestore();
-        const userRef = db.collection('users').doc(req.user.uid);
+        const userRef = db.collection('users').doc(uid);
         const userDoc = await userRef.get();
         let userData = userDoc.data();
 
@@ -95,8 +107,8 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
             remaining = Math.max(0, dayLimit - usageToday);
         }
 
-        res.json({
-            uid: req.user.uid,
+        const profileData = {
+            uid,
             email: req.user.email,
             username: userData?.displayName || req.user.name || req.user.email?.split('@')[0],
             displayName: userData?.displayName || req.user.name,
@@ -121,11 +133,14 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
             walletAddress: userData?.walletAddress || req.user.walletAddress || null,
             authProvider: userData?.authProvider || 'wallet',
             onboardingCompleted: userData?.onboardingCompleted ?? false
-        });
+        };
+
+        await cacheSet(`user:profile:${uid}`, profileData, 30);
+        res.json(profileData);
 
         //Track login (async, don't await)
         const { trackVisitor } = await import('../utils/analytics.js');
-        trackVisitor(req.user.uid).catch(err => console.error('Failed to track login:', err));
+        trackVisitor(uid).catch(err => console.error('Failed to track login:', err));
     } catch (error) {
         console.error('Profile fetch error:', error);
         res.status(500).json({ error: 'Failed to fetch profile' });
@@ -142,6 +157,7 @@ router.put('/onboarding-complete', async (req: AuthenticatedRequest, res: Respon
         const db = getFirestore();
         const userRef = db.collection('users').doc(req.user.uid);
         await userRef.update({ onboardingCompleted: true });
+        cacheDel(`user:profile:${req.user!.uid}`).catch(() => {});
         res.json({ success: true });
     } catch (error) {
         console.error('Onboarding complete error:', error);
@@ -180,6 +196,7 @@ router.post('/profile', async (req: AuthenticatedRequest, res: Response) => {
             await userRef.set(updates, { merge: true });
         }
 
+        cacheDel(`user:profile:${req.user!.uid}`).catch(() => {});
         res.json({
             success: true,
             message: 'Profile updated successfully',
@@ -404,11 +421,18 @@ router.get('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
+    const uid = req.user.uid;
+
     try {
+        const cached = await cacheGet<{ keys: any[] }>(`user:apikeys:${uid}`);
+        if (cached) {
+            return res.json({ success: true, keys: cached.keys });
+        }
+
         const db = getFirestore();
-        const userRef = db.collection('users').doc(req.user.uid);
+        const userRef = db.collection('users').doc(uid);
         const userDoc = await userRef.get();
-        
+
         if (!userDoc.exists) {
             return res.json({ success: true, keys: [] });
         }
@@ -434,6 +458,7 @@ router.get('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
                 };
             });
 
+        await cacheSet(`user:apikeys:${uid}`, { keys }, 60);
         res.json({ success: true, keys });
     } catch (error: any) {
         console.error('[User] listApiKeys error:', error);
@@ -530,6 +555,7 @@ router.post('/api-keys', async (req: AuthenticatedRequest, res: Response) => {
             console.error('[User] Failed to store key in top-level apiKeys collection:', topLevelErr);
         }
 
+        cacheDel(`user:apikeys:${req.user!.uid}`).catch(() => {});
         res.status(201).json({
             success: true,
             key: {
@@ -566,6 +592,7 @@ router.delete('/api-keys/:keyId', async (req: AuthenticatedRequest, res: Respons
 
         const keyData = keyDoc.data();
         await keyRef.update({ active: false });
+        cacheDel(`user:apikeys:${req.user!.uid}`).catch(() => {});
 
         // Also deactivate the top-level apiKeys/{rawKey} doc for middleware consistency
         if (keyData?.key) {
@@ -650,6 +677,7 @@ router.post('/mcp-keys', async (req: AuthenticatedRequest, res: Response) => {
 
         const keysRef = db.collection('users').doc(req.user.uid).collection('apiKeys');
         const docRef = await keysRef.add(keyData);
+        cacheDel(`user:apikeys:${req.user!.uid}`).catch(() => {});
 
         // Also store in top-level apiKeys/{rawKey} for middleware validation
         await db.collection('apiKeys').doc(rawKey).set({
@@ -802,6 +830,7 @@ router.delete('/mcp-keys/:keyId', async (req: AuthenticatedRequest, res: Respons
             await keysSnapshot.docs[0].ref.update({ active: false });
         }
 
+        cacheDel(`user:apikeys:${req.user!.uid}`).catch(() => {});
         res.json({ success: true, message: 'MCP API key revoked' });
     } catch (error: any) {
         console.error('[User] deleteMcpKey error:', error);

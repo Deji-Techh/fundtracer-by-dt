@@ -699,10 +699,27 @@ app.use('/api', async (req, res, next) => {
     if (req.path.startsWith('/admin/') || req.path === '/health' || req.path === '/keep-alive') {
       return next();
     }
+
+    // Use Redis cache to avoid Firestore read on every request
+    const { cacheGet, cacheSet } = await import('./utils/redis.js');
+    const cached = await cacheGet<{ siteDown: boolean; message?: string }>('config:maintenance');
+    if (cached !== null) {
+      if (cached.siteDown === true) {
+        return res.status(503).json({
+          error: 'maintenance',
+          message: cached.message || 'Site is under maintenance. Please check back later.',
+          underMaintenance: true
+        });
+      }
+      return next();
+    }
+
+    // Cache miss — read Firestore
     const { getFirestore } = await import('./firebase.js');
     const db = getFirestore();
     const maintDoc = await db.collection('config').doc('maintenance').get();
     const maint = maintDoc.data();
+    await cacheSet('config:maintenance', maint || { siteDown: false }, 30);
     if (maint?.siteDown === true) {
       return res.status(503).json({
         error: 'maintenance',
