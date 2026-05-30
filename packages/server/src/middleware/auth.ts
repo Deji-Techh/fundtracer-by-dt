@@ -100,19 +100,41 @@ export async function authMiddleware(
         
         // Check if this is an admin token
         if (decoded.type === 'admin') {
-            // Admin authentication - verify admin exists and is active
-            const db = getFirestore();
-            const adminDoc = await db.collection('adminUsers').doc(decoded.uid).get();
-            
-            if (!adminDoc.exists) {
-                return res.status(401).json({ error: 'Admin account not found' });
+            // Admin authentication - try Redis cache first
+            const adminCacheKey = `auth:admin:${decoded.uid}`;
+            let adminData: Record<string, any> | null = null;
+
+            try {
+              if (isRedisConnected()) {
+                const cached = await cacheGet<Record<string, any>>(adminCacheKey);
+                if (cached) {
+                  adminData = cached;
+                }
+              }
+            } catch { /* proceed to Firestore */ }
+
+            if (!adminData) {
+              const db = getFirestore();
+              const adminDoc = await db.collection('adminUsers').doc(decoded.uid).get();
+
+              if (!adminDoc.exists) {
+                  return res.status(401).json({ error: 'Admin account not found' });
+              }
+
+              adminData = adminDoc.data() || null;
+
+              // Cache for 5 minutes (admins change rarely)
+              if (adminData && isRedisConnected()) {
+                try {
+                  await cacheSet(adminCacheKey, adminData, 300);
+                } catch { /* non-critical */ }
+              }
             }
-            
-            const adminData = adminDoc.data();
+
             if (!adminData?.isActive) {
                 return res.status(403).json({ error: 'Admin account is disabled' });
             }
-            
+
             // Populate request with admin user data
             req.user = {
                 uid: decoded.uid,
@@ -151,7 +173,7 @@ export async function authMiddleware(
         }
 
         // OPTIMIZED: Try Redis cache first (60 second TTL)
-        const AUTH_CACHE_TTL = 60;
+        const AUTH_CACHE_TTL = 300;
         const cacheKey = `auth:user:${uid}`;
         let userData: Record<string, any> | null = null;
         let useCache = true;

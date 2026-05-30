@@ -177,7 +177,7 @@ router.get('/auth/me', authMiddleware, async (req: AuthenticatedRequest, res: Re
 });
 
 // Get Dashboard Stats (protected) — cached 60s
-router.get('/stats', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats', authMiddleware, adminCacheMiddleware(120_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     
@@ -290,7 +290,7 @@ router.get('/activity', authMiddleware, adminCacheMiddleware(60_000), async (req
 });
 
 // Get Users List
-router.get('/users', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/users', authMiddleware, adminCacheMiddleware(120_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const { page = 1, limit = 50, search = '', tier = '', sort = 'createdAt', order = 'desc' } = req.query;
@@ -677,7 +677,7 @@ router.get('/users/:uid/chat-sessions', authMiddleware, async (req: Authenticate
 // ============================================================
 // NEW: Get extended platform stats (CLI, Telegram, Rewards)
 // ============================================================
-router.get('/stats/platform', authMiddleware, adminCacheMiddleware(30_000), async (req: AuthenticatedRequest, res: Response) => {
+router.get('/stats/platform', authMiddleware, adminCacheMiddleware(120_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
 
@@ -980,7 +980,7 @@ router.get('/referrals', authMiddleware, adminCacheMiddleware(60_000), async (re
 // ============================================================
 // ADMINS: List all admin accounts
 // ============================================================
-router.get('/admins/list', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/admins/list', authMiddleware, adminCacheMiddleware(300_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const snap = await db.collection('adminUsers').get();
@@ -1471,7 +1471,7 @@ router.get('/database/stats', authMiddleware, adminCacheMiddleware(60_000), asyn
 // ============================================================
 // SUBSCRIPTIONS: Get subscription management data
 // ============================================================
-router.get('/subscriptions', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
+router.get('/subscriptions', authMiddleware, adminCacheMiddleware(120_000), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const db = getFirestore();
     const usersSnap = await db.collection('users')

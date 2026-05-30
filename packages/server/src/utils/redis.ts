@@ -289,6 +289,16 @@ export async function zadd(sortedSet: string, score: number, member: string): Pr
   }
 }
 
+export async function zincrby(sortedSet: string, increment: number, member: string): Promise<void> {
+  if (redis && isConnected) {
+    try {
+      await redis.zincrby(sortedSet, increment, member);
+    } catch (error) {
+      console.error('[Redis] Zincrby error:', error);
+    }
+  }
+}
+
 export async function zrange(sortedSet: string, min: number, max: number): Promise<string[]> {
   if (redis && isConnected) {
     try {

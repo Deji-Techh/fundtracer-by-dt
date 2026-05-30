@@ -5,7 +5,7 @@
 
 import { getFirestore } from '../firebase.js';
 import { FieldValue } from 'firebase-admin/firestore';
-import { isRedisConnected, cacheGet, cacheSet, cacheDel } from '../utils/redis.js';
+import { isRedisConnected, cacheGet, cacheSet, cacheDel, zadd, zincrby, zrevrange } from '../utils/redis.js';
 
 const getDb = () => getFirestore();
 
@@ -77,6 +77,9 @@ class TorqueServiceV2 {
       createdAt: Date.now(),
       updatedAt: Date.now()
     });
+
+    // Initialize Redis sorted set entry
+    zadd('torque:ranks', 0, userId).catch(() => {});
   }
 
   // Award 1 point for MCP requests and add activity
@@ -102,6 +105,8 @@ class TorqueServiceV2 {
         totalPoints: FieldValue.increment(1),
         updatedAt: Date.now()
       });
+
+      zincrby('torque:ranks', 1, userId).catch(() => {});
 
       await this.recalculateRanks();
 
@@ -174,6 +179,8 @@ class TorqueServiceV2 {
         updatedAt: Date.now()
       });
 
+      zincrby('torque:ranks', 1, userId).catch(() => {});
+
       await this.recalculateRanks();
 
       if (isRedisConnected()) {
@@ -240,9 +247,12 @@ class TorqueServiceV2 {
         updatedAt: Date.now()
       });
       
+      // Update Redis sorted set rank
+      zincrby('torque:ranks', 10, userId).catch(() => {});
+
       // Update rank: recalculate all ranks (expensive but only on write)
       await this.recalculateRanks();
-      
+
       // Invalidate caches
       if (isRedisConnected()) {
         await cacheDel('torque:v2:leaderboard').catch(() => {});
@@ -259,27 +269,46 @@ class TorqueServiceV2 {
     }
   }
 
-  // Recalculate all ranks - called on write only
+  // Recalculate all ranks - uses Redis sorted set, falls back to Firestore
   private async recalculateRanks(): Promise<void> {
     try {
       const db = getDb();
-      
-      // Get all users sorted by points
+
+      // Try Redis sorted set first (O(log N) vs O(N) for Firestore full scan)
+      if (isRedisConnected()) {
+        try {
+          const results = await zrevrange('torque:ranks', 0, -1);
+          if (results && results.length > 0) {
+            const batch = db.batch();
+            let rank = 1;
+            for (const member of results) {
+              batch.update(db.collection(this.collection).doc(member), { rank });
+              rank++;
+            }
+            await batch.commit();
+            console.log(`[TorqueV2] Recalculated ranks via Redis for ${results.length} users`);
+            return;
+          }
+        } catch (redisError) {
+          console.error('[TorqueV2] Redis rank recalc failed, using Firestore fallback:', redisError);
+        }
+      }
+
+      // Firestore fallback — full scan
       const snapshot = await db.collection(this.collection)
         .orderBy('totalPoints', 'desc')
         .get();
-      
-      // Batch update ranks (expensive but one-time per scan)
+
       const batch = db.batch();
       let rank = 1;
-      
+
       for (const doc of snapshot.docs) {
         batch.update(doc.ref, { rank });
         rank++;
       }
-      
+
       await batch.commit();
-      console.log(`[TorqueV2] Recalculated ranks for ${snapshot.size} users`);
+      console.log(`[TorqueV2] Recalculated ranks via Firestore for ${snapshot.size} users`);
     } catch (error) {
       console.error('[TorqueV2] Rank recalculation error:', error);
     }
@@ -718,21 +747,41 @@ async getClaimStatus(userId: string): Promise<{
     poolSize: number;
     distributed: number;
   }> {
+    const cacheKey = 'torque:v2:poolStats';
+    const cacheTtl = 60;
+
+    // Try Redis cache first
+    if (isRedisConnected()) {
+      try {
+        const cached = await cacheGet<{ totalPoints: number; totalUsers: number; poolSize: number; distributed: number }>(cacheKey);
+        if (cached) return cached;
+      } catch { /* proceed to Firestore */ }
+    }
+
     const db = getDb();
-    
+
     const usersnap = await db.collection(this.collection).where('totalPoints', '>', 0).get();
     const totalUsers = usersnap.size;
     const totalPoints = usersnap.docs.reduce((sum, d) => sum + (d.data().totalPoints || 0), 0);
-    
+
     const claimsnap = await db.collection('torque_claims').get();
     const distributed = claimsnap.docs.reduce((sum, d) => sum + (d.data().equityPercent || 0), 0);
-    
-    return {
+
+    const result = {
       totalPoints,
       totalUsers,
       poolSize: 5, // 5% equity pool
       distributed
     };
+
+    // Cache in Redis
+    if (isRedisConnected()) {
+      try {
+        await cacheSet(cacheKey, result, cacheTtl);
+      } catch { /* non-critical */ }
+    }
+
+    return result;
   }
 }
 

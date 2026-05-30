@@ -531,6 +531,23 @@ async function chainMaintenanceMiddleware(req: any, res: any, next: any) {
   try {
     const chain = req.body?.chain || req.query?.chain || '';
     if (!chain) return next();
+
+    // Try Redis cache first (reuses global maintenance cache)
+    const { cacheGet } = await import('./utils/redis.js');
+    const cached = await cacheGet<{ disabledChains?: string[] }>('config:maintenance');
+    if (cached) {
+      if (cached.disabledChains?.includes(chain.toLowerCase())) {
+        return res.status(503).json({
+          error: 'chain_maintenance',
+          message: `The ${chain} network is currently under maintenance. Please try again later.`,
+          chain,
+          underMaintenance: true
+        });
+      }
+      return next();
+    }
+
+    // Cache miss — fall back to Firestore
     const { getFirestore } = await import('./firebase.js');
     const db = getFirestore();
     const maintDoc = await db.collection('config').doc('maintenance').get();

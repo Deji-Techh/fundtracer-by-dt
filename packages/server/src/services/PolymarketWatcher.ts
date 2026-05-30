@@ -206,7 +206,16 @@ async function checkVolumeSpikes(): Promise<void> {
     
     for (const spike of spikes.slice(0, 5)) { // Top 5 spikes
       const market = spike.market;
-      
+
+      // Check Redis cache first to avoid Firestore query
+      const spikeCacheKey = `polymarket:spike:${market.id}`;
+      if (isRedisConnected()) {
+        try {
+          const recentSpike = await cacheGet<boolean>(spikeCacheKey);
+          if (recentSpike) continue;
+        } catch { /* proceed to Firestore */ }
+      }
+
       // Check if we already notified about this spike recently
       // Use simple query and filter in memory to avoid composite index
       const recentSpikes = await db.collection('polymarket_spikes')
@@ -223,7 +232,11 @@ async function checkVolumeSpikes(): Promise<void> {
       });
 
       if (alreadyNotified) {
-        continue; // Already notified
+        // Cache the negative result to avoid re-querying
+        if (isRedisConnected()) {
+          try { await cacheSet(spikeCacheKey, true, 7200); } catch { /* non-critical */ }
+        }
+        continue;
       }
 
       // Record the spike
@@ -240,6 +253,11 @@ async function checkVolumeSpikes(): Promise<void> {
       };
 
       await db.collection('polymarket_spikes').add(spikeDoc);
+
+      // Cache spike to prevent re-querying
+      if (isRedisConnected()) {
+        try { await cacheSet(spikeCacheKey, true, 7200); } catch { /* non-critical */ }
+      }
 
       // Update snapshot
       await updateMarketSnapshot(market);
