@@ -1,0 +1,36 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "aiChatSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "polymarket_alerts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "triggered", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "polymarket_spikes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "marketId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "polymarket_users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "notifySpikes", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ]
+}

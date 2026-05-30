@@ -497,18 +497,25 @@ async function updateMarketSnapshot(market: PolymarketMarket): Promise<void> {
  */
 async function notifyVolumeSpikeSubscribers(spike: { market: PolymarketMarket; spikeRatio: number; currentVolume: number; avgVolume: number }): Promise<void> {
   try {
+    const cacheKey = 'polymarket:spike_subscribers';
+
+    // Check negative cache first — skip Firestore if no subscribers exist
+    const subscriberCount = await cacheGet<number>(cacheKey);
+    if (subscriberCount !== null && subscriberCount === 0) return;
+
     const db = getFirestore();
-    
-    // Get users with spike notifications enabled
-    // For now, we'll use a simple flag in the user's telegram settings
     const usersRef = db.collection('polymarket_users');
     const subscribers = await usersRef
       .where('notifySpikes', '==', true)
       .limit(100)
       .get();
 
-    if (subscribers.empty) return;
+    if (subscribers.empty) {
+      await cacheSet(cacheKey, 0, 7200);
+      return;
+    }
 
+    await cacheSet(cacheKey, subscribers.size, 7200);
     const message = formatVolumeSpikeMessage(spike);
 
     for (const doc of subscribers.docs) {
