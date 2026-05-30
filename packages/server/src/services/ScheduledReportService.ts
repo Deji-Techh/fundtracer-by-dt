@@ -134,7 +134,7 @@ class ScheduledReportService {
     try {
       // Generate report
       const reportData = await this.generateReportData(schedule);
-      const { content, filename, contentType } = this.formatReport(schedule, reportData);
+      const { content, filename, contentType } = await this.formatReport(schedule, reportData);
 
       if (schedule.deliveryMethod === 'email' && schedule.emailRecipient) {
         // Send via email with attachment
@@ -234,28 +234,29 @@ class ScheduledReportService {
     return report;
   }
 
-  private formatReport(schedule: ReportSchedule, data: any): { content: string | Buffer; filename: string; contentType: string } {
+  private async formatReport(schedule: ReportSchedule, data: any): Promise<{ content: string | Buffer; filename: string; contentType: string }> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const base = `fundtracer-${schedule.name.replace(/\s+/g, '-').toLowerCase()}-${timestamp}`;
 
     switch (schedule.format) {
       case 'json':
         return {
           content: JSON.stringify(data, null, 2),
-          filename: `fundtracer-${schedule.name.replace(/\s+/g, '-').toLowerCase()}-${timestamp}.json`,
+          filename: `${base}.json`,
           contentType: 'application/json',
         };
 
       case 'csv':
         return {
           content: this.generateCSV(data),
-          filename: `fundtracer-${schedule.name.replace(/\s+/g, '-').toLowerCase()}-${timestamp}.csv`,
+          filename: `${base}.csv`,
           contentType: 'text/csv',
         };
 
       case 'pdf':
         return {
-          content: this.generatePDF(schedule, data),
-          filename: `fundtracer-${schedule.name.replace(/\s+/g, '-').toLowerCase()}-${timestamp}.pdf`,
+          content: await this.generatePDF(schedule, data),
+          filename: `${base}.pdf`,
           contentType: 'application/pdf',
         };
 
@@ -270,54 +271,55 @@ class ScheduledReportService {
     return [headers.join(','), ...rows.map((r: string[]) => r.map(c => `"${c}"`).join(','))].join('\n');
   }
 
-  private generatePDF(schedule: ReportSchedule, data: any): Buffer {
-    const chunks: Buffer[] = [];
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+  private generatePDF(schedule: ReportSchedule, data: any): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
-    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
 
-    // Title
-    doc.fontSize(20).font('Helvetica-Bold').text(data.reportName, { align: 'left' });
-    doc.fontSize(10).font('Helvetica').fillColor('#64748b')
-      .text(`Generated: ${data.generatedAt}`, { paragraphGap: 4 })
-      .text(`Chain: ${data.chain.toUpperCase()}  ·  Period: ${data.timePeriod}  ·  Addresses: ${data.summary.totalAddresses}`)
-      .moveDown(1);
+      // Title
+      doc.fontSize(20).font('Helvetica-Bold').text(data.reportName, { align: 'left' });
+      doc.fontSize(10).font('Helvetica').fillColor('#64748b')
+        .text(`Generated: ${data.generatedAt}`, { paragraphGap: 4 })
+        .text(`Chain: ${data.chain.toUpperCase()}  ·  Period: ${data.timePeriod}  ·  Addresses: ${data.summary.totalAddresses}`)
+        .moveDown(1);
 
-    // Divider
-    doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke().moveDown(1);
+      // Divider
+      doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke().moveDown(1);
 
-    // Address table
-    doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e293b').text('Wallets');
-    doc.moveDown(0.5);
+      // Address table
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e293b').text('Wallets');
+      doc.moveDown(0.5);
 
-    // Table header
-    const tableTop = doc.y;
-    doc.fontSize(9).font('Helvetica-Bold').fillColor('#64748b');
-    doc.text('Address', 50, tableTop);
-    doc.text('Chain', 320, tableTop);
-    doc.text('Status', 420, tableTop);
-    doc.moveDown(0.5);
+      const tableTop = doc.y;
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#64748b');
+      doc.text('Address', 50, tableTop);
+      doc.text('Chain', 320, tableTop);
+      doc.text('Status', 420, tableTop);
+      doc.moveDown(0.5);
 
-    // Rows
-    doc.font('Helvetica').fillColor('#1e293b');
-    for (const wallet of data.wallets) {
-      const y = doc.y;
-      doc.fontSize(8).text(wallet.address.slice(0, 42), 50, y, { width: 260 });
-      doc.text(wallet.chain.toUpperCase(), 320, y);
-      doc.text('Monitored', 420, y);
-      doc.moveDown(0.8);
-    }
+      // Rows
+      doc.font('Helvetica').fillColor('#1e293b');
+      for (const wallet of data.wallets) {
+        const y = doc.y;
+        doc.fontSize(8).text(wallet.address.slice(0, 42), 50, y, { width: 260 });
+        doc.text(wallet.chain.toUpperCase(), 320, y);
+        doc.text('Monitored', 420, y);
+        doc.moveDown(0.8);
+      }
 
-    doc.moveDown(1);
+      doc.moveDown(1);
 
-    // Footer
-    doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke().moveDown(0.5);
-    doc.fontSize(8).font('Helvetica').fillColor('#94a3b8')
-      .text('Generated by FundTracer · fundtracer.xyz', { align: 'center' });
+      // Footer
+      doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke().moveDown(0.5);
+      doc.fontSize(8).font('Helvetica').fillColor('#94a3b8')
+        .text('Generated by FundTracer · fundtracer.xyz', { align: 'center' });
 
-    doc.end();
-
-    return Buffer.concat(chunks);
+      doc.end();
+    });
   }
 
   private getNextRunDescription(cronExpr: string): string {
