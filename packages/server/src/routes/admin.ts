@@ -1225,7 +1225,6 @@ router.post('/emails/send', authMiddleware, requireAdminRole('superadmin'), asyn
       to,
       subject,
       html: body,
-      includeBcc: false,
     });
     // Log admin action
     const db = getFirestore();

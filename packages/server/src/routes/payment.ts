@@ -170,7 +170,6 @@ router.post('/webhook', async (req: Request, res: Response) => {
                         to: userEmail,
                         subject,
                         html,
-                        includeBcc: true,
                     }).catch(err => console.error('[Email] Failed to send premium email:', err));
                 }
             }

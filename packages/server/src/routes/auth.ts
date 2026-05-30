@@ -544,7 +544,6 @@ Provider: ${providerLabel}
         to: email,
         subject,
         html,
-        includeBcc: true,
       });
       console.log(`[AUTH] Welcome email sent via Resend to: ${email}`);
       return;

@@ -27,15 +27,13 @@ interface SendEmailOptions {
   subject: string;
   html: string;
   from?: string;
-  includeBcc?: boolean;
   attachments?: Attachment[];
 }
 
 const DEFAULT_FROM = 'Fundtracer <welcome@fundtracer.xyz>';
 const RADAR_FROM = 'Fundtracer Radar <alert@fundtracer.xyz>';
-const BCC_ADDRESS = 'fundtracer.xyz+9c127564b8@invite.trustpilot.com';
 
-export async function sendEmail({ to, subject, html, from, includeBcc, attachments }: SendEmailOptions): Promise<void> {
+export async function sendEmail({ to, subject, html, from, attachments }: SendEmailOptions): Promise<void> {
   const resend = getResendClient();
 
   if (!resend) {
@@ -47,7 +45,6 @@ export async function sendEmail({ to, subject, html, from, includeBcc, attachmen
     const result = await resend.emails.send({
       from: from || DEFAULT_FROM,
       to,
-      bcc: includeBcc !== false ? BCC_ADDRESS : undefined,
       subject,
       html,
       attachments,
@@ -63,10 +60,6 @@ export async function sendEmail({ to, subject, html, from, includeBcc, attachmen
     console.error('[EmailService] Failed to send email:', error);
     throw error;
   }
-}
-
-export function getBccAddress(): string {
-  return BCC_ADDRESS;
 }
 
 export function buildWelcomeEmail(name: string): { subject: string; html: string } {
