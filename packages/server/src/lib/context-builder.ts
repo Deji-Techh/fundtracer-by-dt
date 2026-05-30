@@ -288,18 +288,23 @@ export function buildReportContext(input: ReportInput): string {
 
 export type AnalysisData = WalletAnalysis | ContractAnalysis;
 
-export function buildContext(data: AnalysisData, addressType: 'wallet' | 'contract'): string {
+export function buildContext(data: AnalysisData, addressType: 'wallet' | 'contract', originalQuery?: string): string {
   if (addressType === 'wallet') {
-    return buildWalletContext(data as WalletAnalysis);
+    return buildWalletContext(data as WalletAnalysis, originalQuery);
   } else {
-    return buildContractContext(data as ContractAnalysis);
+    return buildContractContext(data as ContractAnalysis, originalQuery);
   }
 }
 
-function buildWalletContext(data: WalletAnalysis): string {
+function buildWalletContext(data: WalletAnalysis, originalQuery?: string): string {
   let context = 'WALLET ANALYSIS DATA\n';
   context += '=====================\n\n';
-  
+
+  // If user searched by ENS/name, clarify that name and address are the SAME entity
+  if (originalQuery && originalQuery !== data.address) {
+    context += `IMPORTANT: The user searched for "${originalQuery}" which resolved to address ${data.address}. These refer to the SAME wallet. When the user mentions "${originalQuery}", they are talking about this wallet at ${data.address}.\n\n`;
+  }
+
   context += `Address: ${data.address || 'Unknown'}\n`;
   context += `Chain: ${data.chain || 'Unknown'}\n`;
   context += `Risk Score: ${data.riskScore ?? 'N/A'}\n`;
@@ -371,10 +376,14 @@ function buildWalletContext(data: WalletAnalysis): string {
   return context;
 }
 
-function buildContractContext(data: ContractAnalysis): string {
+function buildContractContext(data: ContractAnalysis, originalQuery?: string): string {
   let context = 'CONTRACT ANALYSIS DATA\n';
   context += '======================\n\n';
-  
+
+  if (originalQuery && originalQuery !== data.address) {
+    context += `IMPORTANT: The user searched for "${originalQuery}" which resolved to address ${data.address}. These refer to the SAME contract. When the user mentions "${originalQuery}", they are talking about this contract at ${data.address}.\n\n`;
+  }
+
   context += `Address: ${data.address || 'Unknown'}\n`;
   context += `Chain: ${data.chain || 'Unknown'}\n`;
   context += `Name: ${data.name || 'Unknown'}\n`;

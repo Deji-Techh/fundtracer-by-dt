@@ -229,6 +229,11 @@ export function createNameResolutionMiddleware(fields: string[] = DEFAULT_FIELDS
           if (error) {
             return _res.status(400).json({ error });
           }
+          // Preserve the original name/query so downstream handlers (AI chat)
+          // can tell the model that "hayodeji.eth" = "0x8ac5..."
+          if (resolved !== value) {
+            req.body._originalQuery = value;
+          }
           req.body[field] = resolved;
         } else if (Array.isArray(value)) {
           const resolvedList: string[] = [];

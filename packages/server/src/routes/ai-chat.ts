@@ -432,7 +432,7 @@ router.post('/analyze-wallet', async (req: AuthenticatedRequest, res: Response) 
 // Main AI Chat endpoint with SSE
 router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { address, addressType, chain, question, history, attachedFiles } = req.body;
+    const { address, addressType, chain, question, history, attachedFiles, _originalQuery } = req.body;
 
     // Validation - question is required, address and files are optional for chat-only mode
     const hasAddress = address && addressType && chain;
@@ -526,7 +526,7 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
       })}\n\n`);
 
       // Build context from analysis data
-      context = buildContext(analysisData, addressType);
+      context = buildContext(analysisData, addressType, _originalQuery);
     } else if (hasFiles) {
       // Document-only mode (no address, but has files)
       res.write(`data: ${JSON.stringify({ type: 'status', message: 'Processing document(s)...' })}\n\n`);
