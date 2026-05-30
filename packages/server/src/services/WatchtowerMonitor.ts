@@ -369,7 +369,7 @@ export class WatchtowerMonitor {
       const key = this.chainAddrKey(chain, addr);
       const watchers = this.addressWatchers.get(key);
       if (watchers) {
-        console.log(`[Watchtower] Tx: ${chain} ${direction} ${valueEth.toFixed(4)} ETH — ${hash.slice(0, 10)}...`);
+        console.log(`[Watchtower] Tx: ${chain} ${event.direction} ${valueEth.toFixed(4)} ETH — ${hash.slice(0, 10)}...`);
         for (const uid of watchers) {
           this.storeEvent(uid, event);
           this.notifySubscribers(uid, event);
