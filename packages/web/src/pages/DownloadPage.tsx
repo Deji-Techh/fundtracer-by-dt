@@ -4,8 +4,18 @@ import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 import './DownloadPage.css';
 
-const DOWNLOAD_BASE = 'https://github.com/Deji-Tech/fundtracer-desktop/releases/latest';
-const RELEASE_VERSION = 'v1.0.10';
+const RELEASE_VERSION = 'v1.0.12';
+const RELEASE_NUMBER = RELEASE_VERSION.replace(/^v/, '');
+const RELEASE_PAGE = `https://github.com/Deji-Tech/fundtracer-desktop/releases/tag/${RELEASE_VERSION}`;
+const RELEASE_ASSET_BASE = `https://github.com/Deji-Tech/fundtracer-desktop/releases/download/${RELEASE_VERSION}`;
+const DOWNLOADS = {
+  windowsExe: `${RELEASE_ASSET_BASE}/FundTracer_${RELEASE_NUMBER}_x64-setup.exe`,
+  windowsMsi: `${RELEASE_ASSET_BASE}/FundTracer_${RELEASE_NUMBER}_x64_en-US.msi`,
+  linuxDeb: `${RELEASE_ASSET_BASE}/FundTracer_${RELEASE_NUMBER}_amd64.deb`,
+  linuxRpm: `${RELEASE_ASSET_BASE}/FundTracer-${RELEASE_NUMBER}-1.x86_64.rpm`,
+  linuxAppImage: `${RELEASE_ASSET_BASE}/FundTracer_${RELEASE_NUMBER}_amd64.AppImage`,
+  aur: 'https://aur.archlinux.org/packages/fundtracer-desktop-bin'
+};
 
 const workflowFeatures = [
   {
@@ -71,8 +81,8 @@ export function DownloadPage() {
             </div>
             <div className="download-release-strip">
               <span>Latest release: {RELEASE_VERSION}</span>
-              <span>Windows .exe/.msi</span>
-              <span>Linux AUR, deb, rpm, AppImage</span>
+              <span>Windows: .exe / .msi</span>
+              <span>Linux: Debian, Ubuntu, Fedora, Arch, AppImage</span>
             </div>
           </header>
 
@@ -147,8 +157,34 @@ export function DownloadPage() {
                 </div>
 
                 <h3>Available Packages</h3>
-                <div className="download-code-block">
-                  <code>.exe installer  |  .msi package</code>
+                <div className="download-package-grid">
+                  <article className="download-package-card">
+                    <div className="download-package-card__head">
+                      <h4>.exe installer</h4>
+                      <span>Most users</span>
+                    </div>
+                    <p>Recommended Windows installer for normal analyst workstations and personal devices.</p>
+                    <div className="download-package-actions">
+                      <a className="download-primary-btn" href={DOWNLOADS.windowsExe}>
+                        Download .exe
+                        <ArrowRight size={18} />
+                      </a>
+                    </div>
+                  </article>
+
+                  <article className="download-package-card">
+                    <div className="download-package-card__head">
+                      <h4>.msi package</h4>
+                      <span>Managed installs</span>
+                    </div>
+                    <p>Use the MSI when deploying FundTracer Desktop through managed Windows environments.</p>
+                    <div className="download-package-actions">
+                      <a className="download-secondary-btn" href={DOWNLOADS.windowsMsi}>
+                        Download .msi
+                        <ArrowRight size={18} />
+                      </a>
+                    </div>
+                  </article>
                 </div>
 
                 <div className="download-checklist">
@@ -157,8 +193,8 @@ export function DownloadPage() {
                   <p><CheckCircle size={16} /> Uses authenticated FundTracer backend services</p>
                 </div>
 
-                <a className="download-primary-btn" href={DOWNLOAD_BASE} target="_blank" rel="noopener noreferrer">
-                  Open Windows Release Assets
+                <a className="download-secondary-btn" href={RELEASE_PAGE} target="_blank" rel="noopener noreferrer">
+                  View release notes
                   <ArrowRight size={18} />
                 </a>
               </section>
@@ -168,20 +204,76 @@ export function DownloadPage() {
                   <div>
                     <h2>Linux</h2>
                     <p className="download-section-intro">
-                      Install from AUR on Arch-based systems, or download direct artifacts for other Linux environments.
+                      Pick the package that matches your Linux distro family. This page currently exposes Windows
+                      and Linux downloads only.
                     </p>
                   </div>
-                  <span>AUR + Artifacts</span>
+                  <span>Distro-specific</span>
                 </div>
 
-                <h3>Install with yay</h3>
-                <div className="download-code-block">
-                  <code>yay -S fundtracer-desktop-bin</code>
-                </div>
+                <h3>Choose Your Linux Package</h3>
+                <div className="download-package-grid download-package-grid--linux">
+                  <article className="download-package-card">
+                    <div className="download-package-card__head">
+                      <h4>Debian / Ubuntu</h4>
+                      <span>.deb</span>
+                    </div>
+                    <p>Use for Debian, Ubuntu, Linux Mint, Pop!_OS, Zorin OS, and other Debian-based distros.</p>
+                    <div className="download-package-actions">
+                      <a className="download-primary-btn" href={DOWNLOADS.linuxDeb}>
+                        Download .deb
+                        <ArrowRight size={18} />
+                      </a>
+                    </div>
+                  </article>
 
-                <h3>Release Artifacts</h3>
-                <div className="download-code-block">
-                  <code>.deb package  |  .rpm package  |  .AppImage</code>
+                  <article className="download-package-card">
+                    <div className="download-package-card__head">
+                      <h4>Fedora / RHEL</h4>
+                      <span>.rpm</span>
+                    </div>
+                    <p>Use for Fedora, RHEL, CentOS Stream, Rocky Linux, AlmaLinux, and other RPM-based distros.</p>
+                    <div className="download-package-actions">
+                      <a className="download-secondary-btn" href={DOWNLOADS.linuxRpm}>
+                        Download .rpm
+                        <ArrowRight size={18} />
+                      </a>
+                    </div>
+                  </article>
+
+                  <article className="download-package-card">
+                    <div className="download-package-card__head">
+                      <h4>Arch / Manjaro</h4>
+                      <span>AUR</span>
+                    </div>
+                    <p>Use the AUR package for Arch, Manjaro, EndeavourOS, Garuda, and other Arch-based distros.</p>
+                    <div className="download-code-block">
+                      <code>yay -S fundtracer-desktop-bin</code>
+                    </div>
+                    <div className="download-package-actions">
+                      <a className="download-secondary-btn" href={DOWNLOADS.aur} target="_blank" rel="noopener noreferrer">
+                        Open AUR
+                        <ArrowRight size={18} />
+                      </a>
+                    </div>
+                  </article>
+
+                  <article className="download-package-card">
+                    <div className="download-package-card__head">
+                      <h4>Universal Linux</h4>
+                      <span>AppImage</span>
+                    </div>
+                    <p>Use AppImage when you want a portable build or your distro is not covered by DEB, RPM, or AUR.</p>
+                    <div className="download-code-block">
+                      <code>{`chmod +x FundTracer_${RELEASE_NUMBER}_amd64.AppImage\n./FundTracer_${RELEASE_NUMBER}_amd64.AppImage`}</code>
+                    </div>
+                    <div className="download-package-actions">
+                      <a className="download-secondary-btn" href={DOWNLOADS.linuxAppImage}>
+                        Download AppImage
+                        <ArrowRight size={18} />
+                      </a>
+                    </div>
+                  </article>
                 </div>
 
                 <div className="download-checklist">
@@ -190,8 +282,8 @@ export function DownloadPage() {
                   <p><CheckCircle size={16} /> Per-tab cache keeps long-running cases isolated</p>
                 </div>
 
-                <a className="download-secondary-btn" href={DOWNLOAD_BASE} target="_blank" rel="noopener noreferrer">
-                  Open Linux Release Assets
+                <a className="download-secondary-btn" href={RELEASE_PAGE} target="_blank" rel="noopener noreferrer">
+                  View release notes
                   <ArrowRight size={18} />
                 </a>
               </section>
