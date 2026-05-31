@@ -14,6 +14,7 @@ export default defineConfig({
     alias: {
       '@fundtracer/core': path.resolve(__dirname, '../core/src'),
       '@privy-io/react-auth': path.resolve(__dirname, 'src/lib/privyCompat.tsx'),
+      'chart.js': path.resolve(__dirname, 'node_modules/chart.js'),
     },
   },
   server: {
