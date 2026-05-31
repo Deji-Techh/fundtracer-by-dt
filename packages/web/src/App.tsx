@@ -352,11 +352,9 @@ function App() {
       <Route path="/api/keys" element={<ApiKeysRoute />} />
       <Route path="/auth" element={<Suspense fallback={null}><AuthPage /></Suspense>} />
       <Route path="/app-evm/*" element={
-        <ProtectedRoute>
-          <Suspense fallback={<div>Loading...</div>}>
-            <AppPage />
-          </Suspense>
-        </ProtectedRoute>
+        <Suspense fallback={<div>Loading...</div>}>
+          <AppPage />
+        </Suspense>
       } />
       <Route path="/share/:id" element={
         <Suspense fallback={<div style={{background:'#0a0a0a',minHeight:'100vh'}}/>}>

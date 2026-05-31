@@ -1,0 +1,208 @@
+import { apiRequest, getAuthToken } from './client';
+import type { ChainId, AnalysisResult } from 'fundtracer-core';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.fundtracer.xyz';
+
+function normalizeChain(chain: ChainId): string {
+  const mapping: Record<string, string> = {
+    'eth': 'ethereum', 'arb': 'arbitrum', 'opt': 'optimism',
+    'polygon_pos': 'polygon', 'matic': 'polygon', 'binance': 'bsc',
+  };
+  return mapping[chain] || chain;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  result?: T;
+  error?: string;
+  message?: string;
+  rateLimit?: {
+    usedMinute: number; limitMinute: number; remainingMinute: number;
+    usedDay: number; limitDay: number; remainingDay: number;
+    tier: string;
+  };
+}
+
+export async function analyzeWallet(
+  address: string,
+  chain: ChainId,
+  options?: Record<string, unknown>,
+): Promise<ApiResponse<AnalysisResult>> {
+  return apiRequest('/api/analyze/wallet', 'POST', {
+    address,
+    chain: normalizeChain(chain),
+    options: { ...(options || {}), skipTimestamps: true },
+  });
+}
+
+export async function fetchFundingTree(
+  address: string,
+  chain: ChainId,
+  maxDepth?: number,
+): Promise<ApiResponse<{ fundingSources: unknown; fundingDestinations: unknown }>> {
+  return apiRequest('/api/analyze/funding-tree', 'POST', {
+    address,
+    chain: normalizeChain(chain),
+    options: maxDepth !== undefined ? { treeConfig: { maxDepth } } : undefined,
+  });
+}
+
+export async function compareWallets(
+  addresses: string[],
+  chain: ChainId,
+): Promise<ApiResponse<unknown>> {
+  return apiRequest('/api/analyze/compare', 'POST', {
+    addresses,
+    chain: normalizeChain(chain),
+  });
+}
+
+export async function analyzeContract(
+  contractAddress: string,
+  chain: ChainId,
+  options?: Record<string, unknown>,
+): Promise<ApiResponse<unknown>> {
+  return apiRequest('/api/analyze/contract', 'POST', {
+    contractAddress,
+    chain: normalizeChain(chain),
+    options,
+  });
+}
+
+export async function detectSybil(
+  addresses: string[],
+  chain: ChainId,
+): Promise<ApiResponse<unknown>> {
+  return apiRequest('/api/analyze/sybil-addresses', 'POST', {
+    addresses,
+    chain: normalizeChain(chain),
+  });
+}
+
+export async function analyzeCEXFlow(
+  walletAddress: string,
+  chain: ChainId,
+): Promise<ApiResponse<unknown>> {
+  return apiRequest('/api/analyze/cex-flow', 'POST', {
+    walletAddress,
+    chain: normalizeChain(chain),
+  });
+}
+
+export async function getPortfolio(address: string, chain: string): Promise<unknown> {
+  return apiRequest(`/api/portfolio/${encodeURIComponent(address)}?chain=${encodeURIComponent(chain)}`);
+}
+
+export async function getGasPrices(chain?: string): Promise<unknown> {
+  const q = chain ? `?chain=${chain}` : '';
+  return apiRequest(`/api/gas${q}`);
+}
+
+export async function getTransactions(address: string, chain: ChainId, limit = 50): Promise<unknown> {
+  return apiRequest('/api/history', 'POST', {
+    wallet: address,
+    blockchain: normalizeChain(chain),
+    limit,
+  });
+}
+
+/**
+ * Stream wallet transaction timestamps via SSE.
+ * The initial analysis returns transactions with timestamp=0 for speed.
+ * This streams batches of {hash, timestamp} to patch them progressively.
+ * Returns a cleanup function that aborts the connection.
+ */
+export function streamWalletTimestamps(
+  taskId: string,
+  onBatch: (batch: { hashes: string[]; timestamps: number[] }) => void,
+  onDone: () => void,
+  onError: (err: Error) => void,
+): () => void {
+  const token = getAuthToken();
+  const apiKey = (() => { try { return localStorage.getItem('fdt_api_key'); } catch { return null; } })();
+  const url = `${API_BASE}/api/analyze/timestamps/${taskId}`;
+  const controller = new AbortController();
+  let closed = false;
+
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    controller.abort();
+  };
+
+  fetch(url, { headers, signal: controller.signal })
+    .then(async (response) => {
+      if (!response.ok) {
+        try { const e = await response.json(); onError(new Error(e.error || `HTTP ${response.status}`)); } catch { onError(new Error(`HTTP ${response.status}`)); }
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) { onError(new Error('No response stream')); return; }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const jsonStr = line.slice(6);
+
+            try {
+              const data = JSON.parse(jsonStr);
+              if (data.done) { reader.cancel(); onDone(); return; }
+              if (data.error) { onError(new Error(data.error)); return; }
+              if (data.hashes && data.timestamps) {
+                onBatch({ hashes: data.hashes, timestamps: data.timestamps });
+              }
+            } catch { /* skip malformed lines */ }
+          }
+        }
+        onDone();
+      } catch (err: any) {
+        if (err.name !== 'AbortError') onError(err);
+      }
+    })
+    .catch((err) => {
+      if (err.name !== 'AbortError') onError(err);
+    });
+
+  return cleanup;
+}
+
+export async function searchTokens(query: string): Promise<unknown> {
+  return apiRequest(`/api/tokens/search?q=${encodeURIComponent(query)}`);
+}
+
+export async function scanContract(address: string, chain: ChainId): Promise<ApiResponse<unknown>> {
+  return apiRequest('/api/contract/scan', 'POST', {
+    address,
+    chain: normalizeChain(chain),
+  });
+}
+
+export async function scanContractRich(address: string, chain: ChainId): Promise<ApiResponse<unknown>> {
+  return apiRequest('/api/contract/scan-rich', 'POST', {
+    address,
+    chain: normalizeChain(chain),
+  });
+}
+
+export async function shareAnalysis(data: Record<string, unknown>): Promise<{ id: string; url: string }> {
+  return apiRequest('/api/share', 'POST', data);
+}

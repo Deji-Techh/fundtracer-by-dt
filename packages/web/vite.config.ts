@@ -13,6 +13,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@fundtracer/core': path.resolve(__dirname, '../core/src'),
+      '@privy-io/react-auth': path.resolve(__dirname, 'src/lib/privyCompat.tsx'),
     },
   },
   server: {
@@ -48,7 +49,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'esbuild',
+    minify: false,
     target: 'es2020',
     chunkSizeWarningLimit: 1000,
     commonjsOptions: {
