@@ -56,6 +56,10 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
+      external: (id: string) => {
+        if (id.startsWith('@tauri-apps/')) return true;
+        return false;
+      },
       output: {
         manualChunks(id: string) {
           if (id.includes('react') || id.includes('react-dom')) return 'vendor';
