@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { Badge, Panel } from '../design-system/primitives';
 import './HowItWorksPage.css';
+import './PublicPageShell.css';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 
 const navItems = LANDING_NAV_ITEMS.map(item => 

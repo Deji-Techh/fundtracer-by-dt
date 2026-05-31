@@ -1,0 +1,731 @@
+/*
+ * Shared public page polish.
+ * Matches the API docs/download visual system while preserving each page's content and logic.
+ */
+
+:is(
+  .features-page,
+  .pricing-page,
+  .how-page,
+  .about-page,
+  .faq-page,
+  .blog-page,
+  .cli-page,
+  .rewards-page
+) {
+  min-height: 100vh;
+  background: var(--color-bg);
+  overflow-x: hidden;
+}
+
+:is(
+  .features-page,
+  .pricing-page,
+  .how-page,
+  .about-page,
+  .faq-page,
+  .blog-page,
+  .cli-page
+) {
+  padding-top: 80px;
+}
+
+:is(
+  .features-hero,
+  .pricing-hero,
+  .how-hero,
+  .about-hero,
+  .faq-hero,
+  .blog-hero,
+  .cli-header,
+  .rewards-hero
+) {
+  min-height: auto !important;
+  text-align: center;
+  padding: 40px 24px 60px !important;
+  margin: 0 auto;
+  background: transparent !important;
+}
+
+:is(
+  .features-hero__grid,
+  .pricing-hero__grid,
+  .how-hero__grid,
+  .about-hero__grid,
+  .faq-hero__grid
+) {
+  display: none;
+}
+
+:is(
+  .features-hero__content,
+  .pricing-hero__content,
+  .how-hero__content,
+  .about-hero__content,
+  .faq-hero__content,
+  .cli-header
+) {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+:is(
+  .features-hero__title,
+  .pricing-hero__title,
+  .how-hero__title,
+  .about-hero__title,
+  .faq-hero__title,
+  .blog-hero__title,
+  .cli-header h1,
+  .rewards-title,
+  .hero-title
+) {
+  font-size: clamp(2.4rem, 6vw, 3.7rem) !important;
+  font-weight: 700 !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.035em;
+  color: var(--color-text-primary);
+  background: var(--gradient-green);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 16px !important;
+}
+
+:is(
+  .features-hero__title-accent,
+  .pricing-hero__title-accent,
+  .how-hero__title-accent,
+  .about-hero__title-accent,
+  .faq-hero__title-accent
+) {
+  display: inline !important;
+  color: inherit !important;
+}
+
+:is(
+  .features-hero__subtitle,
+  .pricing-hero__subtitle,
+  .how-hero__subtitle,
+  .about-hero__subtitle,
+  .faq-hero__subtitle,
+  .blog-hero__subtitle,
+  .cli-header p,
+  .rewards-subtitle,
+  .hero-description
+) {
+  max-width: 860px;
+  margin: 0 auto 32px !important;
+  color: var(--color-text-secondary) !important;
+  font-size: 1.25rem !important;
+  line-height: 1.65 !important;
+}
+
+:is(
+  .features-main,
+  .features-additional,
+  .pricing-tiers,
+  .pricing-comparison,
+  .pricing-faq,
+  .how-steps,
+  .how-video,
+  .how-usecases,
+  .about-section,
+  .faq-content,
+  .blog-promo,
+  .blog-filters,
+  .cli-install,
+  .cli-features,
+  .cli-usage,
+  .cli-config,
+  .cli-cta,
+  .cli-link-section,
+  .campaigns-section,
+  .rewards-table-section,
+  .how-it-works
+) {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 24px 24px !important;
+  background: transparent !important;
+}
+
+:is(
+  .features-main__container,
+  .features-additional__container,
+  .pricing-tiers__container,
+  .pricing-comparison__container,
+  .pricing-faq__container,
+  .how-steps__container,
+  .how-video__container,
+  .how-usecases__container,
+  .about-section__container,
+  .faq-content__container,
+  .cli-container,
+  .campaigns-section,
+  .rewards-table-section
+) {
+  max-width: 1200px !important;
+}
+
+:is(
+  .features-main__container,
+  .features-additional__grid,
+  .pricing-tiers__container,
+  .pricing-faq__grid,
+  .how-usecases__grid,
+  .about-values__grid,
+  .about-team__grid,
+  .faq-category__list,
+  .blog-grid,
+  .cli-features-grid,
+  .campaigns-grid
+) {
+  gap: 20px !important;
+}
+
+:is(
+  .features-card,
+  .features-mini,
+  .pricing-tier,
+  .pricing-comparison__table,
+  .pricing-faq__item,
+  .how-step__content,
+  .how-video__player-wrapper,
+  .how-usecase,
+  .about-mission__card,
+  .about-value,
+  .about-team__card,
+  .faq-item,
+  .blog-card,
+  .blog-promo,
+  .cli-install,
+  .cli-features,
+  .cli-usage,
+  .cli-config,
+  .cli-cta,
+  .cli-link-section,
+  .campaign-card,
+  .step-card,
+  .leaderboard-card,
+  .leaderboard-display,
+  .rewards-table-wrapper,
+  .stats-card
+) {
+  background: var(--color-bg-elevated) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 20px !important;
+  box-shadow: none !important;
+}
+
+:is(
+  .features-card:hover,
+  .features-mini:hover,
+  .pricing-tier:hover,
+  .how-step__content:hover,
+  .how-usecase:hover,
+  .about-value:hover,
+  .about-team__card:hover,
+  .faq-item:hover,
+  .blog-card:hover,
+  .campaign-card:hover,
+  .step-card:hover,
+  .leaderboard-card:hover
+) {
+  border-color: var(--intel-cyan) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(59, 189, 76, 0.14) !important;
+}
+
+:is(
+  .features-card__icon,
+  .features-mini__icon,
+  .how-step__icon,
+  .how-usecase__icon,
+  .about-mission__icon,
+  .about-value__icon,
+  .cli-feature .feature-icon,
+  .blog-promo__icon,
+  .campaign-icon,
+  .step-icon-wrapper
+) {
+  width: 48px !important;
+  height: 48px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--intel-cyan), var(--intel-green)) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  color: #000 !important;
+  flex-shrink: 0;
+}
+
+:is(
+  .features-additional__title,
+  .pricing-comparison__title,
+  .pricing-faq__title,
+  .how-video__title,
+  .how-usecases__title,
+  .about-section__title,
+  .faq-category__title,
+  .cli-install h2,
+  .cli-features h2,
+  .cli-usage h2,
+  .cli-config h2,
+  .cli-cta h2,
+  .rewards-section-title,
+  .campaigns-section h2,
+  .section-title
+) {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  margin: 0 0 16px !important;
+  color: var(--color-text-primary);
+  background: var(--gradient-green);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+:is(
+  .features-card__description,
+  .features-mini__desc,
+  .pricing-tier__description,
+  .pricing-faq__answer,
+  .how-step__description,
+  .how-usecase__desc,
+  .about-section__text,
+  .about-value__desc,
+  .about-team__bio,
+  .faq-item__answer,
+  .blog-card__excerpt,
+  .cli-feature p,
+  .cli-install > p,
+  .cli-config > p,
+  .cli-cta p,
+  .campaign-card > p,
+  .rewards-intro,
+  .step-card p
+) {
+  color: var(--color-text-secondary) !important;
+  line-height: 1.65 !important;
+}
+
+:is(
+  .features-cta,
+  .pricing-cta,
+  .how-cta,
+  .about-cta,
+  .faq-cta
+) {
+  max-width: 1200px;
+  margin: 0 auto 80px;
+  padding: 40px 24px !important;
+  text-align: center;
+  background: transparent !important;
+}
+
+:is(
+  .features-cta__content,
+  .pricing-cta__content,
+  .how-cta__content,
+  .about-cta__content,
+  .faq-cta__content
+) {
+  max-width: none !important;
+  padding: 40px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+}
+
+:is(
+  .features-cta__button,
+  .pricing-cta__button,
+  .how-cta__button,
+  .about-cta__button,
+  .faq-cta__button,
+  .pricing-tier__cta--primary,
+  .campaign-join,
+  .btn-primary,
+  .claim-btn,
+  .cli-generate-btn,
+  .cli-telegram-btn
+) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 12px 22px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: var(--gradient-green) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+:is(
+  .features-cta__button,
+  .pricing-cta__button,
+  .how-cta__button,
+  .about-cta__button,
+  .faq-cta__button,
+  .pricing-tier__cta--primary,
+  .campaign-join,
+  .btn-primary,
+  .claim-btn,
+  .cli-generate-btn,
+  .cli-telegram-btn
+):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(59, 189, 76, 0.3) !important;
+}
+
+.blog-page {
+  max-width: 1400px !important;
+  padding: 120px 24px 80px !important;
+}
+
+.blog-hero {
+  padding-top: 0 !important;
+}
+
+.blog-filters,
+.blog-promo {
+  padding: 20px 24px !important;
+}
+
+.blog-search,
+.blog-category-btn,
+.cli-code-block,
+.docs-toc,
+.docs-section-btn,
+.docs-sidebar__link {
+  background: var(--color-bg-elevated) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.blog-category-btn.active,
+.docs-toc__link--active,
+.docs-section-btn--active {
+  background: var(--intel-cyan) !important;
+  border-color: var(--intel-cyan) !important;
+  color: #000 !important;
+}
+
+.cli-page .cli-container {
+  max-width: 1200px !important;
+}
+
+.cli-logo {
+  justify-content: center;
+}
+
+.cli-install,
+.cli-features,
+.cli-usage,
+.cli-config,
+.cli-cta,
+.cli-link-section {
+  padding: 40px !important;
+}
+
+.cli-code-block {
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+.mcp-tabs,
+.campaigns-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.mcp-tab,
+.tab-button {
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-bg-elevated) !important;
+  color: var(--color-text-secondary) !important;
+  border-radius: 10px !important;
+}
+
+.mcp-tab--active,
+.tab-button.active {
+  background: var(--intel-cyan) !important;
+  color: #000 !important;
+}
+
+.rewards-page {
+  background: var(--color-bg) !important;
+  padding-top: 80px;
+}
+
+.hero-background {
+  display: none !important;
+}
+
+.rewards-hero {
+  max-width: 1000px;
+}
+
+.rewards-stats,
+.hero-stats,
+.mcp-usage-stats,
+.about-hero__stats {
+  max-width: 1000px;
+  margin: 24px auto 0;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px !important;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 12px 22px !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 12px !important;
+  background: var(--color-bg-elevated) !important;
+  color: var(--color-text-primary) !important;
+  font-weight: 600 !important;
+}
+
+.how-it-works {
+  max-width: 1200px !important;
+}
+
+.steps-grid {
+  gap: 20px !important;
+}
+
+.step-card {
+  border-radius: 20px !important;
+}
+
+.stat-card,
+.mcp-stat,
+.about-stat {
+  background: var(--color-bg-elevated) !important;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.docs-page {
+  max-width: 1400px !important;
+  padding: 40px 24px 80px !important;
+  gap: 40px !important;
+}
+
+.docs-content {
+  max-width: none !important;
+}
+
+.docs-title {
+  font-size: clamp(2.25rem, 5vw, 3rem) !important;
+  font-weight: 700 !important;
+  background: var(--gradient-green);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.docs-body {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 40px;
+}
+
+.docs-sidebar {
+  background: transparent !important;
+}
+
+.docs-sidebar__link--active {
+  background: var(--intel-cyan) !important;
+  color: #000 !important;
+}
+
+@media (max-width: 1024px) {
+  :is(
+    .features-main__container,
+    .features-additional__grid,
+    .pricing-tiers__container,
+    .pricing-faq__grid,
+    .how-usecases__grid,
+    .about-values__grid,
+    .about-team__grid,
+    .blog-grid,
+    .campaigns-grid
+  ) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .about-mission {
+    grid-template-columns: 1fr !important;
+  }
+
+  .docs-page {
+    display: block !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :is(
+    .features-page,
+    .pricing-page,
+    .how-page,
+    .about-page,
+    .faq-page,
+    .blog-page,
+    .cli-page,
+    .rewards-page
+  ) {
+    padding-top: 70px;
+  }
+
+  :is(
+    .features-hero,
+    .pricing-hero,
+    .how-hero,
+    .about-hero,
+    .faq-hero,
+    .blog-hero,
+    .cli-header,
+    .rewards-hero
+  ) {
+    padding: 28px 16px 42px !important;
+  }
+
+  :is(
+    .features-hero__subtitle,
+    .pricing-hero__subtitle,
+    .how-hero__subtitle,
+    .about-hero__subtitle,
+    .faq-hero__subtitle,
+    .blog-hero__subtitle,
+    .cli-header p,
+    .rewards-subtitle
+  ) {
+    font-size: 1.0625rem !important;
+  }
+
+  :is(
+    .features-main__container,
+    .features-additional__grid,
+    .pricing-tiers__container,
+    .pricing-faq__grid,
+    .how-usecases__grid,
+    .about-values__grid,
+    .about-team__grid,
+    .faq-category__list,
+    .blog-grid,
+    .cli-features-grid,
+    .campaigns-grid,
+    .pricing-comparison__row
+  ) {
+    grid-template-columns: 1fr !important;
+  }
+
+  :is(
+    .features-main,
+    .features-additional,
+    .pricing-tiers,
+    .pricing-comparison,
+    .pricing-faq,
+    .how-steps,
+    .how-video,
+    .how-usecases,
+    .about-section,
+    .faq-content,
+    .cli-install,
+    .cli-features,
+    .cli-usage,
+    .cli-config,
+    .cli-cta,
+    .cli-link-section,
+    .campaigns-section,
+    .rewards-table-section
+  ) {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .blog-page,
+  .docs-page {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .blog-filters,
+  .blog-search-wrapper {
+    width: 100%;
+  }
+
+  .cli-code-block {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .how-step {
+    padding-left: 0 !important;
+  }
+
+  .how-step__number,
+  .how-step__connector {
+    display: none !important;
+  }
+
+  .docs-body {
+    padding: 24px;
+  }
+
+  :is(
+    .features-cta__content,
+    .pricing-cta__content,
+    .how-cta__content,
+    .about-cta__content,
+    .faq-cta__content,
+    .cli-install,
+    .cli-features,
+    .cli-usage,
+    .cli-config,
+    .cli-cta,
+    .cli-link-section
+  ) {
+    padding: 24px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  :is(
+    .features-cta__button,
+    .pricing-cta__button,
+    .how-cta__button,
+    .about-cta__button,
+    .faq-cta__button,
+    .pricing-tier__cta,
+    .campaign-join,
+    .claim-btn,
+    .cli-generate-btn,
+    .cli-telegram-btn
+  ) {
+    width: 100%;
+  }
+
+  .docs-body {
+    padding: 18px;
+  }
+}

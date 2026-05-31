@@ -10,20 +10,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { Badge } from '../design-system/primitives';
 import './DocsPage.css';
+import './PublicPageShell.css';
+import { LANDING_NAV_ITEMS } from '../constants/navigation';
 
-const navItems = [
-  { label: 'Intel', href: '/' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'Docs', href: '/docs/getting-started', active: true },
-  { label: 'Features', href: '/features' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'How It Works', href: '/how-it-works' },
-  { label: 'FAQ', href: '/faq' },
-  { label: 'API', href: '/api-docs' },
-  { label: 'MCP', href: '/mcp' },
-  { label: 'CLI', href: '/cli' },
-  { label: 'About', href: '/about' },
-];
+const navItems = LANDING_NAV_ITEMS.map(item =>
+  item.href === '/docs/getting-started' ? { ...item, active: true } : item
+);
 
 interface DocsSection { id: string; title: string; }
 

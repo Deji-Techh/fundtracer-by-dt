@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { Badge, Panel } from '../design-system/primitives';
 import './FeaturesPage.css';
+import './PublicPageShell.css';
 
 const navItems = [
   { label: 'Intel', href: '/' },

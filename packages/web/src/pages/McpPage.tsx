@@ -8,6 +8,7 @@ import { createMcpKey, listMcpKeys, deleteMcpKey, getMcpHistory } from '../api';
 import type { McpHistoryItem } from '../api';
 import { LandingLayout } from '../design-system';
 import './McpPage.css';
+import './PublicPageShell.css';
 
 interface McpKey {
   id: string;

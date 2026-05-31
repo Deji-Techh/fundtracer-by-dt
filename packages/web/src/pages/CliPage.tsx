@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, Users, GitBranch, BarChart2, Check, Terminal, Link as LinkIcon } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './CliPage.css';
+import './PublicPageShell.css';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { apiRequest } from '../api';

@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 import MyStatsTab from '../components/MyStatsTab';
 import './RewardsPage.css';
+import './PublicPageShell.css';
 
 const navItems = LANDING_NAV_ITEMS.map(item => 
   item.href === '/rewards' ? { ...item, active: true } : item
