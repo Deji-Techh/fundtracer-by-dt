@@ -1402,7 +1402,7 @@ router.post('/contract', async (req: AuthenticatedRequest, res: Response) => {
 
         console.log('[DEBUG] Starting contract analysis with 180s timeout...');
         const result = await withTimeout(
-            analyzer.analyzeContract(contractAddress, chain as ChainId, {
+            analyzer.analyzeContract(contractAddress, normalizedChain as ChainId, {
                 maxInteractors: options?.maxInteractors || 100,
                 analyzeFunding: options?.analyzeFunding !== false,
                 externalInteractors: externalInteractors.length > 0 ? externalInteractors : undefined,
@@ -1498,7 +1498,7 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
             covalentKey: covalentKey,
         };
 
-        const analyzer = new SybilAnalyzer(chain as ChainId, sybilConfig);
+        const analyzer = new SybilAnalyzer(normalizedChain as ChainId, sybilConfig);
 
         console.log(`[Sybil] Analyzing contract with ${alchemyKeyPool.length} keys...`);
         const result = await withTimeout(
