@@ -5,7 +5,7 @@ export function generateInviteCode(): string {
 }
 
 export function generateInviteUrl(inviteCode: string): string {
-  return `https://fundtracer.xyz/app-evm/room?invite=${inviteCode}`;
+  return `https://fundtracer.xyz/app-evm?invite=${inviteCode}`;
 }
 
 export function getExpiryDate(hoursFromNow: number = 168): Date {

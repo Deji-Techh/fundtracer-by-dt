@@ -17,6 +17,8 @@ import {
   sendAiResponse,
   updateRoom,
   deleteRoom as deleteRoomApi,
+  getInvite,
+  joinRoom,
 } from '../../../api';
 import { RoomHeader } from './RoomHeader';
 import { RoomLayout } from './RoomLayout';
@@ -114,6 +116,13 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   // Invite dialog
   const [showInvite, setShowInvite] = useState(false);
   const [inviteUrl, setInviteUrl] = useState('');
+
+  // Join by code
+  const [showJoinByCode, setShowJoinByCode] = useState(false);
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [joinLookupLoading, setJoinLookupLoading] = useState(false);
+  const [joinLookupInfo, setJoinLookupInfo] = useState<{ roomId: string; roomName: string } | null>(null);
+  const [joinLookupError, setJoinLookupError] = useState('');
 
   // Settings modal
   const [showSettings, setShowSettings] = useState(false);
@@ -602,6 +611,40 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     }
   }, [currentWallet, currentChain]);
 
+  const extractInviteCode = useCallback((input: string): string => {
+    try { const url = new URL(input); return url.searchParams.get('invite') || ''; }
+    catch { return input.trim(); }
+  }, []);
+
+  const handleJoinLookup = useCallback(async () => {
+    const code = extractInviteCode(joinCodeInput);
+    if (!code) return;
+    setJoinLookupLoading(true);
+    setJoinLookupError('');
+    try {
+      const info = await getInvite(code);
+      if (info?.invite) setJoinLookupInfo(info.invite);
+    } catch (err: any) {
+      setJoinLookupError(err.message || 'Invalid or expired invite code');
+    } finally { setJoinLookupLoading(false); }
+  }, [joinCodeInput, extractInviteCode]);
+
+  const handleJoinConfirm = useCallback(async () => {
+    if (!joinLookupInfo) return;
+    setJoinLookupLoading(true);
+    setJoinLookupError('');
+    try {
+      await joinRoom(joinLookupInfo.roomId, extractInviteCode(joinCodeInput));
+      setShowJoinByCode(false);
+      setJoinCodeInput('');
+      setJoinLookupInfo(null);
+      const list = await getRooms();
+      setRooms(list);
+    } catch (err: any) {
+      setJoinLookupError(err.message || 'Failed to join room');
+    } finally { setJoinLookupLoading(false); }
+  }, [joinLookupInfo, joinCodeInput, extractInviteCode]);
+
   const handleSelectRoom = useCallback((roomId: string) => {
     setActiveRoomId(roomId);
     forceReconnectRef.current++;
@@ -681,6 +724,53 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                    >
                      + New Room
                    </button>
+                   <button
+                     className="ir-room-tab-new"
+                     onClick={() => { setShowJoinByCode(true); setJoinCodeInput(''); setJoinLookupInfo(null); setJoinLookupError(''); }}
+                     style={{ marginLeft: 4 }}
+                   >
+                     + Join Room
+                   </button>
+                </div>
+              )}
+
+              {/* Join by code dialog */}
+              {showJoinByCode && (
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                  {joinLookupInfo ? (
+                    <>
+                      <p style={{ fontSize: 13, marginBottom: 8 }}>Join <strong>{joinLookupInfo.roomName}</strong>?</p>
+                      {joinLookupError && <p style={{ fontSize: 11, color: 'var(--destructive)', marginBottom: 8 }}>{joinLookupError}</p>}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="ir-empty-btn" onClick={handleJoinConfirm} disabled={joinLookupLoading}>
+                          {joinLookupLoading ? 'Joining...' : 'Join'}
+                        </button>
+                        <button className="ir-room-tab-new" onClick={() => { setShowJoinByCode(false); setJoinCodeInput(''); setJoinLookupInfo(null); }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="text" value={joinCodeInput}
+                        onChange={e => setJoinCodeInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleJoinLookup(); if (e.key === 'Escape') { setShowJoinByCode(false); setJoinCodeInput(''); } }}
+                        placeholder="Paste invite link or code..."
+                        autoFocus
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--fg)', fontSize: 12 }}
+                      />
+                      {joinLookupError && <p style={{ fontSize: 11, color: 'var(--destructive)', marginTop: 6 }}>{joinLookupError}</p>}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <button className="ir-empty-btn" onClick={handleJoinLookup} disabled={joinLookupLoading || !joinCodeInput.trim()}>
+                          {joinLookupLoading ? 'Looking up...' : 'Look Up'}
+                        </button>
+                        <button className="ir-room-tab-new" onClick={() => { setShowJoinByCode(false); setJoinCodeInput(''); setJoinLookupError(''); }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -770,9 +860,14 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                 <div className="ir-empty" style={{ flex: 1 }}>
                   <p className="ir-empty-text">No investigation rooms yet</p>
                   <p className="ir-empty-sub">Create a room to start collaborating with your team on wallet investigations</p>
-                  <button className="ir-empty-btn" onClick={() => setShowCreateModal(true)}>
-                    Create Your First Room
-                  </button>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                    <button className="ir-empty-btn" onClick={() => setShowCreateModal(true)}>
+                      Create Your First Room
+                    </button>
+                    <button className="ir-empty-btn" onClick={() => { setShowJoinByCode(true); setJoinCodeInput(''); setJoinLookupInfo(null); setJoinLookupError(''); }}>
+                      Join a Room
+                    </button>
+                  </div>
                 </div>
               ) : null}
             </motion.div>
