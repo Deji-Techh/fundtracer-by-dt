@@ -3,6 +3,11 @@
    Fluid motion, perfect spacing, theme-aware, delightful UX
    ============================================================ */
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ---- Overlay & Panel (matching AiFullScreenView theme) ---- */
 .ir-overlay {
   position: fixed;
@@ -1265,17 +1270,25 @@
 }
 
 .ir-room-tab-new {
-  padding: 9px 16px;
+  padding: 8px 16px;
   background: var(--ir-accent);
   color: var(--ir-accent-text);
   border: none;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   border-radius: 999px;
-  margin-left: 10px;
+  margin-left: 6px;
   transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ir-room-tab-new:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
 }
 
 /* ---- Modals ---- */

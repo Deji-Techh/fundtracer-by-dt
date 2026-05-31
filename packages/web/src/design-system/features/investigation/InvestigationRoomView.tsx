@@ -189,17 +189,41 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   // Listen for room updates (member join/leave) via WebSocket
   useEffect(() => {
     const unsub = on('room_update', async (data: any) => {
-      if (!data.roomId || data.roomId !== activeRoomId) return;
-      if (data.event === 'member_joined' || data.event === 'member_left' || data.event === 'member_removed') {
+      if (!data.roomId) return;
+      // Always refresh room list when any room changes
+      try {
+        const list = await getRooms();
+        setRooms(list);
+      } catch {}
+
+      if (data.event === 'member_joined' && data.member) {
+        setMembers(prev => {
+          if (prev.some(m => m.uid === data.member.uid)) return prev;
+          return [...prev, { ...data.member, displayName: data.member.displayName || 'Unknown' }];
+        });
+        if (data.roomId === activeRoomId) {
+          setRoomDetails((prev: any) => prev ? {
+            ...prev,
+            memberCount: (prev.memberCount || 0) + 1,
+          } : prev);
+        }
+      } else if (data.event === 'member_left' || data.event === 'member_removed') {
+        setMembers(prev => prev.filter(m => m.uid !== data.uid));
+        if (data.roomId === activeRoomId) {
+          setRoomDetails((prev: any) => prev ? {
+            ...prev,
+            memberCount: Math.max(0, (prev.memberCount || 0) - 1),
+          } : prev);
+        }
+      } else if (data.roomId === activeRoomId) {
+        // Generic refresh for other events
         try {
           const details = await getRoomDetails(activeRoomId);
           if (details) {
             setRoomDetails(details);
             setMembers(details.members || []);
           }
-        } catch {
-          // fail silently
-        }
+        } catch {}
       }
     });
     return unsub;
@@ -634,12 +658,16 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
     setJoinLookupLoading(true);
     setJoinLookupError('');
     try {
-      await joinRoom(joinLookupInfo.roomId, extractInviteCode(joinCodeInput));
+      const joinedRoomId = joinLookupInfo.roomId;
+      await joinRoom(joinedRoomId, extractInviteCode(joinCodeInput));
       setShowJoinByCode(false);
       setJoinCodeInput('');
       setJoinLookupInfo(null);
       const list = await getRooms();
       setRooms(list);
+      // Auto-select the newly joined room
+      setActiveRoomId(joinedRoomId);
+      forceReconnectRef.current++;
     } catch (err: any) {
       setJoinLookupError(err.message || 'Failed to join room');
     } finally { setJoinLookupLoading(false); }
@@ -706,66 +734,175 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
               exit={{ opacity: 0, scale: 0.985, y: 16, filter: 'blur(4px)' }}
               transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
             >
-              {/* Room Selector (if multiple rooms) + Header */}
-              {rooms.length > 1 && (
-                <div className="ir-room-tabs">
-                  {rooms.map((room) => (
-                    <button
-                      key={room.id}
-                      className={`ir-room-tab ${room.id === activeRoomId ? 'active' : ''}`}
-                      onClick={() => handleSelectRoom(room.id)}
-                    >
-                      {room.name}
-                    </button>
-                  ))}
-                   <button
-                     className="ir-room-tab-new"
-                     onClick={() => setShowCreateModal(true)}
-                   >
-                     + New Room
-                   </button>
-                   <button
-                     className="ir-room-tab-new"
-                     onClick={() => { setShowJoinByCode(true); setJoinCodeInput(''); setJoinLookupInfo(null); setJoinLookupError(''); }}
-                     style={{ marginLeft: 4 }}
-                   >
-                     + Join Room
-                   </button>
-                </div>
-              )}
+              {/* Room tabs bar — always visible */}
+              <div className="ir-room-tabs">
+                {rooms.map((room) => (
+                  <button
+                    key={room.id}
+                    className={`ir-room-tab ${room.id === activeRoomId ? 'active' : ''}`}
+                    onClick={() => handleSelectRoom(room.id)}
+                  >
+                    {room.name}
+                  </button>
+                ))}
+                <button
+                  className="ir-room-tab-new"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  + New
+                </button>
+                <button
+                  className="ir-room-tab-new"
+                  onClick={() => { setShowJoinByCode(true); setJoinCodeInput(''); setJoinLookupInfo(null); setJoinLookupError(''); }}
+                  style={{
+                    background: 'transparent',
+                    border: '1px dashed var(--border)',
+                    color: 'var(--fg-secondary)',
+                    boxShadow: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  + Join
+                </button>
+              </div>
 
               {/* Join by code dialog */}
               {showJoinByCode && (
-                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{
+                  padding: '16px', borderBottom: '1px solid var(--border)',
+                  background: 'var(--bg-secondary, rgba(255,255,255,0.02))',
+                }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    marginBottom: 12,
+                  }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)' }}>
+                      Join a Room
+                    </span>
+                    <button
+                      onClick={() => { setShowJoinByCode(false); setJoinCodeInput(''); setJoinLookupError(''); setJoinLookupInfo(null); }}
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--fg-tertiary, #888)',
+                        cursor: 'pointer', padding: 2, display: 'flex', borderRadius: 4,
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+
                   {joinLookupInfo ? (
                     <>
-                      <p style={{ fontSize: 13, marginBottom: 8 }}>Join <strong>{joinLookupInfo.roomName}</strong>?</p>
-                      {joinLookupError && <p style={{ fontSize: 11, color: 'var(--destructive)', marginBottom: 8 }}>{joinLookupError}</p>}
+                      <div style={{
+                        padding: '10px 14px', borderRadius: 8,
+                        background: 'var(--ir-accent-muted, rgba(0,230,122,0.06))',
+                        border: '1px solid var(--ir-accent-border, rgba(0,230,122,0.2))',
+                        marginBottom: 12,
+                      }}>
+                        <div style={{ fontSize: 12, color: 'var(--fg-secondary)' }}>Found room</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)', marginTop: 2 }}>
+                          {joinLookupInfo.roomName}
+                        </div>
+                      </div>
+                      {joinLookupError && (
+                        <p style={{ fontSize: 11, color: 'var(--destructive)', margin: '0 0 10px' }}>{joinLookupError}</p>
+                      )}
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <button className="ir-empty-btn" onClick={handleJoinConfirm} disabled={joinLookupLoading}>
-                          {joinLookupLoading ? 'Joining...' : 'Join'}
+                        <button
+                          onClick={handleJoinConfirm}
+                          disabled={joinLookupLoading}
+                          style={{
+                            padding: '9px 20px', borderRadius: 999,
+                            border: 'none',
+                            background: joinLookupLoading ? 'var(--ir-accent-muted, rgba(0,230,122,0.3))' : 'var(--ir-accent, #00e67a)',
+                            color: joinLookupLoading ? 'var(--fg-tertiary)' : 'var(--ir-accent-text, #000)',
+                            fontSize: 12.5, fontWeight: 600, cursor: joinLookupLoading ? 'default' : 'pointer',
+                            transition: 'all 0.15s ease',
+                            display: 'flex', alignItems: 'center', gap: 6,
+                          }}>
+                          {joinLookupLoading && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 0.8s linear infinite' }}>
+                              <circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 019.95 9" strokeLinecap="round"/>
+                            </svg>
+                          )}
+                          {joinLookupLoading ? 'Joining...' : 'Join Room'}
                         </button>
-                        <button className="ir-room-tab-new" onClick={() => { setShowJoinByCode(false); setJoinCodeInput(''); setJoinLookupInfo(null); }}>
-                          Cancel
+                        <button
+                          onClick={() => { setJoinLookupInfo(null); setJoinCodeInput(''); setJoinLookupError(''); }}
+                          style={{
+                            padding: '9px 20px', borderRadius: 999,
+                            border: '1px solid var(--border)',
+                            background: 'transparent',
+                            color: 'var(--fg-secondary)',
+                            fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}>
+                          Back
                         </button>
                       </div>
                     </>
                   ) : (
                     <>
-                      <input
-                        type="text" value={joinCodeInput}
-                        onChange={e => setJoinCodeInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleJoinLookup(); if (e.key === 'Escape') { setShowJoinByCode(false); setJoinCodeInput(''); } }}
-                        placeholder="Paste invite link or code..."
-                        autoFocus
-                        style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--fg)', fontSize: 12 }}
-                      />
-                      {joinLookupError && <p style={{ fontSize: 11, color: 'var(--destructive)', marginTop: 6 }}>{joinLookupError}</p>}
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        <button className="ir-empty-btn" onClick={handleJoinLookup} disabled={joinLookupLoading || !joinCodeInput.trim()}>
+                      <div style={{ position: 'relative', marginBottom: 10 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{
+                          position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                          color: 'var(--fg-tertiary, #888)',
+                        }}>
+                          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                        </svg>
+                        <input
+                          type="text" value={joinCodeInput}
+                          onChange={e => setJoinCodeInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleJoinLookup(); if (e.key === 'Escape') { setShowJoinByCode(false); setJoinCodeInput(''); } }}
+                          placeholder="Paste invite link or code..."
+                          autoFocus
+                          style={{
+                            width: '100%', padding: '9px 12px 9px 32px', borderRadius: 8,
+                            border: joinLookupError ? '1px solid var(--destructive)' : '1px solid var(--border)',
+                            background: 'var(--bg)', color: 'var(--fg)', fontSize: 12.5,
+                            outline: 'none', boxSizing: 'border-box',
+                            transition: 'border-color 0.15s ease',
+                          }}
+                          onFocus={e => { e.currentTarget.style.borderColor = 'var(--ir-accent, #00e67a)'; }}
+                          onBlur={e => { e.currentTarget.style.borderColor = joinLookupError ? 'var(--destructive)' : 'var(--border)'; }}
+                        />
+                      </div>
+                      {joinLookupError && (
+                        <p style={{
+                          fontSize: 11, color: 'var(--destructive)',
+                          margin: '0 0 10px', padding: '6px 10px',
+                          borderRadius: 6, background: 'rgba(255,0,0,0.06)',
+                        }}>{joinLookupError}</p>
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={handleJoinLookup}
+                          disabled={joinLookupLoading || !joinCodeInput.trim()}
+                          style={{
+                            padding: '9px 20px', borderRadius: 999,
+                            border: 'none',
+                            background: (joinLookupLoading || !joinCodeInput.trim()) ? 'var(--ir-accent-muted, rgba(0,230,122,0.3))' : 'var(--ir-accent, #00e67a)',
+                            color: (joinLookupLoading || !joinCodeInput.trim()) ? 'var(--fg-tertiary)' : 'var(--ir-accent-text, #000)',
+                            fontSize: 12.5, fontWeight: 600, cursor: (joinLookupLoading || !joinCodeInput.trim()) ? 'default' : 'pointer',
+                            transition: 'all 0.15s ease',
+                            display: 'flex', alignItems: 'center', gap: 6,
+                          }}>
+                          {joinLookupLoading && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 0.8s linear infinite' }}>
+                              <circle cx="12" cy="12" r="10" strokeOpacity="0.25" /><path d="M12 2a10 10 0 019.95 9" strokeLinecap="round"/>
+                            </svg>
+                          )}
                           {joinLookupLoading ? 'Looking up...' : 'Look Up'}
                         </button>
-                        <button className="ir-room-tab-new" onClick={() => { setShowJoinByCode(false); setJoinCodeInput(''); setJoinLookupError(''); }}>
+                        <button
+                          onClick={() => { setShowJoinByCode(false); setJoinCodeInput(''); setJoinLookupError(''); }}
+                          style={{
+                            padding: '9px 20px', borderRadius: 999,
+                            border: '1px solid var(--border)',
+                            background: 'transparent',
+                            color: 'var(--fg-secondary)',
+                            fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}>
                           Cancel
                         </button>
                       </div>
@@ -858,16 +995,21 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                 />
               ) : !isLoadingRooms && !showCreateModal ? (
                 <div className="ir-empty" style={{ flex: 1 }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: 16,
+                    background: 'var(--ir-accent-muted, rgba(0,230,122,0.08))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    marginBottom: 16,
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ir-accent, #00e67a)" strokeWidth="1.5" strokeLinecap="round">
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                    </svg>
+                  </div>
                   <p className="ir-empty-text">No investigation rooms yet</p>
                   <p className="ir-empty-sub">Create a room to start collaborating with your team on wallet investigations</p>
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                    <button className="ir-empty-btn" onClick={() => setShowCreateModal(true)}>
-                      Create Your First Room
-                    </button>
-                    <button className="ir-empty-btn" onClick={() => { setShowJoinByCode(true); setJoinCodeInput(''); setJoinLookupInfo(null); setJoinLookupError(''); }}>
-                      Join a Room
-                    </button>
-                  </div>
+                  <button className="ir-empty-btn" onClick={() => setShowCreateModal(true)} style={{ marginTop: 8 }}>
+                    Create Your First Room
+                  </button>
                 </div>
               ) : null}
             </motion.div>
