@@ -370,6 +370,9 @@ export function IntelPage() {
                       <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
+                  <button className="intel-btn intel-btn--secondary intel-btn--lg" onClick={() => navigate('/download#windows')}>
+                    Download Desktop
+                  </button>
                   <button className="intel-btn intel-btn--secondary intel-btn--lg" onClick={() => navigate('/pricing')}>
                     View Pricing
                   </button>
