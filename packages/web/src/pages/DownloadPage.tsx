@@ -6,8 +6,8 @@ import './DownloadPage.css';
 
 const RELEASE_VERSION = 'v1.0.14';
 const RELEASE_NUMBER = RELEASE_VERSION.replace(/^v/, '');
-const RELEASE_PAGE = `https://github.com/Deji-Tech/fundtracer-desktop/releases/tag/${RELEASE_VERSION}`;
-const RELEASE_ASSET_BASE = `https://github.com/Deji-Tech/fundtracer-desktop/releases/download/${RELEASE_VERSION}`;
+const RELEASE_PAGE = `https://github.com/Deji-Tech/fundtracer-desktop-releases/releases/tag/${RELEASE_VERSION}`;
+const RELEASE_ASSET_BASE = `https://github.com/Deji-Tech/fundtracer-desktop-releases/releases/download/${RELEASE_VERSION}`;
 const DOWNLOADS = {
   windowsExe: `${RELEASE_ASSET_BASE}/FundTracer_${RELEASE_NUMBER}_x64-setup.exe`,
   windowsMsi: `${RELEASE_ASSET_BASE}/FundTracer_${RELEASE_NUMBER}_x64_en-US.msi`,
