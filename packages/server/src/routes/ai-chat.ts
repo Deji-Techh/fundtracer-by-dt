@@ -712,7 +712,7 @@ router.get('/sessions/:id', authMiddleware, async (req: AuthenticatedRequest, re
 router.post('/sessions', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.uid;
-    const { title, walletAddress, chain } = req.body;
+    const { title, walletAddress, chain, messages } = req.body;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -726,7 +726,7 @@ router.post('/sessions', authMiddleware, async (req: AuthenticatedRequest, res: 
       title: title || 'New Chat',
       walletAddress: walletAddress || null,
       chain: chain || null,
-      messages: [],
+      messages: messages || [],
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
