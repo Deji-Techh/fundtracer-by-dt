@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowRight, CheckCircle, Download, MonitorDown, Package, Shield, Terminal, Zap } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 import './DownloadPage.css';
@@ -8,174 +9,195 @@ const RELEASE_VERSION = 'v1.0.10';
 
 const workflowFeatures = [
   {
-    index: '01',
+    icon: <Zap size={24} />,
     title: 'Analyze',
     copy: 'Run wallet-level investigations with timelines, funding context, risk signals, and AI summaries tied to the same backend intelligence as the web app.'
   },
   {
-    index: '02',
+    icon: <Shield size={24} />,
     title: 'Compare',
     copy: 'Compare two or more wallets with shared funders, overlap scoring, graph views, detailed explorer links, and cached per-tab results.'
   },
   {
-    index: '03',
+    icon: <MonitorDown size={24} />,
     title: 'Contract Scanner',
     copy: 'Inspect smart contracts for interactors, funding patterns, token movement, suspicious clusters, and investigation-ready detail views.'
   },
   {
-    index: '04',
+    icon: <Package size={24} />,
     title: 'Sybil + CEX Flow',
     copy: 'Move from wallet behavior to exchange flow and sybil pattern checks without switching tools or losing the current case context.'
   },
   {
-    index: '05',
+    icon: <Terminal size={24} />,
     title: 'Graph Investigation',
     copy: 'Use the same visual language as Analyze: consistent line charts, relationship graphs, node maps, and full-screen graph inspection.'
   },
   {
-    index: '06',
+    icon: <CheckCircle size={24} />,
     title: 'Exportable Evidence',
     copy: 'Keep CSV, JSON, and report-friendly outputs clean for analysts, compliance teams, internal reviews, or external handoff.'
   }
 ];
 
-const desktopModules = ['Analyze', 'Compare', 'Contract', 'Interactors', 'Sybil', 'CEX Flow'];
-
-const navItems = LANDING_NAV_ITEMS.map((item) =>
-  item.label === 'Download' ? { ...item, active: true } : item
-);
+const sections = [
+  { id: 'overview', label: 'Overview', icon: <MonitorDown size={18} /> },
+  { id: 'features', label: 'Desktop Features', icon: <Zap size={18} /> },
+  { id: 'windows', label: 'Windows', icon: <Download size={18} /> },
+  { id: 'linux', label: 'Linux', icon: <Terminal size={18} /> }
+];
 
 export function DownloadPage() {
   return (
-    <LandingLayout navItems={navItems} showSearch={false}>
+    <LandingLayout navItems={LANDING_NAV_ITEMS} showSearch={false}>
       <div className="download-page">
-        <section className="download-hero">
-          <div className="download-hero__copy">
-            <p className="download-hero__kicker">FUNDTRACER DESKTOP</p>
-            <h1 className="download-hero__title">Native blockchain intelligence for long investigations.</h1>
-            <p className="download-hero__subtitle">
-              Move the FundTracer workflow into a dedicated desktop app built for analysts who keep multiple
-              cases open: wallet analysis, compare, contract scanning, interactors, sybil detection, CEX flow,
-              graph exploration, AI breakdowns, and per-tab investigation memory.
+        <div className="download-container">
+          <header className="download-header" id="overview">
+            <p className="download-eyebrow">Desktop App</p>
+            <h1>FundTracer Desktop</h1>
+            <p>
+              A native investigation workspace for wallet analysis, compare, contract scanning, interactors,
+              sybil detection, CEX flow, graph exploration, and AI-assisted case review.
             </p>
-            <div className="download-hero__actions">
-              <a className="download-btn download-btn--primary" href="#windows">Download for Windows</a>
-              <a className="download-btn download-btn--secondary" href="#linux">Download for Linux</a>
+            <div className="download-header__actions">
+              <a className="download-primary-btn" href="#windows">
+                Download for Windows
+                <ArrowRight size={18} />
+              </a>
+              <a className="download-secondary-btn" href="#linux">
+                Install on Linux
+                <Terminal size={18} />
+              </a>
             </div>
-            <div className="download-hero__meta" aria-label="Release details">
+            <div className="download-release-strip">
               <span>Latest release: {RELEASE_VERSION}</span>
-              <span>Windows + Linux builds</span>
-              <span>Shared FundTracer backend</span>
+              <span>Windows .exe/.msi</span>
+              <span>Linux AUR, deb, rpm, AppImage</span>
             </div>
-          </div>
+          </header>
 
-          <div className="download-hero__console" aria-label="FundTracer Desktop preview">
-            <div className="download-window">
-              <div className="download-window__bar">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="download-window__body">
-                <div className="download-window__sidebar">
-                  {desktopModules.map((module) => (
-                    <span key={module}>{module}</span>
+          <div className="download-layout">
+            <nav className="download-sidebar" aria-label="Download page sections">
+              {sections.map((section) => (
+                <a className="download-sidebar-link" href={`#${section.id}`} key={section.id}>
+                  {section.icon}
+                  <span>{section.label}</span>
+                </a>
+              ))}
+            </nav>
+
+            <main className="download-content">
+              <section className="download-doc-section">
+                <h2>Overview</h2>
+                <p className="download-section-intro">
+                  FundTracer Desktop uses the same backend intelligence pipeline as the web app, but gives long
+                  investigations a dedicated native workspace. Keep multiple cases open, preserve per-tab context,
+                  and move between overview, graph, detailed evidence, and AI analysis without browser clutter.
+                </p>
+
+                <div className="download-info-grid">
+                  <div className="download-info-card">
+                    <h3>Built for investigation tabs</h3>
+                    <p>Analyze, Compare, Contract, Interactors, Sybil, and CEX Flow keep their own state per tab.</p>
+                  </div>
+                  <div className="download-info-card">
+                    <h3>Same data as web</h3>
+                    <p>Desktop calls the production FundTracer endpoints instead of inventing separate local results.</p>
+                  </div>
+                  <div className="download-info-card">
+                    <h3>AI context included</h3>
+                    <p>Analysis payloads are sent to backend AI so summaries match the current wallet or contract.</p>
+                  </div>
+                  <div className="download-info-card">
+                    <h3>Export-friendly outputs</h3>
+                    <p>Evidence views and CSV exports are structured for analyst review and operational handoff.</p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="download-doc-section" id="features">
+                <h2>Desktop Features</h2>
+                <p className="download-section-intro">
+                  The desktop app mirrors the core FundTracer workflow and adds stronger session isolation for
+                  investigation-heavy usage.
+                </p>
+
+                <div className="download-features-grid">
+                  {workflowFeatures.map((feature) => (
+                    <div className="download-feature" key={feature.title}>
+                      <div className="download-feature-icon">{feature.icon}</div>
+                      <div>
+                        <h3>{feature.title}</h3>
+                        <p>{feature.copy}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
-                <div className="download-window__main">
-                  <div className="download-scan-card">
-                    <div>
-                      <p>ACTIVE CASE</p>
-                      <strong>Wallet cluster review</strong>
-                    </div>
-                    <span>AI Ready</span>
+              </section>
+
+              <section className="download-doc-section" id="windows">
+                <div className="download-platform-heading">
+                  <div>
+                    <h2>Windows</h2>
+                    <p className="download-section-intro">
+                      Use the GitHub release assets for normal installs or managed workstation deployment.
+                    </p>
                   </div>
-                  <div className="download-graph-preview">
-                    <i className="node node--a" />
-                    <i className="node node--b" />
-                    <i className="node node--c" />
-                    <i className="node node--d" />
-                    <svg viewBox="0 0 360 160" aria-hidden="true">
-                      <path d="M65 102 C120 35 190 50 236 88 S308 112 326 52" />
-                      <path d="M83 104 C146 130 190 118 244 88" />
-                      <path d="M236 88 C210 30 138 34 102 70" />
-                    </svg>
-                  </div>
-                  <div className="download-window__stats">
-                    <span><strong>4</strong> wallets</span>
-                    <span><strong>18</strong> shared signals</span>
-                    <span><strong>0.84</strong> risk score</span>
-                  </div>
+                  <span>Recommended</span>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section className="download-features">
-          <div className="download-section-heading">
-            <p>Investigation Workflow</p>
-            <h2>Everything important from the web app, tuned for desktop sessions.</h2>
-          </div>
-          <div className="download-feature-grid">
-            {workflowFeatures.map((feature) => (
-              <article className="download-feature-card" key={feature.title}>
-                <span>{feature.index}</span>
-                <h3>{feature.title}</h3>
-                <p>{feature.copy}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+                <h3>Available Packages</h3>
+                <div className="download-code-block">
+                  <code>.exe installer  |  .msi package</code>
+                </div>
 
-        <section className="download-platform-grid" aria-label="Desktop download options">
-          <article id="windows" className="download-platform download-platform--windows">
-            <div className="download-platform__head">
-              <div>
-                <p>Recommended</p>
-                <h2>Windows</h2>
-              </div>
-              <span>.exe + .msi</span>
-            </div>
-            <p>
-              Use the latest Windows installer from GitHub Releases. Choose the <code>.exe</code> installer for
-              normal installs or <code>.msi</code> when you need a package that works better with managed deployments.
-            </p>
-            <ul>
-              <li>Best option for most analysts and compliance teams</li>
-              <li>Includes Analyze, Compare, Contract, Interactors, Sybil, and CEX Flow</li>
-              <li>Uses the same authenticated backend and intelligence pipeline as FundTracer web</li>
-            </ul>
-            <a className="download-btn download-btn--primary" href={DOWNLOAD_BASE} target="_blank" rel="noopener noreferrer">
-              Open Windows Release Assets
-            </a>
-          </article>
+                <div className="download-checklist">
+                  <p><CheckCircle size={16} /> Best option for most analysts and compliance teams</p>
+                  <p><CheckCircle size={16} /> Includes Analyze, Compare, Contract, Interactors, Sybil, and CEX Flow</p>
+                  <p><CheckCircle size={16} /> Uses authenticated FundTracer backend services</p>
+                </div>
 
-          <article id="linux" className="download-platform download-platform--linux">
-            <div className="download-platform__head">
-              <div>
-                <p>Linux</p>
-                <h2>AUR + Release Assets</h2>
-              </div>
-              <span>yay / deb / rpm / AppImage</span>
-            </div>
-            <p>
-              Install from AUR on Arch-based systems or use direct release artifacts for other Linux environments.
-              The Linux package tracks the same desktop release stream.
-            </p>
-            <div className="download-code">
-              <code>yay -S fundtracer-desktop-bin</code>
-            </div>
-            <ul>
-              <li>Good fit for analyst workstations, SOC labs, and investigation sandboxes</li>
-              <li>Deb, RPM, and AppImage builds are available from release assets</li>
-              <li>Per-tab cache keeps long-running cases isolated from each other</li>
-            </ul>
-            <a className="download-btn download-btn--secondary" href={DOWNLOAD_BASE} target="_blank" rel="noopener noreferrer">
-              Open Linux Release Assets
-            </a>
-          </article>
-        </section>
+                <a className="download-primary-btn" href={DOWNLOAD_BASE} target="_blank" rel="noopener noreferrer">
+                  Open Windows Release Assets
+                  <ArrowRight size={18} />
+                </a>
+              </section>
+
+              <section className="download-doc-section" id="linux">
+                <div className="download-platform-heading">
+                  <div>
+                    <h2>Linux</h2>
+                    <p className="download-section-intro">
+                      Install from AUR on Arch-based systems, or download direct artifacts for other Linux environments.
+                    </p>
+                  </div>
+                  <span>AUR + Artifacts</span>
+                </div>
+
+                <h3>Install with yay</h3>
+                <div className="download-code-block">
+                  <code>yay -S fundtracer-desktop-bin</code>
+                </div>
+
+                <h3>Release Artifacts</h3>
+                <div className="download-code-block">
+                  <code>.deb package  |  .rpm package  |  .AppImage</code>
+                </div>
+
+                <div className="download-checklist">
+                  <p><CheckCircle size={16} /> Tracks the same release stream as GitHub desktop artifacts</p>
+                  <p><CheckCircle size={16} /> Good fit for SOC labs and investigation sandboxes</p>
+                  <p><CheckCircle size={16} /> Per-tab cache keeps long-running cases isolated</p>
+                </div>
+
+                <a className="download-secondary-btn" href={DOWNLOAD_BASE} target="_blank" rel="noopener noreferrer">
+                  Open Linux Release Assets
+                  <ArrowRight size={18} />
+                </a>
+              </section>
+            </main>
+          </div>
+        </div>
       </div>
     </LandingLayout>
   );
