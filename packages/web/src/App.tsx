@@ -13,6 +13,7 @@ import './design-system/tokens.css';
 const PAGE_TITLES: Record<string, string> = {
   '/': 'FundTracer | Professional Blockchain Wallet Analyzer',
   '/about': 'About | FundTracer',
+  '/download': 'Download Desktop App | FundTracer',
   '/features': 'Features | FundTracer',
   '/pricing': 'Pricing | FundTracer',
   '/how-it-works': 'How It Works | FundTracer',
@@ -76,6 +77,7 @@ function SEOManager() {
 }
 
 const AboutPage = lazy(() => import('./pages/AboutPage').then(m => ({ default: m.AboutPage })));
+const DownloadPage = lazy(() => import('./pages/DownloadPage').then(m => ({ default: m.DownloadPage })));
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage').then(m => ({ default: m.FeaturesPage })));
 const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
 const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage').then(m => ({ default: m.HowItWorksPage })));
@@ -320,6 +322,7 @@ function App() {
       <Routes>
       <Route path="/" element={<IntelPage />} />
       <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
+      <Route path="/download" element={<Suspense fallback={null}><DownloadPage /></Suspense>} />
       <Route path="/features" element={<Suspense fallback={null}><FeaturesPage /></Suspense>} />
       <Route path="/pricing" element={<Suspense fallback={null}><PricingPage /></Suspense>} />
       <Route path="/rewards" element={<Suspense fallback={null}><RewardsPage /></Suspense>} />

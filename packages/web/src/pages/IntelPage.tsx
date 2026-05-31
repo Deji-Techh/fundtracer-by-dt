@@ -293,6 +293,7 @@ export function IntelPage() {
 
   const navItems = [
     { label: 'Intel', href: '/', active: true },
+    { label: 'Download', href: '/download', children: [{ label: 'Windows', href: '/download#windows' }, { label: 'Linux', href: '/download#linux' }] },
     { label: 'Blog', href: '/blog' },
     { label: 'Docs', href: '/docs/getting-started' },
     { label: 'Features', href: '/features' },

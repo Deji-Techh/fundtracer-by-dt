@@ -3,6 +3,7 @@
 
 export const LANDING_NAV_ITEMS = [
   { label: 'Intel', href: '/' },
+  { label: 'Download', href: '/download', children: [{ label: 'Windows', href: '/download#windows' }, { label: 'Linux', href: '/download#linux' }] },
   { label: 'Blog', href: '/blog' },
   { label: 'Docs', href: '/docs/getting-started' },
   { label: 'Features', href: '/features' },

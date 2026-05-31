@@ -12,7 +12,12 @@ import './LandingLayout.css';
 interface LandingLayoutProps {
   children: React.ReactNode;
   logo?: React.ReactNode;
-  navItems?: { label: string; href: string; active?: boolean }[];
+  navItems?: Array<{
+    label: string;
+    href: string;
+    active?: boolean;
+    children?: Array<{ label: string; href: string }>;
+  }>;
   headerRight?: React.ReactNode;
   onSearch?: (query: string) => void;
   onSearchSelect?: (result: SearchResult) => void;
@@ -38,6 +43,7 @@ export function LandingLayout({
 }: LandingLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,13 +71,39 @@ export function LandingLayout({
           {/* Desktop nav */}
           <nav className="landing-header__nav hide-mobile">
             {navItems.map((item, i) => (
-              <a 
-                key={i} 
-                href={item.href}
-                className={`landing-header__nav-link ${item.active ? 'landing-header__nav-link--active' : ''}`}
-              >
-                {item.label}
-              </a>
+              item.children && item.children.length > 0 ? (
+                <div
+                  key={i}
+                  className="landing-header__nav-dropdown"
+                  onMouseEnter={() => setOpenDropdown(item.label)}
+                  onMouseLeave={() => setOpenDropdown(null)}
+                >
+                  <a
+                    href={item.href}
+                    className={`landing-header__nav-link landing-header__nav-link--dropdown ${item.active ? 'landing-header__nav-link--active' : ''}`}
+                  >
+                    {item.label}
+                    <span className="landing-header__nav-caret">▾</span>
+                  </a>
+                  {openDropdown === item.label && (
+                    <div className="landing-header__dropdown-menu">
+                      {item.children.map((child, childIdx) => (
+                        <a key={childIdx} href={child.href} className="landing-header__dropdown-link">
+                          {child.label}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <a
+                  key={i}
+                  href={item.href}
+                  className={`landing-header__nav-link ${item.active ? 'landing-header__nav-link--active' : ''}`}
+                >
+                  {item.label}
+                </a>
+              )
             ))}
           </nav>
 
@@ -114,14 +146,29 @@ export function LandingLayout({
           <div className="landing-mobile-menu">
             <nav className="landing-mobile-menu__nav">
               {navItems.map((item, i) => (
-                <a 
-                  key={i} 
-                  href={item.href}
-                  className={`landing-mobile-menu__link ${item.active ? 'landing-mobile-menu__link--active' : ''}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </a>
+                <div key={i}>
+                  <a
+                    href={item.href}
+                    className={`landing-mobile-menu__link ${item.active ? 'landing-mobile-menu__link--active' : ''}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </a>
+                  {item.children && item.children.length > 0 && (
+                    <div className="landing-mobile-menu__subnav">
+                      {item.children.map((child, childIdx) => (
+                        <a
+                          key={childIdx}
+                          href={child.href}
+                          className="landing-mobile-menu__sublink"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {child.label}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </nav>
           </div>
