@@ -313,7 +313,7 @@ export async function zrange(sortedSet: string, min: number, max: number): Promi
 export async function zrevrange(sortedSet: string, min: number, max: number): Promise<string[]> {
   if (redis && isConnected) {
     try {
-      return await redis.zrevrange(sortedSet, min, max);
+      return await redis.zrange(sortedSet, min, max, { rev: true });
     } catch (error) {
       console.error('[Redis] Zrevrange error:', error);
     }

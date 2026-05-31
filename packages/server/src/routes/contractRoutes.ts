@@ -5,23 +5,24 @@ const router = Router();
 
 // POST /api/contract/scan
 router.post('/scan', async (req, res) => {
-  const { address } = req.body;
-  
+  const { address, chain } = req.body;
+
   if (!address) {
     return res.status(400).json({ error: 'Contract address is required' });
   }
-  
+
   const apiKey = process.env.DEFAULT_ALCHEMY_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'Alchemy API key not configured' });
   }
-  
+
   try {
     const scanner = new ContractScanner(
       apiKey,
-      process.env.LINEASCAN_API_KEY
+      process.env.LINEASCAN_API_KEY,
+      chain || 'linea'
     );
-    
+
     const result = await scanner.scan(address);
 
     res.json({
@@ -35,7 +36,7 @@ router.post('/scan', async (req, res) => {
       creationDate: result.contract.createdAt,
       creationTx: result.contract.creationTxHash,
       ethBalance: parseFloat(result.contract.balanceETH || '0'),
-      chain: result.contract.isContract ? 'ethereum' : undefined,
+      chain: chain || 'linea',
       uniqueWallets: result.stats.uniqueWallets,
       totalTransfers: result.stats.totalTransfers,
       incomingTransfers: result.stats.incomingTransfers,

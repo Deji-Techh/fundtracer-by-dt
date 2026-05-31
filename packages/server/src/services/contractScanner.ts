@@ -63,11 +63,13 @@ interface ScanResult {
 export class ContractScanner {
   private alchemy: AlchemyClient;
   private lineascanKey: string | null;
+  private chain: string;
   private db: any;
 
-  constructor(alchemyApiKey: string, lineascanApiKey: string | null = null) {
-    this.alchemy = new AlchemyClient(alchemyApiKey);
+  constructor(alchemyApiKey: string, lineascanApiKey: string | null = null, chain: string = 'linea') {
+    this.alchemy = new AlchemyClient(alchemyApiKey, chain);
     this.lineascanKey = lineascanApiKey;
+    this.chain = chain.toLowerCase();
     this.db = getFirestore();
   }
 

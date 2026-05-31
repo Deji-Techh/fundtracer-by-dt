@@ -53,12 +53,23 @@ class RateLimiter {
   }
 }
 
+const CHAIN_ALCHEMY_HOSTS: Record<string, string> = {
+  ethereum: 'eth-mainnet.g.alchemy.com',
+  base: 'base-mainnet.g.alchemy.com',
+  arbitrum: 'arb-mainnet.g.alchemy.com',
+  optimism: 'opt-mainnet.g.alchemy.com',
+  polygon: 'polygon-mainnet.g.alchemy.com',
+  linea: 'linea-mainnet.g.alchemy.com',
+  bsc: 'bnb-mainnet.g.alchemy.com',
+};
+
 export class AlchemyClient {
   private baseUrl: string;
   private rateLimiter: RateLimiter;
 
-  constructor(apiKey: string) {
-    this.baseUrl = `https://linea-mainnet.g.alchemy.com/v2/${apiKey}`;
+  constructor(apiKey: string, chain: string = 'linea') {
+    const host = CHAIN_ALCHEMY_HOSTS[chain.toLowerCase()] || CHAIN_ALCHEMY_HOSTS.linea;
+    this.baseUrl = `https://${host}/v2/${apiKey}`;
     this.rateLimiter = new RateLimiter(300, 1000); // 300 CU/sec
   }
 
