@@ -23,6 +23,7 @@ import {
 import './IntelPage.css';
 import { TryNowModal } from '../components/TryNowModal';
 import '../components/TryNowModal.css';
+import { useGoogleOneTap } from '../hooks/useGoogleOneTap';
 
 // API endpoints for live data
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
@@ -55,6 +56,7 @@ export function IntelPage() {
   const address = privyUser?.wallet?.address;
   const isConnected = !!address;
   const { isAuthenticated } = useAuth();
+  useGoogleOneTap();
 
   const [marketStats, setMarketStats] = useState<MarketStats | null>(null);
   const [trendingTokens, setTrendingTokens] = useState<TrendingToken[]>([]);

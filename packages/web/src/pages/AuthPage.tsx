@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { handleVerifyEmail, handlePasswordReset, handleRecoverEmail, sendPasswordReset, signInWithGoogleOneTap } from '../firebase';
-import { loginWithGoogle as apiLoginWithGoogle } from '../api';
+import { handleVerifyEmail, handlePasswordReset, handleRecoverEmail, sendPasswordReset } from '../firebase';
 import { Mail, Lock, Check, AlertCircle, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
+import { useGoogleOneTap } from '../hooks/useGoogleOneTap';
 import './AuthPage.css';
 
 const navItems = [
@@ -169,62 +169,7 @@ export function AuthPage() {
     }
   };
 
-  const oneTapInitialized = useRef(false);
-
-  // Google One Tap
-  useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId || oneTapInitialized.current || isAuthenticated) return;
-
-    // Load GSI script if not already loaded
-    if (!document.querySelector('script[src*="accounts.google.com/gsi/client"]')) {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      document.body.appendChild(script);
-    }
-
-    const initOneTap = () => {
-      if (typeof window.google?.accounts?.id === 'undefined') return;
-      oneTapInitialized.current = true;
-
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response: any) => {
-          if (!response.credential) return;
-          setLoading(true);
-          setError(null);
-          try {
-            const firebaseToken = await signInWithGoogleOneTap(response.credential);
-            await apiLoginWithGoogle(firebaseToken);
-            const isFromApiPage = window.location.pathname.includes('/api');
-            const redirectTo = isFromApiPage ? '/api/keys' : '/app-evm';
-            navigate(redirectTo, { replace: true });
-          } catch (err: any) {
-            setError(err.message || 'Google sign in failed');
-            setLoading(false);
-          }
-        },
-        auto_select: true,
-      });
-
-      window.google.accounts.id.prompt();
-    };
-
-    // Try after a short delay to ensure script is loaded
-    const timer = setTimeout(() => initOneTap(), 1000);
-    // Also handle the case where the script was already loaded
-    if (typeof window.google?.accounts?.id !== 'undefined') {
-      clearTimeout(timer);
-      initOneTap();
-    }
-
-    return () => {
-      clearTimeout(timer);
-      try { window.google?.accounts?.id?.cancel(); } catch {}
-    };
-  }, [isAuthenticated, navigate]);
+  useGoogleOneTap();
 
   const handleGoogleLogin = async () => {
     setLoading(true);
