@@ -4,7 +4,7 @@ import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 import './DownloadPage.css';
 
-const RELEASE_VERSION = 'v1.0.12';
+const RELEASE_VERSION = 'v1.0.13';
 const RELEASE_NUMBER = RELEASE_VERSION.replace(/^v/, '');
 const RELEASE_PAGE = `https://github.com/Deji-Tech/fundtracer-desktop/releases/tag/${RELEASE_VERSION}`;
 const RELEASE_ASSET_BASE = `https://github.com/Deji-Tech/fundtracer-desktop/releases/download/${RELEASE_VERSION}`;
