@@ -268,7 +268,18 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
       )}
 
       {/* Results */}
-      {hasResult && <AnalysisView tab={tab} />}
+      {hasResult && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          overflow: 'hidden',
+        }}>
+          <AnalysisView tab={tab} />
+        </div>
+      )}
 
       {/* Drag overlay */}
       {dragOver && (
