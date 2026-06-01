@@ -156,7 +156,8 @@ export function AuthPage() {
       background: '#f5f5f7',
       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif",
     }}>
-      {/* Title bar */}
+      {/* Title bar — desktop only */}
+      {isTauri() && (
       <div
         data-tauri-drag-region
         style={{
@@ -199,6 +200,7 @@ export function AuthPage() {
           </svg>
         </button>
       </div>
+      )}
 
       {/* Content */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
