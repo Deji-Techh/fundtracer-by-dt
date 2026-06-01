@@ -103,6 +103,14 @@ export async function clearHistory(): Promise<void> {
   dispatchChanged();
 }
 
+export function clearLocalHistoryCache(): void {
+  cached = [];
+  lastSync = 0;
+  syncInFlight = null;
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  dispatchChanged();
+}
+
 export async function syncHistory(): Promise<HistoryEntry[]> {
   if (syncInFlight) return syncInFlight;
   const now = Date.now();

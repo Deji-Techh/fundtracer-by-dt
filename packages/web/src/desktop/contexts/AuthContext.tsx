@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, Re
 import { getProfile, UserProfile } from '../api/auth';
 import { getAuthToken, setAuthToken, removeAuthToken, apiRequest } from '../api/client';
 import { isTauri, tauriInvoke } from '../lib/tauri-commands';
+import { clearLocalAppSessionState } from '../stores/sessionState';
 
 interface AuthContextType {
   profile: UserProfile | null;
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isTauri()) {
       tauriInvoke('watchtower_stop').catch(() => {});
     }
+    clearLocalAppSessionState();
     removeAuthToken();
     clearApiKey();
     setProfile(null);
