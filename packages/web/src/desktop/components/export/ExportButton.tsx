@@ -7,6 +7,8 @@ interface ExportButtonProps {
   tab?: AnalysisTab;
   onExport?: (format: 'pdf' | 'csv' | 'json') => void | Promise<void>;
   disabled?: boolean;
+  compact?: boolean;
+  fullWidth?: boolean;
 }
 
 function getExportContent(tab: AnalysisTab, format: 'csv' | 'json'): string {
@@ -79,7 +81,7 @@ async function generatePDF(tab: AnalysisTab): Promise<Blob> {
   return doc.output('blob');
 }
 
-export function ExportButton({ tab, onExport, disabled }: ExportButtonProps) {
+export function ExportButton({ tab, onExport, disabled, compact, fullWidth }: ExportButtonProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const notify = useNotify();
@@ -181,13 +183,16 @@ export function ExportButton({ tab, onExport, disabled }: ExportButtonProps) {
   };
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} style={{ position: 'relative', width: fullWidth ? '100%' : undefined }}>
       <button
         onClick={() => setOpen(!open)}
         disabled={disabled}
         style={{
-          padding: '6px 14px',
-          borderRadius: 'var(--radius-md)',
+          width: fullWidth ? '100%' : undefined,
+          minHeight: compact ? 36 : undefined,
+          justifyContent: fullWidth ? 'center' : undefined,
+          padding: compact ? '7px 9px' : '6px 14px',
+          borderRadius: compact ? 12 : 'var(--radius-md)',
           border: '1px solid var(--card-border)',
           background: 'var(--card)',
           color: disabled ? 'var(--fg-tertiary)' : 'var(--fg)',

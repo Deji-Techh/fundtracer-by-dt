@@ -79,16 +79,16 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
       {/* Header with address and actions */}
       <div style={{
-        padding: isMobile ? '8px 14px 9px' : '14px 20px',
+        padding: isMobile ? '6px 10px' : '14px 20px',
         borderBottom: '1px solid var(--hairline)',
         display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        alignItems: isMobile ? 'stretch' : 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        gap: isMobile ? 7 : 0,
+        gap: isMobile ? 8 : 0,
         flexShrink: 0,
       }}>
-        <div>
+        {!isMobile && <div>
           <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-sans)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             {tab.chain?.toUpperCase()}
           </div>
@@ -101,16 +101,24 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
           }}>
             {addressLabel}
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: isMobile ? 'stretch' : 'flex-start' }}>
-          <NewSearchButton onClick={() => updateTab(tab.id, { result: undefined, transactions: undefined, fundingData: undefined, error: undefined, address: '' })} />
+        </div>}
+        <div style={{
+          display: isMobile ? 'grid' : 'flex',
+          gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : undefined,
+          width: isMobile ? '100%' : undefined,
+          gap: isMobile ? 7 : 8,
+          alignItems: 'center',
+          flexWrap: isMobile ? undefined : 'wrap',
+          justifyContent: isMobile ? undefined : 'flex-start',
+        }}>
+          <NewSearchButton compact={isMobile} onClick={() => updateTab(tab.id, { result: undefined, transactions: undefined, fundingData: undefined, error: undefined, address: '' })} />
           <button onClick={handleShare}
             type="button"
             style={{
-              flex: isMobile ? '1 1 0' : undefined,
+              width: isMobile ? '100%' : undefined,
               justifyContent: 'center',
-              minHeight: isMobile ? 38 : undefined,
-              padding: isMobile ? '8px 10px' : '6px 14px', borderRadius: isMobile ? 12 : 'var(--radius-md)', border: '1px solid var(--card-border)',
+              minHeight: isMobile ? 36 : undefined,
+              padding: isMobile ? '7px 9px' : '6px 14px', borderRadius: isMobile ? 12 : 'var(--radius-md)', border: '1px solid var(--card-border)',
               background: 'var(--bg-secondary)', color: 'var(--fg)', fontSize: 12, cursor: 'pointer',
               fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
             }}
@@ -122,7 +130,7 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
             </svg>
             Share
           </button>
-          <ExportButton tab={tab} />
+          <ExportButton tab={tab} compact={isMobile} fullWidth={isMobile} />
         </div>
       </div>
 
@@ -130,8 +138,8 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
       <div style={{
         display: 'flex',
         borderBottom: '1px solid var(--hairline)',
-        padding: isMobile ? '7px 10px' : '0 20px',
-        gap: isMobile ? 6 : 0,
+        padding: isMobile ? '5px 8px' : '0 20px',
+        gap: isMobile ? 5 : 0,
         flexShrink: 0,
         overflow: 'auto',
       }}>
@@ -141,7 +149,7 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
             type="button"
             onClick={() => setSubTab(st.id)}
             style={{
-              padding: isMobile ? '8px 12px' : '8px 14px',
+              padding: isMobile ? '7px 10px' : '8px 14px',
               background: isMobile && subTab === st.id ? 'var(--card)' : 'none',
               border: isMobile ? '1px solid var(--card-border)' : 'none',
               borderBottom: isMobile ? '1px solid var(--card-border)' : (subTab === st.id ? '2px solid var(--fg)' : '2px solid transparent'),
@@ -183,14 +191,17 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
   );
 }
 
-function NewSearchButton({ onClick }: { onClick: () => void }) {
+function NewSearchButton({ onClick, compact }: { onClick: () => void; compact?: boolean }) {
   return (
     <button
       onClick={onClick}
       type="button"
       style={{
-        padding: '6px 14px',
-        borderRadius: 'var(--radius-md)',
+        width: compact ? '100%' : undefined,
+        minHeight: compact ? 36 : undefined,
+        justifyContent: compact ? 'center' : undefined,
+        padding: compact ? '7px 9px' : '6px 14px',
+        borderRadius: compact ? 12 : 'var(--radius-md)',
         border: '1px solid var(--card-border)',
         background: 'var(--bg-secondary)',
         color: 'var(--fg)',

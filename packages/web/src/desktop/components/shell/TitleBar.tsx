@@ -85,8 +85,8 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
     <div
       data-tauri-drag-region
       style={{
-        height: isMobile ? 56 : 'var(--titlebar-height)',
-        minHeight: isMobile ? 56 : 'var(--titlebar-height)',
+        height: isMobile ? 52 : 'var(--titlebar-height)',
+        minHeight: isMobile ? 52 : 'var(--titlebar-height)',
         display: 'flex',
         alignItems: 'center',
         padding: isMobile ? '0 10px' : '0 8px',
@@ -106,14 +106,14 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
         aria-label="Open navigation"
         onClick={onToggleSidebar}
         style={{
-          width: isMobile ? 38 : undefined,
-          height: isMobile ? 38 : undefined,
+          width: isMobile ? 36 : undefined,
+          height: isMobile ? 36 : undefined,
           background: isMobile ? 'var(--card)' : 'none',
           border: isMobile ? '1px solid var(--card-border)' : 'none',
           color: 'var(--fg-secondary)',
           cursor: 'pointer',
           padding: isMobile ? 0 : 5,
-          borderRadius: isMobile ? 13 : 'var(--radius-md)',
+          borderRadius: isMobile ? 12 : 'var(--radius-md)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

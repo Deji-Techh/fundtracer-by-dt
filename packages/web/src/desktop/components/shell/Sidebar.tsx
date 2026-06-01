@@ -291,23 +291,8 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
     </>
   );
 
-  // Mobile: render overlay drawer with open/close animation
-  const [visible, setVisible] = useState(false);
-  const [animating, setAnimating] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setVisible(true);
-      setAnimating(false);
-    } else if (visible) {
-      setAnimating(true);
-      const timer = setTimeout(() => { setVisible(false); setAnimating(false); }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, visible]);
-
   if (isMobile) {
-    if (!visible && !isOpen) return null;
+    if (!isOpen) return null;
     return (
       <>
         <div
@@ -318,8 +303,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', zIndex: 200,
             backdropFilter: 'blur(3px)',
             WebkitBackdropFilter: 'blur(3px)',
-            opacity: animating ? 0 : 1,
-            transition: 'opacity 200ms ease',
+            animation: 'ft-mobile-scrim-in 220ms ease both',
           }}
           onClick={onClose}
           onKeyDown={e => {
@@ -336,8 +320,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
           WebkitBackdropFilter: 'blur(8px) saturate(190%)',
           borderRight: '1px solid var(--sidebar-border)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          transform: animating ? 'translateX(-104%)' : 'translateX(0)',
-          transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
+          animation: 'ft-mobile-drawer-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both',
           boxShadow: '18px 0 50px rgba(0,0,0,0.38)',
           paddingBottom: 'calc(84px + env(safe-area-inset-bottom, 0px))',
         }}>

@@ -208,6 +208,16 @@ body {
   to { transform: translateX(0); }
 }
 
+@keyframes ft-mobile-drawer-in {
+  from { opacity: 0.96; transform: translateX(-104%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes ft-mobile-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .animate-fade-in { animation: fade-in 0.2s ease-out; }
 .animate-slide-up { animation: slide-up 0.2s ease-out; }
 
@@ -218,7 +228,7 @@ body {
 
 @media (max-width: 768px) {
   :root {
-    --titlebar-height: 56px;
+    --titlebar-height: 52px;
     --radius-md: 10px;
     --radius-lg: 12px;
     --radius-xl: 14px;
