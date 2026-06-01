@@ -85,13 +85,16 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
     <div
       data-tauri-drag-region
       style={{
-        height: isMobile ? 44 : 'var(--titlebar-height)',
-        minHeight: isMobile ? 44 : 'var(--titlebar-height)',
+        height: isMobile ? 56 : 'var(--titlebar-height)',
+        minHeight: isMobile ? 56 : 'var(--titlebar-height)',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 8px',
-        background: 'var(--bg-secondary)',
+        padding: isMobile ? '0 10px' : '0 8px',
+        background: isMobile
+          ? 'linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 94%, transparent), color-mix(in srgb, var(--bg) 92%, transparent))'
+          : 'var(--bg-secondary)',
         borderBottom: '1px solid var(--hairline)',
+        boxShadow: isMobile ? '0 10px 30px rgba(0,0,0,0.18)' : undefined,
         userSelect: 'none',
         WebkitUserSelect: 'none',
         flexShrink: 0,
@@ -99,19 +102,23 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
       }}
     >
       <button
+        type="button"
+        aria-label="Open navigation"
         onClick={onToggleSidebar}
         style={{
-          background: 'none',
-          border: 'none',
+          width: isMobile ? 38 : undefined,
+          height: isMobile ? 38 : undefined,
+          background: isMobile ? 'var(--card)' : 'none',
+          border: isMobile ? '1px solid var(--card-border)' : 'none',
           color: 'var(--fg-secondary)',
           cursor: 'pointer',
-          padding: isMobile ? 8 : 5,
-          borderRadius: 'var(--radius-md)',
+          padding: isMobile ? 0 : 5,
+          borderRadius: isMobile ? 13 : 'var(--radius-md)',
           display: 'flex',
           alignItems: 'center',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = isMobile ? 'var(--card)' : 'none'; }}
       >
         <svg width={isMobile ? 20 : 16} height={isMobile ? 20 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
@@ -123,11 +130,21 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
       {/* Centered tab name (mobile) */}
       {isMobile && (
         <div style={{
-          flex: 1, textAlign: 'center', fontSize: 13, fontWeight: 600,
-          color: 'var(--fg)', overflow: 'hidden', textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap', fontFamily: activeTab?.address ? 'var(--font-mono)' : 'var(--font-sans)',
+          flex: 1, minWidth: 0, textAlign: 'center',
+          color: 'var(--fg)', overflow: 'hidden',
         }}>
-          {centerLabel}
+          <div style={{
+            fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap', fontFamily: activeTab?.address ? 'var(--font-mono)' : 'var(--font-sans)',
+          }}>
+            {centerLabel}
+          </div>
+          <div style={{
+            fontSize: 9, fontWeight: 700, color: chainColor[chain] || 'var(--accent)',
+            textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 1,
+          }}>
+            {chainAbbr[chain] || chain}
+          </div>
         </div>
       )}
 
@@ -137,13 +154,17 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
       {isMobile && (
         <>
           {/* Tab switcher */}
-          <div ref={tabsRef} style={{ position: 'relative' }}>
+          <div ref={tabsRef} style={{ position: 'relative', display: 'flex', gap: 4 }}>
             <button
+              type="button"
+              aria-label="Switch analysis tab"
               onClick={() => { setShowTabs(!showTabs); setShowNetworks(false); }}
               style={{
-                background: 'none', border: 'none', color: 'var(--fg-secondary)',
-                cursor: 'pointer', padding: 6, borderRadius: 'var(--radius-md)',
+                width: 36, height: 36,
+                background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--fg-secondary)',
+                cursor: 'pointer', padding: 0, borderRadius: 12,
                 display: 'flex', alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -155,11 +176,15 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
 
           {/* New tab button */}
           <button
+            type="button"
+            aria-label="New analysis tab"
             onClick={() => { openTab(); setShowTabs(false); }}
             style={{
-              background: 'none', border: 'none', color: 'var(--fg-secondary)',
-              cursor: 'pointer', padding: 6, borderRadius: 'var(--radius-md)',
+              width: 36, height: 36,
+              background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--fg-secondary)',
+              cursor: 'pointer', padding: 0, borderRadius: 12,
               display: 'flex', alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -169,7 +194,7 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
             {showTabs && (
               <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: 4,
-                minWidth: 220, maxHeight: 320, overflow: 'auto',
+                minWidth: 236, maxWidth: 'calc(100vw - 24px)', maxHeight: 360, overflow: 'auto',
                 background: 'var(--card)', border: '1px solid var(--card-border)',
                 borderRadius: 'var(--radius-lg)', padding: 4,
                 boxShadow: 'var(--shadow-overlay)', zIndex: 300,
@@ -183,6 +208,7 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
                     const isActive = tab.id === activeTabId;
                     return (
                       <button
+                        type="button"
                         key={tab.id}
                         onClick={() => { setActiveTab(tab.id); setShowTabs(false); }}
                         style={{
@@ -213,11 +239,15 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
           {/* Network switcher */}
           <div ref={netRef} style={{ position: 'relative' }}>
             <button
+              type="button"
+              aria-label="Switch network"
               onClick={() => { setShowNetworks(!showNetworks); setShowTabs(false); }}
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: 6, borderRadius: 'var(--radius-md)',
+                width: 36, height: 36,
+                background: 'var(--card)', border: '1px solid var(--card-border)', cursor: 'pointer',
+                padding: 0, borderRadius: 12,
                 display: 'flex', alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
               <span style={{
@@ -229,13 +259,14 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
             {showNetworks && (
               <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: 4,
-                minWidth: 170,
+                minWidth: 190, maxWidth: 'calc(100vw - 24px)',
                 background: 'var(--card)', border: '1px solid var(--card-border)',
                 borderRadius: 'var(--radius-lg)', padding: 4,
                 boxShadow: 'var(--shadow-overlay)', zIndex: 300,
               }}>
                 {CHAINS.map(c => (
                   <button
+                    type="button"
                     key={c.id}
                     onClick={() => { setChain(c.id); setShowNetworks(false); }}
                     style={{
@@ -267,7 +298,8 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
       )}
 
       {/* Fullscreen toggle */}
-      <button
+      {!isMobile && <button
+        type="button"
         onClick={toggleFullscreen}
         style={windowBtnStyle}
         title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
@@ -283,7 +315,7 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
           </svg>
         )}
-      </button>
+      </button>}
     </div>
   );
 }

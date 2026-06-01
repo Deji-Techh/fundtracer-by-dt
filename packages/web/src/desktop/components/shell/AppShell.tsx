@@ -97,6 +97,10 @@ export function AppShell() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const toggleSidebar = useCallback(() => setSidebarCollapsed(c => !c), []);
+  const handleMobileViewChange = useCallback((view: AppView) => {
+    setCurrentView(view);
+    setMobileSidebarOpen(false);
+  }, []);
 
   useEffect(() => {
     saveWindowState({ currentView, sidebarCollapsed });
@@ -156,7 +160,8 @@ export function AppShell() {
           <main style={{
             flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
             background: 'var(--bg)',
-            paddingBottom: isMobile ? 72 : 0,
+            paddingBottom: isMobile ? 'calc(82px + env(safe-area-inset-bottom, 0px))' : 0,
+            minWidth: 0,
           }}>
             {currentView === 'analyze' && <AnalysisContent onViewChange={setCurrentView} />}
             {currentView === 'compare' && <Suspense fallback={<Loader />}><CompareView /></Suspense>}
@@ -172,7 +177,7 @@ export function AppShell() {
         </div>
 
         {commandOpen && <CommandPalette onClose={() => setCommandOpen(false)} onNavigate={setCurrentView} />}
-        {isMobile && <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} />}
+        {isMobile && <MobileBottomNav currentView={currentView} onViewChange={handleMobileViewChange} />}
       </div>
     </TabsProvider>
     </ChainProvider>

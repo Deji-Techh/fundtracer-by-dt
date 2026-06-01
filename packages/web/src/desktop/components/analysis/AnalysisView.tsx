@@ -97,11 +97,15 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
             {addressLabel}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: isMobile ? 'stretch' : 'flex-start' }}>
           <NewSearchButton onClick={() => updateTab(tab.id, { result: undefined, transactions: undefined, fundingData: undefined, error: undefined, address: '' })} />
           <button onClick={handleShare}
+            type="button"
             style={{
-              padding: '6px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--card-border)',
+              flex: isMobile ? '1 1 0' : undefined,
+              justifyContent: 'center',
+              minHeight: isMobile ? 38 : undefined,
+              padding: isMobile ? '8px 10px' : '6px 14px', borderRadius: isMobile ? 12 : 'var(--radius-md)', border: '1px solid var(--card-border)',
               background: 'var(--bg-secondary)', color: 'var(--fg)', fontSize: 12, cursor: 'pointer',
               fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6,
             }}
@@ -121,23 +125,25 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
       <div style={{
         display: 'flex',
         borderBottom: '1px solid var(--hairline)',
-        padding: isMobile ? '0 8px' : '0 20px',
-        gap: 0,
+        padding: isMobile ? '8px 10px' : '0 20px',
+        gap: isMobile ? 6 : 0,
         flexShrink: 0,
         overflow: 'auto',
       }}>
         {SUB_TABS.map(st => (
           <button
             key={st.id}
+            type="button"
             onClick={() => setSubTab(st.id)}
             style={{
-              padding: '8px 14px',
-              background: 'none',
-              border: 'none',
-              borderBottom: subTab === st.id ? '2px solid var(--fg)' : '2px solid transparent',
+              padding: isMobile ? '8px 12px' : '8px 14px',
+              background: isMobile && subTab === st.id ? 'var(--card)' : 'none',
+              border: isMobile ? '1px solid var(--card-border)' : 'none',
+              borderBottom: isMobile ? '1px solid var(--card-border)' : (subTab === st.id ? '2px solid var(--fg)' : '2px solid transparent'),
+              borderRadius: isMobile ? 999 : 0,
               color: subTab === st.id ? 'var(--fg)' : 'var(--fg-tertiary)',
-              fontSize: 12,
-              fontWeight: subTab === st.id ? 500 : 400,
+              fontSize: isMobile ? 11 : 12,
+              fontWeight: subTab === st.id ? 650 : 500,
               fontFamily: 'var(--font-sans)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
@@ -152,19 +158,19 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
 
       {/* Sub-tab content — tabs stay mounted to preserve state (AI messages, scroll, etc.) */}
       <div style={{ flex: 1 }}>
-        <div style={{ display: subTab === 'overview' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
-          <OverviewTab tab={tab} result={result} />
+        <div style={{ display: subTab === 'overview' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 10 : 20 }}>
+          <OverviewTab tab={tab} result={result} isMobile={isMobile} />
         </div>
-        <div style={{ display: subTab === 'transactions' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
+        <div style={{ display: subTab === 'transactions' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 10 : 20 }}>
           <TransactionsTab tab={tab} />
         </div>
-        <div style={{ display: subTab === 'funding' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
+        <div style={{ display: subTab === 'funding' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 10 : 20 }}>
           <FundingTab tab={tab} />
         </div>
-        <div style={{ display: subTab === 'graph' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
+        <div style={{ display: subTab === 'graph' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 10 : 20 }}>
           <GraphTab tab={tab} />
         </div>
-        <div style={{ display: subTab === 'portfolio' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
+        <div style={{ display: subTab === 'portfolio' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 10 : 20 }}>
           <PortfolioView address={tab.address} chain={tab.chain} />
         </div>
       </div>
@@ -176,6 +182,7 @@ function NewSearchButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
+      type="button"
       style={{
         padding: '6px 14px',
         borderRadius: 'var(--radius-md)',
@@ -207,7 +214,7 @@ const NATIVE_CURRENCY: Record<string, string> = {
   polygon: 'POL', bsc: 'BNB', linea: 'ETH',
 };
 
-function OverviewTab({ tab, result }: { tab: AnalysisTab; result: NonNullable<AnalysisTab['result']> }) {
+function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonNullable<AnalysisTab['result']>; isMobile: boolean }) {
   const d = result as unknown as Record<string, unknown>;
   const wallet = d.wallet as Record<string, unknown> | undefined;
   const summary = d.summary as Record<string, unknown> | undefined;
@@ -369,31 +376,33 @@ function OverviewTab({ tab, result }: { tab: AnalysisTab; result: NonNullable<An
   const chartGridColor = getComputedStyle(document.documentElement).getPropertyValue('--hairline').trim() || '#282830';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16, height: '100%' }}>
       {/* ── Top Row: Left (metrics) | Right (AI analysis) ── */}
       <div style={{
-        display: 'flex', gap: 16, flex: '0 0 auto',
+        display: 'flex', gap: isMobile ? 12 : 16, flex: '0 0 auto',
+        flexDirection: isMobile ? 'column' : 'row',
         flexWrap: 'wrap',
       }}>
         {/* Left eye — Metrics + indicators */}
         <div style={{
-          flex: '1 1 380px', minWidth: 320,
-          display: 'flex', flexDirection: 'column', gap: 16,
+          flex: isMobile ? '0 0 auto' : '1 1 380px', minWidth: isMobile ? 0 : 320,
+          display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16,
         }}>
           {/* Metric cards */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(120px, max-content))', gap: isMobile ? 8 : 12 }}>
             <MetricCard
+              isMobile={isMobile}
               label="Risk Score"
               value={riskScore !== undefined ? `${riskScore}/100` : 'N/A'}
               color={riskScore !== undefined ? (riskScore > 60 ? 'var(--destructive)' : riskScore > 30 ? '#ff9f0a' : 'var(--accent)') : 'var(--fg-tertiary)'}
             />
-            <MetricCard label="Balance" value={balance ? `${Number(balance).toFixed(4)} ${currency}` : 'N/A'} color="var(--fg)" />
-            <MetricCard label="Transactions" value={txCount !== undefined ? String(txCount) : 'N/A'} color="var(--fg)" />
+            <MetricCard isMobile={isMobile} label="Balance" value={balance ? `${Number(balance).toFixed(4)} ${currency}` : 'N/A'} color="var(--fg)" />
+            <MetricCard isMobile={isMobile} label="Transactions" value={txCount !== undefined ? String(txCount) : 'N/A'} color="var(--fg)" />
             {firstSeen != null && (
-              <MetricCard label="First Seen" value={new Date(firstSeen * 1000).toISOString().slice(0, 10)} color="var(--fg-secondary)" />
+              <MetricCard isMobile={isMobile} label="First Seen" value={new Date(firstSeen * 1000).toISOString().slice(0, 10)} color="var(--fg-secondary)" />
             )}
             {lastSeen != null && (
-              <MetricCard label="Last Seen" value={new Date(lastSeen * 1000).toISOString().slice(0, 10)} color="var(--fg-secondary)" />
+              <MetricCard isMobile={isMobile} label="Last Seen" value={new Date(lastSeen * 1000).toISOString().slice(0, 10)} color="var(--fg-secondary)" />
             )}
           </div>
 
@@ -490,7 +499,7 @@ function OverviewTab({ tab, result }: { tab: AnalysisTab; result: NonNullable<An
 
         {/* Right eye — AI Analysis */}
         <div style={{
-          flex: '1 1 420px', minWidth: 340, minHeight: 360,
+          flex: isMobile ? '0 0 auto' : '1 1 420px', minWidth: 0, minHeight: isMobile ? 260 : 360,
         }}>
           <InlineAiAnalysis
             address={tab.address}
@@ -502,12 +511,12 @@ function OverviewTab({ tab, result }: { tab: AnalysisTab; result: NonNullable<An
 
       {/* ── Bottom Row: Transaction flow chart (the "mouth") ── */}
       <div style={{
-        flex: 1, minHeight: 340,
+        flex: 1, minHeight: isMobile ? 260 : 340,
         display: 'flex', flexDirection: 'column',
         borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--hairline)',
         background: 'var(--card)',
-        padding: '14px 16px',
+        padding: isMobile ? '12px 10px' : '14px 16px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -531,7 +540,7 @@ function OverviewTab({ tab, result }: { tab: AnalysisTab; result: NonNullable<An
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 2 }}>
+          <div style={{ display: 'flex', gap: 4, overflowX: 'auto', maxWidth: '100%' }}>
             {([
               { id: 'all' as const, label: 'All' },
               { id: 'incoming' as const, label: 'Incoming' },
@@ -541,12 +550,13 @@ function OverviewTab({ tab, result }: { tab: AnalysisTab; result: NonNullable<An
               <button
                 key={f.id}
                 onClick={() => setChartFilter(f.id)}
+                type="button"
                 style={{
-                  padding: '3px 10px', borderRadius: 'var(--radius-full)', fontSize: 10, fontWeight: 500, cursor: 'pointer',
+                  padding: isMobile ? '5px 10px' : '3px 10px', borderRadius: 'var(--radius-full)', fontSize: 10, fontWeight: 500, cursor: 'pointer',
                   border: chartFilter === f.id ? '1px solid var(--accent)' : '1px solid transparent',
                   background: chartFilter === f.id ? 'rgba(0,230,122,0.1)' : 'transparent',
                   color: chartFilter === f.id ? 'var(--accent)' : 'var(--fg-tertiary)',
-                  fontFamily: 'var(--font-sans)', textTransform: 'capitalize', transition: 'all 150ms',
+                  fontFamily: 'var(--font-sans)', textTransform: 'capitalize', transition: 'background 150ms, border-color 150ms, color 150ms',
                 }}
               >
                 {f.label}
@@ -560,7 +570,7 @@ function OverviewTab({ tab, result }: { tab: AnalysisTab; result: NonNullable<An
             : 'Positive = incoming, negative = outgoing'}
         </div>
         {hasChartData ? (
-          <div style={{ flex: 1, minHeight: 270 }}>
+          <div style={{ flex: 1, minHeight: isMobile ? 210 : 270 }}>
             <Line
               data={{
                 labels: chartData.sortedDays,
@@ -626,19 +636,20 @@ function OverviewTab({ tab, result }: { tab: AnalysisTab; result: NonNullable<An
   );
 }
 
-function MetricCard({ label, value, color }: { label: string; value: string; color: string }) {
+function MetricCard({ label, value, color, isMobile }: { label: string; value: string; color: string; isMobile?: boolean }) {
   return (
     <div style={{
-      padding: '14px 18px',
+      padding: isMobile ? '10px 11px' : '14px 18px',
       borderRadius: 'var(--radius-lg)',
       background: 'var(--bg-secondary)',
       border: '1px solid var(--card-border)',
-      minWidth: 120,
+      minWidth: 0,
+      overflow: 'hidden',
     }}>
       <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--fg-tertiary)', marginBottom: 6, fontFamily: 'var(--font-sans)', letterSpacing: '0.05em' }}>
         {label}
       </div>
-      <div style={{ fontSize: 20, fontWeight: 700, color, fontFamily: 'var(--font-mono)' }}>
+      <div style={{ fontSize: isMobile ? 15 : 20, fontWeight: 700, color, fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {value}
       </div>
     </div>

@@ -217,5 +217,42 @@ body {
 }
 
 @media (max-width: 768px) {
-  .auth-preview-panel { display: none; }
+  :root {
+    --titlebar-height: 56px;
+    --radius-md: 10px;
+    --radius-lg: 12px;
+    --radius-xl: 14px;
+  }
+
+  html, body, #root {
+    width: 100%;
+    max-width: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-size: 12px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  button, input, textarea, select {
+    font: inherit;
+  }
+
+  input, textarea {
+    min-width: 0;
+  }
+
+  .auth-preview-panel { display: none !important; }
+
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+}
+
+@media (max-width: 380px) {
+  body {
+    font-size: 11px;
+  }
 }

@@ -6,6 +6,7 @@ import { analyzeWallet, fetchFundingTree, streamWalletTimestamps } from '../../a
 import { extractAddress } from '../../hooks/useClipboardDetection';
 import { addHistory } from '../../stores/history';
 import { AnalysisView } from './AnalysisView';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import type { AnalysisTab, ChainId } from '../../types';
 
 export function WalletInput({ tab }: { tab: AnalysisTab }) {
@@ -14,6 +15,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
   const [dragOver, setDragOver] = useState(false);
   const { updateTab } = useTabs();
   const notify = useNotify();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setAddress(tab.address || '');
@@ -121,10 +123,10 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
         display: showInput ? 'flex' : 'none',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: isMobile ? 'flex-start' : 'center',
         flex: 1,
-        padding: '40px 24px',
-        maxWidth: 600,
+        padding: isMobile ? '22px 14px 118px' : '40px 24px',
+        maxWidth: isMobile ? 460 : 600,
         margin: '0 auto',
         width: '100%',
       }}>
@@ -135,30 +137,51 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
           color: 'var(--fg-tertiary)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
-          marginBottom: 20,
+          marginBottom: isMobile ? 14 : 20,
         }}>
           Wallet Analysis
         </div>
+
+        {isMobile && (
+          <div style={{
+            width: '100%',
+            padding: '14px 14px 12px',
+            border: '1px solid var(--hairline)',
+            borderRadius: 18,
+            background: 'linear-gradient(180deg, rgba(0,230,122,0.08), transparent)',
+            marginBottom: 12,
+          }}>
+            <div style={{ fontSize: 18, fontWeight: 750, color: 'var(--fg)', lineHeight: 1.15 }}>
+              Trace a wallet
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--fg-secondary)', marginTop: 5, lineHeight: 1.45 }}>
+              Paste an address, ENS, Solana account, or explorer URL.
+            </div>
+          </div>
+        )}
 
         {/* Input card */}
         <div style={{
           width: '100%',
           background: 'var(--card)',
           border: '1px solid var(--card-border)',
-          borderRadius: 'var(--radius-xl)',
-          padding: 4,
+          borderRadius: isMobile ? 18 : 'var(--radius-xl)',
+          padding: isMobile ? 6 : 4,
           display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
           alignItems: 'center',
-          gap: 4,
+          gap: isMobile ? 6 : 4,
+          boxShadow: isMobile ? '0 16px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.04)' : undefined,
         }}>
           {/* Address input */}
-          <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ flex: 1, position: 'relative', width: '100%' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
               style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
             </svg>
             <input
               type="text"
+              aria-label="Wallet address"
               value={address}
               onChange={e => setAddress(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -167,28 +190,32 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
               spellCheck={false}
               style={{
                 width: '100%',
-                padding: '12px 14px 12px 36px',
+                padding: isMobile ? '14px 14px 14px 38px' : '12px 14px 12px 36px',
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
                 color: 'var(--fg)',
-                fontSize: 13,
+                fontSize: isMobile ? 12 : 13,
                 fontFamily: 'var(--font-mono)',
+                minHeight: isMobile ? 48 : undefined,
               }}
             />
           </div>
 
           {/* Analyze button */}
           <button
+            type="button"
             onClick={handleAnalyze}
             disabled={tab.loading}
             style={{
-              padding: '10px 20px',
-              borderRadius: 'var(--radius-lg)',
+              width: isMobile ? '100%' : undefined,
+              minHeight: isMobile ? 46 : undefined,
+              padding: isMobile ? '12px 18px' : '10px 20px',
+              borderRadius: isMobile ? 14 : 'var(--radius-lg)',
               border: 'none',
               background: tab.loading ? 'var(--bg-secondary)' : 'var(--accent)',
               color: tab.loading ? 'var(--fg-tertiary)' : '#000',
-              fontSize: 12,
+              fontSize: isMobile ? 13 : 12,
               fontWeight: 600,
               fontFamily: 'var(--font-sans)',
               cursor: tab.loading ? 'default' : 'pointer',
@@ -216,7 +243,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
 
         {/* Hint */}
         <p style={{
-          fontSize: 11,
+          fontSize: isMobile ? 10 : 11,
           color: 'var(--fg-tertiary)',
           marginTop: 12,
           textAlign: 'center',
@@ -247,6 +274,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
             {tab.error}
           </div>
           <button onClick={() => updateTab(tab.id, { error: undefined })}
+            type="button"
             style={{
               marginTop: 12, padding: '8px 20px', borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--card-border)', background: 'var(--card)',

@@ -69,12 +69,18 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
     <>
       {/* Close button — mobile only */}
       {isMobile && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 10px 4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 14px 6px' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--fg)', lineHeight: 1.1 }}>FundTracer</div>
+            <div style={{ fontSize: 10, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>Mobile Console</div>
+          </div>
           <button
+            type="button"
+            aria-label="Close navigation"
             onClick={onClose}
             style={{
-              background: 'none', border: 'none', color: 'var(--fg-secondary)',
-              cursor: 'pointer', padding: 6, borderRadius: 'var(--radius-md)',
+              width: 36, height: 36, background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--fg-secondary)',
+              cursor: 'pointer', padding: 0, borderRadius: 12,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -88,11 +94,12 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
       {/* Search */}
       <div style={{ padding: '12px 10px 8px' }}>
         <button
+          type="button"
           onClick={() => { onOpenCommand(); onClose?.(); }}
           style={{
             width: '100%',
-            padding: sidebarCollapsed ? '8px 0' : '7px 10px',
-            borderRadius: 'var(--radius-md)',
+            padding: sidebarCollapsed ? '8px 0' : isMobile ? '11px 12px' : '7px 10px',
+            borderRadius: isMobile ? 14 : 'var(--radius-md)',
             border: '1px solid var(--card-border)',
             background: 'var(--card)',
             color: 'var(--fg-tertiary)',
@@ -123,11 +130,12 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
       {/* New Analysis */}
       <div style={{ padding: '0 10px 10px' }}>
         <button
+          type="button"
           onClick={() => { openTab(); onClose?.(); }}
           style={{
             width: '100%',
-            padding: isMobile ? '10px 0' : '8px 0',
-            borderRadius: 'var(--radius-md)',
+            padding: isMobile ? '12px 0' : '8px 0',
+            borderRadius: isMobile ? 14 : 'var(--radius-md)',
             border: 'none',
             background: 'var(--accent)',
             color: '#000',
@@ -192,6 +200,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
                     {tab.loading && <span style={{ color: 'var(--accent)' }}> ...</span>}
                   </span>
                   <button
+                    type="button"
                     onClick={e => { e.stopPropagation(); closeTab(tab.id); }}
                     title="Close tab"
                     style={{
@@ -256,6 +265,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
         display: 'flex', justifyContent: sidebarCollapsed ? 'center' : 'flex-end',
       }}>
         <button
+          type="button"
           onClick={toggleTheme}
           title={`Theme: ${theme}`}
           style={{
@@ -294,29 +304,42 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
       const timer = setTimeout(() => { setVisible(false); setAnimating(false); }, 200);
       return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, visible]);
 
   if (isMobile) {
     if (!visible && !isOpen) return null;
     return (
       <>
         <div
+          role="button"
+          aria-label="Close navigation"
+          tabIndex={0}
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200,
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', zIndex: 200,
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
             opacity: animating ? 0 : 1,
             transition: 'opacity 200ms ease',
           }}
           onClick={onClose}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onClose?.();
+            }
+          }}
         />
         <aside style={{
-          position: 'fixed', top: 0, left: 0, bottom: 0, width: 280, zIndex: 201,
-          background: 'var(--sidebar-bg)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          position: 'fixed', top: 0, left: 0, bottom: 0, width: 'min(88vw, 340px)', zIndex: 201,
+          background: 'linear-gradient(180deg, color-mix(in srgb, var(--sidebar-bg) 96%, transparent), var(--bg))',
+          backdropFilter: 'blur(8px) saturate(190%)',
+          WebkitBackdropFilter: 'blur(8px) saturate(190%)',
           borderRight: '1px solid var(--sidebar-border)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          transform: animating ? 'translateX(-100%)' : 'translateX(0)',
-          transition: 'transform 200ms ease',
+          transform: animating ? 'translateX(-104%)' : 'translateX(0)',
+          transition: 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1)',
+          boxShadow: '18px 0 50px rgba(0,0,0,0.38)',
+          paddingBottom: 'calc(84px + env(safe-area-inset-bottom, 0px))',
         }}>
           {inner}
         </aside>
@@ -334,8 +357,8 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
       display: 'flex',
       flexDirection: 'column',
       background: 'var(--sidebar-bg)',
-      backdropFilter: 'blur(24px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+      backdropFilter: 'blur(8px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(8px) saturate(180%)',
       borderRight: '1px solid var(--sidebar-border)',
       overflow: 'hidden',
       flexShrink: 0,
@@ -350,6 +373,7 @@ function NavItem({ icon, label, collapsed, active, onClick, isMobile }: {
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       style={{
         width: '100%',
@@ -363,7 +387,7 @@ function NavItem({ icon, label, collapsed, active, onClick, isMobile }: {
         fontWeight: active ? 500 : 400,
         fontFamily: 'var(--font-sans)',
         cursor: 'pointer',
-        transition: 'all 150ms',
+        transition: 'background 150ms, color 150ms',
       }}
       onMouseEnter={e => {
         if (!active) e.currentTarget.style.background = 'var(--hover-overlay)';

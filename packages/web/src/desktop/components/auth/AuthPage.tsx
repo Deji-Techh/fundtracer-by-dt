@@ -4,6 +4,7 @@ import { useNotify } from '../../contexts/ToastContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { extractAddress } from '../../hooks/useClipboardDetection';
 import { isTauri } from '../../lib/tauri-commands';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import type { ChainId } from '../../types';
 
 export function AuthPage() {
@@ -15,6 +16,7 @@ export function AuthPage() {
   const pendingTokenRef = useRef<string | null>(null);
   const loginAttemptedRef = useRef(false);
   const { theme, toggleTheme } = useTheme();
+  const isMobile = useIsMobile();
 
   const runWindowAction = async (action: 'minimize' | 'toggleMaximize' | 'close') => {
     if (!isTauri()) return;
@@ -153,7 +155,7 @@ export function AuthPage() {
       flexDirection: 'column',
       height: '100vh',
       width: '100vw',
-      background: '#f5f5f7',
+      background: isMobile ? 'var(--bg)' : '#f5f5f7',
       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif",
     }}>
       {/* Title bar — desktop only */}
@@ -178,21 +180,21 @@ export function AuthPage() {
           FundTracer
         </span>
         <div style={{ flex: 1 }} data-tauri-drag-region />
-        <button onClick={() => runWindowAction('minimize')} style={windowBtnStyle}
+        <button type="button" aria-label="Minimize window" onClick={() => runWindowAction('minimize')} style={windowBtnStyle}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
         </button>
-        <button onClick={() => runWindowAction('toggleMaximize')} style={windowBtnStyle}
+        <button type="button" aria-label="Toggle maximize window" onClick={() => runWindowAction('toggleMaximize')} style={windowBtnStyle}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="4" y="4" width="16" height="16" rx="2"/>
           </svg>
         </button>
-        <button onClick={() => runWindowAction('close')} style={windowBtnStyle}
+        <button type="button" aria-label="Close window" onClick={() => runWindowAction('close')} style={windowBtnStyle}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--destructive)'; e.currentTarget.style.color = '#fff'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--fg-secondary)'; }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -203,17 +205,20 @@ export function AuthPage() {
       )}
 
       {/* Content */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: isMobile ? 'auto' : 'hidden' }}>
       {/* ─── LEFT PANEL ─── */}
       <div style={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '64px 56px',
-        background: '#ffffff',
+        justifyContent: isMobile ? 'flex-start' : 'center',
+        padding: isMobile ? '28px 16px 42px' : '64px 56px',
+        background: isMobile
+          ? 'linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 74%, var(--bg)), var(--bg) 44%)'
+          : '#ffffff',
         position: 'relative',
+        minHeight: isMobile ? '100%' : undefined,
       }}>
         {/* Subtle top accent line */}
         <div style={{
@@ -225,14 +230,15 @@ export function AuthPage() {
           background: 'linear-gradient(90deg, transparent, rgba(0,230,122,0.3), transparent)',
         }} />
 
-        <div style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{ width: '100%', maxWidth: isMobile ? 440 : 400 }}>
           {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: isMobile ? 28 : 40 }}>
             <div style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: '#000',
+              width: isMobile ? 40 : 36,
+              height: isMobile ? 40 : 36,
+              borderRadius: isMobile ? 14 : 10,
+              background: isMobile ? 'var(--card)' : '#000',
+              border: isMobile ? '1px solid var(--card-border)' : undefined,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -247,7 +253,7 @@ export function AuthPage() {
             <span style={{
               fontSize: 16,
               fontWeight: 650,
-              color: '#1d1d1f',
+              color: isMobile ? 'var(--fg)' : '#1d1d1f',
               letterSpacing: '-0.02em',
             }}>
               FundTracer
@@ -256,10 +262,10 @@ export function AuthPage() {
 
           {/* Heading */}
           <h1 style={{
-            fontSize: 36,
+            fontSize: isMobile ? 30 : 36,
             fontWeight: 700,
-            color: '#1d1d1f',
-            letterSpacing: '-0.04em',
+            color: isMobile ? 'var(--fg)' : '#1d1d1f',
+            letterSpacing: 0,
             lineHeight: 1.1,
             marginBottom: 10,
           }}>
@@ -268,10 +274,10 @@ export function AuthPage() {
           </h1>
 
           <p style={{
-            fontSize: 15,
-            color: '#86868b',
+            fontSize: isMobile ? 14 : 15,
+            color: isMobile ? 'var(--fg-secondary)' : '#86868b',
             lineHeight: 1.55,
-            marginBottom: 36,
+            marginBottom: isMobile ? 22 : 36,
             maxWidth: 380,
           }}>
             Blockchain intelligence and forensics platform. Trace funding sources,
@@ -280,22 +286,25 @@ export function AuthPage() {
 
           {/* Google Sign In Card */}
           <div style={{
-            background: '#ffffff',
-            border: '1px solid #d2d2d7',
-            borderRadius: 14,
-            padding: 28,
+            background: isMobile ? 'var(--card)' : '#ffffff',
+            border: isMobile ? '1px solid var(--card-border)' : '1px solid #d2d2d7',
+            borderRadius: isMobile ? 18 : 14,
+            padding: isMobile ? 18 : 28,
             marginBottom: 20,
+            boxShadow: isMobile ? '0 18px 48px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.04)' : undefined,
           }}>
             <button
+              type="button"
               onClick={handleGoogleSignIn}
               disabled={submitting}
               style={{
                 width: '100%',
                 padding: '12px 0',
-                borderRadius: 10,
-                border: '1px solid #d2d2d7',
-                background: '#ffffff',
-                color: '#1d1d1f',
+                minHeight: isMobile ? 48 : undefined,
+                borderRadius: isMobile ? 14 : 10,
+                border: isMobile ? '1px solid var(--card-border)' : '1px solid #d2d2d7',
+                background: isMobile ? 'var(--bg-secondary)' : '#ffffff',
+                color: isMobile ? 'var(--fg)' : '#1d1d1f',
                 fontSize: 14,
                 fontWeight: 500,
                 fontFamily: 'inherit',
@@ -309,13 +318,13 @@ export function AuthPage() {
               }}
               onMouseEnter={e => {
                 if (!submitting) {
-                  e.currentTarget.style.background = '#f5f5f7';
-                  e.currentTarget.style.borderColor = '#aeaeb2';
+                  e.currentTarget.style.background = isMobile ? 'var(--hover-overlay)' : '#f5f5f7';
+                  e.currentTarget.style.borderColor = isMobile ? 'var(--fg-tertiary)' : '#aeaeb2';
                 }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = '#ffffff';
-                e.currentTarget.style.borderColor = '#d2d2d7';
+                e.currentTarget.style.background = isMobile ? 'var(--bg-secondary)' : '#ffffff';
+                e.currentTarget.style.borderColor = isMobile ? 'var(--card-border)' : '#d2d2d7';
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
@@ -329,7 +338,7 @@ export function AuthPage() {
 
             <p style={{
               fontSize: 12,
-              color: '#aeaeb2',
+              color: isMobile ? 'var(--fg-tertiary)' : '#aeaeb2',
               textAlign: 'center',
               marginTop: 16,
               lineHeight: 1.5,
@@ -346,44 +355,47 @@ export function AuthPage() {
             gap: 14,
             marginBottom: 20,
           }}>
-            <div style={{ flex: 1, height: 1, background: '#e5e5ea' }} />
-            <span style={{ fontSize: 11, color: '#aeaeb2', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ flex: 1, height: 1, background: isMobile ? 'var(--hairline)' : '#e5e5ea' }} />
+            <span style={{ fontSize: 11, color: isMobile ? 'var(--fg-tertiary)' : '#aeaeb2', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               or
             </span>
-            <div style={{ flex: 1, height: 1, background: '#e5e5ea' }} />
+            <div style={{ flex: 1, height: 1, background: isMobile ? 'var(--hairline)' : '#e5e5ea' }} />
           </div>
 
           {/* Manual token toggle */}
           {!showManual ? (
             <button
               onClick={() => setShowManual(true)}
+              type="button"
               style={{
                 width: '100%',
                 padding: '10px 0',
-                borderRadius: 10,
-                border: '1px solid #e5e5ea',
+                minHeight: isMobile ? 44 : undefined,
+                borderRadius: isMobile ? 14 : 10,
+                border: isMobile ? '1px solid var(--card-border)' : '1px solid #e5e5ea',
                 background: 'transparent',
-                color: '#86868b',
+                color: isMobile ? 'var(--fg-secondary)' : '#86868b',
                 fontSize: 13,
                 fontWeight: 500,
                 fontFamily: 'inherit',
                 cursor: 'pointer',
                 transition: 'color 150ms',
               }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#1d1d1f'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#86868b'; }}
+              onMouseEnter={e => { e.currentTarget.style.color = isMobile ? 'var(--fg)' : '#1d1d1f'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = isMobile ? 'var(--fg-secondary)' : '#86868b'; }}
             >
               Paste auth token instead
             </button>
           ) : (
             <form onSubmit={handleManualToken} style={{
               padding: 20,
-              borderRadius: 14,
-              border: '1px solid #d2d2d7',
-              background: '#ffffff',
+              borderRadius: isMobile ? 18 : 14,
+              border: isMobile ? '1px solid var(--card-border)' : '1px solid #d2d2d7',
+              background: isMobile ? 'var(--card)' : '#ffffff',
             }}>
               <input
                 type="password"
+                aria-label="Auth token"
                 value={manualToken}
                 onChange={e => setManualToken(e.target.value)}
                 placeholder="Paste JWT token from browser URL"
@@ -392,26 +404,26 @@ export function AuthPage() {
                 style={{
                   width: '100%',
                   padding: '10px 14px',
-                  borderRadius: 10,
-                  border: '1px solid #d2d2d7',
-                  background: '#ffffff',
-                  color: '#1d1d1f',
+                  borderRadius: isMobile ? 14 : 10,
+                  border: isMobile ? '1px solid var(--card-border)' : '1px solid #d2d2d7',
+                  background: isMobile ? 'var(--bg-secondary)' : '#ffffff',
+                  color: isMobile ? 'var(--fg)' : '#1d1d1f',
                   fontSize: 13,
                   fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
                   outline: 'none',
                   marginBottom: 12,
                   transition: 'border-color 150ms',
                 }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#1d1d1f'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = '#d2d2d7'; }}
+                onFocus={e => { e.currentTarget.style.borderColor = isMobile ? 'var(--accent)' : '#1d1d1f'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = isMobile ? 'var(--card-border)' : '#d2d2d7'; }}
               />
               <button
-                type="submit"
+              type="submit"
                 disabled={submitting || !manualToken.trim()}
                 style={{
                   width: '100%',
                   padding: '10px 0',
-                  borderRadius: 10,
+                  borderRadius: isMobile ? 14 : 10,
                   border: 'none',
                   background: (manualToken.trim() && !submitting) ? '#00cc66' : '#f5f5f7',
                   color: (manualToken.trim() && !submitting) ? '#fff' : '#aeaeb2',
@@ -429,10 +441,12 @@ export function AuthPage() {
 
         {/* Footer */}
         <p style={{
-          position: 'absolute',
-          bottom: 28,
+          position: isMobile ? 'static' : 'absolute',
+          bottom: isMobile ? undefined : 28,
           fontSize: 11,
-          color: '#aeaeb2',
+          color: isMobile ? 'var(--fg-tertiary)' : '#aeaeb2',
+          marginTop: isMobile ? 24 : undefined,
+          textAlign: 'center',
         }}>
           By signing in, you agree to our{' '}
           <a href="https://www.fundtracer.xyz/terms" target="_blank" rel="noreferrer"
@@ -520,6 +534,7 @@ export function AuthPage() {
               </svg>
               <input
                 type="text"
+                aria-label="Wallet address to try"
                 value={tryAddress}
                 onChange={e => setTryAddress(e.target.value)}
                 onKeyDown={handleTryKeyDown}
@@ -540,6 +555,7 @@ export function AuthPage() {
 
             {/* Try Now button */}
             <button
+              type="button"
               onClick={handleTryNow}
               disabled={submitting}
               style={{
@@ -578,6 +594,7 @@ export function AuthPage() {
         {/* Theme toggle — bottom right */}
         <button
           onClick={toggleTheme}
+          type="button"
           title={`Theme: ${theme}`}
           style={{
             position: 'absolute',

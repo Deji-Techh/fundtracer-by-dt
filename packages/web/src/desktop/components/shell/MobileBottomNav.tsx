@@ -18,25 +18,29 @@ export function MobileBottomNav({ currentView, onViewChange }: MobileBottomNavPr
     <nav
       style={{
         position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
+        bottom: 'max(10px, env(safe-area-inset-bottom, 0px))',
+        left: 10,
+        right: 10,
         zIndex: 100,
         display: 'flex',
-        justifyContent: 'space-around',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        height: 56,
-        paddingBottom: 'env(safe-area-inset-bottom, 4px)',
-        background: 'var(--sidebar-bg)',
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        borderTop: '1px solid var(--hairline)',
+        minHeight: 60,
+        padding: '7px',
+        background: 'color-mix(in srgb, var(--sidebar-bg) 92%, transparent)',
+        backdropFilter: 'blur(8px) saturate(190%)',
+        WebkitBackdropFilter: 'blur(8px) saturate(190%)',
+        border: '1px solid color-mix(in srgb, var(--card-border) 70%, transparent)',
+        borderRadius: 22,
+        boxShadow: '0 18px 45px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.06)',
       }}
     >
       {NAV_ITEMS.map((item) => {
         const active = currentView === item.view;
         return (
           <button
+            type="button"
+            aria-label={item.label}
             key={item.view}
             onClick={() => onViewChange(item.view)}
             style={{
@@ -44,24 +48,32 @@ export function MobileBottomNav({ currentView, onViewChange }: MobileBottomNavPr
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 3,
+              gap: 4,
               flex: 1,
               minWidth: 0,
-              padding: '6px 4px',
+              minHeight: 46,
+              padding: '6px 3px',
               border: 'none',
-              background: 'transparent',
-              color: active ? 'var(--accent)' : 'var(--fg-tertiary)',
+              borderRadius: 16,
+              background: active ? 'rgba(0,230,122,0.12)' : 'transparent',
+              color: active ? 'var(--accent)' : 'var(--fg-secondary)',
               cursor: 'pointer',
               WebkitTapHighlightColor: 'transparent',
-              transition: 'color 150ms',
+              transition: 'background 180ms ease, color 180ms ease, transform 180ms ease',
+              transform: active ? 'translateY(-1px)' : 'translateY(0)',
             }}
           >
-            {item.icon}
+            <span style={{ display: 'flex', lineHeight: 0, opacity: active ? 1 : 0.78 }}>
+              {item.icon}
+            </span>
             <span style={{
               fontSize: 10,
-              fontWeight: active ? 600 : 400,
+              fontWeight: active ? 700 : 500,
               lineHeight: 1,
               whiteSpace: 'nowrap',
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}>
               {item.label}
             </span>
