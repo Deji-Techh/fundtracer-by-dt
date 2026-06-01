@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import type { CSSProperties } from 'react';
 import { useTabs } from '../../contexts/TabsContext';
 import { useNotify } from '../../contexts/ToastContext';
 import { useIsMobile } from '../../../hooks/useIsMobile';
@@ -75,19 +74,18 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
   const addressLabel = isMobile && tab.address.length > 20
     ? `${tab.address.slice(0, 8)}...${tab.address.slice(-6)}`
     : tab.address;
-  const mobileBrief = isMobile ? getInvestigationBrief(tab, result) : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
       {/* Header with address and actions */}
       <div style={{
-        padding: isMobile ? '8px 10px 7px' : '14px 20px',
+        padding: isMobile ? '6px 10px' : '14px 20px',
         borderBottom: '1px solid var(--hairline)',
         display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        alignItems: isMobile ? 'stretch' : 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        gap: isMobile ? 7 : 0,
+        gap: isMobile ? 8 : 0,
         flexShrink: 0,
       }}>
         {!isMobile && <div>
@@ -104,9 +102,6 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
             {addressLabel}
           </div>
         </div>}
-        {isMobile && mobileBrief && (
-          <InvestigationBrief brief={mobileBrief} onNext={() => setSubTab(mobileBrief.nextTab)} />
-        )}
         <div style={{
           display: isMobile ? 'grid' : 'flex',
           gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : undefined,
@@ -194,178 +189,6 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
       </div>
     </div>
   );
-}
-
-type InvestigationBriefData = {
-  pattern: string;
-  identity: string;
-  next: string;
-  nextTab: SubTab;
-};
-
-function getInvestigationBrief(tab: AnalysisTab, result: NonNullable<AnalysisTab['result']>): InvestigationBriefData {
-  const d = result as unknown as Record<string, unknown>;
-  const wallet = d.wallet as Record<string, unknown> | undefined;
-  const summary = d.summary as Record<string, unknown> | undefined;
-  const rawIndicators = (d.suspiciousIndicators ?? d.indicators ?? d.flags) as unknown[] | undefined;
-  const labels = ((wallet?.label as string | undefined) ? [wallet?.label as string] : d.labels as string[] | undefined) || [];
-  const entityType = (wallet?.infrastructureType as string | undefined)
-    ?? (d.entityType as string | undefined)
-    ?? (d.entity_type as string | undefined);
-
-  let pattern = 'No dominant pattern';
-  const firstIndicator = rawIndicators?.[0];
-  const indicatorText = rawIndicators?.map((indicator) => {
-    if (typeof indicator === 'string') return indicator;
-    if (indicator && typeof indicator === 'object') {
-      const obj = indicator as Record<string, unknown>;
-      return [obj.type, obj.description, obj.severity].filter(Boolean).join(' ');
-    }
-    return '';
-  }).join(' ').toLowerCase() || '';
-
-  if (firstIndicator && typeof firstIndicator === 'object' && (firstIndicator as Record<string, unknown>).type) {
-    pattern = titleCase(String((firstIndicator as Record<string, unknown>).type));
-  } else if (typeof firstIndicator === 'string') {
-    pattern = titleCase(firstIndicator);
-  }
-
-  if (indicatorText.includes('circular')) pattern = 'Circular flow';
-  else if (indicatorText.includes('wash')) pattern = 'Wash trading';
-  else if (indicatorText.includes('repeated') || indicatorText.includes('identical')) pattern = 'Repeated transfers';
-  else if (indicatorText.includes('same block')) pattern = 'Same-block cluster';
-  else if (!rawIndicators?.length && summary?.totalTransactions) pattern = 'Baseline activity';
-
-  const identity = labels[0]
-    ? titleCase(labels[0])
-    : entityType
-      ? titleCase(entityType)
-      : tab.type === 'contract'
-        ? 'Contract'
-        : 'Unlabeled wallet';
-
-  let next = 'Open graph';
-  let nextTab: SubTab = 'graph';
-  if (pattern.toLowerCase().includes('circular') || indicatorText.includes('fund')) {
-    next = 'Trace funding';
-    nextTab = 'funding';
-  } else if (pattern.toLowerCase().includes('wash') || pattern.toLowerCase().includes('repeated')) {
-    next = 'Review transfers';
-    nextTab = 'transactions';
-  } else if (!rawIndicators?.length) {
-    next = 'Ask AI';
-    nextTab = 'overview';
-  }
-
-  return { pattern, identity, next, nextTab };
-}
-
-function titleCase(value: string): string {
-  return value
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
-    .replace(/\b\w/g, char => char.toUpperCase());
-}
-
-function InvestigationBrief({ brief, onNext }: { brief: InvestigationBriefData; onNext: () => void }) {
-  return (
-    <div style={{
-      width: '100%',
-      minHeight: 48,
-      padding: '7px 9px',
-      borderRadius: 14,
-      border: '1px solid color-mix(in srgb, var(--card-border) 82%, transparent)',
-      background: 'linear-gradient(135deg, color-mix(in srgb, var(--card) 94%, transparent), color-mix(in srgb, var(--bg-secondary) 98%, transparent))',
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.035)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      gap: 6,
-    }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 8,
-      }}>
-        <span style={{
-          fontSize: 9,
-          lineHeight: 1,
-          color: 'var(--fg-tertiary)',
-          fontWeight: 700,
-          letterSpacing: '0.07em',
-          textTransform: 'uppercase',
-          fontFamily: 'var(--font-sans)',
-        }}>
-          Investigation brief
-        </span>
-        <span style={{
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          background: 'var(--accent)',
-          boxShadow: '0 0 12px color-mix(in srgb, var(--accent) 65%, transparent)',
-          flexShrink: 0,
-        }} />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 5 }}>
-        <BriefPill label="Pattern" value={brief.pattern} />
-        <BriefPill label="Identity" value={brief.identity} />
-        <BriefPill label="Next" value={brief.next} accent onClick={onNext} />
-      </div>
-    </div>
-  );
-}
-
-function BriefPill({ label, value, accent, onClick }: { label: string; value: string; accent?: boolean; onClick?: () => void }) {
-  const content = (
-    <>
-      <span style={{
-        color: 'var(--fg-tertiary)',
-        fontSize: 8,
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        lineHeight: 1,
-      }}>{label}</span>
-      <span style={{
-        color: accent ? 'var(--accent)' : 'var(--fg)',
-        fontSize: 10,
-        fontWeight: 650,
-        lineHeight: 1.15,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}>{value}</span>
-    </>
-  );
-
-  const style: CSSProperties = {
-    minWidth: 0,
-    minHeight: 27,
-    padding: '4px 6px',
-    borderRadius: 10,
-    border: '1px solid color-mix(in srgb, var(--card-border) 72%, transparent)',
-    background: accent ? 'rgba(0,230,122,0.08)' : 'rgba(255,255,255,0.025)',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    gap: 3,
-    fontFamily: 'var(--font-sans)',
-    textAlign: 'left',
-  };
-
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} style={{ ...style, cursor: 'pointer' }}>
-        {content}
-      </button>
-    );
-  }
-
-  return <div style={style}>{content}</div>;
 }
 
 function NewSearchButton({ onClick, compact }: { onClick: () => void; compact?: boolean }) {
