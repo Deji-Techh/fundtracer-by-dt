@@ -67,7 +67,7 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
 
   useEffect(() => {
     activePaneRef.current?.scrollTo({ top: 0, left: 0 });
-  }, [tab.id, subTab]);
+  }, [tab.id, tab.address, result, subTab]);
 
   if (!result) return null;
 
@@ -163,19 +163,19 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
 
       {/* Sub-tab content — tabs stay mounted to preserve state (AI messages, scroll, etc.) */}
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        <div ref={subTab === 'overview' ? activePaneRef : undefined} style={{ display: subTab === 'overview' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+        <div ref={subTab === 'overview' ? activePaneRef : undefined} style={{ display: subTab === 'overview' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 72px' : 20 }}>
           <OverviewTab tab={tab} result={result} isMobile={isMobile} />
         </div>
-        <div ref={subTab === 'transactions' ? activePaneRef : undefined} style={{ display: subTab === 'transactions' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+        <div ref={subTab === 'transactions' ? activePaneRef : undefined} style={{ display: subTab === 'transactions' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 72px' : 20 }}>
           <TransactionsTab tab={tab} />
         </div>
-        <div ref={subTab === 'funding' ? activePaneRef : undefined} style={{ display: subTab === 'funding' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+        <div ref={subTab === 'funding' ? activePaneRef : undefined} style={{ display: subTab === 'funding' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 72px' : 20 }}>
           <FundingTab tab={tab} />
         </div>
-        <div ref={subTab === 'graph' ? activePaneRef : undefined} style={{ display: subTab === 'graph' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+        <div ref={subTab === 'graph' ? activePaneRef : undefined} style={{ display: subTab === 'graph' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 72px' : 20 }}>
           <GraphTab tab={tab} />
         </div>
-        <div ref={subTab === 'portfolio' ? activePaneRef : undefined} style={{ display: subTab === 'portfolio' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+        <div ref={subTab === 'portfolio' ? activePaneRef : undefined} style={{ display: subTab === 'portfolio' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 72px' : 20 }}>
           <PortfolioView address={tab.address} chain={tab.chain} />
         </div>
       </div>
