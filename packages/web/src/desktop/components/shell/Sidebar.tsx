@@ -267,14 +267,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
         <NavItem icon={InteractorsIcon} label="Interactors" collapsed={collapsed} active={currentView === 'interactors'} onClick={() => onViewChange('interactors')} />
         <NavItem icon={SybilIcon} label="Sybil Detection" collapsed={collapsed} active={currentView === 'sybil-detection'} onClick={() => onViewChange('sybil-detection')} />
         <NavItem icon={CEXIcon} label="CEX Flow" collapsed={collapsed} active={currentView === 'cex-flow'} onClick={() => onViewChange('cex-flow')} />
-        <NavItem icon={SolanaIcon} label="Solana" collapsed={collapsed} active={currentView === 'solana'} onClick={() => onViewChange('solana')} />
-        <NavItem icon={PortfolioIcon} label="Portfolio" collapsed={collapsed} active={currentView === 'portfolio'} onClick={() => onViewChange('portfolio')} />
         <NavItem icon={MarketIcon} label="Polymarket" collapsed={collapsed} active={currentView === 'polymarket'} onClick={() => onViewChange('polymarket')} />
-        <NavItem icon={SuiIcon} label="Sui" collapsed={collapsed} active={currentView === 'sui'} onClick={() => onViewChange('sui')} />
-        <NavItem icon={GraphIcon} label="Graph" collapsed={collapsed} active={currentView === 'graph'} onClick={() => onViewChange('graph')} />
-        <NavItem icon={CrossChainIcon} label="Cross-Chain" collapsed={collapsed} active={currentView === 'crosschain'} onClick={() => onViewChange('crosschain')} />
-        <NavItem icon={HistoryIcon} label="History" collapsed={collapsed} active={currentView === 'history'} onClick={() => onViewChange('history')} />
-        <NavItem icon={RadarIcon} label="Radar" collapsed={collapsed} active={currentView === 'radar'} onClick={() => onViewChange('radar')} />
         <NavItem icon={ChatIcon} label="AI Chat" collapsed={collapsed} active={currentView === 'ai-chat'} onClick={() => onViewChange('ai-chat')} />
         <NavItem icon={RoomsIcon} label="Rooms" collapsed={collapsed} active={currentView === 'rooms'} onClick={() => onViewChange('rooms')} />
         <NavItem icon={SettingsIcon} label="Settings" collapsed={collapsed} active={currentView === 'settings'} onClick={() => onViewChange('settings')} />
@@ -408,11 +401,3 @@ const SettingsIcon = <svg {...svgProps}><circle cx="12" cy="12" r="3"/><path d="
 const InteractorsIcon = <svg {...svgProps}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
 const SybilIcon = <svg {...svgProps}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
 const CEXIcon = <svg {...svgProps}><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="6" x2="15" y2="6"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="13" y2="14"/></svg>;
-const SolanaIcon = <svg {...svgProps}><path d="M5 7h14l-3-3H2l3 3z"/><path d="M19 17H5l3 3h14l-3-3z"/><path d="M5 11h14l-3 3H2l3-3z"/></svg>;
-const PortfolioIcon = <svg {...svgProps}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M16 5V3H8v2"/><path d="M3 10h18"/><path d="M9 14h6"/></svg>;
-const MarketIcon = <svg {...svgProps}><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-7"/><path d="M18 7h1v1"/></svg>;
-const SuiIcon = <svg {...svgProps}><path d="M12 2s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11z"/><path d="M9 14a3 3 0 0 0 6 0"/></svg>;
-const GraphIcon = <svg {...svgProps}><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="m10.7 7.7-4.4 8.6"/><path d="m13.3 7.7 4.4 8.6"/><path d="M8 19h8"/></svg>;
-const CrossChainIcon = <svg {...svgProps}><path d="M7 7h10a4 4 0 0 1 0 8H8"/><path d="m10 11-4 4 4 4"/><path d="M17 3l4 4-4 4"/><path d="M3 7h18"/></svg>;
-const HistoryIcon = <svg {...svgProps}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>;
-const RadarIcon = <svg {...svgProps}><circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="8"/><path d="M12 4v8l5 5"/></svg>;

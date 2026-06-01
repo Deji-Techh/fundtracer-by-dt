@@ -73,11 +73,4 @@ export type AppView =
   | 'interactors'
   | 'sybil-detection'
   | 'cex-flow'
-  | 'solana'
-  | 'portfolio'
-  | 'polymarket'
-  | 'sui'
-  | 'graph'
-  | 'crosschain'
-  | 'history'
-  | 'radar';
+  | 'polymarket';

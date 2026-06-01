@@ -20,14 +20,7 @@ const SybilView = lazy(() => import('../analysis/SybilView').then(m => ({ defaul
 const CEXFlowView = lazy(() => import('../analysis/CEXFlowView').then(m => ({ default: m.CEXFlowView })));
 const InteractorsView = lazy(() => import('../analysis/InteractorsView').then(m => ({ default: m.InteractorsView })));
 const CompareView = lazy(() => import('../analysis/CompareView').then(m => ({ default: m.CompareView })));
-const WebSolanaView = lazy(() => import('../../../design-system/features/SolanaView').then(m => ({ default: m.SolanaView })));
-const WebPortfolioView = lazy(() => import('../../../design-system/features/PortfolioView'));
 const WebPolymarketView = lazy(() => import('../../../design-system/features/PolymarketView'));
-const WebGraphView = lazy(() => import('../../../design-system/features/GraphView'));
-const WebCrossChainView = lazy(() => import('../../../design-system/features/CrossChainView'));
-const WebHistoryView = lazy(() => import('../../../design-system/features/HistoryView'));
-const WebRadarView = lazy(() => import('../../../design-system/features/RadarView'));
-const WebInvestigateView = lazy(() => import('../../../design-system/features/InvestigateView'));
 
 const TAB_TO_VIEW: Record<string, AppView> = {
   analyze: 'analyze',
@@ -44,15 +37,7 @@ const TAB_TO_VIEW: Record<string, AppView> = {
   'sybil-detection': 'sybil-detection',
   cex: 'cex-flow',
   'cex-flow': 'cex-flow',
-  solana: 'solana',
-  portfolio: 'portfolio',
   polymarket: 'polymarket',
-  sui: 'sui',
-  graph: 'graph',
-  crosschain: 'crosschain',
-  'cross-chain': 'crosschain',
-  history: 'history',
-  radar: 'radar',
 };
 
 function extractAddressFromInput(input: string): { address: string; chain?: string } {
@@ -100,7 +85,7 @@ export function AppShell() {
       : (tabParam && TAB_TO_VIEW[tabParam]
         ? TAB_TO_VIEW[tabParam]
         : (prefilledAddress
-          ? (prefilledChain === 'solana' ? 'solana' : 'analyze')
+          ? 'analyze'
           : ((savedState.currentView as AppView) || 'analyze')))
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(savedState.sidebarCollapsed || false);
@@ -121,7 +106,7 @@ export function AppShell() {
 
   useEffect(() => {
     if (!prefilledAddress || tabParam) return;
-    setCurrentView(prefilledChain === 'solana' ? 'solana' : 'analyze');
+    setCurrentView('analyze');
   }, [prefilledAddress, prefilledChain, tabParam]);
 
   // Sync history with server on mount + every 60s
@@ -174,42 +159,7 @@ export function AppShell() {
             {currentView === 'interactors' && <Suspense fallback={<Loader />}><InteractorsView onNavigateToSybil={(addresses, chain) => { setSybilPrefill({ addresses, chain }); setCurrentView('sybil-detection'); }} /></Suspense>}
             {currentView === 'sybil-detection' && <Suspense fallback={<Loader />}><SybilView prefillAddresses={sybilPrefill?.addresses} prefillChain={sybilPrefill?.chain} onPrefillConsumed={() => setSybilPrefill(null)} /></Suspense>}
             {currentView === 'cex-flow' && <Suspense fallback={<Loader />}><CEXFlowView /></Suspense>}
-            {currentView === 'solana' && (
-              <DesktopFeatureSurface>
-                <Suspense fallback={<Loader />}>
-                  <WebSolanaView
-                    prefillAddress={prefilledAddress || undefined}
-                    onPrefillConsumed={() => {
-                      const params = new URLSearchParams(searchParams);
-                      params.delete('address');
-                      params.delete('chain');
-                      params.delete('mode');
-                      setSearchParams(params, { replace: true });
-                    }}
-                  />
-                </Suspense>
-              </DesktopFeatureSurface>
-            )}
-            {currentView === 'portfolio' && <DesktopFeatureSurface><Suspense fallback={<Loader />}><WebPortfolioView /></Suspense></DesktopFeatureSurface>}
             {currentView === 'polymarket' && <DesktopFeatureSurface><Suspense fallback={<Loader />}><WebPolymarketView /></Suspense></DesktopFeatureSurface>}
-            {currentView === 'sui' && (
-              <DesktopFeatureSurface>
-                <Suspense fallback={<Loader />}>
-                  <WebInvestigateView
-                    suiMode={true}
-                    selectedChain={(prefilledChain as ChainId) || 'sui'}
-                    onChainChange={() => {}}
-                    prefillAddress={prefilledAddress || undefined}
-                    prefillChain={prefilledChain || undefined}
-                    prefillType={prefillMode || undefined}
-                  />
-                </Suspense>
-              </DesktopFeatureSurface>
-            )}
-            {currentView === 'graph' && <DesktopFeatureSurface><Suspense fallback={<Loader />}><WebGraphView selectedChain={(prefilledChain as ChainId) || 'linea'} /></Suspense></DesktopFeatureSurface>}
-            {currentView === 'crosschain' && <DesktopFeatureSurface><Suspense fallback={<Loader />}><WebCrossChainView selectedChain={(prefilledChain as ChainId) || 'linea'} /></Suspense></DesktopFeatureSurface>}
-            {currentView === 'history' && <DesktopFeatureSurface><Suspense fallback={<Loader />}><WebHistoryView onSelectScan={() => {}} /></Suspense></DesktopFeatureSurface>}
-            {currentView === 'radar' && <DesktopFeatureSurface><Suspense fallback={<Loader />}><WebRadarView /></Suspense></DesktopFeatureSurface>}
           </main>
         </div>
 
@@ -249,10 +199,6 @@ function AnalysisContent({ onViewChange }: { onViewChange: (v: AppView) => void 
     const extracted = extractAddressFromInput(rawAddress);
     const address = extracted.address || rawAddress;
     const chain = explicitChain || (extracted.chain as ChainId | undefined) || 'ethereum';
-    if (chain === 'solana') {
-      onViewChange('solana');
-      return;
-    }
     openTab(address, chain);
     onViewChange('analyze');
     const params = new URLSearchParams(searchParams);
