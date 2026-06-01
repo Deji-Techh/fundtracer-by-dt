@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Trash2, Plus, MessageSquare, History, Upload, ChevronDown, FileText, X } from 'lucide-react';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { sendChatMessage, getChatSessions, deleteChatSession, createChatSession, updateChatSession, getChatSession, type ChatMessage } from '../../api/chat';
@@ -33,6 +34,7 @@ export function AiChatView({ context }: AiChatViewProps) {
   const historyPickerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const notify = useNotify();
+  const isMobile = useIsMobile();
 
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [loadingSession, setLoadingSession] = useState(false);
@@ -405,7 +407,7 @@ export function AiChatView({ context }: AiChatViewProps) {
         </div>
 
         {/* Input */}
-        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--hairline)' }}>
+        <div style={{ padding: isMobile ? '10px 12px 14px' : '12px 20px', borderTop: '1px solid var(--hairline)' }}>
           {/* Pending attached files */}
           {attachedFiles.length > 0 && (
             <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>

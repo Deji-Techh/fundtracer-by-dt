@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Send, Users, Plus, Hash, Bot, Settings, X, Copy, Link, RefreshCw, Loader2 } from 'lucide-react';
+import { Send, Users, Plus, Hash, Bot, Settings, X, Copy, Link, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
 import { getRooms, getRoom, getRoomMessages, sendRoomMessage, sendAiResponse, createRoom, inviteToRoom, updateRoom, deleteRoom, leaveRoom, removeRoomMember, lookupInvite, joinRoom, connectRoomSocket, disconnectRoomSocket, onRoomEvent, sendWsEvent, normalizeMessage, type InvestigationRoom, type RoomMessage } from '../../api/rooms';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import { sendChatMessage } from '../../api/chat';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotify } from '../../contexts/ToastContext';
@@ -40,6 +41,8 @@ export function RoomsView() {
   const [typingUsers, setTypingUsers] = useState<Map<string, { displayName: string; timestamp: number }>>(new Map());
   const [aiTyping, setAiTyping] = useState(false);
   const typingSentRef = useRef(false);
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
   useEffect(() => { loadRooms(); }, []);
 
@@ -92,6 +95,7 @@ export function RoomsView() {
     setInviteLink(null);
     setInviteCode(null);
     setRoomSelecting(true);
+    if (isMobile) setMobileView('chat');
     connectRoomSocket(room.id);
     try {
       const [fullRoom, msgs] = await Promise.all([
@@ -474,7 +478,7 @@ export function RoomsView() {
 .typing-dots { animation: typing-pulse 1.2s ease-in-out infinite; }
 `}</style>
       {/* Room list */}
-      <div style={{ width: 280, borderRight: '1px solid var(--hairline)', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)' }}>
+      <div style={{ width: isMobile ? '100%' : 280, borderRight: isMobile ? 'none' : '1px solid var(--hairline)', display: isMobile && mobileView === 'chat' ? 'none' : 'flex', flexDirection: 'column', background: 'var(--bg-secondary)' }}>
         <div style={{
           padding: '14px 16px', borderBottom: '1px solid var(--hairline)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -646,7 +650,7 @@ export function RoomsView() {
       </div>
 
       {/* Chat area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ flex: 1, display: isMobile && mobileView === 'list' ? 'none' : 'flex', flexDirection: 'column', minWidth: 0 }}>
         {!activeRoom ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--fg-tertiary)', fontSize: 13 }}>
             <div style={{ textAlign: 'center' }}>
@@ -667,9 +671,21 @@ export function RoomsView() {
           <>
             {/* Room header */}
             <div style={{
-              padding: '12px 20px', borderBottom: '1px solid var(--hairline)',
+              padding: isMobile ? '10px 12px' : '12px 20px', borderBottom: '1px solid var(--hairline)',
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
+              {isMobile && (
+                <button
+                  onClick={() => { setMobileView('list'); setActiveRoom(null); disconnectRoomSocket(); }}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--fg-secondary)',
+                    cursor: 'pointer', padding: 4, borderRadius: 'var(--radius-md)',
+                    display: 'flex', alignItems: 'center',
+                  }}
+                >
+                  <ArrowLeft size={18} />
+                </button>
+              )}
               <Hash size={16} style={{ color: 'var(--accent)' }} />
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)' }}>{activeRoom.name}</span>
               <span style={{ fontSize: 11, color: 'var(--fg-tertiary)' }}>
@@ -1085,7 +1101,7 @@ export function RoomsView() {
             )}
 
             {/* Input */}
-            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--hairline)', position: 'relative' }}>
+            <div style={{ padding: isMobile ? '10px 12px 14px' : '12px 20px', borderTop: '1px solid var(--hairline)', position: 'relative' }}>
               {/* Mention autocomplete dropdown */}
               {mentionMode === 'active' && filteredMentions.length > 0 && (
                 <div style={{

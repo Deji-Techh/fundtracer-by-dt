@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChain } from '../../contexts/ChainContext';
 import { ChainSelector } from '../common/ChainSelector';
 import { useNotify } from '../../contexts/ToastContext';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import { scanContract, scanContractRich, analyzeContract } from '../../api/analyze';
 import { addHistory } from '../../stores/history';
 import { useTabs } from '../../contexts/TabsContext';
@@ -111,6 +112,7 @@ export function ContractScannerView() {
   const [hydrated, setHydrated] = useState(false);
   const notify = useNotify();
   const { openTab } = useTabs();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const saved = getContractScannerState(scopeKey);
@@ -267,10 +269,11 @@ export function ContractScannerView() {
               borderRadius: 'var(--radius-xl)',
               padding: 4,
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
               gap: 4,
             }}>
-              <div style={{ flex: 1, position: 'relative' }}>
+              <div style={{ flex: isMobile ? undefined : 1, position: 'relative' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
                   style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
@@ -285,36 +288,63 @@ export function ContractScannerView() {
                   spellCheck={false}
                   style={{
                     width: '100%',
-                    padding: '12px 14px 12px 36px',
+                    padding: isMobile ? '14px 14px 14px 38px' : '12px 14px 12px 36px',
+                    minHeight: isMobile ? 48 : undefined,
                     background: 'transparent',
                     border: 'none',
                     outline: 'none',
                     color: 'var(--fg)',
-                    fontSize: 13,
+                    fontSize: isMobile ? 14 : 13,
                     fontFamily: 'var(--font-mono)',
+                    boxSizing: 'border-box',
                   }}
                 />
               </div>
 
-              <ChainSelector value={chain} onChange={setChain} />
+              {isMobile ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 2px' }}>
+                  <ChainSelector value={chain} onChange={setChain} compact />
+                  <button
+                    onClick={handleScan}
+                    disabled={loading || !address.trim()}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: 'var(--radius-lg)',
+                      border: 'none',
+                      background: loading ? 'var(--bg-secondary)' : 'var(--accent)',
+                      color: loading ? 'var(--fg-tertiary)' : '#000',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: loading || !address.trim() ? 'default' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {loading ? 'Scanning' : 'Scan Contract'}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <ChainSelector value={chain} onChange={setChain} />
 
-              <button
-                onClick={handleScan}
-                disabled={loading || !address.trim()}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: 'var(--radius-lg)',
-                  border: 'none',
-                  background: loading ? 'var(--bg-secondary)' : 'var(--accent)',
-                  color: loading ? 'var(--fg-tertiary)' : '#000',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: loading || !address.trim() ? 'default' : 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {loading ? 'Scanning' : 'Scan Contract'}
-              </button>
+                  <button
+                    onClick={handleScan}
+                    disabled={loading || !address.trim()}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: 'var(--radius-lg)',
+                      border: 'none',
+                      background: loading ? 'var(--bg-secondary)' : 'var(--accent)',
+                      color: loading ? 'var(--fg-tertiary)' : '#000',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: loading || !address.trim() ? 'default' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {loading ? 'Scanning' : 'Scan Contract'}
+                  </button>
+                </>
+              )}
             </div>
 
             <p style={{

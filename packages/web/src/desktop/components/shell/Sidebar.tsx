@@ -281,13 +281,31 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
     </>
   );
 
-  // Mobile: render overlay drawer
+  // Mobile: render overlay drawer with open/close animation
+  const [visible, setVisible] = useState(false);
+  const [animating, setAnimating] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setVisible(true);
+      setAnimating(false);
+    } else if (visible) {
+      setAnimating(true);
+      const timer = setTimeout(() => { setVisible(false); setAnimating(false); }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
   if (isMobile) {
-    if (!isOpen) return null;
+    if (!visible && !isOpen) return null;
     return (
       <>
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200,
+            opacity: animating ? 0 : 1,
+            transition: 'opacity 200ms ease',
+          }}
           onClick={onClose}
         />
         <aside style={{
@@ -297,7 +315,8 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           borderRight: '1px solid var(--sidebar-border)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          animation: 'ft-slide-in-left 0.2s ease',
+          transform: animating ? 'translateX(-100%)' : 'translateX(0)',
+          transition: 'transform 200ms ease',
         }}>
           {inner}
         </aside>

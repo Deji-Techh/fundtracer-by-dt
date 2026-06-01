@@ -140,7 +140,7 @@ export function AppShell() {
         display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw',
         background: 'var(--bg)', overflow: 'hidden', outline: 'none',
       }}>
-        <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => isMobile ? setMobileSidebarOpen(o => !o) : toggleSidebar()} isMobile={isMobile} />
+        <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => isMobile ? setMobileSidebarOpen(o => !o) : toggleSidebar()} isMobile={isMobile} currentView={currentView} />
 
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           <Sidebar

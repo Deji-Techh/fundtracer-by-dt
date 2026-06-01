@@ -4,6 +4,7 @@ import { useNotify } from '../../contexts/ToastContext';
 import { useTabs } from '../../contexts/TabsContext';
 import { Loader } from '../common/Loader';
 import { ChainSelector } from '../common/ChainSelector';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import { Users, ExternalLink, AlertTriangle, Shield, Download } from 'lucide-react';
 import type { ChainId } from '../../types';
 import { getInteractorsState, saveInteractorsState } from '../../stores/interactorsState';
@@ -57,6 +58,7 @@ function csvEscape(value: unknown): string {
 export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
   const notify = useNotify();
   const { activeTabId } = useTabs();
+  const isMobile = useIsMobile();
   const scopeKey = activeTabId || 'global';
   const initialState = getInteractorsState(scopeKey);
   const [address, setAddress] = useState(initialState.address);
@@ -133,19 +135,31 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 20 }}>
             Interactors Analysis
           </div>
-          <div style={{ width: '100%', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-xl)', padding: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ width: '100%', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-xl)', padding: 4, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 4 }}>
             <input type="text" value={address}
               onChange={e => setAddress(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleAnalyze(); }}
               placeholder="Paste wallet/contract address (0x...)"
               spellCheck={false}
-              style={{ flex: 1, padding: '12px 14px', background: 'transparent', border: 'none', outline: 'none', color: 'var(--fg)', fontSize: 13, fontFamily: 'var(--font-mono)' }}
+              style={{ flex: isMobile ? undefined : 1, padding: isMobile ? '14px 14px' : '12px 14px', minHeight: isMobile ? 48 : undefined, background: 'transparent', border: 'none', outline: 'none', color: 'var(--fg)', fontSize: isMobile ? 14 : 13, fontFamily: 'var(--font-mono)', boxSizing: 'border-box', width: '100%' }}
             />
-            <ChainSelector value={chain} onChange={setChain} />
-            <button onClick={handleAnalyze} disabled={loading}
-              style={{ padding: '10px 20px', borderRadius: 'var(--radius-lg)', border: 'none', background: loading ? 'var(--bg-secondary)' : 'var(--accent)', color: loading ? 'var(--fg-tertiary)' : '#000', fontSize: 12, fontWeight: 600, cursor: loading ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
-              {loading ? 'Analyzing' : 'Find Interactors'}
-            </button>
+            {isMobile ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 2px' }}>
+                <ChainSelector value={chain} onChange={setChain} compact />
+                <button onClick={handleAnalyze} disabled={loading}
+                  style={{ padding: '10px 20px', borderRadius: 'var(--radius-lg)', border: 'none', background: loading ? 'var(--bg-secondary)' : 'var(--accent)', color: loading ? 'var(--fg-tertiary)' : '#000', fontSize: 12, fontWeight: 600, cursor: loading ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+                  {loading ? 'Analyzing' : 'Find Interactors'}
+                </button>
+              </div>
+            ) : (
+              <>
+                <ChainSelector value={chain} onChange={setChain} />
+                <button onClick={handleAnalyze} disabled={loading}
+                  style={{ padding: '10px 20px', borderRadius: 'var(--radius-lg)', border: 'none', background: loading ? 'var(--bg-secondary)' : 'var(--accent)', color: loading ? 'var(--fg-tertiary)' : '#000', fontSize: 12, fontWeight: 600, cursor: loading ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+                  {loading ? 'Analyzing' : 'Find Interactors'}
+                </button>
+              </>
+            )}
           </div>
           <p style={{ fontSize: 11, color: 'var(--fg-tertiary)', marginTop: 12, textAlign: 'center' }}>
             Discover all interacting addresses and shared funders

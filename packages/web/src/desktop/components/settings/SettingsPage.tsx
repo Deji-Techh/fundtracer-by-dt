@@ -8,6 +8,7 @@ import { AddressBookSection } from './AddressBookSection';
 import { HistorySection } from './HistorySection';
 import { ScheduledReportsSection } from './ScheduledReportsSection';
 import { WatchtowerSection } from './WatchtowerSection';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 
 type SettingsTab = 'account' | 'api-keys' | 'watchtower' | 'address-book' | 'scan-history' | 'scheduled-reports' | 'preferences';
 
@@ -16,6 +17,8 @@ export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const notify = useNotify();
   const [tab, setTab] = useState<SettingsTab>('account');
+  const isMobile = useIsMobile();
+  const [mobileSection, setMobileSection] = useState<SettingsTab | null>(null);
 
   // Profile editing
   const [editing, setEditing] = useState(false);
@@ -40,12 +43,13 @@ export function SettingsPage() {
     <div style={{ display: 'flex', height: '100%' }}>
       {/* Settings sidebar */}
       <div style={{
-        width: 180,
-        borderRight: '1px solid var(--hairline)',
+        width: isMobile ? '100%' : 180,
+        borderRight: isMobile ? 'none' : '1px solid var(--hairline)',
         background: 'var(--bg-secondary)',
         padding: '12px 0',
         flexShrink: 0,
         overflow: 'auto',
+        display: isMobile && mobileSection ? 'none' : undefined,
       }}>
         <div style={{ padding: '0 12px 12px' }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)', fontFamily: 'var(--font-sans)' }}>
@@ -63,7 +67,7 @@ export function SettingsPage() {
         ]).map(item => (
           <button
             key={item.id}
-            onClick={() => setTab(item.id)}
+            onClick={() => { setTab(item.id); if (isMobile) setMobileSection(item.id); }}
             style={{
               width: '100%',
               padding: '8px 12px',
@@ -83,7 +87,23 @@ export function SettingsPage() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, padding: 24, overflow: 'auto' }}>
+      <div style={{ flex: 1, padding: isMobile ? 16 : 24, overflow: 'auto', display: isMobile && !mobileSection ? 'none' : undefined }}>
+        {isMobile && mobileSection && (
+          <button
+            onClick={() => setMobileSection(null)}
+            style={{
+              background: 'none', border: 'none', color: 'var(--fg-secondary)',
+              cursor: 'pointer', padding: '4px 0 12px', fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontFamily: 'var(--font-sans)',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back
+          </button>
+        )}
         {tab === 'account' && (
           <div style={{ maxWidth: 500 }}>
             <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--fg)', marginBottom: 16, fontFamily: 'var(--font-sans)' }}>
