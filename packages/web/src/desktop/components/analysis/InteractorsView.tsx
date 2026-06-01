@@ -309,7 +309,7 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
             </h4>
             <div style={{
               borderRadius: 'var(--radius-xl)', border: '1px solid var(--card-border)',
-              overflow: 'hidden',
+              overflow: isMobile ? 'auto' : 'hidden',
             }}>
               {/* Header */}
               <div style={{

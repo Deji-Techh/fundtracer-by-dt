@@ -1101,7 +1101,7 @@ export function RoomsView() {
             )}
 
             {/* Input */}
-            <div style={{ padding: isMobile ? '10px 12px 14px' : '12px 20px', borderTop: '1px solid var(--hairline)', position: 'relative' }}>
+            <div style={{ padding: isMobile ? '10px 12px 20px' : '12px 20px', borderTop: '1px solid var(--hairline)', position: 'relative' }}>
               {/* Mention autocomplete dropdown */}
               {mentionMode === 'active' && filteredMentions.length > 0 && (
                 <div style={{

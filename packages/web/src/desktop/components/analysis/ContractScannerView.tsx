@@ -374,7 +374,7 @@ export function ContractScannerView() {
           </div>
 
           {activeTab === 'overview' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               <div style={{ border: '1px solid var(--card-border)', borderRadius: 'var(--radius-xl)', background: 'var(--card)', padding: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <div>
@@ -409,7 +409,7 @@ export function ContractScannerView() {
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)', marginBottom: 10 }}>
                 Wallet Interactions ({sorted.length})
               </div>
-              <div style={{ borderRadius: 'var(--radius-xl)', border: '1px solid var(--card-border)', background: 'var(--card)', overflow: 'hidden' }}>
+              <div style={{ borderRadius: 'var(--radius-xl)', border: '1px solid var(--card-border)', background: 'var(--card)', overflow: isMobile ? 'auto' : 'hidden' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 100px 100px 100px', padding: '10px 16px', borderBottom: '1px solid var(--hairline)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--fg-tertiary)' }}>
                   {(['Address', 'Interactions', 'Sent', 'Received', 'Category'] as const).map(h => (
                     <div key={h} style={{ cursor: 'pointer' }}

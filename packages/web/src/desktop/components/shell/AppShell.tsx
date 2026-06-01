@@ -156,7 +156,7 @@ export function AppShell() {
           <main style={{
             flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
             background: 'var(--bg)',
-            paddingBottom: isMobile ? 64 : 0,
+            paddingBottom: isMobile ? 72 : 0,
           }}>
             {currentView === 'analyze' && <AnalysisContent onViewChange={setCurrentView} />}
             {currentView === 'compare' && <Suspense fallback={<Loader />}><CompareView /></Suspense>}

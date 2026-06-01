@@ -145,7 +145,7 @@ function CEXResult({ data }: { data: Record<string, unknown> }) {
   return (
     <div>
       {/* Summary */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
         <Metric icon={<TrendingUp size={16} />} label="Total Deposited" value={totalDeposited !== null ? `${totalDeposited.toFixed(4)} ETH` : 'N/A'} color="var(--accent)" />
         <Metric icon={<TrendingDown size={16} />} label="Total Withdrawn" value={totalWithdrawn !== null ? `${totalWithdrawn.toFixed(4)} ETH` : 'N/A'} color="var(--destructive)" />
         <Metric icon={<ArrowRightLeft size={16} />} label="Net Flow" value={netFlow !== null ? `${netFlow.toFixed(4)} ETH` : 'N/A'} color={netFlow !== null && netFlow > 0 ? 'var(--accent)' : 'var(--destructive)'} />
@@ -227,7 +227,7 @@ function CEXResult({ data }: { data: Record<string, unknown> }) {
 
 function Metric({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
   return (
-    <div style={{ flex: 1, padding: '14px 16px', borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--hairline)' }}>
+    <div style={{ flex: 1, minWidth: 140, padding: '14px 16px', borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--hairline)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', color: 'var(--fg-tertiary)', marginBottom: 8 }}>
         {icon} {label}
       </div>

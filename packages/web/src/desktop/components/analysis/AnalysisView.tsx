@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useTabs } from '../../contexts/TabsContext';
 import { useNotify } from '../../contexts/ToastContext';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import type { AnalysisTab } from '../../types';
 import { TransactionList } from './TransactionList';
 import { FundingTree } from './FundingTree';
@@ -61,17 +62,25 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
     }
   };
 
+  const isMobile = useIsMobile();
+
   if (!result) return null;
+
+  const addressLabel = isMobile && tab.address.length > 20
+    ? `${tab.address.slice(0, 8)}...${tab.address.slice(-6)}`
+    : tab.address;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header with address and actions */}
       <div style={{
-        padding: '14px 20px',
+        padding: isMobile ? '10px 14px' : '14px 20px',
         borderBottom: '1px solid var(--hairline)',
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center',
         justifyContent: 'space-between',
+        gap: isMobile ? 8 : 0,
         flexShrink: 0,
       }}>
         <div>
@@ -79,15 +88,16 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
             {tab.chain?.toUpperCase()}
           </div>
           <div style={{
-            fontSize: 14,
+            fontSize: isMobile ? 12 : 14,
             fontWeight: 600,
             color: 'var(--fg)',
             fontFamily: 'var(--font-mono)',
+            wordBreak: 'break-all',
           }}>
-            {tab.address}
+            {addressLabel}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <NewSearchButton onClick={() => updateTab(tab.id, { result: undefined, transactions: undefined, fundingData: undefined, error: undefined, address: '' })} />
           <button onClick={handleShare}
             style={{
@@ -111,7 +121,7 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
       <div style={{
         display: 'flex',
         borderBottom: '1px solid var(--hairline)',
-        padding: '0 20px',
+        padding: isMobile ? '0 8px' : '0 20px',
         gap: 0,
         flexShrink: 0,
         overflow: 'auto',
@@ -142,19 +152,19 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
 
       {/* Sub-tab content — tabs stay mounted to preserve state (AI messages, scroll, etc.) */}
       <div style={{ flex: 1 }}>
-        <div style={{ display: subTab === 'overview' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: 20 }}>
+        <div style={{ display: subTab === 'overview' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
           <OverviewTab tab={tab} result={result} />
         </div>
-        <div style={{ display: subTab === 'transactions' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: 20 }}>
+        <div style={{ display: subTab === 'transactions' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
           <TransactionsTab tab={tab} />
         </div>
-        <div style={{ display: subTab === 'funding' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: 20 }}>
+        <div style={{ display: subTab === 'funding' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
           <FundingTab tab={tab} />
         </div>
-        <div style={{ display: subTab === 'graph' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: 20 }}>
+        <div style={{ display: subTab === 'graph' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
           <GraphTab tab={tab} />
         </div>
-        <div style={{ display: subTab === 'portfolio' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: 20 }}>
+        <div style={{ display: subTab === 'portfolio' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? 14 : 20 }}>
           <PortfolioView address={tab.address} chain={tab.chain} />
         </div>
       </div>

@@ -31,7 +31,7 @@ const VIEW_LABELS: Record<string, string> = {
 
 export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarProps) {
   const { chain, setChain } = useChain();
-  const { tabs, activeTabId, setActiveTab } = useTabs();
+  const { tabs, activeTabId, setActiveTab, openTab } = useTabs();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showTabs, setShowTabs] = useState(false);
   const [showNetworks, setShowNetworks] = useState(false);
@@ -152,6 +152,20 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
                 <line x1="9" y1="21" x2="9" y2="9"/>
               </svg>
             </button>
+
+          {/* New tab button */}
+          <button
+            onClick={() => { openTab(); setShowTabs(false); }}
+            style={{
+              background: 'none', border: 'none', color: 'var(--fg-secondary)',
+              cursor: 'pointer', padding: 6, borderRadius: 'var(--radius-md)',
+              display: 'flex', alignItems: 'center',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
             {showTabs && (
               <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: 4,

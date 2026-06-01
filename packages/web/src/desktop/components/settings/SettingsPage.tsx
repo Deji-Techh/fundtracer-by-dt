@@ -18,7 +18,6 @@ export function SettingsPage() {
   const notify = useNotify();
   const [tab, setTab] = useState<SettingsTab>('account');
   const isMobile = useIsMobile();
-  const [mobileSection, setMobileSection] = useState<SettingsTab | null>(null);
 
   // Profile editing
   const [editing, setEditing] = useState(false);
@@ -39,71 +38,101 @@ export function SettingsPage() {
     }
   };
 
+  const settingsTabs = [
+    { id: 'account' as const, label: 'Account', icon: AccountIcon },
+    { id: 'api-keys' as const, label: 'API Keys', icon: KeyIcon },
+    { id: 'watchtower' as const, label: 'Watchtower', icon: EyeIcon },
+    { id: 'address-book' as const, label: 'Address Book', icon: BookIcon },
+    { id: 'scan-history' as const, label: 'History', icon: ClockIcon },
+    { id: 'scheduled-reports' as const, label: 'Reports', icon: CalendarIcon },
+    { id: 'preferences' as const, label: 'Preferences', icon: GearIcon },
+  ];
+
   return (
-    <div style={{ display: 'flex', height: '100%' }}>
-      {/* Settings sidebar */}
-      <div style={{
-        width: isMobile ? '100%' : 180,
-        borderRight: isMobile ? 'none' : '1px solid var(--hairline)',
-        background: 'var(--bg-secondary)',
-        padding: '12px 0',
-        flexShrink: 0,
-        overflow: 'auto',
-        display: isMobile && mobileSection ? 'none' : undefined,
-      }}>
-        <div style={{ padding: '0 12px 12px' }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)', fontFamily: 'var(--font-sans)' }}>
-            Settings
-          </h3>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: '100%' }}>
+      {/* Mobile: horizontal icon tab bar */}
+      {isMobile && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0,
+          padding: '2px 4px',
+          borderBottom: '1px solid var(--hairline)',
+          background: 'var(--bg-secondary)',
+          overflowX: 'auto',
+          flexShrink: 0,
+          minHeight: 48,
+        }}>
+          {settingsTabs.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setTab(item.id)}
+              title={item.label}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 2,
+                padding: '6px 10px',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                background: tab === item.id ? 'var(--hover-overlay)' : 'transparent',
+                color: tab === item.id ? 'var(--accent)' : 'var(--fg-tertiary)',
+                cursor: 'pointer',
+                minWidth: 48,
+                flexShrink: 0,
+              }}
+            >
+              {item.icon}
+              <span style={{ fontSize: 9, fontWeight: tab === item.id ? 500 : 400, whiteSpace: 'nowrap' }}>
+                {item.label}
+              </span>
+            </button>
+          ))}
         </div>
-        {([
-          { id: 'account' as const, label: 'Account' },
-          { id: 'api-keys' as const, label: 'API Keys' },
-          { id: 'watchtower' as const, label: 'Watchtower' },
-          { id: 'address-book' as const, label: 'Address Book' },
-          { id: 'scan-history' as const, label: 'Scan History' },
-          { id: 'scheduled-reports' as const, label: 'Scheduled Reports' },
-          { id: 'preferences' as const, label: 'Preferences' },
-        ]).map(item => (
-          <button
-            key={item.id}
-            onClick={() => { setTab(item.id); if (isMobile) setMobileSection(item.id); }}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              textAlign: 'left',
-              background: tab === item.id ? 'var(--hover-overlay)' : 'transparent',
-              border: 'none',
-              borderLeft: tab === item.id ? '2px solid var(--accent)' : '2px solid transparent',
-              color: tab === item.id ? 'var(--fg)' : 'var(--fg-secondary)',
-              fontSize: 13,
-              fontFamily: 'var(--font-sans)',
-              cursor: 'pointer',
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      )}
+
+      {/* Desktop: settings sidebar */}
+      {!isMobile && (
+        <div style={{
+          width: 180,
+          borderRight: '1px solid var(--hairline)',
+          background: 'var(--bg-secondary)',
+          padding: '12px 0',
+          flexShrink: 0,
+          overflow: 'auto',
+        }}>
+          <div style={{ padding: '0 12px 12px' }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)', fontFamily: 'var(--font-sans)' }}>
+              Settings
+            </h3>
+          </div>
+          {settingsTabs.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setTab(item.id)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                textAlign: 'left',
+                background: tab === item.id ? 'var(--hover-overlay)' : 'transparent',
+                border: 'none',
+                borderLeft: tab === item.id ? '2px solid var(--accent)' : '2px solid transparent',
+                color: tab === item.id ? 'var(--fg)' : 'var(--fg-secondary)',
+                fontSize: 13,
+                fontFamily: 'var(--font-sans)',
+                cursor: 'pointer',
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
-      <div style={{ flex: 1, padding: isMobile ? 16 : 24, overflow: 'auto', display: isMobile && !mobileSection ? 'none' : undefined }}>
-        {isMobile && mobileSection && (
-          <button
-            onClick={() => setMobileSection(null)}
-            style={{
-              background: 'none', border: 'none', color: 'var(--fg-secondary)',
-              cursor: 'pointer', padding: '4px 0 12px', fontSize: 13,
-              display: 'flex', alignItems: 'center', gap: 6,
-              fontFamily: 'var(--font-sans)',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            Back
-          </button>
-        )}
+      <div style={{ flex: 1, padding: isMobile ? 16 : 24, overflow: 'auto' }}>
         {tab === 'account' && (
           <div style={{ maxWidth: 500 }}>
             <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--fg)', marginBottom: 16, fontFamily: 'var(--font-sans)' }}>
@@ -285,3 +314,12 @@ export function SettingsPage() {
     </div>
   );
 }
+
+const s = { width: 16, height: 16, viewBox: '0 0 24 24' as const, fill: 'none' as const, stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+const AccountIcon = <svg {...s}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+const KeyIcon = <svg {...s}><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>;
+const EyeIcon = <svg {...s}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
+const BookIcon = <svg {...s}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>;
+const ClockIcon = <svg {...s}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+const CalendarIcon = <svg {...s}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+const GearIcon = <svg {...s}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;

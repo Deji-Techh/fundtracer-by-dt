@@ -1,12 +1,15 @@
 import { useTabs } from '../../contexts/TabsContext';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import { WalletInput } from './WalletInput';
 
 export function AnalysisTabs() {
   const { tabs, activeTabId, closeTab, setActiveTab, openTab } = useTabs();
+  const isMobile = useIsMobile();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Tab bar — admin-style segmented control */}
+      {/* Tab bar — admin-style segmented control (desktop only) */}
+      {!isMobile && (<>
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -110,9 +113,10 @@ export function AnalysisTabs() {
       </div>
 
       <div style={{ height: 1, background: 'var(--hairline)', margin: '0 16px', flexShrink: 0 }} />
+      </>)}
 
       {/* Active tab content */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'auto', paddingTop: isMobile ? 8 : 0 }}>
         {tabs.map(tab => (
           <div key={tab.id} style={{ display: tab.id === activeTabId ? 'block' : 'none', height: '100%' }}>
             <WalletInput tab={tab} />

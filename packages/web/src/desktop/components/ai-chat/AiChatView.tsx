@@ -407,7 +407,7 @@ export function AiChatView({ context }: AiChatViewProps) {
         </div>
 
         {/* Input */}
-        <div style={{ padding: isMobile ? '10px 12px 14px' : '12px 20px', borderTop: '1px solid var(--hairline)' }}>
+        <div style={{ padding: isMobile ? '10px 12px 20px' : '12px 20px', borderTop: '1px solid var(--hairline)' }}>
           {/* Pending attached files */}
           {attachedFiles.length > 0 && (
             <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
