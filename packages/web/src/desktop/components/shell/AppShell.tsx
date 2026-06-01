@@ -3,9 +3,11 @@ import { useSearchParams } from 'react-router-dom';
 import { TabsProvider, useTabs } from '../../contexts/TabsContext';
 import { ChainProvider } from '../../contexts/ChainContext';
 import { useClipboardDetection } from '../../hooks/useClipboardDetection';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import { Sidebar } from './Sidebar';
 import { TitleBar } from './TitleBar';
 import { CommandPalette } from './CommandPalette';
+import { MobileBottomNav } from './MobileBottomNav';
 import { AnalysisTabs } from '../analysis/AnalysisTabs';
 import { Loader } from '../common/Loader';
 import { syncHistory, startHistoryPolling, stopHistoryPolling } from '../../stores/history';
@@ -91,6 +93,8 @@ export function AppShell() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(savedState.sidebarCollapsed || false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [sybilPrefill, setSybilPrefill] = useState<{ addresses: string[]; chain: ChainId } | null>(null);
+  const isMobile = useIsMobile();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const toggleSidebar = useCallback(() => setSidebarCollapsed(c => !c), []);
 
@@ -136,19 +140,31 @@ export function AppShell() {
         display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw',
         background: 'var(--bg)', overflow: 'hidden', outline: 'none',
       }}>
-        <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={toggleSidebar} />
+        <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => isMobile ? setMobileSidebarOpen(o => !o) : toggleSidebar()} isMobile={isMobile} />
 
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+          {!isMobile && (
+            <Sidebar
+              currentView={currentView}
+              onViewChange={setCurrentView}
+              collapsed={sidebarCollapsed}
+              onOpenCommand={() => setCommandOpen(true)}
+            />
+          )}
           <Sidebar
             currentView={currentView}
             onViewChange={setCurrentView}
             collapsed={sidebarCollapsed}
             onOpenCommand={() => setCommandOpen(true)}
+            isMobile={isMobile}
+            isOpen={mobileSidebarOpen}
+            onClose={() => setMobileSidebarOpen(false)}
           />
 
           <main style={{
             flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
             background: 'var(--bg)',
+            paddingBottom: isMobile ? 64 : 0,
           }}>
             {currentView === 'analyze' && <AnalysisContent onViewChange={setCurrentView} />}
             {currentView === 'compare' && <Suspense fallback={<Loader />}><CompareView /></Suspense>}
@@ -164,6 +180,7 @@ export function AppShell() {
         </div>
 
         {commandOpen && <CommandPalette onClose={() => setCommandOpen(false)} onNavigate={setCurrentView} />}
+        {isMobile && <MobileBottomNav currentView={currentView} onViewChange={setCurrentView} />}
       </div>
     </TabsProvider>
     </ChainProvider>

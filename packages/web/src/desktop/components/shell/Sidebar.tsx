@@ -10,6 +10,9 @@ interface SidebarProps {
   onViewChange: (v: AppView) => void;
   collapsed: boolean;
   onOpenCommand: () => void;
+  isMobile?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 function Collapsible({ show, children }: { show: boolean; children: React.ReactNode }) {
@@ -42,7 +45,7 @@ function CollapsibleBlock({ show, children }: { show: boolean; children: React.R
   );
 }
 
-export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }: SidebarProps) {
+export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, isMobile, isOpen, onClose }: SidebarProps) {
   const { tabs, openTab, closeTab, setActiveTab, activeTabId } = useTabs();
   const { theme, toggleTheme } = useTheme();
   const { profile } = useAuth();
@@ -54,40 +57,52 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
     }
   }, [profile?.uid]);
 
-  const width = collapsed ? 64 : 240;
+  const handleViewChange = (v: AppView) => {
+    onViewChange(v);
+    onClose?.();
+  };
 
-  return (
-    <aside style={{
-      width,
-      minWidth: width,
-      transition: 'width 250ms ease',
-      display: 'flex',
-      flexDirection: 'column',
-      background: 'var(--sidebar-bg)',
-      backdropFilter: 'blur(24px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-      borderRight: '1px solid var(--sidebar-border)',
-      overflow: 'hidden',
-      flexShrink: 0,
-    }}>
+  // On mobile, sidebar content is always expanded (never in collapsed/icon-only mode)
+  const sidebarCollapsed = isMobile ? false : collapsed;
+
+  const inner = (
+    <>
+      {/* Close button — mobile only */}
+      {isMobile && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 10px 4px' }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', color: 'var(--fg-secondary)',
+              cursor: 'pointer', padding: 6, borderRadius: 'var(--radius-md)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Search */}
       <div style={{ padding: '12px 10px 8px' }}>
         <button
-          onClick={onOpenCommand}
+          onClick={() => { onOpenCommand(); onClose?.(); }}
           style={{
             width: '100%',
-            padding: collapsed ? '8px 0' : '7px 10px',
+            padding: sidebarCollapsed ? '8px 0' : '7px 10px',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--card-border)',
             background: 'var(--card)',
             color: 'var(--fg-tertiary)',
-            fontSize: 12,
+            fontSize: isMobile ? 14 : 12,
             fontFamily: 'var(--font-sans)',
             cursor: 'pointer',
             textAlign: 'left',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
+            justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
             gap: 8,
             overflow: 'hidden',
             whiteSpace: 'nowrap',
@@ -96,12 +111,10 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
           </svg>
-          <Collapsible show={!collapsed}>
+          <Collapsible show={!sidebarCollapsed}>
             <>
               <span style={{ flex: 1 }}>Search or type a command</span>
-              <span style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                ⌘K
-              </span>
+              <span style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)' }}>⌘K</span>
             </>
           </Collapsible>
         </button>
@@ -110,15 +123,15 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
       {/* New Analysis */}
       <div style={{ padding: '0 10px 10px' }}>
         <button
-          onClick={() => openTab()}
+          onClick={() => { openTab(); onClose?.(); }}
           style={{
             width: '100%',
-            padding: '8px 0',
+            padding: isMobile ? '10px 0' : '8px 0',
             borderRadius: 'var(--radius-md)',
             border: 'none',
             background: 'var(--accent)',
             color: '#000',
-            fontSize: 12,
+            fontSize: isMobile ? 14 : 12,
             fontWeight: 600,
             fontFamily: 'var(--font-sans)',
             cursor: 'pointer',
@@ -131,7 +144,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          <Collapsible show={!collapsed}>New Analysis</Collapsible>
+          <Collapsible show={!sidebarCollapsed}>New Analysis</Collapsible>
         </button>
       </div>
 
@@ -139,11 +152,9 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
 
       {/* Open Tabs */}
       {tabs.length > 0 && (
-        <CollapsibleBlock show={!collapsed}>
+        <CollapsibleBlock show={!sidebarCollapsed}>
           <div style={{ padding: '14px 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Open Tabs
-            </span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Open Tabs</span>
             <span style={{ fontSize: 9, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)' }}>{tabs.length}</span>
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: '0 6px' }}>
@@ -152,98 +163,43 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
               return (
                 <div
                   key={tab.id}
-                  onClick={() => { setActiveTab(tab.id); onViewChange('analyze'); }}
+                  onClick={() => { setActiveTab(tab.id); onViewChange('analyze'); onClose?.(); }}
                   title={tab.address || 'New Tab'}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '6px 8px 6px 10px',
-                    margin: '1px 0',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: isMobile ? '10px 8px 10px 10px' : '6px 8px 6px 10px',
+                    margin: '1px 0', borderRadius: 'var(--radius-md)', cursor: 'pointer',
                     background: isActive ? 'var(--hover-overlay)' : 'transparent',
-                    transition: 'background 120ms',
-                    position: 'relative',
+                    transition: 'background 120ms', position: 'relative',
                   }}
                   onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--hover-overlay)'; }}
                   onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  {/* Active indicator */}
                   {isActive && (
-                    <div style={{
-                      position: 'absolute',
-                      left: 0,
-                      top: 6,
-                      bottom: 6,
-                      width: 2,
-                      borderRadius: '0 2px 2px 0',
-                      background: 'var(--accent)',
-                    }} />
+                    <div style={{ position: 'absolute', left: 0, top: 6, bottom: 6, width: 2, borderRadius: '0 2px 2px 0', background: 'var(--accent)' }} />
                   )}
-                  {/* Chain dot */}
                   <div style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    flexShrink: 0,
-                    background: tab.chain === 'ethereum' ? '#627eea'
-                      : tab.chain === 'base' ? '#0052ff'
-                      : tab.chain === 'arbitrum' ? '#28a0f0'
-                      : tab.chain === 'optimism' ? '#ff0420'
-                      : tab.chain === 'polygon' ? '#8247e5'
-                      : tab.chain === 'bsc' ? '#f0b90b'
-                      : tab.chain === 'linea' ? '#00e67a'
-                      : 'var(--accent)',
-                    boxShadow: isActive ? `0 0 6px ${
-                      tab.chain === 'ethereum' ? '#627eea'
-                      : tab.chain === 'base' ? '#0052ff'
-                      : tab.chain === 'arbitrum' ? '#28a0f0'
-                      : tab.chain === 'optimism' ? '#ff0420'
-                      : tab.chain === 'polygon' ? '#8247e5'
-                      : tab.chain === 'bsc' ? '#f0b90b'
-                      : tab.chain === 'linea' ? '#00e67a'
-                      : 'var(--accent)'
-                    }` : 'none',
+                    width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                    background: tab.chain === 'ethereum' ? '#627eea' : tab.chain === 'base' ? '#0052ff' : tab.chain === 'arbitrum' ? '#28a0f0' : tab.chain === 'optimism' ? '#ff0420' : tab.chain === 'polygon' ? '#8247e5' : tab.chain === 'bsc' ? '#f0b90b' : tab.chain === 'linea' ? '#00e67a' : 'var(--accent)',
+                    boxShadow: isActive ? `0 0 6px ${tab.chain === 'ethereum' ? '#627eea' : tab.chain === 'base' ? '#0052ff' : tab.chain === 'arbitrum' ? '#28a0f0' : tab.chain === 'optimism' ? '#ff0420' : tab.chain === 'polygon' ? '#8247e5' : tab.chain === 'bsc' ? '#f0b90b' : tab.chain === 'linea' ? '#00e67a' : 'var(--accent)'}` : 'none',
                   }} />
-                  {/* Label */}
                   <span style={{
-                    flex: 1,
-                    fontSize: 12,
-                    fontFamily: 'var(--font-mono)',
+                    flex: 1, fontSize: isMobile ? 13 : 12, fontFamily: 'var(--font-mono)',
                     color: tab.loading ? 'var(--fg-tertiary)' : isActive ? 'var(--fg)' : 'var(--fg-secondary)',
-                    fontWeight: isActive ? 500 : 400,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    minWidth: 0,
+                    fontWeight: isActive ? 500 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
                   }}>
                     {tab.label || (tab.address ? `${tab.address.slice(0, 6)}...${tab.address.slice(-4)}` : 'New Tab')}
                     {tab.loading && <span style={{ color: 'var(--accent)' }}> ...</span>}
                   </span>
-                  {/* Close button */}
                   <button
-                    onClick={e => {
-                      e.stopPropagation();
-                      closeTab(tab.id);
-                    }}
+                    onClick={e => { e.stopPropagation(); closeTab(tab.id); }}
                     title="Close tab"
                     style={{
-                      width: 18,
-                      height: 18,
-                      padding: 0,
-                      border: 'none',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'transparent',
-                      color: 'var(--fg-tertiary)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      fontSize: 13,
-                      lineHeight: 1,
-                      opacity: 0.5,
+                      width: isMobile ? 24 : 18, height: isMobile ? 24 : 18, padding: 0,
+                      border: 'none', borderRadius: 'var(--radius-sm)', background: 'transparent',
+                      color: 'var(--fg-tertiary)', cursor: 'pointer', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      fontSize: isMobile ? 16 : 13, lineHeight: 1, opacity: 0.5,
                       transition: 'opacity 120ms, background 120ms',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'var(--hover-overlay)'; }}
@@ -261,34 +217,30 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
 
       {/* Navigation */}
       <div style={{ padding: '8px 8px' }}>
-        <NavItem icon={AnalyzeIcon} label="Analyze" collapsed={collapsed} active={currentView === 'analyze'} onClick={() => onViewChange('analyze')} />
-        <NavItem icon={CompareIcon} label="Compare" collapsed={collapsed} active={currentView === 'compare'} onClick={() => onViewChange('compare')} />
-        <NavItem icon={ContractIcon} label="Contract Scanner" collapsed={collapsed} active={currentView === 'contract-scanner'} onClick={() => onViewChange('contract-scanner')} />
-        <NavItem icon={InteractorsIcon} label="Interactors" collapsed={collapsed} active={currentView === 'interactors'} onClick={() => onViewChange('interactors')} />
-        <NavItem icon={SybilIcon} label="Sybil Detection" collapsed={collapsed} active={currentView === 'sybil-detection'} onClick={() => onViewChange('sybil-detection')} />
-        <NavItem icon={CEXIcon} label="CEX Flow" collapsed={collapsed} active={currentView === 'cex-flow'} onClick={() => onViewChange('cex-flow')} />
-        <NavItem icon={MarketIcon} label="Polymarket" collapsed={collapsed} active={currentView === 'polymarket'} onClick={() => onViewChange('polymarket')} />
-        <NavItem icon={ChatIcon} label="AI Chat" collapsed={collapsed} active={currentView === 'ai-chat'} onClick={() => onViewChange('ai-chat')} />
-        <NavItem icon={RoomsIcon} label="Rooms" collapsed={collapsed} active={currentView === 'rooms'} onClick={() => onViewChange('rooms')} />
-        <NavItem icon={SettingsIcon} label="Settings" collapsed={collapsed} active={currentView === 'settings'} onClick={() => onViewChange('settings')} />
+        <NavItem icon={AnalyzeIcon} label="Analyze" collapsed={sidebarCollapsed} active={currentView === 'analyze'} onClick={() => handleViewChange('analyze')} isMobile={isMobile} />
+        <NavItem icon={CompareIcon} label="Compare" collapsed={sidebarCollapsed} active={currentView === 'compare'} onClick={() => handleViewChange('compare')} isMobile={isMobile} />
+        <NavItem icon={ContractIcon} label="Contract Scanner" collapsed={sidebarCollapsed} active={currentView === 'contract-scanner'} onClick={() => handleViewChange('contract-scanner')} isMobile={isMobile} />
+        <NavItem icon={InteractorsIcon} label="Interactors" collapsed={sidebarCollapsed} active={currentView === 'interactors'} onClick={() => handleViewChange('interactors')} isMobile={isMobile} />
+        <NavItem icon={SybilIcon} label="Sybil Detection" collapsed={sidebarCollapsed} active={currentView === 'sybil-detection'} onClick={() => handleViewChange('sybil-detection')} isMobile={isMobile} />
+        <NavItem icon={CEXIcon} label="CEX Flow" collapsed={sidebarCollapsed} active={currentView === 'cex-flow'} onClick={() => handleViewChange('cex-flow')} isMobile={isMobile} />
+        <NavItem icon={MarketIcon} label="Polymarket" collapsed={sidebarCollapsed} active={currentView === 'polymarket'} onClick={() => handleViewChange('polymarket')} isMobile={isMobile} />
+        <NavItem icon={ChatIcon} label="AI Chat" collapsed={sidebarCollapsed} active={currentView === 'ai-chat'} onClick={() => handleViewChange('ai-chat')} isMobile={isMobile} />
+        <NavItem icon={RoomsIcon} label="Rooms" collapsed={sidebarCollapsed} active={currentView === 'rooms'} onClick={() => handleViewChange('rooms')} isMobile={isMobile} />
+        <NavItem icon={SettingsIcon} label="Settings" collapsed={sidebarCollapsed} active={currentView === 'settings'} onClick={() => handleViewChange('settings')} isMobile={isMobile} />
       </div>
 
       <div style={{ flex: 1 }} />
 
       {/* Torque Rewards */}
-      {torque && !collapsed && (
+      {torque && !sidebarCollapsed && (
         <div style={{ padding: '0 12px 8px' }}>
           <div style={{
             padding: '8px 10px', borderRadius: 'var(--radius-lg)',
             background: 'rgba(0,230,122,0.06)', border: '1px solid rgba(0,230,122,0.12)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Rewards
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
-                {torque.points.toLocaleString()}
-              </span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rewards</span>
+              <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{torque.points.toLocaleString()}</span>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <span style={{ fontSize: 9, color: 'var(--fg-tertiary)' }}>Rank #{torque.rank || '—'}</span>
@@ -300,24 +252,16 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
 
       {/* Bottom: theme toggle */}
       <div style={{
-        padding: '10px',
-        borderTop: '1px solid var(--hairline)',
-        display: 'flex',
-        justifyContent: collapsed ? 'center' : 'flex-end',
+        padding: '10px', borderTop: '1px solid var(--hairline)',
+        display: 'flex', justifyContent: sidebarCollapsed ? 'center' : 'flex-end',
       }}>
         <button
           onClick={toggleTheme}
           title={`Theme: ${theme}`}
           style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 6,
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--fg-tertiary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            background: 'none', border: 'none', cursor: 'pointer', padding: isMobile ? 10 : 6,
+            borderRadius: 'var(--radius-md)', color: 'var(--fg-tertiary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'color 150ms',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; e.currentTarget.style.color = 'var(--fg)'; }}
@@ -334,32 +278,69 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand }:
           </svg>
         </button>
       </div>
+    </>
+  );
+
+  // Mobile: render overlay drawer
+  if (isMobile) {
+    if (!isOpen) return null;
+    return (
+      <>
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200 }}
+          onClick={onClose}
+        />
+        <aside style={{
+          position: 'fixed', top: 0, left: 0, bottom: 0, width: 280, zIndex: 201,
+          background: 'var(--sidebar-bg)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          borderRight: '1px solid var(--sidebar-border)',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          animation: 'ft-slide-in-left 0.2s ease',
+        }}>
+          {inner}
+        </aside>
+      </>
+    );
+  }
+
+  // Desktop: inline aside
+  const width = collapsed ? 64 : 240;
+  return (
+    <aside style={{
+      width,
+      minWidth: width,
+      transition: 'width 250ms ease',
+      display: 'flex',
+      flexDirection: 'column',
+      background: 'var(--sidebar-bg)',
+      backdropFilter: 'blur(24px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+      borderRight: '1px solid var(--sidebar-border)',
+      overflow: 'hidden',
+      flexShrink: 0,
+    }}>
+      {inner}
     </aside>
   );
 }
 
-function NavItem({ icon, label, collapsed, active, onClick }: {
-  icon: React.ReactNode;
-  label: string;
-  collapsed: boolean;
-  active: boolean;
-  onClick: () => void;
+function NavItem({ icon, label, collapsed, active, onClick, isMobile }: {
+  icon: React.ReactNode; label: string; collapsed: boolean; active: boolean; onClick: () => void; isMobile?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       style={{
         width: '100%',
-        padding: collapsed ? '8px 0' : '8px 12px',
-        display: 'flex',
-        alignItems: 'center',
+        padding: collapsed ? '8px 0' : isMobile ? '10px 12px' : '8px 12px',
+        display: 'flex', alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'flex-start',
-        gap: 10,
-        border: 'none',
-        borderRadius: 'var(--radius-md)',
+        gap: 10, border: 'none', borderRadius: 'var(--radius-md)',
         background: active ? 'var(--hover-overlay)' : 'transparent',
         color: active ? 'var(--sidebar-active)' : 'var(--sidebar-fg)',
-        fontSize: 12,
+        fontSize: isMobile ? 14 : 12,
         fontWeight: active ? 500 : 400,
         fontFamily: 'var(--font-sans)',
         cursor: 'pointer',
@@ -380,10 +361,8 @@ function NavItem({ icon, label, collapsed, active, onClick }: {
         maxWidth: collapsed ? 0 : undefined,
         transition: collapsed ? 'opacity 80ms ease, max-width 0ms 80ms' : 'opacity 150ms ease 100ms, max-width 0ms 150ms',
         pointerEvents: collapsed ? 'none' : 'auto',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        display: 'inline-block',
-        verticalAlign: 'middle',
+        whiteSpace: 'nowrap', overflow: 'hidden',
+        display: 'inline-block', verticalAlign: 'middle',
       }}>
         {label}
       </span>
@@ -391,7 +370,7 @@ function NavItem({ icon, label, collapsed, active, onClick }: {
   );
 }
 
-const svgProps = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+const svgProps = { width: 16, height: 16, viewBox: "0 0 24 24" as const, fill: "none" as const, stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 const AnalyzeIcon = <svg {...svgProps}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
 const CompareIcon = <svg {...svgProps}><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><path d="m9 9 6 6"/><path d="m15 9-6 6"/></svg>;
 const ContractIcon = <svg {...svgProps}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;

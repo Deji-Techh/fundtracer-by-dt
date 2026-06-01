@@ -203,6 +203,11 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes ft-slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
 .animate-fade-in { animation: fade-in 0.2s ease-out; }
 .animate-slide-up { animation: slide-up 0.2s ease-out; }
 

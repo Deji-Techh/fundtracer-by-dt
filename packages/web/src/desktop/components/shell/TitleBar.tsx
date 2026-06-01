@@ -5,9 +5,10 @@ import { isTauri } from '../../lib/tauri-commands';
 interface TitleBarProps {
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
+  isMobile?: boolean;
 }
 
-export function TitleBar({ onToggleSidebar }: TitleBarProps) {
+export function TitleBar({ onToggleSidebar, isMobile }: TitleBarProps) {
   const { chain, setChain } = useChain();
 
   const runWindowAction = async (action: 'minimize' | 'toggleMaximize' | 'close') => {
@@ -35,8 +36,8 @@ export function TitleBar({ onToggleSidebar }: TitleBarProps) {
     <div
       data-tauri-drag-region
       style={{
-        height: 'var(--titlebar-height)',
-        minHeight: 'var(--titlebar-height)',
+        height: isMobile ? 44 : 'var(--titlebar-height)',
+        minHeight: isMobile ? 44 : 'var(--titlebar-height)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 8px',
@@ -55,7 +56,7 @@ export function TitleBar({ onToggleSidebar }: TitleBarProps) {
           border: 'none',
           color: 'var(--fg-secondary)',
           cursor: 'pointer',
-          padding: '5px',
+          padding: isMobile ? 8 : 5,
           borderRadius: 'var(--radius-md)',
           display: 'flex',
           alignItems: 'center',
@@ -63,7 +64,7 @@ export function TitleBar({ onToggleSidebar }: TitleBarProps) {
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg width={isMobile ? 20 : 16} height={isMobile ? 20 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
@@ -72,37 +73,41 @@ export function TitleBar({ onToggleSidebar }: TitleBarProps) {
 
       <div style={{ flex: 1 }} data-tauri-drag-region />
 
-      {/* Window controls */}
-      <button
-        onClick={() => runWindowAction('minimize')}
-        style={windowBtnStyle}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-      </button>
-      <button
-        onClick={() => runWindowAction('toggleMaximize')}
-        style={windowBtnStyle}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="4" y="4" width="16" height="16" rx="2"/>
-        </svg>
-      </button>
-      <button
-        onClick={() => runWindowAction('close')}
-        style={windowBtnStyle}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--destructive)'; e.currentTarget.style.color = '#fff'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--fg-secondary)'; }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
-        </svg>
-      </button>
+      {/* Window controls — desktop only */}
+      {!isMobile && (
+        <>
+          <button
+            onClick={() => runWindowAction('minimize')}
+            style={windowBtnStyle}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <button
+            onClick={() => runWindowAction('toggleMaximize')}
+            style={windowBtnStyle}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+            </svg>
+          </button>
+          <button
+            onClick={() => runWindowAction('close')}
+            style={windowBtnStyle}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--destructive)'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--fg-secondary)'; }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+            </svg>
+          </button>
+        </>
+      )}
     </div>
   );
 }
