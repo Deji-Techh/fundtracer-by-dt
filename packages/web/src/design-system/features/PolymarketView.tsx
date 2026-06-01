@@ -123,7 +123,7 @@ export function PolymarketView() {
       </div>
 
       {/* Mode tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-lg)', padding: 4, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', overflowY: 'hidden' }}>
         {MODES.map(m => (
           <button
             key={m.id}
@@ -135,6 +135,7 @@ export function PolymarketView() {
               color: mode === m.id ? 'var(--fg)' : 'var(--fg-tertiary)',
               fontSize: 13, fontWeight: 500, cursor: 'pointer',
               transition: 'all 0.15s ease', whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             {m.icon}

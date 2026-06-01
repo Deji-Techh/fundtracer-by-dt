@@ -51,7 +51,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: false,
-    target: 'es2020',
+    target: 'esnext',
     chunkSizeWarningLimit: 1000,
     commonjsOptions: {
       transformMixedEsModules: true,
@@ -76,7 +76,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     esbuildOptions: {
-      target: 'es2020',
+      target: 'esnext',
     },
   },
 });
