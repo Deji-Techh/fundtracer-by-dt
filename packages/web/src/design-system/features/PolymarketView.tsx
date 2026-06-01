@@ -123,19 +123,19 @@ export function PolymarketView() {
       </div>
 
       {/* Mode tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', overflowY: 'hidden' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-lg)', padding: 4, overflowX: 'auto', overflowY: 'hidden', flexShrink: 0 }}>
         {MODES.map(m => (
           <button
             key={m.id}
             onClick={() => { setMode(m.id); setSearchResults([]); setSearchQuery(''); }}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 14px', border: 'none', borderRadius: 'var(--radius-md)',
+              padding: '10px 18px', border: 'none', borderRadius: 'var(--radius-md)',
               background: mode === m.id ? 'var(--hover-overlay)' : 'transparent',
               color: mode === m.id ? 'var(--fg)' : 'var(--fg-tertiary)',
               fontSize: 13, fontWeight: 500, cursor: 'pointer',
               transition: 'all 0.15s ease', whiteSpace: 'nowrap',
-              flexShrink: 0,
+              flexShrink: 0, minWidth: 'fit-content',
             }}
           >
             {m.icon}

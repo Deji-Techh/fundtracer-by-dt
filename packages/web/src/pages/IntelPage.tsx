@@ -326,7 +326,7 @@ export function IntelPage() {
           {buttonLoading ? (
             <div className="skeleton-btn" style={{ width: 100, height: 36, borderRadius: 6 }} />
           ) : isAuthenticated ? (
-            <button className="intel-btn intel-btn--primary" onClick={() => navigate('/app-evm')}>
+            <button className="intel-btn intel-btn--primary intel-btn--lg" onClick={() => navigate('/app-evm')}>
               Launch App
             </button>
           ) : (

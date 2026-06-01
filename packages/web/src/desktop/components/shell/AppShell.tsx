@@ -143,14 +143,6 @@ export function AppShell() {
         <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => isMobile ? setMobileSidebarOpen(o => !o) : toggleSidebar()} isMobile={isMobile} />
 
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {!isMobile && (
-            <Sidebar
-              currentView={currentView}
-              onViewChange={setCurrentView}
-              collapsed={sidebarCollapsed}
-              onOpenCommand={() => setCommandOpen(true)}
-            />
-          )}
           <Sidebar
             currentView={currentView}
             onViewChange={setCurrentView}
