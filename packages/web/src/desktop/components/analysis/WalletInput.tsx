@@ -7,6 +7,7 @@ import { extractAddress } from '../../hooks/useClipboardDetection';
 import { addHistory } from '../../stores/history';
 import { AnalysisView } from './AnalysisView';
 import { useIsMobile } from '../../../hooks/useIsMobile';
+import { CompactSearchForm, InputStage } from './CompactSearchForm';
 import type { AnalysisTab, ChainId } from '../../types';
 
 export function WalletInput({ tab }: { tab: AnalysisTab }) {
@@ -84,10 +85,6 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
     runAnalysis(trimmed, chain);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleAnalyze();
-  };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setDragOver(false);
     const text = e.dataTransfer.getData('text/plain');
@@ -121,117 +118,26 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
       {/* Input area */}
       <div style={{
         display: showInput ? 'flex' : 'none',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: isMobile ? 'flex-start' : 'center',
         flex: 1,
-        padding: isMobile ? '16px 14px 92px' : '40px 24px',
-        maxWidth: isMobile ? 460 : 600,
-        margin: '0 auto',
-        width: '100%',
       }}>
-        {/* Label */}
-        <div style={{
-          fontSize: 11,
-          fontWeight: 600,
-          color: 'var(--fg-tertiary)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          marginBottom: isMobile ? 14 : 20,
-        }}>
-          Wallet Analysis
-        </div>
-
-        {/* Input card */}
-        <div style={{
-          width: '100%',
-          background: 'var(--card)',
-          border: '1px solid var(--card-border)',
-          borderRadius: isMobile ? 18 : 'var(--radius-xl)',
-          padding: isMobile ? 6 : 4,
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          alignItems: 'center',
-          gap: isMobile ? 6 : 4,
-          boxShadow: isMobile ? '0 16px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.04)' : undefined,
-        }}>
-          {/* Address input */}
-          <div style={{ flex: 1, position: 'relative', width: '100%' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-              style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-            </svg>
-            <input
-              type="text"
-              aria-label="Wallet address"
-              value={address}
-              onChange={e => setAddress(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Paste wallet address, ENS name, or Solana address"
-              autoFocus
-              spellCheck={false}
-              style={{
-                width: '100%',
-                padding: isMobile ? '14px 14px 14px 38px' : '12px 14px 12px 36px',
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--fg)',
-                fontSize: isMobile ? 12 : 13,
-                fontFamily: 'var(--font-mono)',
-                minHeight: isMobile ? 48 : undefined,
-              }}
-            />
-          </div>
-
-          {/* Analyze button */}
-          <button
-            type="button"
-            onClick={handleAnalyze}
+        <InputStage
+          title="Wallet Analysis"
+          maxWidth={isMobile ? 470 : 620}
+          hint="Drop a blockchain explorer link anywhere to auto-detect chain and address"
+        >
+          <CompactSearchForm
+            value={address}
+            onChange={setAddress}
+            onSubmit={handleAnalyze}
+            placeholder="Paste wallet address, ENS name, or Solana address"
+            ariaLabel="Wallet address"
+            loading={tab.loading}
             disabled={tab.loading}
-            style={{
-              width: isMobile ? '100%' : undefined,
-              minHeight: isMobile ? 46 : undefined,
-              padding: isMobile ? '12px 18px' : '10px 20px',
-              borderRadius: isMobile ? 14 : 'var(--radius-lg)',
-              border: 'none',
-              background: tab.loading ? 'var(--bg-secondary)' : 'var(--accent)',
-              color: tab.loading ? 'var(--fg-tertiary)' : '#000',
-              fontSize: isMobile ? 13 : 12,
-              fontWeight: 600,
-              fontFamily: 'var(--font-sans)',
-              cursor: tab.loading ? 'default' : 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              transition: 'opacity 150ms',
-            }}
-            onMouseEnter={e => { if (!tab.loading) e.currentTarget.style.opacity = '0.85'; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-          >
-            {tab.loading ? (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{
-                  width: 10, height: 10, border: '2px solid var(--fg-tertiary)',
-                  borderTopColor: 'transparent', borderRadius: '50%',
-                  display: 'inline-block', animation: 'spin 0.6s linear infinite',
-                }} />
-                Analyzing
-              </span>
-            ) : (
-              'Analyze'
-            )}
-          </button>
-        </div>
-
-        {/* Hint */}
-        <p style={{
-          fontSize: isMobile ? 10 : 11,
-          color: 'var(--fg-tertiary)',
-          marginTop: 12,
-          textAlign: 'center',
-        }}>
-          Drop a blockchain explorer link anywhere to auto-detect chain and address
-        </p>
+            submitLabel="Analyze"
+            loadingLabel="Analyzing"
+            autoFocus
+          />
+        </InputStage>
       </div>
 
       {/* Loading state (while input is hidden) */}

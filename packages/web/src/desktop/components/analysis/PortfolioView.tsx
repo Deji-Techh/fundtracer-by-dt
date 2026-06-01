@@ -5,6 +5,7 @@ import { Loader } from '../common/Loader';
 import { ChainSelector } from '../common/ChainSelector';
 import { Wallet, Coins, TrendingUp, DollarSign, ExternalLink } from 'lucide-react';
 import type { ChainId } from '../../types';
+import { CompactSearchForm } from './CompactSearchForm';
 
 interface PortfolioViewProps {
   address?: string;
@@ -52,27 +53,19 @@ export function PortfolioView({ address: initialAddress, chain: initialChain }: 
         View token holdings, DeFi positions, and NFT assets for any wallet address.
       </p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        <input type="text" value={address}
-          onChange={e => setAddress(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleFetch(); }}
+      <div style={{ marginBottom: 20 }}>
+        <CompactSearchForm
+          value={address}
+          onChange={setAddress}
+          onSubmit={handleFetch}
           placeholder="0x... or ENS name"
-          spellCheck={false}
-          style={{
-            flex: 1, padding: '10px 16px', borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--card-border)', background: 'var(--card)',
-            color: 'var(--fg)', fontSize: 14, fontFamily: 'var(--font-mono)', outline: 'none',
-          }}
+          ariaLabel="Wallet address"
+          loading={loading}
+          disabled={loading}
+          submitLabel="View"
+          loadingLabel="Loading"
+          leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
         />
-        <ChainSelector value={chain} onChange={setChain} />
-        <button onClick={handleFetch} disabled={loading}
-          style={{
-            padding: '10px 24px', borderRadius: 'var(--radius-lg)', border: 'none',
-            background: loading ? 'var(--hover-overlay)' : 'var(--accent)',
-            color: loading ? 'var(--fg-tertiary)' : '#000', fontSize: 13, fontWeight: 600, cursor: loading ? 'default' : 'pointer',
-          }}>
-          {loading ? 'Loading...' : 'View Portfolio'}
-        </button>
       </div>
 
       {loading && <Loader />}

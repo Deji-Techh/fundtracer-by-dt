@@ -6,6 +6,7 @@ import { Loader } from '../common/Loader';
 import { ChainSelector } from '../common/ChainSelector';
 import { ExternalLink, Copy, FileCode, AlertTriangle, Activity, Users } from 'lucide-react';
 import type { AnalysisTab, ChainId } from '../../types';
+import { CompactSearchForm } from './CompactSearchForm';
 
 export function ContractView() {
   const { tabs, activeTabId, openTab, setActiveTab } = useTabs();
@@ -38,27 +39,19 @@ export function ContractView() {
         <FileCode size={20} style={{ color: 'var(--accent)' }} /> Contract Analysis
       </h2>
 
-      {/* Input */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        <input type="text" value={address} onChange={e => setAddress(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleAnalyze(); }}
+      <div style={{ marginBottom: 20 }}>
+        <CompactSearchForm
+          value={address}
+          onChange={setAddress}
+          onSubmit={handleAnalyze}
           placeholder="0x... contract address"
-          spellCheck={false}
-          style={{
-            flex: 1, padding: '10px 16px', borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--card-border)', background: 'var(--card)',
-            color: 'var(--fg)', fontSize: 14, fontFamily: 'var(--font-mono)', outline: 'none',
-          }}
+          ariaLabel="Contract address"
+          loading={loading}
+          disabled={loading}
+          submitLabel="Analyze"
+          loadingLabel="Analyzing"
+          leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
         />
-        <ChainSelector value={chain} onChange={setChain} />
-        <button onClick={handleAnalyze} disabled={loading}
-          style={{
-            padding: '10px 24px', borderRadius: 'var(--radius-lg)', border: 'none',
-            background: loading ? 'var(--hover-overlay)' : 'var(--accent)',
-            color: loading ? 'var(--fg-tertiary)' : '#000', fontSize: 13, fontWeight: 600, cursor: loading ? 'default' : 'pointer',
-          }}>
-          {loading ? 'Analyzing...' : 'Analyze'}
-        </button>
       </div>
 
       {loading && <Loader />}

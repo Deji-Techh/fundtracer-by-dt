@@ -12,6 +12,7 @@ interface SidebarProps {
   onOpenCommand: () => void;
   isMobile?: boolean;
   isOpen?: boolean;
+  isClosing?: boolean;
   onClose?: () => void;
 }
 
@@ -45,7 +46,7 @@ function CollapsibleBlock({ show, children }: { show: boolean; children: React.R
   );
 }
 
-export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, isMobile, isOpen, onClose }: SidebarProps) {
+export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, isMobile, isOpen, isClosing, onClose }: SidebarProps) {
   const { tabs, openTab, closeTab, setActiveTab, activeTabId } = useTabs();
   const { theme, toggleTheme } = useTheme();
   const { profile } = useAuth();
@@ -303,7 +304,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.62)', zIndex: 200,
             backdropFilter: 'blur(3px)',
             WebkitBackdropFilter: 'blur(3px)',
-            animation: 'ft-mobile-scrim-in 220ms ease both',
+            animation: isClosing ? 'ft-mobile-scrim-out 220ms ease both' : 'ft-mobile-scrim-in 220ms ease both',
           }}
           onClick={onClose}
           onKeyDown={e => {
@@ -320,7 +321,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
           WebkitBackdropFilter: 'blur(8px) saturate(190%)',
           borderRight: '1px solid var(--sidebar-border)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          animation: 'ft-mobile-drawer-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both',
+          animation: isClosing ? 'ft-mobile-drawer-out 230ms ease both' : 'ft-mobile-drawer-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both',
           boxShadow: '18px 0 50px rgba(0,0,0,0.38)',
           paddingBottom: 'calc(84px + env(safe-area-inset-bottom, 0px))',
         }}>

@@ -9,6 +9,7 @@ import { useTabs } from '../../contexts/TabsContext';
 import { sendChatMessage } from '../../api/chat';
 import { MarkdownContent } from './MarkdownContent';
 import { clearContractScannerState, getContractScannerState, saveContractScannerState } from '../../stores/contractScannerState';
+import { CompactSearchForm, InputStage } from './CompactSearchForm';
 
 interface WalletInteraction {
   address: string;
@@ -240,122 +241,25 @@ export function ContractScannerView() {
 
       {!result && (
         <>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flex: 1,
-            padding: '40px 24px',
-            maxWidth: 600,
-            margin: '0 auto',
-            width: '100%',
-          }}>
-            <div style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: 'var(--fg-tertiary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              marginBottom: 20,
-            }}>
-              Contract Analysis
-            </div>
-
-            <div style={{
-              width: '100%',
-              background: 'var(--card)',
-              border: '1px solid var(--card-border)',
-              borderRadius: 'var(--radius-xl)',
-              padding: 4,
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              alignItems: isMobile ? 'stretch' : 'center',
-              gap: 4,
-            }}>
-              <div style={{ flex: isMobile ? undefined : 1, position: 'relative' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                  style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-                </svg>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleScan(); }}
-                  placeholder="Paste contract address (0x...)"
-                  autoFocus
-                  spellCheck={false}
-                  style={{
-                    width: '100%',
-                    padding: isMobile ? '14px 14px 14px 38px' : '12px 14px 12px 36px',
-                    minHeight: isMobile ? 48 : undefined,
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: 'var(--fg)',
-                    fontSize: isMobile ? 14 : 13,
-                    fontFamily: 'var(--font-mono)',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              {isMobile ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 2px' }}>
-                  <ChainSelector value={chain} onChange={setChain} compact />
-                  <button
-                    onClick={handleScan}
-                    disabled={loading || !address.trim()}
-                    style={{
-                      padding: '10px 20px',
-                      borderRadius: 'var(--radius-lg)',
-                      border: 'none',
-                      background: loading ? 'var(--bg-secondary)' : 'var(--accent)',
-                      color: loading ? 'var(--fg-tertiary)' : '#000',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: loading || !address.trim() ? 'default' : 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {loading ? 'Scanning' : 'Scan Contract'}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <ChainSelector value={chain} onChange={setChain} />
-
-                  <button
-                    onClick={handleScan}
-                    disabled={loading || !address.trim()}
-                    style={{
-                      padding: '10px 20px',
-                      borderRadius: 'var(--radius-lg)',
-                      border: 'none',
-                      background: loading ? 'var(--bg-secondary)' : 'var(--accent)',
-                      color: loading ? 'var(--fg-tertiary)' : '#000',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: loading || !address.trim() ? 'default' : 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {loading ? 'Scanning' : 'Scan Contract'}
-                  </button>
-                </>
-              )}
-            </div>
-
-            <p style={{
-              fontSize: 11,
-              color: 'var(--fg-tertiary)',
-              marginTop: 12,
-              textAlign: 'center',
-            }}>
-              Enter a contract to inspect interactors, shared funding, and suspicious behavior
-            </p>
-          </div>
+          <InputStage
+            title="Contract Analysis"
+            maxWidth={640}
+            hint="Enter a contract to inspect interactors, shared funding, and suspicious behavior"
+          >
+            <CompactSearchForm
+              value={address}
+              onChange={setAddress}
+              onSubmit={handleScan}
+              placeholder="Paste contract address (0x...)"
+              ariaLabel="Contract address"
+              loading={loading}
+              disabled={loading || !address.trim()}
+              submitLabel="Scan"
+              loadingLabel="Scanning"
+              autoFocus
+              leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
+            />
+          </InputStage>
         </>
       )}
 

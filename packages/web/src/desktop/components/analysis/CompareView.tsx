@@ -10,6 +10,7 @@ import { MarkdownContent } from './MarkdownContent';
 import { clearCompareState, getCompareState, saveCompareState } from '../../stores/compareState';
 import { useTabs } from '../../contexts/TabsContext';
 import { FundingGraph } from './FundingGraph';
+import { InputStage } from './CompactSearchForm';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -127,10 +128,11 @@ export function CompareView() {
       )}
 
       {!result && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '40px 24px', maxWidth: 600, margin: '0 auto', width: '100%' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 20 }}>
-            Compare Analysis
-          </div>
+        <InputStage
+          title="Compare Analysis"
+          maxWidth={640}
+          hint="Paste 2 or more wallet addresses to compare activity and correlations"
+        >
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
             {addresses.map((addr, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -143,9 +145,9 @@ export function CompareView() {
                   placeholder="0x... or ENS"
                   spellCheck={false}
                   style={{
-                    flex: 1, padding: '10px 16px', borderRadius: 'var(--radius-lg)',
+                    flex: 1, height: 42, minWidth: 0, padding: '0 13px', borderRadius: 'var(--radius-lg)',
                     border: '1px solid var(--card-border)', background: 'var(--card)',
-                    color: 'var(--fg)', fontSize: 13, fontFamily: 'var(--font-mono)', outline: 'none',
+                    color: 'var(--fg)', fontSize: 12, fontFamily: 'var(--font-mono)', outline: 'none',
                   }}
                 />
                 {addresses.length > 2 && (
@@ -185,10 +187,7 @@ export function CompareView() {
               {loading ? 'Comparing...' : 'Compare'}
             </button>
           </div>
-          <p style={{ fontSize: 11, color: 'var(--fg-tertiary)', marginTop: 12, textAlign: 'center' }}>
-            Paste 2 or more wallet addresses to compare activity and correlations
-          </p>
-        </div>
+        </InputStage>
       )}
 
       {loading && <Loader />}

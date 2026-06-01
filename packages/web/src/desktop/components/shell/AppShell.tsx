@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { TabsProvider, useTabs } from '../../contexts/TabsContext';
 import { ChainProvider } from '../../contexts/ChainContext';
@@ -95,12 +95,34 @@ export function AppShell() {
   const [sybilPrefill, setSybilPrefill] = useState<{ addresses: string[]; chain: ChainId } | null>(null);
   const isMobile = useIsMobile();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileSidebarClosing, setMobileSidebarClosing] = useState(false);
+  const mobileSidebarTimerRef = useRef<number | null>(null);
 
   const toggleSidebar = useCallback(() => setSidebarCollapsed(c => !c), []);
+  const closeMobileSidebar = useCallback(() => {
+    if (!mobileSidebarOpen || mobileSidebarClosing) return;
+    setMobileSidebarClosing(true);
+    if (mobileSidebarTimerRef.current != null) window.clearTimeout(mobileSidebarTimerRef.current);
+    mobileSidebarTimerRef.current = window.setTimeout(() => {
+      setMobileSidebarOpen(false);
+      setMobileSidebarClosing(false);
+      mobileSidebarTimerRef.current = null;
+    }, 230);
+  }, [mobileSidebarClosing, mobileSidebarOpen]);
+  const toggleMobileSidebar = useCallback(() => {
+    if (mobileSidebarOpen) {
+      closeMobileSidebar();
+      return;
+    }
+    if (mobileSidebarTimerRef.current != null) window.clearTimeout(mobileSidebarTimerRef.current);
+    mobileSidebarTimerRef.current = null;
+    setMobileSidebarClosing(false);
+    setMobileSidebarOpen(true);
+  }, [closeMobileSidebar, mobileSidebarOpen]);
   const handleMobileViewChange = useCallback((view: AppView) => {
     setCurrentView(view);
-    setMobileSidebarOpen(false);
-  }, []);
+    closeMobileSidebar();
+  }, [closeMobileSidebar]);
 
   useEffect(() => {
     saveWindowState({ currentView, sidebarCollapsed });
@@ -124,6 +146,7 @@ export function AppShell() {
     const onFocus = () => { syncHistory(); };
     window.addEventListener('focus', onFocus);
     return () => {
+      if (mobileSidebarTimerRef.current != null) window.clearTimeout(mobileSidebarTimerRef.current);
       stopHistoryPolling();
       window.removeEventListener('focus', onFocus);
     };
@@ -144,7 +167,7 @@ export function AppShell() {
         display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw',
         background: 'var(--bg)', overflow: 'hidden', outline: 'none',
       }}>
-        <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => isMobile ? setMobileSidebarOpen(o => !o) : toggleSidebar()} isMobile={isMobile} currentView={currentView} />
+        <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => isMobile ? toggleMobileSidebar() : toggleSidebar()} isMobile={isMobile} currentView={currentView} />
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <Sidebar
@@ -154,7 +177,8 @@ export function AppShell() {
             onOpenCommand={() => setCommandOpen(true)}
             isMobile={isMobile}
             isOpen={mobileSidebarOpen}
-            onClose={() => setMobileSidebarOpen(false)}
+            isClosing={mobileSidebarClosing}
+            onClose={closeMobileSidebar}
           />
 
           <main style={{

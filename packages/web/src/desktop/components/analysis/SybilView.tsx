@@ -7,6 +7,7 @@ import { ChainSelector } from '../common/ChainSelector';
 import { Shield, AlertTriangle, Users, Link, ExternalLink } from 'lucide-react';
 import type { ChainId } from '../../types';
 import { getSybilState, saveSybilState } from '../../stores/sybilState';
+import { InputStage } from './CompactSearchForm';
 
 interface SybilViewProps {
   prefillAddresses?: string[];
@@ -81,37 +82,39 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
   return (
     <div style={{ padding: 28, maxWidth: 1240, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
       {!result && !loading && !error && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '56px 36px', maxWidth: 1260, margin: '0 auto', width: '100%' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 22 }}>
-            Sybil Detection
-          </div>
-
-          <div style={{ width: '100%', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-xl)', padding: 4 }}>
+        <InputStage
+          title="Sybil Detection"
+          maxWidth={720}
+          hint="Detect related-wallet clusters based on shared funding and behavior"
+        >
+          <div style={{ width: '100%', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 12, padding: 4 }}>
             <textarea value={textInput} onChange={e => setTextInput(e.target.value)}
               placeholder="Paste addresses — one per line or comma-separated"
-              rows={7}
+              rows={6}
               spellCheck={false}
               style={{
                 width: '100%',
-                padding: '16px 18px',
-                borderRadius: 'var(--radius-lg)',
+                padding: '12px 14px',
+                borderRadius: 10,
                 border: 'none',
                 background: 'transparent',
                 color: 'var(--fg)',
-                fontSize: 15,
+                fontSize: 12,
                 fontFamily: 'var(--font-mono)',
                 outline: 'none',
                 resize: 'vertical',
                 boxSizing: 'border-box',
-                minHeight: 280,
+                minHeight: 168,
+                lineHeight: 1.5,
               }}
             />
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '0 0 2px 0' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 4px 2px 4px' }}>
               <ChainSelector value={chain} onChange={setChain} />
               <button onClick={handleDetect} disabled={loading}
                 style={{
-                  padding: '10px 20px',
-                  borderRadius: 'var(--radius-lg)',
+                  padding: '0 16px',
+                  height: 38,
+                  borderRadius: 10,
                   border: 'none',
                   background: loading ? 'var(--bg-secondary)' : 'var(--accent)',
                   color: loading ? 'var(--fg-tertiary)' : '#000',
@@ -119,7 +122,6 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
                   fontWeight: 600,
                   cursor: loading ? 'default' : 'pointer',
                   whiteSpace: 'nowrap',
-                  height: 38,
                   display: 'inline-flex',
                   alignItems: 'center',
                 }}>
@@ -127,11 +129,7 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
               </button>
             </div>
           </div>
-
-          <p style={{ fontSize: 13, color: 'var(--fg-tertiary)', marginTop: 13, textAlign: 'center' }}>
-            Detect related-wallet clusters based on shared funding and behavior
-          </p>
-        </div>
+        </InputStage>
       )}
 
       {(result || loading || error) && (

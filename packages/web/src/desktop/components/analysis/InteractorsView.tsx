@@ -8,6 +8,7 @@ import { useIsMobile } from '../../../hooks/useIsMobile';
 import { Users, ExternalLink, AlertTriangle, Shield, Download } from 'lucide-react';
 import type { ChainId } from '../../types';
 import { getInteractorsState, saveInteractorsState } from '../../stores/interactorsState';
+import { CompactSearchForm, InputStage } from './CompactSearchForm';
 
 interface Interactor {
   address: string;
@@ -131,40 +132,24 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
   return (
     <div style={{ padding: 20, maxWidth: 1000, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
       {!result && !loading && !error && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '40px 24px', maxWidth: 600, margin: '0 auto', width: '100%' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 20 }}>
-            Interactors Analysis
-          </div>
-          <div style={{ width: '100%', background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-xl)', padding: 4, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: 4 }}>
-            <input type="text" value={address}
-              onChange={e => setAddress(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleAnalyze(); }}
-              placeholder="Paste wallet/contract address (0x...)"
-              spellCheck={false}
-              style={{ flex: isMobile ? undefined : 1, padding: isMobile ? '14px 14px' : '12px 14px', minHeight: isMobile ? 48 : undefined, background: 'transparent', border: 'none', outline: 'none', color: 'var(--fg)', fontSize: isMobile ? 14 : 13, fontFamily: 'var(--font-mono)', boxSizing: 'border-box', width: '100%' }}
-            />
-            {isMobile ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 2px' }}>
-                <ChainSelector value={chain} onChange={setChain} compact />
-                <button onClick={handleAnalyze} disabled={loading}
-                  style={{ padding: '10px 20px', borderRadius: 'var(--radius-lg)', border: 'none', background: loading ? 'var(--bg-secondary)' : 'var(--accent)', color: loading ? 'var(--fg-tertiary)' : '#000', fontSize: 12, fontWeight: 600, cursor: loading ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
-                  {loading ? 'Analyzing' : 'Find Interactors'}
-                </button>
-              </div>
-            ) : (
-              <>
-                <ChainSelector value={chain} onChange={setChain} />
-                <button onClick={handleAnalyze} disabled={loading}
-                  style={{ padding: '10px 20px', borderRadius: 'var(--radius-lg)', border: 'none', background: loading ? 'var(--bg-secondary)' : 'var(--accent)', color: loading ? 'var(--fg-tertiary)' : '#000', fontSize: 12, fontWeight: 600, cursor: loading ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
-                  {loading ? 'Analyzing' : 'Find Interactors'}
-                </button>
-              </>
-            )}
-          </div>
-          <p style={{ fontSize: 11, color: 'var(--fg-tertiary)', marginTop: 12, textAlign: 'center' }}>
-            Discover all interacting addresses and shared funders
-          </p>
-        </div>
+        <InputStage
+          title="Interactors Analysis"
+          maxWidth={640}
+          hint="Discover all interacting addresses and shared funders"
+        >
+          <CompactSearchForm
+            value={address}
+            onChange={setAddress}
+            onSubmit={handleAnalyze}
+            placeholder="Paste wallet/contract address (0x...)"
+            ariaLabel="Wallet or contract address"
+            loading={loading}
+            disabled={loading}
+            submitLabel="Find"
+            loadingLabel="Analyzing"
+            leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
+          />
+        </InputStage>
       )}
 
       {(result || loading || error) && (
