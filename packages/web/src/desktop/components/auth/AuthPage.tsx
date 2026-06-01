@@ -9,8 +9,6 @@ import type { ChainId } from '../../types';
 
 export function AuthPage() {
   const [submitting, setSubmitting] = useState(false);
-  const [showManual, setShowManual] = useState(false);
-  const [manualToken, setManualToken] = useState('');
   const { loginWithToken } = useAuth();
   const notify = useNotify();
   const pendingTokenRef = useRef<string | null>(null);
@@ -33,6 +31,13 @@ export function AuthPage() {
 
   const handleGoogleSignIn = async () => {
     setSubmitting(true);
+    if (!isTauri()) {
+      const redirect = '/app-evm';
+      try { sessionStorage.setItem('postLoginRedirect', redirect); } catch {}
+      window.location.href = `/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`;
+      return;
+    }
+
     try {
       const { invoke } = await import('@tauri-apps/api/core');
       await invoke('start_oauth_popup');
@@ -48,20 +53,6 @@ export function AuthPage() {
       }
     }
     setSubmitting(false);
-  };
-
-  const handleManualToken = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    const trimmed = manualToken.trim();
-    if (!trimmed) { notify.error('Please enter your auth token'); return; }
-    setSubmitting(true);
-    try {
-      await loginWithToken(trimmed);
-    } catch (err: any) {
-      notify.error(`Invalid token: ${err?.message || 'Please try again.'}`);
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   const handleTryNow = () => {
@@ -348,95 +339,6 @@ export function AuthPage() {
             </p>
           </div>
 
-          {/* Divider */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            marginBottom: 20,
-          }}>
-            <div style={{ flex: 1, height: 1, background: isMobile ? 'var(--hairline)' : '#e5e5ea' }} />
-            <span style={{ fontSize: 11, color: isMobile ? 'var(--fg-tertiary)' : '#aeaeb2', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              or
-            </span>
-            <div style={{ flex: 1, height: 1, background: isMobile ? 'var(--hairline)' : '#e5e5ea' }} />
-          </div>
-
-          {/* Manual token toggle */}
-          {!showManual ? (
-            <button
-              onClick={() => setShowManual(true)}
-              type="button"
-              style={{
-                width: '100%',
-                padding: '10px 0',
-                minHeight: isMobile ? 44 : undefined,
-                borderRadius: isMobile ? 14 : 10,
-                border: isMobile ? '1px solid var(--card-border)' : '1px solid #e5e5ea',
-                background: 'transparent',
-                color: isMobile ? 'var(--fg-secondary)' : '#86868b',
-                fontSize: 13,
-                fontWeight: 500,
-                fontFamily: 'inherit',
-                cursor: 'pointer',
-                transition: 'color 150ms',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = isMobile ? 'var(--fg)' : '#1d1d1f'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = isMobile ? 'var(--fg-secondary)' : '#86868b'; }}
-            >
-              Paste auth token instead
-            </button>
-          ) : (
-            <form onSubmit={handleManualToken} style={{
-              padding: 20,
-              borderRadius: isMobile ? 18 : 14,
-              border: isMobile ? '1px solid var(--card-border)' : '1px solid #d2d2d7',
-              background: isMobile ? 'var(--card)' : '#ffffff',
-            }}>
-              <input
-                type="password"
-                aria-label="Auth token"
-                value={manualToken}
-                onChange={e => setManualToken(e.target.value)}
-                placeholder="Paste JWT token from browser URL"
-                autoFocus
-                spellCheck={false}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: isMobile ? 14 : 10,
-                  border: isMobile ? '1px solid var(--card-border)' : '1px solid #d2d2d7',
-                  background: isMobile ? 'var(--bg-secondary)' : '#ffffff',
-                  color: isMobile ? 'var(--fg)' : '#1d1d1f',
-                  fontSize: 13,
-                  fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
-                  outline: 'none',
-                  marginBottom: 12,
-                  transition: 'border-color 150ms',
-                }}
-                onFocus={e => { e.currentTarget.style.borderColor = isMobile ? 'var(--accent)' : '#1d1d1f'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = isMobile ? 'var(--card-border)' : '#d2d2d7'; }}
-              />
-              <button
-              type="submit"
-                disabled={submitting || !manualToken.trim()}
-                style={{
-                  width: '100%',
-                  padding: '10px 0',
-                  borderRadius: isMobile ? 14 : 10,
-                  border: 'none',
-                  background: (manualToken.trim() && !submitting) ? '#00cc66' : '#f5f5f7',
-                  color: (manualToken.trim() && !submitting) ? '#fff' : '#aeaeb2',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  fontFamily: 'inherit',
-                  cursor: (manualToken.trim() && !submitting) ? 'pointer' : 'default',
-                }}
-              >
-                {submitting ? 'Signing in...' : 'Sign In'}
-              </button>
-            </form>
-          )}
         </div>
 
         {/* Footer */}

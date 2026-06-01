@@ -53,6 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearApiKey();
     setProfile(null);
     setIsAuthenticated(false);
+    if (!isTauri() && typeof window !== 'undefined') {
+      window.location.assign('/');
+    }
   }, [clearApiKey]);
 
   const login = useCallback(async (key: string) => {

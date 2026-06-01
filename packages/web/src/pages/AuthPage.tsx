@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { handleVerifyEmail, handlePasswordReset, handleRecoverEmail, sendPasswordReset } from '../firebase';
-import { Mail, Lock, Check, AlertCircle, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, Check, AlertCircle, Eye, EyeOff, ArrowRight, Loader2, Search } from 'lucide-react';
 import { useGoogleOneTap } from '../hooks/useGoogleOneTap';
+import { extractAddress } from '../desktop/lib/extractAddress';
 import './AuthPage.css';
 
 const navItems = [
@@ -34,6 +35,8 @@ export function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [tryAddress, setTryAddress] = useState('');
+  const [tryDragOver, setTryDragOver] = useState(false);
   
   const oobCode = searchParams.get('oobCode');
   const mode = searchParams.get('mode');
@@ -171,12 +174,12 @@ export function AuthPage() {
 
   useGoogleOneTap();
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (redirectOverride?: string) => {
     setLoading(true);
     setError(null);
     try {
       const isFromApiPage = window.location.pathname.includes('/api');
-      const redirectTo = isFromApiPage ? '/api/keys' : '/app-evm';
+      const redirectTo = redirectOverride || (isFromApiPage ? '/api/keys' : '/app-evm');
       sessionStorage.setItem('postLoginRedirect', redirectTo);
       await loginWithGoogle();
     } catch (err: any) {
@@ -184,6 +187,111 @@ export function AuthPage() {
       setLoading(false);
     }
   };
+
+  const detectChain = (input: string) => {
+    const lower = input.toLowerCase();
+    if (lower.includes('lineascan')) return 'linea';
+    if (lower.includes('arbiscan')) return 'arbitrum';
+    if (lower.includes('basescan')) return 'base';
+    if (lower.includes('optimistic')) return 'optimism';
+    if (lower.includes('polygonscan')) return 'polygon';
+    if (lower.includes('bscscan')) return 'bsc';
+    if (lower.includes('solscan') || lower.includes('solana')) return 'solana';
+    return 'ethereum';
+  };
+
+  const handleTryNow = async () => {
+    const raw = tryAddress.trim();
+    const address = extractAddress(raw) || raw;
+    if (!address) {
+      setError('Paste a wallet address or explorer link first.');
+      return;
+    }
+    const params = new URLSearchParams({ address, chain: detectChain(raw) });
+    await handleGoogleLogin(`/app-evm?${params.toString()}`);
+  };
+
+  const handleTryDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTryDragOver(false);
+    const text = e.dataTransfer.getData('text/plain');
+    if (!text) return;
+    setTryAddress(extractAddress(text) || text);
+  };
+
+  if (authMode === 'signin' || authMode === 'signup') {
+    return (
+      <div className="auth-split-page">
+        <section className="auth-split-left">
+          <div className="auth-split-content">
+            <div className="auth-split-brand">
+              <span className="auth-split-logo">
+                <img src="/logo.png" alt="" />
+              </span>
+              <span>FundTracer</span>
+            </div>
+
+            <h1>
+              Welcome to <span>FundTracer</span>
+            </h1>
+            <p className="auth-split-copy">
+              Blockchain intelligence and forensics platform. Trace funding sources,
+              detect sybil clusters, and investigate on-chain activity.
+            </p>
+
+            <div className="auth-split-card">
+              {error && <div className="auth-error-msg">{error}</div>}
+              <button
+                className="auth-split-google"
+                onClick={() => handleGoogleLogin()}
+                disabled={loading}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                {loading ? <Loader2 size={18} className="spin" /> : 'Sign in with Google'}
+              </button>
+              <p>A sign-in window will open. Complete Google authentication and you'll be signed in automatically.</p>
+            </div>
+
+            <p className="auth-split-footer">
+              By signing in, you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>
+            </p>
+          </div>
+        </section>
+
+        <section
+          className={`auth-split-right${tryDragOver ? ' is-dragging' : ''}`}
+          onDragOver={e => { e.preventDefault(); setTryDragOver(true); }}
+          onDragLeave={() => setTryDragOver(false)}
+          onDrop={handleTryDrop}
+        >
+          <div className="auth-split-grid" />
+          <div className="auth-try-panel">
+            <div className="auth-try-label">Try Now</div>
+            <div className="auth-try-search">
+              <Search size={15} />
+              <input
+                value={tryAddress}
+                onChange={e => setTryAddress(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') void handleTryNow(); }}
+                placeholder="Paste wallet address or drop an explorer link"
+                spellCheck={false}
+              />
+              <button type="button" onClick={handleTryNow} disabled={loading}>
+                {loading ? 'Signing in...' : 'Try Now'}
+              </button>
+            </div>
+            <p>Drop a blockchain explorer link anywhere to auto-detect chain and address</p>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <LandingLayout navItems={navItems} showSearch={false}>
@@ -384,7 +492,7 @@ export function AuthPage() {
 
                   <button
                     className="auth-btn-google"
-                    onClick={handleGoogleLogin}
+                    onClick={() => handleGoogleLogin()}
                     disabled={loading}
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24">
