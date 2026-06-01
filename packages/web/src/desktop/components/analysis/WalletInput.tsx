@@ -116,7 +116,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
       onDragOver={e => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto', position: 'relative' }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: hasResult ? 'hidden' : 'auto', position: 'relative' }}
     >
       {/* Input area */}
       <div style={{
@@ -125,7 +125,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
         alignItems: 'center',
         justifyContent: isMobile ? 'flex-start' : 'center',
         flex: 1,
-        padding: isMobile ? '22px 14px 118px' : '40px 24px',
+        padding: isMobile ? '16px 14px 92px' : '40px 24px',
         maxWidth: isMobile ? 460 : 600,
         margin: '0 auto',
         width: '100%',
@@ -141,24 +141,6 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
         }}>
           Wallet Analysis
         </div>
-
-        {isMobile && (
-          <div style={{
-            width: '100%',
-            padding: '14px 14px 12px',
-            border: '1px solid var(--hairline)',
-            borderRadius: 18,
-            background: 'linear-gradient(180deg, rgba(0,230,122,0.08), transparent)',
-            marginBottom: 12,
-          }}>
-            <div style={{ fontSize: 18, fontWeight: 750, color: 'var(--fg)', lineHeight: 1.15 }}>
-              Trace a wallet
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--fg-secondary)', marginTop: 5, lineHeight: 1.45 }}>
-              Paste an address, ENS, Solana account, or explorer URL.
-            </div>
-          </div>
-        )}
 
         {/* Input card */}
         <div style={{

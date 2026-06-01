@@ -116,7 +116,7 @@ export function AnalysisTabs() {
       </>)}
 
       {/* Active tab content */}
-      <div style={{ flex: 1, overflow: 'auto', paddingTop: isMobile ? 8 : 0 }}>
+      <div style={{ flex: 1, overflow: 'hidden', paddingTop: 0 }}>
         {tabs.map(tab => (
           <div key={tab.id} style={{ display: tab.id === activeTabId ? 'block' : 'none', height: '100%' }}>
             <WalletInput tab={tab} />

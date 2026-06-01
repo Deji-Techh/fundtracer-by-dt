@@ -55,16 +55,17 @@ export function SettingsPage() {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 0,
-          padding: '2px 4px',
+          gap: 4,
+          padding: '5px 8px',
           borderBottom: '1px solid var(--hairline)',
           background: 'var(--bg-secondary)',
           overflowX: 'auto',
           flexShrink: 0,
-          minHeight: 48,
+          minHeight: 52,
         }}>
           {settingsTabs.map(item => (
             <button
+              type="button"
               key={item.id}
               onClick={() => setTab(item.id)}
               title={item.label}
@@ -73,19 +74,20 @@ export function SettingsPage() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 2,
-                padding: '6px 10px',
+                gap: 3,
+                padding: '6px 9px',
                 border: 'none',
-                borderRadius: 'var(--radius-md)',
-                background: tab === item.id ? 'var(--hover-overlay)' : 'transparent',
+                borderRadius: 12,
+                background: tab === item.id ? 'var(--card)' : 'transparent',
                 color: tab === item.id ? 'var(--accent)' : 'var(--fg-tertiary)',
                 cursor: 'pointer',
-                minWidth: 48,
+                minWidth: 58,
+                minHeight: 40,
                 flexShrink: 0,
               }}
             >
               {item.icon}
-              <span style={{ fontSize: 9, fontWeight: tab === item.id ? 500 : 400, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 10, fontWeight: tab === item.id ? 650 : 500, whiteSpace: 'nowrap' }}>
                 {item.label}
               </span>
             </button>
@@ -110,6 +112,7 @@ export function SettingsPage() {
           </div>
           {settingsTabs.map(item => (
             <button
+              type="button"
               key={item.id}
               onClick={() => setTab(item.id)}
               style={{
@@ -132,7 +135,7 @@ export function SettingsPage() {
       )}
 
       {/* Content */}
-      <div style={{ flex: 1, padding: isMobile ? 16 : 24, overflow: 'auto' }}>
+      <div style={{ flex: 1, padding: isMobile ? '14px 14px 0' : 24, overflow: 'auto' }}>
         {tab === 'account' && (
           <div style={{ maxWidth: 500 }}>
             <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--fg)', marginBottom: 16, fontFamily: 'var(--font-sans)' }}>

@@ -160,7 +160,7 @@ export function AppShell() {
           <main style={{
             flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
             background: 'var(--bg)',
-            paddingBottom: isMobile ? 'calc(82px + env(safe-area-inset-bottom, 0px))' : 0,
+            paddingBottom: isMobile ? 'calc(68px + env(safe-area-inset-bottom, 0px))' : 0,
             minWidth: 0,
           }}>
             {currentView === 'analyze' && <AnalysisContent onViewChange={setCurrentView} />}

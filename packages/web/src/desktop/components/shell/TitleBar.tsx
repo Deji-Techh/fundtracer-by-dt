@@ -116,6 +116,7 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
           borderRadius: isMobile ? 13 : 'var(--radius-md)',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = isMobile ? 'var(--card)' : 'none'; }}

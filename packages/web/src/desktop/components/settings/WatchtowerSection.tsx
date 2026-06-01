@@ -4,6 +4,7 @@ import { apiRequest } from '../../api/client';
 import { useNotify } from '../../contexts/ToastContext';
 import { Bell, BellOff, Plus, Trash2, Pause, Play, ChevronDown, ChevronRight, ArrowDownLeft, ArrowUpRight, ExternalLink, History, GitBranch } from 'lucide-react';
 import { ChainSelector } from '../common/ChainSelector';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import type { ChainId } from '../../types';
 
 interface WatchConfig {
@@ -76,6 +77,7 @@ export function WatchtowerSection() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const activityLoaded = useRef(false);
   const notify = useNotify();
+  const isMobile = useIsMobile();
 
   useEffect(() => { loadWatched(); }, []);
 
@@ -175,38 +177,46 @@ export function WatchtowerSection() {
   const totalActivity = watched.reduce((sum, w) => sum + activityByWallet(w).length, 0);
 
   return (
-    <div>
+    <div style={{ paddingBottom: isMobile ? 8 : 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <Bell size={16} style={{ color: 'var(--accent)' }} />
         <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)' }}>Watchtower</span>
       </div>
-      <p style={{ fontSize: 12, color: 'var(--fg-tertiary)', marginBottom: 16 }}>
+      <p style={{ fontSize: isMobile ? 12 : 12, color: 'var(--fg-tertiary)', marginBottom: isMobile ? 14 : 16, lineHeight: 1.45 }}>
         24/7 wallet monitoring. Get native desktop notifications when watched wallets have new activity — even when the app is minimized to tray.
       </p>
 
       {/* Add form */}
       <div style={{
-        padding: '14px 16px', borderRadius: 'var(--radius-lg)', background: 'var(--card)',
+        padding: isMobile ? 10 : '14px 16px', borderRadius: isMobile ? 14 : 'var(--radius-lg)', background: 'var(--card)',
         border: '1px solid var(--hairline)', marginBottom: 16,
       }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'minmax(0, 1fr) minmax(92px, 104px)' : 'repeat(4, auto)',
+          gap: isMobile ? 8 : 8,
+          alignItems: 'stretch',
+        }}>
           <input type="text" value={address}
             onChange={e => setAddress(e.target.value)}
             placeholder="0x... wallet to watch"
             spellCheck={false}
-            style={inputStyle}
+            style={{ ...inputStyle, minWidth: 0, width: '100%', maxWidth: isMobile ? 'none' : undefined, gridColumn: isMobile ? '1 / 3' : undefined }}
           />
-          <ChainSelector value={chain} onChange={setChain} />
+          <ChainSelector value={chain} onChange={setChain} compact={isMobile} style={{ gridColumn: isMobile ? '1 / 2' : undefined, minWidth: 0 }} />
           <input type="text" value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="Label (optional)"
-            style={{ ...inputStyle, maxWidth: 140 }}
+            style={{ ...inputStyle, minWidth: 0, width: '100%', maxWidth: isMobile ? 'none' : 140, gridColumn: isMobile ? '1 / 2' : undefined }}
           />
-          <button onClick={handleAdd} disabled={loading}
+          <button type="button" onClick={handleAdd} disabled={loading}
             style={{
-              padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none',
+              padding: isMobile ? '0 12px' : '8px 16px', borderRadius: isMobile ? 12 : 'var(--radius-md)', border: 'none',
               background: 'var(--accent)', color: '#000', fontSize: 12, fontWeight: 600,
               cursor: 'pointer', whiteSpace: 'nowrap',
+              minHeight: isMobile ? 44 : undefined,
+              gridColumn: isMobile ? '2 / 3' : undefined,
+              gridRow: isMobile ? '2 / 4' : undefined,
             }}>
             <Plus size={14} style={{ display: 'inline' }} /> Watch
           </button>

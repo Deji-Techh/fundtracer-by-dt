@@ -159,7 +159,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
       <div style={{ height: 1, background: 'var(--hairline)', margin: '0 12px' }} />
 
       {/* Open Tabs */}
-      {tabs.length > 0 && (
+      {tabs.length > 0 && !isMobile && (
         <CollapsibleBlock show={!sidebarCollapsed}>
           <div style={{ padding: '14px 16px 6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Open Tabs</span>

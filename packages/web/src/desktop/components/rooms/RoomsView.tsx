@@ -468,7 +468,7 @@ export function RoomsView() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%' }}>
+    <div style={{ display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden' }}>
       <style>{`
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes typing-pulse {
@@ -671,8 +671,9 @@ export function RoomsView() {
           <>
             {/* Room header */}
             <div style={{
-              padding: isMobile ? '10px 12px' : '12px 20px', borderBottom: '1px solid var(--hairline)',
+              padding: isMobile ? '9px 12px' : '12px 20px', borderBottom: '1px solid var(--hairline)',
               display: 'flex', alignItems: 'center', gap: 8,
+              minHeight: isMobile ? 54 : undefined,
             }}>
               {isMobile && (
                 <button
@@ -984,14 +985,14 @@ export function RoomsView() {
             )}
 
             {/* Messages */}
-            <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px' }}>
+            <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '10px 10px' : '16px 20px' }}>
               {roomSelecting ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[1, 2, 3, 4, 5].map(i => (
                     <div key={i} style={{
                       display: 'flex', gap: 8,
                       flexDirection: i % 2 === 0 ? 'row-reverse' : 'row',
-                      padding: '2px 48px',
+                      padding: isMobile ? '2px 0' : '2px 48px',
                     }}>
                       {i % 2 !== 0 && (
                         <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--hover-overlay)', flexShrink: 0 }} />
@@ -1002,7 +1003,7 @@ export function RoomsView() {
                         border: '1px solid var(--hairline)',
                       }}>
                         <div style={{
-                          width: `${60 + Math.random() * 120}px`, height: 12,
+                          width: `${72 + (i % 3) * 34}px`, height: 12,
                           borderRadius: 6, background: 'var(--hover-overlay)',
                         }} />
                       </div>
@@ -1014,7 +1015,7 @@ export function RoomsView() {
                   No messages yet. Start the investigation.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 9 : 8 }}>
                   {messages.map(msg => {
                     const senderUid = getSenderUid(msg.sender);
                     const senderName = getSenderName(msg.sender);
@@ -1024,7 +1025,7 @@ export function RoomsView() {
                       <div key={msg.id} style={{
                         display: 'flex', gap: 8,
                         flexDirection: isMe ? 'row-reverse' : 'row',
-                        padding: '2px 48px',
+                        padding: isMobile ? '2px 0' : '2px 48px',
                       }}>
                         {!isMe && (
                           <div style={{
@@ -1038,7 +1039,7 @@ export function RoomsView() {
                             {isAi ? <Bot size={13} /> : senderName[0]?.toUpperCase() || '?'}
                           </div>
                         )}
-                        <div style={{ maxWidth: '65%' }}>
+                        <div style={{ maxWidth: isMobile ? '82%' : '65%' }}>
                           {!isMe && (
                             <div style={{
                               fontSize: 10, color: isAi ? 'var(--accent)' : 'var(--fg-tertiary)',
@@ -1048,7 +1049,7 @@ export function RoomsView() {
                             </div>
                           )}
                           <div style={{
-                            padding: '8px 14px', fontSize: 13,
+                            padding: isMobile ? '9px 12px' : '8px 14px', fontSize: 13,
                             borderRadius: isMe ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
                             background: isMe ? '#00a884' : isAi ? 'rgba(0,230,122,0.05)' : 'var(--card)',
                             border: isAi ? '1px solid rgba(0,230,122,0.3)' : '1px solid var(--hairline)',
@@ -1101,7 +1102,7 @@ export function RoomsView() {
             )}
 
             {/* Input */}
-            <div style={{ padding: isMobile ? '10px 12px 20px' : '12px 20px', borderTop: '1px solid var(--hairline)', position: 'relative' }}>
+            <div style={{ padding: isMobile ? '8px 10px 10px' : '12px 20px', borderTop: '1px solid var(--hairline)', position: 'relative' }}>
               {/* Mention autocomplete dropdown */}
               {mentionMode === 'active' && filteredMentions.length > 0 && (
                 <div style={{
@@ -1135,16 +1136,17 @@ export function RoomsView() {
                   ))}
                 </div>
               )}
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: isMobile ? 7 : 8 }}>
                 <input ref={inputRef} type="text" value={input}
                   onChange={handleInputChange}
                   onKeyDown={handleInputKeyDown}
                   placeholder={`Message ${activeRoom.name}... (use @ to mention)`}
                   disabled={loading}
                   style={{
-                    flex: 1, padding: '10px 14px', borderRadius: 'var(--radius-lg)',
+                    flex: 1, padding: isMobile ? '11px 12px' : '10px 14px', borderRadius: isMobile ? 10 : 'var(--radius-lg)',
                     border: '1px solid var(--card-border)', background: 'var(--card)',
-                    color: 'var(--fg)', fontSize: 13, outline: 'none',
+                    color: 'var(--fg)', fontSize: isMobile ? 13 : 13, outline: 'none',
+                    minWidth: 0,
                   }}
                   onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
                   onBlur={e => {
@@ -1152,12 +1154,17 @@ export function RoomsView() {
                     setTimeout(() => setMentionMode('off'), 150);
                   }}
                 />
-                <button onClick={handleSend} disabled={loading || !input.trim()}
+                <button type="button" onClick={handleSend} disabled={loading || !input.trim()}
                   style={{
-                    padding: '10px 16px', borderRadius: 'var(--radius-lg)', border: 'none',
+                    width: isMobile ? 46 : undefined,
+                    padding: isMobile ? 0 : '10px 16px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
                     background: input.trim() ? 'var(--accent)' : 'var(--hover-overlay)',
                     color: input.trim() ? '#000' : 'var(--fg-tertiary)',
                     cursor: input.trim() ? 'pointer' : 'default',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                   }}>
                   <Send size={16} />
                 </button>
