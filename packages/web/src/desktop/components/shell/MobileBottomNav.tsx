@@ -6,11 +6,11 @@ interface MobileBottomNavProps {
 }
 
 const NAV_ITEMS: { view: AppView; label: string; icon: React.ReactNode }[] = [
-  { view: 'analyze', label: 'Analyze', icon: <AnalyzeIcon /> },
-  { view: 'polymarket', label: 'Markets', icon: <PolymarketIcon /> },
-  { view: 'ai-chat', label: 'AI Chat', icon: <ChatIcon /> },
-  { view: 'rooms', label: 'Rooms', icon: <RoomsIcon /> },
-  { view: 'settings', label: 'Settings', icon: <SettingsIcon /> },
+  { view: 'analyze', label: 'Analyze', icon: AnalyzeIcon },
+  { view: 'polymarket', label: 'Markets', icon: PolymarketIcon },
+  { view: 'ai-chat', label: 'AI Chat', icon: ChatIcon },
+  { view: 'rooms', label: 'Rooms', icon: RoomsIcon },
+  { view: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 export function MobileBottomNav({ currentView, onViewChange }: MobileBottomNavProps) {
