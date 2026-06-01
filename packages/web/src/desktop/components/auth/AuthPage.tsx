@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotify } from '../../contexts/ToastContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { extractAddress } from '../../hooks/useClipboardDetection';
+import { isTauri } from '../../lib/tauri-commands';
 import type { ChainId } from '../../types';
 
 export function AuthPage() {
@@ -15,6 +15,14 @@ export function AuthPage() {
   const pendingTokenRef = useRef<string | null>(null);
   const loginAttemptedRef = useRef(false);
   const { theme, toggleTheme } = useTheme();
+
+  const runWindowAction = async (action: 'minimize' | 'toggleMaximize' | 'close') => {
+    if (!isTauri()) return;
+    try {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      await getCurrentWindow()[action]();
+    } catch {}
+  };
 
   // Try Now — interactive wallet analysis demo on auth page
   const [tryAddress, setTryAddress] = useState('');
@@ -169,21 +177,21 @@ export function AuthPage() {
           FundTracer
         </span>
         <div style={{ flex: 1 }} data-tauri-drag-region />
-        <button onClick={() => getCurrentWindow().minimize()} style={windowBtnStyle}
+        <button onClick={() => runWindowAction('minimize')} style={windowBtnStyle}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
         </button>
-        <button onClick={() => getCurrentWindow().toggleMaximize()} style={windowBtnStyle}
+        <button onClick={() => runWindowAction('toggleMaximize')} style={windowBtnStyle}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="4" y="4" width="16" height="16" rx="2"/>
           </svg>
         </button>
-        <button onClick={() => getCurrentWindow().close()} style={windowBtnStyle}
+        <button onClick={() => runWindowAction('close')} style={windowBtnStyle}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--destructive)'; e.currentTarget.style.color = '#fff'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--fg-secondary)'; }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

@@ -4,7 +4,6 @@ import { apiRequest } from '../../api/client';
 import { useNotify } from '../../contexts/ToastContext';
 import { Bell, BellOff, Plus, Trash2, Pause, Play, ChevronDown, ChevronRight, ArrowDownLeft, ArrowUpRight, ExternalLink, History, GitBranch } from 'lucide-react';
 import { ChainSelector } from '../common/ChainSelector';
-import { listen } from '@tauri-apps/api/event';
 import type { ChainId } from '../../types';
 
 interface WatchConfig {
@@ -94,12 +93,14 @@ export function WatchtowerSection() {
   // Listen for live watchtower events from Tauri backend
   useEffect(() => {
     let unlisten: (() => void) | undefined;
-    listen<{ type: string; event: ActivityEvent }>('watchtower-tx', (ev) => {
-      const tx = ev.payload?.event;
-      if (tx) {
-        setActivity(prev => [tx, ...prev].slice(0, MAX_ACTIVITY));
-      }
-    }).then(fn => { unlisten = fn; }).catch(() => {});
+    import('@tauri-apps/api/event').then(({ listen }) => {
+      listen<{ type: string; event: ActivityEvent }>('watchtower-tx', (ev) => {
+        const tx = ev.payload?.event;
+        if (tx) {
+          setActivity(prev => [tx, ...prev].slice(0, MAX_ACTIVITY));
+        }
+      }).then(fn => { unlisten = fn; }).catch(() => {});
+    }).catch(() => {});
     return () => { unlisten?.(); };
   }, []);
 
