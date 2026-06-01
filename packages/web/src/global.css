@@ -2100,11 +2100,10 @@ select:disabled {
     padding-bottom: 80px !important;
   }
   
-  /* Fix for inline styles */
-  div[style*="display: block"],
-  div[style*="minHeight"] {
-    padding-top: 70px !important;
-    padding-bottom: 80px !important;
+  /* Legacy page wrappers only. Do not target arbitrary inline divs; it breaks the desktop app shell. */
+  .main-content > div,
+  .page-container > div {
+    padding-bottom: 80px;
   }
 }
 
