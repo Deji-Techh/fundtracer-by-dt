@@ -18,7 +18,7 @@ export function MobileBottomNav({ currentView, onViewChange }: MobileBottomNavPr
     <nav
       style={{
         position: 'fixed',
-        bottom: 'max(6px, env(safe-area-inset-bottom, 0px))',
+        bottom: 'max(4px, env(safe-area-inset-bottom, 0px))',
         left: 10,
         right: 10,
         zIndex: 100,

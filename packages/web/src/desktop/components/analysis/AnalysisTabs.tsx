@@ -7,7 +7,7 @@ export function AnalysisTabs() {
   const isMobile = useIsMobile();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {/* Tab bar — admin-style segmented control (desktop only) */}
       {!isMobile && (<>
       <div style={{
@@ -116,7 +116,7 @@ export function AnalysisTabs() {
       </>)}
 
       {/* Active tab content */}
-      <div style={{ flex: 1, overflow: 'hidden', paddingTop: 0 }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', paddingTop: 0 }}>
         {tabs.map(tab => (
           <div key={tab.id} style={{ display: tab.id === activeTabId ? 'block' : 'none', height: '100%' }}>
             <WalletInput tab={tab} />

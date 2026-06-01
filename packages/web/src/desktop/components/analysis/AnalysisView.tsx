@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useTabs } from '../../contexts/TabsContext';
 import { useNotify } from '../../contexts/ToastContext';
 import { useIsMobile } from '../../../hooks/useIsMobile';
@@ -41,6 +41,7 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
   const { updateTab } = useTabs();
   const notify = useNotify();
   const result = tab.result;
+  const activePaneRef = useRef<HTMLDivElement | null>(null);
 
   const handleShare = async () => {
     try {
@@ -64,6 +65,10 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
 
   const isMobile = useIsMobile();
 
+  useEffect(() => {
+    activePaneRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [tab.id, subTab]);
+
   if (!result) return null;
 
   const addressLabel = isMobile && tab.address.length > 20
@@ -71,7 +76,7 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
     : tab.address;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
       {/* Header with address and actions */}
       <div style={{
         padding: isMobile ? '8px 14px 9px' : '14px 20px',
@@ -157,20 +162,20 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
       </div>
 
       {/* Sub-tab content — tabs stay mounted to preserve state (AI messages, scroll, etc.) */}
-      <div style={{ flex: 1 }}>
-        <div style={{ display: subTab === 'overview' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div ref={subTab === 'overview' ? activePaneRef : undefined} style={{ display: subTab === 'overview' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
           <OverviewTab tab={tab} result={result} isMobile={isMobile} />
         </div>
-        <div style={{ display: subTab === 'transactions' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+        <div ref={subTab === 'transactions' ? activePaneRef : undefined} style={{ display: subTab === 'transactions' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
           <TransactionsTab tab={tab} />
         </div>
-        <div style={{ display: subTab === 'funding' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+        <div ref={subTab === 'funding' ? activePaneRef : undefined} style={{ display: subTab === 'funding' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
           <FundingTab tab={tab} />
         </div>
-        <div style={{ display: subTab === 'graph' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+        <div ref={subTab === 'graph' ? activePaneRef : undefined} style={{ display: subTab === 'graph' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
           <GraphTab tab={tab} />
         </div>
-        <div style={{ display: subTab === 'portfolio' ? 'flex' : 'none', flexDirection: 'column', height: '100%', overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
+        <div ref={subTab === 'portfolio' ? activePaneRef : undefined} style={{ display: subTab === 'portfolio' ? 'flex' : 'none', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'auto', padding: isMobile ? '10px 10px 0' : 20 }}>
           <PortfolioView address={tab.address} chain={tab.chain} />
         </div>
       </div>
@@ -376,7 +381,7 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
   const chartGridColor = getComputedStyle(document.documentElement).getPropertyValue('--hairline').trim() || '#282830';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16, minHeight: '100%' }}>
       {/* ── Top Row: Left (metrics) | Right (AI analysis) ── */}
       <div style={{
         display: 'flex', gap: isMobile ? 12 : 16, flex: '0 0 auto',
@@ -499,7 +504,7 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
 
         {/* Right eye — AI Analysis */}
         <div style={{
-          flex: isMobile ? '0 0 auto' : '1 1 420px', minWidth: 0, minHeight: isMobile ? 260 : 360,
+          flex: isMobile ? '0 0 auto' : '1 1 420px', minWidth: 0, minHeight: isMobile ? 220 : 360,
         }}>
           <InlineAiAnalysis
             address={tab.address}
@@ -511,7 +516,7 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
 
       {/* ── Bottom Row: Transaction flow chart (the "mouth") ── */}
       <div style={{
-        flex: 1, minHeight: isMobile ? 260 : 340,
+        flex: isMobile ? '0 0 auto' : 1, minHeight: isMobile ? 260 : 340,
         display: 'flex', flexDirection: 'column',
         borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--hairline)',

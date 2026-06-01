@@ -215,31 +215,32 @@ export function AiChatView({ context }: AiChatViewProps) {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%' }}>
+    <div style={{ display: 'flex', height: '100%', minHeight: 0, position: 'relative', overflow: 'hidden' }}>
       {/* Chat area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
         {/* Header */}
         <div style={{
-          padding: '12px 20px', borderBottom: '1px solid var(--hairline)',
+          padding: isMobile ? '10px 12px' : '12px 20px', borderBottom: '1px solid var(--hairline)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          minHeight: isMobile ? 52 : undefined,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Bot size={18} style={{ color: 'var(--accent)' }} />
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg)' }}>AI Investigator</span>
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => setShowHistory(!showHistory)}
+            <button type="button" onClick={() => setShowHistory(!showHistory)}
               style={iconBtnStyle} title="Chat history">
               <MessageSquare size={14} />
             </button>
-            <button onClick={newChat} style={iconBtnStyle} title="New chat">
+            <button type="button" onClick={newChat} style={iconBtnStyle} title="New chat">
               <Plus size={14} />
             </button>
           </div>
         </div>
 
         {/* Messages */}
-        <div style={{ flex: 1, overflow: 'auto', padding: 20 }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '12px 10px' : 20 }}>
           {loadingSession ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[1, 2, 3, 4].map(i => (
@@ -407,7 +408,7 @@ export function AiChatView({ context }: AiChatViewProps) {
         </div>
 
         {/* Input */}
-        <div style={{ padding: isMobile ? '10px 12px 20px' : '12px 20px', borderTop: '1px solid var(--hairline)' }}>
+        <div style={{ padding: isMobile ? '8px 10px 8px' : '12px 20px', borderTop: '1px solid var(--hairline)' }}>
           {/* Pending attached files */}
           {attachedFiles.length > 0 && (
             <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -422,6 +423,7 @@ export function AiChatView({ context }: AiChatViewProps) {
                   <span style={{ color: 'var(--fg)' }}>{f.name}</span>
                   <span style={{ color: 'var(--fg-tertiary)' }}>{(f.size / 1024).toFixed(1)} KB</span>
                   <button
+                    type="button"
                     onClick={() => removeAttachment(i)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-tertiary)', padding: 0, display: 'flex' }}
                   >
@@ -431,18 +433,21 @@ export function AiChatView({ context }: AiChatViewProps) {
               ))}
             </div>
           )}
-          <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
+          <div style={{ display: 'flex', gap: isMobile ? 7 : 8, position: 'relative', alignItems: 'stretch' }}>
             <input
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-              placeholder="Ask about wallet analysis, tracing, DeFi..."
+              placeholder={isMobile ? 'Ask about wallet analysis…' : 'Ask about wallet analysis, tracing, DeFi...'}
               disabled={loading}
               style={{
-                flex: 1, padding: '10px 14px', borderRadius: 'var(--radius-lg)',
+                flex: 1,
+                minWidth: 0,
+                padding: isMobile ? '11px 12px' : '10px 14px',
+                borderRadius: isMobile ? 10 : 'var(--radius-lg)',
                 border: '1px solid var(--card-border)', background: 'var(--card)',
-                color: 'var(--fg)', fontSize: 13, fontFamily: 'var(--font-sans)',
+                color: 'var(--fg)', fontSize: isMobile ? 13 : 13, fontFamily: 'var(--font-sans)',
                 outline: 'none', opacity: loading ? 0.5 : 1,
               }}
               onFocus={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
@@ -452,13 +457,17 @@ export function AiChatView({ context }: AiChatViewProps) {
             {/* Plus button with dropdown */}
             <div ref={plusMenuRef} style={{ position: 'relative' }}>
               <button
+                type="button"
                 onClick={() => { setShowPlusMenu(!showPlusMenu); setShowHistoryPicker(false); }}
                 disabled={loading}
                 style={{
-                  padding: '10px 12px', borderRadius: 'var(--radius-lg)', border: 'none',
+                  width: isMobile ? 44 : undefined,
+                  padding: isMobile ? 0 : '10px 12px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
                   background: 'var(--hover-overlay)', color: 'var(--fg-tertiary)',
                   cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.5 : 1,
-                  transition: 'all 150ms',
+                  transition: 'background 150ms, color 150ms',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
                 }}
                 title="Attach context"
               >
@@ -472,12 +481,14 @@ export function AiChatView({ context }: AiChatViewProps) {
                   boxShadow: 'var(--shadow-overlay)', zIndex: 200,
                 }}>
                   <button
+                    type="button"
                     onClick={() => { setShowHistoryPicker(!showHistoryPicker); setShowPlusMenu(false); }}
                     style={plusMenuItemStyle}>
                     <History size={14} />
                     <span>Scan History</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => { setShowPlusMenu(false); setTimeout(() => fileInputRef.current?.click(), 0); }}
                     style={plusMenuItemStyle}>
                     <Upload size={14} />
@@ -498,7 +509,7 @@ export function AiChatView({ context }: AiChatViewProps) {
             {showHistoryPicker && (
               <div ref={historyPickerRef} style={{
                 position: 'absolute', bottom: '100%', right: 52, marginBottom: 6,
-                width: 320, maxHeight: 340, overflow: 'auto',
+                width: isMobile ? 'calc(100vw - 28px)' : 320, maxHeight: 340, overflow: 'auto',
                 background: 'var(--card)', border: '1px solid var(--card-border)',
                 borderRadius: 'var(--radius-lg)', padding: 4,
                 boxShadow: 'var(--shadow-overlay)', zIndex: 200,
@@ -518,6 +529,7 @@ export function AiChatView({ context }: AiChatViewProps) {
                 ) : (
                   scanHistory.slice(0, 15).map((entry, i) => (
                     <button key={i}
+                      type="button"
                       onClick={() => insertHistoryAsContext(entry)}
                       style={{
                         width: '100%', textAlign: 'left', padding: '8px 12px',
@@ -542,13 +554,16 @@ export function AiChatView({ context }: AiChatViewProps) {
               </div>
             )}
 
-            <button onClick={handleSend} disabled={loading || (!input.trim() && attachedFiles.length === 0)}
+            <button type="button" onClick={handleSend} disabled={loading || (!input.trim() && attachedFiles.length === 0)}
               style={{
-                padding: '10px 16px', borderRadius: 'var(--radius-lg)', border: 'none',
+                width: isMobile ? 44 : undefined,
+                padding: isMobile ? 0 : '10px 16px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
                 background: (input.trim() || attachedFiles.length > 0) ? 'var(--accent)' : 'var(--hover-overlay)',
                 color: (input.trim() || attachedFiles.length > 0) ? '#000' : 'var(--fg-tertiary)',
                 cursor: (input.trim() || attachedFiles.length > 0) ? 'pointer' : 'default',
-                transition: 'all 150ms',
+                transition: 'background 150ms, color 150ms',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
               }}>
               <Send size={16} />
             </button>
@@ -556,15 +571,33 @@ export function AiChatView({ context }: AiChatViewProps) {
         </div>
       </div>
 
-      {/* History sidebar */}
+      {/* History popover */}
       {showHistory && (
-        <div style={{
-          width: 260, borderLeft: '1px solid var(--hairline)', overflow: 'auto',
-          background: 'var(--bg-secondary)',
-        }}>
+        <div
+          onClick={() => setShowHistory(false)}
+          style={{
+            position: 'absolute', inset: 0, zIndex: 240,
+            background: isMobile ? 'rgba(0,0,0,0.42)' : 'transparent',
+          }}
+        >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'absolute',
+            top: isMobile ? 8 : 58,
+            right: isMobile ? 8 : 12,
+            left: isMobile ? 8 : undefined,
+            width: isMobile ? undefined : 320,
+            maxHeight: isMobile ? 'min(520px, calc(100% - 22px))' : 'min(520px, calc(100% - 74px))',
+            overflow: 'auto',
+            background: 'var(--card)',
+            border: '1px solid var(--card-border)',
+            borderRadius: 16,
+            boxShadow: 'var(--shadow-overlay)',
+          }}>
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--hairline)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)' }}>Chat History</span>
-            <button onClick={() => setShowHistory(false)} style={{ ...iconBtnStyle, padding: 2 }}>×</button>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg)' }}>Chat History</span>
+            <button type="button" onClick={() => setShowHistory(false)} style={{ ...iconBtnStyle, padding: 2 }}>×</button>
           </div>
           {sessions.length === 0 ? (
             <div style={{ padding: 20, fontSize: 12, color: 'var(--fg-tertiary)', textAlign: 'center' }}>No previous chats</div>
@@ -580,13 +613,14 @@ export function AiChatView({ context }: AiChatViewProps) {
                 <span style={{ fontSize: 12, color: 'var(--fg-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {s.title || `Chat ${s.id.slice(0, 8)}`}
                 </span>
-                <button onClick={e => { e.stopPropagation(); deleteSession(s.id); }}
+                <button type="button" onClick={e => { e.stopPropagation(); deleteSession(s.id); }}
                   style={{ ...iconBtnStyle, color: 'var(--fg-tertiary)', padding: 2 }}>
                   <Trash2 size={12} />
                 </button>
               </div>
             ))
           )}
+        </div>
         </div>
       )}
     </div>

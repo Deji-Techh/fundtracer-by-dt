@@ -119,6 +119,7 @@ Be direct and insightful. Use bullet points for clarity.`;
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100%',
+      minHeight: 0,
       background: 'var(--card)', borderRadius: 'var(--radius-xl)',
       border: '1px solid var(--hairline)',
     }}>
@@ -153,7 +154,7 @@ Be direct and insightful. Use bullet points for clarity.`;
       {expanded && (
         <>
           {/* Messages area */}
-          <div style={{ flex: 1, overflow: 'auto', padding: '12px 14px', minHeight: 120, maxHeight: 320 }}>
+          <div style={{ flex: 1, overflow: 'auto', padding: '12px 14px', minHeight: 0, maxHeight: 320 }}>
             {loading && messages.length === 0 && !streaming && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-tertiary)', fontSize: 12 }}>
                 <Bot size={14} />

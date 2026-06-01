@@ -146,7 +146,7 @@ export function AppShell() {
       }}>
         <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => isMobile ? setMobileSidebarOpen(o => !o) : toggleSidebar()} isMobile={isMobile} currentView={currentView} />
 
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <Sidebar
             currentView={currentView}
             onViewChange={setCurrentView}
@@ -158,7 +158,7 @@ export function AppShell() {
           />
 
           <main style={{
-            flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden',
             background: 'var(--bg)',
             paddingBottom: isMobile ? 'calc(68px + env(safe-area-inset-bottom, 0px))' : 0,
             minWidth: 0,

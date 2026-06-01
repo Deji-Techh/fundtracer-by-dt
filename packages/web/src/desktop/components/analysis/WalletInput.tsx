@@ -116,7 +116,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
       onDragOver={e => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: hasResult ? 'hidden' : 'auto', position: 'relative' }}
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: hasResult ? 'hidden' : 'auto', position: 'relative' }}
     >
       {/* Input area */}
       <div style={{
