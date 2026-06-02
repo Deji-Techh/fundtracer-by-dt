@@ -7,8 +7,6 @@ import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-
 export type ModelType = 'flash' | 'pro';
 
 interface GroqMessage {
@@ -23,12 +21,6 @@ export interface UploadedFile {
   extractedText?: string;
 }
 
-// Groq models - using OpenAI-compatible SDK
-const groq = new OpenAI({
-  apiKey: GROQ_API_KEY,
-  baseURL: 'https://api.groq.com/openai/v1',
-});
-
 // Model mapping
 const MODELS = {
   flash: 'meta-llama/llama-4-scout-17b-16e-instruct',
@@ -37,8 +29,16 @@ const MODELS = {
 
 const SYSTEM_PROMPT = `You are FT Maverick, FundTracer's expert blockchain forensics AI analyst. Answer based ONLY on the analyzed data provided. Do not fabricate transactions, addresses, or values. When explaining risk, cite specific patterns found in the analysis. Format responses cleanly with bullet points and bold for key terms. Lead with a one-sentence direct answer. If data is insufficient, say so clearly.`;
 
-const modelCooldownUntil = new Map<string, number>();
+interface GroqKeySlot {
+  id: string;
+  key: string;
+}
+
+const keyModelCooldownUntil = new Map<string, number>();
 const rateLimitLogUntil = new Map<string, number>();
+const groqClients = new Map<string, OpenAI>();
+let keyPoolLogDone = false;
+let currentKeyIndex = 0;
 
 export class GroqRateLimitError extends Error {
   retryAfterMs: number;
@@ -87,59 +87,135 @@ function isProviderRateLimit(error: any): boolean {
   return error?.status === 429 || error?.code === 'rate_limit_exceeded' || error?.error?.code === 'rate_limit_exceeded';
 }
 
-function setModelCooldown(modelName: string, retryAfterMs: number, message?: string) {
+export function getGroqKeyPool(): GroqKeySlot[] {
+  const slots: GroqKeySlot[] = [];
+  const seen = new Set<string>();
+
+  for (let i = 1; i <= 5; i += 1) {
+    const key = process.env[`GROQ_${i}`]?.trim();
+    if (key && !seen.has(key)) {
+      slots.push({ id: `GROQ_${i}`, key });
+      seen.add(key);
+    }
+  }
+
+  const fallback = process.env.GROQ_API_KEY?.trim();
+  if (fallback && !seen.has(fallback)) {
+    slots.push({ id: 'GROQ_API_KEY', key: fallback });
+  }
+
+  if (!keyPoolLogDone) {
+    console.log(`[GroqClient] Loaded ${slots.length} Groq key(s): pool=${slots.filter(k => /^GROQ_\d+$/.test(k.id)).length}, fallback=${slots.some(k => k.id === 'GROQ_API_KEY') ? '1' : '0'}`);
+    keyPoolLogDone = true;
+  }
+
+  return slots;
+}
+
+function getGroqClient(slot: GroqKeySlot): OpenAI {
+  const existing = groqClients.get(slot.id);
+  if (existing) return existing;
+
+  const client = new OpenAI({
+    apiKey: slot.key,
+    baseURL: 'https://api.groq.com/openai/v1',
+  });
+  groqClients.set(slot.id, client);
+  return client;
+}
+
+function cooldownKey(keyId: string, modelName: string): string {
+  return `${keyId}:${modelName}`;
+}
+
+function setKeyModelCooldown(keyId: string, modelName: string, retryAfterMs: number, message?: string) {
   const now = Date.now();
   const until = now + Math.max(1_000, retryAfterMs);
-  modelCooldownUntil.set(modelName, until);
+  const key = cooldownKey(keyId, modelName);
+  keyModelCooldownUntil.set(key, until);
 
-  const logUntil = rateLimitLogUntil.get(modelName) || 0;
+  const logUntil = rateLimitLogUntil.get(key) || 0;
   if (now >= logUntil) {
     const seconds = Math.ceil((until - now) / 1000);
-    console.warn(`[GroqClient] ${modelName} rate limited; cooling down for ${seconds}s${message ? `: ${message}` : ''}`);
-    rateLimitLogUntil.set(modelName, now + Math.min(Math.max(retryAfterMs, 15_000), 60_000));
+    console.warn(`[GroqClient] ${keyId}/${modelName} rate limited; cooling down for ${seconds}s${message ? `: ${message}` : ''}`);
+    rateLimitLogUntil.set(key, now + Math.min(Math.max(retryAfterMs, 15_000), 60_000));
   }
 }
 
-function getModelCooldownMs(modelName: string): number {
-  const until = modelCooldownUntil.get(modelName) || 0;
+function getKeyModelCooldownMs(keyId: string, modelName: string): number {
+  const key = cooldownKey(keyId, modelName);
+  const until = keyModelCooldownUntil.get(key) || 0;
   const remaining = until - Date.now();
   if (remaining <= 0) {
-    modelCooldownUntil.delete(modelName);
+    keyModelCooldownUntil.delete(key);
     return 0;
   }
   return remaining;
 }
 
-function chooseAvailableModel(preferred: ModelType): { type: ModelType; name: string } {
-  const preferredName = MODELS[preferred];
-  if (getModelCooldownMs(preferredName) === 0) {
-    return { type: preferred, name: preferredName };
+function getShortestCooldownMs(modelNames?: string[]): number {
+  let shortest = Number.POSITIVE_INFINITY;
+  for (const slot of getGroqKeyPool()) {
+    for (const modelName of modelNames || Object.values(MODELS)) {
+      const remaining = getKeyModelCooldownMs(slot.id, modelName);
+      if (remaining > 0 && remaining < shortest) shortest = remaining;
+    }
+  }
+  return Number.isFinite(shortest) ? shortest : 60_000;
+}
+
+function chooseKeyForModel(modelName: string): GroqKeySlot | null {
+  const slots = getGroqKeyPool();
+  if (slots.length === 0) return null;
+
+  for (let attempt = 0; attempt < slots.length; attempt += 1) {
+    const index = (currentKeyIndex + attempt) % slots.length;
+    const slot = slots[index];
+    if (getKeyModelCooldownMs(slot.id, modelName) === 0) {
+      currentKeyIndex = (index + 1) % slots.length;
+      return slot;
+    }
   }
 
-  const fallbackType: ModelType = preferred === 'pro' ? 'flash' : 'pro';
-  const fallbackName = MODELS[fallbackType];
-  if (getModelCooldownMs(fallbackName) === 0) {
-    return { type: fallbackType, name: fallbackName };
+  return null;
+}
+
+function chooseAvailableModel(preferred: ModelType): { type: ModelType; name: string; slot: GroqKeySlot; client: OpenAI } {
+  const order: ModelType[] = preferred === 'pro' ? ['pro', 'flash'] : ['flash', 'pro'];
+
+  for (const type of order) {
+    const name = MODELS[type];
+    const slot = chooseKeyForModel(name);
+    if (slot) {
+      return { type, name, slot, client: getGroqClient(slot) };
+    }
   }
 
-  const retryAfterMs = Math.min(getModelCooldownMs(preferredName), getModelCooldownMs(fallbackName));
-  throw new GroqRateLimitError(preferredName, retryAfterMs);
+  throw new GroqRateLimitError(MODELS[preferred], getShortestCooldownMs(order.map(type => MODELS[type])));
+}
+
+function chooseAvailableKeyForRawModel(modelName: string): { slot: GroqKeySlot; key: string } {
+  const slot = chooseKeyForModel(modelName);
+  if (!slot) {
+    throw new GroqRateLimitError(modelName, getShortestCooldownMs([modelName]));
+  }
+  return { slot, key: slot.key };
 }
 
 // Simple classifier using a quick Groq call
 export async function selectModel(question: string): Promise<ModelType> {
-  if (!GROQ_API_KEY) {
-    console.warn('[GroqClient] GROQ_API_KEY not set, defaulting to flash');
+  if (getGroqKeyPool().length === 0) {
+    console.warn('[GroqClient] No Groq keys set, defaulting to flash');
     return 'flash';
   }
 
+  let classificationSlot: GroqKeySlot | null = null;
   try {
-    if (getModelCooldownMs(MODELS.flash) > 0) {
-      return getModelCooldownMs(MODELS.pro) > 0 ? 'flash' : 'pro';
-    }
+    const { client, slot } = chooseAvailableModel('flash');
+    classificationSlot = slot;
 
     // Use a fast model for classification
-    const response = await groq.chat.completions.create({
+    const response = await client.chat.completions.create({
       model: MODELS.flash,
       messages: [
         {
@@ -158,8 +234,11 @@ export async function selectModel(question: string): Promise<ModelType> {
   } catch (error: any) {
     if (isProviderRateLimit(error)) {
       const retryAfterMs = getRetryAfterMs(error);
-      setModelCooldown(MODELS.flash, retryAfterMs, error.message);
-      return getModelCooldownMs(MODELS.pro) > 0 ? 'flash' : 'pro';
+      if (classificationSlot) {
+        setKeyModelCooldown(classificationSlot.id, MODELS.flash, retryAfterMs, error.message);
+      }
+      // If classification hits a limit, skip to a model that still has a healthy key.
+      return chooseKeyForModel(MODELS.pro) ? 'pro' : 'flash';
     }
     console.error('[GroqClient] Classifier error, defaulting to flash:', error?.message || error);
     return 'flash';
@@ -174,12 +253,9 @@ export async function* callGeminiStream(
   modelType: ModelType = 'flash',
   attachedFiles?: UploadedFile[]
 ): AsyncGenerator<string, void, unknown> {
-  if (!GROQ_API_KEY) {
-    throw new Error('GROQ_API_KEY not configured. Set GROQ_API_KEY in your environment.');
+  if (getGroqKeyPool().length === 0) {
+    throw new Error('No Groq keys configured. Set GROQ_1 through GROQ_5 or GROQ_API_KEY in your environment.');
   }
-
-  const selectedModel = chooseAvailableModel(modelType);
-  const modelName = selectedModel.name;
 
   // Build messages
   const messages: GroqMessage[] = [
@@ -221,32 +297,48 @@ export async function* callGeminiStream(
   userContent += `Question: ${userQuestion}`;
   messages.push({ role: 'user', content: userContent });
 
-  try {
-    // Use Groq streaming
-    const stream = await groq.chat.completions.create({
-      model: modelName,
-      messages,
-      temperature: 0.3,
-      max_tokens: 4096,
-      stream: true,
-    });
+  const maxAttempts = Math.max(1, getGroqKeyPool().length * 2);
+  let lastRateLimit: GroqRateLimitError | null = null;
 
-    // Yield chunks from stream
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        yield content;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const selectedModel = chooseAvailableModel(modelType);
+    const modelName = selectedModel.name;
+    const groq = selectedModel.client;
+    let yieldedAny = false;
+
+    try {
+      // Use Groq streaming
+      const stream = await groq.chat.completions.create({
+        model: modelName,
+        messages,
+        temperature: 0.3,
+        max_tokens: 4096,
+        stream: true,
+      });
+
+      // Yield chunks from stream
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content;
+        if (content) {
+          yieldedAny = true;
+          yield content;
+        }
       }
+      return;
+    } catch (error: any) {
+      if (isProviderRateLimit(error)) {
+        const retryAfterMs = getRetryAfterMs(error);
+        setKeyModelCooldown(selectedModel.slot.id, modelName, retryAfterMs, error.message);
+        lastRateLimit = new GroqRateLimitError(modelName, retryAfterMs, error.message);
+        if (!yieldedAny) continue;
+        throw lastRateLimit;
+      }
+      console.error('[GroqClient] API error:', error.message);
+      throw new Error(`Groq API error: ${error.message}`);
     }
-  } catch (error: any) {
-    if (isProviderRateLimit(error)) {
-      const retryAfterMs = getRetryAfterMs(error);
-      setModelCooldown(modelName, retryAfterMs, error.message);
-      throw new GroqRateLimitError(modelName, retryAfterMs, error.message);
-    }
-    console.error('[GroqClient] API error:', error.message);
-    throw new Error(`Groq API error: ${error.message}`);
   }
+
+  throw lastRateLimit || new GroqRateLimitError(MODELS[modelType], getShortestCooldownMs());
 }
 
 // Non-streaming version for classifier
@@ -254,32 +346,80 @@ export async function callGemini(
   prompt: string,
   modelType: ModelType = 'flash'
 ): Promise<string> {
-  if (!GROQ_API_KEY) {
-    throw new Error('GROQ_API_KEY not configured');
+  if (getGroqKeyPool().length === 0) {
+    throw new Error('No Groq keys configured');
   }
 
-  const { name: modelName } = chooseAvailableModel(modelType);
+  const maxAttempts = Math.max(1, getGroqKeyPool().length * 2);
+  let lastRateLimit: GroqRateLimitError | null = null;
 
-  try {
-    const response = await groq.chat.completions.create({
-      model: modelName,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 1024,
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const { name: modelName, slot, client } = chooseAvailableModel(modelType);
+
+    try {
+      const response = await client.chat.completions.create({
+        model: modelName,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 1024,
+      });
+
+      return response.choices[0]?.message?.content || '';
+    } catch (error: any) {
+      if (isProviderRateLimit(error)) {
+        const retryAfterMs = getRetryAfterMs(error);
+        setKeyModelCooldown(slot.id, modelName, retryAfterMs, error.message);
+        lastRateLimit = new GroqRateLimitError(modelName, retryAfterMs, error.message);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastRateLimit || new GroqRateLimitError(MODELS[modelType], getShortestCooldownMs());
+}
+
+export async function fetchGroqChatCompletion(payload: Record<string, unknown>): Promise<Response> {
+  if (getGroqKeyPool().length === 0) {
+    throw new Error('No Groq keys configured');
+  }
+
+  const modelName = String(payload.model || MODELS.pro);
+  const maxAttempts = Math.max(1, getGroqKeyPool().length);
+  let lastResponse: Response | null = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const { slot, key } = chooseAvailableKeyForRawModel(modelName);
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify(payload),
     });
 
-    return response.choices[0]?.message?.content || '';
-  } catch (error: any) {
-    if (isProviderRateLimit(error)) {
-      const retryAfterMs = getRetryAfterMs(error);
-      setModelCooldown(modelName, retryAfterMs, error.message);
-      throw new GroqRateLimitError(modelName, retryAfterMs, error.message);
-    }
-    throw error;
+    if (response.status !== 429) return response;
+
+    lastResponse = response;
+    let errorBody: any = {};
+    try {
+      errorBody = await response.clone().json();
+    } catch {}
+    const retryAfterMs = getRetryAfterMs({
+      status: 429,
+      headers: response.headers,
+      message: errorBody?.error?.message,
+      error: errorBody?.error,
+    });
+    setKeyModelCooldown(slot.id, modelName, retryAfterMs, errorBody?.error?.message);
   }
+
+  if (lastResponse) return lastResponse;
+  throw new GroqRateLimitError(modelName, getShortestCooldownMs([modelName]));
 }
 
 // Text-extractable file extensions and their MIME types

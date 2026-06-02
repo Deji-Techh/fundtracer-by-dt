@@ -1,4 +1,5 @@
 import { clearLocalHistoryCache, stopHistoryPolling } from './history';
+import { clearInlineAiCache } from './inlineAiCache';
 
 const EXACT_KEYS = [
   'fundtracer_tabs_v2',
@@ -21,6 +22,7 @@ const SESSION_KEYS = [
 export function clearLocalAppSessionState(): void {
   stopHistoryPolling();
   clearLocalHistoryCache();
+  clearInlineAiCache();
 
   try {
     for (const key of EXACT_KEYS) localStorage.removeItem(key);

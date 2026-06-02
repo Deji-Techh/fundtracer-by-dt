@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Bot, Send, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { sendChatMessage } from '../../api/chat';
 import { MarkdownContent } from './MarkdownContent';
+import { getInlineAiCacheKey, getInlineAiMessages, saveInlineAiMessages } from '../../stores/inlineAiCache';
 
 interface Props {
   address: string;
@@ -22,13 +23,31 @@ export function InlineAiAnalysis({ address, chain, analysisData }: Props) {
   const [streaming, setStreaming] = useState('');
   const loadedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const cacheKey = useMemo(
+    () => getInlineAiCacheKey(address, chain, analysisData),
+    [address, chain, analysisData],
+  );
 
-  // Auto-run initial analysis when analysisData appears
+  useEffect(() => {
+    loadedRef.current = false;
+    setStreaming('');
+    const cached = getInlineAiMessages(cacheKey);
+    setMessages(cached);
+    if (cached.length > 0) loadedRef.current = true;
+  }, [cacheKey]);
+
+  // Auto-run initial analysis when analysisData appears and no cached answer exists.
   useEffect(() => {
     if (loadedRef.current || !analysisData) return;
     loadedRef.current = true;
     runInitialAnalysis();
-  }, [analysisData]);
+  }, [analysisData, cacheKey]);
+
+  useEffect(() => {
+    if (messages.length > 0 && !streaming) {
+      saveInlineAiMessages(cacheKey, messages);
+    }
+  }, [cacheKey, messages, streaming]);
 
   const runInitialAnalysis = async () => {
     setLoading(true);

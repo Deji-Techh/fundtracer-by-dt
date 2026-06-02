@@ -14,6 +14,7 @@ import {
     isUsingRedis, getMemoryStats
 } from '../utils/telegramRedis';
 import { torqueServiceV2 } from './TorqueServiceV2.js';
+import { callGemini } from '../lib/gemini-client.js';
 
 (globalThis as any).fetch = fetch;
 
@@ -76,8 +77,6 @@ async function broadcastActivity(ctx: any, displayName: string, address: string,
 }
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-
 interface WatchedWallet {
     address: string;
     chain: string;
@@ -2896,34 +2895,15 @@ export async function analyzeTransaction(tx: {
     value: number;
     chain: string;
 }): Promise<string> {
-    if (!GROQ_API_KEY) return 'AI unavailable';
-
     try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${GROQ_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages: [{
-                    role: 'user',
-                    content: `Explain in 1-2 sentences: ${tx.value} ETH transferred on ${tx.chain}. From: ${tx.from.slice(0,6)}...${tx.from.slice(-4)}, To: ${tx.to?.slice(0,6)}...${tx.to?.slice(-4)}. Is it suspicious?`
-                }],
-                temperature: 0.3,
-                max_tokens: 100
-            })
-        });
-
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content || 'Analysis failed';
+        return await callGemini(
+            `Explain in 1-2 sentences: ${tx.value} ETH transferred on ${tx.chain}. From: ${tx.from.slice(0,6)}...${tx.from.slice(-4)}, To: ${tx.to?.slice(0,6)}...${tx.to?.slice(-4)}. Is it suspicious?`,
+            'pro'
+        );
     } catch (e) {
         return 'AI error';
     }
 }
-
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function sendReply(ctx: any, textOrOptions: string | any, options: any = {}) {
     if (typeof textOrOptions === 'string') {
@@ -2947,35 +2927,12 @@ async function streamReply(ctx: any, fullText: string, parseMode: 'Markdown' | '
 }
 
 async function askAI(prompt: string, context?: string): Promise<string> {
-    if (!GROQ_API_KEY) return 'AI unavailable. Please configure GROQ_API_KEY.';
-
     const systemPrompt = context 
         ? `You are FundTracer AI assistant. You help users analyze crypto wallets, transactions, and blockchain data. Context: ${context}`
         : `You are FundTracer AI assistant. You help users analyze crypto wallets, transactions, and blockchain data. Be concise and helpful.`;
 
     try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${GROQ_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: GROQ_MODEL,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.5,
-                max_tokens: 500
-            })
-        });
-
-        const data = await res.json();
-        if (data.error) {
-            return `AI Error: ${data.error.message}`;
-        }
-        return data.choices?.[0]?.message?.content || 'AI could not generate a response';
+        return await callGemini(`${systemPrompt}\n\nQuestion: ${prompt}`, 'pro');
     } catch (e) {
         return 'AI error. Please try again later.';
     }
