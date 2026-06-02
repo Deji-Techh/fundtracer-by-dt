@@ -895,6 +895,9 @@ server = app.listen(PORT, async () => {
             }
             
             try {
+                let totalMarketCap = 2430000000000;
+                let totalVolume = 126000000000;
+                let btcDominance = 55.9;
                 let ethGas = 25, activeAddresses = 1240000, defiTvl = 85000000000;
                 let marketStatsDegradedReason: string | null = null;
                 
@@ -906,6 +909,12 @@ server = app.listen(PORT, async () => {
                 if (ALCHEMY_ETH_RPC) activeAddresses = Math.floor(Math.random() * 500000 + 1000000);
                 
                 try {
+                    const globalRes = await axios.get(`${COINGECKO_API}/global`, { timeout: 5000 });
+                    const globalData = globalRes.data?.data;
+                    totalMarketCap = Math.round(globalData?.total_market_cap?.usd || totalMarketCap);
+                    totalVolume = Math.round(globalData?.total_volume?.usd || totalVolume);
+                    btcDominance = Number(globalData?.market_cap_percentage?.btc || btcDominance);
+
                     const cgRes = await axios.get(`${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false`, { timeout: 5000 });
                     const defiTokens = ['ethereum', 'wrapped-bitcoin', 'uniswap', 'aave', 'maker', 'curve-dao-token', 'lido-dao', 'rocket-pool'];
                     const defiData = cgRes.data.filter((c: any) => defiTokens.includes(c.id));
@@ -921,11 +930,11 @@ server = app.listen(PORT, async () => {
                     const staleStats = typeof staleRaw === 'string' ? JSON.parse(staleRaw) : staleRaw;
                     const degradedStats = staleStats
                         ? { ...(staleStats as any), stale: true, staleReason: marketStatsDegradedReason }
-                        : { ethGas, activeAddresses, defiTvl, stale: true, staleReason: 'fallback_no_stale_cache', updatedAt: new Date().toISOString() };
+                        : { totalMarketCap, totalVolume, btcDominance, ethGas, activeAddresses, defiTvl, stale: true, staleReason: 'fallback_no_stale_cache', updatedAt: new Date().toISOString() };
 
                     await redis.set('intel:market-stats', JSON.stringify(degradedStats), { ex: 120 });
                 } else {
-                    const marketStats = { ethGas, activeAddresses, defiTvl, updatedAt: new Date().toISOString() };
+                    const marketStats = { totalMarketCap, totalVolume, btcDominance, ethGas, activeAddresses, defiTvl, updatedAt: new Date().toISOString() };
                     await redis.set('intel:market-stats', JSON.stringify(marketStats), { ex: 600 });
                     await redis.set('intel:market-stats:stale', JSON.stringify(marketStats), { ex: 86400 });
                 }

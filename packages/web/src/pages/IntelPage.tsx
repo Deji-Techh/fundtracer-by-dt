@@ -24,9 +24,8 @@ import './IntelPage.css';
 import { TryNowModal } from '../components/TryNowModal';
 import '../components/TryNowModal.css';
 
-// API endpoints for live data
-const COINGECKO_API = 'https://api.coingecko.com/api/v3';
-const DEXSCREENER_API = 'https://api.dexscreener.com/latest/dex';
+// API endpoints for live data. CoinGecko is intentionally proxied through
+// the backend because the public API is not CORS-safe for browser fetches.
 const API_BASE = '/api/intel';
 
 interface MarketStats {
@@ -36,6 +35,9 @@ interface MarketStats {
   ethGas: number;
   activeAddresses: number;
   defiTvl: number;
+  stale?: boolean;
+  staleReason?: string;
+  updatedAt?: string;
 }
 
 interface TrendingToken {
@@ -68,54 +70,39 @@ export function IntelPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Fetch market stats from CoinGecko and Intel API
+  // Fetch market stats through our backend cache/proxy
   const fetchMarketStats = useCallback(async () => {
     try {
-      // Fetch CoinGecko global data
-      const globalResponse = await fetch(`${COINGECKO_API}/global`);
-      const globalData = await globalResponse.json();
+      const response = await fetch(`${API_BASE}/market-stats`);
+      const json = await response.json();
 
-      // Fetch Intel API data (ethGas, activeAddresses, defiTvl)
-      let intelData = { ethGas: 25, activeAddresses: 1240000, defiTvl: 85000000000 };
-      try {
-        const intelResponse = await fetch(`${API_BASE}/market-stats`);
-        const intelJson = await intelResponse.json();
-        if (intelJson.success && intelJson.data) {
-          intelData = intelJson.data;
-        }
-      } catch (intelError) {
-        console.warn('[Intel] Using fallback data for ethGas/activeAddresses/defiTvl');
+      if (json.success && json.data) {
+        setMarketStats({
+          totalMarketCap: json.data.totalMarketCap || 2430000000000,
+          totalVolume: json.data.totalVolume || 126000000000,
+          btcDominance: json.data.btcDominance || 55.9,
+          ethGas: json.data.ethGas || 25,
+          activeAddresses: json.data.activeAddresses || 1240000,
+          defiTvl: json.data.defiTvl || 85000000000,
+          stale: json.data.stale,
+          staleReason: json.data.staleReason,
+          updatedAt: json.data.updatedAt
+        });
       }
-      
-      setMarketStats({
-        totalMarketCap: globalData.data.total_market_cap.usd,
-        totalVolume: globalData.data.total_volume.usd,
-        btcDominance: globalData.data.market_cap_percentage.btc,
-        ethGas: intelData.ethGas || 25,
-        activeAddresses: intelData.activeAddresses || 1240000,
-        defiTvl: intelData.defiTvl || 85000000000
-      });
     } catch (error) {
       console.error('Failed to fetch market stats:', error);
     }
   }, []);
 
-  // Fetch trending tokens
+  // Fetch trending tokens through our backend cache/proxy
   const fetchTrendingTokens = useCallback(async () => {
     try {
-      const response = await fetch(`${COINGECKO_API}/coins/markets?vs_currency=usd&order=volume_desc&per_page=10&sparkline=false`);
-      const data = await response.json();
-      
-      setTrendingTokens(data.map((coin: any) => ({
-        id: coin.id,
-        name: coin.name,
-        symbol: coin.symbol.toUpperCase(),
-        price: coin.current_price,
-        change24h: coin.price_change_percentage_24h || 0,
-        volume: coin.total_volume,
-        marketCap: coin.market_cap,
-        chain: 'Multi'
-      })));
+      const response = await fetch(`${API_BASE}/trending-tokens`);
+      const json = await response.json();
+
+      if (json.success && Array.isArray(json.data)) {
+        setTrendingTokens(json.data);
+      }
     } catch (error) {
       console.error('Failed to fetch trending tokens:', error);
     }
@@ -443,6 +430,7 @@ export function IntelPage() {
                   keyField="id"
                   loading={loading}
                   compact
+                  className="intel-token-grid"
                   onRowClick={(row) => navigate(`/app-evm?token=${row.id}`)}
                 />
               </Panel>
