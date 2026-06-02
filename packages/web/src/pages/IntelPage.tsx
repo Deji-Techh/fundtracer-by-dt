@@ -23,7 +23,6 @@ import {
 import './IntelPage.css';
 import { TryNowModal } from '../components/TryNowModal';
 import '../components/TryNowModal.css';
-import { useGoogleOneTap } from '../hooks/useGoogleOneTap';
 
 // API endpoints for live data
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
@@ -56,7 +55,6 @@ export function IntelPage() {
   const address = privyUser?.wallet?.address;
   const isConnected = !!address;
   const { isAuthenticated } = useAuth();
-  useGoogleOneTap();
 
   const [marketStats, setMarketStats] = useState<MarketStats | null>(null);
   const [trendingTokens, setTrendingTokens] = useState<TrendingToken[]>([]);
@@ -326,7 +324,7 @@ export function IntelPage() {
           {buttonLoading ? (
             <div className="skeleton-btn" style={{ width: 100, height: 36, borderRadius: 6 }} />
           ) : isAuthenticated ? (
-            <button className="intel-btn intel-btn--primary intel-btn--lg" onClick={() => navigate('/app-evm')}>
+            <button className="intel-btn intel-btn--primary" onClick={() => navigate('/app-evm')}>
               Launch App
             </button>
           ) : (

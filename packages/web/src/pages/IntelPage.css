@@ -280,15 +280,6 @@
   gap: var(--space-3);
 }
 
-.intel-header-actions .intel-btn {
-  min-height: 38px;
-  min-width: max-content;
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-full);
-  line-height: 1;
-  white-space: nowrap;
-}
-
 /* ─────────────────────────────────────────────────────────────
    RESPONSIVE
    ───────────────────────────────────────────────────────────── */
