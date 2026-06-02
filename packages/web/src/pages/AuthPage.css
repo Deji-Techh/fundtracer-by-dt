@@ -599,55 +599,11 @@
   }
 
   .auth-split-left {
-    min-height: auto;
-    padding: 42px 20px 24px;
+    min-height: 100vh;
+    padding: 42px 20px;
   }
 
   .auth-split-right {
-    min-height: 560px;
-    padding: 32px 20px 48px;
-  }
-
-  .auth-preview-shell {
-    width: min(720px, 100%);
-    min-height: 500px;
-    grid-template-columns: 92px minmax(430px, 1fr);
-    border-radius: 24px;
-    transform: none;
-  }
-
-  .auth-preview-rail {
-    padding-top: 28px;
-  }
-
-  .auth-preview-rail nav {
-    margin-top: 54px;
-    gap: 30px;
-  }
-
-  .auth-preview-avatar {
-    width: 58px;
-    height: 58px;
-    font-size: 20px;
-  }
-
-  .auth-preview-board {
-    padding: 38px 40px 34px;
-  }
-
-  .auth-preview-top h2 {
-    font-size: 28px;
-  }
-
-  .auth-preview-tabs {
-    margin-top: 34px;
-  }
-
-  .auth-preview-metrics {
-    margin-top: 30px;
-  }
-
-  .auth-preview-bars {
     display: none;
   }
 
@@ -662,90 +618,7 @@
 
 @media (max-width: 520px) {
   .auth-split-left {
-    padding-top: 30px;
-  }
-
-  .auth-split-right {
-    min-height: 500px;
-    padding-inline: 12px;
-  }
-
-  .auth-preview-shell {
-    width: 100%;
-    min-height: 450px;
-    grid-template-columns: 72px minmax(320px, 1fr);
-    border-radius: 20px;
-  }
-
-  .auth-preview-mark {
-    width: 46px;
-    height: 46px;
-    border-radius: 16px;
-  }
-
-  .auth-preview-mark img {
-    width: 25px;
-    height: 25px;
-  }
-
-  .auth-preview-rail nav {
-    margin-top: 42px;
-    gap: 26px;
-  }
-
-  .auth-preview-rail nav svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .auth-preview-avatar {
-    width: 48px;
-    height: 48px;
-    font-size: 16px;
-  }
-
-  .auth-preview-board {
-    padding: 30px 26px;
-  }
-
-  .auth-preview-top {
-    display: block;
-  }
-
-  .auth-preview-score {
-    display: none;
-  }
-
-  .auth-preview-top h2 {
-    font-size: 23px;
-  }
-
-  .auth-preview-tabs {
-    margin-top: 28px;
-    font-size: 13px;
-  }
-
-  .auth-preview-metrics {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .auth-preview-metrics div {
-    min-height: 86px;
-    padding: 16px;
-  }
-
-  .auth-preview-metrics strong {
-    font-size: 26px;
-  }
-
-  .auth-preview-card {
-    margin-top: 18px;
-    padding: 16px;
-  }
-
-  .auth-preview-chart {
-    height: 120px;
+    padding: 30px 18px;
   }
 
   .auth-split-brand {
