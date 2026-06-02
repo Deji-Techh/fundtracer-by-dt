@@ -123,18 +123,19 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
         <InputStage
           title="Wallet Analysis"
           maxWidth={isMobile ? 470 : 620}
-          hint="Drop a blockchain explorer link anywhere to auto-detect chain and address"
+          hint="0x.. or ENS"
         >
           <CompactSearchForm
             value={address}
             onChange={setAddress}
             onSubmit={handleAnalyze}
-            placeholder="Paste wallet address, ENS name, or Solana address"
+            placeholder="0x.. or ENS"
             ariaLabel="Wallet address"
             loading={tab.loading}
             disabled={tab.loading}
             submitLabel="Analyze"
             loadingLabel="Analyzing"
+            hideSubmitOnMobile
             autoFocus
           />
         </InputStage>
