@@ -137,17 +137,17 @@
   border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
-    rgba(17, 18, 23, 0.9);
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+    var(--intel-bg-surface);
+  border-color: var(--intel-border-default);
+  box-shadow: var(--shadow-lg);
 }
 
 .intel-grid__feed .live-feed__header,
 .intel-grid__tokens .intel-panel__header {
   min-height: 46px;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.025);
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  background: var(--intel-bg-elevated);
+  border-bottom-color: var(--intel-border-default);
 }
 
 .intel-grid__feed .live-feed__content {
@@ -182,7 +182,7 @@
 }
 
 .intel-token-grid .data-grid__head {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--intel-bg-elevated);
 }
 
 .intel-token-grid .data-grid__th {
@@ -196,7 +196,7 @@
 
 .intel-token-grid .data-grid__td {
   padding: 8px 12px;
-  color: rgba(242, 244, 247, 0.92);
+  color: var(--intel-text-primary);
 }
 
 .intel-token-grid .data-grid__td:nth-child(1) {

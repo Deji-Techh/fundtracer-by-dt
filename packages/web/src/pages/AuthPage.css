@@ -32,12 +32,14 @@
   --auth-chart-grid: rgba(102, 95, 255, 0.08);
   --auth-chart-glow-a: rgba(0, 199, 102, 0.05);
   --auth-chart-glow-b: rgba(102, 95, 255, 0.08);
-  min-height: 100vh;
+  height: 100svh;
+  min-height: 100svh;
   display: grid;
   grid-template-columns: minmax(420px, 1fr) minmax(520px, 1fr);
   background: var(--auth-page-bg, #f7f7f8);
   color: var(--auth-page-text, #1d1d1f);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  overflow: hidden;
 }
 
 [data-theme="dark"] .auth-split-page,
@@ -74,7 +76,8 @@
 
 .auth-split-left,
 .auth-split-right {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   position: relative;
 }
 
@@ -82,7 +85,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 64px 56px 42px;
+  padding: clamp(28px, 6vh, 64px) 56px clamp(24px, 4vh, 42px);
   background: var(--auth-left-bg, #ffffff);
 }
 
@@ -95,7 +98,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 40px;
+  margin-bottom: clamp(20px, 4vh, 40px);
   font-size: 16px;
   font-weight: 650;
 }
@@ -216,7 +219,8 @@
   position: relative;
   z-index: 1;
   width: min(820px, 108%);
-  min-height: 650px;
+  height: min(650px, calc(100svh - 72px));
+  min-height: 0;
   display: grid;
   grid-template-columns: 118px minmax(520px, 1fr);
   background: var(--auth-preview-bg, #ffffff);
@@ -277,9 +281,10 @@
 }
 
 .auth-preview-board {
-  padding: 54px 64px 44px;
+  padding: clamp(30px, 5vh, 54px) 64px clamp(26px, 4vh, 44px);
   min-width: 0;
   color: var(--auth-preview-text, #09091b);
+  overflow: hidden;
 }
 
 .auth-preview-top {
@@ -341,7 +346,7 @@
 }
 
 .auth-preview-tabs {
-  margin-top: 50px;
+  margin-top: clamp(26px, 5vh, 50px);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   border-bottom: 1px solid var(--auth-preview-border, #e4e6f0);
@@ -361,7 +366,7 @@
 }
 
 .auth-preview-metrics {
-  margin-top: 42px;
+  margin-top: clamp(24px, 4vh, 42px);
   display: grid;
   grid-template-columns: repeat(2, minmax(210px, 1fr));
   gap: 22px;
@@ -400,7 +405,7 @@
 }
 
 .auth-preview-card {
-  margin-top: 30px;
+  margin-top: clamp(18px, 3vh, 30px);
   border: 1px solid var(--auth-preview-border, #dde1ee);
   border-radius: 18px;
   padding: 24px;
@@ -515,7 +520,8 @@
   }
 
   .auth-split-left {
-    min-height: 100vh;
+    height: 100svh;
+    min-height: 0;
     padding: 42px 20px;
   }
 
@@ -547,11 +553,12 @@
 }
 
 .auth-page-v2 {
-  min-height: 100vh;
+  height: 100svh;
+  min-height: 100svh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 80px 24px;
+  padding: clamp(24px, 8vh, 80px) 24px;
   position: relative;
   background: var(--intel-bg-deep);
   overflow: hidden;
