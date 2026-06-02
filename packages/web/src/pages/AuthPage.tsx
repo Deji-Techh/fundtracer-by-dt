@@ -4,7 +4,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { handleVerifyEmail, handlePasswordReset, handleRecoverEmail, sendPasswordReset } from '../firebase';
-import { Mail, Lock, Check, AlertCircle, Eye, EyeOff, ArrowRight, Loader2, Search } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  Check,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Loader2,
+  Search,
+  Home,
+  Settings,
+  Wallet,
+  Users,
+  Network,
+  Activity,
+  Shield,
+} from 'lucide-react';
 import { useGoogleOneTap } from '../hooks/useGoogleOneTap';
 import { extractAddress } from '../desktop/lib/extractAddress';
 import './AuthPage.css';
@@ -270,7 +287,82 @@ export function AuthPage() {
           onDragLeave={() => setTryDragOver(false)}
           onDrop={handleTryDrop}
         >
-          <div className="auth-split-grid" />
+          <div className="auth-preview-pattern" />
+          <div className="auth-preview-shell" aria-hidden="true">
+            <div className="auth-preview-rail">
+              <div className="auth-preview-mark">
+                <img src="/logo.png" alt="" />
+              </div>
+              <nav>
+                <Home size={21} />
+                <Network size={21} />
+                <Wallet size={21} />
+                <Users size={21} />
+                <Settings size={21} />
+              </nav>
+              <div className="auth-preview-avatar">FT</div>
+            </div>
+
+            <div className="auth-preview-board">
+              <div className="auth-preview-top">
+                <div>
+                  <span>Wallet Intelligence</span>
+                  <h2>Investigation cockpit</h2>
+                </div>
+                <div className="auth-preview-score">
+                  <Shield size={16} />
+                  <strong>45</strong>
+                  <span>Risk</span>
+                </div>
+              </div>
+
+              <div className="auth-preview-tabs">
+                <span className="is-active">Overview</span>
+                <span>Funding</span>
+                <span>Graph</span>
+              </div>
+
+              <div className="auth-preview-metrics">
+                <div>
+                  <span>Total traced</span>
+                  <strong>$2.43M</strong>
+                  <em>+12.4%</em>
+                </div>
+                <div>
+                  <span>Suspicious flows</span>
+                  <strong>18</strong>
+                  <em className="danger">High</em>
+                </div>
+              </div>
+
+              <section className="auth-preview-card">
+                <div className="auth-preview-card-head">
+                  <strong>Transaction flow</strong>
+                  <span><Activity size={14} /> Live</span>
+                </div>
+                <div className="auth-preview-chart">
+                  <div className="auth-preview-line line-a" />
+                  <div className="auth-preview-line line-b" />
+                  <div className="auth-preview-node node-1" />
+                  <div className="auth-preview-node node-2" />
+                  <div className="auth-preview-node node-3" />
+                </div>
+              </section>
+
+              <section className="auth-preview-card auth-preview-bars">
+                <div className="auth-preview-card-head">
+                  <strong>Cashflow</strong>
+                  <span>30d</span>
+                </div>
+                <div className="auth-preview-bar-row">
+                  {[42, 62, 34, 78, 55, 88, 70].map((height, index) => (
+                    <i key={index} style={{ height: `${height}%` }} />
+                  ))}
+                </div>
+              </section>
+            </div>
+          </div>
+
           <div className="auth-try-panel">
             <div className="auth-try-label">Try Now</div>
             <div className="auth-try-search">
