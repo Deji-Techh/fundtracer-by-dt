@@ -64,6 +64,7 @@ export function PortfolioView({ address: initialAddress, chain: initialChain }: 
           disabled={loading}
           submitLabel="View"
           loadingLabel="Loading"
+          hideSubmitOnMobile
           leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
         />
       </div>
@@ -119,7 +120,7 @@ function PortfolioDisplay({ data }: { data: Record<string, unknown> }) {
           Total Portfolio Value
         </div>
         <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
-          {displayTotal > 0 ? `$${displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'N/A'}
+          {`$${Math.max(displayTotal, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         </div>
       </div>
 

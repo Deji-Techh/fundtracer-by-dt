@@ -243,20 +243,21 @@ export function ContractScannerView() {
         <>
           <InputStage
             title="Contract Analysis"
-            maxWidth={640}
-            hint="Enter a contract to inspect interactors, shared funding, and suspicious behavior"
+            maxWidth={760}
+            hint="0x.. or ENS"
           >
             <CompactSearchForm
               value={address}
               onChange={setAddress}
               onSubmit={handleScan}
-              placeholder="Paste contract address (0x...)"
+              placeholder="0x.. or ENS"
               ariaLabel="Contract address"
               loading={loading}
               disabled={loading || !address.trim()}
               submitLabel="Scan"
               loadingLabel="Scanning"
               autoFocus
+              hideSubmitOnMobile
               leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
             />
           </InputStage>
@@ -295,7 +296,7 @@ export function ContractScannerView() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginTop: 12 }}>
                   <Stat label="Interactors" value={String(result.totalInteractors ?? result.uniqueWallets ?? 0)} />
                   <Stat label="Transfers" value={String(result.totalTransfers ?? 0)} />
-                  <Stat label="Balance" value={`${result.ethBalance?.toFixed(4) ?? 'N/A'} ETH`} />
+                  <Stat label="Balance" value={`${typeof result.ethBalance === 'number' ? result.ethBalance.toFixed(4) : '0.0000'} ETH`} />
                 </div>
                 {((result.totalTransfers || 0) === 0 && (result.walletInteractions?.length || 0) === 0) && (
                   <div style={{ marginTop: 12, fontSize: 11, color: 'var(--fg-tertiary)', lineHeight: 1.5 }}>

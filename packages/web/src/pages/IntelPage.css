@@ -112,6 +112,8 @@
   padding: var(--space-8) var(--space-6);
   max-width: 1400px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -121,12 +123,91 @@
 .intel-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
+  gap: 18px;
 }
 
 .intel-grid__feed,
 .intel-grid__tokens {
-  min-height: 400px;
+  min-height: 0;
+}
+
+.intel-grid__feed .live-feed,
+.intel-grid__tokens .intel-panel {
+  min-height: 360px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    rgba(17, 18, 23, 0.9);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+}
+
+.intel-grid__feed .live-feed__header,
+.intel-grid__tokens .intel-panel__header {
+  min-height: 46px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.025);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.intel-grid__feed .live-feed__content {
+  max-height: none;
+}
+
+.intel-grid__feed .live-feed__item {
+  min-height: 54px;
+  padding: 11px 16px;
+  gap: 16px;
+}
+
+.intel-grid__feed .live-feed__item:hover,
+.intel-token-grid .data-grid__row:hover {
+  background: rgba(0, 230, 122, 0.045);
+}
+
+.intel-grid__feed .live-feed__value {
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: rgba(0, 230, 122, 0.055);
+}
+
+.intel-token-grid {
+  border: 0;
+  border-radius: 0 0 14px 14px;
+  background: transparent;
+}
+
+.intel-token-grid .data-grid__table {
+  table-layout: fixed;
+}
+
+.intel-token-grid .data-grid__head {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.intel-token-grid .data-grid__th {
+  padding: 9px 12px;
+  color: var(--intel-text-muted);
+}
+
+.intel-token-grid .data-grid__row {
+  min-height: 34px;
+}
+
+.intel-token-grid .data-grid__td {
+  padding: 8px 12px;
+  color: rgba(242, 244, 247, 0.92);
+}
+
+.intel-token-grid .data-grid__td:nth-child(1) {
+  width: 28%;
+}
+
+.intel-token-grid .data-grid__td:nth-child(2),
+.intel-token-grid .data-grid__td:nth-child(3),
+.intel-token-grid .data-grid__td:nth-child(4),
+.intel-token-grid .data-grid__td:nth-child(5) {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Token cell in table */
@@ -236,14 +317,14 @@
   min-height: 40px;
   min-width: max-content;
   padding: var(--space-2-5) var(--space-4);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1;
   text-decoration: none;
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
   border: none;
   appearance: none;
   -webkit-appearance: none;
@@ -254,11 +335,13 @@
   background: var(--intel-cyan, #00e67a) !important;
   color: var(--intel-bg-deep, #050508) !important;
   border: 1px solid var(--intel-cyan, #00e67a) !important;
+  box-shadow: 0 10px 24px rgba(0, 230, 122, 0.18);
 }
 
 .intel-btn--primary:hover {
   background: var(--intel-cyan-bright, #33ff88) !important;
   box-shadow: var(--glow-cyan);
+  transform: translateY(-1px);
 }
 
 .intel-btn--secondary {
@@ -285,6 +368,13 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+.intel-header-actions .intel-btn {
+  min-height: 38px;
+  min-width: 116px;
+  padding: 0 18px;
+  letter-spacing: 0;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -339,10 +429,13 @@
   }
 
   .intel-header-actions .intel-btn {
-    min-height: 36px;
-    padding: 0 12px;
-    font-size: 11px;
+    min-height: 40px;
+    min-width: 108px;
+    padding: 0 14px;
+    font-family: var(--font-sans);
+    font-size: 12px;
     letter-spacing: 0;
+    border-radius: 10px;
   }
 
   .intel-header-actions .intel-btn--primary {
@@ -381,9 +474,13 @@
   }
 
   .intel-header-actions .intel-btn {
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--text-xs);
+    min-height: 40px;
+    min-width: 108px;
+    padding: 0 14px;
+    font-family: var(--font-sans);
+    font-size: 12px;
     white-space: nowrap;
+    border-radius: 10px;
   }
   
   .intel-hero__actions {
@@ -594,9 +691,11 @@
   }
 }
 
-/* Hide scrollbar for live feed overflow on landing */
-.intel-grid__feed .live-feed__content {
-  max-height: 450px;
+/* Keep landing data panels aligned on wider screens. */
+@media (min-width: 768px) {
+  .intel-grid__feed .live-feed__content {
+    max-height: 312px;
+  }
 }
 
 /* Skeleton loader for buttons */

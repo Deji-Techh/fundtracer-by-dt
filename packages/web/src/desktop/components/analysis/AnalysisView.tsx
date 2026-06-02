@@ -422,7 +422,7 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
               value={riskScore !== undefined ? `${riskScore}/100` : 'N/A'}
               color={riskScore !== undefined ? (riskScore > 60 ? 'var(--destructive)' : riskScore > 30 ? '#ff9f0a' : 'var(--accent)') : 'var(--fg-tertiary)'}
             />
-            <MetricCard isMobile={isMobile} label="Balance" value={balance ? `${Number(balance).toFixed(4)} ${currency}` : 'N/A'} color="var(--fg)" />
+            <MetricCard isMobile={isMobile} label="Balance" value={balance !== undefined && balance !== null ? `${Number(balance).toFixed(4)} ${currency}` : '0.0000 ' + currency} color="var(--fg)" />
             <MetricCard isMobile={isMobile} label="Transactions" value={txCount !== undefined ? String(txCount) : 'N/A'} color="var(--fg)" />
             {firstSeen != null && (
               <MetricCard isMobile={isMobile} label="First Seen" value={new Date(firstSeen * 1000).toISOString().slice(0, 10)} color="var(--fg-secondary)" />

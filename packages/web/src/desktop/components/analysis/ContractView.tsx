@@ -44,12 +44,13 @@ export function ContractView() {
           value={address}
           onChange={setAddress}
           onSubmit={handleAnalyze}
-          placeholder="0x... contract address"
+          placeholder="0x.. or ENS"
           ariaLabel="Contract address"
           loading={loading}
           disabled={loading}
           submitLabel="Analyze"
           loadingLabel="Analyzing"
+          hideSubmitOnMobile
           leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
         />
       </div>
@@ -84,8 +85,8 @@ function ContractResult({ data, chain }: { data: Record<string, unknown>; chain:
     <div>
       {/* Metric cards */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-        <MetricCard icon={<Activity size={16} />} label="Risk Score" value={riskScore ? `${riskScore}/100` : 'N/A'} color={riskScore && riskScore > 60 ? 'var(--destructive)' : 'var(--accent)'} />
-        <MetricCard icon={<Users size={16} />} label="Interactors" value={totalInteractors ? String(totalInteractors) : 'N/A'} color="var(--fg)" />
+        <MetricCard icon={<Activity size={16} />} label="Risk Score" value={riskScore !== undefined ? `${riskScore}/100` : 'N/A'} color={riskScore !== undefined && riskScore > 60 ? 'var(--destructive)' : 'var(--accent)'} />
+        <MetricCard icon={<Users size={16} />} label="Interactors" value={totalInteractors !== undefined ? String(totalInteractors) : '0'} color="var(--fg)" />
         <MetricCard icon={<AlertTriangle size={16} />} label="Sybil Clusters" value={String(sybilClusters.length)} color="var(--warning)" />
         <MetricCard icon={<FileCode size={16} />} label="Shared Funders" value={String(sharedFunding.length)} color="var(--accent)" />
       </div>

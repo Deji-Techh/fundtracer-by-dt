@@ -134,19 +134,20 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
       {!result && !loading && !error && (
         <InputStage
           title="Interactors Analysis"
-          maxWidth={640}
-          hint="Discover all interacting addresses and shared funders"
+          maxWidth={760}
+          hint="0x.. or ENS"
         >
           <CompactSearchForm
             value={address}
             onChange={setAddress}
             onSubmit={handleAnalyze}
-            placeholder="Paste wallet/contract address (0x...)"
+            placeholder="0x.. or ENS"
             ariaLabel="Wallet or contract address"
             loading={loading}
             disabled={loading}
             submitLabel="Find"
             loadingLabel="Analyzing"
+            hideSubmitOnMobile
             leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
           />
         </InputStage>

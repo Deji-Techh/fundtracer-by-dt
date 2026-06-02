@@ -60,6 +60,7 @@ interface CompactSearchFormProps {
   loadingLabel?: string;
   autoFocus?: boolean;
   leftSlot?: ReactNode;
+  hideSubmitOnMobile?: boolean;
 }
 
 export function CompactSearchForm({
@@ -74,9 +75,11 @@ export function CompactSearchForm({
   loadingLabel,
   autoFocus,
   leftSlot,
+  hideSubmitOnMobile,
 }: CompactSearchFormProps) {
   const isMobile = useIsMobile();
   const canSubmit = !disabled && !loading;
+  const showSubmit = !(isMobile && hideSubmitOnMobile);
 
   return (
     <div style={{
@@ -123,52 +126,54 @@ export function CompactSearchForm({
           }}
         />
       </div>
-      <button
-        type="button"
-        onClick={onSubmit}
-        disabled={!canSubmit}
-        aria-label={loading ? (loadingLabel || submitLabel) : submitLabel}
-        title={loading ? (loadingLabel || submitLabel) : submitLabel}
-        style={{
-          width: isMobile ? 40 : undefined,
-          minWidth: isMobile ? 40 : 84,
-          height: isMobile ? 40 : 38,
-          padding: isMobile ? 0 : '0 16px',
-          borderRadius: isMobile ? 10 : 'var(--radius-md)',
-          border: 'none',
-          background: canSubmit ? 'var(--accent)' : 'var(--bg-secondary)',
-          color: canSubmit ? '#000' : 'var(--fg-tertiary)',
-          fontSize: 12,
-          fontWeight: 700,
-          fontFamily: 'var(--font-sans)',
-          cursor: canSubmit ? 'pointer' : 'default',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        {loading ? (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              width: 10,
-              height: 10,
-              border: '2px solid currentColor',
-              borderTopColor: 'transparent',
-              borderRadius: '50%',
-              display: 'inline-block',
-              animation: 'spin 0.6s linear infinite',
-            }} />
-            {!isMobile && (loadingLabel || submitLabel)}
-          </span>
-        ) : isMobile ? (
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-          </svg>
-        ) : (
-          submitLabel
-        )}
-      </button>
+      {showSubmit && (
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={!canSubmit}
+          aria-label={loading ? (loadingLabel || submitLabel) : submitLabel}
+          title={loading ? (loadingLabel || submitLabel) : submitLabel}
+          style={{
+            width: isMobile ? 40 : undefined,
+            minWidth: isMobile ? 40 : 84,
+            height: isMobile ? 40 : 38,
+            padding: isMobile ? 0 : '0 16px',
+            borderRadius: isMobile ? 10 : 'var(--radius-md)',
+            border: 'none',
+            background: canSubmit ? 'var(--accent)' : 'var(--bg-secondary)',
+            color: canSubmit ? '#000' : 'var(--fg-tertiary)',
+            fontSize: 12,
+            fontWeight: 700,
+            fontFamily: 'var(--font-sans)',
+            cursor: canSubmit ? 'pointer' : 'default',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {loading ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                width: 10,
+                height: 10,
+                border: '2px solid currentColor',
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+                display: 'inline-block',
+                animation: 'spin 0.6s linear infinite',
+              }} />
+              {!isMobile && (loadingLabel || submitLabel)}
+            </span>
+          ) : isMobile ? (
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+          ) : (
+            submitLabel
+          )}
+        </button>
+      )}
     </div>
   );
 }

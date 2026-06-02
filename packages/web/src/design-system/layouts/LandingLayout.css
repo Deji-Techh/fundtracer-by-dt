@@ -1,12 +1,29 @@
 /* LandingLayout - Public pages layout */
 
 .landing-layout {
+  --color-bg: var(--intel-bg-deep);
+  --color-bg-primary: var(--intel-bg-deep);
+  --color-bg-secondary: var(--intel-bg-base);
+  --color-bg-elevated: var(--intel-bg-surface);
+  --color-bg-surface: var(--intel-bg-surface);
+  --color-bg-hover: var(--intel-bg-hover);
+  --color-bg-active: var(--intel-bg-active);
+  --color-border: var(--intel-border-default);
+  --color-border-hover: var(--intel-border-strong);
+  --color-text-primary: var(--intel-text-primary);
+  --color-text-secondary: var(--intel-text-secondary);
+  --color-text-muted: var(--intel-text-muted);
+  --color-accent: var(--intel-cyan);
+  --gradient-green: linear-gradient(135deg, var(--intel-cyan), var(--intel-green-dim));
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--intel-bg-deep);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 230, 122, 0.055), transparent 34%),
+    var(--intel-bg-deep);
   overflow-x: hidden;
   max-width: 100vw;
+  color: var(--intel-text-primary);
 }
 
 /* ─────────────────────────────────────────────────────────────

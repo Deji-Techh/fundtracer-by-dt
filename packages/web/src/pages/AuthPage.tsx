@@ -203,7 +203,13 @@ export function AuthPage() {
 
   if (authMode === 'signin' || authMode === 'signup') {
     return (
-      <div className="auth-split-page">
+      <motion.div
+        className="auth-split-page"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      >
         <section className="auth-split-left">
           <div className="auth-split-content">
             <div className="auth-split-brand">
@@ -302,13 +308,13 @@ export function AuthPage() {
                 <div className="auth-preview-chart">
                   <svg className="auth-preview-chart-svg" viewBox="0 0 720 180" preserveAspectRatio="none" aria-hidden="true">
                     <defs>
-                      <linearGradient id="authLineGreen" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#00c766" stopOpacity="0.95" />
-                        <stop offset="100%" stopColor="#00c766" stopOpacity="0.16" />
+                      <linearGradient id="authAreaIn" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#00d475" stopOpacity="0.16" />
+                        <stop offset="100%" stopColor="#00d475" stopOpacity="0" />
                       </linearGradient>
-                      <linearGradient id="authLineViolet" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#6159ff" stopOpacity="0.95" />
-                        <stop offset="100%" stopColor="#6159ff" stopOpacity="0.16" />
+                      <linearGradient id="authAreaOut" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#6672ff" stopOpacity="0.13" />
+                        <stop offset="100%" stopColor="#6672ff" stopOpacity="0" />
                       </linearGradient>
                     </defs>
                     <g className="auth-chart-grid">
@@ -319,28 +325,35 @@ export function AuthPage() {
                         <line key={`h-${i}`} x1="0" y1={i * 45} x2="720" y2={i * 45} />
                       ))}
                     </g>
+                    <line className="auth-chart-axis" x1="0" y1="138" x2="720" y2="138" />
                     <path
-                      d="M0 132 C 72 126, 118 52, 184 44 S 302 58, 362 90 S 482 126, 576 98 S 654 70, 720 78"
+                      d="M0 134 C 96 126, 146 88, 218 76 S 342 86, 420 66 S 552 44, 720 58 L720 180 L0 180 Z"
+                      fill="url(#authAreaIn)"
+                    />
+                    <path
+                      d="M0 152 C 88 150, 154 136, 224 126 S 352 118, 428 132 S 556 122, 720 106 L720 180 L0 180 Z"
+                      fill="url(#authAreaOut)"
+                    />
+                    <path
+                      d="M0 134 C 96 126, 146 88, 218 76 S 342 86, 420 66 S 552 44, 720 58"
                       fill="none"
-                      stroke="url(#authLineGreen)"
-                      strokeWidth="4"
+                      stroke="#00d475"
+                      strokeWidth="3"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <path
-                      d="M0 150 C 90 146, 160 122, 220 116 S 342 136, 410 124 S 526 92, 612 104 S 670 136, 720 126"
+                      d="M0 152 C 88 150, 154 136, 224 126 S 352 118, 428 132 S 556 122, 720 106"
                       fill="none"
-                      stroke="url(#authLineViolet)"
-                      strokeWidth="4"
+                      stroke="#6672ff"
+                      strokeWidth="3"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
-                    <circle className="auth-chart-node auth-chart-node--green" cx="184" cy="44" r="10" />
-                    <circle className="auth-chart-node auth-chart-node--green" cx="362" cy="90" r="10" />
-                    <circle className="auth-chart-node auth-chart-node--green" cx="576" cy="98" r="10" />
-                    <circle className="auth-chart-node auth-chart-node--violet" cx="220" cy="116" r="8" />
-                    <circle className="auth-chart-node auth-chart-node--violet" cx="410" cy="124" r="8" />
-                    <circle className="auth-chart-node auth-chart-node--violet" cx="612" cy="104" r="8" />
+                    <circle className="auth-chart-node auth-chart-node--green" cx="218" cy="76" r="5" />
+                    <circle className="auth-chart-node auth-chart-node--green" cx="420" cy="66" r="5" />
+                    <circle className="auth-chart-node auth-chart-node--violet" cx="224" cy="126" r="4.5" />
+                    <circle className="auth-chart-node auth-chart-node--violet" cx="428" cy="132" r="4.5" />
                   </svg>
                 </div>
               </section>
@@ -360,13 +373,19 @@ export function AuthPage() {
           </div>
 
         </section>
-      </div>
+      </motion.div>
     );
   }
 
   return (
     <LandingLayout navItems={navItems} showSearch={false}>
-      <div className="auth-page-v2">
+      <motion.div
+        className="auth-page-v2"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="auth-bg-v2">
           <div className="auth-glow-v2 glow-1" />
           <div className="auth-glow-v2 glow-2" />
@@ -600,7 +619,7 @@ export function AuthPage() {
             </AnimatePresence>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
     </LandingLayout>
   );
 }
