@@ -170,8 +170,11 @@ export function AppShell() {
     <ChainProvider>
     <TabsProvider>
       <div onKeyDown={handleKeyDown} tabIndex={-1} style={{
-        display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw',
+        position: 'fixed',
+        inset: 0,
+        display: 'flex', flexDirection: 'column', height: '100dvh', width: '100vw',
         background: 'var(--bg)', overflow: 'hidden', outline: 'none',
+        overscrollBehavior: 'none',
       }}>
         <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => isMobile ? toggleMobileSidebar() : toggleSidebar()} isMobile={isMobile} currentView={currentView} />
 

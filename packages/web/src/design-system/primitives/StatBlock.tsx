@@ -76,7 +76,7 @@ interface StatGridProps {
 
 export function StatGrid({ children, columns = 4, className = '' }: StatGridProps) {
   return (
-    <div className={`stat-grid stat-grid--cols-${columns} ${className}`}>
+    <div className={`intel-stat-grid intel-stat-grid--cols-${columns} ${className}`}>
       {children}
     </div>
   );

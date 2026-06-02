@@ -112,45 +112,45 @@
    STAT GRID
    ───────────────────────────────────────────────────────────── */
 
-.stat-grid {
+.intel-stat-grid {
   display: grid;
   gap: var(--space-3);
 }
 
-.stat-grid--cols-2 {
+.intel-stat-grid--cols-2 {
   grid-template-columns: repeat(2, 1fr);
 }
 
-.stat-grid--cols-3 {
+.intel-stat-grid--cols-3 {
   grid-template-columns: repeat(3, 1fr);
 }
 
-.stat-grid--cols-4 {
+.intel-stat-grid--cols-4 {
   grid-template-columns: repeat(4, 1fr);
 }
 
-.stat-grid--cols-5 {
+.intel-stat-grid--cols-5 {
   grid-template-columns: repeat(5, 1fr);
 }
 
-.stat-grid--cols-6 {
+.intel-stat-grid--cols-6 {
   grid-template-columns: repeat(6, 1fr);
 }
 
 /* Responsive */
 @media (max-width: 1023px) {
-  .stat-grid--cols-4,
-  .stat-grid--cols-5,
-  .stat-grid--cols-6 {
+  .intel-stat-grid--cols-4,
+  .intel-stat-grid--cols-5,
+  .intel-stat-grid--cols-6 {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (max-width: 767px) {
-  .stat-grid--cols-3,
-  .stat-grid--cols-4,
-  .stat-grid--cols-5,
-  .stat-grid--cols-6 {
+  .intel-stat-grid--cols-3,
+  .intel-stat-grid--cols-4,
+  .intel-stat-grid--cols-5,
+  .intel-stat-grid--cols-6 {
     grid-template-columns: repeat(2, 1fr);
   }
   
