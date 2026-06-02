@@ -13,7 +13,6 @@ import {
   EyeOff,
   ArrowRight,
   Loader2,
-  Search,
   Home,
   Settings,
   Wallet,
@@ -23,7 +22,6 @@ import {
   Shield,
 } from 'lucide-react';
 import { useGoogleOneTap } from '../hooks/useGoogleOneTap';
-import { extractAddress } from '../desktop/lib/extractAddress';
 import './AuthPage.css';
 
 const navItems = [
@@ -52,8 +50,6 @@ export function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
-  const [tryAddress, setTryAddress] = useState('');
-  const [tryDragOver, setTryDragOver] = useState(false);
   
   const oobCode = searchParams.get('oobCode');
   const mode = searchParams.get('mode');
@@ -205,38 +201,6 @@ export function AuthPage() {
     }
   };
 
-  const detectChain = (input: string) => {
-    const lower = input.toLowerCase();
-    if (lower.includes('lineascan')) return 'linea';
-    if (lower.includes('arbiscan')) return 'arbitrum';
-    if (lower.includes('basescan')) return 'base';
-    if (lower.includes('optimistic')) return 'optimism';
-    if (lower.includes('polygonscan')) return 'polygon';
-    if (lower.includes('bscscan')) return 'bsc';
-    if (lower.includes('solscan') || lower.includes('solana')) return 'solana';
-    return 'ethereum';
-  };
-
-  const handleTryNow = async () => {
-    const raw = tryAddress.trim();
-    const address = extractAddress(raw) || raw;
-    if (!address) {
-      setError('Paste a wallet address or explorer link first.');
-      return;
-    }
-    const params = new URLSearchParams({ address, chain: detectChain(raw) });
-    await handleGoogleLogin(`/app-evm?${params.toString()}`);
-  };
-
-  const handleTryDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setTryDragOver(false);
-    const text = e.dataTransfer.getData('text/plain');
-    if (!text) return;
-    setTryAddress(extractAddress(text) || text);
-  };
-
   if (authMode === 'signin' || authMode === 'signup') {
     return (
       <div className="auth-split-page">
@@ -281,12 +245,7 @@ export function AuthPage() {
           </div>
         </section>
 
-        <section
-          className={`auth-split-right${tryDragOver ? ' is-dragging' : ''}`}
-          onDragOver={e => { e.preventDefault(); setTryDragOver(true); }}
-          onDragLeave={() => setTryDragOver(false)}
-          onDrop={handleTryDrop}
-        >
+        <section className="auth-split-right">
           <div className="auth-preview-pattern" />
           <div className="auth-preview-shell" aria-hidden="true">
             <div className="auth-preview-rail">
@@ -363,23 +322,6 @@ export function AuthPage() {
             </div>
           </div>
 
-          <div className="auth-try-panel">
-            <div className="auth-try-label">Try Now</div>
-            <div className="auth-try-search">
-              <Search size={15} />
-              <input
-                value={tryAddress}
-                onChange={e => setTryAddress(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') void handleTryNow(); }}
-                placeholder="Paste wallet address or drop an explorer link"
-                spellCheck={false}
-              />
-              <button type="button" onClick={handleTryNow} disabled={loading}>
-                {loading ? 'Signing in...' : 'Try Now'}
-              </button>
-            </div>
-            <p>Drop a blockchain explorer link anywhere to auto-detect chain and address</p>
-          </div>
         </section>
       </div>
     );
