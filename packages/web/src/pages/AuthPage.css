@@ -42,26 +42,26 @@
 
 [data-theme="dark"] .auth-split-page,
 [data-theme="dim"] .auth-split-page {
-  --auth-page-bg: #07080a;
+  --auth-page-bg: var(--intel-bg-deep, #000000);
   --auth-page-text: #f5f7fb;
-  --auth-left-bg: #0c0d10;
+  --auth-left-bg: var(--intel-bg-base, #0a0a0f);
   --auth-logo-bg: #000;
   --auth-muted: #9ca3af;
   --auth-subtle: #777f8e;
   --auth-footer-link: #a3abbc;
-  --auth-card-bg: #14161b;
-  --auth-card-border: #242833;
-  --auth-border-strong: #3a4150;
-  --auth-button-bg: #101217;
-  --auth-button-hover: #191d25;
-  --auth-preview-stage: #020304;
+  --auth-card-bg: var(--intel-bg-surface, #14141a);
+  --auth-card-border: var(--intel-border-default, #252530);
+  --auth-border-strong: var(--intel-border-strong, #35354a);
+  --auth-button-bg: var(--intel-bg-elevated, #0f0f14);
+  --auth-button-hover: var(--intel-bg-hover, #1a1a22);
+  --auth-preview-stage: var(--intel-bg-deep, #000000);
   --auth-pattern-glow: rgba(0, 255, 136, 0.18);
   --auth-pattern-line-a: rgba(0, 255, 136, 0.16);
   --auth-pattern-line-b: rgba(90, 104, 255, 0.16);
-  --auth-preview-bg: #101216;
-  --auth-preview-rail: #0b0d11;
-  --auth-preview-card: #151820;
-  --auth-preview-border: #252a36;
+  --auth-preview-bg: var(--intel-bg-base, #0a0a0f);
+  --auth-preview-rail: var(--intel-bg-elevated, #0f0f14);
+  --auth-preview-card: var(--intel-bg-surface, #14141a);
+  --auth-preview-border: var(--intel-border-default, #252530);
   --auth-preview-text: #f5f7fb;
   --auth-preview-muted: #9aa3b5;
   --auth-preview-mark: #000;
@@ -70,18 +70,6 @@
   --auth-chart-grid: rgba(0, 255, 136, 0.07);
   --auth-chart-glow-a: rgba(0, 255, 136, 0.1);
   --auth-chart-glow-b: rgba(90, 104, 255, 0.1);
-}
-
-[data-theme="dim"] .auth-split-page {
-  --auth-page-bg: #11151b;
-  --auth-left-bg: #151a22;
-  --auth-card-bg: #1c222c;
-  --auth-button-bg: #171d26;
-  --auth-button-hover: #222a36;
-  --auth-preview-stage: #0b0f15;
-  --auth-preview-bg: #18202a;
-  --auth-preview-rail: #121820;
-  --auth-preview-card: #1e2733;
 }
 
 .auth-split-left,
