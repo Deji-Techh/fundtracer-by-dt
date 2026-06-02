@@ -332,7 +332,21 @@
   }
 
   .intel-header-actions {
-    display: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .intel-header-actions .intel-btn {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+
+  .intel-header-actions .intel-btn--primary {
+    box-shadow: 0 6px 18px rgba(0, 230, 122, 0.22);
   }
 
   .landing-layout .theme-toggle {

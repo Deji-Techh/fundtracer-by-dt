@@ -300,11 +300,48 @@ export function AuthPage() {
                   <span><Activity size={14} /> Live</span>
                 </div>
                 <div className="auth-preview-chart">
-                  <div className="auth-preview-line line-a" />
-                  <div className="auth-preview-line line-b" />
-                  <div className="auth-preview-node node-1" />
-                  <div className="auth-preview-node node-2" />
-                  <div className="auth-preview-node node-3" />
+                  <svg className="auth-preview-chart-svg" viewBox="0 0 720 180" preserveAspectRatio="none" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="authLineGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#00c766" stopOpacity="0.95" />
+                        <stop offset="100%" stopColor="#00c766" stopOpacity="0.16" />
+                      </linearGradient>
+                      <linearGradient id="authLineViolet" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#6159ff" stopOpacity="0.95" />
+                        <stop offset="100%" stopColor="#6159ff" stopOpacity="0.16" />
+                      </linearGradient>
+                    </defs>
+                    <g className="auth-chart-grid">
+                      {Array.from({ length: 13 }).map((_, i) => (
+                        <line key={`v-${i}`} x1={i * 60} y1="0" x2={i * 60} y2="180" />
+                      ))}
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <line key={`h-${i}`} x1="0" y1={i * 45} x2="720" y2={i * 45} />
+                      ))}
+                    </g>
+                    <path
+                      d="M0 132 C 72 126, 118 52, 184 44 S 302 58, 362 90 S 482 126, 576 98 S 654 70, 720 78"
+                      fill="none"
+                      stroke="url(#authLineGreen)"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M0 150 C 90 146, 160 122, 220 116 S 342 136, 410 124 S 526 92, 612 104 S 670 136, 720 126"
+                      fill="none"
+                      stroke="url(#authLineViolet)"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <circle className="auth-chart-node auth-chart-node--green" cx="184" cy="44" r="10" />
+                    <circle className="auth-chart-node auth-chart-node--green" cx="362" cy="90" r="10" />
+                    <circle className="auth-chart-node auth-chart-node--green" cx="576" cy="98" r="10" />
+                    <circle className="auth-chart-node auth-chart-node--violet" cx="220" cy="116" r="8" />
+                    <circle className="auth-chart-node auth-chart-node--violet" cx="410" cy="124" r="8" />
+                    <circle className="auth-chart-node auth-chart-node--violet" cx="612" cy="104" r="8" />
+                  </svg>
                 </div>
               </section>
 
