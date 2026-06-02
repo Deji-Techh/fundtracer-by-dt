@@ -5,7 +5,7 @@
 
 import { Router, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { callGeminiStream, selectModel } from '../lib/gemini-client.js';
+import { callGeminiStream, isGroqRateLimitError, selectModel } from '../lib/gemini-client.js';
 import { buildContext, formatAnalysisForDisplay, type AnalysisData } from '../lib/context-builder.js';
 import { getSybilAlchemyKeys } from '../utils/alchemyKeys.js';
 import { cacheGet, cacheSet, cacheDel } from '../utils/redis.js';
@@ -563,11 +563,18 @@ router.post('/chat', async (req: AuthenticatedRequest, res: Response) => {
         res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
       }
     } catch (streamError: any) {
-      console.error('[AI-Chat] Stream error:', streamError.message);
+      if (isGroqRateLimitError(streamError)) {
+        console.warn(`[AI-Chat] Groq rate limited; retry after ${Math.ceil(streamError.retryAfterMs / 1000)}s`);
+      } else {
+        console.error('[AI-Chat] Stream error:', streamError.message);
+      }
       if (!fullResponse) {
+        const message = isGroqRateLimitError(streamError)
+          ? `AI analysis is temporarily rate limited. Please try again in about ${Math.ceil(streamError.retryAfterMs / 1000)} seconds.`
+          : 'Failed to get AI response. Please try again.';
         res.write(`data: ${JSON.stringify({ 
           type: 'error', 
-          message: 'Failed to get AI response. Please try again.' 
+          message
         })}\n\n`);
         res.write('data: [DONE]\n\n');
         res.end();

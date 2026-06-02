@@ -11,6 +11,7 @@ import { clearCompareState, getCompareState, saveCompareState } from '../../stor
 import { useTabs } from '../../contexts/TabsContext';
 import { FundingGraph } from './FundingGraph';
 import { InputStage } from './CompactSearchForm';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -255,6 +256,7 @@ function CompareOverview({
   const correlationScore = data.correlationScore as number | undefined;
   const sybilPct = normalizePercentNumber(sybilScore);
   const correlationPct = normalizePercentNumber(correlationScore);
+  const isMobile = useIsMobile();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -285,7 +287,7 @@ function CompareOverview({
       {activeTab === 'overview' && (
       <>
       {/* 2 eyes */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
         {/* Left eye: analysis */}
         <div style={{ border: '1px solid var(--hairline)', borderRadius: 'var(--radius-lg)', background: 'var(--card)', padding: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--fg)', marginBottom: 12 }}>
@@ -748,7 +750,7 @@ function DetailedCompareGrid({
   sharedProjects: Array<unknown>;
 }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 12 }}>
       <DetailCard title="Common Funding Sources" chain={chain} items={commonFundingSources} valueOf={(v) => String((v as any)?.address || (v as any)?.source || v || '')} explorerOf={(v) => explorerUrl(chain, String((v as any)?.address || (v as any)?.source || v || ''), 'address')} />
       <DetailCard title="Common Destinations" chain={chain} items={commonDestinations} valueOf={(v) => String((v as any)?.address || (v as any)?.destination || v || '')} explorerOf={(v) => explorerUrl(chain, String((v as any)?.address || (v as any)?.destination || v || ''), 'address')} />
       <DetailCard title="Direct Transfers" chain={chain} items={directTransfers} valueOf={(v) => {

@@ -136,6 +136,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
             submitLabel="Analyze"
             loadingLabel="Analyzing"
             hideSubmitOnMobile
+            hideInputIcon
             autoFocus
           />
         </InputStage>

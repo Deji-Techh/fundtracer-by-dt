@@ -67,18 +67,20 @@ export function CEXFlowView() {
         <InputStage
           title="CEX Flow Analysis"
           maxWidth={640}
-          hint="Trace deposits and withdrawals between wallets and centralized exchanges"
+          hint="0x.. or ENS"
         >
           <CompactSearchForm
             value={address}
             onChange={setAddress}
             onSubmit={handleAnalyze}
-            placeholder="Paste wallet address (0x...)"
+            placeholder="0x.. or ENS"
             ariaLabel="Wallet address"
             loading={loading}
             disabled={loading}
             submitLabel="Analyze"
             loadingLabel="Analyzing"
+            hideInputIcon
+            showSubmitTextOnMobile
             leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
           />
         </InputStage>

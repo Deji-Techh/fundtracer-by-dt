@@ -1789,7 +1789,7 @@ router.post('/report', async (req: AuthenticatedRequest, res: Response) => {
 
   try {
     const { EntityService } = await import('../services/EntityService.js');
-    const { callGeminiStream, selectModel } = await import('../lib/gemini-client.js');
+    const { callGeminiStream, isGroqRateLimitError } = await import('../lib/gemini-client.js');
 
     // Fetch wallet analysis first (reuse existing analysis logic)
     const alchemyKeyPool = getAlchemyKeyPool();
@@ -1944,14 +1944,27 @@ Be specific, cite exact values.`;
       await torqueServiceV2.incrementScan(req.user.uid, userName).catch(() => {});
     }
   } catch (error: any) {
-    console.error('[Report] Generation error:', error.message);
+    const reportRateLimited = isGroqRateLimitError(error);
+    if (reportRateLimited) {
+      console.warn(`[Report] Groq rate limited; retry after ${Math.ceil(error.retryAfterMs / 1000)}s`);
+    } else {
+      console.error('[Report] Generation error:', error.message);
+    }
     // If headers already sent, try to end stream with error
     if (res.headersSent) {
-      res.write(`data: ${JSON.stringify({ error: 'An internal error occurred' })}\n\n`);
+      res.write(`data: ${JSON.stringify({
+        error: reportRateLimited
+          ? `AI report generation is temporarily rate limited. Please try again in about ${Math.ceil(error.retryAfterMs / 1000)} seconds.`
+          : 'An internal error occurred'
+      })}\n\n`);
       res.end();
       return;
     }
-    res.status(500).json({ error: 'Report generation failed' });
+    res.status(reportRateLimited ? 429 : 500).json({
+      error: reportRateLimited
+        ? `AI report generation is temporarily rate limited. Please try again in about ${Math.ceil(error.retryAfterMs / 1000)} seconds.`
+        : 'Report generation failed'
+    });
   }
 });
 

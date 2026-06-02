@@ -147,7 +147,8 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
             disabled={loading}
             submitLabel="Find"
             loadingLabel="Analyzing"
-            hideSubmitOnMobile
+            hideInputIcon
+            showSubmitTextOnMobile
             leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
           />
         </InputStage>

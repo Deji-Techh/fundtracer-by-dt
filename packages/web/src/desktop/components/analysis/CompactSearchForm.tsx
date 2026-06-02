@@ -61,6 +61,8 @@ interface CompactSearchFormProps {
   autoFocus?: boolean;
   leftSlot?: ReactNode;
   hideSubmitOnMobile?: boolean;
+  hideInputIcon?: boolean;
+  showSubmitTextOnMobile?: boolean;
 }
 
 export function CompactSearchForm({
@@ -76,10 +78,13 @@ export function CompactSearchForm({
   autoFocus,
   leftSlot,
   hideSubmitOnMobile,
+  hideInputIcon,
+  showSubmitTextOnMobile,
 }: CompactSearchFormProps) {
   const isMobile = useIsMobile();
   const canSubmit = !disabled && !loading;
   const showSubmit = !(isMobile && hideSubmitOnMobile);
+  const submitIsText = !isMobile || showSubmitTextOnMobile;
 
   return (
     <div style={{
@@ -96,10 +101,12 @@ export function CompactSearchForm({
     }}>
       {leftSlot}
       <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-          style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-        </svg>
+        {!hideInputIcon && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+        )}
         <input
           type="text"
           aria-label={ariaLabel || placeholder}
@@ -113,7 +120,7 @@ export function CompactSearchForm({
             width: '100%',
             minWidth: 0,
             height: isMobile ? 40 : 38,
-            padding: '0 10px 0 32px',
+            padding: hideInputIcon ? '0 10px' : '0 10px 0 32px',
             background: 'transparent',
             border: 'none',
             outline: 'none',
@@ -134,10 +141,10 @@ export function CompactSearchForm({
           aria-label={loading ? (loadingLabel || submitLabel) : submitLabel}
           title={loading ? (loadingLabel || submitLabel) : submitLabel}
           style={{
-            width: isMobile ? 40 : undefined,
-            minWidth: isMobile ? 40 : 84,
+            width: submitIsText ? undefined : 40,
+            minWidth: submitIsText ? 84 : 40,
             height: isMobile ? 40 : 38,
-            padding: isMobile ? 0 : '0 16px',
+            padding: submitIsText ? '0 16px' : 0,
             borderRadius: isMobile ? 10 : 'var(--radius-md)',
             border: 'none',
             background: canSubmit ? 'var(--accent)' : 'var(--bg-secondary)',
@@ -163,9 +170,9 @@ export function CompactSearchForm({
                 display: 'inline-block',
                 animation: 'spin 0.6s linear infinite',
               }} />
-              {!isMobile && (loadingLabel || submitLabel)}
+              {submitIsText && (loadingLabel || submitLabel)}
             </span>
-          ) : isMobile ? (
+          ) : !submitIsText ? (
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
             </svg>

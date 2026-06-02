@@ -65,6 +65,7 @@ export function PortfolioView({ address: initialAddress, chain: initialChain }: 
           submitLabel="View"
           loadingLabel="Loading"
           hideSubmitOnMobile
+          hideInputIcon
           leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
         />
       </div>

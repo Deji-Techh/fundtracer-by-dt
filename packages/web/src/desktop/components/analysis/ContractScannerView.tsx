@@ -257,7 +257,8 @@ export function ContractScannerView() {
               submitLabel="Scan"
               loadingLabel="Scanning"
               autoFocus
-              hideSubmitOnMobile
+              hideInputIcon
+              showSubmitTextOnMobile
               leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
             />
           </InputStage>
