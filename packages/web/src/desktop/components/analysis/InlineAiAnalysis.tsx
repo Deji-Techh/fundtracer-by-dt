@@ -120,6 +120,9 @@ Be direct and insightful. Use bullet points for clarity.`;
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100%',
       minHeight: 0,
+      minWidth: 0,
+      maxWidth: '100%',
+      overflow: 'hidden',
       background: 'var(--card)', borderRadius: 'var(--radius-xl)',
       border: '1px solid var(--hairline)',
     }}>
@@ -154,7 +157,7 @@ Be direct and insightful. Use bullet points for clarity.`;
       {expanded && (
         <>
           {/* Messages area */}
-          <div style={{ flex: 1, overflow: 'auto', padding: '12px 14px', minHeight: 0, maxHeight: 320 }}>
+          <div style={{ flex: 1, overflow: 'auto', overflowX: 'hidden', padding: '12px 14px', minHeight: 0, minWidth: 0, maxWidth: '100%', maxHeight: 320 }}>
             {loading && messages.length === 0 && !streaming && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-tertiary)', fontSize: 12 }}>
                 <Bot size={14} />
@@ -164,10 +167,10 @@ Be direct and insightful. Use bullet points for clarity.`;
             )}
 
             {messages.map((msg, i) => (
-              <div key={i} style={{ marginBottom: i < messages.length - 1 ? 12 : 0 }}>
+              <div key={i} style={{ marginBottom: i < messages.length - 1 ? 12 : 0, minWidth: 0, maxWidth: '100%' }}>
                 {msg.role === 'assistant' ? (
-                  <div style={{ fontSize: 12, color: 'var(--fg)', lineHeight: 1.6, fontFamily: 'var(--font-sans)' }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 4, padding: '10px 14px', borderRadius: 'var(--radius-lg)', background: 'var(--bg-secondary)', border: '1px solid var(--hairline)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--fg)', lineHeight: 1.6, fontFamily: 'var(--font-sans)', minWidth: 0, maxWidth: '100%' }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 4, padding: '10px 14px', borderRadius: 'var(--radius-lg)', background: 'var(--bg-secondary)', border: '1px solid var(--hairline)', minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
                       <Sparkles size={12} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
                       <MarkdownContent text={msg.content} />
                     </div>
@@ -186,10 +189,10 @@ Be direct and insightful. Use bullet points for clarity.`;
 
             {/* Streaming response */}
             {streaming && (
-              <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--radius-lg)', background: 'var(--bg-secondary)', border: '1px solid var(--hairline)' }}>
-                <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 'var(--radius-lg)', background: 'var(--bg-secondary)', border: '1px solid var(--hairline)', minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', gap: 8, minWidth: 0 }}>
                   <Sparkles size={12} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-                  <div style={{ fontSize: 12, color: 'var(--fg)', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: 'var(--font-sans)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--fg)', lineHeight: 1.7, whiteSpace: 'pre-wrap', fontFamily: 'var(--font-sans)', minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                     {streaming}
                     <span style={{ color: 'var(--accent)', animation: 'pulse-1 1s infinite' }}>|</span>
                   </div>

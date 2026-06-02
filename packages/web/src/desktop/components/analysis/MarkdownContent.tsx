@@ -32,6 +32,9 @@ const codeStyle: React.CSSProperties = {
   borderRadius: 'var(--radius-sm)',
   fontSize: '0.92em',
   fontFamily: 'var(--font-mono)',
+  whiteSpace: 'pre-wrap',
+  overflowWrap: 'anywhere',
+  wordBreak: 'break-word',
 };
 
 interface Block {
@@ -112,7 +115,7 @@ export function MarkdownContent({ text }: { text: string }) {
   const blocks = parseBlocks(text);
 
   return (
-    <div style={{ fontFamily: 'var(--font-sans)', lineHeight: 1.7 }}>
+    <div style={{ fontFamily: 'var(--font-sans)', lineHeight: 1.7, maxWidth: '100%', minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
       {blocks.map((block, idx) => {
         switch (block.type) {
           case 'h1':
@@ -170,8 +173,14 @@ const h4Style: React.CSSProperties = {
 const pStyle: React.CSSProperties = {
   fontSize: 12, color: 'var(--fg)',
   marginBottom: 8, marginTop: 0,
+  maxWidth: '100%',
+  overflowWrap: 'anywhere',
+  wordBreak: 'break-word',
 };
 const listStyle: React.CSSProperties = {
   fontSize: 12, color: 'var(--fg)', margin: '4px 0 8px 0',
   paddingLeft: 20, display: 'flex', flexDirection: 'column',
+  maxWidth: '100%',
+  overflowWrap: 'anywhere',
+  wordBreak: 'break-word',
 };

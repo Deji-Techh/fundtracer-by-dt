@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 
 interface FNode {
   address: string;
@@ -53,12 +54,25 @@ const V_GAP = 16;
 const PAD = 60;
 const MIN_SCALE = 0.2;
 
-function computeLayout(nodes: FNode[], targetAddr: string): {
+interface GraphDims {
+  nodeW: number;
+  nodeH: number;
+  hGap: number;
+  vGap: number;
+  pad: number;
+  minScale: number;
+}
+
+const DESKTOP_DIMS: GraphDims = { nodeW: NODE_W, nodeH: NODE_H, hGap: H_GAP, vGap: V_GAP, pad: PAD, minScale: MIN_SCALE };
+const MOBILE_DIMS: GraphDims = { nodeW: 156, nodeH: 52, hGap: 42, vGap: 10, pad: 18, minScale: 0.32 };
+
+function computeLayout(nodes: FNode[], targetAddr: string, dims: GraphDims): {
   positioned: PositionedNode[];
   edges: EdgeDef[];
   width: number;
   height: number;
 } {
+  const { nodeW, nodeH, hGap, vGap, pad } = dims;
   const targetId = targetAddr.toLowerCase();
   const addrMap = new Map<string, { minDepth: number; node: FNode; parents: string[] }>();
 
@@ -139,19 +153,19 @@ function computeLayout(nodes: FNode[], targetAddr: string): {
 
   for (const depth of depthLevels) {
     const bucket = depthBuckets.get(depth)!;
-    const x = PAD + depth * (NODE_W + H_GAP);
+    const x = pad + depth * (nodeW + hGap);
     for (const id of bucket) {
       const idx = depthCounts.get(depth) || 0;
-      const y = PAD + idx * (NODE_H + V_GAP);
+      const y = pad + idx * (nodeH + vGap);
       positions.set(id, { x, y });
       depthCounts.set(depth, idx + 1);
     }
   }
 
   // Place target node
-  const targetX = PAD + targetDepth * (NODE_W + H_GAP);
+  const targetX = pad + targetDepth * (nodeW + hGap);
   const maxNodesInCol = Math.max(...Array.from(depthCounts.values()), 1);
-  const targetY = PAD + (maxNodesInCol * (NODE_H + V_GAP) - V_GAP) / 2 - NODE_H / 2;
+  const targetY = pad + (maxNodesInCol * (nodeH + vGap) - vGap) / 2 - nodeH / 2;
   positions.set(targetId, { x: targetX, y: targetY });
 
   // Build positioned nodes
@@ -187,10 +201,10 @@ function computeLayout(nodes: FNode[], targetAddr: string): {
             id: `${id}->${childId}`,
             from: id,
             to: childId,
-            x1: fromPos.x + NODE_W,
-            y1: fromPos.y + NODE_H / 2,
+            x1: fromPos.x + nodeW,
+            y1: fromPos.y + nodeH / 2,
             x2: toPos.x,
-            y2: toPos.y + NODE_H / 2,
+            y2: toPos.y + nodeH / 2,
           });
         }
       }
@@ -198,8 +212,8 @@ function computeLayout(nodes: FNode[], targetAddr: string): {
   }
 
   // Compute total dimensions
-  const totalWidth = targetX + NODE_W + PAD;
-  const totalHeight = PAD + maxNodesInCol * (NODE_H + V_GAP) + PAD;
+  const totalWidth = targetX + nodeW + pad;
+  const totalHeight = pad + maxNodesInCol * (nodeH + vGap) + pad;
 
   return { positioned, edges, width: totalWidth, height: totalHeight };
 }
@@ -212,6 +226,7 @@ function bezierPath(x1: number, y1: number, x2: number, y2: number): string {
 }
 
 export function FundingGraph({ sources, destinations, targetAddress }: GraphProps) {
+  const isMobile = useIsMobile();
   const [mode, setMode] = useState<'sources' | 'destinations'>('sources');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
@@ -228,11 +243,12 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
   scaleRef.current = scale;
   panRef.current = { x: panX, y: panY };
 
+  const dims = isMobile ? MOBILE_DIMS : DESKTOP_DIMS;
   const nodesList = mode === 'sources' ? (sources || []) : (destinations || []);
 
   const { positioned, edges, width, height } = useMemo(
-    () => computeLayout(nodesList, targetAddress),
-    [nodesList, targetAddress],
+    () => computeLayout(nodesList, targetAddress, dims),
+    [nodesList, targetAddress, dims],
   );
 
   // Compute initial fit on mount and when data changes
@@ -243,8 +259,8 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
     const cw = container.clientWidth;
     const ch = container.clientHeight;
     if (cw <= 0 || ch <= 0) return;
-    const baseFit = Math.max(MIN_SCALE, Math.min((cw - 40) / width, (ch - 40) / height));
-    const fitScale = Math.max(MIN_SCALE, Math.min(3, baseFit));
+    const baseFit = Math.max(dims.minScale, Math.min((cw - 24) / width, (ch - 24) / height));
+    const fitScale = Math.max(dims.minScale, Math.min(3, baseFit));
     const cx = (cw - width * fitScale) / 2;
     const cy = (ch - height * fitScale) / 2;
 
@@ -253,7 +269,7 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
     setPanY(cy);
     setSelectedId(null);
     setNodeOffsets({});
-  }, [width, height, positioned.length]);
+  }, [width, height, positioned.length, dims.minScale]);
 
   // Wheel zoom (centered on cursor)
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -265,22 +281,23 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
     const factor = e.deltaY < 0 ? 1.12 : 0.88;
-    const newScale = Math.max(MIN_SCALE, Math.min(3, scaleRef.current * factor));
+    const newScale = Math.max(dims.minScale, Math.min(3, scaleRef.current * factor));
     const ratio = newScale / scaleRef.current;
 
     setScale(newScale);
     setPanX(mx - ratio * (mx - panRef.current.x));
     setPanY(my - ratio * (my - panRef.current.y));
-  }, []);
+  }, [dims.minScale]);
 
   // Pan via background drag, or drag individual nodes
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     const nodeEl = (e.target as HTMLElement).closest('[data-node-id]') as HTMLElement | null;
     if (nodeEl) {
       const nodeId = nodeEl.getAttribute('data-node-id');
       if (nodeId) {
         const existing = nodeOffsets[nodeId] || { dx: 0, dy: 0 };
         dragNodeRef.current = { id: nodeId, startX: e.clientX, startY: e.clientY, offsetX: existing.dx, offsetY: existing.dy };
+        e.currentTarget.setPointerCapture?.(e.pointerId);
         e.preventDefault();
         e.stopPropagation();
         return;
@@ -288,11 +305,12 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
     }
     isDragging.current = true;
     dragStart.current = { x: e.clientX, y: e.clientY, panX: panRef.current.x, panY: panRef.current.y };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     e.preventDefault();
   }, [nodeOffsets]);
 
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
+    const onMove = (e: PointerEvent) => {
       const dn = dragNodeRef.current;
       if (dn) {
         const dx = (e.clientX - dn.startX) / scaleRef.current;
@@ -309,11 +327,13 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
       setPanY(dragStart.current.panY + e.clientY - dragStart.current.y);
     };
     const onUp = () => { isDragging.current = false; dragNodeRef.current = null; };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
     return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
     };
   }, []);
 
@@ -322,12 +342,12 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
     if (!container || container.clientWidth <= 0 || container.clientHeight <= 0) return;
     const cw = container.clientWidth;
     const ch = container.clientHeight;
-    const baseFit = Math.max(MIN_SCALE, Math.min((cw - 40) / width, (ch - 40) / height));
-    const fitScale = Math.max(MIN_SCALE, Math.min(3, baseFit));
+    const baseFit = Math.max(dims.minScale, Math.min((cw - 24) / width, (ch - 24) / height));
+    const fitScale = Math.max(dims.minScale, Math.min(3, baseFit));
     setScale(fitScale);
     setPanX((cw - width * fitScale) / 2);
     setPanY((ch - height * fitScale) / 2);
-  }, [width, height]);
+  }, [width, height, dims.minScale]);
 
   const centerOnTarget = useCallback(() => {
     const targetNode = positioned.find(n => n.isTarget);
@@ -336,9 +356,9 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
     if (!container) return;
     const cw = container.clientWidth;
     const ch = container.clientHeight;
-    setPanX(cw / 2 - (targetNode.x + NODE_W / 2) * scale);
-    setPanY(ch / 2 - (targetNode.y + NODE_H / 2) * scale);
-  }, [positioned, scale]);
+    setPanX(cw / 2 - (targetNode.x + dims.nodeW / 2) * scale);
+    setPanY(ch / 2 - (targetNode.y + dims.nodeH / 2) * scale);
+  }, [positioned, scale, dims.nodeW, dims.nodeH]);
 
   const selected = positioned.find(n => n.id === selectedId);
   const highlightIds = useMemo(() => {
@@ -364,12 +384,13 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
       {/* Toolbar */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
       }}>
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 4, minWidth: 0, flexWrap: 'wrap' }}>
           <button
             onClick={() => { setMode('sources'); setSelectedId(null); }}
             style={toggleBtnStyle(mode === 'sources')}>
@@ -382,14 +403,14 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)', marginRight: 8 }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', minWidth: 0 }}>
+          <span style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)', marginRight: isMobile ? 2 : 8 }}>
             {positioned.length} nodes · {edges.length} edges
           </span>
           <span style={{ fontSize: 9, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)', margin: '0 2px' }}>
             {Math.round(scale * 100)}%
           </span>
-          <ToolBtn onClick={() => setScale(s => Math.max(MIN_SCALE, s * 0.75))} label="−" />
+          <ToolBtn onClick={() => setScale(s => Math.max(dims.minScale, s * 0.75))} label="−" />
           <ToolBtn onClick={fitToScreen} label="⊡" />
           <ToolBtn onClick={() => setScale(s => Math.min(3, s * 1.35))} label="+" />
           <ToolBtn onClick={centerOnTarget} label="⊙" />
@@ -400,11 +421,13 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
       <div
         ref={containerRef}
         onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
+        onPointerDown={handlePointerDown}
         style={{
           flex: 1,
           position: 'relative',
           overflow: 'hidden',
+          maxWidth: '100%',
+          touchAction: 'none',
           borderRadius: 'var(--radius-xl)',
           border: '1px solid var(--hairline)',
           background: 'var(--bg-secondary)',
@@ -471,8 +494,8 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
                   position: 'absolute',
                   left: nx,
                   top: ny,
-                  width: NODE_W,
-                  height: NODE_H,
+                  width: dims.nodeW,
+                  height: dims.nodeH,
                   borderRadius: 'var(--radius-lg)',
                   border: n.isTarget
                     ? '2px solid var(--accent)'
@@ -487,7 +510,7 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
-                  padding: '0 10px 0 12px',
+                  padding: isMobile ? '0 8px' : '0 10px 0 12px',
                   fontFamily: 'var(--font-mono)',
                   overflow: 'hidden',
                 }}
@@ -510,15 +533,15 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
                     width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                     background: n.isTarget ? 'var(--accent)' : eColor,
                   }} />
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, color: n.isTarget ? 'var(--accent)' : 'var(--fg)',
+	                  <span style={{
+	                    fontSize: isMobile ? 10 : 11, fontWeight: 600, color: n.isTarget ? 'var(--accent)' : 'var(--fg)',
                     flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {n.label}
                   </span>
                   {n.entityType && n.entityType !== 'wallet' && (
                     <span style={{
-                      fontSize: 8, fontWeight: 600, padding: '2px 5px', borderRadius: 'var(--radius-full)',
+	                      fontSize: 8, fontWeight: 600, padding: isMobile ? '1px 4px' : '2px 5px', borderRadius: 'var(--radius-full)',
                       background: `${eColor}20`, color: eColor, textTransform: 'uppercase',
                       letterSpacing: '0.05em', fontFamily: 'var(--font-sans)', flexShrink: 0,
                     }}>
@@ -528,7 +551,7 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
                 </div>
 
                 {/* Row 2: value + tx count */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10, color: 'var(--fg-tertiary)' }}>
+	                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, fontSize: isMobile ? 9 : 10, color: 'var(--fg-tertiary)' }}>
                   {n.value > 0 && (
                     <span style={{ color: 'var(--fg-secondary)' }}>
                       {n.value < 0.0001 ? '<0.0001' : n.value.toFixed(4)} ETH

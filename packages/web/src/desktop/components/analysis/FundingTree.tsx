@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { ChainId } from '../../types';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 
 interface FundingNode {
   address: string;
@@ -54,6 +55,18 @@ const ROW_GAP = 12;
 const PAD = 40;
 const MIN_SCALE = 0.22;
 
+interface TreeDims {
+  nodeW: number;
+  nodeH: number;
+  colGap: number;
+  rowGap: number;
+  pad: number;
+  minScale: number;
+}
+
+const DESKTOP_TREE_DIMS: TreeDims = { nodeW: NODE_W, nodeH: NODE_H, colGap: COL_GAP, rowGap: ROW_GAP, pad: PAD, minScale: MIN_SCALE };
+const MOBILE_TREE_DIMS: TreeDims = { nodeW: 166, nodeH: 56, colGap: 42, rowGap: 8, pad: 18, minScale: 0.32 };
+
 const CHAIN_EXPLORERS: Record<string, string> = {
   ethereum: 'https://etherscan.io/address',
   base: 'https://basescan.org/address',
@@ -71,6 +84,7 @@ function bezierPath(x1: number, y1: number, x2: number, y2: number): string {
 }
 
 export function FundingTree({ sources, destinations, targetAddress, chain = 'ethereum', direction = 'both' }: FundingTreeProps) {
+  const isMobile = useIsMobile();
   const [activeDir, setActiveDir] = useState<'source' | 'destination'>('source');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
@@ -91,6 +105,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
   const targetId = targetAddress.toLowerCase();
   const nodes = activeDir === 'source' ? (sources || []) : (destinations || []);
   const explorer = CHAIN_EXPLORERS[chain] || 'https://etherscan.io/address';
+  const dims = isMobile ? MOBILE_TREE_DIMS : DESKTOP_TREE_DIMS;
 
   const { positioned, edges, width, height } = useMemo(() => {
     const pNodes: PositionedNode[] = [];
@@ -110,11 +125,11 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
       const isTarget = id === targetId;
       const collapsed = collapsedNodes.has(id);
 
-      pNodes.push({
+	    pNodes.push({
         id,
         node,
-        x: PAD + depth * (NODE_W + COL_GAP),
-        y: PAD + col * (NODE_H + ROW_GAP),
+	        x: dims.pad + depth * (dims.nodeW + dims.colGap),
+	        y: dims.pad + col * (dims.nodeH + dims.rowGap),
         depth,
         isTarget,
         collapsed,
@@ -128,10 +143,10 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
             id: `${parentId}->${id}`,
             fromId: parentId,
             toId: id,
-            fromX: parentNode.x + NODE_W,
-            fromY: parentNode.y + NODE_H / 2,
-            toX: PAD + depth * (NODE_W + COL_GAP),
-            toY: PAD + col * (NODE_H + ROW_GAP) + NODE_H / 2,
+	            fromX: parentNode.x + dims.nodeW,
+	            fromY: parentNode.y + dims.nodeH / 2,
+	            toX: dims.pad + depth * (dims.nodeW + dims.colGap),
+	            toY: dims.pad + col * (dims.nodeH + dims.rowGap) + dims.nodeH / 2,
             value: node.totalValueInEth || 0,
             visible: !collapsedNodes.has(parentId),
           });
@@ -151,11 +166,11 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
 
     const maxCol = Math.max(...Array.from(depthColumns.values()), 1);
     const maxDepth = depthColumns.size || 1;
-    const totalH = PAD + maxCol * (NODE_H + ROW_GAP) + PAD;
-    const totalW = PAD + maxDepth * (NODE_W + COL_GAP) + NODE_W + PAD;
+	    const totalH = dims.pad + maxCol * (dims.nodeH + dims.rowGap) + dims.pad;
+	    const totalW = dims.pad + maxDepth * (dims.nodeW + dims.colGap) + dims.nodeW + dims.pad;
 
-    return { positioned: pNodes, edges: tEdges, width: totalW, height: totalH };
-  }, [nodes, targetId, collapsedNodes]);
+	    return { positioned: pNodes, edges: tEdges, width: totalW, height: totalH };
+	  }, [nodes, targetId, collapsedNodes, dims]);
 
   // Fit on data change — guard against zero dimensions (hidden tab / layout not settled)
   useEffect(() => {
@@ -164,12 +179,12 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
     const cw = c.clientWidth;
     const ch = c.clientHeight;
     if (cw <= 0 || ch <= 0) return;
-    const fit = Math.max(MIN_SCALE, Math.min((cw - 40) / width, (ch - 40) / height, 1));
+	    const fit = Math.max(dims.minScale, Math.min((cw - 24) / width, (ch - 24) / height, 1));
     setScale(fit);
     setPanX((cw - width * fit) / 2);
     setPanY(Math.max(0, (ch - height * fit) / 2));
     setNodeOffsets({});
-  }, [width, height, positioned.length]);
+	  }, [width, height, positioned.length, dims.minScale]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -179,32 +194,34 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
     const factor = e.deltaY < 0 ? 1.12 : 0.88;
-    const ns = Math.max(MIN_SCALE, Math.min(3, scaleRef.current * factor));
+	    const ns = Math.max(dims.minScale, Math.min(3, scaleRef.current * factor));
     const ratio = ns / scaleRef.current;
     setScale(ns);
     setPanX(mx - ratio * (mx - panRef.current.x));
     setPanY(my - ratio * (my - panRef.current.y));
-  }, []);
+	  }, [dims.minScale]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    const nodeEl = (e.target as HTMLElement).closest('[data-tnode-id]') as HTMLElement | null;
+	  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+	    const nodeEl = (e.target as HTMLElement).closest('[data-tnode-id]') as HTMLElement | null;
     if (nodeEl) {
       const nodeId = nodeEl.getAttribute('data-tnode-id');
       if (nodeId) {
-        const existing = nodeOffsets[nodeId] || { dx: 0, dy: 0 };
-        dragNodeRef.current = { id: nodeId, startX: e.clientX, startY: e.clientY, offsetX: existing.dx, offsetY: existing.dy };
-        e.preventDefault();
+	        const existing = nodeOffsets[nodeId] || { dx: 0, dy: 0 };
+	        dragNodeRef.current = { id: nodeId, startX: e.clientX, startY: e.clientY, offsetX: existing.dx, offsetY: existing.dy };
+	        e.currentTarget.setPointerCapture?.(e.pointerId);
+	        e.preventDefault();
         e.stopPropagation();
         return;
       }
     }
-    isDragging.current = true;
-    dragStart.current = { x: e.clientX, y: e.clientY, panX: panRef.current.x, panY: panRef.current.y };
-    e.preventDefault();
-  }, [nodeOffsets]);
+	    isDragging.current = true;
+	    dragStart.current = { x: e.clientX, y: e.clientY, panX: panRef.current.x, panY: panRef.current.y };
+	    e.currentTarget.setPointerCapture?.(e.pointerId);
+	    e.preventDefault();
+	  }, [nodeOffsets]);
 
-  useEffect(() => {
-    const mm = (e: MouseEvent) => {
+	  useEffect(() => {
+	    const mm = (e: PointerEvent) => {
       const dn = dragNodeRef.current;
       if (dn) {
         const dx = (e.clientX - dn.startX) / scaleRef.current;
@@ -219,12 +236,17 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
       if (!isDragging.current) return;
       setPanX(dragStart.current.panX + e.clientX - dragStart.current.x);
       setPanY(dragStart.current.panY + e.clientY - dragStart.current.y);
-    };
-    const mu = () => { isDragging.current = false; dragNodeRef.current = null; };
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-    return () => { window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); };
-  }, []);
+	    };
+	    const mu = () => { isDragging.current = false; dragNodeRef.current = null; };
+	    window.addEventListener('pointermove', mm);
+	    window.addEventListener('pointerup', mu);
+	    window.addEventListener('pointercancel', mu);
+	    return () => {
+	      window.removeEventListener('pointermove', mm);
+	      window.removeEventListener('pointerup', mu);
+	      window.removeEventListener('pointercancel', mu);
+	    };
+	  }, []);
 
   const toggleCollapse = useCallback((nodeId: string) => {
     setCollapsedNodes(prev => {
@@ -238,11 +260,11 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
   const fitToScreen = useCallback(() => {
     const c = containerRef.current;
     if (!c || c.clientWidth <= 0 || c.clientHeight <= 0) return;
-    const fit = Math.max(MIN_SCALE, Math.min((c.clientWidth - 40) / width, (c.clientHeight - 40) / height, 1));
+	    const fit = Math.max(dims.minScale, Math.min((c.clientWidth - 24) / width, (c.clientHeight - 24) / height, 1));
     setScale(fit);
     setPanX((c.clientWidth - width * fit) / 2);
     setPanY((c.clientHeight - height * fit) / 2);
-  }, [width, height]);
+	  }, [width, height, dims.minScale]);
 
   const selected = positioned.find(n => n.id === selectedId);
 
@@ -255,10 +277,10 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%' }}>
+	    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 4 }}>
+	      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+	        <div style={{ display: 'flex', gap: 4, minWidth: 0, flexWrap: 'wrap' }}>
           <button onClick={() => { setActiveDir('source'); setSelectedId(null); }}
             style={dirBtnStyle(activeDir === 'source')}>
             Sources ({sources?.length || 0})
@@ -274,14 +296,14 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
             </button>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)', marginRight: 8 }}>
+	        <div style={{ display: 'flex', gap: 4, alignItems: 'center', minWidth: 0 }}>
+	          <span style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)', marginRight: isMobile ? 2 : 8 }}>
             {positioned.length} nodes
           </span>
           <span style={{ fontSize: 9, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)', margin: '0 2px' }}>
             {Math.round(scale * 100)}%
           </span>
-          <TinyBtn onClick={() => setScale(s => Math.max(MIN_SCALE, s * 0.75))} label="−" />
+	          <TinyBtn onClick={() => setScale(s => Math.max(dims.minScale, s * 0.75))} label="−" />
           <TinyBtn onClick={fitToScreen} label="⊡" />
           <TinyBtn onClick={() => setScale(s => Math.min(3, s * 1.35))} label="+" />
         </div>
@@ -291,12 +313,13 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
       <div
         ref={containerRef}
         onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
+	        onPointerDown={handlePointerDown}
         style={{
-          flex: 1, position: 'relative', overflow: 'hidden',
-          borderRadius: 'var(--radius-xl)', border: '1px solid var(--hairline)',
-          background: 'var(--bg-secondary)', minHeight: 250,
-          cursor: isDragging.current ? 'grabbing' : 'grab',
+	          flex: 1, position: 'relative', overflow: 'hidden', maxWidth: '100%',
+	          borderRadius: 'var(--radius-xl)', border: '1px solid var(--hairline)',
+	          background: 'var(--bg-secondary)', minHeight: 250,
+	          cursor: isDragging.current ? 'grabbing' : 'grab',
+	          touchAction: 'none',
         }}
       >
         <div style={{
@@ -372,7 +395,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
                 onClick={(e) => { e.stopPropagation(); setSelectedId(isSelected ? null : pn.id); }}
                 style={{
                   position: 'absolute', left: pn.x + off.dx, top: pn.y + off.dy,
-                  width: NODE_W, minHeight: NODE_H,
+	                  width: dims.nodeW, minHeight: dims.nodeH,
                   borderRadius: 'var(--radius-lg)',
                   border: pn.isTarget ? '2px solid var(--accent)' : isSelected ? '2px solid var(--fg)' : '1px solid var(--card-border)',
                   background: pn.isTarget ? 'rgba(0,230,122,0.05)' : 'var(--card)',
@@ -396,25 +419,25 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
                 }} />
 
                 {/* Content */}
-                <div style={{ padding: '8px 10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, minWidth: 0 }}>
+	                <div style={{ padding: isMobile ? '7px 8px' : '8px 10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, minWidth: 0 }}>
                   {/* Row 1: entity badge + address */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {pn.node.entityType && pn.node.entityType !== 'wallet' && (
                       <span style={{
-                        fontSize: 8, fontWeight: 600, padding: '1px 5px', borderRadius: 'var(--radius-full)',
+	                        fontSize: 8, fontWeight: 600, padding: isMobile ? '1px 4px' : '1px 5px', borderRadius: 'var(--radius-full)',
                         background: `${eColor}20`, color: eColor, textTransform: 'uppercase',
                         letterSpacing: '0.05em', fontFamily: 'var(--font-sans)', flexShrink: 0,
                       }}>{pn.node.entityType}</span>
                     )}
                     {pn.isTarget && (
                       <span style={{
-                        fontSize: 8, fontWeight: 600, padding: '1px 5px', borderRadius: 'var(--radius-full)',
+	                        fontSize: 8, fontWeight: 600, padding: isMobile ? '1px 4px' : '1px 5px', borderRadius: 'var(--radius-full)',
                         background: 'rgba(0,230,122,0.15)', color: 'var(--accent)',
                         fontFamily: 'var(--font-sans)', flexShrink: 0,
                       }}>TARGET</span>
                     )}
                     <span style={{
-                      fontSize: 11, fontWeight: 600, color: pn.isTarget ? 'var(--accent)' : 'var(--fg)',
+	                      fontSize: isMobile ? 10 : 11, fontWeight: 600, color: pn.isTarget ? 'var(--accent)' : 'var(--fg)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {pn.node.label || `${addr.slice(0, 6)}...${addr.slice(-4)}`}
@@ -422,7 +445,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
                   </div>
 
                   {/* Row 2: value + tx count */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10, color: 'var(--fg-tertiary)' }}>
+	                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, fontSize: isMobile ? 9 : 10, color: 'var(--fg-tertiary)' }}>
                     {pn.node.totalValueInEth != null && pn.node.totalValueInEth > 0 && (
                       <span style={{ color: 'var(--fg-secondary)' }}>
                         {pn.node.totalValueInEth < 0.0001 ? '<0.0001' : pn.node.totalValueInEth.toFixed(4)} ETH
@@ -441,7 +464,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
 
                   {/* Row 3: children indicator */}
                   {hasKids && (
-                    <div style={{ fontSize: 9, color: 'var(--fg-tertiary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+	                    <div style={{ fontSize: 9, color: 'var(--fg-tertiary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
                       {pn.collapsed ? (
                         <span style={{ color: 'var(--accent)' }}>+ {pn.node.children!.length} hidden</span>
                       ) : (

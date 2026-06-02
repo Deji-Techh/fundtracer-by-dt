@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, ExternalLink, ChevronLeft, ChevronRight, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import type { ChainId } from '../../types';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 
 const NATIVE_SYMBOL: Record<string, string> = {
   ethereum: 'ETH', base: 'ETH', arbitrum: 'ETH', optimism: 'ETH',
@@ -59,6 +60,7 @@ const CHAIN_EXPLORERS: Record<string, string> = {
 };
 
 export function TransactionList({ transactions, chain, loading, error }: TransactionListProps) {
+  const isMobile = useIsMobile();
   const [sortField, setSortField] = useState<SortField>('timestamp');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterType, setFilterType] = useState('all');
@@ -174,22 +176,23 @@ export function TransactionList({ transactions, chain, loading, error }: Transac
         </span>
       </div>
 
-      {/* Table header */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '44px 90px 1fr 1fr 110px 24px', gap: 8,
-        padding: '10px 8px', borderBottom: '1px solid var(--hairline)',
-        fontSize: 10, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase',
-        letterSpacing: '0.05em', alignItems: 'center',
-      }}>
-        <span style={{ textAlign: 'center' }}>Dir</span>
-        <button onClick={() => toggleSort('timestamp')} style={thStyle}><SortIcon field="timestamp" /> Age</button>
-        <span>From</span>
-        <span>To</span>
-        <button onClick={() => toggleSort('value')} style={{ ...thStyle, justifyContent: 'flex-end' }}>
-          <SortIcon field="value" /> Value
-        </button>
-        <span />
-      </div>
+      {!isMobile && (
+        <div style={{
+          display: 'grid', gridTemplateColumns: '44px 90px 1fr 1fr 110px 24px', gap: 8,
+          padding: '10px 8px', borderBottom: '1px solid var(--hairline)',
+          fontSize: 10, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase',
+          letterSpacing: '0.05em', alignItems: 'center',
+        }}>
+          <span style={{ textAlign: 'center' }}>Dir</span>
+          <button onClick={() => toggleSort('timestamp')} style={thStyle}><SortIcon field="timestamp" /> Age</button>
+          <span>From</span>
+          <span>To</span>
+          <button onClick={() => toggleSort('value')} style={{ ...thStyle, justifyContent: 'flex-end' }}>
+            <SortIcon field="value" /> Value
+          </button>
+          <span />
+        </div>
+      )}
 
       {/* Rows */}
       <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
@@ -203,6 +206,89 @@ export function TransactionList({ transactions, chain, loading, error }: Transac
           const isFailed = tx.status === 'failed' || tx.status === '0';
           const cat = tx.category || 'unknown';
           const methodName = tx.methodName || tx.method || '';
+
+          if (isMobile) {
+            return (
+              <button
+                key={hash || i}
+                type="button"
+                onClick={() => openTx(hash)}
+                title={hash || undefined}
+                style={{
+                  width: '100%',
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  padding: '12px 10px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  border: 0,
+                  borderBottom: '1px solid var(--hairline)',
+                  background: 'transparent',
+                  opacity: isFailed ? 0.5 : 1,
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  {isIncoming ? (
+                    <ArrowDownLeft size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
+                  ) : (
+                    <ArrowUpRight size={16} style={{ color: '#f43f5e', flexShrink: 0 }} />
+                  )}
+                  <span style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                      <span style={{ fontSize: 12, color: 'var(--fg)', fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                        {ts ? formatAge(ts) : '—'}
+                      </span>
+                      <span style={{
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontSize: 9,
+                        fontWeight: 600,
+                        padding: '2px 6px',
+                        borderRadius: 'var(--radius-full)',
+                        background: CATEGORY_COLORS[cat] || CATEGORY_COLORS.unknown,
+                        color: 'var(--fg-tertiary)',
+                        textTransform: 'uppercase',
+                      }}>
+                        {methodName || cat.replace(/_/g, ' ')}
+                      </span>
+                    </span>
+                  </span>
+                  <span style={{
+                    flexShrink: 0,
+                    fontSize: 12,
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    color: isIncoming ? '#22c55e' : 'var(--fg)',
+                  }}>
+                    {isIncoming ? '+' : ''}{formatValue(Number(value), currency)}
+                  </span>
+                  <ExternalLink size={12} style={{ color: 'var(--fg-tertiary)', opacity: 0.55, flexShrink: 0 }} />
+                </span>
+                <span style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+                  gap: 8,
+                  minWidth: 0,
+                }}>
+                  <span style={mobileAddressStyle}>
+                    <span style={mobileAddressLabelStyle}>From</span>
+                    <span>{formatMobileAddress(from)}</span>
+                  </span>
+                  <span style={mobileAddressStyle}>
+                    <span style={mobileAddressLabelStyle}>To</span>
+                    <span style={{ color: isIncoming ? 'var(--accent)' : 'var(--fg-secondary)' }}>
+                      {to ? formatMobileAddress(to) : 'Contract Creation'}
+                    </span>
+                  </span>
+                </span>
+              </button>
+            );
+          }
 
           return (
             <div
@@ -369,3 +455,32 @@ function formatValue(v: number, currency: string): string {
   if (v < 1) return `${v.toFixed(4)} ${currency}`;
   return `${v.toFixed(3)} ${currency}`;
 }
+
+function formatMobileAddress(address: string): string {
+  if (!address) return '—';
+  if (address.length <= 18) return address;
+  return `${address.slice(0, 10)}...${address.slice(-8)}`;
+}
+
+const mobileAddressStyle: React.CSSProperties = {
+  minWidth: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 3,
+  padding: '8px 9px',
+  borderRadius: 'var(--radius-md)',
+  background: 'var(--bg-secondary)',
+  border: '1px solid var(--hairline)',
+  fontFamily: 'var(--font-mono)',
+  fontSize: 11,
+  color: 'var(--fg)',
+  overflow: 'hidden',
+};
+
+const mobileAddressLabelStyle: React.CSSProperties = {
+  fontFamily: 'var(--font-sans)',
+  fontSize: 8,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  color: 'var(--fg-tertiary)',
+};

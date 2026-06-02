@@ -94,6 +94,7 @@ export function AppShell() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [sybilPrefill, setSybilPrefill] = useState<{ addresses: string[]; chain: ChainId } | null>(null);
   const isMobile = useIsMobile();
+  const showMobileBottomNav = isMobile && currentView !== 'ai-chat' && currentView !== 'rooms';
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileSidebarClosing, setMobileSidebarClosing] = useState(false);
   const mobileSidebarTimerRef = useRef<number | null>(null);
@@ -121,6 +122,11 @@ export function AppShell() {
   }, [closeMobileSidebar, mobileSidebarOpen]);
   const handleMobileViewChange = useCallback((view: AppView) => {
     setCurrentView(view);
+    if (view === 'analyze') {
+      window.requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('fundtracer:analysis-view-selected'));
+      });
+    }
     closeMobileSidebar();
   }, [closeMobileSidebar]);
 
@@ -201,7 +207,7 @@ export function AppShell() {
         </div>
 
         {commandOpen && <CommandPalette onClose={() => setCommandOpen(false)} onNavigate={setCurrentView} />}
-        {isMobile && <MobileBottomNav currentView={currentView} onViewChange={handleMobileViewChange} />}
+        {showMobileBottomNav && <MobileBottomNav currentView={currentView} onViewChange={handleMobileViewChange} />}
       </div>
     </TabsProvider>
     </ChainProvider>
