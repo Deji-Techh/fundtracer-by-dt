@@ -896,6 +896,7 @@ server = app.listen(PORT, async () => {
             
             try {
                 let ethGas = 25, activeAddresses = 1240000, defiTvl = 85000000000;
+                let marketStatsDegradedReason: string | null = null;
                 
                 if (ETHERSCAN_API_KEY) {
                     const gasRes = await axios.get(`https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${ETHERSCAN_API_KEY}`, { timeout: 5000 });
@@ -910,9 +911,24 @@ server = app.listen(PORT, async () => {
                     const defiData = cgRes.data.filter((c: any) => defiTokens.includes(c.id));
                     const totalDefiMcap = defiData.reduce((sum: number, c: any) => sum + (c.market_cap || 0), 0);
                     defiTvl = Math.round(totalDefiMcap * 2.5) || 85000000000;
-                } catch {}
+                } catch (e: any) {
+                    marketStatsDegradedReason = e?.response?.status === 429 ? 'coingecko_rate_limited' : 'upstream_unavailable';
+                    console.warn(`[Intel] Failed to pre-warm DeFi TVL, reason=${marketStatsDegradedReason}`);
+                }
                 
-                await redis.set('intel:market-stats', JSON.stringify({ ethGas, activeAddresses, defiTvl }), { ex: 600 });
+                if (marketStatsDegradedReason) {
+                    const staleRaw = await redis.get('intel:market-stats:stale');
+                    const staleStats = typeof staleRaw === 'string' ? JSON.parse(staleRaw) : staleRaw;
+                    const degradedStats = staleStats
+                        ? { ...(staleStats as any), stale: true, staleReason: marketStatsDegradedReason }
+                        : { ethGas, activeAddresses, defiTvl, stale: true, staleReason: 'fallback_no_stale_cache', updatedAt: new Date().toISOString() };
+
+                    await redis.set('intel:market-stats', JSON.stringify(degradedStats), { ex: 120 });
+                } else {
+                    const marketStats = { ethGas, activeAddresses, defiTvl, updatedAt: new Date().toISOString() };
+                    await redis.set('intel:market-stats', JSON.stringify(marketStats), { ex: 600 });
+                    await redis.set('intel:market-stats:stale', JSON.stringify(marketStats), { ex: 86400 });
+                }
                 console.log('[Intel] Pre-warmed market-stats cache');
             } catch (e) {
                 console.error('[Intel] Failed to pre-warm market cache:', e);
