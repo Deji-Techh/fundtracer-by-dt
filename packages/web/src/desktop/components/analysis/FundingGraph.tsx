@@ -246,7 +246,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
   const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const scaleRef = useRef(scale);
   const panRef = useRef({ x: panX, y: panY });
-  const dragNodeRef = useRef<{ id: string; startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
+  const dragNodeRef = useRef<{ id: string; startX: number; startY: number; offsetX: number; offsetY: number; moved: boolean } | null>(null);
   scaleRef.current = scale;
   panRef.current = { x: panX, y: panY };
 
@@ -303,7 +303,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
       const nodeId = nodeEl.getAttribute('data-node-id');
       if (nodeId) {
         const existing = nodeOffsets[nodeId] || { dx: 0, dy: 0 };
-        dragNodeRef.current = { id: nodeId, startX: e.clientX, startY: e.clientY, offsetX: existing.dx, offsetY: existing.dy };
+        dragNodeRef.current = { id: nodeId, startX: e.clientX, startY: e.clientY, offsetX: existing.dx, offsetY: existing.dy, moved: false };
         e.currentTarget.setPointerCapture?.(e.pointerId);
         e.preventDefault();
         e.stopPropagation();
@@ -323,6 +323,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
         const dx = (e.clientX - dn.startX) / scaleRef.current;
         const dy = (e.clientY - dn.startY) / scaleRef.current;
         if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+        dn.moved = true;
         setNodeOffsets(prev => ({
           ...prev,
           [dn.id]: { dx: dn.offsetX + dx, dy: dn.offsetY + dy },
@@ -333,7 +334,14 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
       setPanX(dragStart.current.panX + e.clientX - dragStart.current.x);
       setPanY(dragStart.current.panY + e.clientY - dragStart.current.y);
     };
-    const onUp = () => { isDragging.current = false; dragNodeRef.current = null; };
+    const onUp = () => {
+      const dn = dragNodeRef.current;
+      if (dn && !dn.moved) {
+        setSelectedId(prev => (prev === dn.id ? null : dn.id));
+      }
+      isDragging.current = false;
+      dragNodeRef.current = null;
+    };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
@@ -496,7 +504,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
               <div
                 key={n.id}
                 data-node-id={n.id}
-                onClick={(e) => { e.stopPropagation(); setSelectedId(isSelected ? null : n.id); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 style={{
                   position: 'absolute',
                   left: nx,

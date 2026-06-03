@@ -377,6 +377,14 @@ function numberValue(raw: unknown): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+function timestampedCount(txs: unknown[]): number {
+  return txs.reduce((count, tx) => {
+    if (!tx || typeof tx !== 'object') return count;
+    const t = tx as Record<string, unknown>;
+    return count + (normalizeTxTimestamp(t.timestamp ?? t.timeStamp ?? t.blockTimestamp ?? t.datetime) > 0 ? 1 : 0);
+  }, 0);
+}
+
 function toNodeArray(raw: unknown): Array<Record<string, unknown>> {
   if (!raw) return [];
   const nodes = Array.isArray(raw) ? raw : [raw];
@@ -456,7 +464,9 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
   // into both tab.result and tab.transactions, but this fallback keeps older tabs valid.
   const rawTxs = useMemo(() => {
     const resultTxs = extractArrayPayload(d.transactions);
-    return resultTxs.length > 0 ? resultTxs : extractArrayPayload(tab.transactions);
+    const tabTxs = extractArrayPayload(tab.transactions);
+    if (timestampedCount(tabTxs) > timestampedCount(resultTxs)) return tabTxs;
+    return resultTxs.length > 0 ? resultTxs : tabTxs;
   }, [d.transactions, tab.transactions]);
 
   // Collect suspicious tx hashes from indicators and same-block groups

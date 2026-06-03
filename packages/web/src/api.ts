@@ -830,7 +830,11 @@ export function streamWalletTimestamps(
         controller.abort();
     };
 
-    fetch(url, { headers, signal: controller.signal })
+    const shouldRetryMissingCache = (status: number, message: string) => (
+        status === 404 && /cached transactions|run wallet analysis/i.test(message)
+    );
+
+    const start = (attempt = 0) => fetch(url, { headers, signal: controller.signal })
         .then(async (response) => {
             if (!response.ok) {
                 const errText = await response.text().catch(() => '');
@@ -839,6 +843,12 @@ export function streamWalletTimestamps(
                     const errJson = JSON.parse(errText);
                     errMsg = errJson.error || errJson.message || errMsg;
                 } catch {}
+                if (!closed && attempt < 8 && shouldRetryMissingCache(response.status, errMsg)) {
+                    window.setTimeout(() => {
+                        if (!closed) void start(attempt + 1);
+                    }, 350);
+                    return;
+                }
                 onError(new Error(errMsg));
                 return;
             }
@@ -900,6 +910,8 @@ export function streamWalletTimestamps(
                 onError(err);
             }
         });
+
+    void start();
 
     return close;
 }
