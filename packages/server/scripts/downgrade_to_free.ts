@@ -2,10 +2,19 @@
 import { getFirestore, initializeFirebase } from '../src/firebase.js';
 import dotenv from 'dotenv';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '../.env') });
+
+// Try server package dir first, then home directory
+const envPaths = [
+  path.join(__dirname, '../.env'),
+  path.join(os.homedir(), '.env'),
+];
+for (const p of envPaths) {
+  dotenv.config({ path: p });
+}
 
 const args = process.argv.slice(2);
 const forceAll = args.includes('--all');
