@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { analyzeContract } from '../../api/analyze';
+import { useEffect, useRef, useState } from 'react';
+import { streamAnalyzeContract } from '../../api/analyze';
 import { useNotify } from '../../contexts/ToastContext';
 import { useTabs } from '../../contexts/TabsContext';
 import { ChainSelector } from '../common/ChainSelector';
@@ -37,6 +37,8 @@ interface ContractResult {
   sharedFundingGroups?: { fundingSource: string; wallets: string[]; count: number }[];
   suspiciousPatterns?: SuspiciousPattern[];
   riskScore?: number;
+  partial?: boolean;
+  source?: string;
 }
 
 const CHAIN_EXPLORERS: Record<string, string> = {
@@ -67,6 +69,9 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ContractResult | null>((initialState.result as ContractResult | null) || null);
   const [error, setError] = useState<string | null>(null);
+  const [progressMessage, setProgressMessage] = useState('');
+  const streamCleanupRef = useRef<(() => void) | null>(null);
+  const runIdRef = useRef(0);
 
   useEffect(() => {
     const next = getInteractorsState(scopeKey);
@@ -75,24 +80,74 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
     setResult((next.result as ContractResult | null) || null);
     setError(null);
     setLoading(false);
+    setProgressMessage('');
   }, [scopeKey]);
+
+  useEffect(() => () => {
+    streamCleanupRef.current?.();
+    streamCleanupRef.current = null;
+  }, []);
 
   useEffect(() => {
     saveInteractorsState({ address, chain, result: result as Record<string, unknown> | null }, scopeKey);
   }, [address, chain, result, scopeKey]);
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = () => {
     const addr = address.trim();
     if (!addr) { notify.error('Please enter a wallet or contract address'); return; }
-    setLoading(true); setError(null); setResult(null);
-    try {
-      const res = await analyzeContract(addr, chain, { maxInteractors: 1000, analyzeFunding: true });
-      const data = (res.result || res) as ContractResult;
-      setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed');
-      notify.error(err instanceof Error ? err.message : 'Analysis failed');
-    } finally { setLoading(false); }
+    streamCleanupRef.current?.();
+    const runId = ++runIdRef.current;
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setProgressMessage('Preparing contract analysis');
+
+    streamCleanupRef.current = streamAnalyzeContract(
+      addr,
+      chain,
+      { maxInteractors: 1000, analyzeFunding: true },
+      (event) => {
+        if (runId !== runIdRef.current) return;
+
+        if (event.type === 'status' || event.type === 'warning') {
+          setProgressMessage(event.message || 'Analyzing interactors');
+          return;
+        }
+
+        if (event.type === 'partial') {
+          const partial = event.result as ContractResult;
+          setResult(partial);
+          setProgressMessage(event.message || `Found ${partial.totalInteractors} interactors. Analyzing funding sources.`);
+          return;
+        }
+
+        if (event.type === 'complete') {
+          setResult(event.result as ContractResult);
+          setProgressMessage('');
+          setLoading(false);
+          streamCleanupRef.current = null;
+          return;
+        }
+
+        if (event.type === 'error') {
+          const message = event.message || event.error || 'Analysis failed';
+          setError(event.hint ? `${message} ${event.hint}` : message);
+          setProgressMessage('');
+          setLoading(false);
+          streamCleanupRef.current = null;
+          notify.error(message);
+        }
+      },
+      (err) => {
+        if (runId !== runIdRef.current) return;
+        setError(err.message || 'Analysis failed');
+        setProgressMessage('');
+        setLoading(false);
+        streamCleanupRef.current = null;
+        notify.error(err.message || 'Analysis failed');
+      },
+    );
   };
 
   const handleExport = (format: 'csv' | 'json') => {
@@ -135,13 +190,13 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
         <InputStage
           title="Interactors Analysis"
           maxWidth={760}
-          hint="0x.. or ENS"
+          hint="Contract address or ENS"
         >
           <CompactSearchForm
             value={address}
             onChange={setAddress}
             onSubmit={handleAnalyze}
-            placeholder="0x.. or ENS"
+            placeholder="Contract address or ENS"
             ariaLabel="Wallet or contract address"
             loading={loading}
             disabled={loading}
@@ -169,6 +224,7 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
         <ProgressiveLoader
           title="Analyzing interactors"
           steps={['Loading contract interactions', 'Finding first funders', 'Detecting shared funding groups']}
+          message={progressMessage || undefined}
           compact={isMobile}
         />
       )}
@@ -205,6 +261,21 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
 
             {/* Actions */}
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              {loading && result && (
+                <span style={{
+                  padding: '5px 9px',
+                  borderRadius: 'var(--radius-full)',
+                  border: '1px solid var(--accent)',
+                  background: 'rgba(0,230,122,0.08)',
+                  color: 'var(--accent)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  alignSelf: 'center',
+                  whiteSpace: 'nowrap',
+                }}>
+                  Live update
+                </span>
+              )}
               {onNavigateToSybil && (
                 <button
                   onClick={() => onNavigateToSybil(result.interactors.map(ix => ix.address), chain)}

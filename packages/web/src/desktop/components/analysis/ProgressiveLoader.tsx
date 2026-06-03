@@ -2,9 +2,10 @@ interface ProgressiveLoaderProps {
   title: string;
   steps: string[];
   compact?: boolean;
+  message?: string;
 }
 
-export function ProgressiveLoader({ title, steps, compact }: ProgressiveLoaderProps) {
+export function ProgressiveLoader({ title, steps, compact, message }: ProgressiveLoaderProps) {
   return (
     <div style={{
       width: '100%',
@@ -29,7 +30,7 @@ export function ProgressiveLoader({ title, steps, compact }: ProgressiveLoaderPr
         }} />
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg)' }}>{title}</div>
-          <div style={{ fontSize: 11, color: 'var(--fg-tertiary)', marginTop: 2 }}>Results will fill in as soon as the backend finishes each stage.</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-tertiary)', marginTop: 2 }}>{message || 'Results will fill in as soon as the backend finishes each stage.'}</div>
         </div>
       </div>
 

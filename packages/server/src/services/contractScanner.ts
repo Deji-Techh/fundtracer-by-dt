@@ -60,6 +60,13 @@ interface ScanResult {
   scanDurationMs: number;
 }
 
+export type ContractScanProgress =
+  | { stage: 'cache'; message: string; cached: true }
+  | { stage: 'metadata'; message: string; contract?: Partial<ScanResult['contract']> }
+  | { stage: 'creation'; message: string }
+  | { stage: 'transfers'; message: string; direction?: 'incoming' | 'outgoing'; pages?: number; transfers?: number }
+  | { stage: 'aggregate'; message: string; uniqueWallets?: number; totalTransfers?: number };
+
 export class ContractScanner {
   private alchemy: AlchemyClient;
   private lineascanKey: string | null;
@@ -74,13 +81,14 @@ export class ContractScanner {
   }
 
   // Main scan method
-  async scan(contractAddress: string): Promise<ScanResult> {
+  async scan(contractAddress: string, onProgress?: (progress: ContractScanProgress) => void): Promise<ScanResult> {
     const startTime = Date.now();
     
     // Check cache first
     const cached = await this.getCachedScan(contractAddress);
     if (cached) {
       console.log(`[ContractScanner] Returning cached result for ${contractAddress}`);
+      onProgress?.({ stage: 'cache', message: 'Loaded cached contract scan', cached: true });
       return cached;
     }
     
@@ -92,6 +100,7 @@ export class ContractScanner {
     }
     
     // Step 2: Check if it's actually a contract
+    onProgress?.({ stage: 'metadata', message: 'Checking bytecode and contract metadata' });
     const metadata = await this.alchemy.getContractMetadata(contractAddress);
     
     if (!metadata.code || metadata.code === '0x') {
@@ -100,25 +109,40 @@ export class ContractScanner {
     
     // Step 3: Detect contract type
     const contractType = this.detectContractType(metadata);
+    onProgress?.({
+      stage: 'metadata',
+      message: 'Contract metadata loaded',
+      contract: {
+        address: contractAddress.toLowerCase(),
+        name: metadata.name || 'Unknown',
+        symbol: metadata.symbol || null,
+        type: contractType,
+        decimals: metadata.decimals,
+        balanceETH: this.formatETH(metadata.balance),
+        isContract: true,
+      },
+    });
     
     // Step 4: Get creation info (creator, timestamp)
+    onProgress?.({ stage: 'creation', message: 'Fetching contract creation details' });
     const creationInfo = await this.getCreationInfo(contractAddress);
     
     // Step 5: Fetch all transfers (incoming + outgoing in parallel)
     console.log(`[ContractScanner] Fetching transfers for ${contractAddress}...`);
+    onProgress?.({ stage: 'transfers', message: 'Fetching incoming and outgoing transfers' });
     const [incomingTransfers, outgoingTransfers] = await Promise.all([
       this.fetchTransfersWithProgress({
         toBlock: "latest",
         toAddress: contractAddress,
         category: ["external", "erc20", "erc721", "erc1155"],
         withMetadata: true
-      }),
+      }, (progress) => onProgress?.({ ...progress, direction: 'incoming' })),
       this.fetchTransfersWithProgress({
         toBlock: "latest",
         fromAddress: contractAddress,
         category: ["external", "erc20", "erc721", "erc1155"],
         withMetadata: true
-      })
+      }, (progress) => onProgress?.({ ...progress, direction: 'outgoing' }))
     ]);
     
     console.log(`[ContractScanner] Got ${incomingTransfers.length} incoming, ${outgoingTransfers.length} outgoing transfers`);
@@ -129,6 +153,12 @@ export class ContractScanner {
       outgoingTransfers, 
       contractAddress
     );
+    onProgress?.({
+      stage: 'aggregate',
+      message: `Aggregated ${wallets.length} unique wallets`,
+      uniqueWallets: wallets.length,
+      totalTransfers: stats.totalTransfers,
+    });
     
     // Sort by interactions and assign ranks
     wallets.sort((a, b) => b.interactions - a.interactions);
@@ -240,7 +270,10 @@ export class ContractScanner {
   }
 
   // Fetch transfers with progress logging
-  async fetchTransfersWithProgress(params: any): Promise<any[]> {
+  async fetchTransfersWithProgress(
+    params: any,
+    onProgress?: (progress: Extract<ContractScanProgress, { stage: 'transfers' }>) => void,
+  ): Promise<any[]> {
     const transfers: any[] = [];
     let pageKey: string | null = null;
     let pageCount = 0;
@@ -265,6 +298,12 @@ export class ContractScanner {
         
         pageKey = result?.pageKey;
         pageCount++;
+        onProgress?.({
+          stage: 'transfers',
+          message: `Fetched ${transfers.length} transfers`,
+          pages: pageCount,
+          transfers: transfers.length,
+        });
         
         if (pageCount % 10 === 0) {
           console.log(`[ContractScanner] Fetched ${transfers.length} transfers (page ${pageCount})...`);

@@ -80,6 +80,47 @@ const normalizeChainId = (chain: string): string => {
     return mapping[chain.toLowerCase()] || chain.toLowerCase();
 };
 
+type ContractInteractorData = {
+    address: string;
+    firstInteraction: number;
+    lastInteraction: number;
+    interactionCount: number;
+    totalValueIn: number;
+    totalValueOut: number;
+};
+
+function sendSseEvent(res: Response, event: string, data: any): void {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+function buildPartialContractResult(
+    contractAddress: string,
+    chain: string,
+    interactorData: ContractInteractorData[],
+    maxInteractors: number,
+): any {
+    const limited = interactorData.slice(0, maxInteractors);
+    return sanitizeForFrontend({
+        contractAddress,
+        chain,
+        totalInteractors: interactorData.length,
+        interactors: limited.map((item) => ({
+            address: item.address,
+            interactionCount: item.interactionCount,
+            totalValueInEth: item.totalValueIn,
+            totalValueOutEth: item.totalValueOut,
+            firstInteraction: item.firstInteraction,
+            lastInteraction: item.lastInteraction,
+        })),
+        sharedFundingGroups: [],
+        suspiciousPatterns: [],
+        riskScore: 0,
+        partial: true,
+        source: 'dune',
+    });
+}
+
 // Helper to parse API errors into user-friendly messages
 function getUserFriendlyError(error: any): { status: number; error: string; message: string; hint?: string } {
     const msg = error.message || '';
@@ -1304,6 +1345,181 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         console.error('Comparison error:', error);
         const errInfo = getUserFriendlyError(error);
         res.status(errInfo.status).json(errInfo);
+    }
+});
+
+// Analyze contract interactors with partial streaming updates
+router.post('/contract/stream', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { contractAddress, chain, options } = req.body;
+
+    if (!contractAddress || !chain) {
+        return res.status(400).json({ error: 'Contract address and chain are required' });
+    }
+
+    const normalizedChain = normalizeChainId(chain);
+
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
+    }
+
+    const isSolana = normalizedChain === 'solana';
+    if (isSolana ? !SOL_ADDR_REGEX.test(contractAddress) : !ETH_ADDRESS_REGEX.test(contractAddress)) {
+        return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} contract address format` });
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    let closed = false;
+    req.on('close', () => {
+        closed = true;
+    });
+
+    const send = (event: string, data: any) => {
+        if (!closed) sendSseEvent(res, event, data);
+    };
+
+    try {
+        const maxInteractors = Math.min(Number(options?.maxInteractors) || 100, 1000);
+        send('status', {
+            stage: 'setup',
+            message: 'Preparing contract analysis',
+        });
+
+        const alchemyKeyPool = getAlchemyKeyPool();
+        const defaultKey = isSolana ? '' : await getAlchemyKeyForUser(req.user.uid);
+
+        const sybilConfig = !isSolana && alchemyKeyPool.length > 0 ? {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool.slice(0, Math.min(10, alchemyKeyPool.length)),
+            walletKeys: alchemyKeyPool.slice(Math.min(10, alchemyKeyPool.length), Math.min(20, alchemyKeyPool.length)),
+            moralisKey: process.env.MORALIS_API_KEY,
+        } : undefined;
+
+        const analyzer = new WalletAnalyzer({
+            alchemy: defaultKey || alchemyKeyPool[0] || '',
+            sybilConfig: sybilConfig,
+            moralis: process.env.MORALIS_API_KEY,
+            etherscan: process.env.ETHERSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            lineascan: process.env.LINEASCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            arbiscan: process.env.ARBISCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            basescan: process.env.BASESCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            optimism: process.env.OPTIMISM_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+            polygonscan: process.env.POLYGONSCAN_API_KEY || process.env.DEFAULT_ETHERSCAN_API_KEY,
+        });
+
+        let externalInteractors: string[] = [];
+        let externalInteractorData: ContractInteractorData[] = [];
+
+        const duneKey = process.env.DUNE_API_KEY;
+
+        if (duneKey) {
+            try {
+                send('status', {
+                    stage: 'dune',
+                    message: 'Searching indexed interactors',
+                });
+                console.log('[DEBUG] Attempting to fetch interactors from Dune...');
+                const duneService = new DuneService(duneKey);
+
+                externalInteractorData = await duneService.getContractInteractorsWithData(
+                    chain as string,
+                    contractAddress
+                );
+
+                if (externalInteractorData.length > 0) {
+                    console.log(`[DEBUG] Dune returned ${externalInteractorData.length} interactors with data`);
+                    externalInteractors = externalInteractorData.map(d => d.address);
+                    send('partial', {
+                        stage: 'interactors',
+                        message: `Found ${externalInteractorData.length} interactors. Analyzing funding sources now.`,
+                        result: buildPartialContractResult(contractAddress, normalizedChain, externalInteractorData, maxInteractors),
+                    });
+                } else {
+                    console.log('[DEBUG] Dune returned empty, falling back to RPC');
+                    send('status', {
+                        stage: 'rpc',
+                        message: 'No indexed interactors found. Falling back to RPC',
+                    });
+                }
+            } catch (duneError: any) {
+                console.error('[DEBUG] Dune fetch failed, falling back to RPC:', duneError);
+                send('warning', {
+                    stage: 'dune',
+                    message: 'Indexed interactor lookup failed. Falling back to RPC',
+                });
+            }
+        } else {
+            send('status', {
+                stage: 'rpc',
+                message: 'Dune is not configured. Fetching interactors through RPC',
+            });
+        }
+
+        if (closed) return;
+
+        send('status', {
+            stage: 'funding',
+            message: externalInteractorData.length > 0
+                ? 'Checking first funders and shared funding groups'
+                : 'Loading contract interactions and funding sources',
+        });
+
+        console.log('[DEBUG] Starting streamed contract analysis with 180s timeout...');
+        const result = await withTimeout(
+            analyzer.analyzeContract(contractAddress, normalizedChain as ChainId, {
+                maxInteractors,
+                analyzeFunding: options?.analyzeFunding !== false,
+                externalInteractors: externalInteractors.length > 0 ? externalInteractors : undefined,
+                externalInteractorData: externalInteractorData.length > 0 ? externalInteractorData : undefined,
+                skipTimestamps: true,
+            }),
+            180000,
+            'Contract analysis'
+        );
+
+        if (closed) return;
+
+        console.log('[DEBUG] Streamed contract analysis complete, sending final event');
+        send('complete', {
+            result: sanitizeForFrontend(enrichAnalysisResult(result)),
+            rateLimit: res.locals.rateLimit,
+        });
+
+        res.end();
+
+        trackAnalysis({
+            userId: req.user?.uid,
+            userEmail: req.user?.email,
+            chain,
+            feature: 'contract',
+            timestamp: Date.now(),
+        }).catch(err => console.error('Failed to track analytics:', err));
+
+        const userName = req.user?.name || req.user?.email || 'User';
+        if (res.locals.authProvider !== 'api_key') {
+          await torqueServiceV2.incrementScan(req.user.uid, userName).catch(err => console.error('[TorqueV2] Contract scan increment failed:', err));
+          await torqueServiceV2.addActivity(req.user.uid, userName, contractAddress, chain).catch(err => console.error('[TorqueV2] Activity failed:', err));
+        }
+    } catch (error: any) {
+        console.error('Streamed contract analysis error:', error.message);
+        const errInfo = getUserFriendlyError(error);
+        if (!closed) {
+            send('error', {
+                ...errInfo,
+                hint: errInfo.hint || (error.message.includes('timed out')
+                    ? 'The contract has too many interactions. Try limiting maxInteractors.'
+                    : undefined),
+            });
+            res.end();
+        }
     }
 });
 

@@ -3,7 +3,7 @@ import { useChain } from '../../contexts/ChainContext';
 import { ChainSelector } from '../common/ChainSelector';
 import { useNotify } from '../../contexts/ToastContext';
 import { useIsMobile } from '../../../hooks/useIsMobile';
-import { scanContract, scanContractRich, analyzeContract } from '../../api/analyze';
+import { analyzeContract, streamScanContract } from '../../api/analyze';
 import { addHistory } from '../../stores/history';
 import { useTabs } from '../../contexts/TabsContext';
 import { sendChatMessage } from '../../api/chat';
@@ -112,6 +112,9 @@ export function ContractScannerView() {
   const [activeTab, setActiveTab] = useState<ScannerTab>('overview');
   const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [progressMessage, setProgressMessage] = useState('');
+  const scanCleanupRef = useRef<(() => void) | null>(null);
+  const scanRunIdRef = useRef(0);
   const notify = useNotify();
   const { openTab } = useTabs();
   const isMobile = useIsMobile();
@@ -123,9 +126,16 @@ export function ContractScannerView() {
     setActiveTab(saved.activeTab || 'overview');
     setAiMessages(saved.aiMessages || []);
     setError(null);
+    setLoading(false);
+    setProgressMessage('');
     if (saved.chain && saved.chain !== chain) setChain(saved.chain);
     setHydrated(true);
   }, [scopeKey]);
+
+  useEffect(() => () => {
+    scanCleanupRef.current?.();
+    scanCleanupRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -138,44 +148,100 @@ export function ContractScannerView() {
     }, scopeKey);
   }, [address, chain, result, activeTab, aiMessages, hydrated, scopeKey]);
 
-  const handleScan = async () => {
+  const handleScan = () => {
     const addr = address.trim();
     if (!addr) { notify.error('Enter a contract address'); return; }
-    setLoading(true); setError(null); setResult(null); setAiMessages([]);
-    try {
-      let data: any;
-      try {
-        data = await scanContractRich(addr, chain);
-      } catch {
-        data = await scanContract(addr, chain);
-      }
-      let r = normalizeScanResult((data.result || data) as Record<string, unknown>);
+    scanCleanupRef.current?.();
+    const runId = ++scanRunIdRef.current;
 
-      // Fallback: if scan endpoint returns empty contract activity, try analyze endpoint.
-      const looksEmpty = (r.totalTransfers || 0) === 0
-        && (r.walletInteractions?.length || 0) === 0
-        && (r.totalInteractors || 0) === 0;
-      if (looksEmpty) {
-        try {
-          const alt = await analyzeContract(addr, chain);
-          r = normalizeScanResult((alt as any).result || (alt as any) || {});
-        } catch {
-          // Keep original result if fallback fails.
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setAiMessages([]);
+    setProgressMessage('Preparing contract scan');
+
+    scanCleanupRef.current = streamScanContract(
+      addr,
+      chain,
+      async (event) => {
+        if (runId !== scanRunIdRef.current) return;
+
+        if (event.type === 'status') {
+          const suffix = event.direction && event.transfers != null
+            ? ` (${event.direction}: ${event.transfers} transfers)`
+            : '';
+          setProgressMessage(`${event.message || 'Scanning contract'}${suffix}`);
+          return;
         }
-      }
 
-      setResult(r);
-      setActiveTab('overview');
-      addHistory({
-        address: addr,
-        chain,
-        type: 'contract',
-        riskScore: r.riskScore,
-        totalTransactions: r.totalTransfers,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Contract scan failed');
-    } finally { setLoading(false); }
+        if (event.type === 'partial' && event.contract) {
+          setProgressMessage(event.message || 'Contract metadata loaded');
+          setResult({
+            contractAddress: (event.contract.address as string) || addr,
+            contractName: event.contract.name as string,
+            contractSymbol: event.contract.symbol as string,
+            contractType: event.contract.type as string,
+            ethBalance: event.contract.balanceETH != null ? Number(event.contract.balanceETH) : undefined,
+            chain,
+            totalInteractors: 0,
+            totalTransfers: 0,
+            uniqueWallets: 0,
+            incomingTransfers: 0,
+            outgoingTransfers: 0,
+            categoryBreakdown: {},
+            walletInteractions: [],
+            riskScore: 0,
+          });
+          setActiveTab('overview');
+          return;
+        }
+
+        if (event.type === 'complete') {
+          let r = normalizeScanResult((event.result || {}) as Record<string, unknown>);
+          const looksEmpty = (r.totalTransfers || 0) === 0
+            && (r.walletInteractions?.length || 0) === 0
+            && (r.totalInteractors || 0) === 0;
+          if (looksEmpty) {
+            try {
+              const alt = await analyzeContract(addr, chain);
+              r = normalizeScanResult((alt as any).result || (alt as any) || {});
+            } catch {
+              // Keep original result if fallback fails.
+            }
+          }
+
+          if (runId !== scanRunIdRef.current) return;
+          setResult(r);
+          setActiveTab('overview');
+          setProgressMessage('');
+          setLoading(false);
+          scanCleanupRef.current = null;
+          addHistory({
+            address: addr,
+            chain,
+            type: 'contract',
+            riskScore: r.riskScore,
+            totalTransactions: r.totalTransfers,
+          });
+          return;
+        }
+
+        if (event.type === 'error') {
+          const message = event.message || event.error || 'Contract scan failed';
+          setError(event.hint ? `${message} ${event.hint}` : message);
+          setProgressMessage('');
+          setLoading(false);
+          scanCleanupRef.current = null;
+        }
+      },
+      (err) => {
+        if (runId !== scanRunIdRef.current) return;
+        setError(err.message || 'Contract scan failed');
+        setProgressMessage('');
+        setLoading(false);
+        scanCleanupRef.current = null;
+      },
+    );
   };
 
   const resetView = () => {
@@ -245,13 +311,13 @@ export function ContractScannerView() {
           <InputStage
             title="Contract Analysis"
             maxWidth={760}
-            hint="0x.. or ENS"
+            hint="Contract address or ENS"
           >
             <CompactSearchForm
               value={address}
               onChange={setAddress}
               onSubmit={handleScan}
-              placeholder="0x.. or ENS"
+              placeholder="Contract address or ENS"
               ariaLabel="Contract address"
               loading={loading}
               disabled={loading || !address.trim()}
@@ -271,6 +337,7 @@ export function ContractScannerView() {
         <ProgressiveLoader
           title="Scanning contract"
           steps={['Checking bytecode and metadata', 'Fetching transfers and interactors', 'Finding shared funding groups']}
+          message={progressMessage || undefined}
           compact={isMobile}
         />
       )}

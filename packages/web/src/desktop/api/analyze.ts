@@ -69,6 +69,121 @@ export async function analyzeContract(
   });
 }
 
+export type ContractAnalysisStreamEvent =
+  | { type: 'status'; stage?: string; message?: string }
+  | { type: 'warning'; stage?: string; message?: string }
+  | { type: 'partial'; stage?: string; message?: string; result: unknown }
+  | { type: 'complete'; result: unknown; rateLimit?: ApiResponse<unknown>['rateLimit'] }
+  | { type: 'error'; error?: string; message?: string; hint?: string; status?: number };
+
+export function streamAnalyzeContract(
+  contractAddress: string,
+  chain: ChainId,
+  options: Record<string, unknown> | undefined,
+  onEvent: (event: ContractAnalysisStreamEvent) => void,
+  onError: (err: Error) => void,
+): () => void {
+  const token = getAuthToken();
+  const apiKey = (() => { try { return localStorage.getItem('fdt_api_key'); } catch { return null; } })();
+  const controller = new AbortController();
+  let closed = false;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    controller.abort();
+  };
+
+  const parseEventBlock = (block: string): ContractAnalysisStreamEvent | null => {
+    let eventType = 'message';
+    const dataLines: string[] = [];
+
+    for (const rawLine of block.split('\n')) {
+      const line = rawLine.trimEnd();
+      if (line.startsWith('event:')) eventType = line.slice(6).trim();
+      if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+    }
+
+    if (dataLines.length === 0) return null;
+
+    try {
+      const parsed = JSON.parse(dataLines.join('\n'));
+      return { type: eventType as ContractAnalysisStreamEvent['type'], ...parsed };
+    } catch {
+      return null;
+    }
+  };
+
+  fetch(`${API_BASE}/api/analyze/contract/stream`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      contractAddress,
+      chain: normalizeChain(chain),
+      options,
+    }),
+    signal: controller.signal,
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        onError(new Error(errorData.message || errorData.error || `HTTP ${response.status}`));
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        onError(new Error('No response stream'));
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const event = parseEventBlock(block);
+            if (!event) continue;
+            onEvent(event);
+            if (event.type === 'complete' || event.type === 'error') {
+              return;
+            }
+          }
+        }
+
+        if (buffer.trim()) {
+          const event = parseEventBlock(buffer);
+          if (event) onEvent(event);
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') onError(err);
+      }
+    })
+    .catch((err) => {
+      if (err.name !== 'AbortError') onError(err);
+    });
+
+  return cleanup;
+}
+
 export async function detectSybil(
   addresses: string[],
   chain: ChainId,
@@ -194,6 +309,108 @@ export async function scanContract(address: string, chain: ChainId): Promise<Api
     address,
     chain: normalizeChain(chain),
   });
+}
+
+export type ContractScanStreamEvent =
+  | { type: 'status'; stage?: string; message?: string; direction?: string; pages?: number; transfers?: number; uniqueWallets?: number; totalTransfers?: number }
+  | { type: 'partial'; stage?: string; message?: string; contract?: Record<string, unknown> }
+  | { type: 'complete'; result: unknown }
+  | { type: 'error'; error?: string; message?: string; hint?: string };
+
+export function streamScanContract(
+  address: string,
+  chain: ChainId,
+  onEvent: (event: ContractScanStreamEvent) => void,
+  onError: (err: Error) => void,
+): () => void {
+  const token = getAuthToken();
+  const apiKey = (() => { try { return localStorage.getItem('fdt_api_key'); } catch { return null; } })();
+  const controller = new AbortController();
+  let closed = false;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    controller.abort();
+  };
+
+  const parseEventBlock = (block: string): ContractScanStreamEvent | null => {
+    let eventType = 'message';
+    const dataLines: string[] = [];
+    for (const rawLine of block.split('\n')) {
+      const line = rawLine.trimEnd();
+      if (line.startsWith('event:')) eventType = line.slice(6).trim();
+      if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+    }
+    if (dataLines.length === 0) return null;
+    try {
+      const parsed = JSON.parse(dataLines.join('\n'));
+      return { type: eventType as ContractScanStreamEvent['type'], ...parsed };
+    } catch {
+      return null;
+    }
+  };
+
+  fetch(`${API_BASE}/api/contract/scan/stream`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      address,
+      chain: normalizeChain(chain),
+    }),
+    signal: controller.signal,
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        onError(new Error(errorData.message || errorData.error || `HTTP ${response.status}`));
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        onError(new Error('No response stream'));
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const event = parseEventBlock(block);
+            if (!event) continue;
+            onEvent(event);
+            if (event.type === 'complete' || event.type === 'error') return;
+          }
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') onError(err);
+      }
+    })
+    .catch((err) => {
+      if (err.name !== 'AbortError') onError(err);
+    });
+
+  return cleanup;
 }
 
 export async function scanContractRich(address: string, chain: ChainId): Promise<ApiResponse<unknown>> {
