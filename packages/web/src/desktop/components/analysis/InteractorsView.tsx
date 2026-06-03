@@ -254,7 +254,18 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
   );
 
   return (
-    <div style={{ padding: isMobile ? 14 : 20, width: '100%', maxWidth: 'none', margin: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{
+      padding: isMobile ? '14px 14px 72px' : 20,
+      width: '100%',
+      maxWidth: 'none',
+      margin: 0,
+      height: '100%',
+      minHeight: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'auto',
+      overflowX: 'hidden',
+    }}>
       {!result && !loading && !error && (
         <InputStage
           title="Interactors Analysis"
