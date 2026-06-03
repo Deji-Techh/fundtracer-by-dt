@@ -11,14 +11,23 @@ interface ExportButtonProps {
   fullWidth?: boolean;
 }
 
+function extractTxList(tab: AnalysisTab): Array<Record<string, unknown>> {
+  const raw = tab.transactions;
+  if (Array.isArray(raw)) return raw as Array<Record<string, unknown>>;
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    return (obj.transactions as any[]) || (obj.data as any[]) || (obj.result as any[]) || [];
+  }
+  return [];
+}
+
 function getExportContent(tab: AnalysisTab, format: 'csv' | 'json'): string {
   const result = tab.result as unknown as Record<string, unknown> | undefined;
   if (format === 'json') {
     return JSON.stringify({ address: tab.address, chain: tab.chain, result, transactions: tab.transactions, funding: tab.fundingData }, null, 2);
   }
   // CSV
-  const txs = tab.transactions as unknown as Record<string, unknown> | undefined;
-  const txList = (txs?.transactions || txs?.data || txs?.result || []) as Array<Record<string, unknown>>;
+  const txList = extractTxList(tab);
   if (!txList.length) return 'hash,from,to,value,timestamp\nNo transaction data';
   const headers = ['hash', 'from', 'to', 'value', 'timestamp'];
   const rows = txList.map((tx: Record<string, unknown>) =>
@@ -47,8 +56,7 @@ async function generatePDF(tab: AnalysisTab): Promise<Blob> {
   doc.text(`Generated: ${new Date().toISOString().slice(0, 19)}`, 14, 44);
 
   // Transactions table
-  const txs = tab.transactions as unknown as Record<string, unknown> | undefined;
-  const txList = (txs?.transactions || txs?.data || txs?.result || []) as Array<Record<string, unknown>>;
+  const txList = extractTxList(tab);
 
   if (txList.length > 0) {
     const rows = txList.map((tx: Record<string, unknown>) => [

@@ -171,7 +171,7 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
   const { pins, pinMessage, unpinMessage } = useRoomPins(activeRoomId);
 
   // WebSocket
-  const { connected, onlineUids, startTyping, stopTyping } = useInvestigationSocket(activeRoomId);
+  const { connected, reconnecting, onlineUids, startTyping, stopTyping } = useInvestigationSocket(activeRoomId);
 
   // Mention autocomplete
   const { isActive: mentionActive, suggestions: mentionSuggestions, filter, atIndex, applyMention } =
@@ -925,6 +925,8 @@ export function InvestigationRoomView({ isOpen, onClose, currentWallet, currentC
                <RoomHeader
                  name={roomDetails?.name || 'Investigation Room'}
                  memberCount={members.length}
+                 connected={connected}
+                 reconnecting={reconnecting}
                  onSettings={() => setShowSettings(true)}
                  onClose={onClose}
                />

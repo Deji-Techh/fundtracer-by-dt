@@ -19,6 +19,7 @@ export function PortfolioView({ address: initialAddress, chain: initialChain }: 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [excludeSpam, setExcludeSpam] = useState(true);
 
   // Auto-fetch when address/chain provided from parent (wallet analysis context)
   useEffect(() => {
@@ -29,10 +30,11 @@ export function PortfolioView({ address: initialAddress, chain: initialChain }: 
     }
   }, [initialAddress, initialChain]);
 
-  const fetchPortfolio = async (addr: string, ch: ChainId) => {
+  const fetchPortfolio = async (addr: string, ch: ChainId, spam?: boolean) => {
     setLoading(true); setError(null); setResult(null);
+    const hideSpam = spam ?? excludeSpam;
     try {
-      const res = await getPortfolio(addr.trim(), ch);
+      const res = await getPortfolio(addr.trim(), ch, { excludeSpam: hideSpam, excludeUnpriced: hideSpam });
       setResult(res as Record<string, unknown>);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch portfolio');
@@ -69,6 +71,23 @@ export function PortfolioView({ address: initialAddress, chain: initialChain }: 
           leftSlot={<ChainSelector value={chain} onChange={setChain} compact />}
         />
       </div>
+
+      {result && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--fg-tertiary)' }}>
+            <input
+              type="checkbox"
+              checked={excludeSpam}
+              onChange={(e) => {
+                setExcludeSpam(e.target.checked);
+                if (address.trim()) fetchPortfolio(address, chain, e.target.checked);
+              }}
+              style={{ accentColor: 'var(--accent)' }}
+            />
+            Hide spam tokens
+          </label>
+        </div>
+      )}
 
       {loading && <Loader />}
       {error && <div style={{ padding: 16, borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--destructive)', color: 'var(--destructive)', fontSize: 13 }}>{error}</div>}

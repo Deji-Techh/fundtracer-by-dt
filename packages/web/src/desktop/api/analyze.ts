@@ -406,8 +406,11 @@ export function streamAnalyzeCEXFlow(
   return cleanup;
 }
 
-export async function getPortfolio(address: string, chain: string): Promise<unknown> {
-  return apiRequest(`/api/portfolio/${encodeURIComponent(address)}?chain=${encodeURIComponent(chain)}`);
+export async function getPortfolio(address: string, chain: string, opts?: { excludeSpam?: boolean; excludeUnpriced?: boolean }): Promise<unknown> {
+  const params = new URLSearchParams({ chain });
+  if (opts?.excludeSpam !== undefined) params.set('exclude_spam', String(opts.excludeSpam));
+  if (opts?.excludeUnpriced !== undefined) params.set('exclude_unpriced', String(opts.excludeUnpriced));
+  return apiRequest(`/api/portfolio/${encodeURIComponent(address)}?${params.toString()}`);
 }
 
 export async function getGasPrices(chain?: string): Promise<unknown> {

@@ -17,6 +17,7 @@ interface SocketState {
   maxReconnectDelay: number;
   listeners: Map<string, Set<EventHandler>>;
   fallbackInterval: ReturnType<typeof setInterval> | null;
+  lastMessageId: string | null;
 }
 
 const state: SocketState = {
@@ -28,6 +29,7 @@ const state: SocketState = {
   maxReconnectDelay: 30000,
   listeners: new Map(),
   fallbackInterval: null,
+  lastMessageId: null,
 };
 
 function getWsUrl(roomId: string): string {
@@ -50,35 +52,44 @@ export function connect(roomId: string) {
 function tryConnect(roomId: string) {
   try {
     const url = getWsUrl(roomId);
+    console.log('[WS] Connecting to:', url.replace(/token=[^&]+/, 'token=***'));
     const ws = new WebSocket(url);
     state.ws = ws;
 
     ws.onopen = () => {
       state.connected = true;
       state.reconnectAttempts = 0;
+      console.log('[WS] Connected to room', roomId);
       emit('connected', { roomId });
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        // Track last message ID for catchup on reconnect
+        if (data.type === 'message' && data.message?.id) {
+          state.lastMessageId = data.message.id;
+        }
         emit(data.type, data);
       } catch {
         // ignore malformed
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       state.connected = false;
+      console.log('[WS] Disconnected (code:', event.code, ') reconnecting...');
       emit('disconnected', { roomId });
       scheduleReconnect(roomId);
     };
 
-    ws.onerror = () => {
+    ws.onerror = (err) => {
       state.connected = false;
+      console.error('[WS] Connection error');
       // ws.onclose will fire next
     };
-  } catch {
+  } catch (err) {
+    console.error('[WS] Failed to create WebSocket:', err);
     scheduleReconnect(roomId);
   }
 }
@@ -86,15 +97,51 @@ function tryConnect(roomId: string) {
 function scheduleReconnect(roomId: string) {
   if (state.reconnectAttempts >= 10) {
     // Switch to REST polling fallback
+    console.log('[WS] Max reconnects reached, starting REST polling fallback');
     startPolling(roomId);
     return;
   }
 
+  emit('reconnecting', { roomId, attempt: state.reconnectAttempts + 1 });
+
   const delay = Math.min(1000 * Math.pow(2, state.reconnectAttempts), state.maxReconnectDelay);
   state.reconnectAttempts++;
+  console.log(`[WS] Reconnecting in ${delay}ms (attempt ${state.reconnectAttempts})`);
   setTimeout(() => {
     if (state.roomId === roomId) tryConnect(roomId);
   }, delay);
+}
+
+/** Fetch missed messages since last known ID — called after reconnect */
+export async function catchUpMissedMessages(roomId: string): Promise<any[]> {
+  if (!state.lastMessageId) return [];
+  try {
+    const token = getAuthToken();
+    const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages?limit=50`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const missed = (data.messages || []).filter((m: any) => {
+      // Get messages after our last known message
+      if (!state.lastMessageId) return true;
+      // Firestore IDs are time-ordered; compare creation timestamps
+      return m.createdAt > 0 && state.lastMessageId && m.id > state.lastMessageId;
+    });
+    if (missed.length > 0) {
+      console.log(`[WS] Caught up ${missed.length} missed messages after reconnect`);
+      for (const msg of missed) {
+        emit('message', { message: msg });
+      }
+      // Update last known ID
+      const last = missed[missed.length - 1];
+      if (last?.id) state.lastMessageId = last.id;
+    }
+    return missed;
+  } catch (err) {
+    console.error('[WS] Failed to catch up missed messages:', err);
+    return [];
+  }
 }
 
 function startPolling(roomId: string) {

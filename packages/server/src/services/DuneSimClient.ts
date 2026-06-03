@@ -799,6 +799,8 @@ export class DuneSimClient {
             includeNfts?: boolean;
             includeActivity?: boolean;
             includeStablecoins?: boolean;
+            excludeSpamTokens?: boolean;
+            excludeUnpriced?: boolean;
         } = {}
     ): Promise<{
         address: string;
@@ -839,7 +841,12 @@ export class DuneSimClient {
         last_updated: string;
     }> {
         // Always fetch balances first
-        const balancesResult = await this.getEvmBalances(address, { chainIds: chainId, excludeUnpriced: true, metadata: 'logo' });
+        const balancesResult = await this.getEvmBalances(address, {
+          chainIds: chainId,
+          excludeSpamTokens: options.excludeSpamTokens,
+          excludeUnpriced: options.excludeUnpriced,
+          metadata: 'logo',
+        });
         
         // Process tokens and native
         let totalValue = 0;

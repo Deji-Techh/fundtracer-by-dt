@@ -28,14 +28,18 @@ router.get('/:walletAddress', async (req: Request, res: Response) => {
 
     console.log('[Portfolio] Request - wallet:', walletAddress, 'chain:', chain);
 
+    // Read spam filter query params (default: filter spam & unpriced)
+    const excludeSpam = req.query.exclude_spam !== 'false';
+    const excludeUnpriced = req.query.exclude_unpriced !== 'false';
+
     // Handle Solana chain
     if (chain.toLowerCase() === 'solana' || isSolanaAddress(walletAddress)) {
       const solanaChain = 'solana';
-      console.log('[Portfolio] Fetching Solana portfolio...');
+      console.log('[Portfolio] Fetching Solana portfolio...', { excludeSpam, excludeUnpriced });
 
       const portfolio = await solanaPortfolioService.getPortfolio(walletAddress, {
-        excludeSpamTokens: true,
-        excludeUnpriced: true,
+        excludeSpamTokens: excludeSpam,
+        excludeUnpriced,
       });
 
       res.json({
@@ -44,8 +48,8 @@ router.get('/:walletAddress', async (req: Request, res: Response) => {
         chainId: 'solana',
         totalValue: portfolio.totalUsd,
         native: {
-          balance: (portfolio.sol.sol / 1e9).toString(),
-          value: portfolio.sol.sol,
+          balance: portfolio.sol.sol.toString(),
+          value: portfolio.sol.usd,
           symbol: 'SOL',
         },
         tokens: portfolio.tokens.map(token => ({
@@ -83,6 +87,8 @@ router.get('/:walletAddress', async (req: Request, res: Response) => {
       includeNfts: true,
       includeStablecoins: true,
       includeActivity: true,
+      excludeSpamTokens: excludeSpam,
+      excludeUnpriced,
     });
 
     // Format response
@@ -158,7 +164,7 @@ router.get('/:walletAddress/tokens', async (req: Request, res: Response) => {
         wallet: walletAddress,
         chain: 'solana',
         chainId: 'solana',
-        native: { balance: (portfolio.sol.sol / 1e9).toString(), value: portfolio.sol.sol },
+        native: { balance: portfolio.sol.sol.toString(), value: portfolio.sol.usd },
         tokens: portfolio.tokens.map(t => ({
           address: t.mint,
           symbol: t.symbol || '',

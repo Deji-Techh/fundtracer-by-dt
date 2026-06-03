@@ -109,6 +109,7 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
     const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null);
     const [portfolioLoading, setPortfolioLoading] = useState(false);
     const [portfolioError, setPortfolioError] = useState<string | null>(null);
+    const [excludeSpam, setExcludeSpam] = useState(true);
     const isMobile = useIsMobile();
     const navigate = useNavigate();
 
@@ -146,7 +147,7 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
         try {
             // Use Sim API (Dune) backend instead of Alchemy
             const response = await fetchWithTimeout(
-                `/api/portfolio/${walletAddress}?chain=${chainConfig2.id}`,
+                `/api/portfolio/${walletAddress}?chain=${chainConfig2.id}&exclude_spam=${excludeSpam}&exclude_unpriced=${excludeSpam}`,
                 { cache: 'no-store' },
                 30000
             );
@@ -562,6 +563,18 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                                 </div>
                             )}
                             {portfolioData && !portfolioLoading && !portfolioError && (
+                                <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--color-text-muted)' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={excludeSpam}
+                                            onChange={(e) => { setExcludeSpam(e.target.checked); handleFetchPortfolio(); }}
+                                            style={{ accentColor: 'var(--color-accent)' }}
+                                        />
+                                        Hide spam tokens
+                                    </label>
+                                </div>
                                 <div className="portfolio-grid">
                                     {/* Total Value */}
                                     <div className="portfolio-box balance-box">
@@ -651,6 +664,7 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                                         </div>
                                     </div>
                                 </div>
+                                </>
                             )}
                         </motion.div>
                     )}
