@@ -21,7 +21,9 @@ function isValidSolanaAddress(address: string): boolean {
 
 function normalizeToMs(value: number | null | undefined): number | null {
   if (value == null || value === 0) return null;
-  return value > 1e12 ? value : value * 1000;
+  if (value > 1e15) return Math.floor(value / 1000); // μs → ms
+  if (value > 1e12) return value;                     // already ms
+  return value * 1000;                                 // seconds → ms
 }
 
 // GET /api/solana/overview/:address - Helius-powered wallet overview

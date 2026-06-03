@@ -801,7 +801,9 @@ export class SolanaPortfolioService {
     }
 
     private normalizeBlockTime(blockTime: number): number {
-        return blockTime > 1e12 ? Math.floor(blockTime / 1000) : blockTime;
+        if (blockTime > 1e15) return Math.floor(blockTime / 1_000_000); // μs → seconds
+        if (blockTime > 1e12) return Math.floor(blockTime / 1000);      // ms → seconds
+        return blockTime;                                                // already seconds
     }
 
     private chunk<T>(arr: T[], size: number): T[][] {
