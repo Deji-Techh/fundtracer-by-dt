@@ -1,4 +1,4 @@
-# FundTracer
+# FundTracer.
 
 Multi-chain blockchain forensics platform for tracing wallet funds, detecting Sybil patterns, and analyzing transaction activity.
 
