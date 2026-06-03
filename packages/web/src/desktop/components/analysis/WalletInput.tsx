@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTabs } from '../../contexts/TabsContext';
 import { useChain } from '../../contexts/ChainContext';
 import { useNotify } from '../../contexts/ToastContext';
@@ -17,6 +17,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
   const { updateTab } = useTabs();
   const notify = useNotify();
   const isMobile = useIsMobile();
+  const runIdRef = useRef(0);
 
   useEffect(() => {
     setAddress(tab.address || '');
@@ -24,6 +25,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
   }, [tab.id, tab.address, tab.chain]);
 
   const runAnalysis = async (addr: string, ch: ChainId) => {
+    const runId = ++runIdRef.current;
     updateTab(tab.id, {
       address: addr,
       chain: ch,
@@ -44,6 +46,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
       const result = await analyzeWallet(addr, ch);
 
       const analysisData = (result.result || result) as any;
+      if (runId !== runIdRef.current) return;
       const transactions = analysisData.transactions || [];
       const taskId = analysisData.taskId || analysisData.pagination?.taskId;
       let latestTransactions = transactions as any[];
@@ -66,6 +69,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
         streamWalletTimestamps(
           taskId,
           (batch) => {
+            if (runId !== runIdRef.current) return;
             // Patch timestamps onto the transactions we already have
             const tsMap = new Map(batch.hashes.map((h, i) => [h.toLowerCase(), batch.timestamps[i]]));
             latestTransactions = latestTransactions.map((tx: any) => {
@@ -75,6 +79,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
             updateTab(tab.id, { transactions: latestTransactions });
           },
           () => {
+            if (runId !== runIdRef.current) return;
             progress.timestamps = 'done';
             progress.message = progress.funding === 'done' ? 'Analysis complete' : 'Building funding graph';
             updateTab(tab.id, {
@@ -82,6 +87,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
             });
           },
           (err) => {
+            if (runId !== runIdRef.current) return;
             console.error('[Timestamp stream]', err.message);
             progress.timestamps = 'error';
             progress.message = progress.funding === 'done' ? 'Analysis complete with timestamp gaps' : 'Funding graph is still loading';
@@ -94,6 +100,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
 
       fetchFundingTree(addr, ch, 3)
         .then((funding) => {
+          if (runId !== runIdRef.current) return;
           progress.funding = 'done';
           progress.message = progress.timestamps === 'loading' ? 'Backfilling transaction timestamps' : 'Analysis complete';
           updateTab(tab.id, {
@@ -102,6 +109,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
           });
         })
         .catch((err) => {
+          if (runId !== runIdRef.current) return;
           console.error('[Funding tree]', err);
           progress.funding = 'error';
           progress.message = progress.timestamps === 'loading' ? 'Backfilling timestamps; funding graph failed' : 'Funding graph could not be loaded';
