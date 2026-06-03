@@ -32,6 +32,50 @@ const blockTsCache = new RedisBlockTsCache();
 // In-memory task store for SSE timestamp streaming
 const timestampTasks = new Map<string, { address: string; chain: string; userId: string }>();
 
+// Convert Solana flat {nodes, edges} format to EVM-compatible tree format {address, children}
+function solanaFlatToTree(flatData: { nodes: any[]; edges: any[] }, targetAddr: string, direction: 'source' | 'destination') {
+    const nodes = flatData?.nodes || [];
+    const edges = flatData?.edges || [];
+
+    if (nodes.length === 0) {
+        return {
+            address: targetAddr, depth: 0, direction,
+            totalValue: '0', totalValueInEth: 0, txCount: 0, children: [] as any[],
+        };
+    }
+
+    const nodeMap = new Map<string, any>();
+    for (const n of nodes) {
+        nodeMap.set(n.address, {
+            address: n.address,
+            label: n.labels?.[0],
+            depth: n.depth,
+            totalValue: n.totalValue || '0',
+            totalValueInEth: n.totalValueInEth || 0,
+            txCount: n.txCount || 1,
+            children: [] as any[],
+            direction: n.direction || direction,
+        });
+    }
+
+    const childAddrs = new Set<string>();
+    for (const e of edges) {
+        const src = nodeMap.get(e.source);
+        const tgt = nodeMap.get(e.target);
+        if (src && tgt) { src.children.push(tgt); childAddrs.add(e.target); }
+    }
+
+    // Destination trees have no edges — all nodes are direct children of target
+    if (edges.length === 0 && direction === 'destination') {
+        return { address: targetAddr, depth: 0, direction: 'destination', totalValue: '0', totalValueInEth: 0, txCount: 0, children: nodes.map(n => nodeMap.get(n.address)).filter(Boolean) };
+    }
+
+    // Source tree: find root nodes (not targets of any edge)
+    const roots = nodes.filter((n: any) => !childAddrs.has(n.address)).map((n: any) => nodeMap.get(n.address)).filter(Boolean);
+    if (roots.length === 1) return roots[0];
+    return { address: targetAddr, depth: 0, direction, totalValue: '0', totalValueInEth: 0, txCount: 0, children: roots };
+}
+
 // Deep sanitize function to prevent React Error #130 (objects not valid as React child)
 function sanitizeForFrontend(obj: any): any {
     if (obj === null || obj === undefined) return obj;
@@ -478,9 +522,9 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 : riskScore.score > 0 ? 'low' as const
                 : 'low' as const;
 
-            // ---- Build funding sources from adapter tree ----
+            // ---- Build funding sources tree from adapter data ----
             const ftree = fundingTree;
-            const fundingSources = {
+            const fundingSourcesFlat = {
                 nodes: (ftree?.nodes || []).slice(0, 20).map(n => ({
                     address: n.address,
                     depth: n.depth,
@@ -492,6 +536,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 })),
                 edges: ftree?.edges || [],
             };
+            const fundingSources = solanaFlatToTree(fundingSourcesFlat, address, 'source');
 
             // Destinations built from outgoing tx data (adapter is source-only)
             const destMap = new Map<string, { total: number; count: number }>();
@@ -503,7 +548,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     destMap.set(tx.to, e);
                 }
             }
-            const fundingDestinations = {
+            const fundingDestinationsFlat = {
                 nodes: Array.from(destMap.entries()).slice(0, 20).map(([addr, data]) => ({
                     address: addr,
                     depth: 1,
@@ -515,6 +560,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 })),
                 edges: [],
             };
+            const fundingDestinations = solanaFlatToTree(fundingDestinationsFlat, address, 'destination');
 
             // ---- Aggregate program interactions into projects ----
             const projectMap = new Map<string, { count: number; first: number; last: number }>();
@@ -1008,11 +1054,15 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
                     labels: [],
                 }));
 
+            // Convert flat format to EVM-compatible tree format
+            const fundingSources = solanaFlatToTree({ nodes: sourceNodes, edges: fundingTree?.edges || [] }, address, 'source');
+            const fundingDestinations = solanaFlatToTree({ nodes: destNodes, edges: [] }, address, 'destination');
+
             return res.json({
                 success: true,
                 result: {
-                    fundingSources: { nodes: sourceNodes, edges: fundingTree?.edges || [] },
-                    fundingDestinations: { nodes: destNodes, edges: [] },
+                    fundingSources,
+                    fundingDestinations,
                 },
                 rateLimit: res.locals.rateLimit,
             });
@@ -1230,8 +1280,8 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
                                 tokenTransfers: tx.tokenTransfers || [],
                                 programInteractions: tx.programInteractions || [],
                             })),
-                            fundingSources: { nodes: [], edges: [] } as any,
-                            fundingDestinations: { nodes: [], edges: [] } as any,
+                            fundingSources: { address: wtxs[0]?.from || w.address, depth: 0, direction: 'source', totalValue: '0', totalValueInEth: 0, txCount: 0, children: [] } as any,
+                            fundingDestinations: { address: wtxs[0]?.from || w.address, depth: 0, direction: 'destination', totalValue: '0', totalValueInEth: 0, txCount: 0, children: [] } as any,
                             suspiciousIndicators: [],
                             overallRiskScore: 0,
                             riskLevel: 'low' as const,

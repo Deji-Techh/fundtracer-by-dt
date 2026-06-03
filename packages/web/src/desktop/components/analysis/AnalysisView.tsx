@@ -341,7 +341,7 @@ function NewSearchButton({ onClick, compact }: { onClick: () => void; compact?: 
 
 const NATIVE_CURRENCY: Record<string, string> = {
   ethereum: 'ETH', base: 'ETH', arbitrum: 'ETH', optimism: 'ETH',
-  polygon: 'POL', bsc: 'BNB', linea: 'ETH',
+  polygon: 'POL', bsc: 'BNB', linea: 'ETH', solana: 'SOL',
 };
 
 function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonNullable<AnalysisTab['result']>; isMobile: boolean }) {
@@ -865,6 +865,7 @@ function GraphTab({ tab }: { tab: AnalysisTab }) {
       sources={sources}
       destinations={destinations}
       targetAddress={tab.address}
+      chain={tab.chain}
     />
   );
 }

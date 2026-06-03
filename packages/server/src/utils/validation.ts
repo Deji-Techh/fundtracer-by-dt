@@ -63,7 +63,7 @@ export async function validateAddressInput(address: unknown, chain: unknown): Pr
   }
   const addrToValidate = resolved;
 
-  if (addrToValidate.length < 40 || addrToValidate.length > 120) {
+  if (addrToValidate.length < 32 || addrToValidate.length > 120) {
     return { valid: false, error: 'Invalid address length' };
   }
 
@@ -72,7 +72,7 @@ export async function validateAddressInput(address: unknown, chain: unknown): Pr
   }
 
   const normalizedChain = chain.toLowerCase();
-  const allowedChains = ['ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'bsc', 'avalanche', 'linea', 'solana', 'sui'];
+  const allowedChains = ['ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'bsc', 'avalanche', 'linea', 'solana', 'sol', 'sui'];
 
   if (!allowedChains.includes(normalizedChain)) {
     return { valid: false, error: `Invalid chain. Allowed: ${allowedChains.join(', ')}` };

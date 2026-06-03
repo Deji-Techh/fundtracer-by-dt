@@ -78,6 +78,11 @@ const CHAIN_EXPLORERS: Record<string, string> = {
   solana: 'https://solscan.io/account',
 };
 
+const NATIVE_TICKER: Record<string, string> = {
+  ethereum: 'ETH', base: 'ETH', arbitrum: 'ETH', optimism: 'ETH',
+  polygon: 'POL', bsc: 'BNB', linea: 'ETH', solana: 'SOL',
+};
+
 function bezierPath(x1: number, y1: number, x2: number, y2: number): string {
   const dx = Math.abs(x2 - x1) * 0.4;
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
@@ -105,6 +110,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
   const targetId = targetAddress.toLowerCase();
   const nodes = activeDir === 'source' ? (sources || []) : (destinations || []);
   const explorer = CHAIN_EXPLORERS[chain] || 'https://etherscan.io/address';
+  const ticker = NATIVE_TICKER[chain] || 'ETH';
   const dims = isMobile ? MOBILE_TREE_DIMS : DESKTOP_TREE_DIMS;
 
   const { positioned, edges, width, height } = useMemo(() => {
@@ -368,7 +374,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
                       fontFamily="var(--font-mono)"
                       opacity={isSelected ? 1 : 0.7}
                     >
-                      {e.value < 0.0001 ? '<0.0001' : e.value.toFixed(4)} ETH
+                      {e.value < 0.0001 ? '<0.0001' : e.value.toFixed(4)} {ticker}
                     </text>
                   )}
                 </g>
@@ -448,7 +454,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
 	                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, fontSize: isMobile ? 9 : 10, color: 'var(--fg-tertiary)' }}>
                     {pn.node.totalValueInEth != null && pn.node.totalValueInEth > 0 && (
                       <span style={{ color: 'var(--fg-secondary)' }}>
-                        {pn.node.totalValueInEth < 0.0001 ? '<0.0001' : pn.node.totalValueInEth.toFixed(4)} ETH
+                        {pn.node.totalValueInEth < 0.0001 ? '<0.0001' : pn.node.totalValueInEth.toFixed(4)} {ticker}
                       </span>
                     )}
                     {pn.node.txCount != null && pn.node.txCount > 0 && (
@@ -521,7 +527,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
             }}>{selected.node.entityType}</span>
           )}
           {selected.node.totalValueInEth != null && selected.node.totalValueInEth > 0 && (
-            <span style={{ color: 'var(--accent)' }}>{selected.node.totalValueInEth < 0.0001 ? '<0.0001' : selected.node.totalValueInEth.toFixed(6)} ETH</span>
+            <span style={{ color: 'var(--accent)' }}>{selected.node.totalValueInEth < 0.0001 ? '<0.0001' : selected.node.totalValueInEth.toFixed(6)} {ticker}</span>
           )}
           {selected.node.txCount != null && <span style={{ color: 'var(--fg-tertiary)' }}>{selected.node.txCount} txs</span>}
           <span style={{ color: 'var(--fg-tertiary)' }}>depth {selected.depth}</span>

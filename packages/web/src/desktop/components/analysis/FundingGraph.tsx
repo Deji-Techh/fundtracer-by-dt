@@ -16,7 +16,13 @@ interface GraphProps {
   sources?: FNode[];
   destinations?: FNode[];
   targetAddress: string;
+  chain?: string;
 }
+
+const NATIVE_TICKER: Record<string, string> = {
+  ethereum: 'ETH', base: 'ETH', arbitrum: 'ETH', optimism: 'ETH',
+  polygon: 'POL', bsc: 'BNB', linea: 'ETH', solana: 'SOL',
+};
 
 interface PositionedNode {
   id: string;
@@ -225,8 +231,9 @@ function bezierPath(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${x2} ${y2}`;
 }
 
-export function FundingGraph({ sources, destinations, targetAddress }: GraphProps) {
+export function FundingGraph({ sources, destinations, targetAddress, chain = 'ethereum' }: GraphProps) {
   const isMobile = useIsMobile();
+  const ticker = NATIVE_TICKER[chain] || 'ETH';
   const [mode, setMode] = useState<'sources' | 'destinations'>('sources');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
@@ -554,7 +561,7 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
 	                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, fontSize: isMobile ? 9 : 10, color: 'var(--fg-tertiary)' }}>
                   {n.value > 0 && (
                     <span style={{ color: 'var(--fg-secondary)' }}>
-                      {n.value < 0.0001 ? '<0.0001' : n.value.toFixed(4)} ETH
+                      {n.value < 0.0001 ? '<0.0001' : n.value.toFixed(4)} {ticker}
                     </span>
                   )}
                   {n.txCount > 0 && <span>{n.txCount} tx{n.txCount !== 1 ? 's' : ''}</span>}
@@ -595,7 +602,7 @@ export function FundingGraph({ sources, destinations, targetAddress }: GraphProp
             </span>
           )}
           {selected.value > 0 && (
-            <span style={{ color: 'var(--accent)' }}>{selected.value < 0.0001 ? '<0.0001' : selected.value.toFixed(6)} ETH</span>
+            <span style={{ color: 'var(--accent)' }}>{selected.value < 0.0001 ? '<0.0001' : selected.value.toFixed(6)} {ticker}</span>
           )}
           <span style={{ color: 'var(--fg-tertiary)' }}>{selected.txCount} txs</span>
           <span style={{ color: 'var(--fg-tertiary)' }}>depth {selected.depth}</span>
