@@ -1,27 +1,60 @@
 
-import { getFirestore, initializeFirebase } from '../src/firebase.js';
-import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Try server package dir first, then home directory
+// Try server package dir first, then home directory (supports both dotenv and raw JSON SA key)
 const envPaths = [
   path.join(__dirname, '../.env'),
   path.join(os.homedir(), '.env'),
 ];
+
+let serviceAccount: Record<string, unknown> | null = null;
+
 for (const p of envPaths) {
-  dotenv.config({ path: p });
+  if (fs.existsSync(p)) {
+    const raw = fs.readFileSync(p, 'utf8');
+    if (raw.trim().startsWith('{')) {
+      serviceAccount = JSON.parse(raw);
+    } else {
+      dotenv.config({ path: p });
+    }
+  }
 }
 
 const args = process.argv.slice(2);
 const forceAll = args.includes('--all');
 
 async function downgrade() {
-  initializeFirebase();
-  const db = getFirestore();
+  const admin = (await import('firebase-admin')).default;
+
+  if (!admin.apps.length) {
+    if (serviceAccount) {
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount as any) });
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      admin.initializeApp({ credential: admin.credential.applicationDefault() });
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      admin.initializeApp({ credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)) });
+    } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }),
+      });
+    } else {
+      console.error('No Firebase credentials found.');
+      console.error('Provide a JSON service account file at ~/.env or packages/server/.env');
+      process.exit(1);
+    }
+  }
+
+  const db = admin.firestore();
 
   console.log('Fetching users with tier = max...');
 
