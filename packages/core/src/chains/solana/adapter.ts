@@ -74,7 +74,7 @@ export class SolanaAdapter implements ChainAdapter {
     const url = `https://mainnet.helius-rpc.com/?api-key={KEY}`;
     
     const [balanceRes, accountRes, sigsRes] = await Promise.all([
-      this.helius.request<{ context: { slot: number }; value: number }>(
+      this.helius.request<{ result: { context: { slot: number }; value: number } }>(
         url,
         {
           method: 'POST',
@@ -89,7 +89,7 @@ export class SolanaAdapter implements ChainAdapter {
         `bal:${address}`,
         CACHE_TTL.balance
       ),
-      this.helius.request<{ context: { slot: number }; value: { executable: boolean; owner: string } | null }>(
+      this.helius.request<{ result: { context: { slot: number }; value: { executable: boolean; owner: string } | null } }>(
         url,
         {
           method: 'POST',
@@ -104,7 +104,7 @@ export class SolanaAdapter implements ChainAdapter {
         `acc:${address}`,
         CACHE_TTL.walletFirstTx
       ),
-      this.helius.request<{ context: { slot: number }; value: Array<{ signature: string; slot: number; blockTime: number | null }> }>(
+      this.helius.request<{ result: Array<{ signature: string; slot: number; blockTime: number | null }> }>(
         url,
         {
           method: 'POST',
@@ -121,13 +121,13 @@ export class SolanaAdapter implements ChainAdapter {
       ),
     ]);
 
-    const isProgram = accountRes.value?.executable ?? false;
-    const firstTx = sigsRes.value?.[0];
+    const isProgram = accountRes.result?.value?.executable ?? false;
+    const firstTx = sigsRes.result?.[0];
 
     return {
       address,
       chain: SOLANA_CHAIN,
-      balance: (balanceRes.value / 1e9).toString(),
+      balance: (balanceRes.result.value / 1e9).toString(),
       nativeSymbol: 'SOL',
       isContract: isProgram,
       firstSeen: firstTx?.blockTime ? firstTx.blockTime * 1000 : null,
@@ -167,7 +167,7 @@ export class SolanaAdapter implements ChainAdapter {
       from: outgoing?.fromUserAccount || tx.feePayer,
       to: outgoing?.toUserAccount || incoming?.fromUserAccount || null,
       value: ((outgoing?.amount || incoming?.amount || 0) / 1e9).toString(),
-      timestamp: tx.timestamp * 1000,
+      timestamp: tx.timestamp > 1e12 ? tx.timestamp : tx.timestamp * 1000,
       fee: (tx.fee / 1e9).toString(),
       feePayer: tx.feePayer,
       status: tx.transactionError ? 'failed' : 'success',
@@ -328,7 +328,7 @@ export class SolanaAdapter implements ChainAdapter {
     const url = `https://mainnet.helius-rpc.com/?api-key={KEY}`;
 
     try {
-      const sigsRes = await this.helius.request<{ value: Array<{ signature: string }> }>(
+      const sigsRes = await this.helius.request<{ result: Array<{ signature: string }> }>(
         url,
         {
           method: 'POST',
@@ -344,7 +344,7 @@ export class SolanaAdapter implements ChainAdapter {
         CACHE_TTL.recentTransactions
       );
 
-      const signatures = sigsRes.value?.map(s => s.signature).slice(-10) || [];
+      const signatures = sigsRes.result?.map(s => s.signature).slice(-10) || [];
       
       if (signatures.length === 0) return [];
 
@@ -367,7 +367,7 @@ export class SolanaAdapter implements ChainAdapter {
             sources.push({
               from: transfer.fromUserAccount,
               amount: transfer.amount / 1e9,
-              timestamp: tx.timestamp ? tx.timestamp * 1000 : null,
+              timestamp: tx.timestamp ? (tx.timestamp > 1e12 ? tx.timestamp : tx.timestamp * 1000) : null,
               type: 'sol_transfer',
             });
           }
@@ -377,7 +377,7 @@ export class SolanaAdapter implements ChainAdapter {
           sources.push({
             from: tx.feePayer,
             amount: tx.fee / 1e9,
-            timestamp: tx.timestamp ? tx.timestamp * 1000 : null,
+            timestamp: tx.timestamp ? (tx.timestamp > 1e12 ? tx.timestamp : tx.timestamp * 1000) : null,
             type: 'fee_payer',
           });
         }
