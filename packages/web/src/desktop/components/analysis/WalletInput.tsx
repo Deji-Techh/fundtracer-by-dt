@@ -24,22 +24,41 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
   }, [tab.id, tab.address, tab.chain]);
 
   const runAnalysis = async (addr: string, ch: ChainId) => {
-    updateTab(tab.id, { address: addr, chain: ch, loading: true, error: undefined, label: undefined });
+    updateTab(tab.id, {
+      address: addr,
+      chain: ch,
+      loading: true,
+      error: undefined,
+      label: undefined,
+      result: undefined,
+      transactions: undefined,
+      fundingData: undefined,
+      progressiveStatus: {
+        wallet: 'loading',
+        timestamps: 'pending',
+        funding: 'pending',
+        message: 'Fetching wallet activity',
+      },
+    });
     try {
-      const [result, funding] = await Promise.all([
-        analyzeWallet(addr, ch),
-        fetchFundingTree(addr, ch, 3),
-      ]);
+      const result = await analyzeWallet(addr, ch);
 
       const analysisData = (result.result || result) as any;
       const transactions = analysisData.transactions || [];
       const taskId = analysisData.taskId || analysisData.pagination?.taskId;
+      let latestTransactions = transactions as any[];
+      const progress: NonNullable<AnalysisTab['progressiveStatus']> = {
+        wallet: 'done',
+        timestamps: taskId ? 'loading' : 'done',
+        funding: 'loading',
+        message: taskId ? 'Backfilling timestamps and funding graph' : 'Building funding graph',
+      };
 
       updateTab(tab.id, {
         loading: false,
         result: analysisData,
         transactions,
-        fundingData: funding as AnalysisTab['fundingData'],
+        progressiveStatus: { ...progress },
       });
 
       // Stream timestamps progressively via SSE (analysis returns tx with timestamp=0 for speed)
@@ -49,16 +68,47 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
           (batch) => {
             // Patch timestamps onto the transactions we already have
             const tsMap = new Map(batch.hashes.map((h, i) => [h.toLowerCase(), batch.timestamps[i]]));
-            const updated = (transactions as any[]).map((tx: any) => {
+            latestTransactions = latestTransactions.map((tx: any) => {
               const ts = tsMap.get(tx.hash?.toLowerCase());
               return ts != null ? { ...tx, timestamp: ts } : tx;
             });
-            updateTab(tab.id, { transactions: updated });
+            updateTab(tab.id, { transactions: latestTransactions });
           },
-          () => { /* done */ },
-          (err) => { console.error('[Timestamp stream]', err.message); },
+          () => {
+            progress.timestamps = 'done';
+            progress.message = progress.funding === 'done' ? 'Analysis complete' : 'Building funding graph';
+            updateTab(tab.id, {
+              progressiveStatus: { ...progress },
+            });
+          },
+          (err) => {
+            console.error('[Timestamp stream]', err.message);
+            progress.timestamps = 'error';
+            progress.message = progress.funding === 'done' ? 'Analysis complete with timestamp gaps' : 'Funding graph is still loading';
+            updateTab(tab.id, {
+              progressiveStatus: { ...progress },
+            });
+          },
         );
       }
+
+      fetchFundingTree(addr, ch, 3)
+        .then((funding) => {
+          progress.funding = 'done';
+          progress.message = progress.timestamps === 'loading' ? 'Backfilling transaction timestamps' : 'Analysis complete';
+          updateTab(tab.id, {
+            fundingData: funding as AnalysisTab['fundingData'],
+            progressiveStatus: { ...progress },
+          });
+        })
+        .catch((err) => {
+          console.error('[Funding tree]', err);
+          progress.funding = 'error';
+          progress.message = progress.timestamps === 'loading' ? 'Backfilling timestamps; funding graph failed' : 'Funding graph could not be loaded';
+          updateTab(tab.id, {
+            progressiveStatus: { ...progress },
+          });
+        });
 
       // Record in scan history (syncs to server + localStorage)
       addHistory({
@@ -74,7 +124,16 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
         balanceInEth: analysisData?.balanceInEth || analysisData?.balance || analysisData?.wallet?.balanceInEth,
       });
     } catch (err) {
-      updateTab(tab.id, { loading: false, error: err instanceof Error ? err.message : 'Analysis failed' });
+      updateTab(tab.id, {
+        loading: false,
+        error: err instanceof Error ? err.message : 'Analysis failed',
+        progressiveStatus: {
+          wallet: 'error',
+          timestamps: 'pending',
+          funding: 'pending',
+          message: 'Analysis failed',
+        },
+      });
       notify.error(err instanceof Error ? err.message : 'Analysis failed');
     }
   };
@@ -105,7 +164,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
     runAnalysis(addr, detected);
   };
 
-  const hasResult = tab.result && !tab.loading;
+  const hasResult = !!tab.result;
   const showInput = !hasResult;
 
   return (

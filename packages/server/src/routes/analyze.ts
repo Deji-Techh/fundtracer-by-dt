@@ -1010,7 +1010,15 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
 
         // Try to get cached transactions from recent wallet analysis
         const cacheKey = `analyze:tx:${address.toLowerCase()}:${normalizedChain}`;
-        const cachedData = await cacheGet<{ transactions: any[]; timestamp: number }>(cacheKey);
+        let cachedData = await cacheGet<{ transactions: any[]; timestamp: number }>(cacheKey);
+        if (!cachedData) {
+            // Wallet analysis responds before its async cache write may be visible.
+            // Give the progressive funding request a brief chance to catch that hot cache.
+            for (let attempt = 0; attempt < 3 && !cachedData; attempt++) {
+                await new Promise(resolve => setTimeout(resolve, 175));
+                cachedData = await cacheGet<{ transactions: any[]; timestamp: number }>(cacheKey);
+            }
+        }
         let cachedTxs = undefined;
         
         // Use cache if available and less than 5 minutes old

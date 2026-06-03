@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useTabs } from '../../contexts/TabsContext';
 import { analyzeContract } from '../../api/analyze';
 import { useNotify } from '../../contexts/ToastContext';
-import { Loader } from '../common/Loader';
 import { ChainSelector } from '../common/ChainSelector';
 import { ExternalLink, Copy, FileCode, AlertTriangle, Activity, Users } from 'lucide-react';
 import type { AnalysisTab, ChainId } from '../../types';
 import { CompactSearchForm } from './CompactSearchForm';
+import { ProgressiveLoader } from './ProgressiveLoader';
 
 export function ContractView() {
   const { tabs, activeTabId, openTab, setActiveTab } = useTabs();
@@ -56,7 +56,12 @@ export function ContractView() {
         />
       </div>
 
-      {loading && <Loader />}
+      {loading && (
+        <ProgressiveLoader
+          title="Scanning contract"
+          steps={['Collecting interactors', 'Checking shared funders', 'Scoring suspicious patterns']}
+        />
+      )}
       {error && <div style={{ padding: 16, borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--destructive)', color: 'var(--destructive)', fontSize: 13 }}>{error}</div>}
 
       {result && (

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { compareWallets } from '../../api/analyze';
 import { useNotify } from '../../contexts/ToastContext';
-import { Loader } from '../common/Loader';
 import { ChainSelector } from '../common/ChainSelector';
 import { GitCompare, Plus, X, ArrowRightLeft, Shield, Link, Sparkles } from 'lucide-react';
 import type { ChainId } from '../../types';
@@ -12,6 +11,7 @@ import { useTabs } from '../../contexts/TabsContext';
 import { FundingGraph } from './FundingGraph';
 import { InputStage } from './CompactSearchForm';
 import { useIsMobile } from '../../../hooks/useIsMobile';
+import { ProgressiveLoader } from './ProgressiveLoader';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -40,6 +40,7 @@ export function CompareView() {
   const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
   const [activeTab, setActiveTab] = useState<CompareTab>('overview');
   const [hydrated, setHydrated] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const initial = getCompareState(scopeKey);
@@ -191,7 +192,13 @@ export function CompareView() {
         </InputStage>
       )}
 
-      {loading && <Loader />}
+      {loading && (
+        <ProgressiveLoader
+          title="Comparing wallets"
+          steps={['Analyzing each wallet', 'Finding shared sources', 'Scoring correlation']}
+          compact={isMobile}
+        />
+      )}
       {error && <div style={{ padding: 16, borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--destructive)', color: 'var(--destructive)', fontSize: 13 }}>{error}</div>}
       {result && (
         <CompareOverview

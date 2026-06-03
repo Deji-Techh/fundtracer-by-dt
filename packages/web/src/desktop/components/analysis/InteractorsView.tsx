@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { analyzeContract } from '../../api/analyze';
 import { useNotify } from '../../contexts/ToastContext';
 import { useTabs } from '../../contexts/TabsContext';
-import { Loader } from '../common/Loader';
 import { ChainSelector } from '../common/ChainSelector';
 import { useIsMobile } from '../../../hooks/useIsMobile';
 import { Users, ExternalLink, AlertTriangle, Shield, Download } from 'lucide-react';
 import type { ChainId } from '../../types';
 import { getInteractorsState, saveInteractorsState } from '../../stores/interactorsState';
 import { CompactSearchForm, InputStage } from './CompactSearchForm';
+import { ProgressiveLoader } from './ProgressiveLoader';
 
 interface Interactor {
   address: string;
@@ -165,7 +165,13 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
         </>
       )}
 
-      {loading && <Loader />}
+      {loading && (
+        <ProgressiveLoader
+          title="Analyzing interactors"
+          steps={['Loading contract interactions', 'Finding first funders', 'Detecting shared funding groups']}
+          compact={isMobile}
+        />
+      )}
 
       {error && (
         <div style={{ padding: 16, borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--destructive)', color: 'var(--destructive)', fontSize: 13 }}>

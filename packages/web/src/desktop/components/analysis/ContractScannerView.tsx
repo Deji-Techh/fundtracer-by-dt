@@ -10,6 +10,7 @@ import { sendChatMessage } from '../../api/chat';
 import { MarkdownContent } from './MarkdownContent';
 import { clearContractScannerState, getContractScannerState, saveContractScannerState } from '../../stores/contractScannerState';
 import { CompactSearchForm, InputStage } from './CompactSearchForm';
+import { ProgressiveLoader } from './ProgressiveLoader';
 
 interface WalletInteraction {
   address: string;
@@ -266,7 +267,13 @@ export function ContractScannerView() {
       )}
 
       {error && <div style={{ padding: '12px 16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--destructive)', color: 'var(--destructive)', fontSize: 13, marginBottom: 16, background: 'var(--card)' }}>{error}</div>}
-      {loading && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60, color: 'var(--fg-tertiary)' }}>Scanning contract and analyzing interactions...</div>}
+      {loading && (
+        <ProgressiveLoader
+          title="Scanning contract"
+          steps={['Checking bytecode and metadata', 'Fetching transfers and interactors', 'Finding shared funding groups']}
+          compact={isMobile}
+        />
+      )}
 
       {result && (
         <>

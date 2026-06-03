@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { detectSybil } from '../../api/analyze';
 import { useNotify } from '../../contexts/ToastContext';
 import { useTabs } from '../../contexts/TabsContext';
-import { Loader } from '../common/Loader';
 import { ChainSelector } from '../common/ChainSelector';
 import { Shield, AlertTriangle, Users, Link, ExternalLink } from 'lucide-react';
 import type { ChainId } from '../../types';
 import { getSybilState, saveSybilState } from '../../stores/sybilState';
 import { InputStage } from './CompactSearchForm';
+import { ProgressiveLoader } from './ProgressiveLoader';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 
 interface SybilViewProps {
   prefillAddresses?: string[];
@@ -26,6 +27,7 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
   const [result, setResult] = useState<Record<string, unknown> | null>(initialState.result);
   const [error, setError] = useState<string | null>(null);
   const prefillConsumedRef = useRef(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const next = getSybilState(scopeKey);
@@ -143,7 +145,13 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
         </>
       )}
 
-      {loading && <Loader />}
+      {loading && (
+        <ProgressiveLoader
+          title="Detecting sybil clusters"
+          steps={['Looking up first funders', 'Grouping shared sources', 'Scoring cluster risk']}
+          compact={isMobile}
+        />
+      )}
       {error && <div style={{ padding: 16, borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--destructive)', color: 'var(--destructive)', fontSize: 13 }}>{error}</div>}
 
       {result && <SybilResult data={result} />}

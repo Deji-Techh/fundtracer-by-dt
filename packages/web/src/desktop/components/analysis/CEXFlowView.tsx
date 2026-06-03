@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { analyzeCEXFlow } from '../../api/analyze';
 import { useNotify } from '../../contexts/ToastContext';
 import { useTabs } from '../../contexts/TabsContext';
-import { Loader } from '../common/Loader';
 import { ChainSelector } from '../common/ChainSelector';
 import { Building2, ArrowRightLeft, TrendingUp, TrendingDown, ExternalLink, Wallet } from 'lucide-react';
 import type { ChainId } from '../../types';
 import { getCexFlowState, saveCexFlowState } from '../../stores/cexFlowState';
 import { CompactSearchForm, InputStage } from './CompactSearchForm';
+import { ProgressiveLoader } from './ProgressiveLoader';
+import { useIsMobile } from '../../../hooks/useIsMobile';
 
 const CEX_COLORS: Record<string, string> = {
   'Binance': '#f0b90b', 'Coinbase': '#0052ff', 'Kraken': '#5741d9',
@@ -35,6 +36,7 @@ export function CEXFlowView() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(initialState.result);
   const [error, setError] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const next = getCexFlowState(scopeKey);
@@ -97,7 +99,13 @@ export function CEXFlowView() {
         </>
       )}
 
-      {loading && <Loader />}
+      {loading && (
+        <ProgressiveLoader
+          title="Tracing CEX flow"
+          steps={['Fetching recent wallet transactions', 'Matching exchange wallets', 'Calculating deposits and withdrawals']}
+          compact={isMobile}
+        />
+      )}
       {error && <div style={{ padding: 16, borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--destructive)', color: 'var(--destructive)', fontSize: 13 }}>{error}</div>}
 
       {result && <CEXResult data={result} />}

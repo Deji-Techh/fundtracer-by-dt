@@ -121,7 +121,7 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
           flexWrap: isMobile ? undefined : 'wrap',
           justifyContent: isMobile ? undefined : 'flex-start',
         }}>
-          <NewSearchButton compact={isMobile} onClick={() => updateTab(tab.id, { result: undefined, transactions: undefined, fundingData: undefined, error: undefined, address: '' })} />
+          <NewSearchButton compact={isMobile} onClick={() => updateTab(tab.id, { result: undefined, transactions: undefined, fundingData: undefined, progressiveStatus: undefined, error: undefined, address: '' })} />
           <button onClick={handleShare}
             type="button"
             style={{
@@ -143,6 +143,9 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
           <ExportButton tab={tab} compact={isMobile} fullWidth={isMobile} />
         </div>
       </div>
+
+      {/* Progressive status */}
+      <ProgressiveStatusStrip tab={tab} isMobile={isMobile} />
 
       {/* Sub-tab bar */}
       <div style={{
@@ -197,6 +200,107 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
           <PortfolioView address={tab.address} chain={tab.chain} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProgressiveStatusStrip({ tab, isMobile }: { tab: AnalysisTab; isMobile: boolean }) {
+  const status = tab.progressiveStatus;
+  if (!status) return null;
+
+  const steps = [
+    { key: 'wallet' as const, label: 'Analysis' },
+    { key: 'timestamps' as const, label: 'Timestamps' },
+    { key: 'funding' as const, label: 'Funding' },
+  ];
+  const visible = steps.some(step => status[step.key] && status[step.key] !== 'done');
+  if (!visible) return null;
+
+  return (
+    <div style={{
+      borderBottom: '1px solid var(--hairline)',
+      padding: isMobile ? '7px 10px' : '8px 20px',
+      display: 'flex',
+      alignItems: isMobile ? 'stretch' : 'center',
+      justifyContent: 'space-between',
+      gap: isMobile ? 8 : 14,
+      flexDirection: isMobile ? 'column' : 'row',
+      background: 'color-mix(in srgb, var(--card) 70%, transparent)',
+      flexShrink: 0,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <span style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: 'var(--accent)',
+          boxShadow: '0 0 0 4px rgba(0,230,122,0.08)',
+          flexShrink: 0,
+        }} />
+        <span style={{
+          color: 'var(--fg-secondary)',
+          fontSize: isMobile ? 11 : 12,
+          fontFamily: 'var(--font-sans)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}>
+          {status.message || 'Analysis is still updating'}
+        </span>
+      </div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? 'repeat(3, minmax(0, 1fr))' : undefined,
+        gridAutoFlow: isMobile ? undefined : 'column',
+        gap: 6,
+      }}>
+        {steps.map(step => (
+          <ProgressPill
+            key={step.key}
+            label={step.label}
+            state={status[step.key] || 'pending'}
+            isMobile={isMobile}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProgressPill({ label, state, isMobile }: { label: string; state: 'pending' | 'loading' | 'done' | 'error'; isMobile: boolean }) {
+  const isLoading = state === 'loading';
+  const color = state === 'done' ? 'var(--accent)' : state === 'error' ? 'var(--destructive)' : state === 'loading' ? '#ff9f0a' : 'var(--fg-tertiary)';
+  return (
+    <div style={{
+      minHeight: isMobile ? 25 : 26,
+      padding: isMobile ? '4px 7px' : '4px 9px',
+      borderRadius: 999,
+      border: '1px solid var(--card-border)',
+      background: state === 'done' ? 'rgba(0,230,122,0.08)' : 'var(--bg-secondary)',
+      color,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      fontSize: isMobile ? 10 : 11,
+      fontWeight: 650,
+      fontFamily: 'var(--font-sans)',
+      whiteSpace: 'nowrap',
+    }}>
+      {isLoading ? (
+        <span style={{
+          width: 9,
+          height: 9,
+          borderRadius: '50%',
+          border: '1.5px solid var(--card-border)',
+          borderTopColor: color,
+          animation: 'spin 0.8s linear infinite',
+          flexShrink: 0,
+        }} />
+      ) : (
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      )}
+      {label}
     </div>
   );
 }
@@ -703,6 +807,7 @@ function TransactionsTab({ tab }: { tab: AnalysisTab }) {
 
 function FundingTab({ tab }: { tab: AnalysisTab }) {
   const funding = tab.fundingData as unknown as Record<string, unknown> | undefined;
+  const fundingStatus = tab.progressiveStatus?.funding;
   const resultData = (funding?.result as Record<string, unknown> | undefined) ?? funding;
   const rawSources = resultData?.fundingSources || funding?.sources || funding?.fundingSources;
   const rawDestinations = resultData?.fundingDestinations || funding?.destinations || funding?.fundingDestinations;
@@ -714,6 +819,10 @@ function FundingTab({ tab }: { tab: AnalysisTab }) {
   const destinations = rawDestinations
     ? (Array.isArray(rawDestinations) ? rawDestinations : [rawDestinations]) as any[]
     : [];
+
+  if (sources.length === 0 && destinations.length === 0 && fundingStatus && fundingStatus !== 'done') {
+    return <FundingLoadingState state={fundingStatus} />;
+  }
 
   return (
     <FundingTree
@@ -727,6 +836,7 @@ function FundingTab({ tab }: { tab: AnalysisTab }) {
 
 function GraphTab({ tab }: { tab: AnalysisTab }) {
   const funding = tab.fundingData as unknown as Record<string, unknown> | undefined;
+  const fundingStatus = tab.progressiveStatus?.funding;
   const resultData = (funding?.result as Record<string, unknown> | undefined) ?? funding;
   const rawSources = resultData?.fundingSources || funding?.sources || funding?.fundingSources;
   const rawDestinations = resultData?.fundingDestinations || funding?.destinations || funding?.fundingDestinations;
@@ -739,6 +849,10 @@ function GraphTab({ tab }: { tab: AnalysisTab }) {
     : [];
 
   if (sources.length === 0 && destinations.length === 0) {
+    if (fundingStatus && fundingStatus !== 'done') {
+      return <FundingLoadingState state={fundingStatus} />;
+    }
+
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--fg-tertiary)', fontSize: 13 }}>
         Run a full analysis to generate the interactive funding graph.
@@ -752,5 +866,47 @@ function GraphTab({ tab }: { tab: AnalysisTab }) {
       destinations={destinations}
       targetAddress={tab.address}
     />
+  );
+}
+
+function FundingLoadingState({ state }: { state: 'pending' | 'loading' | 'done' | 'error' }) {
+  if (state === 'error') {
+    return (
+      <div style={{ padding: 28, border: '1px solid var(--hairline)', borderRadius: 'var(--radius-xl)', background: 'var(--card)', color: 'var(--fg-secondary)', fontSize: 13 }}>
+        Funding graph could not be loaded. The wallet overview and transactions are still available.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--fg-secondary)', fontSize: 13 }}>
+        <span style={{
+          width: 14,
+          height: 14,
+          border: '2px solid var(--card-border)',
+          borderTopColor: 'var(--accent)',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        Building funding sources and destinations...
+      </div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: 10,
+      }}>
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} style={{
+            height: 72,
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--hairline)',
+            background: 'linear-gradient(90deg, var(--card), var(--hover-overlay), var(--card))',
+            backgroundSize: '220% 100%',
+            animation: 'shimmer 1.4s ease-in-out infinite',
+          }} />
+        ))}
+      </div>
+    </div>
   );
 }

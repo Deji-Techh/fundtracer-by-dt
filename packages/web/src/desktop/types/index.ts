@@ -10,6 +10,12 @@ export interface AnalysisTab {
   label?: string;
   loading: boolean;
   error?: string;
+  progressiveStatus?: {
+    wallet?: 'pending' | 'loading' | 'done' | 'error';
+    timestamps?: 'pending' | 'loading' | 'done' | 'error';
+    funding?: 'pending' | 'loading' | 'done' | 'error';
+    message?: string;
+  };
   result?: AnalysisResult;
   transactions?: unknown;
   fundingData?: unknown;
