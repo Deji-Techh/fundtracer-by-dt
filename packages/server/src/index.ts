@@ -631,10 +631,10 @@ import configRoutes from './routes/config.js';
 
 // All API routes - restored from working commit
 apiRouter.use('/portfolio', portfolioRoutes);
-apiRouter.use('/history', apiKeyAuthMiddleware, authMiddleware, historyRoutes);
+apiRouter.use('/history', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, historyRoutes);
 apiRouter.use('/tokens', publicLimiter, tokenRoutes);
 apiRouter.use('/market', publicLimiter, marketRoutes);
-apiRouter.use('/safety', apiKeyAuthMiddleware, authMiddleware, safetyRoutes);
+apiRouter.use('/safety', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, safetyRoutes);
 apiRouter.use('/debug', publicLimiter, debugRoutes);
 apiRouter.use('/dexscreener', dexScreenerRoutes);
 apiRouter.use('/geckoterminal', geckoTerminalRoutes);

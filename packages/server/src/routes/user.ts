@@ -64,22 +64,29 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
         }
 
         const today = new Date().toISOString().split('T')[0];
-        const usageToday = userData?.dailyUsage?.[today] || 0;
 
-        // Fetch per-minute usage from Redis
+        // Read usage from Redis (same keys the usageMiddleware writes to)
         let usedMinute = 0;
+        let usageToday = userData?.dailyUsage?.[today] || 0;
         try {
             if (isRedisConnected()) {
                 const redis = getRedis();
                 if (redis) {
                     const d = new Date();
                     const minuteKey = `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}`;
-                    const minuteStr = await redis.get<string>(`usage:${req.user.uid}:minute:${minuteKey}`);
+                    const dayKey = `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`;
+                    const [minuteStr, dayStr] = await Promise.all([
+                        redis.get<string>(`usage:${req.user.uid}:minute:${minuteKey}`),
+                        redis.get<string>(`usage:${req.user.uid}:day:${dayKey}`),
+                    ]);
                     usedMinute = minuteStr ? parseInt(minuteStr, 10) : 0;
+                    const redisDay = dayStr ? parseInt(dayStr, 10) : 0;
+                    // Prefer Redis count over Firestore (middleware writes to Redis)
+                    if (redisDay > 0) usageToday = redisDay;
                 }
             }
         } catch {
-            // Redis unavailable, per-minute stays 0
+            // Redis unavailable, fall back to Firestore value already in usageToday
         }
 
         const tier = userData?.tier || 'free';
@@ -378,32 +385,63 @@ async function validateAlchemyApiKey(apiKey: string): Promise<boolean> {
     }
 }
 
-// Increment daily usage counter
+// Increment daily usage counter (both Redis + Firestore)
 router.post('/usage/increment', async (req: AuthenticatedRequest, res: Response) => {
     if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
     try {
+        const uid = req.user.uid;
+        const d = new Date();
+        const minuteKey = `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}`;
+        const dayKey = `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`;
+
+        // Increment Redis counters (same keys as usageMiddleware)
+        if (isRedisConnected()) {
+            const redis = getRedis();
+            if (redis) {
+                await Promise.all([
+                    redis.incr(`usage:${uid}:minute:${minuteKey}`),
+                    redis.incr(`usage:${uid}:day:${dayKey}`),
+                ]);
+                await Promise.all([
+                    redis.expire(`usage:${uid}:minute:${minuteKey}`, 90),
+                    redis.expire(`usage:${uid}:day:${dayKey}`, 86400),
+                ]);
+                // Bust profile cache so usage badge updates
+                cacheDel(`user:profile:${uid}`).catch(() => {});
+            }
+        }
+
+        // Also persist to Firestore as backup
         const db = getFirestore();
-        const userRef = db.collection('users').doc(req.user.uid);
+        const userRef = db.collection('users').doc(uid);
+        const today = new Date().toISOString().split('T')[0];
         const userDoc = await userRef.get();
         const userData = userDoc.data();
-
-        const today = new Date().toISOString().split('T')[0];
         const currentUsage = userData?.dailyUsage?.[today] || 0;
-        
-        // Increment usage
+
         await userRef.set({
             dailyUsage: {
                 [today]: currentUsage + 1
             }
         }, { merge: true });
 
+        // Read back current Redis count for response
+        let redisDay = currentUsage + 1;
+        if (isRedisConnected()) {
+            const redis = getRedis();
+            if (redis) {
+                const dayStr = await redis.get<string>(`usage:${uid}:day:${dayKey}`);
+                if (dayStr) redisDay = parseInt(dayStr, 10);
+            }
+        }
+
         res.json({
             success: true,
             today,
-            usage: currentUsage + 1
+            usage: redisDay,
         });
     } catch (error) {
         console.error('Usage increment error:', error);

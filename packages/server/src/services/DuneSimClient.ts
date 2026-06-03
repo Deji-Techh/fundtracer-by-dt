@@ -339,8 +339,19 @@ export class DuneSimClient {
                 }
             }
 
-            // Convert block_time from microseconds to milliseconds
-            const blockTimeMs = tx.block_time ? Math.floor(tx.block_time / 1000) : Date.now() * 1000;
+            // Convert block_time to milliseconds — SIM returns microseconds, but guard against other formats
+            const rawBlockTime = tx.block_time || 0;
+            let blockTimeMs: number;
+            if (rawBlockTime > 1e15) {
+                // Microseconds → ms
+                blockTimeMs = Math.floor(rawBlockTime / 1000);
+            } else if (rawBlockTime > 1e12) {
+                // Already milliseconds
+                blockTimeMs = rawBlockTime;
+            } else {
+                // Seconds → ms
+                blockTimeMs = rawBlockTime * 1000;
+            }
 
             return {
                 signature: rawTx?.transaction?.signatures?.[0] || '',

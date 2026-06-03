@@ -130,8 +130,8 @@ export class SolanaAdapter implements ChainAdapter {
       balance: (balanceRes.result.value / 1e9).toString(),
       nativeSymbol: 'SOL',
       isContract: isProgram,
-      firstSeen: firstTx?.blockTime ? firstTx.blockTime * 1000 : null,
-      txCount: null,
+      firstSeen: firstTx?.blockTime ? (firstTx.blockTime > 1e12 ? firstTx.blockTime : firstTx.blockTime * 1000) : null,
+      txCount: sigsRes.result?.length ?? null,
       labels: await this.getLabels(address),
     };
   }

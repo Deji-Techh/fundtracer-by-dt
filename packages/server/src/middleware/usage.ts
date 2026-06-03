@@ -6,7 +6,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth.js';
 import { getFirestore } from '../firebase.js';
-import { isRedisConnected, cacheGet, cacheSet, getRedis } from '../utils/redis.js';
+import { isRedisConnected, cacheGet, cacheSet, cacheDel, getRedis } from '../utils/redis.js';
 
 // Chain configuration - support both frontend IDs and canonical names
 const ALLOWED_CHAINS = [
@@ -193,6 +193,8 @@ export async function usageMiddleware(
             // Update user cache (non-blocking)
             const userCacheKey = `auth:user:${uid}`;
             cacheSet(userCacheKey, { tier }, 60).catch(() => {});
+            // Bust profile cache so usage badge shows fresh counts
+            cacheDel(`user:profile:${uid}`).catch(() => {});
 
             console.log(`[USAGE] ${uid} - min: ${usedMinute}/${limits.perMinute} day: ${usedDay}/${limits.daily}`);
             next();

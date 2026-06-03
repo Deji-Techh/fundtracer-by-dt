@@ -137,10 +137,12 @@ export class SolanaPortfolioService {
         // Signatures are already sorted ASC (oldest first)
         const firstSig = signatures[0];
         const lastSig = signatures[signatures.length - 1];
-        const firstTimestamp = firstSig?.blockTime ? new Date(firstSig.blockTime * 1000).toISOString() : '';
-        const lastTimestamp = lastSig?.blockTime ? new Date(lastSig.blockTime * 1000).toISOString() : '';
-        const activityPeriodDays = firstSig?.blockTime && lastSig?.blockTime
-            ? Math.round((lastSig.blockTime - firstSig.blockTime) / 86400)
+        const firstBlockSec = firstSig?.blockTime ? this.normalizeBlockTime(firstSig.blockTime) : 0;
+        const lastBlockSec = lastSig?.blockTime ? this.normalizeBlockTime(lastSig.blockTime) : 0;
+        const firstTimestamp = firstBlockSec ? new Date(firstBlockSec * 1000).toISOString() : '';
+        const lastTimestamp = lastBlockSec ? new Date(lastBlockSec * 1000).toISOString() : '';
+        const activityPeriodDays = firstBlockSec && lastBlockSec
+            ? Math.round((lastBlockSec - firstBlockSec) / 86400)
             : 0;
 
         // Compute SOL sent/received from transfers
@@ -196,10 +198,12 @@ export class SolanaPortfolioService {
 
         const firstSig = signatures[0];
         const lastSig = signatures[signatures.length - 1];
-        const firstTimestamp = firstSig?.blockTime ? new Date(firstSig.blockTime * 1000).toISOString() : '';
-        const lastTimestamp = lastSig?.blockTime ? new Date(lastSig.blockTime * 1000).toISOString() : '';
-        const activityPeriodDays = firstSig?.blockTime && lastSig?.blockTime
-            ? Math.round((lastSig.blockTime - firstSig.blockTime) / 86400)
+        const firstBlockSec = firstSig?.blockTime ? this.normalizeBlockTime(firstSig.blockTime) : 0;
+        const lastBlockSec = lastSig?.blockTime ? this.normalizeBlockTime(lastSig.blockTime) : 0;
+        const firstTimestamp = firstBlockSec ? new Date(firstBlockSec * 1000).toISOString() : '';
+        const lastTimestamp = lastBlockSec ? new Date(lastBlockSec * 1000).toISOString() : '';
+        const activityPeriodDays = firstBlockSec && lastBlockSec
+            ? Math.round((lastBlockSec - firstBlockSec) / 86400)
             : 0;
 
         return {
@@ -564,7 +568,7 @@ export class SolanaPortfolioService {
                 return {
                     signature,
                     slot: tx.slot,
-                    blockTime: tx.blockTime * 1000,
+                    blockTime: this.normalizeBlockTime(tx.blockTime) * 1000,
                     fee: meta?.fee || 0,
                     status: meta?.err ? 'failed' : 'success',
                     type: this.inferTransactionType(instructions),
@@ -703,7 +707,7 @@ export class SolanaPortfolioService {
         if (signatures.length > 0) {
             const firstTx = signatures[0];
             if (firstTx.blockTime) {
-                const age = Date.now() - firstTx.blockTime * 1000;
+                const age = Date.now() - this.normalizeBlockTime(firstTx.blockTime) * 1000;
                 if (age < 30 * 24 * 60 * 60 * 1000) {
                     score += 15;
                     signals.push({ id: 'new_wallet', name: 'Wallet Created Recently', detected: true, severity: 'medium' });
@@ -794,6 +798,10 @@ export class SolanaPortfolioService {
             console.error('[SolanaPortfolio] Error fetching SOL price:', e);
             return 0;
         }
+    }
+
+    private normalizeBlockTime(blockTime: number): number {
+        return blockTime > 1e12 ? Math.floor(blockTime / 1000) : blockTime;
     }
 
     private chunk<T>(arr: T[], size: number): T[][] {

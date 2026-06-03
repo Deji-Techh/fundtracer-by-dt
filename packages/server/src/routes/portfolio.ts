@@ -33,7 +33,10 @@ router.get('/:walletAddress', async (req: Request, res: Response) => {
       const solanaChain = 'solana';
       console.log('[Portfolio] Fetching Solana portfolio...');
 
-      const portfolio = await solanaPortfolioService.getPortfolio(walletAddress);
+      const portfolio = await solanaPortfolioService.getPortfolio(walletAddress, {
+        excludeSpamTokens: true,
+        excludeUnpriced: true,
+      });
 
       res.json({
         wallet: walletAddress,
@@ -147,7 +150,10 @@ router.get('/:walletAddress/tokens', async (req: Request, res: Response) => {
 
     // Handle Solana
     if (chain.toLowerCase() === 'solana' || isSolanaAddress(walletAddress)) {
-      const portfolio = await solanaPortfolioService.getPortfolio(walletAddress);
+      const portfolio = await solanaPortfolioService.getPortfolio(walletAddress, {
+        excludeSpamTokens: true,
+        excludeUnpriced: true,
+      });
       res.json({
         wallet: walletAddress,
         chain: 'solana',
