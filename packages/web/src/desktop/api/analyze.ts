@@ -194,6 +194,107 @@ export async function detectSybil(
   });
 }
 
+export type SybilStreamEvent =
+  | { type: 'status'; stage?: string; message?: string; totalAddresses?: number; elapsedSeconds?: number; clusters?: number; flaggedClusters?: number }
+  | { type: 'complete'; result: unknown; meta?: unknown; rateLimit?: ApiResponse<unknown>['rateLimit'] }
+  | { type: 'error'; error?: string; message?: string };
+
+export function streamDetectSybil(
+  addresses: string[],
+  chain: ChainId,
+  onEvent: (event: SybilStreamEvent) => void,
+  onError: (err: Error) => void,
+): () => void {
+  const token = getAuthToken();
+  const apiKey = (() => { try { return localStorage.getItem('fdt_api_key'); } catch { return null; } })();
+  const controller = new AbortController();
+  let closed = false;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    controller.abort();
+  };
+
+  const parseEventBlock = (block: string): SybilStreamEvent | null => {
+    let eventType = 'message';
+    const dataLines: string[] = [];
+    for (const rawLine of block.split('\n')) {
+      const line = rawLine.trimEnd();
+      if (line.startsWith('event:')) eventType = line.slice(6).trim();
+      if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+    }
+    if (dataLines.length === 0) return null;
+    try {
+      const parsed = JSON.parse(dataLines.join('\n'));
+      return { type: eventType as SybilStreamEvent['type'], ...parsed };
+    } catch {
+      return null;
+    }
+  };
+
+  fetch(`${API_BASE}/api/analyze/sybil-addresses/stream`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      addresses,
+      chain: normalizeChain(chain),
+    }),
+    signal: controller.signal,
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        onError(new Error(errorData.message || errorData.error || `HTTP ${response.status}`));
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        onError(new Error('No response stream'));
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const event = parseEventBlock(block);
+            if (!event) continue;
+            onEvent(event);
+            if (event.type === 'complete' || event.type === 'error') return;
+          }
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') onError(err);
+      }
+    })
+    .catch((err) => {
+      if (err.name !== 'AbortError') onError(err);
+    });
+
+  return cleanup;
+}
+
 export async function analyzeCEXFlow(
   walletAddress: string,
   chain: ChainId,
@@ -202,6 +303,107 @@ export async function analyzeCEXFlow(
     walletAddress,
     chain: normalizeChain(chain),
   });
+}
+
+export type CexFlowStreamEvent =
+  | { type: 'status'; stage?: string; message?: string; transactionCount?: number }
+  | { type: 'complete'; result: unknown }
+  | { type: 'error'; error?: string; message?: string; hint?: string };
+
+export function streamAnalyzeCEXFlow(
+  walletAddress: string,
+  chain: ChainId,
+  onEvent: (event: CexFlowStreamEvent) => void,
+  onError: (err: Error) => void,
+): () => void {
+  const token = getAuthToken();
+  const apiKey = (() => { try { return localStorage.getItem('fdt_api_key'); } catch { return null; } })();
+  const controller = new AbortController();
+  let closed = false;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  } else if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    controller.abort();
+  };
+
+  const parseEventBlock = (block: string): CexFlowStreamEvent | null => {
+    let eventType = 'message';
+    const dataLines: string[] = [];
+    for (const rawLine of block.split('\n')) {
+      const line = rawLine.trimEnd();
+      if (line.startsWith('event:')) eventType = line.slice(6).trim();
+      if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+    }
+    if (dataLines.length === 0) return null;
+    try {
+      const parsed = JSON.parse(dataLines.join('\n'));
+      return { type: eventType as CexFlowStreamEvent['type'], ...parsed };
+    } catch {
+      return null;
+    }
+  };
+
+  fetch(`${API_BASE}/api/analyze/cex-flow/stream`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      walletAddress,
+      chain: normalizeChain(chain),
+    }),
+    signal: controller.signal,
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        onError(new Error(errorData.message || errorData.error || `HTTP ${response.status}`));
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        onError(new Error('No response stream'));
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const event = parseEventBlock(block);
+            if (!event) continue;
+            onEvent(event);
+            if (event.type === 'complete' || event.type === 'error') return;
+          }
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') onError(err);
+      }
+    })
+    .catch((err) => {
+      if (err.name !== 'AbortError') onError(err);
+    });
+
+  return cleanup;
 }
 
 export async function getPortfolio(address: string, chain: string): Promise<unknown> {

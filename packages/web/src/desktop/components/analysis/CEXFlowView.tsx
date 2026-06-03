@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { analyzeCEXFlow } from '../../api/analyze';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { streamAnalyzeCEXFlow } from '../../api/analyze';
 import { useNotify } from '../../contexts/ToastContext';
 import { useTabs } from '../../contexts/TabsContext';
 import { ChainSelector } from '../common/ChainSelector';
@@ -9,6 +9,19 @@ import { getCexFlowState, saveCexFlowState } from '../../stores/cexFlowState';
 import { CompactSearchForm, InputStage } from './CompactSearchForm';
 import { ProgressiveLoader } from './ProgressiveLoader';
 import { useIsMobile } from '../../../hooks/useIsMobile';
+import { ToolInlineAiAnalysis, type ToolAiMessage } from './ToolInlineAiAnalysis';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 const CEX_COLORS: Record<string, string> = {
   'Binance': '#f0b90b', 'Coinbase': '#0052ff', 'Kraken': '#5741d9',
@@ -36,6 +49,11 @@ export function CEXFlowView() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(initialState.result);
   const [error, setError] = useState<string | null>(null);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [activeResultTab, setActiveResultTab] = useState<'overview' | 'graph' | 'activity'>('overview');
+  const [aiMessages, setAiMessages] = useState<ToolAiMessage[]>([]);
+  const streamCleanupRef = useRef<(() => void) | null>(null);
+  const runIdRef = useRef(0);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -45,22 +63,62 @@ export function CEXFlowView() {
     setResult(next.result);
     setError(null);
     setLoading(false);
+    setProgressMessage('');
+    setActiveResultTab('overview');
   }, [scopeKey]);
+
+  useEffect(() => () => {
+    streamCleanupRef.current?.();
+    streamCleanupRef.current = null;
+  }, []);
 
   useEffect(() => {
     saveCexFlowState({ address, chain, result }, scopeKey);
   }, [address, chain, result, scopeKey]);
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = () => {
     if (!address.trim()) { notify.error('Please enter a wallet address'); return; }
-    setLoading(true); setError(null); setResult(null);
-    try {
-      const res = await analyzeCEXFlow(address.trim(), chain);
-      const data = res as unknown as Record<string, unknown>;
-      setResult((data.result || data) as unknown as Record<string, unknown>);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'CEX flow analysis failed');
-    } finally { setLoading(false); }
+    streamCleanupRef.current?.();
+    const runId = ++runIdRef.current;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setProgressMessage('Preparing CEX flow trace');
+
+    streamCleanupRef.current = streamAnalyzeCEXFlow(
+      address.trim(),
+      chain,
+      (event) => {
+        if (runId !== runIdRef.current) return;
+        if (event.type === 'status') {
+          const elapsed = event.elapsedSeconds ? ` (${event.elapsedSeconds}s)` : '';
+          setProgressMessage(`${event.message || 'Tracing CEX flow'}${elapsed}`);
+          return;
+        }
+        if (event.type === 'complete') {
+          const data = (event.result || event) as unknown as Record<string, unknown>;
+          setResult((data.result || data) as Record<string, unknown>);
+          setProgressMessage('');
+          setLoading(false);
+          streamCleanupRef.current = null;
+          return;
+        }
+        if (event.type === 'error') {
+          const message = event.message || event.error || 'CEX flow analysis failed';
+          setError(message);
+          setProgressMessage('');
+          setLoading(false);
+          streamCleanupRef.current = null;
+        }
+      },
+      (err) => {
+        if (runId !== runIdRef.current) return;
+        setError(err.message || 'CEX flow analysis failed');
+        setProgressMessage('');
+        setLoading(false);
+        streamCleanupRef.current = null;
+      },
+    );
   };
 
   return (
@@ -103,25 +161,74 @@ export function CEXFlowView() {
         <ProgressiveLoader
           title="Tracing CEX flow"
           steps={['Fetching recent wallet transactions', 'Matching exchange wallets', 'Calculating deposits and withdrawals']}
+          message={progressMessage || undefined}
           compact={isMobile}
         />
       )}
       {error && <div style={{ padding: 16, borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--destructive)', color: 'var(--destructive)', fontSize: 13 }}>{error}</div>}
 
-      {result && <CEXResult data={result} />}
+      {result && (
+        <CEXResult
+          data={result}
+          address={address.trim()}
+          chain={chain}
+          isMobile={isMobile}
+          activeTab={activeResultTab}
+          onTabChange={setActiveResultTab}
+          aiMessages={aiMessages}
+          onAiMessagesChange={setAiMessages}
+        />
+      )}
     </div>
   );
 }
 
-function CEXResult({ data }: { data: Record<string, unknown> }) {
+function CEXResult({
+  data,
+  address,
+  chain,
+  isMobile,
+  activeTab,
+  onTabChange,
+  aiMessages,
+  onAiMessagesChange,
+}: {
+  data: Record<string, unknown>;
+  address: string;
+  chain: ChainId;
+  isMobile: boolean;
+  activeTab: 'overview' | 'graph' | 'activity';
+  onTabChange: (tab: 'overview' | 'graph' | 'activity') => void;
+  aiMessages: ToolAiMessage[];
+  onAiMessagesChange: (messages: ToolAiMessage[]) => void;
+}) {
   const exchanges = (data.exchanges || data.cexList || data.connectedCEXs || []) as Array<Record<string, unknown>>;
   const totalDeposited = asFiniteNumber(data.totalDeposited);
   const totalWithdrawn = asFiniteNumber(data.totalWithdrawn);
   const netFlow = asFiniteNumber(data.netFlow);
   const flowEvents = (data.flowEvents || data.transactions || data.flows || []) as Array<Record<string, unknown>>;
+  const chartData = useMemo(() => buildCexFlowTimeline(flowEvents), [flowEvents]);
 
   return (
     <div>
+      <ResultTabs
+        active={activeTab}
+        onChange={onTabChange}
+        tabs={[
+          { id: 'overview', label: 'Overview' },
+          { id: 'graph', label: 'Graph' },
+          { id: 'activity', label: `Activity (${flowEvents.length})` },
+        ]}
+      />
+
+      {activeTab === 'overview' && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.1fr) minmax(320px, 0.9fr)',
+          gap: 16,
+          alignItems: 'start',
+        }}>
+          <div>
       {/* Summary */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
         <Metric icon={<TrendingUp size={16} />} label="Total Deposited" value={totalDeposited !== null ? `${totalDeposited.toFixed(4)} ETH` : 'N/A'} color="var(--accent)" />
@@ -156,9 +263,58 @@ function CEXResult({ data }: { data: Record<string, unknown> }) {
           </div>
         </div>
       )}
+          </div>
+          <ToolInlineAiAnalysis
+            cacheId="cex-flow"
+            title="AI Analysis"
+            prompt="Summarize this CEX flow trace. Explain exchange exposure, net deposit or withdrawal direction, unusual activity, and the next useful investigation steps."
+            context={{ address, chain, analysisData: data }}
+            cachedMessages={aiMessages}
+            onMessagesChange={onAiMessagesChange}
+          />
+        </div>
+      )}
+
+      {activeTab === 'graph' && (
+        <div style={{
+          padding: 14,
+          borderRadius: 'var(--radius-xl)',
+          background: 'var(--card)',
+          border: '1px solid var(--hairline)',
+          minHeight: 320,
+        }}>
+          <h4 style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)', margin: '0 0 10px' }}>
+            Exchange Flow Timeline
+          </h4>
+          {chartData.labels.length > 0 ? (
+            <div style={{ height: isMobile ? 260 : 340 }}>
+              <Line
+                data={chartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  interaction: { intersect: false, mode: 'index' },
+                  plugins: {
+                    legend: { labels: { color: 'var(--fg-secondary)', boxWidth: 10, font: { size: 11 } } },
+                    tooltip: { backgroundColor: 'rgba(5, 10, 18, 0.94)' },
+                  },
+                  scales: {
+                    x: { ticks: { color: 'var(--fg-tertiary)', maxRotation: 0 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+                    y: { ticks: { color: 'var(--fg-tertiary)' }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+                  },
+                }}
+              />
+            </div>
+          ) : (
+            <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-tertiary)', fontSize: 13 }}>
+              No timestamped exchange flow events were found.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Flow events */}
-      {flowEvents.length > 0 && (
+      {activeTab === 'activity' && flowEvents.length > 0 && (
         <div>
           <h4 style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)', marginBottom: 10 }}>
             Recent Exchange Activity ({flowEvents.length})
@@ -212,4 +368,99 @@ function Metric({ icon, label, value, color }: { icon: React.ReactNode; label: s
       <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'var(--font-mono)', color }}>{value}</div>
     </div>
   );
+}
+
+function ResultTabs<T extends string>({
+  active,
+  onChange,
+  tabs,
+}: {
+  active: T;
+  onChange: (tab: T) => void;
+  tabs: Array<{ id: T; label: string }>;
+}) {
+  return (
+    <div style={{
+      display: 'flex',
+      gap: 4,
+      padding: 4,
+      borderRadius: 'var(--radius-lg)',
+      background: 'var(--bg-secondary)',
+      border: '1px solid var(--hairline)',
+      marginBottom: 16,
+      overflowX: 'auto',
+    }}>
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          style={{
+            height: 32,
+            padding: '0 12px',
+            borderRadius: 'var(--radius-md)',
+            border: 'none',
+            background: active === tab.id ? 'var(--card)' : 'transparent',
+            color: active === tab.id ? 'var(--fg)' : 'var(--fg-tertiary)',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: active === tab.id ? '0 0 0 1px var(--hairline)' : 'none',
+          }}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function normalizeFlowDate(value: unknown): Date | null {
+  if (value instanceof Date) return value;
+  const n = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  if (Number.isFinite(n)) return new Date(n > 10_000_000_000 ? n : n * 1000);
+  if (typeof value === 'string') {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  return null;
+}
+
+function buildCexFlowTimeline(flowEvents: Array<Record<string, unknown>>) {
+  const deposits = new Map<string, number>();
+  const withdrawals = new Map<string, number>();
+  for (const event of flowEvents) {
+    const date = normalizeFlowDate(event.timestamp || event.time || event.date);
+    if (!date) continue;
+    const key = date.toISOString().slice(0, 10);
+    const amount = asFiniteNumber(event.amount ?? event.value) || 0;
+    const type = String(event.type || event.direction || event.flowType || '').toLowerCase();
+    if (type === 'deposit' || type === 'in' || type === 'received') {
+      deposits.set(key, (deposits.get(key) || 0) + amount);
+    } else {
+      withdrawals.set(key, (withdrawals.get(key) || 0) + amount);
+    }
+  }
+  const labels = [...new Set([...deposits.keys(), ...withdrawals.keys()])].sort();
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Deposits',
+        data: labels.map(label => deposits.get(label) || 0),
+        borderColor: 'rgba(0, 230, 122, 0.95)',
+        backgroundColor: 'rgba(0, 230, 122, 0.14)',
+        tension: 0.35,
+        pointRadius: 2,
+      },
+      {
+        label: 'Withdrawals',
+        data: labels.map(label => withdrawals.get(label) || 0),
+        borderColor: 'rgba(255, 69, 58, 0.95)',
+        backgroundColor: 'rgba(255, 69, 58, 0.14)',
+        tension: 0.35,
+        pointRadius: 2,
+      },
+    ],
+  };
 }

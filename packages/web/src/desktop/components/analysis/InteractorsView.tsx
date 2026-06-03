@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { streamAnalyzeContract } from '../../api/analyze';
 import { useNotify } from '../../contexts/ToastContext';
 import { useTabs } from '../../contexts/TabsContext';
@@ -9,6 +9,19 @@ import type { ChainId } from '../../types';
 import { getInteractorsState, saveInteractorsState } from '../../stores/interactorsState';
 import { CompactSearchForm, InputStage } from './CompactSearchForm';
 import { ProgressiveLoader } from './ProgressiveLoader';
+import { ToolInlineAiAnalysis, type ToolAiMessage } from './ToolInlineAiAnalysis';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 interface Interactor {
   address: string;
@@ -70,6 +83,8 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
   const [result, setResult] = useState<ContractResult | null>((initialState.result as ContractResult | null) || null);
   const [error, setError] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState('');
+  const [activeResultTab, setActiveResultTab] = useState<'overview' | 'graph' | 'addresses'>('overview');
+  const [aiMessages, setAiMessages] = useState<ToolAiMessage[]>([]);
   const streamCleanupRef = useRef<(() => void) | null>(null);
   const runIdRef = useRef(0);
 
@@ -81,6 +96,7 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
     setError(null);
     setLoading(false);
     setProgressMessage('');
+    setActiveResultTab('overview');
   }, [scopeKey]);
 
   useEffect(() => () => {
@@ -183,6 +199,7 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
   };
 
   const explorer = CHAIN_EXPLORERS[chain] || 'https://etherscan.io';
+  const interactorChart = useMemo(() => buildInteractorsTimeline(result?.interactors || []), [result?.interactors]);
 
   return (
     <div style={{ padding: 20, maxWidth: 1000, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -237,6 +254,24 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
 
       {result && (
         <div>
+          <ResultTabs
+            active={activeResultTab}
+            onChange={setActiveResultTab}
+            tabs={[
+              { id: 'overview', label: 'Overview' },
+              { id: 'graph', label: 'Graph' },
+              { id: 'addresses', label: `Addresses (${result.interactors.length})` },
+            ]}
+          />
+
+          {activeResultTab === 'overview' && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.2fr) minmax(320px, 0.8fr)',
+              gap: 16,
+              alignItems: 'start',
+            }}>
+              <div>
           {/* Summary */}
           <div style={{ display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{
@@ -360,8 +395,60 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
               </div>
             </div>
           )}
+              </div>
+              {!result.partial && !loading && (
+                <ToolInlineAiAnalysis
+                  cacheId="interactors"
+                  title="AI Analysis"
+                  prompt="Summarize this contract interactor analysis. Focus on suspicious shared funding, concentration, risk score, and what an investigator should inspect next."
+                  context={{ address: result.contractAddress, chain, analysisData: result }}
+                  cachedMessages={aiMessages}
+                  onMessagesChange={setAiMessages}
+                />
+              )}
+            </div>
+          )}
+
+          {activeResultTab === 'graph' && (
+            <div style={{
+              padding: 14,
+              borderRadius: 'var(--radius-xl)',
+              background: 'var(--card)',
+              border: '1px solid var(--hairline)',
+              minHeight: 320,
+            }}>
+              <h4 style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)', margin: '0 0 10px' }}>
+                Interactor Timeline
+              </h4>
+              {interactorChart.labels.length > 0 ? (
+                <div style={{ height: isMobile ? 260 : 340 }}>
+                  <Line
+                    data={interactorChart}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      interaction: { intersect: false, mode: 'index' },
+                      plugins: {
+                        legend: { labels: { color: 'var(--fg-secondary)', boxWidth: 10, font: { size: 11 } } },
+                        tooltip: { backgroundColor: 'rgba(5, 10, 18, 0.94)' },
+                      },
+                      scales: {
+                        x: { ticks: { color: 'var(--fg-tertiary)', maxRotation: 0 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+                        y: { beginAtZero: true, ticks: { color: 'var(--fg-tertiary)', precision: 0 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+                      },
+                    }}
+                  />
+                </div>
+              ) : (
+                <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-tertiary)', fontSize: 13 }}>
+                  Timeline data is not available for these interactors yet.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Interactors table */}
+          {activeResultTab === 'addresses' && (
           <div>
             <h4 style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Interacting Addresses ({result.interactors.length})
@@ -422,6 +509,7 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
               </div>
             </div>
           </div>
+          )}
         </div>
       )}
     </div>
@@ -433,3 +521,79 @@ const exportBtnStyle: React.CSSProperties = {
   background: 'var(--card)', color: 'var(--fg)', fontSize: 11, fontFamily: 'var(--font-sans)',
   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
 };
+
+function ResultTabs<T extends string>({
+  active,
+  onChange,
+  tabs,
+}: {
+  active: T;
+  onChange: (tab: T) => void;
+  tabs: Array<{ id: T; label: string }>;
+}) {
+  return (
+    <div style={{
+      display: 'flex',
+      gap: 4,
+      padding: 4,
+      borderRadius: 'var(--radius-lg)',
+      background: 'var(--bg-secondary)',
+      border: '1px solid var(--hairline)',
+      marginBottom: 16,
+      overflowX: 'auto',
+    }}>
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          style={{
+            height: 32,
+            padding: '0 12px',
+            borderRadius: 'var(--radius-md)',
+            border: 'none',
+            background: active === tab.id ? 'var(--card)' : 'transparent',
+            color: active === tab.id ? 'var(--fg)' : 'var(--fg-tertiary)',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: active === tab.id ? '0 0 0 1px var(--hairline)' : 'none',
+          }}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function normalizeTimestamp(value: unknown): Date | null {
+  const n = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  if (!Number.isFinite(n)) return null;
+  if (n < 1_000_000_000) return null;
+  return new Date(n > 10_000_000_000 ? n : n * 1000);
+}
+
+function buildInteractorsTimeline(interactors: Interactor[]) {
+  const buckets = new Map<string, number>();
+  for (const interactor of interactors) {
+    const date = normalizeTimestamp(interactor.firstInteraction || interactor.lastInteraction);
+    if (!date) continue;
+    const key = date.toISOString().slice(0, 10);
+    buckets.set(key, (buckets.get(key) || 0) + 1);
+  }
+  const labels = [...buckets.keys()].sort();
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'New interactors',
+        data: labels.map(label => buckets.get(label) || 0),
+        borderColor: 'rgba(0, 230, 122, 0.95)',
+        backgroundColor: 'rgba(0, 230, 122, 0.14)',
+        tension: 0.35,
+        pointRadius: 2,
+      },
+    ],
+  };
+}

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { detectSybil } from '../../api/analyze';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { streamDetectSybil } from '../../api/analyze';
 import { useNotify } from '../../contexts/ToastContext';
 import { useTabs } from '../../contexts/TabsContext';
 import { ChainSelector } from '../common/ChainSelector';
@@ -9,6 +9,19 @@ import { getSybilState, saveSybilState } from '../../stores/sybilState';
 import { InputStage } from './CompactSearchForm';
 import { ProgressiveLoader } from './ProgressiveLoader';
 import { useIsMobile } from '../../../hooks/useIsMobile';
+import { ToolInlineAiAnalysis, type ToolAiMessage } from './ToolInlineAiAnalysis';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 interface SybilViewProps {
   prefillAddresses?: string[];
@@ -26,7 +39,12 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(initialState.result);
   const [error, setError] = useState<string | null>(null);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [activeResultTab, setActiveResultTab] = useState<'overview' | 'graph' | 'clusters'>('overview');
+  const [aiMessages, setAiMessages] = useState<ToolAiMessage[]>([]);
   const prefillConsumedRef = useRef(false);
+  const streamCleanupRef = useRef<(() => void) | null>(null);
+  const runIdRef = useRef(0);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -36,7 +54,14 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
     setResult(next.result);
     setError(null);
     setLoading(false);
+    setProgressMessage('');
+    setActiveResultTab('overview');
   }, [scopeKey]);
+
+  useEffect(() => () => {
+    streamCleanupRef.current?.();
+    streamCleanupRef.current = null;
+  }, []);
 
   useEffect(() => {
     saveSybilState({ textInput, chain, result }, scopeKey);
@@ -50,35 +75,66 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
       onPrefillConsumed?.();
       // Auto-start analysis after state settles
       const timer = setTimeout(() => {
-        setLoading(true);
-        detectSybil(prefillAddresses, prefillChain || 'ethereum')
-          .then(res => {
-            const data = res as unknown as Record<string, unknown>;
-            setResult((data.result || data) as unknown as Record<string, unknown>);
-          })
-          .catch(err => {
-            setError(err instanceof Error ? err.message : 'Sybil detection failed');
-          })
-          .finally(() => setLoading(false));
+        runSybilDetection(prefillAddresses, prefillChain || 'ethereum');
       }, 100);
       return () => clearTimeout(timer);
     }
   }, [prefillAddresses, prefillChain, onPrefillConsumed]);
 
-  const handleDetect = async () => {
+  const runSybilDetection = (addresses: string[], selectedChain: ChainId) => {
+    streamCleanupRef.current?.();
+    const runId = ++runIdRef.current;
+
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setProgressMessage(`Validated ${addresses.length} addresses`);
+
+    streamCleanupRef.current = streamDetectSybil(
+      addresses,
+      selectedChain,
+      (event) => {
+        if (runId !== runIdRef.current) return;
+
+        if (event.type === 'status') {
+          const elapsed = event.elapsedSeconds ? ` (${event.elapsedSeconds}s)` : '';
+          setProgressMessage(`${event.message || 'Detecting sybil clusters'}${elapsed}`);
+          return;
+        }
+
+        if (event.type === 'complete') {
+          setResult(event.result as Record<string, unknown>);
+          setProgressMessage('');
+          setLoading(false);
+          streamCleanupRef.current = null;
+          return;
+        }
+
+        if (event.type === 'error') {
+          const message = event.message || event.error || 'Sybil detection failed';
+          setError(message);
+          setProgressMessage('');
+          setLoading(false);
+          streamCleanupRef.current = null;
+        }
+      },
+      (err) => {
+        if (runId !== runIdRef.current) return;
+        setError(err.message || 'Sybil detection failed');
+        setProgressMessage('');
+        setLoading(false);
+        streamCleanupRef.current = null;
+      },
+    );
+  };
+
+  const handleDetect = () => {
     const addresses = textInput
       .split(/[\n,;\s]+/)
       .map(s => s.trim())
       .filter(Boolean);
     if (addresses.length < 2) { notify.error('Enter at least 2 addresses (comma or newline separated)'); return; }
-    setLoading(true); setError(null); setResult(null);
-    try {
-      const res = await detectSybil(addresses, chain);
-      const data = res as unknown as Record<string, unknown>;
-      setResult((data.result || data) as unknown as Record<string, unknown>);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sybil detection failed');
-    } finally { setLoading(false); }
+    runSybilDetection(addresses, chain);
   };
 
   return (
@@ -149,35 +205,135 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
         <ProgressiveLoader
           title="Detecting sybil clusters"
           steps={['Looking up first funders', 'Grouping shared sources', 'Scoring cluster risk']}
+          message={progressMessage || undefined}
           compact={isMobile}
         />
       )}
       {error && <div style={{ padding: 16, borderRadius: 'var(--radius-lg)', background: 'var(--card)', border: '1px solid var(--destructive)', color: 'var(--destructive)', fontSize: 13 }}>{error}</div>}
 
-      {result && <SybilResult data={result} />}
+      {result && (
+        <SybilResult
+          data={result}
+          chain={chain}
+          isMobile={isMobile}
+          activeTab={activeResultTab}
+          onTabChange={setActiveResultTab}
+          aiMessages={aiMessages}
+          onAiMessagesChange={setAiMessages}
+        />
+      )}
     </div>
   );
 }
 
-function SybilResult({ data }: { data: Record<string, unknown> }) {
+function SybilResult({
+  data,
+  chain,
+  isMobile,
+  activeTab,
+  onTabChange,
+  aiMessages,
+  onAiMessagesChange,
+}: {
+  data: Record<string, unknown>;
+  chain: ChainId;
+  isMobile: boolean;
+  activeTab: 'overview' | 'graph' | 'clusters';
+  onTabChange: (tab: 'overview' | 'graph' | 'clusters') => void;
+  aiMessages: ToolAiMessage[];
+  onAiMessagesChange: (messages: ToolAiMessage[]) => void;
+}) {
   const clusters = (data.clusters || data.sybilClusters || data.groups || []) as Array<Record<string, unknown>>;
   const totalAddresses = data.totalAddresses as number | undefined;
   const sybilCount = data.sybilCount as number | undefined;
   const clusterCount = (data.clusterCount || clusters.length) as number;
+  const chartData = useMemo(() => buildSybilClusterChart(clusters), [clusters]);
 
   return (
     <div style={{ marginTop: 4 }}>
+      <ResultTabs
+        active={activeTab}
+        onChange={onTabChange}
+        tabs={[
+          { id: 'overview', label: 'Overview' },
+          { id: 'graph', label: 'Graph' },
+          { id: 'clusters', label: `Clusters (${clusters.length})` },
+        ]}
+      />
+
+      {activeTab === 'overview' && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.05fr) minmax(320px, 0.95fr)',
+          gap: 16,
+          alignItems: 'start',
+        }}>
+          <div>
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
         <Metric icon={<Users size={16} />} label="Total Addresses" value={String(totalAddresses || 'N/A')} color="var(--fg)" />
         <Metric icon={<AlertTriangle size={16} />} label="Sybil Clusters" value={String(clusterCount)} color="var(--warning)" />
         <Metric icon={<Shield size={16} />} label="Sybil Addresses" value={String(sybilCount || clusters.reduce((sum: number, c: Record<string, unknown>) => { const m = (c.members || c.addresses) as unknown[]; return sum + (Array.isArray(m) ? m.length : 0); }, 0))} color="var(--destructive)" />
       </div>
+            <div style={{ padding: 16, borderRadius: 'var(--radius-xl)', background: 'var(--card)', border: '1px solid var(--hairline)', color: clusters.length > 0 ? 'var(--fg-secondary)' : 'var(--accent)', fontSize: 13, lineHeight: 1.55 }}>
+              {clusters.length > 0
+                ? `${clusters.length} cluster${clusters.length === 1 ? '' : 's'} detected. Review shared funding sources and cluster scores before treating the wallets as related.`
+                : 'No sybil clusters detected. These addresses appear to be independent based on the current funding data.'}
+            </div>
+          </div>
+          <ToolInlineAiAnalysis
+            cacheId="sybil"
+            title="AI Analysis"
+            prompt="Summarize this sybil detection result. Explain cluster risk, common funders, likely false positives, and what to inspect next."
+            context={{ address: `sybil-${totalAddresses || clusters.length}`, chain, analysisData: data }}
+            cachedMessages={aiMessages}
+            onMessagesChange={onAiMessagesChange}
+          />
+        </div>
+      )}
 
-      {clusters.length === 0 ? (
+      {activeTab === 'graph' && (
+        <div style={{
+          padding: 14,
+          borderRadius: 'var(--radius-xl)',
+          background: 'var(--card)',
+          border: '1px solid var(--hairline)',
+          minHeight: 320,
+        }}>
+          <h4 style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)', margin: '0 0 10px' }}>
+            Cluster Size and Risk
+          </h4>
+          {chartData.labels.length > 0 ? (
+            <div style={{ height: isMobile ? 260 : 340 }}>
+              <Line
+                data={chartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  interaction: { intersect: false, mode: 'index' },
+                  plugins: {
+                    legend: { labels: { color: 'var(--fg-secondary)', boxWidth: 10, font: { size: 11 } } },
+                    tooltip: { backgroundColor: 'rgba(5, 10, 18, 0.94)' },
+                  },
+                  scales: {
+                    x: { ticks: { color: 'var(--fg-tertiary)', maxRotation: 0 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+                    y: { beginAtZero: true, ticks: { color: 'var(--fg-tertiary)', precision: 0 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+                  },
+                }}
+              />
+            </div>
+          ) : (
+            <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-tertiary)', fontSize: 13 }}>
+              No cluster graph is available because no clusters were detected.
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'clusters' && clusters.length === 0 ? (
         <div style={{ padding: 24, textAlign: 'center', color: 'var(--accent)', fontSize: 13 }}>
           No sybil clusters detected. These addresses appear to be independent.
         </div>
-      ) : (
+      ) : activeTab === 'clusters' ? (
         clusters.map((cluster, i) => {
           const members = (cluster.members || cluster.addresses || []) as unknown[];
           const commonSource = cluster.commonSource || cluster.fundingSource || cluster.sharedFunder;
@@ -229,7 +385,7 @@ function SybilResult({ data }: { data: Record<string, unknown> }) {
             </div>
           );
         })
-      )}
+      ) : null}
     </div>
   );
 }
@@ -243,4 +399,85 @@ function Metric({ icon, label, value, color }: { icon: React.ReactNode; label: s
       <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'var(--font-mono)', color }}>{value}</div>
     </div>
   );
+}
+
+function ResultTabs<T extends string>({
+  active,
+  onChange,
+  tabs,
+}: {
+  active: T;
+  onChange: (tab: T) => void;
+  tabs: Array<{ id: T; label: string }>;
+}) {
+  return (
+    <div style={{
+      display: 'flex',
+      gap: 4,
+      padding: 4,
+      borderRadius: 'var(--radius-lg)',
+      background: 'var(--bg-secondary)',
+      border: '1px solid var(--hairline)',
+      marginBottom: 16,
+      overflowX: 'auto',
+    }}>
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          style={{
+            height: 32,
+            padding: '0 12px',
+            borderRadius: 'var(--radius-md)',
+            border: 'none',
+            background: active === tab.id ? 'var(--card)' : 'transparent',
+            color: active === tab.id ? 'var(--fg)' : 'var(--fg-tertiary)',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: active === tab.id ? '0 0 0 1px var(--hairline)' : 'none',
+          }}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function normalizeScore(value: unknown): number {
+  const n = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : 0;
+  if (!Number.isFinite(n)) return 0;
+  return n <= 1 ? n * 100 : n;
+}
+
+function clusterMembers(cluster: Record<string, unknown>): unknown[] {
+  const members = cluster.members || cluster.addresses || [];
+  return Array.isArray(members) ? members : [];
+}
+
+function buildSybilClusterChart(clusters: Array<Record<string, unknown>>) {
+  const labels = clusters.map((_, index) => `Cluster ${index + 1}`);
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Wallets',
+        data: clusters.map(cluster => clusterMembers(cluster).length),
+        borderColor: 'rgba(0, 230, 122, 0.95)',
+        backgroundColor: 'rgba(0, 230, 122, 0.14)',
+        tension: 0.35,
+        pointRadius: 3,
+      },
+      {
+        label: 'Risk score',
+        data: clusters.map(cluster => normalizeScore(cluster.confidence || cluster.score || cluster.riskScore)),
+        borderColor: 'rgba(255, 193, 7, 0.95)',
+        backgroundColor: 'rgba(255, 193, 7, 0.14)',
+        tension: 0.35,
+        pointRadius: 3,
+      },
+    ],
+  };
 }

@@ -1881,6 +1881,147 @@ router.post('/batch', async (req: AuthenticatedRequest, res: Response) => {
 });
 
 /**
+ * POST /sybil-addresses/stream
+ * Stream progress while analyzing a list of addresses directly.
+ */
+router.post('/sybil-addresses/stream', async (req: AuthenticatedRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { addresses, chain, options } = req.body;
+
+    if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
+        return res.status(400).json({ error: 'Addresses array is required' });
+    }
+
+    if (addresses.length > 10000) {
+        return res.status(400).json({ error: 'Maximum 10000 addresses allowed' });
+    }
+
+    const normalizedChain = normalizeChainId(chain || 'ethereum');
+
+    if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+        return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
+    }
+
+    const isSolana = normalizedChain === 'solana';
+    const validAddresses = addresses.filter((addr: string) =>
+        isSolana ? SOL_ADDR_REGEX.test(addr) : ETH_ADDRESS_REGEX.test(addr)
+    );
+
+    if (validAddresses.length === 0) {
+        return res.status(400).json({ error: `No valid ${isSolana ? 'Solana' : 'EVM'} addresses provided` });
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    let closed = false;
+    req.on('close', () => {
+        closed = true;
+    });
+
+    const send = (event: string, data: any) => {
+        if (!closed) sendSseEvent(res, event, data);
+    };
+
+    try {
+        send('status', {
+            stage: 'setup',
+            message: `Validated ${validAddresses.length} addresses`,
+            totalAddresses: validAddresses.length,
+        });
+
+        const alchemyKeyPool = getAlchemyKeyPool();
+        const defaultKey = await getAlchemyKeyForUser(req.user.uid);
+        const moralisKey = process.env.MORALIS_API_KEY || '';
+
+        if (!defaultKey && alchemyKeyPool.length === 0) {
+            send('error', { error: 'Alchemy API key required for sybil detection' });
+            res.end();
+            return;
+        }
+
+        const sybilConfig = {
+            defaultKey: defaultKey || alchemyKeyPool[0],
+            contractKeys: alchemyKeyPool,
+            walletKeys: alchemyKeyPool,
+            moralisKey,
+            covalentKey: process.env.COVALENT_API_KEY || '',
+        };
+
+        send('status', {
+            stage: 'funding',
+            message: `Looking up first funders across ${alchemyKeyPool.length || 1} key(s)`,
+            totalAddresses: validAddresses.length,
+        });
+
+        const analyzer = new SybilAnalyzer(normalizedChain as ChainId, sybilConfig);
+        const startTime = Date.now();
+
+        const heartbeat = setInterval(() => {
+            send('status', {
+                stage: 'funding',
+                message: 'Still checking funders and rotating keys as needed',
+                elapsedSeconds: Math.round((Date.now() - startTime) / 1000),
+            });
+        }, 5000);
+
+        let result: any;
+        try {
+            result = await withTimeout(
+                analyzer.analyzeAddresses(validAddresses, {
+                    minClusterSize: options?.minClusterSize || 3,
+                }),
+                600000,
+                'Sybil analysis'
+            );
+        } finally {
+            clearInterval(heartbeat);
+        }
+
+        if (closed) return;
+
+        const duration = (Date.now() - startTime) / 1000;
+        send('status', {
+            stage: 'scoring',
+            message: `Scored ${result.clusters?.length || 0} funding clusters`,
+            clusters: result.clusters?.length || 0,
+            flaggedClusters: result.flaggedClusters?.length || 0,
+        });
+
+        send('complete', {
+            result: sanitizeForFrontend(result),
+            meta: {
+                duration: `${duration}s`,
+                walletsAnalyzed: validAddresses.length,
+            },
+            rateLimit: res.locals.rateLimit,
+        });
+        res.end();
+
+        const userName = req.user?.name || req.user?.email || 'User';
+        if (res.locals.authProvider !== 'api_key') {
+          await torqueServiceV2.incrementScan(req.user.uid, userName).catch(err => console.error('[TorqueV2] Sybil address scan increment failed:', err));
+          await torqueServiceV2.addActivity(req.user.uid, userName, `${validAddresses.length} addresses analyzed`, chain).catch(err => console.error('[TorqueV2] Activity failed:', err));
+        }
+    } catch (error: any) {
+        console.error('Streamed sybil address analysis error:', error.message);
+        if (!closed) {
+            send('error', {
+                error: 'Sybil analysis failed',
+                message: error.message || 'Sybil analysis failed',
+            });
+            res.end();
+        }
+    }
+});
+
+/**
  * POST /sybil-addresses
  * Analyze a list of addresses directly (e.g., pasted from Dune)
  * Skips the slow "find interactors" step
@@ -2546,6 +2687,126 @@ previewRouter.get('/', async (req: Request, res: Response) => {
 });
 
 // CEX Flow Analysis - Trace fund flows between a wallet and centralized exchanges
+router.post('/cex-flow/stream', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const { walletAddress, chain } = req.body;
+
+  if (!walletAddress || !chain) {
+    return res.status(400).json({ error: 'Wallet address and chain are required' });
+  }
+
+  const normalizedChain = normalizeChainId(chain);
+  if (!ALLOWED_CHAINS.includes(normalizedChain)) {
+    return res.status(400).json({ error: `Invalid chain: ${chain}. Allowed: ${ALLOWED_CHAINS.join(', ')}` });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+
+  let closed = false;
+  req.on('close', () => {
+    closed = true;
+  });
+
+  const send = (event: string, data: any) => {
+    if (!closed) sendSseEvent(res, event, data);
+  };
+
+  try {
+    send('status', { stage: 'setup', message: 'Preparing CEX flow analysis' });
+    const defaultKey = await getAlchemyKeyForUser(req.user.uid);
+    const provider = new AlchemyProvider(
+      normalizedChain as ChainId,
+      defaultKey,
+      process.env.MORALIS_API_KEY,
+    );
+
+    send('status', { stage: 'transactions', message: 'Fetching recent wallet transactions' });
+    const coreTxs = await provider.getTransactions(walletAddress, {
+      chain: normalizedChain as ChainId,
+      limit: 500,
+      skipTimestamps: true,
+    } as FilterOptions);
+
+    const txs = coreTxs.map(tx => ({
+      hash: tx.hash,
+      from: tx.from,
+      to: tx.to || '',
+      value: tx.valueInEth,
+      timestamp: tx.timestamp,
+    }));
+
+    send('status', {
+      stage: 'matching',
+      message: `Matching ${txs.length} transactions against CEX wallets`,
+      transactionCount: txs.length,
+    });
+
+    const result = await cexService.analyzeCEXFlow(walletAddress, normalizedChain as ChainId, {
+      transactions: txs,
+    });
+
+    let totalDeposited = 0;
+    let totalWithdrawn = 0;
+    const flowEvents: Array<Record<string, unknown>> = [];
+
+    for (const tx of txs) {
+      const isDeposit = tx.to.toLowerCase() === walletAddress.toLowerCase();
+      const cexInfo = isDeposit
+        ? cexService.getCEXDetails(tx.from, normalizedChain as ChainId)
+        : cexService.getCEXDetails(tx.to, normalizedChain as ChainId);
+
+      if (cexInfo) {
+        if (isDeposit) {
+          totalDeposited += tx.value;
+          flowEvents.push({ type: 'deposit', exchange: cexInfo.cexName, amount: tx.value, timestamp: tx.timestamp });
+        } else {
+          totalWithdrawn += tx.value;
+          flowEvents.push({ type: 'withdrawal', exchange: cexInfo.cexName, amount: tx.value, timestamp: tx.timestamp });
+        }
+      }
+    }
+
+    send('complete', {
+      result: {
+        success: true,
+        exchanges: result.connectedCEX.map(c => ({
+          name: c.cexName,
+          address: c.address,
+        })),
+        totalDeposited,
+        totalWithdrawn,
+        netFlow: totalDeposited - totalWithdrawn,
+        flowEvents,
+        stats: result.stats,
+        detectedCEX: result.detectedCEX,
+      },
+    });
+    res.end();
+
+    trackAnalysis({
+      userId: req.user.uid,
+      userEmail: req.user.email,
+      chain: normalizedChain,
+      feature: 'cex-flow',
+      timestamp: Date.now(),
+    }).catch(err => console.error('Failed to track analytics:', err));
+  } catch (error: any) {
+    console.error('[CEX Flow Stream] Error:', error.message);
+    const errInfo = getUserFriendlyError(error);
+    if (!closed) {
+      send('error', errInfo);
+      res.end();
+    }
+  }
+});
+
 router.post('/cex-flow', async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Not authenticated' });
