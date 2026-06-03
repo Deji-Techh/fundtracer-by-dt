@@ -90,7 +90,7 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
     const paginatedTxs = filteredAndSorted.slice(page * pageSize, (page + 1) * pageSize);
     const totalPages = Math.ceil(filteredAndSorted.length / pageSize);
 
-    const formatDate = (timestamp: number) => new Date(timestamp * 1000).toLocaleString();
+    const formatDate = (timestamp: number) => new Date(timestamp > 1e12 ? timestamp : timestamp * 1000).toLocaleString();
     const formatHash = (hash: string) => `${hash.slice(0, 10)}...${hash.slice(-8)}`;
 
     const handleSort = (field: SortField) => {
@@ -180,7 +180,7 @@ function TransactionList({ transactions, chain, pagination, loadingMore, onLoadM
                                 </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--color-text-muted)' }}>
-                                <span>{tx.timestamp > 0 ? new Date(tx.timestamp * 1000).toLocaleDateString() : <span className="ts-spinner" />}</span>
+                                <span>{tx.timestamp > 0 ? new Date(tx.timestamp > 1e12 ? tx.timestamp : tx.timestamp * 1000).toLocaleDateString() : <span className="ts-spinner" />}</span>
                                 <a
                                     href={`${chainConfig.explorer}/tx/${tx.hash}`}
                                     target="_blank"

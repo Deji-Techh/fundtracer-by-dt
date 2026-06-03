@@ -192,8 +192,12 @@ async function getWalletInfo(address: string): Promise<WalletInfo> {
     balanceUSD: null,
     nativeSymbol: 'SOL',
     isContract: isProgram,
-    firstSeen: sigs.length > 0 ? (sigs[sigs.length - 1]?.blockTime ? sigs[sigs.length - 1].blockTime * 1000 : null) : null,
-    lastActive: sigs.length > 0 ? (sigs[0]?.blockTime ? sigs[0].blockTime * 1000 : null) : null,
+    firstSeen: sigs.length > 0 ? (sigs[sigs.length - 1]?.blockTime
+      ? (sigs[sigs.length - 1].blockTime > 1e12 ? sigs[sigs.length - 1].blockTime : sigs[sigs.length - 1].blockTime * 1000)
+      : null) : null,
+    lastActive: sigs.length > 0 ? (sigs[0]?.blockTime
+      ? (sigs[0].blockTime > 1e12 ? sigs[0].blockTime : sigs[0].blockTime * 1000)
+      : null) : null,
     txCount: sigs.length,
     labels: isProgram ? ['Program'] : [],
   };
@@ -239,7 +243,7 @@ async function getTransactions(address: string, limit: number = 100): Promise<Tr
       to: tx.nativeTransfers?.[0]?.toUserAccount || '',
       value: (tx.nativeTransfers?.[0]?.amount || 0) / 1e9,
       valueUSD: null,
-      timestamp: tx.timestamp * 1000,
+      timestamp: tx.timestamp > 1e12 ? tx.timestamp : tx.timestamp * 1000,
       fee: (tx.fee || 0) / 1e9,
       feePayer: tx.feePayer || address,
       status: tx.transactionError ? 'failed' : 'success',

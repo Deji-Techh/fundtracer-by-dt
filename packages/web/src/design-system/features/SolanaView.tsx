@@ -107,23 +107,34 @@ export function SolanaView({ prefillAddress, onPrefillConsumed }: SolanaViewProp
 
     try {
       const fetchOpts = { headers, signal: controller.signal };
-      let res: Response;
+
+      // Always fetch overview in parallel for tx count and stats
+      const overviewPromise = fetch(`${API_BASE}/api/solana/overview/${trimmed}`, fetchOpts)
+        .then(async res => {
+          if (!res.ok) throw new Error(await extractError(res, 'Overview scan failed'));
+          return res.json();
+        })
+        .then(data => { setOverview(data); return data; })
+        .catch(err => { console.warn('Overview fetch failed:', err); return null; });
 
       if (activeTab === 'overview') {
-        res = await fetch(`${API_BASE}/api/solana/overview/${trimmed}`, fetchOpts);
-        if (!res.ok) throw new Error(await extractError(res, 'Overview scan failed'));
-        const data = await res.json();
-        setOverview(data);
+        await overviewPromise;
       } else if (activeTab === 'transactions') {
-        res = await fetch(`${API_BASE}/api/solana/transactions/${trimmed}?limit=200`, fetchOpts);
-        if (!res.ok) throw new Error(await extractError(res, 'Failed to fetch transactions'));
-        const data = await res.json();
-        setTransactions(data.transactions || []);
+        const [txRes] = await Promise.all([
+          fetch(`${API_BASE}/api/solana/transactions/${trimmed}?limit=200`, fetchOpts),
+          overviewPromise,
+        ]);
+        if (!txRes.ok) throw new Error(await extractError(txRes, 'Failed to fetch transactions'));
+        const txData = await txRes.json();
+        setTransactions(txData.transactions || []);
       } else if (activeTab === 'funding-tree') {
-        res = await fetch(`${API_BASE}/api/solana/funding-tree/${trimmed}`, fetchOpts);
-        if (!res.ok) throw new Error(await extractError(res, 'Failed to build funding tree'));
-        const data = await res.json();
-        setFundingTree(data);
+        const [ftRes] = await Promise.all([
+          fetch(`${API_BASE}/api/solana/funding-tree/${trimmed}`, fetchOpts),
+          overviewPromise,
+        ]);
+        if (!ftRes.ok) throw new Error(await extractError(ftRes, 'Failed to build funding tree'));
+        const ftData = await ftRes.json();
+        setFundingTree(ftData);
       }
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -369,7 +380,7 @@ export function SolanaView({ prefillAddress, onPrefillConsumed }: SolanaViewProp
                         {truncateAddr(tx.signature, 10)}
                       </a>
                       <span className="tx-time" style={{ fontSize: 'var(--text-xs)', color: 'var(--intel-text-muted)' }}>
-                        {safeTime(tx.blockTime ? tx.blockTime * 1000 : null)}
+                        {safeTime(tx.blockTime || null)}
                       </span>
                     </div>
                   ))}

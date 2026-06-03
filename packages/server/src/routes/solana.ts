@@ -19,6 +19,11 @@ function isValidSolanaAddress(address: string): boolean {
   return Array.from(address).every(c => base58Chars.includes(c));
 }
 
+function normalizeToMs(value: number | null | undefined): number | null {
+  if (value == null || value === 0) return null;
+  return value > 1e12 ? value : value * 1000;
+}
+
 // GET /api/solana/overview/:address - Helius-powered wallet overview
 // Tries paid Helius methods first, falls back to free RPC
 router.get('/overview/:address', authMiddleware, usageMiddleware, async (req: AuthenticatedRequest, res: Response) => {
@@ -88,7 +93,8 @@ router.get('/funding-tree/:address', authMiddleware, usageMiddleware, async (req
           if (!sources[t.source]) sources[t.source] = { total: 0, count: 0, lastTx: 0 };
           sources[t.source].total += amt;
           sources[t.source].count += 1;
-          sources[t.source].lastTx = Math.max(sources[t.source].lastTx, t.blockTime || 0);
+          sources[t.source].lastTx = Math.max(sources[t.source].lastTx,
+            t.blockTime > 1e12 ? Math.floor(t.blockTime / 1000) : (t.blockTime || 0));
         }
         if (t.source === address) {
           const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
@@ -96,7 +102,8 @@ router.get('/funding-tree/:address', authMiddleware, usageMiddleware, async (req
           if (!destinations[t.destination]) destinations[t.destination] = { total: 0, count: 0, lastTx: 0 };
           destinations[t.destination].total += amt;
           destinations[t.destination].count += 1;
-          destinations[t.destination].lastTx = Math.max(destinations[t.destination].lastTx, t.blockTime || 0);
+          destinations[t.destination].lastTx = Math.max(destinations[t.destination].lastTx,
+            t.blockTime > 1e12 ? Math.floor(t.blockTime / 1000) : (t.blockTime || 0));
         }
       }
     } catch (paidErr: any) {
@@ -225,7 +232,7 @@ router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req
       transactions = (sigsResult.data || []).map((s: any) => ({
         signature: s.signature,
         slot: s.slot,
-        blockTime: s.blockTime,
+        blockTime: normalizeToMs(s.blockTime),
         status: s.err ? 'failed' : 'success',
       }));
     } catch (paidErr: any) {
@@ -235,7 +242,7 @@ router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req
         transactions = sigs.map((s: any) => ({
           signature: s.signature,
           slot: s.slot,
-          blockTime: s.blockTime,
+          blockTime: normalizeToMs(s.blockTime),
           status: s.err ? 'failed' : 'success',
         }));
       } else {

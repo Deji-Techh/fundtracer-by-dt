@@ -439,12 +439,15 @@ function pageBtnStyle(disabled: boolean): React.CSSProperties {
 }
 
 function formatAge(ts: number): string {
-  const sec = Math.floor((Date.now() / 1000) - ts);
+  // Normalize to milliseconds: values < 1e12 are Unix seconds
+  const ms = ts > 0 && ts < 1e12 ? ts * 1000 : ts;
+  const sec = Math.floor((Date.now() - ms) / 1000);
+  if (sec < 0) return 'just now';
   if (sec < 60) return `${sec}s ago`;
   if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
   if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
   if (sec < 2592000) return `${Math.floor(sec / 86400)}d ago`;
-  return new Date(ts * 1000).toISOString().slice(0, 10);
+  return new Date(ms).toISOString().slice(0, 10);
 }
 
 function formatValue(v: number, currency: string): string {
