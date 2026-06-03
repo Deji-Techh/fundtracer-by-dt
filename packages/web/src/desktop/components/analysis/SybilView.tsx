@@ -138,7 +138,7 @@ export function SybilView({ prefillAddresses, prefillChain, onPrefillConsumed }:
   };
 
   return (
-    <div style={{ padding: 28, maxWidth: 1240, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: isMobile ? 14 : 20, width: '100%', maxWidth: 'none', margin: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
       {!result && !loading && !error && (
         <InputStage
           title="Sybil Detection"
@@ -248,6 +248,58 @@ function SybilResult({
   const sybilCount = data.sybilCount as number | undefined;
   const clusterCount = (data.clusterCount || clusters.length) as number;
   const chartData = useMemo(() => buildSybilClusterChart(clusters), [clusters]);
+  const graphPanel = (
+    <div style={{
+      flex: isMobile ? '0 0 auto' : 1,
+      minHeight: isMobile ? 260 : 340,
+      display: 'flex',
+      flexDirection: 'column',
+      borderRadius: 'var(--radius-xl)',
+      border: '1px solid var(--hairline)',
+      background: 'var(--card)',
+      padding: isMobile ? '12px 10px' : '14px 16px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)', fontFamily: 'var(--font-sans)' }}>
+          Cluster Size and Risk
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 8, height: 2, borderRadius: 1, background: '#00e67a', display: 'inline-block' }} />
+            Wallets
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 8, height: 2, borderRadius: 1, background: '#ffc107', display: 'inline-block' }} />
+            Risk score
+          </span>
+        </div>
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
+        Cluster wallet count compared with normalized risk score.
+      </div>
+      {chartData.labels.length > 0 ? (
+        <div style={{ flex: 1, minHeight: isMobile ? 210 : 270 }}>
+          <Line
+            data={chartData}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { intersect: false, mode: 'index' },
+              plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a20', titleColor: '#e4e4e8', bodyColor: '#a1a1aa', borderColor: '#282830', borderWidth: 1 } },
+              scales: {
+                x: { ticks: { color: 'var(--fg-tertiary)', font: { size: 9, family: 'var(--font-mono)' }, maxTicksLimit: 14, maxRotation: 45 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+                y: { beginAtZero: true, ticks: { color: 'var(--fg-tertiary)', precision: 0, font: { size: 9, family: 'var(--font-mono)' } }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+              },
+            }}
+          />
+        </div>
+      ) : (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-tertiary)', fontSize: 13 }}>
+          No cluster graph is available because no clusters were detected
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div style={{ marginTop: 4 }}>
@@ -262,6 +314,7 @@ function SybilResult({
       />
 
       {activeTab === 'overview' && (
+        <>
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.05fr) minmax(320px, 0.95fr)',
@@ -289,44 +342,14 @@ function SybilResult({
             onMessagesChange={onAiMessagesChange}
           />
         </div>
+        <div style={{ marginTop: 16 }}>
+          {graphPanel}
+        </div>
+        </>
       )}
 
       {activeTab === 'graph' && (
-        <div style={{
-          padding: 14,
-          borderRadius: 'var(--radius-xl)',
-          background: 'var(--card)',
-          border: '1px solid var(--hairline)',
-          minHeight: 320,
-        }}>
-          <h4 style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)', margin: '0 0 10px' }}>
-            Cluster Size and Risk
-          </h4>
-          {chartData.labels.length > 0 ? (
-            <div style={{ height: isMobile ? 260 : 340 }}>
-              <Line
-                data={chartData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  interaction: { intersect: false, mode: 'index' },
-                  plugins: {
-                    legend: { labels: { color: 'var(--fg-secondary)', boxWidth: 10, font: { size: 11 } } },
-                    tooltip: { backgroundColor: 'rgba(5, 10, 18, 0.94)' },
-                  },
-                  scales: {
-                    x: { ticks: { color: 'var(--fg-tertiary)', maxRotation: 0 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
-                    y: { beginAtZero: true, ticks: { color: 'var(--fg-tertiary)', precision: 0 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
-                  },
-                }}
-              />
-            </div>
-          ) : (
-            <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-tertiary)', fontSize: 13 }}>
-              No cluster graph is available because no clusters were detected.
-            </div>
-          )}
-        </div>
+        graphPanel
       )}
 
       {activeTab === 'clusters' && clusters.length === 0 ? (
@@ -413,12 +436,13 @@ function ResultTabs<T extends string>({
   return (
     <div style={{
       display: 'flex',
-      gap: 4,
-      padding: 4,
-      borderRadius: 'var(--radius-lg)',
-      background: 'var(--bg-secondary)',
-      border: '1px solid var(--hairline)',
-      marginBottom: 16,
+      gap: 0,
+      padding: 0,
+      borderRadius: 0,
+      background: 'transparent',
+      border: 'none',
+      borderBottom: '1px solid var(--hairline)',
+      marginBottom: 20,
       overflowX: 'auto',
     }}>
       {tabs.map(tab => (
@@ -427,16 +451,17 @@ function ResultTabs<T extends string>({
           onClick={() => onChange(tab.id)}
           style={{
             height: 32,
-            padding: '0 12px',
-            borderRadius: 'var(--radius-md)',
+            padding: '0 14px',
+            borderRadius: 0,
             border: 'none',
-            background: active === tab.id ? 'var(--card)' : 'transparent',
+            borderBottom: active === tab.id ? '2px solid var(--fg)' : '2px solid transparent',
+            background: 'transparent',
             color: active === tab.id ? 'var(--fg)' : 'var(--fg-tertiary)',
             fontSize: 12,
             fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
-            boxShadow: active === tab.id ? '0 0 0 1px var(--hairline)' : 'none',
+            boxShadow: 'none',
           }}
         >
           {tab.label}

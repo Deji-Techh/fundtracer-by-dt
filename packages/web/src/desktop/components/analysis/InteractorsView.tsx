@@ -201,8 +201,60 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
   const explorer = CHAIN_EXPLORERS[chain] || 'https://etherscan.io';
   const interactorChart = useMemo(() => buildInteractorsTimeline(result?.interactors || []), [result?.interactors]);
 
+  const graphPanel = (
+    <div style={{
+      flex: isMobile ? '0 0 auto' : 1,
+      minHeight: isMobile ? 260 : 340,
+      display: 'flex',
+      flexDirection: 'column',
+      borderRadius: 'var(--radius-xl)',
+      border: '1px solid var(--hairline)',
+      background: 'var(--card)',
+      padding: isMobile ? '12px 10px' : '14px 16px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)', fontFamily: 'var(--font-sans)' }}>
+          Interactor Activity
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 8, height: 2, borderRadius: 1, background: '#3b82f6', display: 'inline-block' }} />
+            {interactorChart.modeLabel}
+          </span>
+        </div>
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-sans)', marginBottom: 4 }}>
+        {interactorChart.description}
+      </div>
+      <div style={{ flex: 1, minHeight: isMobile ? 210 : 270 }}>
+        <Line
+          data={interactorChart}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#1a1a20',
+                titleColor: '#e4e4e8',
+                bodyColor: '#a1a1aa',
+                borderColor: '#282830',
+                borderWidth: 1,
+              },
+            },
+            scales: {
+              x: { ticks: { color: 'var(--fg-tertiary)', font: { size: 9, family: 'var(--font-mono)' }, maxTicksLimit: 14, maxRotation: 45 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+              y: { beginAtZero: true, ticks: { color: 'var(--fg-tertiary)', precision: 0, font: { size: 9, family: 'var(--font-mono)' } }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+            },
+          }}
+        />
+      </div>
+    </div>
+  );
+
   return (
-    <div style={{ padding: 20, maxWidth: 1000, margin: '0 auto', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: isMobile ? 14 : 20, width: '100%', maxWidth: 'none', margin: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
       {!result && !loading && !error && (
         <InputStage
           title="Interactors Analysis"
@@ -265,6 +317,7 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
           />
 
           {activeResultTab === 'overview' && (
+            <>
             <div style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1.2fr) minmax(320px, 0.8fr)',
@@ -407,44 +460,14 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
                 />
               )}
             </div>
+            <div style={{ marginTop: 16 }}>
+              {graphPanel}
+            </div>
+            </>
           )}
 
           {activeResultTab === 'graph' && (
-            <div style={{
-              padding: 14,
-              borderRadius: 'var(--radius-xl)',
-              background: 'var(--card)',
-              border: '1px solid var(--hairline)',
-              minHeight: 320,
-            }}>
-              <h4 style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg)', margin: '0 0 10px' }}>
-                Interactor Timeline
-              </h4>
-              {interactorChart.labels.length > 0 ? (
-                <div style={{ height: isMobile ? 260 : 340 }}>
-                  <Line
-                    data={interactorChart}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      interaction: { intersect: false, mode: 'index' },
-                      plugins: {
-                        legend: { labels: { color: 'var(--fg-secondary)', boxWidth: 10, font: { size: 11 } } },
-                        tooltip: { backgroundColor: 'rgba(5, 10, 18, 0.94)' },
-                      },
-                      scales: {
-                        x: { ticks: { color: 'var(--fg-tertiary)', maxRotation: 0 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
-                        y: { beginAtZero: true, ticks: { color: 'var(--fg-tertiary)', precision: 0 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
-                      },
-                    }}
-                  />
-                </div>
-              ) : (
-                <div style={{ padding: 28, textAlign: 'center', color: 'var(--fg-tertiary)', fontSize: 13 }}>
-                  Timeline data is not available for these interactors yet.
-                </div>
-              )}
-            </div>
+            graphPanel
           )}
 
           {/* Interactors table */}
@@ -534,12 +557,13 @@ function ResultTabs<T extends string>({
   return (
     <div style={{
       display: 'flex',
-      gap: 4,
-      padding: 4,
-      borderRadius: 'var(--radius-lg)',
-      background: 'var(--bg-secondary)',
-      border: '1px solid var(--hairline)',
-      marginBottom: 16,
+      gap: 0,
+      padding: 0,
+      borderRadius: 0,
+      background: 'transparent',
+      border: 'none',
+      borderBottom: '1px solid var(--hairline)',
+      marginBottom: 20,
       overflowX: 'auto',
     }}>
       {tabs.map(tab => (
@@ -548,16 +572,17 @@ function ResultTabs<T extends string>({
           onClick={() => onChange(tab.id)}
           style={{
             height: 32,
-            padding: '0 12px',
-            borderRadius: 'var(--radius-md)',
+            padding: '0 14px',
+            borderRadius: 0,
             border: 'none',
-            background: active === tab.id ? 'var(--card)' : 'transparent',
+            borderBottom: active === tab.id ? '2px solid var(--fg)' : '2px solid transparent',
+            background: 'transparent',
             color: active === tab.id ? 'var(--fg)' : 'var(--fg-tertiary)',
             fontSize: 12,
             fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
-            boxShadow: active === tab.id ? '0 0 0 1px var(--hairline)' : 'none',
+            boxShadow: 'none',
           }}
         >
           {tab.label}
@@ -583,8 +608,31 @@ function buildInteractorsTimeline(interactors: Interactor[]) {
     buckets.set(key, (buckets.get(key) || 0) + 1);
   }
   const labels = [...buckets.keys()].sort();
+  if (labels.length === 0) {
+    const ranked = [...interactors]
+      .sort((a, b) => (b.interactionCount || 0) - (a.interactionCount || 0))
+      .slice(0, 24);
+    const rankLabels = ranked.map((ix, index) => ix.address ? `${index + 1}. ${ix.address.slice(0, 6)}...${ix.address.slice(-4)}` : `#${index + 1}`);
+    return {
+      labels: rankLabels,
+      modeLabel: 'Tx count',
+      description: 'Timeline timestamps were not returned, so this chart ranks interactors by interaction count.',
+      datasets: [
+        {
+          label: 'Interactions',
+          data: ranked.map(ix => ix.interactionCount || 0),
+          borderColor: 'rgba(59, 130, 246, 0.95)',
+          backgroundColor: 'rgba(59, 130, 246, 0.14)',
+          tension: 0.35,
+          pointRadius: 2,
+        },
+      ],
+    };
+  }
   return {
     labels,
+    modeLabel: 'New wallets',
+    description: 'New interactors grouped by first observed interaction date.',
     datasets: [
       {
         label: 'New interactors',
