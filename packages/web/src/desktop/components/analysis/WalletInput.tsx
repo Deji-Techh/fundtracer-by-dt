@@ -50,6 +50,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
       const transactions = analysisData.transactions || [];
       const taskId = analysisData.taskId || analysisData.pagination?.taskId;
       let latestTransactions = transactions as any[];
+      let latestResult = { ...analysisData, transactions: latestTransactions };
       const progress: NonNullable<AnalysisTab['progressiveStatus']> = {
         wallet: 'done',
         timestamps: taskId ? 'loading' : 'done',
@@ -59,7 +60,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
 
       updateTab(tab.id, {
         loading: false,
-        result: analysisData,
+        result: latestResult,
         transactions,
         progressiveStatus: { ...progress },
       });
@@ -76,7 +77,11 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
               const ts = tsMap.get(tx.hash?.toLowerCase());
               return ts != null ? { ...tx, timestamp: ts } : tx;
             });
-            updateTab(tab.id, { transactions: latestTransactions });
+            latestResult = { ...latestResult, transactions: latestTransactions };
+            updateTab(tab.id, {
+              result: latestResult,
+              transactions: latestTransactions,
+            });
           },
           () => {
             if (runId !== runIdRef.current) return;
@@ -101,10 +106,17 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
       fetchFundingTree(addr, ch, 3)
         .then((funding) => {
           if (runId !== runIdRef.current) return;
+          const fundingPayload = ((funding as any)?.result || funding) as Record<string, unknown>;
+          latestResult = {
+            ...latestResult,
+            fundingSources: fundingPayload.fundingSources ?? fundingPayload.sources ?? latestResult.fundingSources,
+            fundingDestinations: fundingPayload.fundingDestinations ?? fundingPayload.destinations ?? latestResult.fundingDestinations,
+          };
           progress.funding = 'done';
           progress.message = progress.timestamps === 'loading' ? 'Backfilling transaction timestamps' : 'Analysis complete';
           updateTab(tab.id, {
-            fundingData: funding as AnalysisTab['fundingData'],
+            result: latestResult,
+            fundingData: fundingPayload as AnalysisTab['fundingData'],
             progressiveStatus: { ...progress },
           });
         })

@@ -239,6 +239,47 @@ function asWalletAddress(wallet: unknown): string {
   return String(innerWallet?.address || w.address || '');
 }
 
+function normalizeCompareTimestamp(raw: unknown): number {
+  if (raw == null) return 0;
+  if (typeof raw === 'number') {
+    if (!Number.isFinite(raw) || raw <= 0) return 0;
+    return raw > 1_000_000_000_000 ? Math.floor(raw / 1000) : raw;
+  }
+  if (typeof raw === 'string') {
+    const numeric = Number(raw);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return numeric > 1_000_000_000_000 ? Math.floor(numeric / 1000) : numeric;
+    }
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? Math.floor(parsed / 1000) : 0;
+  }
+  return 0;
+}
+
+function extractCompareTransactions(wallet: unknown): Array<Record<string, unknown>> {
+  if (!wallet || typeof wallet !== 'object') return [];
+  const w = wallet as Record<string, unknown>;
+  const innerWallet = (w.wallet && typeof w.wallet === 'object') ? w.wallet as Record<string, unknown> : undefined;
+  const result = (w.result && typeof w.result === 'object') ? w.result as Record<string, unknown> : undefined;
+  const candidates = [
+    w.transactions,
+    w.transactionHistory,
+    w.recentTransactions,
+    w.txs,
+    innerWallet?.transactions,
+    innerWallet?.transactionHistory,
+    result?.transactions,
+    result?.transactionHistory,
+    result?.recentTransactions,
+  ];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate.filter((tx): tx is Record<string, unknown> => !!tx && typeof tx === 'object') as Array<Record<string, unknown>>;
+    }
+  }
+  return [];
+}
+
 function CompareOverview({
   data,
   chain,
@@ -626,9 +667,9 @@ function CompareActivityChart({ wallets, mode }: { wallets: Array<unknown>; mode
       const walletAddress = String(innerWallet?.address || w.address || `Wallet ${walletIdx + 1}`);
       labelsByWallet.push(shortAddress(walletAddress));
 
-      const txs = (w.transactions || []) as Array<Record<string, unknown>>;
+      const txs = extractCompareTransactions(wallet);
       for (const tx of txs) {
-        const ts = Number(tx.timestamp || 0);
+        const ts = normalizeCompareTimestamp(tx.timestamp ?? tx.timeStamp ?? tx.blockTimestamp ?? tx.datetime);
         if (!ts) continue;
         const day = new Date(ts * 1000).toISOString().slice(0, 10);
         if (!dayMapIn.has(day)) dayMapIn.set(day, new Array(wallets.length).fill(0));

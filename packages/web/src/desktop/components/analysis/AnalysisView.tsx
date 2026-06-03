@@ -344,6 +344,74 @@ const NATIVE_CURRENCY: Record<string, string> = {
   polygon: 'POL', bsc: 'BNB', linea: 'ETH', solana: 'SOL',
 };
 
+function extractArrayPayload(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== 'object') return [];
+  const obj = raw as Record<string, unknown>;
+  const candidates = [obj.transactions, obj.data, obj.result, obj.txs, obj.items];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+  return [];
+}
+
+function normalizeTxTimestamp(raw: unknown): number {
+  if (raw == null) return 0;
+  if (typeof raw === 'number') {
+    if (!Number.isFinite(raw) || raw <= 0) return 0;
+    return raw > 1_000_000_000_000 ? Math.floor(raw / 1000) : raw;
+  }
+  if (typeof raw === 'string') {
+    const numeric = Number(raw);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return numeric > 1_000_000_000_000 ? Math.floor(numeric / 1000) : numeric;
+    }
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? Math.floor(parsed / 1000) : 0;
+  }
+  return 0;
+}
+
+function numberValue(raw: unknown): number {
+  const value = typeof raw === 'number' ? raw : Number(raw || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function toNodeArray(raw: unknown): Array<Record<string, unknown>> {
+  if (!raw) return [];
+  const nodes = Array.isArray(raw) ? raw : [raw];
+  return nodes.filter((node): node is Record<string, unknown> => !!node && typeof node === 'object') as Array<Record<string, unknown>>;
+}
+
+function nodeHasEdges(node: Record<string, unknown>): boolean {
+  const children = node.children;
+  const parents = node.parents;
+  return (Array.isArray(children) && children.length > 0) || (Array.isArray(parents) && parents.length > 0);
+}
+
+function resolveFundingNodes(tab: AnalysisTab): { sources: Array<Record<string, unknown>>; destinations: Array<Record<string, unknown>>; hasEdges: boolean } {
+  const funding = tab.fundingData as Record<string, unknown> | undefined;
+  const result = tab.result as Record<string, unknown> | undefined;
+  const fundingPayload = ((funding?.result as Record<string, unknown> | undefined) ?? funding) || undefined;
+
+  const rawSources = fundingPayload?.fundingSources
+    ?? fundingPayload?.sources
+    ?? funding?.fundingSources
+    ?? result?.fundingSources;
+  const rawDestinations = fundingPayload?.fundingDestinations
+    ?? fundingPayload?.destinations
+    ?? funding?.fundingDestinations
+    ?? result?.fundingDestinations;
+
+  const sources = toNodeArray(rawSources);
+  const destinations = toNodeArray(rawDestinations);
+  return {
+    sources,
+    destinations,
+    hasEdges: [...sources, ...destinations].some(nodeHasEdges),
+  };
+}
+
 function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonNullable<AnalysisTab['result']>; isMobile: boolean }) {
   const d = result as unknown as Record<string, unknown>;
   const wallet = d.wallet as Record<string, unknown> | undefined;
@@ -384,8 +452,12 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
     }
   }
 
-  // Extract transactions for charting
-  const rawTxs = (d.transactions as unknown[]) ?? [];
+  // Extract transactions for charting. Progressive timestamp updates are mirrored
+  // into both tab.result and tab.transactions, but this fallback keeps older tabs valid.
+  const rawTxs = useMemo(() => {
+    const resultTxs = extractArrayPayload(d.transactions);
+    return resultTxs.length > 0 ? resultTxs : extractArrayPayload(tab.transactions);
+  }, [d.transactions, tab.transactions]);
 
   // Collect suspicious tx hashes from indicators and same-block groups
   const suspiciousHashes = useMemo(() => {
@@ -416,7 +488,7 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
       }
     }
     return hashes;
-  }, [rawTxs.length]);
+  }, [rawTxs.length, rawIndicators, d.sameBlockTransactions]);
 
   type TxPoint = { day: string; timestamp: number; valueInEth: number; isIncoming: boolean; hash: string; from: string; to: string; isSuspicious: boolean };
   const allPoints: TxPoint[] = [];
@@ -424,14 +496,15 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
     if (tx && typeof tx === 'object') {
       const t = tx as Record<string, unknown>;
       const hash = ((t.hash as string) || '').toLowerCase();
+      const timestamp = normalizeTxTimestamp(t.timestamp ?? t.timeStamp ?? t.blockTimestamp ?? t.datetime);
       allPoints.push({
-        timestamp: (t.timestamp as number) || 0,
-        valueInEth: (t.valueInEth as number) || 0,
+        timestamp,
+        valueInEth: numberValue(t.valueInEth ?? t.value ?? t.amount),
         isIncoming: !!(t.isIncoming),
         hash,
         from: (t.from as string) || '',
         to: (t.to as string) || '',
-        day: (t.timestamp as number) ? new Date((t.timestamp as number) * 1000).toISOString().slice(0, 10) : '',
+        day: timestamp ? new Date(timestamp * 1000).toISOString().slice(0, 10) : '',
         isSuspicious: suspiciousHashes.has(hash),
       });
     }
@@ -806,22 +879,19 @@ function TransactionsTab({ tab }: { tab: AnalysisTab }) {
 /* ─── Funding Tab ─── */
 
 function FundingTab({ tab }: { tab: AnalysisTab }) {
-  const funding = tab.fundingData as unknown as Record<string, unknown> | undefined;
   const fundingStatus = tab.progressiveStatus?.funding;
-  const resultData = (funding?.result as Record<string, unknown> | undefined) ?? funding;
-  const rawSources = resultData?.fundingSources || funding?.sources || funding?.fundingSources;
-  const rawDestinations = resultData?.fundingDestinations || funding?.destinations || funding?.fundingDestinations;
+  const { sources, destinations, hasEdges } = resolveFundingNodes(tab);
 
-  // API returns single FundingNode objects; FundingTree expects arrays
-  const sources = rawSources
-    ? (Array.isArray(rawSources) ? rawSources : [rawSources]) as any[]
-    : [];
-  const destinations = rawDestinations
-    ? (Array.isArray(rawDestinations) ? rawDestinations : [rawDestinations]) as any[]
-    : [];
-
-  if (sources.length === 0 && destinations.length === 0 && fundingStatus && fundingStatus !== 'done') {
+  if (!hasEdges && fundingStatus && fundingStatus !== 'done') {
     return <FundingLoadingState state={fundingStatus} />;
+  }
+
+  if (!hasEdges) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--fg-tertiary)', fontSize: 13 }}>
+        Funding relationships are not available for this wallet yet.
+      </div>
+    );
   }
 
   return (
@@ -835,20 +905,10 @@ function FundingTab({ tab }: { tab: AnalysisTab }) {
 }
 
 function GraphTab({ tab }: { tab: AnalysisTab }) {
-  const funding = tab.fundingData as unknown as Record<string, unknown> | undefined;
   const fundingStatus = tab.progressiveStatus?.funding;
-  const resultData = (funding?.result as Record<string, unknown> | undefined) ?? funding;
-  const rawSources = resultData?.fundingSources || funding?.sources || funding?.fundingSources;
-  const rawDestinations = resultData?.fundingDestinations || funding?.destinations || funding?.fundingDestinations;
+  const { sources, destinations, hasEdges } = resolveFundingNodes(tab);
 
-  const sources = rawSources
-    ? (Array.isArray(rawSources) ? rawSources : [rawSources]) as any[]
-    : [];
-  const destinations = rawDestinations
-    ? (Array.isArray(rawDestinations) ? rawDestinations : [rawDestinations]) as any[]
-    : [];
-
-  if (sources.length === 0 && destinations.length === 0) {
+  if (!hasEdges) {
     if (fundingStatus && fundingStatus !== 'done') {
       return <FundingLoadingState state={fundingStatus} />;
     }
