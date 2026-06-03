@@ -53,8 +53,9 @@ function getDayKey(): string {
 function getTierLimits(tier: string): { daily: number; perMinute: number } {
     switch (tier) {
         case 'enterprise': return { daily: 100000, perMinute: 300 };
-        case 'pro': return { daily: 10000, perMinute: 200 };
-        default: return { daily: 1000, perMinute: 100 };
+        case 'max': return { daily: Infinity, perMinute: Infinity };
+        case 'pro': return { daily: 300, perMinute: 30 };
+        default: return { daily: 50, perMinute: 10 };
     }
 }
 
@@ -62,24 +63,13 @@ async function getUserTier(uid: string): Promise<string> {
     const userCacheKey = `auth:user:${uid}`;
     if (isRedisConnected()) {
         const cached = await cacheGet<{ tier?: string }>(userCacheKey);
-        // Cache is only valid for 'free' — paid tiers need subscription check
-        if (cached?.tier === 'free') return 'free';
+        if (cached?.tier) return cached.tier;
     }
     try {
         const db = getFirestore();
         const userDoc = await db.collection('users').doc(uid).get();
         const data = userDoc.data();
-        const tier = data?.tier || 'free';
-
-        // Only honor paid API tiers if the user has an active subscription
-        if (tier !== 'free') {
-            const expiry = data?.subscriptionExpiry;
-            if (typeof expiry === 'number' && expiry > Date.now()) {
-                return tier;
-            }
-            return 'free';
-        }
-        return 'free';
+        return data?.tier || 'free';
     } catch {
         return 'free';
     }

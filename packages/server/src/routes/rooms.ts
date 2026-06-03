@@ -9,7 +9,7 @@ import { AuthenticatedRequest } from '../middleware/auth.js';
 import { getFirestore, admin } from '../firebase.js';
 import { cacheGet, cacheSet, cacheDel, isRedisConnected } from '../utils/redis.js';
 import { generateInviteCode, generateInviteUrl, getExpiryDate } from '../lib/roomInvite.js';
-import { checkRoomAccess, checkRoomLimit, checkMemberLimit } from '../lib/roomAccess.js';
+import { checkRoomAccess } from '../lib/roomAccess.js';
 import { getWSS } from '../services/websocket.js';
 
 const router = Router();
@@ -29,13 +29,6 @@ router.post('/', async (req: AuthenticatedRequest, res) => {
 
     const { name, description, seedAddress, seedChain } = req.body;
     if (!name || !name.trim()) return res.status(400).json({ error: 'Room name is required' });
-
-    const { allowed, current, max } = await checkRoomLimit(userId);
-    if (!allowed) return res.status(403).json({
-      error: 'room_limit_reached',
-      message: `Free tier supports ${max} room. Upgrade to Pro for unlimited rooms.`,
-      current, max,
-    });
 
     const db = getDb();
     const inviteCode = generateInviteCode();
@@ -444,12 +437,6 @@ router.post('/:roomId/join', async (req: AuthenticatedRequest, res) => {
       if (invite?.expiresAt < Date.now()) return res.status(403).json({ error: 'Invite has expired' });
       if (invite?.roomId !== roomId) return res.status(400).json({ error: 'Invite does not match room' });
     }
-
-    // Check member limit
-    const { allowed: memberAllowed, current, max } = await checkMemberLimit(roomId);
-    if (!memberAllowed) return res.status(403).json({
-      error: 'member_limit', message: `Room is full (${max} members on Free tier)`, current, max,
-    });
 
     const roomRef = db.collection('investigation_rooms').doc(roomId);
     const memberRef = roomRef.collection('members').doc(userId);
@@ -1026,12 +1013,6 @@ router.get('/:roomId/export', async (req: AuthenticatedRequest, res) => {
     if (!allowed) return res.status(403).json({ error: 'Not a room member' });
 
     const db = getDb();
-    const userDoc = await db.collection('users').doc(userId).get();
-    const tier = userDoc.data()?.tier || 'free';
-    if (tier === 'free') {
-      return res.status(403).json({ error: 'PDF export is a Pro feature', upgradeRequired: true });
-    }
-
     const roomDoc = await db.collection('investigation_rooms').doc(roomId).get();
     const room = roomDoc.data();
 

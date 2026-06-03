@@ -187,20 +187,20 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     
     const isNewUser = !userDoc.exists;
     
-    let tier = 'max';
+    let tier = 'free';
     let expiry = 0;
     let walletAddress = '';
     
     if (userDoc.exists) {
       const data = userDoc.data();
-      // Everyone gets max tier now - no more tier restrictions
-      tier = 'max';
+      // Default to free tier for all new signups
+      tier = 'free';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
     
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'max';
+      tier = 'free';
     }
     
     await userRef.set({
@@ -364,20 +364,20 @@ router.get('/twitter/callback', async (req: Request, res: Response) => {
     
     const isNewUser = !userDoc.exists;
     
-    let tier = 'max';
+    let tier = 'free';
     let expiry = 0;
     let walletAddress = '';
     
     if (userDoc.exists) {
       const data = userDoc.data();
-      // Everyone gets max tier now - no more tier restrictions
-      tier = 'max';
+      // Default to free tier for all new signups
+      tier = 'free';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
     
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'max';
+      tier = 'free';
     }
     
 await userRef.set({
@@ -611,22 +611,22 @@ const userDoc = await userRef.get();
     
     const isNewUser = !userDoc.exists;
     
-    let tier = 'max';
+    let tier = 'free';
     let expiry = 0;
     let walletAddress = '';
     let displayName = '';
     
     if (userDoc.exists) {
       const data = userDoc.data();
-      // Everyone gets max tier now - no more tier restrictions
-      tier = 'max';
+      // Default to free tier for all new signups
+      tier = 'free';
       expiry = data?.subscriptionExpiry || 0;
       displayName = data?.displayName || '';
     }
 
-    // Check if subscription expired - still give max tier
+    // Subscription expired — keep on free tier
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'max';
+      tier = 'free';
     }
 
     await userRef.set({
@@ -710,21 +710,21 @@ router.post('/google-login', async (req: Request, res: Response) => {
     
     const isNewUser = !userDoc.exists;
     
-    let tier = 'max';
+    let tier = 'free';
     let expiry = 0;
     let walletAddress = '';
 
     if (userDoc.exists) {
       const data = userDoc.data();
-      // Everyone gets max tier now - no more tier restrictions
-      tier = 'max';
+      // Default to free tier for all new signups
+      tier = 'free';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
 
-// Check if subscription expired - still give max tier
+// Subscription expired — keep on free tier
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'max';
+      tier = 'free';
     }
     
     await userRef.set({
@@ -849,21 +849,21 @@ router.post('/twitter-login', async (req: Request, res: Response) => {
     
     const isNewUser = !userDoc.exists;
     
-    let tier = 'max';
+    let tier = 'free';
     let expiry = 0;
     let walletAddress = '';
 
     if (userDoc.exists) {
       const data = userDoc.data();
-      // Everyone gets max tier now - no more tier restrictions
-      tier = 'max';
+      // Default to free tier for all new signups
+      tier = 'free';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
 
-    // Check if subscription expired - still give max tier
+    // Subscription expired — keep on free tier
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'max';
+      tier = 'free';
     }
 
 await userRef.set({
@@ -959,21 +959,21 @@ router.post('/email-login', async (req: Request, res: Response) => {
     
     const isNewUser = !userDoc.exists;
     
-    let tier = 'max';
+    let tier = 'free';
     let expiry = 0;
     let walletAddress = '';
 
     if (userDoc.exists) {
       const data = userDoc.data();
-      // Everyone gets max tier now - no more tier restrictions
-      tier = 'max';
+      // Default to free tier for all new signups
+      tier = 'free';
       expiry = data?.subscriptionExpiry || 0;
       walletAddress = data?.walletAddress || '';
     }
 
-    // Check if subscription expired - still give max tier
+    // Subscription expired — keep on free tier
     if (expiry > 0 && Date.now() > expiry) {
-      tier = 'max';
+      tier = 'free';
     }
 
     await userRef.set({
@@ -1092,7 +1092,7 @@ router.post('/verify-2fa', async (req: Request, res: Response) => {
       email: userData.email,
       displayName: userData.displayName || '',
       profilePicture: userData.profilePicture || '',
-      tier: userData.tier || 'max',
+      tier: userData.tier || 'free',
       walletAddress: userData.walletAddress || '',
       authProvider: userData.authProvider || 'email'
     }, getJwtSecret(), { expiresIn: '7d' });
@@ -1106,7 +1106,7 @@ router.post('/verify-2fa', async (req: Request, res: Response) => {
         email: userData.email,
         displayName: userData.displayName || '',
         profilePicture: userData.profilePicture || '',
-        tier: userData.tier || 'max',
+        tier: userData.tier || 'free',
         walletAddress: userData.walletAddress || '',
         isVerified: userData.emailVerified || false
       }
@@ -1288,7 +1288,7 @@ router.post('/privy-exchange', async (req: Request, res: Response) => {
     const userDoc = await userRef.get();
     const isNewUser = !userDoc.exists;
 
-    const tier = 'max';
+    const tier = 'free';
 
     await userRef.set({
       uid,

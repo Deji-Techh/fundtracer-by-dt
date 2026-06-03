@@ -666,7 +666,7 @@ apiRouter.use('/share', shareRoutes);
 
 // NEW: Contract Scanner Routes
 import contractScannerRoutes from './routes/contractRoutes.js';
-apiRouter.use('/contract', apiKeyAuthMiddleware, authMiddleware, contractScannerRoutes);
+apiRouter.use('/contract', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, contractScannerRoutes);
 
 // NEW: Telegram Routes
 import { telegramRoutes } from './routes/telegram.js';
@@ -686,7 +686,7 @@ apiRouter.use('/watchtower', authMiddleware, watchtowerRoutes);
 
 // Investigation Rooms Routes (Team Analysis)
 import { roomRoutes } from './routes/rooms.js';
-apiRouter.use('/rooms', authMiddleware, roomRoutes);
+apiRouter.use('/rooms', authMiddleware, usageMiddleware, roomRoutes);
 
 // Public invite lookup — no auth required (returns room name + validity)
 apiRouter.get('/invites/:code', publicLimiter, async (req: any, res: any) => {

@@ -85,21 +85,18 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response) => {
         const tier = userData?.tier || 'free';
         const hasAlchemyKey = !!userData?.alchemyApiKey;
 
-        // Check active subscription for API rate limit purposes
-        // Web tier can be 'max' but API rate limits still apply unless paid
-        const subscriptionExpiry = userData?.subscriptionExpiry;
-        const hasActiveSubscription = typeof subscriptionExpiry === 'number' && subscriptionExpiry > Date.now();
-        const isApiUnlimited = (tier === 'max' && hasActiveSubscription) || hasAlchemyKey;
-
-        // Tier-based limits (matching usage middleware — respects payment status)
-        let dayLimit: number | 'unlimited' = 1000;  // free
-        let minuteLimit: number | 'unlimited' = 100;
-        if (isApiUnlimited) {
+        // Tier-based limits — all tiers have full feature access, only daily usage differs
+        let dayLimit: number | 'unlimited';
+        let minuteLimit: number | 'unlimited';
+        if (tier === 'max' || hasAlchemyKey) {
             dayLimit = 'unlimited';
             minuteLimit = 'unlimited';
-        } else if (tier === 'pro' && hasActiveSubscription) {
-            dayLimit = 10000;
-            minuteLimit = 200;
+        } else if (tier === 'pro') {
+            dayLimit = 300;
+            minuteLimit = 30;
+        } else {
+            dayLimit = 50;
+            minuteLimit = 10;
         }
 
         let remaining: number | 'unlimited' = 'unlimited';

@@ -8,8 +8,10 @@ export function UsageBadge() {
 
   const tier = profile.tier || 'free';
   const usage = profile.usage;
-  const dayLimit = usage?.dayLimit ?? (tier === 'pro' ? 10000 : 1000);
-  const minuteLimit = usage?.minuteLimit ?? (tier === 'pro' ? 60 : 100);
+  const fallbackDay = tier === 'max' ? ('unlimited' as const) : tier === 'pro' ? 300 : 50;
+  const fallbackMin = tier === 'max' ? ('unlimited' as const) : tier === 'pro' ? 30 : 10;
+  const dayLimit = usage?.dayLimit ?? fallbackDay;
+  const minuteLimit = usage?.minuteLimit ?? fallbackMin;
   const usedDay = usage?.today || 0;
   const usedMinute = usage?.usedMinute ?? 0;
   const dayRemaining = typeof dayLimit === 'number' ? Math.max(0, dayLimit - usedDay) : '∞';

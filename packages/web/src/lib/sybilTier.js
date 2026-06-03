@@ -11,13 +11,13 @@ export const SYBIL_TIERS = {
     name: 'Free Tier',
     price: 0,
     monthly: false,
-    windowLimit: 1000, // 1000 analyses per day
+    windowLimit: 50,
     windowHours: 24,
-    requiresGasPayment: true,
-    paymentAddress: '0x4436977aCe641EdfE5A83b0d974Bd48443a448fd',
+    requiresGasPayment: false,
+    paymentAddress: null,
     benefits: [
-      '1000 analyses/day',
-      'Basic Sybil detection',
+      '50 analyses/day',
+      'Full Sybil detection',
       'Manual address input',
       'Network graph view',
     ],
@@ -29,12 +29,12 @@ export const SYBIL_TIERS = {
     name: 'Pro Tier',
     price: 5,
     monthly: true,
-    windowLimit: 10000, // 10,000 analyses per day
+    windowLimit: 300,
     windowHours: 24,
     requiresGasPayment: false,
     paymentAddress: '0xFF1A1D11CB6bad91C6d9250082D1DF44d84e4b87',
     benefits: [
-      '10,000 analyses/day',
+      '300 analyses/day',
       'Advanced Sybil detection',
       'Auto-fetch from contracts',
       'Export to CSV/JSON/PDF',
