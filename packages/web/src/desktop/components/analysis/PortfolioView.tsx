@@ -113,6 +113,7 @@ function parseTokenBalance(rawBalance: string | number, decimals: number | undef
 function PortfolioDisplay({ data }: { data: Record<string, unknown> }) {
   const res = (data.result || data) as Record<string, unknown>;
   const totalValue = res.totalValue as number | undefined;
+  const native = res.native as { balance?: string; value?: number; symbol?: string } | undefined;
   const tokens = (res.tokens || res.holdings || res.assets || []) as Array<Record<string, unknown>>;
   const defiPositions = res.defiPositions || res.positions || [];
   const nfts = res.nfts || res.nftHoldings || [];
@@ -131,6 +132,10 @@ function PortfolioDisplay({ data }: { data: Record<string, unknown> }) {
   }) : [];
 
   const displayTotal = totalValue && totalValue > 0.01 ? totalValue : calculatedTotal;
+  // Parse native balance for display
+  const nativeBalance = native?.balance ? parseFloat(native.balance) : 0;
+  const nativeValue = native?.value || 0;
+  const nativeSymbol = native?.symbol || 'ETH';
 
   return (
     <div>
@@ -143,6 +148,32 @@ function PortfolioDisplay({ data }: { data: Record<string, unknown> }) {
           {`$${Math.max(displayTotal, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         </div>
       </div>
+
+      {/* Native Balance */}
+      {native && nativeValue > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <h4 style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Wallet size={14} style={{ color: 'var(--accent)' }} /> Native Balance
+          </h4>
+          <div style={{
+            padding: '10px 14px', borderRadius: 'var(--radius-md)', background: 'var(--card)',
+            border: '1px solid var(--hairline)', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)' }}>{nativeSymbol}</div>
+              <div style={{ fontSize: 10, color: 'var(--fg-tertiary)' }}>Native token</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--fg)' }}>
+                {nativeBalance.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+              </div>
+              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
+                ${nativeValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Token holdings */}
       {enrichedTokens.length > 0 && (

@@ -52,6 +52,7 @@ interface PortfolioData {
   wallet: string;
   chain: string;
   totalValue: number;
+  native?: { balance: string; value: number; symbol: string };
   tokens: TokenItem[];
   nfts: NFTItem[];
   lastUpdated: string;
@@ -182,6 +183,11 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                 wallet: walletAddress,
                 chain: result.wallet.chain,
                 totalValue: totalValue,
+                native: data.native ? {
+                  balance: data.native.balance,
+                  value: data.native.value,
+                  symbol: data.native.symbol || 'ETH',
+                } : undefined,
                 tokens: tokens,
                 nfts: data.nfts || [],
                 stablecoins: data.stablecoins || [],
@@ -592,6 +598,27 @@ export default function WalletGridView({ result, pagination, loadingMore, onLoad
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Native Balance */}
+                                    {portfolioData.native && portfolioData.native.value > 0 && (
+                                        <div className="portfolio-box tokens-box">
+                                            <div className="box-header">
+                                                <h3>{portfolioData.native.symbol || 'Native'} Balance</h3>
+                                                <HugeiconsIcon icon={BitcoinIcon} size={16} strokeWidth={2} />
+                                            </div>
+                                            <div className="balance-info">
+                                                <div className="main-balance">
+                                                    <span className="balance-value">
+                                                        {parseFloat(portfolioData.native.balance || '0').toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                                                    </span>
+                                                    <span className="balance-symbol">{portfolioData.native.symbol}</span>
+                                                </div>
+                                                <div className="balance-usd">
+                                                    ${portfolioData.native.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Token Holdings */}
                                     <div className="portfolio-box tokens-box">
