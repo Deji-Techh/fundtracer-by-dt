@@ -123,43 +123,14 @@ export class SolanaPortfolioService {
     private priceCache = new Map<string, number>();
 
     /**
-     * Helius-powered signature pagination.
+     * Helius standard RPC signature pagination.
      * Returns newest first and blockTime is Unix seconds.
      */
     async getSignaturesViaAlchemy(
         address: string,
         maxSignatures = 50000
     ): Promise<{ signature: string; blockTime: number; err: any; slot: number }[]> {
-        const allSigs: { signature: string; blockTime: number; err: any; slot: number }[] = [];
-        let paginationToken: string | undefined;
-
-        try {
-            while (allSigs.length < maxSignatures) {
-                const limit = Math.min(1000, maxSignatures - allSigs.length);
-                const page = await solanaHeliusClient.getTransactionsForAddress(address, {
-                    transactionDetails: 'signatures',
-                    sortOrder: 'desc',
-                    limit,
-                    paginationToken,
-                });
-
-                const batch = page.data.map((s: any) => ({
-                    signature: s.signature || s.transactionSignature || s.txHash || '',
-                    blockTime: this.normalizeBlockTime(s.blockTime || s.timestamp || s.block_time || 0),
-                    err: s.err || s.error || null,
-                    slot: s.slot || s.blockSlot || s.block_slot || 0,
-                })).filter((s: { signature: string }) => s.signature);
-                if (batch.length === 0) break;
-                allSigs.push(...batch);
-                paginationToken = page.paginationToken;
-                if (!paginationToken || batch.length < limit) break;
-            }
-        } catch (error: any) {
-            console.warn(`[SolanaPortfolio] Helius enhanced history failed for ${address}, using standard RPC:`, error?.message || error);
-            return this.getSignaturesViaHeliusRpc(address, maxSignatures);
-        }
-
-        return allSigs;
+        return this.getSignaturesViaHeliusRpc(address, maxSignatures);
     }
 
     private async getSignaturesViaHeliusRpc(
@@ -185,7 +156,7 @@ export class SolanaPortfolioService {
     }
 
     /**
-     * Helius-powered overview: uses enhanced history with standard RPC fallback.
+     * Helius-powered overview: uses standard RPC history so free keys work.
      * Timestamps are normalized to Unix seconds.
      */
     async scanOverviewViaAlchemy(address: string): Promise<SolanaOverviewResult> {
@@ -198,43 +169,25 @@ export class SolanaPortfolioService {
         const firstMs = oldest?.blockTime ? oldest.blockTime * 1000 : 0;
         const lastMs = newest?.blockTime ? newest.blockTime * 1000 : 0;
 
-        // Fetch a subset of recent transactions with full transfer details for interactor analysis
-        const recentTxs = allSigs.length > 0
-            ? await solanaHeliusClient.getTransactionsForAddress(address, {
-                transactionDetails: 'full',
-                sortOrder: 'desc',
-                limit: Math.min(50, allSigs.length),
-            }).then(page => page.data || [])
-            : [];
-
         const interactors: Record<string, number> = {};
         let totalSent = 0;
         let totalReceived = 0;
 
-        for (const tx of recentTxs as any[]) {
-            const nativeTransfers = Array.isArray(tx.nativeTransfers) ? tx.nativeTransfers : [];
-            const tokenTransfers = Array.isArray(tx.tokenTransfers) ? tx.tokenTransfers : [];
-            const accountData = Array.isArray(tx.accountData) ? tx.accountData : [];
+        const recentTxs = await this.getStandardRpcTransactionsFromSignatures(allSigs.slice(0, 50));
+        for (const { signature, tx } of recentTxs) {
+            const transfers = this.extractTransferRowsFromStdTx(address, signature, tx);
 
-            for (const transfer of nativeTransfers) {
-                const from = transfer?.fromUserAccount;
-                const to = transfer?.toUserAccount;
-                const amount = Number(transfer?.amount || 0) / LAMPORTS_PER_SOL;
+            for (const transfer of transfers) {
+                const from = transfer.fromUserAccount;
+                const to = transfer.toUserAccount;
+                const amount = Number(transfer.amount || 0);
                 if (from && from !== address) interactors[from] = (interactors[from] || 0) + 1;
                 if (to && to !== address) interactors[to] = (interactors[to] || 0) + 1;
-                if (from === address) totalSent += amount;
-                if (to === address) totalReceived += amount;
+                if (from === address && transfer.asset === 'SOL') totalSent += amount;
+                if (to === address && transfer.asset === 'SOL') totalReceived += amount;
             }
 
-            for (const transfer of tokenTransfers) {
-                const from = transfer?.fromUserAccount;
-                const to = transfer?.toUserAccount;
-                if (from && from !== address) interactors[from] = (interactors[from] || 0) + 1;
-                if (to && to !== address) interactors[to] = (interactors[to] || 0) + 1;
-            }
-
-            for (const account of accountData) {
-                const acc = account?.account;
+            for (const acc of this.getAccountKeys(tx)) {
                 if (acc && acc !== address) {
                     interactors[acc] = (interactors[acc] || 0) + 1;
                 }
@@ -254,8 +207,8 @@ export class SolanaPortfolioService {
             lastTimestamp: lastMs ? new Date(lastMs).toISOString() : '',
             activityPeriodDays: firstMs && lastMs ? Math.round((lastMs - firstMs) / 86400000) : 0,
             totalTransactions: allSigs.length,
-            totalSOLSent: (totalSent / LAMPORTS_PER_SOL).toFixed(6),
-            totalSOLReceived: (totalReceived / LAMPORTS_PER_SOL).toFixed(6),
+            totalSOLSent: totalSent.toFixed(6),
+            totalSOLReceived: totalReceived.toFixed(6),
             uniqueAddressCount: Object.keys(interactors).length,
             uniqueAddresses: Object.keys(interactors).slice(0, 200),
             topInteractors,
@@ -482,36 +435,56 @@ export class SolanaPortfolioService {
     }
 
     async getTransfersViaAlchemy(address: string, limit = 200): Promise<any[]> {
-        const cacheKey = `solana:transfers:helius:${address}:${limit}`;
+        const cacheKey = `solana:transfers:rpc:${address}:${limit}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached as any[];
 
-        const page = await solanaHeliusClient.getTransfersByAddress(address, {
-            limit: Math.min(Math.max(limit, 1), 1000),
-        });
-
-        const transfers = Array.isArray(page.data) ? page.data : [];
+        const signatures = await this.getSignaturesViaAlchemy(address, Math.min(Math.max(limit, 1), 1000));
+        const txs = await this.getStandardRpcTransactionsFromSignatures(signatures.slice(0, limit));
+        const transfers = txs.flatMap(({ signature, tx }) => this.extractTransferRowsFromStdTx(address, signature, tx));
         cache.set(cacheKey, transfers, 300);
         return transfers;
     }
 
     async getTransactionsViaAlchemy(address: string, limit = 100): Promise<SolanaTransaction[]> {
-        const cacheKey = `solana:txs:helius:${address}:${limit}`;
+        const cacheKey = `solana:txs:rpc:${address}:${limit}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached as SolanaTransaction[];
 
-        const page = await solanaHeliusClient.getTransactionsForAddress(address, {
-            transactionDetails: 'full',
-            sortOrder: 'desc',
-            limit: Math.min(Math.max(limit, 1), 1000),
-        });
-
-        const txs = (page.data || [])
-            .map((tx: any) => this.normalizeEnhancedTransaction(address, tx))
+        const signatures = await this.getSignaturesViaAlchemy(address, Math.min(Math.max(limit, 1), 1000));
+        const txs = (await this.mapInBatches(signatures.slice(0, limit), 25, sig => this.getTransaction(sig.signature)))
             .filter(Boolean) as SolanaTransaction[];
 
         cache.set(cacheKey, txs, 300);
         return txs;
+    }
+
+    private async getStandardRpcTransactionsFromSignatures(
+        signatures: { signature: string }[],
+        batchSize = 20,
+    ): Promise<{ signature: string; tx: any }[]> {
+        const rows = await this.mapInBatches(signatures, batchSize, async sig => {
+            try {
+                const tx = await solanaHeliusClient.getTransactionStdRpc(sig.signature);
+                return tx ? { signature: sig.signature, tx } : null;
+            } catch {
+                return null;
+            }
+        });
+        return rows.filter(Boolean) as { signature: string; tx: any }[];
+    }
+
+    private async mapInBatches<T, R>(
+        items: T[],
+        batchSize: number,
+        fn: (item: T) => Promise<R>,
+    ): Promise<R[]> {
+        const results: R[] = [];
+        for (let i = 0; i < items.length; i += batchSize) {
+            const batch = items.slice(i, i + batchSize);
+            results.push(...await Promise.all(batch.map(fn)));
+        }
+        return results;
     }
 
     private normalizeEnhancedTransaction(address: string, tx: any): SolanaTransaction | null {
@@ -586,31 +559,15 @@ export class SolanaPortfolioService {
             if (!tx) return null;
 
             const meta = tx.meta;
-            const instructions = tx.transaction?.message?.instructions || [];
-            const accountKeys = tx.transaction?.message?.accountKeys || [];
-
-            let from = '';
-            let to = '';
-            let amount = 0;
-            let token = '';
-            let tokenAmount = 0;
-
-            if (accountKeys[0]) {
-                from = typeof accountKeys[0] === 'string' ? accountKeys[0] : accountKeys[0]?.pubkey || '';
-            }
-
-            for (const ix of instructions) {
-                if (ix.parsed) {
-                    if (ix.parsed.type === 'transfer') {
-                        to = ix.parsed.info.destination;
-                        amount = ix.parsed.info.lamports || 0;
-                    } else if (ix.parsed.type === 'transferChecked') {
-                        to = ix.parsed.info.destination;
-                        token = ix.parsed.info.mint;
-                        tokenAmount = parseFloat(ix.parsed.info.tokenAmount?.amount || '0');
-                    }
-                }
-            }
+            const instructions = this.getParsedInstructions(tx);
+            const accountKeys = this.getAccountKeys(tx);
+            const transfers = this.extractTransferRowsFromStdTx('', signature, tx);
+            const primaryTransfer = transfers[0];
+            const from = primaryTransfer?.fromUserAccount || accountKeys[0] || '';
+            const to = primaryTransfer?.toUserAccount || undefined;
+            const amount = primaryTransfer?.asset === 'SOL' ? Number(primaryTransfer.amount || 0) : 0;
+            const token = primaryTransfer?.mint || '';
+            const tokenAmount = primaryTransfer?.asset !== 'SOL' ? Number(primaryTransfer.amount || 0) : 0;
 
             return {
                 signature,
@@ -621,7 +578,7 @@ export class SolanaPortfolioService {
                 type: this.inferTransactionType(instructions),
                 from,
                 to,
-                amount: amount > 0 ? amount / LAMPORTS_PER_SOL : undefined,
+                amount: amount > 0 ? amount : undefined,
                 token,
                 tokenAmount: tokenAmount > 0 ? tokenAmount : undefined,
                 instructions: instructions.map((ix: any) => ix.parsed || ix),
@@ -633,14 +590,130 @@ export class SolanaPortfolioService {
 
     private inferTransactionType(instructions: any[]): string {
         for (const ix of instructions) {
+            if (ix.parsed?.type === 'transfer' || ix.parsed?.type === 'transferChecked') {
+                return ix.program === 'spl-token' || ix.program === 'spl-token-2022' ? 'token_transfer' : 'transfer';
+            }
             if (ix.parsed?.type) return ix.parsed.type;
             if (ix.program === 'system') return 'transfer';
-            if (ix.program === 'token') return 'token-transfer';
+            if (ix.program === 'token' || ix.program === 'spl-token' || ix.program === 'spl-token-2022') return 'token_transfer';
             if (ix.program === 'stake') return 'staking';
             if (ix.program === 'vote') return 'vote';
             if (ix.program === 'sysvar') return 'system';
         }
         return 'unknown';
+    }
+
+    private getParsedInstructions(tx: any): any[] {
+        const topLevel = Array.isArray(tx?.transaction?.message?.instructions)
+            ? tx.transaction.message.instructions
+            : [];
+        const inner = Array.isArray(tx?.meta?.innerInstructions)
+            ? tx.meta.innerInstructions.flatMap((group: any) => Array.isArray(group?.instructions) ? group.instructions : [])
+            : [];
+        return [...topLevel, ...inner];
+    }
+
+    private getAccountKeys(tx: any): string[] {
+        const keys = tx?.transaction?.message?.accountKeys || [];
+        return keys.map((key: any) => this.getAccountKeyString(key)).filter(Boolean);
+    }
+
+    private getAccountKeyString(key: any): string {
+        if (!key) return '';
+        if (typeof key === 'string') return key;
+        if (typeof key.pubkey === 'string') return key.pubkey;
+        if (key.pubkey?.toString) return key.pubkey.toString();
+        if (key.toString) return key.toString();
+        return '';
+    }
+
+    private getTokenAccountOwners(tx: any): Record<string, string> {
+        const owners: Record<string, string> = {};
+        const accountKeys = this.getAccountKeys(tx);
+        const balances = [
+            ...(Array.isArray(tx?.meta?.preTokenBalances) ? tx.meta.preTokenBalances : []),
+            ...(Array.isArray(tx?.meta?.postTokenBalances) ? tx.meta.postTokenBalances : []),
+        ];
+
+        for (const balance of balances) {
+            const account = accountKeys[Number(balance?.accountIndex)];
+            const owner = balance?.owner;
+            if (account && owner) owners[account] = owner;
+        }
+
+        return owners;
+    }
+
+    private extractTransferRowsFromStdTx(address: string, signature: string, tx: any): any[] {
+        const rows: any[] = [];
+        const blockTime = this.normalizeBlockTime(tx?.blockTime) * 1000;
+        const tokenAccountOwners = this.getTokenAccountOwners(tx);
+
+        for (const ix of this.getParsedInstructions(tx)) {
+            const parsed = ix?.parsed;
+            const info = parsed?.info;
+            if (!parsed?.type || !info) continue;
+
+            const type = String(parsed.type);
+            const isTransfer = type === 'transfer'
+                || type === 'transferChecked'
+                || type === 'transferCheckedWithFee';
+            if (!isTransfer) continue;
+
+            const program = String(ix?.program || ix?.programId || '').toLowerCase();
+            const isToken = program.includes('token') || info.tokenAmount || info.mint;
+            const sourceAccount = info.source || '';
+            const destinationAccount = info.destination || info.account || '';
+            const from = isToken
+                ? (info.sourceOwner || tokenAccountOwners[sourceAccount] || info.owner || info.authority || sourceAccount)
+                : sourceAccount;
+            const to = isToken
+                ? (info.destinationOwner || tokenAccountOwners[destinationAccount] || destinationAccount)
+                : destinationAccount;
+            if (!from && !to) continue;
+            if (address
+                && from !== address
+                && to !== address
+                && sourceAccount !== address
+                && destinationAccount !== address
+                && info.sourceOwner !== address
+                && info.destinationOwner !== address) {
+                continue;
+            }
+
+            const amount = isToken
+                ? this.parseTokenUiAmount(info.tokenAmount, info.amount)
+                : Number(info.lamports || info.amount || 0) / LAMPORTS_PER_SOL;
+
+            rows.push({
+                signature,
+                slot: tx?.slot || 0,
+                blockTime,
+                timestamp: blockTime,
+                fromUserAccount: from,
+                toUserAccount: to,
+                source: from,
+                destination: to,
+                sourceAccount,
+                destinationAccount,
+                amount,
+                uiAmount: amount,
+                mint: info.mint,
+                asset: isToken ? (info.mint || 'TOKEN') : 'SOL',
+                type: isToken ? 'token_transfer' : 'transfer',
+            });
+        }
+
+        return rows;
+    }
+
+    private parseTokenUiAmount(tokenAmount: any, fallbackAmount?: any): number {
+        if (tokenAmount?.uiAmount != null) return Number(tokenAmount.uiAmount) || 0;
+        if (tokenAmount?.uiAmountString != null) return Number(tokenAmount.uiAmountString) || 0;
+        if (tokenAmount?.amount != null && tokenAmount?.decimals != null) {
+            return Number(tokenAmount.amount) / Math.pow(10, Number(tokenAmount.decimals));
+        }
+        return Number(fallbackAmount || 0) || 0;
     }
 
     async getNFTs(address: string): Promise<SolanaNFT[]> {
