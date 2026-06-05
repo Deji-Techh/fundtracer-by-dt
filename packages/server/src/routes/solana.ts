@@ -7,7 +7,6 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { usageMiddleware } from '../middleware/usage.js';
 import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
-import { solanaHeliusClient } from '../services/SolanaHeliusClient.js';
 import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 
 const router = Router();
@@ -26,8 +25,7 @@ function normalizeToMs(value: number | null | undefined): number | null {
   return value * 1000;                                 // seconds → ms
 }
 
-// GET /api/solana/overview/:address - Helius-powered wallet overview
-// Tries paid Helius methods first, falls back to free RPC
+// GET /api/solana/overview/:address - Wallet overview via Alchemy
 router.get('/overview/:address', authMiddleware, usageMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { address } = req.params;
@@ -37,17 +35,7 @@ router.get('/overview/:address', authMiddleware, usageMiddleware, async (req: Au
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    let overview;
-    try {
-      overview = await solanaPortfolioService.scanOverview(address);
-    } catch (paidErr: any) {
-      if (paidErr.message?.includes?.('paid plan') || paidErr.message?.includes?.('only available')) {
-        console.log('[Solana] Paid Helius features unavailable, using free-tier fallback for overview');
-        overview = await solanaPortfolioService.scanOverviewFallback(address);
-      } else {
-        throw paidErr; // rethrow non-paid errors
-      }
-    }
+    const overview = await solanaPortfolioService.scanOverviewViaAlchemy(address);
 
     if (userId) {
       const displayName = req.user?.name || 'User';
@@ -64,8 +52,7 @@ router.get('/overview/:address', authMiddleware, usageMiddleware, async (req: Au
   }
 });
 
-// GET /api/solana/funding-tree/:address - Funding tree from Helius transfers
-// Tries paid getTransfersByAddress first, falls back to RPC batch
+// GET /api/solana/funding-tree/:address - Funding tree from Alchemy transaction sample
 router.get('/funding-tree/:address', authMiddleware, usageMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { address } = req.params;
@@ -74,57 +61,29 @@ router.get('/funding-tree/:address', authMiddleware, usageMiddleware, async (req
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    const helius = solanaHeliusClient;
-    const LAMPORTS = 1_000_000_000;
-
     let sources: Record<string, { total: number; count: number; lastTx: number }>;
     let destinations: Record<string, { total: number; count: number; lastTx: number }>;
     let totalTransfers: number;
 
-    try {
-      // Try paid Helius method first
-      const transfers = await helius.getAllTransfers(address);
-      totalTransfers = transfers.length;
+    const transactions = await solanaPortfolioService.getTransactionsViaAlchemy(address, 200);
+    totalTransfers = transactions.length;
 
-      sources = {};
-      destinations = {};
-      for (const t of transfers) {
-        if (t.destination === address) {
-          const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
-          const amt = isSol ? t.amount / LAMPORTS : (t.amount || 0);
-          if (!sources[t.source]) sources[t.source] = { total: 0, count: 0, lastTx: 0 };
-          sources[t.source].total += amt;
-          sources[t.source].count += 1;
-          sources[t.source].lastTx = Math.max(sources[t.source].lastTx,
-            t.blockTime > 1e12 ? Math.floor(t.blockTime / 1000) : (t.blockTime || 0));
-        }
-        if (t.source === address) {
-          const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
-          const amt = isSol ? t.amount / LAMPORTS : (t.amount || 0);
-          if (!destinations[t.destination]) destinations[t.destination] = { total: 0, count: 0, lastTx: 0 };
-          destinations[t.destination].total += amt;
-          destinations[t.destination].count += 1;
-          destinations[t.destination].lastTx = Math.max(destinations[t.destination].lastTx,
-            t.blockTime > 1e12 ? Math.floor(t.blockTime / 1000) : (t.blockTime || 0));
-        }
+    sources = {};
+    destinations = {};
+    for (const t of transactions) {
+      const blockSec = normalizeToMs(t.blockTime);
+      const lastTx = blockSec ? Math.floor(blockSec / 1000) : 0;
+      if (t.to === address && t.from) {
+        if (!sources[t.from]) sources[t.from] = { total: 0, count: 0, lastTx: 0 };
+        sources[t.from].total += t.amount || 0;
+        sources[t.from].count += 1;
+        sources[t.from].lastTx = Math.max(sources[t.from].lastTx, lastTx);
       }
-    } catch (paidErr: any) {
-      if (paidErr.message?.includes?.('paid plan') || paidErr.message?.includes?.('only available')) {
-        console.log('[Solana] Paid Helius features unavailable, using free-tier fallback for funding tree');
-        const fallback = await helius.getFundingTreeFallback(address, 200);
-        sources = {};
-        destinations = {};
-        totalTransfers = 0;
-        for (const [addr, data] of Object.entries(fallback.sources)) {
-          sources[addr] = { total: data.total, count: data.count, lastTx: 0 };
-          totalTransfers += data.count;
-        }
-        for (const [addr, data] of Object.entries(fallback.destinations)) {
-          destinations[addr] = { total: data.total, count: data.count, lastTx: 0 };
-          totalTransfers += data.count;
-        }
-      } else {
-        throw paidErr;
+      if (t.from === address && t.to) {
+        if (!destinations[t.to]) destinations[t.to] = { total: 0, count: 0, lastTx: 0 };
+        destinations[t.to].total += t.amount || 0;
+        destinations[t.to].count += 1;
+        destinations[t.to].lastTx = Math.max(destinations[t.to].lastTx, lastTx);
       }
     }
 
@@ -210,8 +169,7 @@ router.get('/portfolio/:address', authMiddleware, usageMiddleware, async (req: A
   }
 });
 
-// GET /api/solana/transactions/:address - Transaction history
-// Tries Helius paid method first, falls back to standard RPC
+// GET /api/solana/transactions/:address - Transaction history via Alchemy
 router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req, res) => {
   try {
     const { address } = req.params;
@@ -221,36 +179,19 @@ router.get('/transactions/:address', authMiddleware, usageMiddleware, async (req
       return res.status(400).json({ error: 'Invalid Solana address' });
     }
 
-    const helius = solanaHeliusClient;
-    let transactions: any[];
-
-    try {
-      // Try paid Helius method first
-      const sigsResult = await helius.getTransactionsForAddress(address, {
-        transactionDetails: 'signatures',
-        limit: Math.min(limit, 1000),
-        sortOrder: 'desc',
-      });
-      transactions = (sigsResult.data || []).map((s: any) => ({
-        signature: s.signature,
-        slot: s.slot,
-        blockTime: normalizeToMs(s.blockTime),
-        status: s.err ? 'failed' : 'success',
-      }));
-    } catch (paidErr: any) {
-      if (paidErr.message?.includes?.('paid plan') || paidErr.message?.includes?.('only available')) {
-        console.log('[Solana] Paid Helius features unavailable, using free-tier fallback for transactions');
-        const sigs = await helius.getSignaturesForAddressStdRpc(address, { limit });
-        transactions = sigs.map((s: any) => ({
-          signature: s.signature,
-          slot: s.slot,
-          blockTime: normalizeToMs(s.blockTime),
-          status: s.err ? 'failed' : 'success',
-        }));
-      } else {
-        throw paidErr;
-      }
-    }
+    const txs = await solanaPortfolioService.getTransactionsViaAlchemy(address, limit);
+    const transactions = txs.map((tx) => ({
+      signature: tx.signature,
+      slot: tx.slot,
+      blockTime: normalizeToMs(tx.blockTime),
+      status: tx.status,
+      from: tx.from,
+      to: tx.to,
+      amount: tx.amount,
+      token: tx.token,
+      tokenAmount: tx.tokenAmount,
+      type: tx.type,
+    }));
 
     res.json({ transactions, count: transactions.length });
   } catch (error: any) {

@@ -25,6 +25,7 @@ import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 import { BridgeDetector } from '../services/BridgeDetector.js';
 import { RedisBlockTsCache } from '../services/BlockTsCache.js';
 import { cexService } from '../services/CEXService.js';
+import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
 
 // Singleton block timestamp cache — no TTL, permanent
 const blockTsCache = new RedisBlockTsCache();
@@ -462,26 +463,62 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
     }
 
-    // SOLANA WALLET ANALYZE - Full analysis using SolanaAdapter
+    // SOLANA WALLET ANALYZE - Alchemy-only path
     if (isSolana) {
         try {
-            const { SolanaAdapter } = await import('@fundtracer/core');
-            const solanaAdapter = new SolanaAdapter();
-
-            // Run all adapter methods in parallel — utilises 3 Helius keys
-            const [walletInfo, transactions, riskScore, fundingTree] = await Promise.all([
-                solanaAdapter.getWalletInfo(address),
-                solanaAdapter.getTransactions(address, { limit: 100 }),
-                solanaAdapter.getRiskScore(address),
-                solanaAdapter.getFundingSources(address, 3).catch(() => null),
+            const [overview, portfolio, recentTransactions] = await Promise.all([
+                solanaPortfolioService.scanOverviewViaAlchemy(address),
+                solanaPortfolioService.getPortfolio(address),
+                solanaPortfolioService.getTransactionsViaAlchemy(address, 100),
             ]);
+
+            const normalizeMs = (value: number | null | undefined): number => {
+                if (!value) return 0;
+                if (value > 1e15) return Math.floor(value / 1000);
+                if (value > 1e12) return value;
+                return value * 1000;
+            };
+            const timestampToSec = (value: number | null | undefined): number | undefined => {
+                const ms = normalizeMs(value);
+                return ms ? Math.floor(ms / 1000) : undefined;
+            };
+
+            const firstTxSec = overview.firstTimestamp
+                ? Math.floor(Date.parse(overview.firstTimestamp) / 1000)
+                : undefined;
+            const lastTxSec = overview.lastTimestamp
+                ? Math.floor(Date.parse(overview.lastTimestamp) / 1000)
+                : undefined;
+
+            const normalizedTransactions = recentTransactions.map(tx => ({
+                hash: tx.signature,
+                blockNumber: tx.slot || 0,
+                timestamp: timestampToSec(tx.blockTime) || 0,
+                from: tx.from,
+                to: tx.to || null,
+                value: (tx.amount || 0).toString(),
+                valueInEth: tx.amount || 0,
+                gasUsed: '0',
+                gasPrice: '0',
+                gasCostInEth: (tx.fee || 0) / 1_000_000_000,
+                status: tx.status,
+                category: tx.type || 'unknown' as const,
+                isIncoming: tx.to === address,
+                tokenTransfers: tx.token ? [{
+                    tokenAddress: tx.token,
+                    amount: (tx.tokenAmount || 0).toString(),
+                }] : [],
+                programInteractions: (tx.instructions || [])
+                    .map((ix: any) => ix?.programId || ix?.program || ix?.program_id)
+                    .filter(Boolean),
+            }));
 
             // ---- Compute interactors and totals from transactions ----
             const interactors = new Map<string, { count: number; sent: number; received: number }>();
             let totalValueSent = 0;
             let totalValueReceived = 0;
 
-            for (const tx of transactions) {
+            for (const tx of normalizedTransactions) {
                 const val = parseFloat(tx.value || '0');
                 if (tx.from === address) totalValueSent += val;
                 if (tx.to === address) totalValueReceived += val;
@@ -499,51 +536,51 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             }
 
             // ---- Activity period ----
-            const sorted = [...transactions].sort((a, b) => a.timestamp - b.timestamp);
-            const firstTs = sorted[0]?.timestamp;
-            const lastTs = sorted[sorted.length - 1]?.timestamp;
-            const activityDays = firstTs && lastTs
-                ? Math.round((lastTs - firstTs) / 86400000)
-                : 0;
+            const firstTs = firstTxSec;
+            const lastTs = lastTxSec;
+            const activityDays = overview.activityPeriodDays || 0;
 
             // ---- Map risk signals to SuspiciousIndicator ----
-            const suspiciousIndicators = (riskScore.signals || [])
-                .filter(s => s.detected)
-                .map(s => ({
-                    type: s.id as any,
-                    severity: s.severity,
-                    description: s.details,
-                    evidence: [s.details],
-                    score: s.weight,
-                }));
+            const walletAgeDays = firstTxSec ? Math.floor((Date.now() / 1000 - firstTxSec) / 86400) : null;
+            const suspiciousIndicators = [];
+            let solanaRiskScore = 0;
+            if (walletAgeDays !== null && walletAgeDays < 30) {
+                solanaRiskScore += 10;
+                suspiciousIndicators.push({
+                    type: 'Sol_new_wallet' as any,
+                    severity: 'medium' as const,
+                    description: `Wallet is ${walletAgeDays} days old`,
+                    evidence: [`First seen ${overview.firstTimestamp}`],
+                    score: 10,
+                });
+            }
 
-            const riskLevel = riskScore.score > 70 ? 'high' as const
-                : riskScore.score > 30 ? 'medium' as const
-                : riskScore.score > 0 ? 'low' as const
+            const riskLevel = solanaRiskScore > 70 ? 'high' as const
+                : solanaRiskScore > 30 ? 'medium' as const
+                : solanaRiskScore > 0 ? 'low' as const
                 : 'low' as const;
 
             // ---- Build funding sources tree from adapter data ----
-            const ftree = fundingTree;
             const fundingSourcesFlat = {
-                nodes: (ftree?.nodes || []).slice(0, 20).map(n => ({
+                nodes: (overview.topInteractors || []).slice(0, 20).map((n) => ({
                     address: n.address,
-                    depth: n.depth,
+                    depth: 1,
                     direction: 'source' as const,
-                    totalValue: (n.amount || 0).toString(),
-                    totalValueInEth: n.amount || 0,
-                    txCount: 1,
-                    labels: n.label ? [n.label] : [],
+                    totalValue: '0',
+                    totalValueInEth: 0,
+                    txCount: n.count || 1,
+                    labels: [],
                 })),
-                edges: ftree?.edges || [],
+                edges: [],
             };
             const fundingSources = solanaFlatToTree(fundingSourcesFlat, address, 'source');
 
             // Destinations built from outgoing tx data (adapter is source-only)
             const destMap = new Map<string, { total: number; count: number }>();
-            for (const tx of transactions) {
+            for (const tx of normalizedTransactions) {
                 if (tx.from === address && tx.to && tx.to !== address) {
                     const e = destMap.get(tx.to) || { total: 0, count: 0 };
-                    e.total += parseFloat(tx.value || '0');
+                    e.total += tx.valueInEth || 0;
                     e.count++;
                     destMap.set(tx.to, e);
                 }
@@ -564,7 +601,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
 
             // ---- Aggregate program interactions into projects ----
             const projectMap = new Map<string, { count: number; first: number; last: number }>();
-            for (const tx of transactions) {
+            for (const tx of normalizedTransactions) {
                 for (const programId of tx.programInteractions || []) {
                     const e = projectMap.get(programId) || { count: 0, first: Infinity, last: 0 };
                     e.count++;
@@ -599,8 +636,8 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             }));
 
             // ---- Same-block transaction groups ----
-            const blockGroups = new Map<number, typeof transactions>();
-            for (const tx of transactions) {
+            const blockGroups = new Map<number, typeof normalizedTransactions>();
+            for (const tx of normalizedTransactions) {
                 const key = tx.timestamp;
                 const group = blockGroups.get(key) || [];
                 group.push(tx);
@@ -645,53 +682,52 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             // ---- Assemble result ----
             const result = {
                 wallet: {
-                    address: walletInfo.address,
+                    address,
                     chain: 'solana' as any,
-                    balance: walletInfo.balance || '0',
-                    balanceInEth: parseFloat(walletInfo.balance || '0') || 0,
-                    txCount: transactions.length,
+                    balance: portfolio.sol.sol.toString(),
+                    balanceInEth: portfolio.sol.sol || 0,
+                    txCount: overview.totalTransactions,
                     firstTxTimestamp: firstTs || undefined,
                     lastTxTimestamp: lastTs || undefined,
                     isContract: false,
                 },
-                transactions: transactions.map(tx => ({
-                    hash: tx.hash,
-                    blockNumber: 0,
-                    timestamp: tx.timestamp,
-                    from: tx.from,
-                    to: tx.to || null,
-                    value: tx.value || '0',
-                    valueInEth: parseFloat(tx.value || '0') || 0,
-                    gasUsed: '0',
-                    gasPrice: '0',
-                    gasCostInEth: 0,
-                    status: tx.status,
-                    category: 'unknown' as const,
-                    isIncoming: tx.to === address,
-                    tokenTransfers: tx.tokenTransfers || [],
-                })),
+                transactions: normalizedTransactions,
                 fundingSources: fundingSources as any,
                 fundingDestinations: fundingDestinations as any,
                 suspiciousIndicators,
-                overallRiskScore: riskScore.score,
+                overallRiskScore: solanaRiskScore,
                 riskLevel,
                 projectsInteracted,
                 sameBlockTransactions,
                 summary: {
-                    totalTransactions: transactions.length,
-                    successfulTxs: transactions.filter(t => t.status === 'success').length,
-                    failedTxs: transactions.filter(t => t.status === 'failed').length,
-                    totalValueSentEth: totalValueSent,
-                    totalValueReceivedEth: totalValueReceived,
-                    uniqueInteractedAddresses: interactors.size,
+                    totalTransactions: overview.totalTransactions,
+                    successfulTxs: normalizedTransactions.filter(t => t.status === 'success').length,
+                    failedTxs: normalizedTransactions.filter(t => t.status === 'failed').length,
+                    totalValueSentEth: Number(overview.totalSOLSent) || totalValueSent,
+                    totalValueReceivedEth: Number(overview.totalSOLReceived) || totalValueReceived,
+                    uniqueInteractedAddresses: overview.uniqueAddressCount || interactors.size,
                     topFundingSources,
                     topFundingDestinations,
                     activityPeriodDays: activityDays,
                     averageTxPerDay: activityDays > 0
-                        ? Math.round(transactions.length / activityDays)
-                        : transactions.length,
+                        ? Math.round(overview.totalTransactions / activityDays)
+                        : overview.totalTransactions,
+                },
+                pagination: {
+                    offset: 0,
+                    limit: 100,
+                    total: overview.totalTransactions,
+                    hasMore: overview.totalTransactions > normalizedTransactions.length,
+                    returned: normalizedTransactions.length,
                 },
             };
+
+            // Record Torque activity before responding
+            const userName = req.user?.name || req.user?.email || 'User';
+            if (res.locals.authProvider !== 'api_key') {
+              await torqueServiceV2.incrementScan(req.user.uid, userName).catch(err => console.error('[TorqueV2] Solana scan increment failed:', err));
+              await torqueServiceV2.addActivity(req.user.uid, userName, address, chain).catch(err => console.error('[TorqueV2] Solana activity failed:', err));
+            }
 
             return res.json({
                 success: true,
@@ -1011,24 +1047,29 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
     // SOLANA FUNDING TREE
     if (isSolana) {
         try {
-            const { SolanaAdapter } = await import('@fundtracer/core');
-            const solanaAdapter = new SolanaAdapter();
-
-            // Use SolanaAdapter's getFundingSources for proper BFS tree
-            const [fundingTree, transactions] = await Promise.all([
-                solanaAdapter.getFundingSources(address, 3).catch(() => null),
-                solanaAdapter.getTransactions(address, { limit: 200 }),
-            ]);
+            const transactions = await solanaPortfolioService.getTransactionsViaAlchemy(address, 200);
 
             // Build source nodes from tree
-            const sourceNodes = (fundingTree?.nodes || []).slice(0, 30).map(n => ({
-                address: n.address,
-                depth: n.depth,
+            const sourceMap = new Map<string, { total: number; count: number }>();
+            for (const tx of transactions) {
+                if (tx.to === address && tx.from && tx.from !== address) {
+                    const e = sourceMap.get(tx.from) || { total: 0, count: 0 };
+                    e.total += tx.amount || 0;
+                    e.count++;
+                    sourceMap.set(tx.from, e);
+                }
+            }
+            const sourceNodes = Array.from(sourceMap.entries())
+                .sort((a, b) => b[1].total - a[1].total)
+                .slice(0, 30)
+                .map(([addr, data]) => ({
+                address: addr,
+                depth: 1,
                 direction: 'source' as const,
-                totalValue: (n.amount || 0).toString(),
-                totalValueInEth: n.amount || 0,
-                txCount: 1,
-                labels: n.label ? [n.label] : [],
+                totalValue: data.total.toString(),
+                totalValueInEth: data.total,
+                txCount: data.count,
+                labels: [],
             }));
 
             // Build destination nodes from transactions (outgoing)
@@ -1036,7 +1077,7 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
             for (const tx of transactions) {
                 if (tx.from === address && tx.to && tx.to !== address) {
                     const e = destMap.get(tx.to) || { total: 0, count: 0 };
-                    e.total += parseFloat(tx.value || '0');
+                    e.total += tx.amount || 0;
                     e.count++;
                     destMap.set(tx.to, e);
                 }
@@ -1052,10 +1093,10 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
                     totalValueInEth: data.total,
                     txCount: data.count,
                     labels: [],
-                }));
+            }));
 
             // Convert flat format to EVM-compatible tree format
-            const fundingSources = solanaFlatToTree({ nodes: sourceNodes, edges: fundingTree?.edges || [] }, address, 'source');
+            const fundingSources = solanaFlatToTree({ nodes: sourceNodes, edges: [] }, address, 'source');
             const fundingDestinations = solanaFlatToTree({ nodes: destNodes, edges: [] }, address, 'destination');
 
             return res.json({
@@ -1194,25 +1235,31 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
         }
     }
 
-    // SOLANA COMPARE - Use SolanaAdapter directly
+    // SOLANA COMPARE - Alchemy-only path
     if (isSolana) {
         try {
-            const { SolanaAdapter } = await import('@fundtracer/core');
-            const solanaAdapter = new SolanaAdapter();
-
             // Fetch wallet info and transactions for each address in parallel
             const walletData = await Promise.all(
                 addresses.map(async (addr) => {
-                    const [walletInfo, transactions] = await Promise.all([
-                        solanaAdapter.getWalletInfo(addr),
-                        solanaAdapter.getTransactions(addr, { limit: 100 })
+                    const [overview, portfolio, transactions] = await Promise.all([
+                        solanaPortfolioService.scanOverviewViaAlchemy(addr),
+                        solanaPortfolioService.getPortfolio(addr),
+                        solanaPortfolioService.getTransactionsViaAlchemy(addr, 100)
                     ]);
+                    const walletInfo = {
+                        address: addr,
+                        balance: portfolio.sol.sol.toString(),
+                        balanceInEth: portfolio.sol.sol,
+                        txCount: overview.totalTransactions,
+                        firstTxTimestamp: overview.firstTimestamp ? Math.floor(Date.parse(overview.firstTimestamp) / 1000) : undefined,
+                        lastTxTimestamp: overview.lastTimestamp ? Math.floor(Date.parse(overview.lastTimestamp) / 1000) : undefined,
+                    };
                     return { address: addr, walletInfo, transactions };
                 })
             );
 
             // Find common transactions
-            const allTxHashes = walletData.map(w => new Set(w.transactions.map(t => t.hash)));
+            const allTxHashes = walletData.map(w => new Set(w.transactions.map(t => t.signature)));
             const firstSet = Array.from(allTxHashes[0]);
             const commonTxHashes = firstSet.filter(hash => 
                 allTxHashes.every(set => set.has(hash))
@@ -1222,7 +1269,10 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
             const allPrograms = walletData.map(w => {
                 const programs = new Set<string>();
                 w.transactions.forEach(tx => {
-                    tx.programInteractions?.forEach(p => programs.add(p));
+                    tx.instructions?.forEach((ix: any) => {
+                        const program = ix?.programId || ix?.program || ix?.program_id;
+                        if (program) programs.add(program);
+                    });
                 });
                 return programs;
             });
@@ -1246,13 +1296,20 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
                         directTransfers.push({
                             from: w.address,
                             to: tx.to,
-                            hash: tx.hash,
-                            amount: tx.value,
-                            timestamp: tx.timestamp
+                            hash: tx.signature,
+                            amount: tx.amount || 0,
+                            timestamp: tx.blockTime > 1e12 ? Math.floor(tx.blockTime / 1000) : tx.blockTime
                         });
                     }
                 });
             });
+
+            // Record Torque activity before responding
+            const compareUserName = req.user?.name || req.user?.email || 'User';
+            if (res.locals.authProvider !== 'api_key') {
+              await torqueServiceV2.incrementScan(req.user.uid, compareUserName).catch(err => console.error('[TorqueV2] Solana compare scan increment failed:', err));
+              await torqueServiceV2.addActivity(req.user.uid, compareUserName, `${addresses.length} wallets compared`, chain).catch(err => console.error('[TorqueV2] Solana compare activity failed:', err));
+            }
 
             return res.json({
                 success: true,
@@ -1260,25 +1317,28 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
                     wallets: walletData.map(w => {
                         const wtxs = w.transactions;
                         const uniqueContracts = new Set<string>();
-                        wtxs.forEach(tx => tx.programInteractions?.forEach(p => uniqueContracts.add(p)));
-                        const firstTx = wtxs[wtxs.length - 1];
-                        const lastTx = wtxs[0];
+                        wtxs.forEach(tx => tx.instructions?.forEach((ix: any) => {
+                            const program = ix?.programId || ix?.program || ix?.program_id;
+                            if (program) uniqueContracts.add(program);
+                        }));
                         return {
                             wallet: {
                                 ...w.walletInfo,
                                 chain: 'solana' as any,
                             },
                             transactions: wtxs.map(tx => ({
-                                hash: tx.hash,
+                                hash: tx.signature,
                                 from: tx.from,
                                 to: tx.to || null,
-                                value: tx.value,
-                                timestamp: tx.timestamp,
+                                value: (tx.amount || 0).toString(),
+                                timestamp: tx.blockTime > 1e12 ? Math.floor(tx.blockTime / 1000) : tx.blockTime,
                                 fee: tx.fee,
                                 status: tx.status,
                                 blockNumber: null,
-                                tokenTransfers: tx.tokenTransfers || [],
-                                programInteractions: tx.programInteractions || [],
+                                tokenTransfers: tx.token ? [{ tokenAddress: tx.token, amount: tx.tokenAmount || 0 }] : [],
+                                programInteractions: (tx.instructions || [])
+                                    .map((ix: any) => ix?.programId || ix?.program || ix?.program_id)
+                                    .filter(Boolean),
                             })),
                             fundingSources: { address: wtxs[0]?.from || w.address, depth: 0, direction: 'source', totalValue: '0', totalValueInEth: 0, txCount: 0, children: [] } as any,
                             fundingDestinations: { address: wtxs[0]?.from || w.address, depth: 0, direction: 'destination', totalValue: '0', totalValueInEth: 0, txCount: 0, children: [] } as any,
@@ -1288,11 +1348,11 @@ router.post('/compare', async (req: AuthenticatedRequest, res: Response) => {
                             projectsInteracted: [],
                             sameBlockTransactions: [],
                             summary: {
-                                totalTransactions: wtxs.length,
+                                totalTransactions: w.walletInfo.txCount,
                                 successfulTxs: wtxs.filter(t => t.status === 'success').length,
                                 failedTxs: wtxs.filter(t => t.status === 'failed').length,
                                 totalValueSentEth: 0,
-                                totalValueReceivedEth: parseFloat(w.walletInfo.balance || '0') || 0,
+                                totalValueReceivedEth: w.walletInfo.balanceInEth || 0,
                                 uniqueInteractedAddresses: uniqueContracts.size,
                                 topFundingSources: [],
                                 topFundingDestinations: [],
@@ -1756,6 +1816,11 @@ router.post('/sybil', async (req: AuthenticatedRequest, res: Response) => {
 
         // For Solana, sybil detection isn't supported via Alchemy - return empty result
         if (isSolana) {
+            const sybilUserName = req.user?.name || req.user?.email || 'User';
+            if (res.locals.authProvider !== 'api_key') {
+              await torqueServiceV2.incrementScan(req.user.uid, sybilUserName).catch(err => console.error('[TorqueV2] Solana sybil scan increment failed:', err));
+              await torqueServiceV2.addActivity(req.user.uid, sybilUserName, contractAddress, chain).catch(err => console.error('[TorqueV2] Solana sybil activity failed:', err));
+            }
             return res.json({ success: true, result: { clusters: [], message: 'Sybil detection not yet supported for Solana' } });
         }
 
@@ -2412,43 +2477,41 @@ router.post('/expand-node', async (req: AuthenticatedRequest, res: Response) => 
     let nodes: any[] = [];
     let edges: any[] = [];
 
-    if (isSolana) {
-      const { SolanaAdapter } = await import('@fundtracer/core');
-      const solanaAdapter = new SolanaAdapter();
-      const [fundingTree, transactions] = await Promise.all([
-        solanaAdapter.getFundingSources(address, Math.min(depth, 3)).catch(() => null),
-        solanaAdapter.getTransactions(address, { limit: 200 }),
-      ]);
+	    if (isSolana) {
+	      const transactions = await solanaPortfolioService.getTransactionsViaAlchemy(address, 200);
 
-      // Source nodes
-      for (const n of (fundingTree?.nodes || []).slice(0, 30)) {
-        nodes.push({
-          id: n.address,
-          address: n.address,
-          depth: n.depth,
-          direction: 'source',
-          totalValue: (n.amount || 0).toString(),
-          totalValueInEth: n.amount || 0,
-          txCount: 1,
-        });
-        if (n.parentAddress) {
-          edges.push({
-            source: n.parentAddress,
-            target: n.address,
-            value: n.amount || 0,
-          });
-        }
-      }
+	      // Source nodes
+	      const sourceMap = new Map<string, { total: number; count: number }>();
+	      for (const tx of transactions) {
+	        if (tx.to === address && tx.from && tx.from !== address) {
+	          const d = sourceMap.get(tx.from) || { total: 0, count: 0 };
+	          d.total += tx.amount || 0;
+	          d.count++;
+	          sourceMap.set(tx.from, d);
+	        }
+	      }
+	      for (const [addr, data] of Array.from(sourceMap.entries()).sort((a, b) => b[1].total - a[1].total).slice(0, 30)) {
+	        nodes.push({
+	          id: addr,
+	          address: addr,
+	          depth: 1,
+	          direction: 'source',
+	          totalValue: data.total.toString(),
+	          totalValueInEth: data.total,
+	          txCount: data.count,
+	        });
+	        edges.push({ source: addr, target: address, value: data.total });
+	      }
 
       // Destination nodes from outgoing txs
       const destMap = new Map<string, { total: number; count: number }>();
-      for (const tx of transactions) {
-        if (tx.from === address && tx.to && tx.to !== address) {
-          const d = destMap.get(tx.to) || { total: 0, count: 0 };
-          d.total += parseFloat(tx.value || '0');
-          d.count++;
-          destMap.set(tx.to, d);
-        }
+	      for (const tx of transactions) {
+	        if (tx.from === address && tx.to && tx.to !== address) {
+	          const d = destMap.get(tx.to) || { total: 0, count: 0 };
+	          d.total += tx.amount || 0;
+	          d.count++;
+	          destMap.set(tx.to, d);
+	        }
       }
       for (const [addr, data] of Array.from(destMap.entries()).sort((a, b) => b[1].total - a[1].total).slice(0, 30)) {
         nodes.push({
@@ -2589,13 +2652,22 @@ router.post('/bridge-trace', async (req: AuthenticatedRequest, res: Response) =>
   }
 
   try {
-    let transactions: any[] = [];
+	    let transactions: any[] = [];
 
-    if (isSolana) {
-      const { SolanaAdapter } = await import('@fundtracer/core');
-      const solanaAdapter = new SolanaAdapter();
-      transactions = await solanaAdapter.getTransactions(address, { limit: 200 }).catch(() => []);
-    } else {
+	    if (isSolana) {
+	      const solTxs = await solanaPortfolioService.getTransactionsViaAlchemy(address, 200).catch(() => []);
+	      transactions = solTxs.map(tx => ({
+	        hash: tx.signature,
+	        from: tx.from,
+	        to: tx.to || null,
+	        value: (tx.amount || 0).toString(),
+	        valueInEth: tx.amount || 0,
+	        timestamp: tx.blockTime > 1e12 ? Math.floor(tx.blockTime / 1000) : tx.blockTime,
+	        fee: tx.fee,
+	        status: tx.status,
+	        category: tx.type || 'unknown',
+	      }));
+	    } else {
       const alchemyKeyPool = getAlchemyKeyPool();
       const userKey = await getAlchemyKeyForUser(req.user.uid);
 

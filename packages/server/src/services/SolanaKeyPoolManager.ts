@@ -1,6 +1,6 @@
 // ============================================================
 // FundTracer by DT - Solana Key Pool Manager
-// Manages Helius keys for Solana operations
+// Manages Alchemy keys for Solana operations
 // ============================================================
 
 import { cache } from '../utils/cache.js';
@@ -34,11 +34,13 @@ export class SolanaKeyPoolManager {
     }
 
     private initKeys() {
-        // Check SYBIL_CONTRACT_KEY_1 through 10
+        const getEnvKey = (prefix: string, index: number): string | undefined =>
+            process.env[`${prefix}_${index}`] || process.env[`${prefix}_${String(index).padStart(2, '0')}`];
+
+        // Check SYBIL_CONTRACT_KEY_1 through 10, accepting _01 style too
         const contractKeyCount = 10;
         for (let i = 1; i <= contractKeyCount; i++) {
-            const envKey = `SYBIL_CONTRACT_KEY_${String(i).padStart(2, '0')}`;
-            const key = process.env[envKey];
+            const key = getEnvKey('SYBIL_CONTRACT_KEY', i);
             
             if (key) {
                 const endpoint = `https://solana-mainnet.g.alchemy.com/v2/${key}`;
@@ -57,11 +59,10 @@ export class SolanaKeyPoolManager {
             }
         }
 
-        // Also check SYBIL_WALLET_KEY_1 through 10
+        // Also check SYBIL_WALLET_KEY_1 through 10, accepting _01 style too
         const walletKeyCount = 10;
         for (let i = 1; i <= walletKeyCount; i++) {
-            const envKey = `SYBIL_WALLET_KEY_${String(i).padStart(2, '0')}`;
-            const key = process.env[envKey];
+            const key = getEnvKey('SYBIL_WALLET_KEY', i);
             
             if (key && !this.keys.find(k => k.key === key)) {
                 const endpoint = `https://solana-mainnet.g.alchemy.com/v2/${key}`;
@@ -82,7 +83,10 @@ export class SolanaKeyPoolManager {
 
         if (this.keys.length === 0) {
             console.warn('[SolanaKeyPool] No Alchemy keys found, using fallback');
-            const fallbackKey = process.env.ALCHEMY_SOLANA_KEY || process.env.ALCHEMY_KEY_01;
+            const fallbackKey = process.env.ALCHEMY_SOLANA_KEY
+                || process.env.ALCHEMY_KEY_01
+                || process.env.DEFAULT_ALCHEMY_API_KEY
+                || process.env.ALCHEMY_API_KEY;
             if (fallbackKey) {
                 this.keys.push({
                     key: fallbackKey,

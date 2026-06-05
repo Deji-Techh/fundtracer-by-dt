@@ -1,13 +1,11 @@
 // ============================================================
 // FundTracer by DT - Solana Portfolio Service
 // Complete wallet analysis - Portfolio, Transactions, NFTs, DeFi, Risk
-// Now powered by Dune SIM as primary data source
+// Powered by Alchemy Solana RPC
 // ============================================================
 
 import { solanaKeyPool } from './SolanaKeyPoolManager.js';
 import { cache } from '../utils/cache.js';
-import { duneSimClient, SimPortfolio, SimTransactionFormatted } from './DuneSimClient.js';
-import { solanaHeliusClient } from './SolanaHeliusClient.js';
 import fetch from 'node-fetch';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -122,156 +120,150 @@ export class SolanaPortfolioService {
     private priceCache = new Map<string, number>();
 
     /**
-     * Helius-powered full overlay scan: signatures + transfers in parallel
+     * Alchemy-powered signature pagination.
+     * RPC returns newest first and blockTime is Unix seconds.
      */
-    async scanOverview(address: string): Promise<SolanaOverviewResult> {
+    async getSignaturesViaAlchemy(
+        address: string,
+        maxSignatures = 50000
+    ): Promise<{ signature: string; blockTime: number; err: any; slot: number }[]> {
+        const allSigs: { signature: string; blockTime: number; err: any; slot: number }[] = [];
+        let before: string | undefined;
+
+        while (allSigs.length < maxSignatures) {
+            const limit = Math.min(1000, maxSignatures - allSigs.length);
+            const batch = await solanaKeyPool.execute(async (endpoint) => {
+                const params: any = { limit, commitment: 'confirmed' };
+                if (before) params.before = before;
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 1,
+                        method: 'getSignaturesForAddress',
+                        params: [address, params],
+                    }),
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error.message || 'Alchemy Solana RPC error');
+                return (data.result || []).map((s: any) => ({
+                    signature: s.signature,
+                    blockTime: s.blockTime || 0,
+                    err: s.err,
+                    slot: s.slot || 0,
+                }));
+            }, 1);
+
+            if (batch.length === 0) break;
+            allSigs.push(...batch);
+            before = batch[batch.length - 1].signature;
+            if (batch.length < limit) break;
+        }
+
+        return allSigs;
+    }
+
+    /**
+     * Alchemy-powered overview: uses standard RPC getSignaturesForAddress.
+     * Uses Alchemy RPC timestamps, which are Unix seconds.
+     */
+    async scanOverviewViaAlchemy(address: string): Promise<SolanaOverviewResult> {
         const start = Date.now();
-        const helius = solanaHeliusClient;
+        const allSigs = await this.getSignaturesViaAlchemy(address);
 
-        const scan = await helius.scanWallet(address);
-        const signatures = scan.signatures;
-        const transfers = scan.transfers;
+        // Sorted newest-first from RPC. blockTime is Unix seconds.
+        const newest = allSigs[0];
+        const oldest = allSigs[allSigs.length - 1];
+        const firstMs = oldest?.blockTime ? oldest.blockTime * 1000 : 0;
+        const lastMs = newest?.blockTime ? newest.blockTime * 1000 : 0;
 
-        const LAMPORTS = 1_000_000_000;
-
-        // Signatures are already sorted ASC (oldest first)
-        const firstSig = signatures[0];
-        const lastSig = signatures[signatures.length - 1];
-        const firstBlockSec = firstSig?.blockTime ? this.normalizeBlockTime(firstSig.blockTime) : 0;
-        const lastBlockSec = lastSig?.blockTime ? this.normalizeBlockTime(lastSig.blockTime) : 0;
-        const firstTimestamp = firstBlockSec ? new Date(firstBlockSec * 1000).toISOString() : '';
-        const lastTimestamp = lastBlockSec ? new Date(lastBlockSec * 1000).toISOString() : '';
-        const activityPeriodDays = firstBlockSec && lastBlockSec
-            ? Math.round((lastBlockSec - firstBlockSec) / 86400)
-            : 0;
-
-        // Compute SOL sent/received from transfers
+        // Fetch a subset of recent transactions for interactor analysis
+        const recentSigs = allSigs.slice(0, Math.min(50, allSigs.length));
+        const interactors: Record<string, number> = {};
         let totalSent = 0;
         let totalReceived = 0;
-        const interactors: Record<string, number> = {};
 
-        for (const t of transfers) {
-            const isSol = !t.mint || t.mint === 'So11111111111111111111111111111111111111112';
-            const amt = isSol ? t.amount / LAMPORTS : t.amount;
+        const txResults = await Promise.allSettled(
+            recentSigs.map(sig =>
+                solanaKeyPool.execute(async (endpoint) => {
+                    const res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0', id: 1,
+                            method: 'getTransaction',
+                            params: [sig.signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }],
+                        }),
+                    });
+                    return res.json();
+                }, 1)
+            )
+        );
 
-            if (t.source === address) {
-                totalSent += amt;
-                interactors[t.destination] = (interactors[t.destination] || 0) + 1;
-            } else if (t.destination === address) {
-                totalReceived += amt;
-                interactors[t.source] = (interactors[t.source] || 0) + 1;
+        for (const result of txResults) {
+            if (result.status !== 'fulfilled' || !result.value?.result) continue;
+            const tx = result.value.result;
+            const accountKeys = tx.transaction?.message?.accountKeys || [];
+            const pre = tx.meta?.preBalances || [];
+            const post = tx.meta?.postBalances || [];
+
+            // Track interactors from account keys (skip the wallet itself)
+            for (const key of accountKeys) {
+                const pubkey = typeof key === 'string' ? key : key?.pubkey;
+                if (pubkey && pubkey !== address) {
+                    interactors[pubkey] = (interactors[pubkey] || 0) + 1;
+                }
+            }
+
+            // Compute SOL flow from pre/post balances
+            if (accountKeys[0] && pre.length > 0 && post.length > 0) {
+                const walletKey = typeof accountKeys[0] === 'string' ? accountKeys[0] : accountKeys[0]?.pubkey;
+                if (walletKey === address) {
+                    const diff = (pre[0] - post[0]) - (tx.meta?.fee || 0);
+                    if (diff > 0) totalSent += diff;
+                }
+                // Check if wallet is a recipient
+                const walletIdx = accountKeys.findIndex((k: any) =>
+                    (typeof k === 'string' ? k : k?.pubkey) === address
+                );
+                if (walletIdx > 0 && pre[walletIdx] !== undefined) {
+                    const received = (post[walletIdx] || 0) - (pre[walletIdx] || 0);
+                    if (received > 0) totalReceived += received;
+                }
             }
         }
 
         const topInteractors = Object.entries(interactors)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 10)
-            .map(([address, count]) => ({ address, count }));
+            .map(([addr, count]) => ({ address: addr, count }));
 
-        const uniqueAddresses = Object.keys(interactors).slice(0, 200);
+        console.log(`[SolanaPortfolio] Alchemy overview: ${allSigs.length} sigs, ${Object.keys(interactors).length} interactors, ${Date.now() - start}ms`);
 
         return {
             wallet: address,
-            firstTimestamp,
-            lastTimestamp,
-            activityPeriodDays,
-            totalTransactions: signatures.length,
-            totalSOLSent: totalSent.toFixed(6),
-            totalSOLReceived: totalReceived.toFixed(6),
+            firstTimestamp: firstMs ? new Date(firstMs).toISOString() : '',
+            lastTimestamp: lastMs ? new Date(lastMs).toISOString() : '',
+            activityPeriodDays: firstMs && lastMs ? Math.round((lastMs - firstMs) / 86400000) : 0,
+            totalTransactions: allSigs.length,
+            totalSOLSent: (totalSent / LAMPORTS_PER_SOL).toFixed(6),
+            totalSOLReceived: (totalReceived / LAMPORTS_PER_SOL).toFixed(6),
             uniqueAddressCount: Object.keys(interactors).length,
-            uniqueAddresses,
+            uniqueAddresses: Object.keys(interactors).slice(0, 200),
             topInteractors,
             scanTimeMs: Date.now() - start,
         };
     }
 
     /**
-     * Free-tier fallback: uses getSignaturesForAddress RPC + batch getTransaction
-     * No reliance on paid Helius features
-     */
-    async scanOverviewFallback(address: string): Promise<SolanaOverviewResult> {
-        const start = Date.now();
-        const helius = solanaHeliusClient;
-
-        const result = await helius.scanWalletFallback(address);
-        const signatures = result.signatures;
-
-        const firstSig = signatures[0];
-        const lastSig = signatures[signatures.length - 1];
-        const firstBlockSec = firstSig?.blockTime ? this.normalizeBlockTime(firstSig.blockTime) : 0;
-        const lastBlockSec = lastSig?.blockTime ? this.normalizeBlockTime(lastSig.blockTime) : 0;
-        const firstTimestamp = firstBlockSec ? new Date(firstBlockSec * 1000).toISOString() : '';
-        const lastTimestamp = lastBlockSec ? new Date(lastBlockSec * 1000).toISOString() : '';
-        const activityPeriodDays = firstBlockSec && lastBlockSec
-            ? Math.round((lastBlockSec - firstBlockSec) / 86400)
-            : 0;
-
-        return {
-            wallet: address,
-            firstTimestamp,
-            lastTimestamp,
-            activityPeriodDays,
-            totalTransactions: signatures.length,
-            totalSOLSent: result.totalSOLSent.toFixed(6),
-            totalSOLReceived: result.totalSOLReceived.toFixed(6),
-            uniqueAddressCount: result.topInteractors.length,
-            uniqueAddresses: result.topInteractors.map(i => i.address).slice(0, 200),
-            topInteractors: result.topInteractors,
-            scanTimeMs: Date.now() - start,
-        };
-    }
-
-    /**
-     * Get portfolio - tries SIM first, falls back to existing RPC-based method
+     * Get portfolio from Alchemy-backed Solana RPC.
      */
     async getPortfolio(address: string, filterOptions?: PortfolioFilterOptions): Promise<SolanaPortfolio> {
         const cacheKey = `solana:portfolio:${address}:${JSON.stringify(filterOptions || {})}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached as SolanaPortfolio;
 
-        // Try SIM first if enabled
-        if (duneSimClient.isEnabled()) {
-            try {
-                console.log('[SolanaPortfolio] Trying SIM for portfolio...');
-                
-                // Map SIM portfolio to our format
-                const simPortfolio = filterOptions?.excludeSpamTokens || filterOptions?.minLiquidity
-                    ? await duneSimClient.getFilteredPortfolio(address, {
-                        excludeSpamTokens: filterOptions?.excludeSpamTokens,
-                        excludeUnpriced: filterOptions?.excludeUnpriced,
-                        minLiquidity: filterOptions?.minLiquidity,
-                    })
-                    : await duneSimClient.getBalances(address).then(r => duneSimClient.mapBalancesToPortfolio(r));
-
-                // Convert SIM format to our format
-                const portfolio: SolanaPortfolio = {
-                    address: simPortfolio.address,
-                    sol: simPortfolio.sol,
-                    tokens: simPortfolio.tokens.map(t => ({
-                        mint: t.mint,
-                        amount: t.amount,
-                        decimals: t.decimals,
-                        uiAmount: t.uiAmount,
-                        symbol: t.symbol,
-                        name: t.name,
-                        logoUrl: t.logoUrl,
-                        price: t.price,
-                        value: t.value,
-                    })),
-                    staking: [], // Would need additional SIM call
-                    totalUsd: simPortfolio.totalUsd,
-                    fetchedAt: simPortfolio.fetchedAt,
-                };
-
-                console.log('[SolanaPortfolio] SIM portfolio fetched successfully');
-                cache.set(cacheKey, portfolio, 60);
-                return portfolio;
-            } catch (simError) {
-                console.error('[SolanaPortfolio] SIM failed, falling back to RPC:', simError);
-            }
-        }
-
-        // Fallback: Original RPC-based implementation
         return this.getPortfolioFallback(address);
     }
 
@@ -453,73 +445,37 @@ export class SolanaPortfolioService {
     }
 
     /**
-     * Get transactions - uses SIM as primary
+     * Get transactions from Alchemy-backed Solana RPC.
      */
     async getTransactions(address: string, limit = 100): Promise<SolanaTransaction[]> {
-        const cacheKey = `solana:txs:${address}:${limit}`;
+        return this.getTransactionsViaAlchemy(address, limit);
+    }
+
+    async getTransactionsViaAlchemy(address: string, limit = 100): Promise<SolanaTransaction[]> {
+        const cacheKey = `solana:txs:alchemy:${address}:${limit}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached as SolanaTransaction[];
 
-        // Try SIM first if enabled
-        if (duneSimClient.isEnabled()) {
-            try {
-                console.log('[SolanaPortfolio] Trying SIM for transactions...');
-                
-                const simResponse = await duneSimClient.getTransactions(address, { limit });
-                const txs = duneSimClient.mapTransactions(simResponse);
-                
-                // Map to our format
-                const transactions: SolanaTransaction[] = txs.map(tx => ({
-                    signature: tx.signature,
-                    slot: tx.slot,
-                    blockTime: tx.blockTime,
-                    fee: tx.fee,
-                    status: tx.status,
-                    type: tx.type,
-                    from: tx.from,
-                    to: tx.to,
-                    amount: tx.amount,
-                    token: tx.token,
-                    tokenAmount: tx.tokenAmount,
-                    instructions: tx.instructions,
-                }));
-
-                console.log('[SolanaPortfolio] SIM transactions fetched successfully');
-                cache.set(cacheKey, transactions, 300);
-                return transactions;
-            } catch (simError) {
-                console.error('[SolanaPortfolio] SIM transactions failed, falling back to RPC:', simError);
-            }
-        }
-
-        // Fallback: Original RPC-based implementation
-        const signatures = await this.getSignatures(address, limit);
+        const signatures = await this.getSignaturesViaAlchemy(address, limit);
         if (signatures.length === 0) return [];
 
         const transactions = await Promise.all(
-            signatures.map(sig => this.getTransaction(sig))
+            signatures.map(sig => this.getTransaction(sig.signature))
         );
 
-        const txs = transactions.filter(Boolean);
+        const bySignatureMeta = new Map(signatures.map(sig => [sig.signature, sig]));
+        const txs = transactions.filter(Boolean).map((tx) => {
+            const meta = bySignatureMeta.get(tx!.signature);
+            return {
+                ...tx!,
+                slot: tx!.slot || meta?.slot || 0,
+                blockTime: tx!.blockTime || ((meta?.blockTime || 0) * 1000),
+                status: meta?.err ? 'failed' : tx!.status,
+            };
+        });
+
         cache.set(cacheKey, txs, 300);
         return txs;
-    }
-
-    private async getSignatures(address: string, limit: number): Promise<string[]> {
-        return solanaKeyPool.execute(async (endpoint) => {
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    id: 1,
-                    method: 'getSignaturesForAddress',
-                    params: [address, { limit, commitment: 'confirmed' }],
-                }),
-            });
-            const data = await res.json();
-            return data.result?.map((s: any) => s.signature) || [];
-        }, 1);
     }
 
     private async getTransaction(signature: string): Promise<SolanaTransaction | null> {
