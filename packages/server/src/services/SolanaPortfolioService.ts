@@ -6,6 +6,7 @@
 
 import { solanaKeyPool } from './SolanaKeyPoolManager.js';
 import { duneSimClient } from './DuneSimClient.js';
+import { solanaHeliusClient } from './SolanaHeliusClient.js';
 import { cache } from '../utils/cache.js';
 import fetch from 'node-fetch';
 
@@ -121,8 +122,8 @@ export class SolanaPortfolioService {
     private priceCache = new Map<string, number>();
 
     /**
-     * Alchemy-powered signature pagination.
-     * RPC returns newest first and blockTime is Unix seconds.
+     * Helius-powered signature pagination.
+     * Returns newest first and blockTime is Unix seconds.
      */
     async getSignaturesViaAlchemy(
         address: string,
@@ -131,56 +132,60 @@ export class SolanaPortfolioService {
         const allSigs: { signature: string; blockTime: number; err: any; slot: number }[] = [];
         let paginationToken: string | undefined;
 
+        try {
+            while (allSigs.length < maxSignatures) {
+                const limit = Math.min(1000, maxSignatures - allSigs.length);
+                const page = await solanaHeliusClient.getTransactionsForAddress(address, {
+                    transactionDetails: 'signatures',
+                    sortOrder: 'desc',
+                    limit,
+                    paginationToken,
+                });
+
+                const batch = page.data.map((s: any) => ({
+                    signature: s.signature || s.transactionSignature || s.txHash || '',
+                    blockTime: this.normalizeBlockTime(s.blockTime || s.timestamp || s.block_time || 0),
+                    err: s.err || s.error || null,
+                    slot: s.slot || s.blockSlot || s.block_slot || 0,
+                })).filter((s: { signature: string }) => s.signature);
+                if (batch.length === 0) break;
+                allSigs.push(...batch);
+                paginationToken = page.paginationToken;
+                if (!paginationToken || batch.length < limit) break;
+            }
+        } catch (error: any) {
+            console.warn(`[SolanaPortfolio] Helius enhanced history failed for ${address}, using standard RPC:`, error?.message || error);
+            return this.getSignaturesViaHeliusRpc(address, maxSignatures);
+        }
+
+        return allSigs;
+    }
+
+    private async getSignaturesViaHeliusRpc(
+        address: string,
+        maxSignatures: number
+    ): Promise<{ signature: string; blockTime: number; err: any; slot: number }[]> {
+        const allSigs: { signature: string; blockTime: number; err: any; slot: number }[] = [];
+        let before: string | undefined;
+
         while (allSigs.length < maxSignatures) {
             const limit = Math.min(1000, maxSignatures - allSigs.length);
-            const page = await solanaKeyPool.execute(async (endpoint) => {
-                const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        jsonrpc: '2.0',
-                        id: 1,
-                        method: 'getTransactionsForAddress',
-                        params: [
-                            address,
-                            {
-                                transactionDetails: 'signatures',
-                                sortOrder: 'desc',
-                                limit,
-                                commitment: 'confirmed',
-                                ...(paginationToken ? { paginationToken } : {}),
-                            },
-                        ],
-                    }),
-                });
-                const data = await res.json();
-                if (data.error) throw new Error(data.error.message || 'Alchemy Solana RPC error');
-                const result = data.result || {};
-                const rows = Array.isArray(result) ? result : (result.data || result.transactions || []);
-                return {
-                    signatures: rows.map((s: any) => ({
-                        signature: s.signature,
-                        blockTime: s.blockTime || s.timestamp || 0,
-                        err: s.err,
-                        slot: s.slot || 0,
-                    })),
-                    paginationToken: result.paginationToken || result.nextPageToken || undefined,
-                };
-            }, 1);
-
-            const batch = page.signatures;
+            const batch = await solanaHeliusClient.getSignaturesForAddressStdRpc(address, { limit, before });
             if (batch.length === 0) break;
-            allSigs.push(...batch);
-            paginationToken = page.paginationToken;
-            if (!paginationToken || batch.length < limit) break;
+            allSigs.push(...batch.map(sig => ({
+                ...sig,
+                blockTime: this.normalizeBlockTime(sig.blockTime),
+            })));
+            before = batch[batch.length - 1].signature;
+            if (batch.length < limit) break;
         }
 
         return allSigs;
     }
 
     /**
-     * Alchemy-powered overview: uses standard RPC getSignaturesForAddress.
-     * Uses Alchemy RPC timestamps, which are Unix seconds.
+     * Helius-powered overview: uses enhanced history with standard RPC fallback.
+     * Timestamps are normalized to Unix seconds.
      */
     async scanOverviewViaAlchemy(address: string): Promise<SolanaOverviewResult> {
         const start = Date.now();
@@ -199,25 +204,12 @@ export class SolanaPortfolioService {
         let totalReceived = 0;
 
         const txResults = await Promise.allSettled(
-            recentSigs.map(sig =>
-                solanaKeyPool.execute(async (endpoint) => {
-                    const res = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            jsonrpc: '2.0', id: 1,
-                            method: 'getTransaction',
-                            params: [sig.signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }],
-                        }),
-                    });
-                    return res.json();
-                }, 1)
-            )
+            recentSigs.map(sig => solanaHeliusClient.getTransactionStdRpc(sig.signature))
         );
 
         for (const result of txResults) {
-            if (result.status !== 'fulfilled' || !result.value?.result) continue;
-            const tx = result.value.result;
+            if (result.status !== 'fulfilled' || !result.value) continue;
+            const tx = result.value;
             const accountKeys = tx.transaction?.message?.accountKeys || [];
             const pre = tx.meta?.preBalances || [];
             const post = tx.meta?.postBalances || [];
@@ -253,7 +245,7 @@ export class SolanaPortfolioService {
             .slice(0, 10)
             .map(([addr, count]) => ({ address: addr, count }));
 
-        console.log(`[SolanaPortfolio] Alchemy overview: ${allSigs.length} sigs, ${Object.keys(interactors).length} interactors, ${Date.now() - start}ms`);
+        console.log(`[SolanaPortfolio] Helius overview: ${allSigs.length} sigs, ${Object.keys(interactors).length} interactors, ${Date.now() - start}ms`);
 
         return {
             wallet: address,
@@ -489,7 +481,7 @@ export class SolanaPortfolioService {
     }
 
     async getTransactionsViaAlchemy(address: string, limit = 100): Promise<SolanaTransaction[]> {
-        const cacheKey = `solana:txs:alchemy:${address}:${limit}`;
+        const cacheKey = `solana:txs:helius:${address}:${limit}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached as SolanaTransaction[];
 
@@ -517,62 +509,50 @@ export class SolanaPortfolioService {
 
     private async getTransaction(signature: string): Promise<SolanaTransaction | null> {
         try {
-            return await solanaKeyPool.execute(async (endpoint) => {
-                const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        jsonrpc: '2.0',
-                        id: 1,
-                        method: 'getTransaction',
-                        params: [signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }],
-                    }),
-                });
-                const data = await res.json();
-                if (!data.result) return null;
+            const tx = await solanaHeliusClient.getTransactionStdRpc(signature);
+            if (!tx) return null;
 
-                const tx = data.result;
-                const meta = tx.meta;
-                const instructions = tx.transaction.message.instructions;
+            const meta = tx.meta;
+            const instructions = tx.transaction?.message?.instructions || [];
+            const accountKeys = tx.transaction?.message?.accountKeys || [];
 
-                let from = '';
-                let to = '';
-                let amount = 0;
-                let token = '';
-                let tokenAmount = 0;
+            let from = '';
+            let to = '';
+            let amount = 0;
+            let token = '';
+            let tokenAmount = 0;
 
-                if (tx.transaction.message.accountKeys?.[0]) {
-                    from = tx.transaction.message.accountKeys[0].pubkey;
-                }
+            if (accountKeys[0]) {
+                from = typeof accountKeys[0] === 'string' ? accountKeys[0] : accountKeys[0]?.pubkey || '';
+            }
 
-                for (const ix of instructions) {
-                    if (ix.parsed) {
-                        if (ix.parsed.type === 'transfer') {
-                            to = ix.parsed.info.destination;
-                            amount = ix.parsed.info.lamports || 0;
-                        } else if (ix.parsed.type === 'transferChecked') {
-                            to = ix.parsed.info.destination;
-                            token = ix.parsed.info.mint;
-                            tokenAmount = parseFloat(ix.parsed.info.tokenAmount?.amount || '0');
-                        }
+            for (const ix of instructions) {
+                if (ix.parsed) {
+                    if (ix.parsed.type === 'transfer') {
+                        to = ix.parsed.info.destination;
+                        amount = ix.parsed.info.lamports || 0;
+                    } else if (ix.parsed.type === 'transferChecked') {
+                        to = ix.parsed.info.destination;
+                        token = ix.parsed.info.mint;
+                        tokenAmount = parseFloat(ix.parsed.info.tokenAmount?.amount || '0');
                     }
                 }
+            }
 
-                return {
-                    signature,
-                    slot: tx.slot,
-                    blockTime: this.normalizeBlockTime(tx.blockTime) * 1000,
-                    fee: meta?.fee || 0,
-                    status: meta?.err ? 'failed' : 'success',
-                    type: this.inferTransactionType(instructions),
-                    from,
-                    to,
-                    amount: amount > 0 ? amount / LAMPORTS_PER_SOL : undefined,
-                    token,
-                    tokenAmount: tokenAmount > 0 ? tokenAmount : undefined,
-                    instructions: instructions.map((ix: any) => ix.parsed || ix),
-                };
-            }, 1);
+            return {
+                signature,
+                slot: tx.slot,
+                blockTime: this.normalizeBlockTime(tx.blockTime) * 1000,
+                fee: meta?.fee || 0,
+                status: meta?.err ? 'failed' : 'success',
+                type: this.inferTransactionType(instructions),
+                from,
+                to,
+                amount: amount > 0 ? amount / LAMPORTS_PER_SOL : undefined,
+                token,
+                tokenAmount: tokenAmount > 0 ? tokenAmount : undefined,
+                instructions: instructions.map((ix: any) => ix.parsed || ix),
+            };
         } catch (e) {
             return null;
         }

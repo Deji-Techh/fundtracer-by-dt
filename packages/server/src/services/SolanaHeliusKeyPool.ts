@@ -1,6 +1,6 @@
 // ============================================================
 // FundTracer by DT - RPC Key Pool
-// Manages mixed provider keys (Helius + Alchemy) for Solana RPC
+// Manages Helius keys for Solana RPC
 // Each slot stores a full RPC endpoint URL.
 // Supports multiple named pools with circuit breaker.
 // ============================================================
@@ -169,18 +169,12 @@ export class RpcKeyPool {
 function buildEndpoints(): Array<{ url: string; label: string }> {
     const eps: Array<{ url: string; label: string }> = [];
 
-    // Helius keys (3 max)
-    for (let i = 1; i <= 3; i++) {
+    // Helius keys
+    for (let i = 1; i <= 5; i++) {
         const key = process.env[`HELIUS_KEY_${i}`];
         if (key) {
             eps.push({ url: `https://mainnet.helius-rpc.com/?api-key=${key}`, label: `Helius-${i}` });
         }
-    }
-
-    // Alchemy Solana key
-    const alchemyKey = process.env.ALCHEMY_SOLANA_API_KEY;
-    if (alchemyKey) {
-        eps.push({ url: `https://solana-mainnet.g.alchemy.com/v2/${alchemyKey}`, label: 'Alchemy-Sol' });
     }
 
     return eps;
@@ -194,9 +188,8 @@ if (ALL_ENDPOINTS.length === 0) {
     console.log(`[RpcKeyPool] Found ${ALL_ENDPOINTS.length} Solana RPC endpoint(s)`);
 }
 
-/** Pool A — high-throughput RPC (2/3 of available endpoints) */
-const splitPoint = Math.max(1, Math.floor(ALL_ENDPOINTS.length * 0.66));
-export const sigRpcPool = new RpcKeyPool(ALL_ENDPOINTS.slice(0, splitPoint), 'sig-rpc');
+/** Pool A — high-throughput signature/history RPC */
+export const sigRpcPool = new RpcKeyPool(ALL_ENDPOINTS, 'sig-rpc');
 
-/** Pool B — secondary RPC (remaining endpoints) */
-export const xferRpcPool = new RpcKeyPool(ALL_ENDPOINTS.slice(splitPoint), 'xfer-rpc');
+/** Pool B — transfer/secondary RPC */
+export const xferRpcPool = new RpcKeyPool(ALL_ENDPOINTS, 'xfer-rpc');
