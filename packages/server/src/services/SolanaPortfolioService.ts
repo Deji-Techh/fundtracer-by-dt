@@ -12,6 +12,8 @@ import fetch from 'node-fetch';
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const JUPITER_PRICE_API = 'https://price.jup.ag/v6/price';
+const SOLANA_OVERVIEW_SIGNATURE_LIMIT = 500;
+const SOLANA_RPC_BATCH_SIZE = 5;
 
 export interface SolanaToken {
     mint: string;
@@ -128,7 +130,7 @@ export class SolanaPortfolioService {
      */
     async getSignaturesViaAlchemy(
         address: string,
-        maxSignatures = 50000
+        maxSignatures = SOLANA_OVERVIEW_SIGNATURE_LIMIT
     ): Promise<{ signature: string; blockTime: number; err: any; slot: number }[]> {
         return this.getSignaturesViaHeliusRpc(address, maxSignatures);
     }
@@ -161,12 +163,13 @@ export class SolanaPortfolioService {
      */
     async scanOverviewViaAlchemy(address: string): Promise<SolanaOverviewResult> {
         const start = Date.now();
-        const allSigs = await this.getSignaturesViaAlchemy(address);
+        const allSigs = await this.getSignaturesViaAlchemy(address, SOLANA_OVERVIEW_SIGNATURE_LIMIT);
+        const hitHistoryCap = allSigs.length >= SOLANA_OVERVIEW_SIGNATURE_LIMIT;
 
         // Sorted newest-first from RPC. blockTime is Unix seconds.
         const newest = allSigs[0];
         const oldest = allSigs[allSigs.length - 1];
-        const firstMs = oldest?.blockTime ? oldest.blockTime * 1000 : 0;
+        const firstMs = !hitHistoryCap && oldest?.blockTime ? oldest.blockTime * 1000 : 0;
         const lastMs = newest?.blockTime ? newest.blockTime * 1000 : 0;
 
         const interactors: Record<string, number> = {};
@@ -199,7 +202,7 @@ export class SolanaPortfolioService {
             .slice(0, 10)
             .map(([addr, count]) => ({ address: addr, count }));
 
-        console.log(`[SolanaPortfolio] Helius overview: ${allSigs.length} sigs, ${Object.keys(interactors).length} interactors, ${Date.now() - start}ms`);
+        console.log(`[SolanaPortfolio] Helius overview: ${allSigs.length}${hitHistoryCap ? '+' : ''} sigs, ${Object.keys(interactors).length} interactors, ${Date.now() - start}ms`);
 
         return {
             wallet: address,
@@ -452,7 +455,7 @@ export class SolanaPortfolioService {
         if (cached) return cached as SolanaTransaction[];
 
         const signatures = await this.getSignaturesViaAlchemy(address, Math.min(Math.max(limit, 1), 1000));
-        const txs = (await this.mapInBatches(signatures.slice(0, limit), 25, sig => this.getTransaction(sig.signature)))
+        const txs = (await this.mapInBatches(signatures.slice(0, limit), SOLANA_RPC_BATCH_SIZE, sig => this.getTransaction(sig.signature)))
             .filter(Boolean) as SolanaTransaction[];
 
         cache.set(cacheKey, txs, 300);
@@ -461,7 +464,7 @@ export class SolanaPortfolioService {
 
     private async getStandardRpcTransactionsFromSignatures(
         signatures: { signature: string }[],
-        batchSize = 20,
+        batchSize = SOLANA_RPC_BATCH_SIZE,
     ): Promise<{ signature: string; tx: any }[]> {
         const rows = await this.mapInBatches(signatures, batchSize, async sig => {
             try {

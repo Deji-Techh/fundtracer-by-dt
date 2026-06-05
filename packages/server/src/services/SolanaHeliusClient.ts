@@ -224,7 +224,7 @@ export class SolanaHeliusClient {
     async getTransactionStdRpc(signature: string): Promise<any> {
         return sigRpcPool.rpc('getTransaction', [
             signature,
-            { commitment: 'confirmed', maxSupportedTransactionVersion: 0 },
+            { commitment: 'confirmed', encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 },
         ]);
     }
 
