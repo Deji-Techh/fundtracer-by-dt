@@ -463,7 +463,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(400).json({ error: `Invalid ${isSolana ? 'Solana' : 'EVM'} address format` });
     }
 
-    // SOLANA WALLET ANALYZE - Alchemy-only path
+    // SOLANA WALLET ANALYZE - Helius full history + Dune SIM portfolio
     if (isSolana) {
         try {
             const [overview, portfolio, recentTransactions] = await Promise.all([
@@ -560,33 +560,51 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 : solanaRiskScore > 0 ? 'low' as const
                 : 'low' as const;
 
-            // ---- Build funding sources tree from adapter data ----
+            // ---- Build funding sources tree from transfer data ----
+            const transferRows = await solanaPortfolioService.getTransfersViaAlchemy(address, 200).catch(() => []);
+            const fundingSourceMap = new Map<string, { total: number; count: number }>();
+            const fundingDestMap = new Map<string, { total: number; count: number }>();
+            for (const row of transferRows as any[]) {
+                const from = row.fromUserAccount || row.source || row.from || row.sender;
+                const to = row.toUserAccount || row.destination || row.to || row.recipient;
+                const amount = Number(row.amount || row.uiAmount || 0);
+                const type = String(row.type || '').toLowerCase();
+                if (to === address && from && from !== address) {
+                    const e = fundingSourceMap.get(from) || { total: 0, count: 0 };
+                    e.total += amount;
+                    e.count += 1;
+                    fundingSourceMap.set(from, e);
+                }
+                if (from === address && to && to !== address) {
+                    const e = fundingDestMap.get(to) || { total: 0, count: 0 };
+                    e.total += amount;
+                    e.count += 1;
+                    fundingDestMap.set(to, e);
+                }
+                if (type === 'mint' && to && to !== address) {
+                    const e = fundingDestMap.get(to) || { total: 0, count: 0 };
+                    e.total += amount;
+                    e.count += 1;
+                    fundingDestMap.set(to, e);
+                }
+            }
             const fundingSourcesFlat = {
-                nodes: (overview.topInteractors || []).slice(0, 20).map((n) => ({
-                    address: n.address,
+                nodes: Array.from(fundingSourceMap.entries()).slice(0, 20).map(([addr, data]) => ({
+                    address: addr,
                     depth: 1,
                     direction: 'source' as const,
-                    totalValue: '0',
-                    totalValueInEth: 0,
-                    txCount: n.count || 1,
+                    totalValue: data.total.toString(),
+                    totalValueInEth: data.total,
+                    txCount: data.count,
                     labels: [],
                 })),
                 edges: [],
             };
             const fundingSources = solanaFlatToTree(fundingSourcesFlat, address, 'source');
 
-            // Destinations built from outgoing tx data (adapter is source-only)
-            const destMap = new Map<string, { total: number; count: number }>();
-            for (const tx of normalizedTransactions) {
-                if (tx.from === address && tx.to && tx.to !== address) {
-                    const e = destMap.get(tx.to) || { total: 0, count: 0 };
-                    e.total += tx.valueInEth || 0;
-                    e.count++;
-                    destMap.set(tx.to, e);
-                }
-            }
+            // Destinations built from outgoing transfer data
             const fundingDestinationsFlat = {
-                nodes: Array.from(destMap.entries()).slice(0, 20).map(([addr, data]) => ({
+                nodes: Array.from(fundingDestMap.entries()).slice(0, 20).map(([addr, data]) => ({
                     address: addr,
                     depth: 1,
                     direction: 'destination' as const,
@@ -669,15 +687,15 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 }));
 
             // ---- Top funders / destinations ----
-            const topFundingSources = Array.from(interactors.entries())
-                .sort((a, b) => b[1].received - a[1].received)
+            const topFundingSources = Array.from(fundingSourceMap.entries())
+                .sort((a, b) => b[1].total - a[1].total)
                 .slice(0, 10)
-                .map(([addr, data]) => ({ address: addr, valueEth: data.received }));
+                .map(([addr, data]) => ({ address: addr, valueEth: data.total }));
 
-            const topFundingDestinations = Array.from(interactors.entries())
-                .sort((a, b) => b[1].sent - a[1].sent)
+            const topFundingDestinations = Array.from(fundingDestMap.entries())
+                .sort((a, b) => b[1].total - a[1].total)
                 .slice(0, 10)
-                .map(([addr, data]) => ({ address: addr, valueEth: data.sent }));
+                .map(([addr, data]) => ({ address: addr, valueEth: data.total }));
 
             // ---- Assemble result ----
             const result = {
@@ -1047,16 +1065,19 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
     // SOLANA FUNDING TREE
     if (isSolana) {
         try {
-            const transactions = await solanaPortfolioService.getTransactionsViaAlchemy(address, 200);
+            const transfers = await solanaPortfolioService.getTransfersViaAlchemy(address, 200);
 
-            // Build source nodes from tree
+            // Build source nodes from parsed transfers
             const sourceMap = new Map<string, { total: number; count: number }>();
-            for (const tx of transactions) {
-                if (tx.to === address && tx.from && tx.from !== address) {
-                    const e = sourceMap.get(tx.from) || { total: 0, count: 0 };
-                    e.total += tx.amount || 0;
+            for (const tx of transfers as any[]) {
+                const from = tx.fromUserAccount || tx.source || tx.from || tx.sender;
+                const to = tx.toUserAccount || tx.destination || tx.to || tx.recipient;
+                const amount = Number(tx.amount || tx.uiAmount || 0);
+                if (to === address && from && from !== address) {
+                    const e = sourceMap.get(from) || { total: 0, count: 0 };
+                    e.total += amount;
                     e.count++;
-                    sourceMap.set(tx.from, e);
+                    sourceMap.set(from, e);
                 }
             }
             const sourceNodes = Array.from(sourceMap.entries())
@@ -1072,14 +1093,17 @@ router.post('/funding-tree', async (req: AuthenticatedRequest, res: Response) =>
                 labels: [],
             }));
 
-            // Build destination nodes from transactions (outgoing)
+            // Build destination nodes from parsed transfers (outgoing)
             const destMap = new Map<string, { total: number; count: number }>();
-            for (const tx of transactions) {
-                if (tx.from === address && tx.to && tx.to !== address) {
-                    const e = destMap.get(tx.to) || { total: 0, count: 0 };
-                    e.total += tx.amount || 0;
+            for (const tx of transfers as any[]) {
+                const from = tx.fromUserAccount || tx.source || tx.from || tx.sender;
+                const to = tx.toUserAccount || tx.destination || tx.to || tx.recipient;
+                const amount = Number(tx.amount || tx.uiAmount || 0);
+                if (from === address && to && to !== address) {
+                    const e = destMap.get(to) || { total: 0, count: 0 };
+                    e.total += amount;
                     e.count++;
-                    destMap.set(tx.to, e);
+                    destMap.set(to, e);
                 }
             }
             const destNodes = Array.from(destMap.entries())
@@ -2477,42 +2501,53 @@ router.post('/expand-node', async (req: AuthenticatedRequest, res: Response) => 
     let nodes: any[] = [];
     let edges: any[] = [];
 
-	    if (isSolana) {
-	      const transactions = await solanaPortfolioService.getTransactionsViaAlchemy(address, 200);
+    if (isSolana) {
+      const transfers = await solanaPortfolioService.getTransfersViaAlchemy(address, 200);
 
-	      // Source nodes
-	      const sourceMap = new Map<string, { total: number; count: number }>();
-	      for (const tx of transactions) {
-	        if (tx.to === address && tx.from && tx.from !== address) {
-	          const d = sourceMap.get(tx.from) || { total: 0, count: 0 };
-	          d.total += tx.amount || 0;
-	          d.count++;
-	          sourceMap.set(tx.from, d);
-	        }
-	      }
-	      for (const [addr, data] of Array.from(sourceMap.entries()).sort((a, b) => b[1].total - a[1].total).slice(0, 30)) {
-	        nodes.push({
-	          id: addr,
-	          address: addr,
-	          depth: 1,
-	          direction: 'source',
-	          totalValue: data.total.toString(),
-	          totalValueInEth: data.total,
-	          txCount: data.count,
-	        });
-	        edges.push({ source: addr, target: address, value: data.total });
-	      }
-
-      // Destination nodes from outgoing txs
+      const sourceMap = new Map<string, { total: number; count: number }>();
       const destMap = new Map<string, { total: number; count: number }>();
-	      for (const tx of transactions) {
-	        if (tx.from === address && tx.to && tx.to !== address) {
-	          const d = destMap.get(tx.to) || { total: 0, count: 0 };
-	          d.total += tx.amount || 0;
-	          d.count++;
-	          destMap.set(tx.to, d);
-	        }
+
+      for (const row of transfers as any[]) {
+        const from = row.fromUserAccount || row.source || row.from || row.sender;
+        const to = row.toUserAccount || row.destination || row.to || row.recipient;
+        const amount = Number(row.amount || row.uiAmount || 0);
+        const type = String(row.type || '').toLowerCase();
+
+        if (to === address && from && from !== address) {
+          const d = sourceMap.get(from) || { total: 0, count: 0 };
+          d.total += amount;
+          d.count++;
+          sourceMap.set(from, d);
+        }
+
+        if (from === address && to && to !== address) {
+          const d = destMap.get(to) || { total: 0, count: 0 };
+          d.total += amount;
+          d.count++;
+          destMap.set(to, d);
+        }
+
+        if (type === 'mint' && to && to !== address) {
+          const d = destMap.get(to) || { total: 0, count: 0 };
+          d.total += amount;
+          d.count++;
+          destMap.set(to, d);
+        }
       }
+
+      for (const [addr, data] of Array.from(sourceMap.entries()).sort((a, b) => b[1].total - a[1].total).slice(0, 30)) {
+        nodes.push({
+          id: addr,
+          address: addr,
+          depth: 1,
+          direction: 'source',
+          totalValue: data.total.toString(),
+          totalValueInEth: data.total,
+          txCount: data.count,
+        });
+        edges.push({ source: addr, target: address, value: data.total });
+      }
+
       for (const [addr, data] of Array.from(destMap.entries()).sort((a, b) => b[1].total - a[1].total).slice(0, 30)) {
         nodes.push({
           id: addr,

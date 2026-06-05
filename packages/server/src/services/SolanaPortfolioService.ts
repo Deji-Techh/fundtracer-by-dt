@@ -60,6 +60,7 @@ export interface SolanaTransaction {
     token?: string;
     tokenAmount?: number;
     instructions: any[];
+    description?: string;
 }
 
 export interface SolanaNFT {
@@ -197,45 +198,45 @@ export class SolanaPortfolioService {
         const firstMs = oldest?.blockTime ? oldest.blockTime * 1000 : 0;
         const lastMs = newest?.blockTime ? newest.blockTime * 1000 : 0;
 
-        // Fetch a subset of recent transactions for interactor analysis
-        const recentSigs = allSigs.slice(0, Math.min(50, allSigs.length));
+        // Fetch a subset of recent transactions with full transfer details for interactor analysis
+        const recentTxs = allSigs.length > 0
+            ? await solanaHeliusClient.getTransactionsForAddress(address, {
+                transactionDetails: 'full',
+                sortOrder: 'desc',
+                limit: Math.min(50, allSigs.length),
+            }).then(page => page.data || [])
+            : [];
+
         const interactors: Record<string, number> = {};
         let totalSent = 0;
         let totalReceived = 0;
 
-        const txResults = await Promise.allSettled(
-            recentSigs.map(sig => solanaHeliusClient.getTransactionStdRpc(sig.signature))
-        );
+        for (const tx of recentTxs as any[]) {
+            const nativeTransfers = Array.isArray(tx.nativeTransfers) ? tx.nativeTransfers : [];
+            const tokenTransfers = Array.isArray(tx.tokenTransfers) ? tx.tokenTransfers : [];
+            const accountData = Array.isArray(tx.accountData) ? tx.accountData : [];
 
-        for (const result of txResults) {
-            if (result.status !== 'fulfilled' || !result.value) continue;
-            const tx = result.value;
-            const accountKeys = tx.transaction?.message?.accountKeys || [];
-            const pre = tx.meta?.preBalances || [];
-            const post = tx.meta?.postBalances || [];
-
-            // Track interactors from account keys (skip the wallet itself)
-            for (const key of accountKeys) {
-                const pubkey = typeof key === 'string' ? key : key?.pubkey;
-                if (pubkey && pubkey !== address) {
-                    interactors[pubkey] = (interactors[pubkey] || 0) + 1;
-                }
+            for (const transfer of nativeTransfers) {
+                const from = transfer?.fromUserAccount;
+                const to = transfer?.toUserAccount;
+                const amount = Number(transfer?.amount || 0) / LAMPORTS_PER_SOL;
+                if (from && from !== address) interactors[from] = (interactors[from] || 0) + 1;
+                if (to && to !== address) interactors[to] = (interactors[to] || 0) + 1;
+                if (from === address) totalSent += amount;
+                if (to === address) totalReceived += amount;
             }
 
-            // Compute SOL flow from pre/post balances
-            if (accountKeys[0] && pre.length > 0 && post.length > 0) {
-                const walletKey = typeof accountKeys[0] === 'string' ? accountKeys[0] : accountKeys[0]?.pubkey;
-                if (walletKey === address) {
-                    const diff = (pre[0] - post[0]) - (tx.meta?.fee || 0);
-                    if (diff > 0) totalSent += diff;
-                }
-                // Check if wallet is a recipient
-                const walletIdx = accountKeys.findIndex((k: any) =>
-                    (typeof k === 'string' ? k : k?.pubkey) === address
-                );
-                if (walletIdx > 0 && pre[walletIdx] !== undefined) {
-                    const received = (post[walletIdx] || 0) - (pre[walletIdx] || 0);
-                    if (received > 0) totalReceived += received;
+            for (const transfer of tokenTransfers) {
+                const from = transfer?.fromUserAccount;
+                const to = transfer?.toUserAccount;
+                if (from && from !== address) interactors[from] = (interactors[from] || 0) + 1;
+                if (to && to !== address) interactors[to] = (interactors[to] || 0) + 1;
+            }
+
+            for (const account of accountData) {
+                const acc = account?.account;
+                if (acc && acc !== address) {
+                    interactors[acc] = (interactors[acc] || 0) + 1;
                 }
             }
         }
@@ -480,31 +481,103 @@ export class SolanaPortfolioService {
         return this.getTransactionsViaAlchemy(address, limit);
     }
 
+    async getTransfersViaAlchemy(address: string, limit = 200): Promise<any[]> {
+        const cacheKey = `solana:transfers:helius:${address}:${limit}`;
+        const cached = cache.get(cacheKey);
+        if (cached) return cached as any[];
+
+        const page = await solanaHeliusClient.getTransfersByAddress(address, {
+            limit: Math.min(Math.max(limit, 1), 1000),
+        });
+
+        const transfers = Array.isArray(page.data) ? page.data : [];
+        cache.set(cacheKey, transfers, 300);
+        return transfers;
+    }
+
     async getTransactionsViaAlchemy(address: string, limit = 100): Promise<SolanaTransaction[]> {
         const cacheKey = `solana:txs:helius:${address}:${limit}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached as SolanaTransaction[];
 
-        const signatures = await this.getSignaturesViaAlchemy(address, limit);
-        if (signatures.length === 0) return [];
-
-        const transactions = await Promise.all(
-            signatures.map(sig => this.getTransaction(sig.signature))
-        );
-
-        const bySignatureMeta = new Map(signatures.map(sig => [sig.signature, sig]));
-        const txs = transactions.filter(Boolean).map((tx) => {
-            const meta = bySignatureMeta.get(tx!.signature);
-            return {
-                ...tx!,
-                slot: tx!.slot || meta?.slot || 0,
-                blockTime: tx!.blockTime || ((meta?.blockTime || 0) * 1000),
-                status: meta?.err ? 'failed' : tx!.status,
-            };
+        const page = await solanaHeliusClient.getTransactionsForAddress(address, {
+            transactionDetails: 'full',
+            sortOrder: 'desc',
+            limit: Math.min(Math.max(limit, 1), 1000),
         });
+
+        const txs = (page.data || [])
+            .map((tx: any) => this.normalizeEnhancedTransaction(address, tx))
+            .filter(Boolean) as SolanaTransaction[];
 
         cache.set(cacheKey, txs, 300);
         return txs;
+    }
+
+    private normalizeEnhancedTransaction(address: string, tx: any): SolanaTransaction | null {
+        if (!tx?.signature) return null;
+
+        const nativeTransfers = Array.isArray(tx.nativeTransfers) ? tx.nativeTransfers : [];
+        const tokenTransfers = Array.isArray(tx.tokenTransfers) ? tx.tokenTransfers : [];
+        const accountData = Array.isArray(tx.accountData) ? tx.accountData : [];
+        const instructions = Array.isArray(tx.instructions) ? tx.instructions : [];
+
+        const matchingNative = nativeTransfers.find((t: any) =>
+            t?.fromUserAccount === address || t?.toUserAccount === address
+        ) || nativeTransfers[0];
+        const matchingToken = tokenTransfers.find((t: any) =>
+            t?.fromUserAccount === address || t?.toUserAccount === address
+        ) || tokenTransfers[0];
+
+        const from = matchingNative?.fromUserAccount
+            || matchingToken?.fromUserAccount
+            || tx.feePayer
+            || accountData.find((a: any) => a?.account === address)?.account
+            || '';
+        const to = matchingNative?.toUserAccount
+            || matchingToken?.toUserAccount
+            || undefined;
+
+        const nativeAmount = matchingNative?.amount ? Number(matchingNative.amount) / LAMPORTS_PER_SOL : 0;
+        const tokenAmount = matchingToken?.uiAmount != null
+            ? Number(matchingToken.uiAmount)
+            : matchingToken?.tokenAmount != null
+                ? Number(matchingToken.tokenAmount)
+                : 0;
+        const amount = nativeAmount > 0 ? nativeAmount : 0;
+
+        const type = this.inferEnhancedTransactionType(tx, nativeTransfers, tokenTransfers, instructions);
+        const status = tx.transactionError || tx.err ? 'failed' : 'success';
+
+        return {
+            signature: tx.signature,
+            slot: tx.slot || 0,
+            blockTime: this.normalizeBlockTime(tx.timestamp || tx.blockTime || 0) * 1000,
+            fee: tx.fee || 0,
+            status,
+            type,
+            from,
+            to,
+            amount: amount > 0 ? amount : undefined,
+            token: matchingToken?.mint,
+            tokenAmount: tokenAmount > 0 ? tokenAmount : undefined,
+            instructions: instructions.map((ix: any) => ix?.parsed || ix),
+            description: tx.description,
+        };
+    }
+
+    private inferEnhancedTransactionType(tx: any, nativeTransfers: any[], tokenTransfers: any[], instructions: any[]): string {
+        const desc = String(tx?.description || '').toLowerCase();
+        if (desc.includes('swap')) return 'dex_swap';
+        if (desc.includes('stake')) return 'staking';
+        if (desc.includes('mint')) return 'mint';
+        if (desc.includes('burn')) return 'burn';
+        if (desc.includes('transfer')) {
+            return tokenTransfers.length > 0 ? 'token_transfer' : 'transfer';
+        }
+        if (nativeTransfers.length > 0) return 'transfer';
+        if (tokenTransfers.length > 0) return 'token_transfer';
+        return this.inferTransactionType(instructions);
     }
 
     private async getTransaction(signature: string): Promise<SolanaTransaction | null> {

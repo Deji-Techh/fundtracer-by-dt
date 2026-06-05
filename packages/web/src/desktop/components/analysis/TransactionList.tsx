@@ -8,6 +8,11 @@ const NATIVE_SYMBOL: Record<string, string> = {
   polygon: 'POL', bsc: 'BNB', linea: 'ETH', solana: 'SOL',
 };
 
+function formatDestination(chain: ChainId, to?: string): string {
+  if (to) return chain === 'solana' ? formatMobileAddress(to) : `${to.slice(0, 8)}...${to.slice(-5)}`;
+  return chain === 'solana' ? 'Unknown' : 'Contract Creation';
+}
+
 const CATEGORY_COLORS: Record<string, string> = {
   transfer: 'rgba(0,230,122,0.12)', token_transfer: 'rgba(59,130,246,0.12)',
   contract_call: 'rgba(139,92,246,0.12)', dex_swap: 'rgba(245,158,11,0.12)',
@@ -282,7 +287,7 @@ export function TransactionList({ transactions, chain, loading, error }: Transac
                   <span style={mobileAddressStyle}>
                     <span style={mobileAddressLabelStyle}>To</span>
                     <span style={{ color: isIncoming ? 'var(--accent)' : 'var(--fg-secondary)' }}>
-                      {to ? formatMobileAddress(to) : 'Contract Creation'}
+                      {formatDestination(chain, to)}
                     </span>
                   </span>
                 </span>
@@ -344,7 +349,7 @@ export function TransactionList({ transactions, chain, loading, error }: Transac
                 color: isIncoming ? 'var(--accent)' : 'var(--fg-secondary)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                {to ? `${to.slice(0, 8)}...${to.slice(-5)}` : 'Contract Creation'}
+                {formatDestination(chain, to)}
               </span>
 
               {/* Value */}

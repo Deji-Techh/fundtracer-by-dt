@@ -65,25 +65,28 @@ router.get('/funding-tree/:address', authMiddleware, usageMiddleware, async (req
     let destinations: Record<string, { total: number; count: number; lastTx: number }>;
     let totalTransfers: number;
 
-    const transactions = await solanaPortfolioService.getTransactionsViaAlchemy(address, 200);
-    totalTransfers = transactions.length;
+    const transfers = await solanaPortfolioService.getTransfersViaAlchemy(address, 200);
+    totalTransfers = transfers.length;
 
     sources = {};
     destinations = {};
-    for (const t of transactions) {
+    for (const t of transfers as any[]) {
+      const from = t.fromUserAccount || t.source || t.from || t.sender;
+      const to = t.toUserAccount || t.destination || t.to || t.recipient;
+      const amount = Number(t.amount || t.uiAmount || 0);
       const blockSec = normalizeToMs(t.blockTime);
       const lastTx = blockSec ? Math.floor(blockSec / 1000) : 0;
-      if (t.to === address && t.from) {
-        if (!sources[t.from]) sources[t.from] = { total: 0, count: 0, lastTx: 0 };
-        sources[t.from].total += t.amount || 0;
-        sources[t.from].count += 1;
-        sources[t.from].lastTx = Math.max(sources[t.from].lastTx, lastTx);
+      if (to === address && from) {
+        if (!sources[from]) sources[from] = { total: 0, count: 0, lastTx: 0 };
+        sources[from].total += amount;
+        sources[from].count += 1;
+        sources[from].lastTx = Math.max(sources[from].lastTx, lastTx);
       }
-      if (t.from === address && t.to) {
-        if (!destinations[t.to]) destinations[t.to] = { total: 0, count: 0, lastTx: 0 };
-        destinations[t.to].total += t.amount || 0;
-        destinations[t.to].count += 1;
-        destinations[t.to].lastTx = Math.max(destinations[t.to].lastTx, lastTx);
+      if (from === address && to) {
+        if (!destinations[to]) destinations[to] = { total: 0, count: 0, lastTx: 0 };
+        destinations[to].total += amount;
+        destinations[to].count += 1;
+        destinations[to].lastTx = Math.max(destinations[to].lastTx, lastTx);
       }
     }
 
