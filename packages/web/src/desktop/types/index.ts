@@ -42,6 +42,7 @@ export interface HistoryEntry {
   riskScore?: number;
   label?: string;
   totalTransactions?: number;
+  transactionHistoryLimited?: boolean;
   totalValueSentEth?: number;
   totalValueReceivedEth?: number;
   activityPeriodDays?: number;

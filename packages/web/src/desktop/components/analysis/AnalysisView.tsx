@@ -434,8 +434,16 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
   const txCount = (summary?.totalTransactions as number | undefined)
     ?? (wallet?.txCount as number | undefined)
     ?? (d.transactionCount as number | undefined);
+  const transactionHistoryLimited = Boolean(
+    summary?.transactionHistoryLimited
+    ?? wallet?.transactionHistoryLimited
+    ?? d.transactionHistoryLimited
+  );
   const firstSeen = (wallet?.firstTxTimestamp as number | undefined)
     ?? (d.firstSeen as number | undefined);
+  const oldestSampledSeen = (summary?.oldestSampledTxTimestamp as number | undefined)
+    ?? (wallet?.oldestSampledTxTimestamp as number | undefined)
+    ?? (d.oldestSampledTxTimestamp as number | undefined);
   const lastSeen = (wallet?.lastTxTimestamp as number | undefined)
     ?? (d.lastSeen as number | undefined);
   const walletLabel = (wallet?.label as string | undefined)
@@ -449,6 +457,9 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
   const chain = tab.chain || 'ethereum';
   const currency = NATIVE_CURRENCY[chain] || 'ETH';
   const isSolana = chain === 'solana';
+  const txCountValue = txCount !== undefined
+    ? `${txCount}${isSolana && transactionHistoryLimited ? '+' : ''}`
+    : 'N/A';
 
   // Normalize suspicious indicators
   type IndicatorObj = { type?: string; severity?: string; description?: string; evidence?: unknown; score?: number };
@@ -611,9 +622,12 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
               color={riskScore !== undefined ? (riskScore > 60 ? 'var(--destructive)' : riskScore > 30 ? '#ff9f0a' : 'var(--accent)') : 'var(--fg-tertiary)'}
             />
             <MetricCard isMobile={isMobile} label="Balance" value={balance !== undefined && balance !== null ? `${Number(balance).toFixed(4)} ${currency}` : '0.0000 ' + currency} color="var(--fg)" />
-            <MetricCard isMobile={isMobile} label={isSolana ? 'Recent Txs' : 'Transactions'} value={txCount !== undefined ? String(txCount) : 'N/A'} color="var(--fg)" />
-            {firstSeen != null && (
+            <MetricCard isMobile={isMobile} label={isSolana ? 'Recent Txs' : 'Transactions'} value={txCountValue} color="var(--fg)" />
+            {firstSeen != null && !transactionHistoryLimited && (
               <MetricCard isMobile={isMobile} label="First Seen" value={new Date(firstSeen * 1000).toISOString().slice(0, 10)} color="var(--fg-secondary)" />
+            )}
+            {isSolana && transactionHistoryLimited && oldestSampledSeen != null && (
+              <MetricCard isMobile={isMobile} label="Oldest Sampled" value={new Date(oldestSampledSeen * 1000).toISOString().slice(0, 10)} color="var(--fg-secondary)" />
             )}
             {lastSeen != null && (
               <MetricCard isMobile={isMobile} label="Last Seen" value={new Date(lastSeen * 1000).toISOString().slice(0, 10)} color="var(--fg-secondary)" />

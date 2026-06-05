@@ -186,7 +186,7 @@ export function AiChatView({ context }: AiChatViewProps) {
       `Type: ${entry.type || 'N/A'}`,
       `Risk Level: ${entry.riskLevel || 'N/A'}`,
       `Risk Score: ${entry.riskScore != null ? entry.riskScore + '/100' : 'N/A'}`,
-      `Total Transactions: ${entry.totalTransactions ?? 'N/A'}`,
+      `Total Transactions: ${entry.totalTransactions != null ? `${entry.totalTransactions}${entry.transactionHistoryLimited ? '+' : ''}` : 'N/A'}`,
     ];
     if (entry.totalValueSentEth != null) lines.push(`Total Value Sent: ${entry.totalValueSentEth} ETH`);
     if (entry.totalValueReceivedEth != null) lines.push(`Total Value Received: ${entry.totalValueReceivedEth} ETH`);
@@ -546,7 +546,7 @@ export function AiChatView({ context }: AiChatViewProps) {
                       <span style={{ fontSize: 11, color: 'var(--fg-tertiary)' }}>
                         {entry.chain}
                         {entry.riskLevel ? ` • Risk: ${entry.riskLevel}` : ''}
-                        {entry.totalTransactions != null ? ` • ${entry.totalTransactions} txs` : ''}
+                        {entry.totalTransactions != null ? ` • ${entry.totalTransactions}${entry.transactionHistoryLimited ? '+' : ''} txs` : ''}
                       </span>
                     </button>
                   ))

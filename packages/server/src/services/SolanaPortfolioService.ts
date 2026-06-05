@@ -13,7 +13,8 @@ import fetch from 'node-fetch';
 const LAMPORTS_PER_SOL = 1_000_000_000;
 const JUPITER_PRICE_API = 'https://price.jup.ag/v6/price';
 const SOLANA_OVERVIEW_SIGNATURE_LIMIT = 500;
-const SOLANA_RPC_BATCH_SIZE = 5;
+const SOLANA_RPC_BATCH_SIZE = 3;
+const SOLANA_OVERVIEW_DETAIL_LIMIT = 25;
 
 export interface SolanaToken {
     mint: string;
@@ -111,8 +112,11 @@ export interface SolanaOverviewResult {
     wallet: string;
     firstTimestamp: string;
     lastTimestamp: string;
+    oldestSampledTimestamp: string;
     activityPeriodDays: number;
     totalTransactions: number;
+    historyLimited: boolean;
+    sampleSize: number;
     totalSOLSent: string;
     totalSOLReceived: string;
     uniqueAddressCount: number;
@@ -176,7 +180,7 @@ export class SolanaPortfolioService {
         let totalSent = 0;
         let totalReceived = 0;
 
-        const recentTxs = await this.getStandardRpcTransactionsFromSignatures(allSigs.slice(0, 50));
+        const recentTxs = await this.getStandardRpcTransactionsFromSignatures(allSigs.slice(0, SOLANA_OVERVIEW_DETAIL_LIMIT));
         for (const { signature, tx } of recentTxs) {
             const transfers = this.extractTransferRowsFromStdTx(address, signature, tx);
 
@@ -208,8 +212,11 @@ export class SolanaPortfolioService {
             wallet: address,
             firstTimestamp: firstMs ? new Date(firstMs).toISOString() : '',
             lastTimestamp: lastMs ? new Date(lastMs).toISOString() : '',
+            oldestSampledTimestamp: oldest?.blockTime ? new Date(oldest.blockTime * 1000).toISOString() : '',
             activityPeriodDays: firstMs && lastMs ? Math.round((lastMs - firstMs) / 86400000) : 0,
             totalTransactions: allSigs.length,
+            historyLimited: hitHistoryCap,
+            sampleSize: allSigs.length,
             totalSOLSent: totalSent.toFixed(6),
             totalSOLReceived: totalReceived.toFixed(6),
             uniqueAddressCount: Object.keys(interactors).length,

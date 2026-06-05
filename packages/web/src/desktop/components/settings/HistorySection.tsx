@@ -158,7 +158,7 @@ export function HistorySection() {
                     <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
                       {item.totalTransactions !== undefined && (
                         <span style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                          {item.totalTransactions.toLocaleString()} txs
+                          {item.totalTransactions.toLocaleString()}{item.transactionHistoryLimited ? '+' : ''} txs
                         </span>
                       )}
                       {item.totalValueSentEth !== undefined && item.totalValueSentEth > 0 && (

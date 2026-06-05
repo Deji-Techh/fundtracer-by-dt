@@ -138,11 +138,15 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
         riskLevel: analysisData?.riskLevel || analysisData?.risk_level,
         riskScore: analysisData?.riskScore || analysisData?.risk_score || analysisData?.overallRiskScore,
         totalTransactions: analysisData?.totalTransactions || analysisData?.transactionCount || analysisData?.summary?.totalTransactions || transactions.length,
+        transactionHistoryLimited: Boolean(analysisData?.transactionHistoryLimited || analysisData?.summary?.transactionHistoryLimited || analysisData?.wallet?.transactionHistoryLimited),
         totalValueSentEth: analysisData?.totalValueSentEth || analysisData?.totalValueSent || analysisData?.summary?.totalValueSentEth,
         totalValueReceivedEth: analysisData?.totalValueReceivedEth || analysisData?.totalValueReceived || analysisData?.summary?.totalValueReceivedEth,
         activityPeriodDays: analysisData?.activityPeriodDays || analysisData?.summary?.activityPeriodDays,
         balanceInEth: analysisData?.balanceInEth || analysisData?.balance || analysisData?.wallet?.balanceInEth,
       });
+
+      // Notify sidebar to refresh Torque stats
+      window.dispatchEvent(new CustomEvent('fundtracer:torque-updated'));
     } catch (err) {
       updateTab(tab.id, {
         loading: false,

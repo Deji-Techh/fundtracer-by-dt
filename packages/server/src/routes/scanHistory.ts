@@ -143,6 +143,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
             riskScore,
             riskLevel,
             totalTransactions,
+            transactionHistoryLimited,
             totalValueSentEth,
             totalValueReceivedEth,
             activityPeriodDays,
@@ -172,6 +173,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
         if (riskScore !== undefined) item.riskScore = riskScore;
         if (riskLevel !== undefined) item.riskLevel = riskLevel;
         if (totalTransactions !== undefined) item.totalTransactions = totalTransactions;
+        if (transactionHistoryLimited !== undefined) item.transactionHistoryLimited = transactionHistoryLimited;
         if (totalValueSentEth !== undefined) item.totalValueSentEth = totalValueSentEth;
         if (totalValueReceivedEth !== undefined) item.totalValueReceivedEth = totalValueReceivedEth;
         if (activityPeriodDays !== undefined) item.activityPeriodDays = activityPeriodDays;
@@ -249,6 +251,7 @@ router.post('/sync', async (req: AuthenticatedRequest, res: Response) => {
                 if (localItem.riskScore !== undefined) item.riskScore = localItem.riskScore;
                 if (localItem.riskLevel !== undefined) item.riskLevel = localItem.riskLevel;
                 if (localItem.totalTransactions !== undefined) item.totalTransactions = localItem.totalTransactions;
+                if (localItem.transactionHistoryLimited !== undefined) item.transactionHistoryLimited = localItem.transactionHistoryLimited;
                 if (localItem.totalValueSentEth !== undefined) item.totalValueSentEth = localItem.totalValueSentEth;
                 if (localItem.totalValueReceivedEth !== undefined) item.totalValueReceivedEth = localItem.totalValueReceivedEth;
                 if (localItem.activityPeriodDays !== undefined) item.activityPeriodDays = localItem.activityPeriodDays;

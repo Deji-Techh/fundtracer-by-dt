@@ -469,7 +469,7 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
             const [overview, portfolio, recentTransactions] = await Promise.all([
                 solanaPortfolioService.scanOverviewViaAlchemy(address),
                 solanaPortfolioService.getPortfolio(address),
-                solanaPortfolioService.getTransactionsViaAlchemy(address, 100),
+                solanaPortfolioService.getTransactionsViaAlchemy(address, 25),
             ]);
 
             const normalizeMs = (value: number | null | undefined): number => {
@@ -488,6 +488,9 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 : undefined;
             const lastTxSec = overview.lastTimestamp
                 ? Math.floor(Date.parse(overview.lastTimestamp) / 1000)
+                : undefined;
+            const oldestSampledSec = overview.oldestSampledTimestamp
+                ? Math.floor(Date.parse(overview.oldestSampledTimestamp) / 1000)
                 : undefined;
 
             const normalizedTransactions = recentTransactions.map(tx => ({
@@ -561,7 +564,14 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 : 'low' as const;
 
             // ---- Build funding sources tree from transfer data ----
-            const transferRows = await solanaPortfolioService.getTransfersViaAlchemy(address, 200).catch(() => []);
+            const transferRows = normalizedTransactions
+                .filter(tx => tx.from || tx.to)
+                .map(tx => ({
+                    fromUserAccount: tx.from,
+                    toUserAccount: tx.to,
+                    amount: tx.valueInEth,
+                    type: tx.category,
+                }));
             const fundingSourceMap = new Map<string, { total: number; count: number }>();
             const fundingDestMap = new Map<string, { total: number; count: number }>();
             for (const row of transferRows as any[]) {
@@ -707,6 +717,9 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                     txCount: overview.totalTransactions,
                     firstTxTimestamp: firstTs || undefined,
                     lastTxTimestamp: lastTs || undefined,
+                    oldestSampledTxTimestamp: oldestSampledSec,
+                    transactionHistoryLimited: overview.historyLimited,
+                    transactionSampleSize: overview.sampleSize,
                     isContract: false,
                 },
                 transactions: normalizedTransactions,
@@ -719,6 +732,9 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 sameBlockTransactions,
                 summary: {
                     totalTransactions: overview.totalTransactions,
+                    transactionHistoryLimited: overview.historyLimited,
+                    transactionSampleSize: overview.sampleSize,
+                    oldestSampledTxTimestamp: oldestSampledSec,
                     successfulTxs: normalizedTransactions.filter(t => t.status === 'success').length,
                     failedTxs: normalizedTransactions.filter(t => t.status === 'failed').length,
                     totalValueSentEth: Number(overview.totalSOLSent) || totalValueSent,
@@ -733,10 +749,11 @@ router.post('/wallet', async (req: AuthenticatedRequest, res: Response) => {
                 },
                 pagination: {
                     offset: 0,
-                    limit: 100,
+                    limit: 25,
                     total: overview.totalTransactions,
                     hasMore: overview.totalTransactions > normalizedTransactions.length,
                     returned: normalizedTransactions.length,
+                    historyLimited: overview.historyLimited,
                 },
             };
 
