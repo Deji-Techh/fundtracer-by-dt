@@ -1,10 +1,11 @@
 // ============================================================
 // FundTracer by DT - Solana Portfolio Service
 // Complete wallet analysis - Portfolio, Transactions, NFTs, DeFi, Risk
-// Powered by Alchemy Solana RPC
+// Powered by Dune SIM for portfolio data and Alchemy Solana RPC for activity data
 // ============================================================
 
 import { solanaKeyPool } from './SolanaKeyPoolManager.js';
+import { duneSimClient } from './DuneSimClient.js';
 import { cache } from '../utils/cache.js';
 import fetch from 'node-fetch';
 
@@ -270,14 +271,37 @@ export class SolanaPortfolioService {
     }
 
     /**
-     * Get portfolio from Alchemy-backed Solana RPC.
+     * Get portfolio from Dune SIM first, with Alchemy-backed RPC as fallback.
      */
     async getPortfolio(address: string, filterOptions?: PortfolioFilterOptions): Promise<SolanaPortfolio> {
         const cacheKey = `solana:portfolio:${address}:${JSON.stringify(filterOptions || {})}`;
         const cached = cache.get(cacheKey);
         if (cached) return cached as SolanaPortfolio;
 
-        return this.getPortfolioFallback(address);
+        try {
+            const simPortfolio = await duneSimClient.getFilteredPortfolio(address, {
+                excludeSpamTokens: filterOptions?.excludeSpamTokens,
+                excludeUnpriced: filterOptions?.excludeUnpriced,
+                minLiquidity: filterOptions?.minLiquidity,
+            });
+            const portfolio: SolanaPortfolio = {
+                address: simPortfolio.address || address,
+                sol: simPortfolio.sol,
+                tokens: simPortfolio.tokens || [],
+                staking: [],
+                totalUsd: simPortfolio.totalUsd || 0,
+                fetchedAt: simPortfolio.fetchedAt || Date.now(),
+            };
+            cache.set(cacheKey, portfolio, 60);
+            console.log(`[SolanaPortfolio] SIM portfolio fetched for ${address}`);
+            return portfolio;
+        } catch (error: any) {
+            console.warn(`[SolanaPortfolio] SIM portfolio failed for ${address}, using Alchemy fallback:`, error?.message || error);
+        }
+
+        const portfolio = await this.getPortfolioFallback(address);
+        cache.set(cacheKey, portfolio, 60);
+        return portfolio;
     }
 
     /**

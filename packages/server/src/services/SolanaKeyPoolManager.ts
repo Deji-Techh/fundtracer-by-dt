@@ -15,6 +15,8 @@ interface KeyHealth {
     lastErrorAt: number | null;
     circuitOpen: boolean;
     circuitOpenUntil: number | null;
+    disabled: boolean;
+    disabledReason?: string;
     avgLatencyMs: number;
 }
 
@@ -37,70 +39,40 @@ export class SolanaKeyPoolManager {
         const getEnvKey = (prefix: string, index: number): string | undefined =>
             process.env[`${prefix}_${index}`] || process.env[`${prefix}_${String(index).padStart(2, '0')}`];
 
-        // Check SYBIL_CONTRACT_KEY_1 through 10, accepting _01 style too
-        const contractKeyCount = 10;
-        for (let i = 1; i <= contractKeyCount; i++) {
-            const key = getEnvKey('SYBIL_CONTRACT_KEY', i);
-            
-            if (key) {
-                const endpoint = `https://solana-mainnet.g.alchemy.com/v2/${key}`;
-                this.keys.push({
-                    key,
-                    endpoint,
-                    requestsThisMinute: 0,
-                    requestsThisMonth: 0,
-                    totalCUs: 0,
-                    consecutiveErrors: 0,
-                    lastErrorAt: null,
-                    circuitOpen: false,
-                    circuitOpenUntil: null,
-                    avgLatencyMs: 0,
-                });
-            }
+        const addKey = (key: string | undefined) => {
+            if (!key || this.keys.find(k => k.key === key)) return;
+            this.keys.push({
+                key,
+                endpoint: `https://solana-mainnet.g.alchemy.com/v2/${key}`,
+                requestsThisMinute: 0,
+                requestsThisMonth: 0,
+                totalCUs: 0,
+                consecutiveErrors: 0,
+                lastErrorAt: null,
+                circuitOpen: false,
+                circuitOpenUntil: null,
+                disabled: false,
+                avgLatencyMs: 0,
+            });
+        };
+
+        for (let i = 1; i <= 20; i++) {
+            addKey(getEnvKey('SOLANA_ALCHEMY_KEY', i));
+            addKey(getEnvKey('ALCHEMY_SOLANA_KEY', i));
         }
 
-        // Also check SYBIL_WALLET_KEY_1 through 10, accepting _01 style too
-        const walletKeyCount = 10;
-        for (let i = 1; i <= walletKeyCount; i++) {
-            const key = getEnvKey('SYBIL_WALLET_KEY', i);
-            
-            if (key && !this.keys.find(k => k.key === key)) {
-                const endpoint = `https://solana-mainnet.g.alchemy.com/v2/${key}`;
-                this.keys.push({
-                    key,
-                    endpoint,
-                    requestsThisMinute: 0,
-                    requestsThisMonth: 0,
-                    totalCUs: 0,
-                    consecutiveErrors: 0,
-                    lastErrorAt: null,
-                    circuitOpen: false,
-                    circuitOpenUntil: null,
-                    avgLatencyMs: 0,
-                });
+        addKey(process.env.SOLANA_ALCHEMY_KEY);
+        addKey(process.env.ALCHEMY_SOLANA_KEY);
+
+        if (process.env.USE_SYBIL_KEYS_FOR_SOLANA === 'true') {
+            for (let i = 1; i <= 10; i++) {
+                addKey(getEnvKey('SYBIL_CONTRACT_KEY', i));
+                addKey(getEnvKey('SYBIL_WALLET_KEY', i));
             }
         }
 
         if (this.keys.length === 0) {
-            console.warn('[SolanaKeyPool] No Alchemy keys found, using fallback');
-            const fallbackKey = process.env.ALCHEMY_SOLANA_KEY
-                || process.env.ALCHEMY_KEY_01
-                || process.env.DEFAULT_ALCHEMY_API_KEY
-                || process.env.ALCHEMY_API_KEY;
-            if (fallbackKey) {
-                this.keys.push({
-                    key: fallbackKey,
-                    endpoint: `https://solana-mainnet.g.alchemy.com/v2/${fallbackKey}`,
-                    requestsThisMinute: 0,
-                    requestsThisMonth: 0,
-                    totalCUs: 0,
-                    consecutiveErrors: 0,
-                    lastErrorAt: null,
-                    circuitOpen: false,
-                    circuitOpenUntil: null,
-                    avgLatencyMs: 0,
-                });
-            }
+            console.warn('[SolanaKeyPool] No Solana-specific Alchemy keys found. Set SOLANA_ALCHEMY_KEY or ALCHEMY_SOLANA_KEY.');
         }
 
         console.log(`[SolanaKeyPool] Initialized with ${this.keys.length} keys`);
@@ -113,6 +85,11 @@ export class SolanaKeyPoolManager {
         while (attempts < this.keys.length) {
             const health = this.keys[this.currentIndex];
             this.currentIndex = (this.currentIndex + 1) % this.keys.length;
+
+            if (health.disabled) {
+                attempts++;
+                continue;
+            }
 
             if (health.circuitOpen) {
                 if (now < health.circuitOpenUntil!) {
@@ -158,6 +135,13 @@ export class SolanaKeyPoolManager {
                 health.consecutiveErrors++;
                 health.lastErrorAt = Date.now();
 
+                if (this.isPermanentKeyError(err)) {
+                    health.disabled = true;
+                    health.disabledReason = err?.message || 'Permanent Alchemy key error';
+                    console.warn(`[SolanaKeyPool] Disabled key ${health.key.slice(0, 8)}...: ${health.disabledReason}`);
+                    continue;
+                }
+
                 if (health.consecutiveErrors >= ERROR_THRESHOLD) {
                     health.circuitOpen = true;
                     health.circuitOpenUntil = Date.now() + CIRCUIT_OPEN_MS;
@@ -173,12 +157,22 @@ export class SolanaKeyPoolManager {
         throw lastError || new Error('RPC call failed after retries');
     }
 
+    private isPermanentKeyError(err: any): boolean {
+        const message = String(err?.message || err || '').toLowerCase();
+        return message.includes('must be authenticated')
+            || message.includes('solana_mainnet is not enabled')
+            || message.includes('network is not enabled')
+            || message.includes('invalid api key')
+            || message.includes('unauthorized');
+    }
+
     getPoolStats() {
         return {
             totalKeys: this.keys.length,
-            healthyKeys: this.keys.filter(k => !k.circuitOpen).length,
+            healthyKeys: this.keys.filter(k => !k.disabled && !k.circuitOpen).length,
+            disabledKeys: this.keys.filter(k => k.disabled).length,
             totalCUsUsed: this.keys.reduce((sum, k) => sum + k.totalCUs, 0),
-            avgLatencyMs: this.keys.reduce((s, k) => s + k.avgLatencyMs, 0) / this.keys.length,
+            avgLatencyMs: this.keys.length ? this.keys.reduce((s, k) => s + k.avgLatencyMs, 0) / this.keys.length : 0,
         };
     }
 
