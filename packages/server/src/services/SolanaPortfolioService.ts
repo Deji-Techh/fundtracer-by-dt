@@ -131,7 +131,7 @@ export class SolanaPortfolioService {
         let before: string | undefined;
 
         while (allSigs.length < maxSignatures) {
-            const limit = Math.min(1000, maxSignatures - allSigs.length);
+            const limit = Math.min(100, maxSignatures - allSigs.length);
             const batch = await solanaKeyPool.execute(async (endpoint) => {
                 const params: any = { limit, commitment: 'confirmed' };
                 if (before) params.before = before;
