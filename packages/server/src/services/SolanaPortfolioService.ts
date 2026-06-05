@@ -128,37 +128,50 @@ export class SolanaPortfolioService {
         maxSignatures = 50000
     ): Promise<{ signature: string; blockTime: number; err: any; slot: number }[]> {
         const allSigs: { signature: string; blockTime: number; err: any; slot: number }[] = [];
-        let before: string | undefined;
+        let paginationToken: string | undefined;
 
         while (allSigs.length < maxSignatures) {
-            const limit = Math.min(100, maxSignatures - allSigs.length);
-            const batch = await solanaKeyPool.execute(async (endpoint) => {
-                const params: any = { limit, commitment: 'confirmed' };
-                if (before) params.before = before;
+            const limit = Math.min(1000, maxSignatures - allSigs.length);
+            const page = await solanaKeyPool.execute(async (endpoint) => {
                 const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         jsonrpc: '2.0',
                         id: 1,
-                        method: 'getSignaturesForAddress',
-                        params: [address, params],
+                        method: 'getTransactionsForAddress',
+                        params: [
+                            address,
+                            {
+                                transactionDetails: 'signatures',
+                                sortOrder: 'desc',
+                                limit,
+                                commitment: 'confirmed',
+                                ...(paginationToken ? { paginationToken } : {}),
+                            },
+                        ],
                     }),
                 });
                 const data = await res.json();
                 if (data.error) throw new Error(data.error.message || 'Alchemy Solana RPC error');
-                return (data.result || []).map((s: any) => ({
-                    signature: s.signature,
-                    blockTime: s.blockTime || 0,
-                    err: s.err,
-                    slot: s.slot || 0,
-                }));
+                const result = data.result || {};
+                const rows = Array.isArray(result) ? result : (result.data || result.transactions || []);
+                return {
+                    signatures: rows.map((s: any) => ({
+                        signature: s.signature,
+                        blockTime: s.blockTime || s.timestamp || 0,
+                        err: s.err,
+                        slot: s.slot || 0,
+                    })),
+                    paginationToken: result.paginationToken || result.nextPageToken || undefined,
+                };
             }, 1);
 
+            const batch = page.signatures;
             if (batch.length === 0) break;
             allSigs.push(...batch);
-            before = batch[batch.length - 1].signature;
-            if (batch.length < limit) break;
+            paginationToken = page.paginationToken;
+            if (!paginationToken || batch.length < limit) break;
         }
 
         return allSigs;
