@@ -171,30 +171,10 @@ export class InvestigationWSS {
       roomId: client.roomId,
     };
 
-    // Broadcast immediately to all other members for near-instant delivery
+    // Broadcast immediately to all other members for near-instant delivery.
+    // Persistence is handled by the REST endpoint, which will send
+    // message_id_update with the real Firestore ID once saved.
     this.broadcast(client.roomId, { type: 'message', message }, client.uid);
-
-    // Persist to Firestore in background
-    try {
-      const db = getFirestore();
-      const msgRef = await db.collection('investigation_rooms').doc(client.roomId)
-        .collection('messages').add(message);
-
-      await db.collection('investigation_rooms').doc(client.roomId).update({
-        lastMessageAt: now,
-        lastMessagePreview: content.trim().slice(0, 100),
-        updatedAt: now,
-      });
-
-      // Broadcast the real ID so clients can replace tempId
-      this.broadcast(client.roomId, {
-        type: 'message_id_update',
-        tempId,
-        realId: msgRef.id,
-      });
-    } catch (err) {
-      console.error('[WS] Failed to persist chat message:', err);
-    }
   }
 
   private handleTyping(client: WSClient, isTyping: boolean) {
@@ -241,7 +221,7 @@ export class InvestigationWSS {
     }
   }
 
-  private broadcast(roomId: string, message: object, excludeUid?: string) {
+  broadcast(roomId: string, message: object, excludeUid?: string) {
     const room = rooms.get(roomId);
     if (!room) return;
 

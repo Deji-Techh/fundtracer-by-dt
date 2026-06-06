@@ -133,8 +133,8 @@ export async function getRoomMessages(roomId: string, limit = 50): Promise<RoomM
   return (data.messages || []).map(normalizeMessage);
 }
 
-export async function sendRoomMessage(roomId: string, content: string, type?: string): Promise<RoomMessage> {
-  const data = await apiRequest<{ success: boolean; message: any }>(`/api/rooms/${roomId}/messages`, 'POST', { content, type });
+export async function sendRoomMessage(roomId: string, content: string, type?: string, tempId?: string): Promise<RoomMessage> {
+  const data = await apiRequest<{ success: boolean; message: any }>(`/api/rooms/${roomId}/messages`, 'POST', { content, type, tempId });
   return normalizeMessage(data.message);
 }
 

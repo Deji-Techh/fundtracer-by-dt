@@ -63,9 +63,7 @@ export function RoomsView() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioDataUrl, setAudioDataUrl] = useState<string | null>(null);
 
-  // Double-tap detection for mobile voice notes
-  const lastTapRef = useRef(0);
-  const doubleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   useEffect(() => { loadRooms(); }, []);
 
@@ -394,10 +392,18 @@ export function RoomsView() {
     sendWsEvent({ type: 'chat_message', content, roomId: activeRoom.id, tempId });
 
     try {
-      const msg = await sendRoomMessage(activeRoom.id, content);
+      const msg = await sendRoomMessage(activeRoom.id, content, undefined, tempId);
       setMessages(prev => {
-        const filtered = prev.filter(m => m.id !== msg.id);
-        return filtered.map(m => m.id === tempId ? msg : m);
+        const deduped = prev.filter(m => m.id !== msg.id);
+        const tempIdx = deduped.findIndex(m => m.id === tempId);
+        if (tempIdx >= 0) {
+          const updated = [...deduped];
+          updated[tempIdx] = msg;
+          return updated;
+        }
+        // WS message_id_update already converted tempId to realId and
+        // we just removed it via dedup. Add the authoritative message back.
+        return [...deduped, msg];
       });
 
       if (/@(ai|fundtracer|assistant|ft)\b/i.test(content)) {
@@ -663,20 +669,6 @@ export function RoomsView() {
     }
   };
 
-  const handleChatFeedDoubleTap = () => {
-    if (!isMobile || isRecording || !activeRoom) return;
-    const now = Date.now();
-    if (now - lastTapRef.current < 350) {
-      // Double tap detected
-      if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
-      lastTapRef.current = 0;
-      startRecording();
-    } else {
-      lastTapRef.current = now;
-      if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
-      doubleTapTimerRef.current = setTimeout(() => { lastTapRef.current = 0; }, 400);
-    }
-  };
 
   return (
     <div className="ft-room-panel" style={{ display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden', border: 0, borderRadius: 0 }}>
@@ -1213,7 +1205,6 @@ export function RoomsView() {
 
             {/* Messages */}
             <div ref={chatFeedRef} className="ft-room-feed"
-              onTouchStart={isMobile ? handleChatFeedDoubleTap : undefined}
               style={{ flex: 1, overflow: 'auto', padding: isMobile ? '10px 10px' : '16px 20px' }}>
               {roomSelecting ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

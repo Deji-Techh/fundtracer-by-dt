@@ -309,7 +309,7 @@ router.post('/:roomId/messages', async (req: AuthenticatedRequest, res) => {
     const { allowed } = await checkRoomAccess(req, res, roomId);
     if (!allowed) return res.status(403).json({ error: 'Not a room member' });
 
-    const { content } = req.body;
+    const { content, tempId } = req.body;
     if (!content || !content.trim()) return res.status(400).json({ error: 'Message content required' });
 
     const db = getDb();
@@ -379,10 +379,17 @@ router.post('/:roomId/messages', async (req: AuthenticatedRequest, res) => {
 
     const message = { id: msgRef.id, ...messageData };
 
-    // Broadcast via WebSocket for real-time delivery
+    // Broadcast via WebSocket for real-time delivery.
+    // If the sender used the WS fast path (tempId present), other members already
+    // have the message with the tempId — just send the ID update.
+    // Otherwise, broadcast the full message as fallback.
     try {
       const wss = getWSS();
-      if (wss) wss.broadcastRoomMessage(roomId, message);
+      if (wss && tempId) {
+        wss.broadcast(roomId, { type: 'message_id_update', tempId, realId: msgRef.id });
+      } else if (wss) {
+        wss.broadcastRoomMessage(roomId, message);
+      }
     } catch (wsErr) {
       console.error('[Rooms] WebSocket broadcast error:', wsErr);
     }

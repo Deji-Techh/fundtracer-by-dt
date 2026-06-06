@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 
 function parseInline(text: string): ReactNode[] {
   const nodes: ReactNode[] = [];
-  // Split on **bold** and *italic* and `code`
-  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
+  // Split on images, **bold**, *italic*, `code`
+  const regex = /(!\[([^\]]*)\]\(([^)]+)\)|\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
   let last = 0;
   let match: RegExpExecArray | null;
 
@@ -11,12 +11,17 @@ function parseInline(text: string): ReactNode[] {
     if (match.index > last) {
       nodes.push(text.slice(last, match.index));
     }
-    if (match[2]) {
-      nodes.push(<strong key={match.index}>{match[2]}</strong>);
-    } else if (match[3]) {
-      nodes.push(<em key={match.index}>{match[3]}</em>);
+    if (match[2] !== undefined) {
+      // Image: ![alt](url)
+      nodes.push(
+        <img key={match.index} src={match[3]} alt={match[2]} style={imgStyle} />
+      );
     } else if (match[4]) {
-      nodes.push(<code key={match.index} style={codeStyle}>{match[4]}</code>);
+      nodes.push(<strong key={match.index}>{match[4]}</strong>);
+    } else if (match[5]) {
+      nodes.push(<em key={match.index}>{match[5]}</em>);
+    } else if (match[6]) {
+      nodes.push(<code key={match.index} style={codeStyle}>{match[6]}</code>);
     }
     last = match.index + match[0].length;
   }
@@ -176,6 +181,12 @@ const pStyle: React.CSSProperties = {
   maxWidth: '100%',
   overflowWrap: 'anywhere',
   wordBreak: 'break-word',
+};
+const imgStyle: React.CSSProperties = {
+  maxWidth: '100%',
+  borderRadius: 'var(--radius-md)',
+  marginTop: 4,
+  marginBottom: 4,
 };
 const listStyle: React.CSSProperties = {
   fontSize: 12, color: 'var(--fg)', margin: '4px 0 8px 0',
