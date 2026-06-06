@@ -224,6 +224,35 @@
   cursor: not-allowed;
 }
 
+.pricing-tier__cta--coming-soon {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pricing-tier__cta--coming-soon:hover {
+  background: var(--intel-bg-hover);
+  border-color: var(--intel-border-default);
+}
+
+.pricing-tier__cta--primary.pricing-tier__cta--coming-soon {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pricing-tier__cta--primary.pricing-tier__cta--coming-soon:hover {
+  background: var(--intel-cyan);
+  border-color: var(--intel-cyan);
+  box-shadow: none;
+}
+
+.pricing-tier__coming-soon {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--intel-text-muted);
+  margin: var(--space-2) 0 0 0;
+  font-family: var(--font-mono);
+}
+
 /* ─────────────────────────────────────────────────────────────
    COMPARISON TABLE
    ───────────────────────────────────────────────────────────── */

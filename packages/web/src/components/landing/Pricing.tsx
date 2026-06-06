@@ -11,7 +11,7 @@ const tiers = [
     period: '/month',
     description: 'Perfect for getting started',
     features: [
-      'Unlimited analyses',
+      '50 analyses / day',
       'Full wallet analysis',
       'Full transaction history',
       'All chains (7+)',
@@ -19,39 +19,43 @@ const tiers = [
       'Priority support',
     ],
     popular: true,
+    comingSoon: false,
   },
   {
     name: 'Pro',
-    price: '$0',
-    originalPrice: '$5',
+    price: '$15',
+    originalPrice: '',
     period: '/month',
     description: 'For professional researchers',
     features: [
-      'Unlimited analyses',
+      '300 analyses / day',
       'Advanced wallet analysis',
       'Full transaction history',
       'All chains (7+)',
       'Export to CSV/JSON',
       'Priority support',
       'API access',
+      'Sybil detection',
     ],
     popular: false,
+    comingSoon: true,
   },
   {
     name: 'Max',
-    price: '$0',
-    originalPrice: '$10',
+    price: '$25',
+    originalPrice: '',
     period: '/month',
     description: 'For unlimited power users',
     features: [
       'Unlimited analyses',
       'Full historical data',
-      'All chains + future',
+      'All chains (7+)',
       'API access',
       'Custom branding',
       'Dedicated support',
     ],
     popular: false,
+    comingSoon: true,
   },
 ];
 
@@ -62,7 +66,7 @@ export function Pricing() {
         <div className="pricing-header">
           <span className="pricing-label">Pricing</span>
           <h2 className="pricing-title">Simple, transparent pricing</h2>
-          <p className="pricing-subtitle">All plans are currently <span className="pricing-free-badge">FREE</span> - No payment required!</p>
+          <p className="pricing-subtitle">Choose the plan that fits your needs. Pro and Max coming soon.</p>
         </div>
 
         <div className="pricing-grid">
@@ -82,7 +86,9 @@ export function Pricing() {
                 )}
                 <span className="pricing-price">{tier.price}</span>
                 <span className="pricing-period">{tier.period}</span>
-                <span className="pricing-free-label">FREE</span>
+                {!tier.originalPrice && tier.price === '$0' && (
+                  <span className="pricing-free-label">FREE</span>
+                )}
               </div>
               <p className="pricing-tier-description">{tier.description}</p>
 
@@ -95,12 +101,21 @@ export function Pricing() {
                 ))}
               </ul>
 
-              <button 
-                onClick={() => window.location.href = '/app-evm'}
-                className={`pricing-cta ${tier.popular ? 'pricing-cta-primary' : ''}`}
-              >
-                {tier.name === 'Max' ? 'Go Unlimited' : 'Get Started'}
-              </button>
+              {tier.comingSoon ? (
+                <div className="pricing-coming-soon-wrapper">
+                  <button className="pricing-cta pricing-cta-disabled" disabled>
+                    Coming Soon
+                  </button>
+                  <span className="pricing-coming-soon-label">Coming Soon</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => window.location.href = '/app-evm'}
+                  className={`pricing-cta ${tier.popular ? 'pricing-cta-primary' : ''}`}
+                >
+                  {tier.name === 'Max' ? 'Go Unlimited' : 'Get Started'}
+                </button>
+              )}
             </div>
           ))}
         </div>

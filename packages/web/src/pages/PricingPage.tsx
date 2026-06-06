@@ -23,10 +23,10 @@ const tiers = [
     price: '$0',
     originalPrice: '',
     period: 'forever',
-    description: 'Perfect for getting started - now with unlimited access!',
+    description: 'Perfect for getting started',
     badge: null,
     features: [
-      'Unlimited analyses',
+      '50 analyses / day',
       'Full wallet analysis',
       'Full transaction history',
       'All chains (7+)',
@@ -37,16 +37,17 @@ const tiers = [
     cta: 'Get Started',
     popular: false,
     isFree: true,
+    comingSoon: false,
   },
   {
     name: 'Pro',
     price: '$15',
-    originalPrice: '$15',
+    originalPrice: '',
     period: '/month',
     description: 'Most popular for researchers',
     badge: 'Most Popular',
     features: [
-      'Unlimited analyses',
+      '300 analyses / day',
       'Advanced wallet analysis',
       'Full transaction history',
       'All chains (7+)',
@@ -55,36 +56,38 @@ const tiers = [
       'Priority support',
       'Sybil detection',
     ],
-    cta: 'Get Started',
+    cta: 'Coming Soon',
     popular: true,
-    isFree: true,
+    isFree: false,
+    comingSoon: true,
   },
   {
     name: 'Max',
     price: '$25',
-    originalPrice: '$25',
+    originalPrice: '',
     period: '/month',
     description: 'For unlimited power users',
     badge: null,
     features: [
       'Unlimited analyses',
       'Full historical data',
-      'All chains + future',
+      'All chains (7+)',
       'Unlimited API keys',
       'Custom branding',
       'Dedicated support',
       'Advanced analytics',
     ],
-    cta: 'Go Unlimited',
+    cta: 'Coming Soon',
     popular: false,
-    isFree: true,
+    isFree: false,
+    comingSoon: true,
   },
 ];
 
 const comparisonData = [
-  { feature: 'Analyses', free: 'Unlimited', pro: 'Unlimited', max: 'Unlimited' },
+  { feature: 'Analyses', free: '50 / day', pro: '300 / day', max: 'Unlimited' },
   { feature: 'Transaction History', free: 'Full', pro: 'Full', max: 'Full History' },
-  { feature: 'Supported Chains', free: '7+', pro: '7+', max: 'All + Future' },
+  { feature: 'Supported Chains', free: '7+', pro: '7+', max: '7+' },
   { feature: 'Export Formats', free: 'CSV, JSON', pro: 'CSV, JSON', max: 'All Formats' },
   { feature: 'Sybil Detection', free: '-', pro: '\u2713', max: '\u2713' },
   { feature: 'API Keys', free: '2', pro: 'Unlimited', max: 'Unlimited' },
@@ -109,8 +112,7 @@ export function PricingPage() {
       return;
     }
 
-    // For now, all tiers are free - just navigate to app
-    navigate(isAuthenticated ? '/app-evm' : '/auth?mode=signup');
+    // Pro and Max are coming soon — no action
   };
 
   return (
@@ -173,13 +175,16 @@ export function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <button 
-                  className={`pricing-tier__cta ${tier.popular ? 'pricing-tier__cta--primary' : ''} ${loadingTier === tier.name.toLowerCase() ? 'pricing-tier__cta--loading' : ''}`}
+                <button
+                  className={`pricing-tier__cta ${tier.popular ? 'pricing-tier__cta--primary' : ''} ${loadingTier === tier.name.toLowerCase() ? 'pricing-tier__cta--loading' : ''} ${tier.comingSoon ? 'pricing-tier__cta--coming-soon' : ''}`}
                   onClick={() => handleCheckout(tier.name.toLowerCase())}
-                  disabled={loadingTier !== null}
+                  disabled={loadingTier !== null || tier.comingSoon}
                 >
                   {loadingTier === tier.name.toLowerCase() ? 'Loading...' : tier.cta}
                 </button>
+                {tier.comingSoon && (
+                  <p className="pricing-tier__coming-soon">Coming Soon</p>
+                )}
               </Panel>
             ))}
           </div>

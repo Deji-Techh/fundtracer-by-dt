@@ -216,6 +216,29 @@
   box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
 }
 
+.pricing-coming-soon-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.pricing-cta-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pricing-cta-disabled:hover {
+  background: transparent;
+  border-color: var(--color-border);
+  transform: none;
+}
+
+.pricing-coming-soon-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 /* Animations */
 @keyframes fadeInUp {
   from {

@@ -11,48 +11,54 @@ const tiers = [
     period: '/month',
     description: 'Perfect for getting started',
     features: [
-      '1000 analyses/day',
-      'Basic wallet analysis',
-      '3-day transaction history',
-      'Linea chain only',
+      '50 analyses / day',
+      'Full wallet analysis',
+      'Full transaction history',
+      'All chains (7+)',
+      'Export to CSV/JSON',
+      '2 API keys',
     ],
     cta: 'Get Started',
     popular: false,
     color: '#6b7280',
+    comingSoon: false,
   },
   {
     name: 'Pro',
-    price: '$5',
+    price: '$15',
     period: '/month',
     description: 'Most popular for researchers',
     features: [
-      '10,000 analyses/day',
+      '300 analyses / day',
       'Advanced wallet analysis',
-      '30-day transaction history',
+      'Full transaction history',
       'All chains (7+)',
       'Export to CSV/JSON',
-      'Priority support',
+      'Unlimited API keys',
+      'Sybil detection',
     ],
-    cta: 'Upgrade to Pro',
+    cta: 'Coming Soon',
     popular: true,
     color: '#3b82f6',
+    comingSoon: true,
   },
   {
     name: 'Max',
-    price: '$10',
+    price: '$25',
     period: '/month',
     description: 'Unlimited power users',
     features: [
       'Unlimited analyses',
       'Full historical data',
-      'All chains + future',
+      'All chains (7+)',
       'API access',
       'Custom branding',
       'Dedicated support',
     ],
-    cta: 'Go Unlimited',
+    cta: 'Coming Soon',
     popular: false,
     color: '#8b5cf6',
+    comingSoon: true,
   },
 ];
 
@@ -104,12 +110,21 @@ export function PricingPreview() {
                 ))}
               </ul>
 
-              <Link 
-                to="/pricing" 
-                className={`btn ${tier.popular ? 'btn-primary' : 'btn-secondary'} tier-cta`}
-              >
-                {tier.cta}
-              </Link>
+              {tier.comingSoon ? (
+                <div className="tier-cta-wrapper">
+                  <button className="btn btn-secondary tier-cta tier-cta-disabled" disabled>
+                    Coming Soon
+                  </button>
+                  <span className="tier-coming-soon-label">Coming Soon</span>
+                </div>
+              ) : (
+                <Link
+                  to="/pricing"
+                  className={`btn ${tier.popular ? 'btn-primary' : 'btn-secondary'} tier-cta`}
+                >
+                  {tier.cta}
+                </Link>
+              )}
             </div>
           ))}
         </div>

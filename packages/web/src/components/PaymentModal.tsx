@@ -30,12 +30,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
     const tiers = {
         pro: {
             name: 'PRO TIER',
-            price: '5 USDT',
-            priceValue: 5,
+            price: '15 USDT',
+            priceValue: 15,
             features: [
                 '30 days access',
-                'Access to Linea, Arb, Base',
-                '10,000 analyses/day',
+                'All chains (7+)',
+                '300 analyses/day',
                 '2s action delay',
                 'Fast API access',
                 'Priority support'
@@ -43,8 +43,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
         },
         max: {
             name: 'MAX TIER',
-            price: '10 USDT',
-            priceValue: 10,
+            price: '25 USDT',
+            priceValue: 25,
             badge: 'BEST VALUE',
             features: [
                 '30 days access',

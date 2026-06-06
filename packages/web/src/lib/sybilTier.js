@@ -27,7 +27,7 @@ export const SYBIL_TIERS = {
   pro: {
     id: 'pro',
     name: 'Pro Tier',
-    price: 5,
+    price: 15,
     monthly: true,
     windowLimit: 300,
     windowHours: 24,
@@ -46,7 +46,7 @@ export const SYBIL_TIERS = {
   max: {
     id: 'max',
     name: 'Max Tier',
-    price: 10,
+    price: 25,
     monthly: true,
     windowLimit: 'unlimited',
     windowHours: null,

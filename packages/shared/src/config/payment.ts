@@ -57,13 +57,13 @@ export const TIER_CONFIG = {
   },
   pro: {
     name: 'Pro',
-    price: 10,
+    price: 15,
     walletLimit: 5,
     get paymentAddress() { return PAYMENT_CONFIG.gasAddress; }
   },
   max: {
     name: 'Max',
-    price: 20,
+    price: 25,
     walletLimit: 20,
     get paymentAddress() { return PAYMENT_CONFIG.gasAddress; }
   }
