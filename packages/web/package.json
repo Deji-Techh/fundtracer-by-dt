@@ -10,10 +10,12 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@babel/code-frame": "^7.29.7",
         "@farcaster/mini-app-solana": "^2.0.0",
         "@farcaster/miniapp-sdk": "^0.3.0",
         "@hugeicons/core-free-icons": "^3.1.1",
         "@hugeicons/react": "^1.1.4",
+        "@jridgewell/resolve-uri": "^3.1.2",
         "@privy-io/react-auth": "^3.17.0",
         "@solana/wallet-adapter-base": "^0.9.27",
         "@solana/wallet-adapter-ledger": "^0.9.29",

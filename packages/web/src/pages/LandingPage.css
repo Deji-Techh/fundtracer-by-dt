@@ -269,14 +269,122 @@
 }
 
 .ft-logo-cell {
+  position: relative;
   justify-content: center;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    background-color 140ms cubic-bezier(.2, .8, .2, 1),
+    border-color 140ms cubic-bezier(.2, .8, .2, 1),
+    transform 140ms cubic-bezier(.2, .8, .2, 1);
 }
 
 .ft-logo-cell span {
+  position: relative;
+  z-index: 2;
   color: var(--fg, #f5f5f7);
   font-size: clamp(1.15rem, 2vw, 1.65rem);
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+.ft-logo-cell::before,
+.ft-logo-cell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ft-logo-cell::before {
+  background:
+    linear-gradient(90deg, transparent 0 11%, color-mix(in srgb, var(--fg, #f5f5f7) 28%, transparent) 11% 12%, transparent 12% 35%, color-mix(in srgb, var(--fg, #f5f5f7) 16%, transparent) 35% 36%, transparent 36% 100%),
+    repeating-linear-gradient(0deg, transparent 0 8px, color-mix(in srgb, var(--fg, #f5f5f7) 13%, transparent) 8px 9px);
+  mix-blend-mode: difference;
+}
+
+.ft-logo-cell::after {
+  inset: 0;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--fg, #f5f5f7) 18%, transparent), transparent 24%),
+    linear-gradient(270deg, color-mix(in srgb, var(--fg, #f5f5f7) 13%, transparent), transparent 30%);
+  clip-path: inset(0 10% 0 0);
+}
+
+.ft-logo-cell:hover {
+  border-color: color-mix(in srgb, var(--fg, #f5f5f7) 38%, var(--card-border, #38383a));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--fg, #f5f5f7) 8%, transparent), transparent 62%),
+    color-mix(in srgb, var(--fg, #f5f5f7) 5%, var(--bg, #0a0a0a));
+  animation: ft-logo-cell-glitch 520ms steps(2, end);
+}
+
+.ft-logo-cell:hover::before,
+.ft-logo-cell:hover::after {
+  opacity: 1;
+  animation: ft-logo-cell-slice 520ms steps(2, end);
+}
+
+.ft-logo-cell:hover span {
+  animation: ft-logo-text-jitter 520ms steps(2, end);
+}
+
+@keyframes ft-logo-cell-glitch {
+  0%, 100% { transform: translate(0, 0); }
+  18% { transform: translate(-2px, 1px); }
+  34% { transform: translate(2px, -1px); }
+  52% {
+    filter: invert(.08) contrast(1.2);
+    transform: translate(-1px, -1px);
+  }
+  70% {
+    filter: invert(.04) contrast(1.15);
+    transform: translate(1px, 1px);
+  }
+}
+
+@keyframes ft-logo-cell-slice {
+  0%, 100% {
+    clip-path: inset(0);
+    transform: translate(0, 0);
+  }
+  10% {
+    clip-path: inset(0 0 80% 0);
+    transform: translateX(-9px);
+  }
+  20% {
+    clip-path: inset(8% 0 72% 0);
+    transform: translateX(7px);
+  }
+  40% {
+    clip-path: inset(46% 0 34% 0);
+    transform: translateX(-8px);
+  }
+  62% {
+    clip-path: inset(74% 0 8% 0);
+    transform: translateX(6px);
+  }
+  76% {
+    clip-path: inset(28% 0 52% 0);
+    transform: translateX(-5px);
+  }
+}
+
+@keyframes ft-logo-text-jitter {
+  0%, 100% {
+    text-shadow: none;
+    transform: translate(0, 0);
+  }
+  22% {
+    text-shadow: 3px 0 rgba(255,255,255,.32), -3px 0 rgba(128,128,128,.32);
+    transform: translate(-1px, 0);
+  }
+  50% {
+    text-shadow: -2px 0 rgba(255,255,255,.26), 2px 0 rgba(128,128,128,.28);
+    transform: translate(1px, -1px);
+  }
 }
 
 .ft-dev-card:hover {

@@ -1,0 +1,672 @@
+/*
+  FundTracer motion system
+
+  Mount timeline:
+      0ms  shell/nav settles
+     80ms  hero copy and primary actions enter
+    160ms  cards, rows, and panels stagger in
+    260ms  live previews begin low-intensity continuous motion
+
+  The rules below intentionally animate transform, opacity, background-position,
+  and border-color only. They avoid layout-changing properties so pages stay stable.
+*/
+
+:root {
+  --motion-ease: cubic-bezier(.2, .8, .2, 1);
+  --motion-snap: cubic-bezier(.16, 1, .3, 1);
+  --motion-fast: 140ms;
+  --motion-base: 220ms;
+  --motion-slow: 520ms;
+  --motion-stagger: 58ms;
+}
+
+@keyframes ft-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ft-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(.986);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ft-row-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ft-soft-pulse {
+  0%, 100% {
+    opacity: .58;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes ft-scanline {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 56px;
+  }
+}
+
+@keyframes ft-route-dash {
+  to {
+    stroke-dashoffset: -180;
+  }
+}
+
+@keyframes ft-glitch-mark {
+  0%, 100% {
+    text-shadow: none;
+    transform: translate(0, 0);
+  }
+  18% {
+    text-shadow: 2px 0 rgba(255,255,255,.34), -2px 0 rgba(120,120,120,.32);
+    transform: translate(-1px, 0);
+  }
+  34% {
+    text-shadow: -2px 0 rgba(255,255,255,.28), 1px 0 rgba(120,120,120,.28);
+    transform: translate(1px, -1px);
+  }
+  52% {
+    text-shadow: 1px 0 rgba(255,255,255,.22), -1px 0 rgba(120,120,120,.28);
+    transform: translate(0, 1px);
+  }
+}
+
+@keyframes ft-code-caret {
+  0%, 48% { opacity: 1; }
+  49%, 100% { opacity: 0; }
+}
+
+@keyframes ft-float-minor {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes ft-live-highlight {
+  0%, 100% {
+    border-color: var(--card-border, #38383a);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--fg, #f5f5f7) 34%, var(--card-border, #38383a));
+  }
+}
+
+:is(
+  .ft-hero__eyebrow,
+  .ft-hero__title,
+  .ft-hero__copy,
+  .ft-hero__actions,
+  .features-hero,
+  .pricing-hero,
+  .how-hero,
+  .about-hero,
+  .faq-hero,
+  .blog-hero,
+  .cli-header,
+  .rewards-hero,
+  .telegram-hero,
+  .api-header,
+  .download-header,
+  .auth-xai-start,
+  .docs-xai-hero-card,
+  .docs-xai-intro,
+  .intel-hero__content
+) {
+  animation: ft-page-enter var(--motion-slow) var(--motion-snap) both;
+}
+
+.ft-hero__copy,
+.ft-hero__actions,
+.auth-xai-start,
+.docs-xai-hero-card,
+.docs-xai-intro {
+  animation-delay: 90ms;
+}
+
+:is(
+  .ft-preview-card,
+  .ft-workflow__row,
+  .ft-api-band,
+  .ft-code-showcase,
+  .ft-dev-card,
+  .ft-logo-cell,
+  .features-card,
+  .features-mini,
+  .pricing-tier,
+  .pricing-card,
+  .how-step__content,
+  .how-usecase,
+  .about-mission__card,
+  .about-value,
+  .about-team__card,
+  .faq-item,
+  .blog-card,
+  .blog-promo,
+  .cli-install,
+  .cli-features,
+  .cli-usage,
+  .cli-cta,
+  .campaign-card,
+  .step-card,
+  .leaderboard-card,
+  .telegram-command,
+  .telegram-feature,
+  .telegram-plan,
+  .api-section,
+  .api-feature,
+  .api-endpoint,
+  .api-sdk,
+  .download-doc-section,
+  .download-info-card,
+  .download-feature,
+  .download-package-card,
+  .docs-body .feature-card,
+  .docs-body .setup-card,
+  .docs-content .feature-card,
+  .auth-xai-models article,
+  .intel-feature,
+  .intel-social
+) {
+  animation: ft-card-enter var(--motion-slow) var(--motion-snap) both;
+}
+
+:is(
+  .ft-preview-card,
+  .ft-workflow__row,
+  .ft-dev-card,
+  .features-card,
+  .pricing-tier,
+  .blog-card,
+  .api-feature,
+  .download-feature,
+  .about-value,
+  .about-team__card,
+  .faq-item,
+  .telegram-feature,
+  .intel-feature,
+  .intel-social
+):nth-child(2) { animation-delay: calc(var(--motion-stagger) * 1); }
+
+:is(
+  .ft-preview-card,
+  .ft-workflow__row,
+  .ft-dev-card,
+  .features-card,
+  .pricing-tier,
+  .blog-card,
+  .api-feature,
+  .download-feature,
+  .about-value,
+  .about-team__card,
+  .faq-item,
+  .telegram-feature,
+  .intel-feature,
+  .intel-social
+):nth-child(3) { animation-delay: calc(var(--motion-stagger) * 2); }
+
+:is(
+  .ft-preview-card,
+  .ft-workflow__row,
+  .ft-dev-card,
+  .features-card,
+  .pricing-tier,
+  .blog-card,
+  .api-feature,
+  .download-feature,
+  .about-value,
+  .about-team__card,
+  .faq-item,
+  .telegram-feature,
+  .intel-feature,
+  .intel-social
+):nth-child(4) { animation-delay: calc(var(--motion-stagger) * 3); }
+
+:is(
+  .ft-preview-card,
+  .ft-workflow__row,
+  .ft-dev-card,
+  .features-card,
+  .pricing-tier,
+  .blog-card,
+  .api-feature,
+  .download-feature,
+  .about-value,
+  .about-team__card,
+  .faq-item,
+  .telegram-feature,
+  .intel-feature,
+  .intel-social
+):nth-child(n + 5) { animation-delay: calc(var(--motion-stagger) * 4); }
+
+:is(
+  button,
+  a,
+  .ft-button,
+  .ft-site-nav__link,
+  .ft-site-nav__cta,
+  .ft-site-nav__sales,
+  .docs-section-btn,
+  .docs-xai-search,
+  .docs-xai-console,
+  .docs-search-result,
+  .auth-xai-google,
+  .auth-xai-secondary,
+  .api-btn,
+  .btn,
+  .blog-category-btn,
+  .pricing-tier__cta,
+  .download-primary-btn,
+  .download-secondary-btn
+) {
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+:is(
+  .ft-button,
+  .ft-site-nav__cta,
+  .ft-site-nav__sales,
+  .docs-xai-console,
+  .docs-xai-search,
+  .docs-section-btn,
+  .auth-xai-google,
+  .auth-xai-secondary,
+  .api-btn,
+  .btn,
+  .pricing-tier__cta,
+  .download-primary-btn,
+  .download-secondary-btn
+):hover {
+  transform: translateY(-1px);
+}
+
+:is(
+  .ft-button,
+  .ft-site-nav__cta,
+  .ft-site-nav__sales,
+  .docs-xai-console,
+  .docs-xai-search,
+  .auth-xai-google,
+  .auth-xai-secondary,
+  .api-btn,
+  .btn,
+  .pricing-tier__cta,
+  .download-primary-btn,
+  .download-secondary-btn
+):active {
+  transform: translateY(0) scale(.985);
+}
+
+:is(
+  .ft-button,
+  .ft-site-nav__link,
+  .ft-site-nav__cta,
+  .ft-site-nav__sales,
+  .ft-theme-switch button,
+  .docs-xai-search,
+  .docs-xai-console,
+  .docs-section-btn,
+  .docs-search-result,
+  .auth-xai-google,
+  .auth-xai-secondary,
+  .blog-category-btn,
+  .api-btn,
+  .btn
+):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--fg, #f5f5f7) 72%, transparent);
+  outline-offset: 3px;
+}
+
+:is(
+  .features-card,
+  .features-mini,
+  .pricing-tier,
+  .pricing-card,
+  .how-step__content,
+  .how-usecase,
+  .about-value,
+  .about-team__card,
+  .faq-item,
+  .blog-card,
+  .ft-dev-card,
+  .ft-workflow__row,
+  .telegram-feature,
+  .api-feature,
+  .download-feature,
+  .download-package-card,
+  .docs-body .feature-card,
+  .docs-content .feature-card,
+  .auth-xai-models article,
+  .intel-feature,
+  .intel-social
+) {
+  transition:
+    transform var(--motion-base) var(--motion-ease),
+    border-color var(--motion-base) var(--motion-ease),
+    background-color var(--motion-base) var(--motion-ease),
+    opacity var(--motion-base) var(--motion-ease);
+}
+
+:is(
+  .features-card,
+  .features-mini,
+  .pricing-tier,
+  .pricing-card,
+  .how-step__content,
+  .how-usecase,
+  .about-value,
+  .about-team__card,
+  .faq-item,
+  .blog-card,
+  .ft-dev-card,
+  .ft-workflow__row,
+  .telegram-feature,
+  .api-feature,
+  .download-feature,
+  .download-package-card,
+  .docs-body .feature-card,
+  .docs-content .feature-card,
+  .auth-xai-models article,
+  .intel-feature,
+  .intel-social
+):hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--fg, #f5f5f7) 28%, var(--card-border, #38383a));
+}
+
+:is(
+  .ft-button svg,
+  .ft-workflow__row > svg,
+  .blog-card__link svg,
+  .telegram-btn svg,
+  .api-btn svg,
+  .download-primary-btn svg,
+  .download-secondary-btn svg
+) {
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+
+:is(
+  .ft-button,
+  .ft-workflow__row,
+  .blog-card__link,
+  .telegram-btn,
+  .api-btn,
+  .download-primary-btn,
+  .download-secondary-btn
+):hover svg {
+  transform: translateX(3px);
+}
+
+.ft-mega,
+.ft-mobile-panel,
+.profile-menu,
+.docs-search-panel,
+.docs-sidebar--open,
+.modal-content,
+.auth-xai-code,
+.docs-xai-code,
+.docs-xai-snippet,
+.ft-code-showcase,
+.cli-code-block,
+.api-code-block,
+.mcp-code-block,
+.download-code-block {
+  animation: ft-card-enter 260ms var(--motion-snap) both;
+}
+
+:is(
+  .ft-terminal__body,
+  .ft-console__body,
+  .auth-xai-code pre,
+  .docs-xai-code pre,
+  .docs-xai-snippet pre,
+  .ft-code-showcase pre,
+  .cli-code-block,
+  .api-code-block,
+  .mcp-code-block,
+  .download-code-block
+) {
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 56px 56px;
+  animation: ft-scanline 12s linear infinite;
+}
+
+[data-theme="light"] :is(
+  .ft-terminal__body,
+  .ft-console__body,
+  .auth-xai-code pre,
+  .docs-xai-code pre,
+  .docs-xai-snippet pre,
+  .ft-code-showcase pre,
+  .cli-code-block,
+  .api-code-block,
+  .mcp-code-block,
+  .download-code-block
+) {
+  background-image:
+    linear-gradient(rgba(17,24,39,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17,24,39,.024) 1px, transparent 1px);
+}
+
+:is(
+  .ft-terminal__cursor,
+  .ft-console__command .ft-terminal__cursor,
+  .auth-xai-code pre::after,
+  .docs-xai-code pre::after,
+  .docs-xai-snippet pre::after
+) {
+  animation: ft-code-caret 1s steps(1, end) infinite;
+}
+
+.ft-console-step.is-done,
+.ft-console-step.is-active,
+.ft-console__table div.is-visible,
+.docs-search-result,
+.api-endpoint,
+.live-feed__item,
+.intel-token-grid .data-grid__row,
+.key-item,
+.history-item,
+.message-bubble,
+.system-message {
+  animation: ft-row-enter 320ms var(--motion-ease) both;
+}
+
+.ft-room-event,
+.chat-message,
+.message-bubble,
+.room-message,
+.system-message {
+  animation: ft-card-enter 340ms var(--motion-snap) both;
+}
+
+.ft-room-typing i,
+.typing-indicator span,
+.typing-indicator i,
+.auth-xai-status i,
+.docs-xai-pill i,
+.docs-xai-status i,
+.status-dot,
+.online-dot,
+.live-dot {
+  animation: ft-soft-pulse 1.35s ease-in-out infinite;
+}
+
+.ft-console__finding,
+.docs-search-panel__meta,
+.pinned-bar,
+.recent-scan-item:first-child,
+.live-feed__item:first-child {
+  animation: ft-live-highlight 2.6s ease-in-out infinite;
+}
+
+.ft-graph__edge,
+.funding-graph path,
+.force-graph-link,
+.graph-edge,
+.link-line {
+  stroke-dasharray: 6 8;
+  animation: ft-route-dash 8s linear infinite;
+}
+
+.ft-graph-node,
+.graph-node,
+.force-graph-node,
+.radar-dot,
+.risk-marker {
+  transition:
+    transform var(--motion-base) var(--motion-ease),
+    filter var(--motion-base) var(--motion-ease),
+    opacity var(--motion-base) var(--motion-ease);
+}
+
+.ft-graph-node:hover,
+.graph-node:hover,
+.force-graph-node:hover,
+.radar-dot:hover,
+.risk-marker:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.08);
+}
+
+.radar-sweep,
+.radar-grid::after,
+.force-graph__pulse {
+  animation: ft-soft-pulse 2.8s ease-in-out infinite;
+}
+
+.intel-social,
+.ft-public-footer a,
+.about-team__card-link,
+.docs-body a,
+.docs-content a {
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    text-shadow var(--motion-fast) var(--motion-ease);
+}
+
+.intel-social:hover,
+.ft-public-footer a:hover,
+.about-team__card-link:hover,
+.docs-body a:hover,
+.docs-content a:hover {
+  animation: ft-glitch-mark 420ms steps(2, end);
+}
+
+.ft-site-nav--scrolled,
+.docs-xai-toolbar,
+.docs-xai-topbar,
+.ft-site-nav {
+  transition:
+    background-color var(--motion-base) var(--motion-ease),
+    border-color var(--motion-base) var(--motion-ease),
+    backdrop-filter var(--motion-base) var(--motion-ease);
+}
+
+.blog-grid,
+.api-features-grid,
+.download-features-grid,
+.telegram-features__grid,
+.features-additional__grid,
+.pricing-tiers__container,
+.about-values__grid,
+.about-team__grid,
+.ft-developer-grid,
+.ft-logo-grid,
+.intel-contact__grid {
+  perspective: 1200px;
+}
+
+.auth-xai-code,
+.docs-xai-code,
+.docs-xai-snippet,
+.ft-code-showcase {
+  animation-name: ft-card-enter, ft-float-minor;
+  animation-duration: var(--motion-slow), 6s;
+  animation-delay: 120ms, 900ms;
+  animation-timing-function: var(--motion-snap), ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-fill-mode: both, none;
+}
+
+[data-theme="light"] :is(.docs-search-result__kind, .docs-section-btn, .blog-category-btn) {
+  color: #52525b;
+}
+
+@media (hover: none) {
+  :is(
+    .features-card,
+    .features-mini,
+    .pricing-tier,
+    .pricing-card,
+    .how-step__content,
+    .how-usecase,
+    .about-value,
+    .about-team__card,
+    .faq-item,
+    .blog-card,
+    .ft-dev-card,
+    .ft-workflow__row,
+    .telegram-feature,
+    .api-feature,
+    .download-feature,
+    .download-package-card,
+    .docs-body .feature-card,
+    .docs-content .feature-card,
+    .auth-xai-models article,
+    .intel-feature,
+    .intel-social
+  ):hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}

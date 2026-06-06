@@ -814,3 +814,112 @@
     flex-wrap: nowrap;
   }
 }
+
+/* Final light-mode docs normalization. Keep this last so it wins over the x.ai refresh rules. */
+[data-theme="light"] .docs-layout {
+  background: #fafafa;
+  color: #111827;
+}
+
+[data-theme="light"] .docs-xai-topbar {
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom-color: #e4e4e7;
+}
+
+[data-theme="light"] .docs-xai-topbar__center,
+[data-theme="light"] .docs-sidebar__header,
+[data-theme="light"] .docs-xai-hero-card h1,
+[data-theme="light"] .docs-content h2,
+[data-theme="light"] .docs-content h3,
+[data-theme="light"] .docs-content h4,
+[data-theme="light"] .docs-content th,
+[data-theme="light"] .docs-content pre code,
+[data-theme="light"] .docs-xai-code__tabs span:first-child {
+  color: #111827;
+}
+
+[data-theme="light"] .docs-sidebar,
+[data-theme="light"] .docs-main,
+[data-theme="light"] .docs-sections-nav {
+  background: #fafafa;
+}
+
+[data-theme="light"] .docs-sidebar {
+  border-right-color: #e4e4e7;
+}
+
+[data-theme="light"] .docs-sidebar__link,
+[data-theme="light"] .docs-breadcrumb,
+[data-theme="light"] .docs-breadcrumb a,
+[data-theme="light"] .docs-xai-search,
+[data-theme="light"] .docs-xai-search kbd,
+[data-theme="light"] .docs-xai-pill,
+[data-theme="light"] .docs-xai-hero-card p,
+[data-theme="light"] .docs-content p,
+[data-theme="light"] .docs-content li,
+[data-theme="light"] .docs-content td,
+[data-theme="light"] .docs-xai-code__tabs,
+[data-theme="light"] .docs-section-btn {
+  color: #52525b;
+}
+
+[data-theme="light"] .docs-sidebar__link:hover,
+[data-theme="light"] .docs-sidebar__link--active {
+  background: #f4f4f5;
+  color: #111827;
+}
+
+[data-theme="light"] .docs-xai-hero-card,
+[data-theme="light"] .docs-xai-code,
+[data-theme="light"] .docs-content pre,
+[data-theme="light"] .docs-content .feature-card,
+[data-theme="light"] .docs-content th,
+[data-theme="light"] .docs-content .callout,
+[data-theme="light"] .docs-xai-pill,
+[data-theme="light"] .docs-xai-search,
+[data-theme="light"] .docs-section-btn {
+  background: #ffffff;
+  border-color: #d4d4d8;
+}
+
+[data-theme="light"] .docs-xai-code__tabs {
+  background: #f8fafc;
+  border-bottom-color: #e4e4e7;
+}
+
+[data-theme="light"] .docs-xai-code pre,
+[data-theme="light"] .docs-content pre {
+  background: #f8fafc;
+  color: #111827;
+}
+
+[data-theme="light"] .docs-content code {
+  background: #f4f4f5;
+  color: #111827;
+}
+
+[data-theme="light"] .docs-content h2,
+[data-theme="light"] .docs-sections-nav {
+  border-color: #e4e4e7;
+}
+
+[data-theme="light"] .docs-xai-console,
+[data-theme="light"] .docs-xai-hero-card__actions a:first-child,
+[data-theme="light"] .docs-section-btn--active,
+[data-theme="light"] .docs-section-btn:hover {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+[data-theme="light"] .docs-xai-hero-card__actions a:not(:first-child) {
+  background: #ffffff;
+  border-color: #d4d4d8;
+  color: #111827;
+}
+
+[data-theme="light"] .docs-mobile-toggle {
+  background: #ffffff;
+  border-color: #d4d4d8;
+  color: #111827;
+}

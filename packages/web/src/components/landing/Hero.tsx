@@ -1,5 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Bot, Check, Circle, Copy, FileText, Shield, Table2, Users } from 'lucide-react';
+import {
+  ArrowRight,
+  Bot,
+  Check,
+  Circle,
+  Copy,
+  Database,
+  FileText,
+  GitBranch,
+  Radar,
+  Shield,
+  Table2,
+  Users,
+} from 'lucide-react';
 import './Hero.css';
 
 const rotatingPhrases = [
@@ -10,13 +23,25 @@ const rotatingPhrases = [
   'Turn on-chain noise into evidence you can act on.',
 ];
 
-const terminalLines = [
-  { text: '$ fundtracer analyze 0x742d...5b2a --chain ethereum', tone: 'command' },
-  { text: '▸ read labels, balances, counterparties', tone: 'muted' },
-  { text: '▸ trace funding tree depth=4', tone: 'muted' },
-  { text: '◆ risk score 82/100', tone: 'warning' },
-  { text: '✓ source cluster: Binance hot wallet → bridge → 7 wallets', tone: 'ok' },
-  { text: '✓ pinned summary to room "Treasury Investigation"', tone: 'ok' },
+const consoleSteps = [
+  { label: 'Resolve labels', detail: 'CEX tags, chain history, first funder', status: 'done' },
+  { label: 'Trace funding depth=4', detail: 'Ethereum to Arbitrum bridge route', status: 'done' },
+  { label: 'Score counterparties', detail: 'risk 82 / 100 from 6 signals', status: 'active' },
+  { label: 'Draft evidence note', detail: 'room pin and export package ready', status: 'queued' },
+];
+
+const consoleEntities = [
+  ['Binance hot wallet', 'Source', '18 txs', 'confirmed'],
+  ['Stargate bridge', 'Bridge', '2 hops', 'matched'],
+  ['0xd8dA...6045', 'Wallet', 'risk 82', 'review'],
+  ['Arbitrum cluster', 'Cluster', '7 wallets', 'linked'],
+];
+
+const consoleFindings = [
+  'Shared first funder appears across seed and seven linked wallets.',
+  'Bridge route is compressed into a 19 minute transaction window.',
+  'Counterparty reuse detected across Ethereum, Base, and Arbitrum.',
+  'Evidence package pinned to Treasury Investigation.',
 ];
 
 const roomStream: Array<{
@@ -49,27 +74,28 @@ const roomStream: Array<{
 
 export function Hero() {
   const [phraseIndex, setPhraseIndex] = useState(0);
-  const [lineIndex, setLineIndex] = useState(1);
+  const [consoleIndex, setConsoleIndex] = useState(1);
   const [roomCursor, setRoomCursor] = useState(3);
 
   useEffect(() => {
     const phraseTimer = window.setInterval(() => {
       setPhraseIndex(current => (current + 1) % rotatingPhrases.length);
     }, 5000);
-    const terminalTimer = window.setInterval(() => {
-      setLineIndex(current => (current >= terminalLines.length ? 1 : current + 1));
-    }, 1400);
+    const consoleTimer = window.setInterval(() => {
+      setConsoleIndex(current => (current >= consoleSteps.length ? 1 : current + 1));
+    }, 1500);
     const roomTimer = window.setInterval(() => {
       setRoomCursor(current => (current >= roomStream.length ? 3 : current + 1));
     }, 1700);
     return () => {
       window.clearInterval(phraseTimer);
-      window.clearInterval(terminalTimer);
+      window.clearInterval(consoleTimer);
       window.clearInterval(roomTimer);
     };
   }, []);
 
-  const visibleTerminalLines = useMemo(() => terminalLines.slice(0, lineIndex), [lineIndex]);
+  const activeConsoleSteps = useMemo(() => consoleSteps.slice(0, consoleIndex), [consoleIndex]);
+  const currentFinding = consoleFindings[(consoleIndex - 1 + consoleFindings.length) % consoleFindings.length];
   const visibleRoomMessages = useMemo(() => roomStream.slice(Math.max(0, roomCursor - 5), roomCursor), [roomCursor]);
 
   return (
@@ -149,7 +175,7 @@ export function Hero() {
           </div>
         </article>
 
-        <article className="ft-preview-card ft-preview-card--terminal">
+        <article className="ft-preview-card ft-preview-card--terminal ft-investigation-console">
           <div className="ft-terminal__chrome">
             <span />
             <span />
@@ -157,11 +183,89 @@ export function Hero() {
             <small>fundtracer/main</small>
             <button aria-label="Copy terminal command"><Copy size={14} /></button>
           </div>
-          <div className="ft-terminal__body" aria-live="polite">
-            {visibleTerminalLines.map(line => (
-              <code key={line.text} className={`is-${line.tone}`}>{line.text}</code>
-            ))}
-            <span className="ft-terminal__cursor" />
+          <div className="ft-console__body" aria-live="polite">
+            <div className="ft-console__command">
+              <code>$ fundtracer analyze 0x742d...5b2a --chain ethereum</code>
+              <span className="ft-terminal__cursor" />
+            </div>
+
+            <div className="ft-console__grid">
+              <div className="ft-console__steps">
+                <div className="ft-console__section-title">
+                  <Radar size={14} />
+                  <span>Trace run</span>
+                  <small>{Math.round((consoleIndex / consoleSteps.length) * 100)}%</small>
+                </div>
+                {consoleSteps.map((step, index) => {
+                  const state = index < consoleIndex ? step.status : 'queued';
+                  return (
+                    <div className={`ft-console-step is-${state}`} key={step.label}>
+                      <i>{String(index + 1).padStart(2, '0')}</i>
+                      <div>
+                        <strong>{step.label}</strong>
+                        <span>{step.detail}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="ft-console__summary">
+                <div>
+                  <span>Risk</span>
+                  <strong>82</strong>
+                  <em>high</em>
+                </div>
+                <div>
+                  <span>Route</span>
+                  <strong>4</strong>
+                  <em>hops</em>
+                </div>
+                <div>
+                  <span>Cluster</span>
+                  <strong>7</strong>
+                  <em>wallets</em>
+                </div>
+              </div>
+            </div>
+
+            <div className="ft-console__route" aria-label="Funding route preview">
+              {['Seed', 'Binance hot', 'Stargate', 'Arbitrum cluster'].map((hop, index) => (
+                <React.Fragment key={hop}>
+                  <span className={index < consoleIndex ? 'is-lit' : undefined}>
+                    <GitBranch size={13} />
+                    {hop}
+                  </span>
+                  {index < 3 && <i />}
+                </React.Fragment>
+              ))}
+            </div>
+
+            <div className="ft-console__table">
+              <div className="ft-console__section-title">
+                <Database size={14} />
+                <span>Entities</span>
+                <small>live labels</small>
+              </div>
+              {consoleEntities.map((row, index) => (
+                <div className={index < consoleIndex ? 'is-visible' : undefined} key={row.join('-')}>
+                  <strong>{row[0]}</strong>
+                  <span>{row[1]}</span>
+                  <span>{row[2]}</span>
+                  <em>{row[3]}</em>
+                </div>
+              ))}
+            </div>
+
+            <div className="ft-console__finding" key={currentFinding}>
+              <FileText size={15} />
+              <span>{currentFinding}</span>
+            </div>
+
+            <div className="ft-console__footer">
+              <span>{activeConsoleSteps.length} checks complete</span>
+              <strong>Pinned to Treasury Investigation</strong>
+            </div>
           </div>
         </article>
 

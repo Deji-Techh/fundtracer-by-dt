@@ -1288,3 +1288,70 @@
 [data-theme="light"] .docs-search-overlay {
   background: rgba(255, 255, 255, 0.56);
 }
+
+/* Final docs light-mode hardening. Keep last to prevent dark x.ai surfaces leaking into light mode. */
+[data-theme="light"] .docs-xai-shell .docs-page,
+[data-theme="light"] .docs-xai-shell .docs-content,
+[data-theme="light"] .docs-xai-shell .docs-body {
+  background: #fafafa;
+  color: #111827;
+}
+
+[data-theme="light"] .docs-xai-shell .docs-xai-toolbar {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: #e4e4e7;
+}
+
+[data-theme="light"] .docs-xai-shell .docs-xai-snippet > div,
+[data-theme="light"] .docs-xai-shell .docs-xai-snippet,
+[data-theme="light"] .docs-xai-shell .docs-body pre,
+[data-theme="light"] .docs-search-panel__header {
+  background: #f8fafc;
+  border-color: #d4d4d8;
+}
+
+[data-theme="light"] .docs-xai-shell .docs-xai-snippet pre,
+[data-theme="light"] .docs-xai-shell .docs-body pre code {
+  background: #ffffff;
+  color: #111827;
+}
+
+[data-theme="light"] .docs-xai-shell .docs-xai-toolbar a,
+[data-theme="light"] .docs-xai-shell .docs-xai-intro__actions a:first-child,
+[data-theme="light"] .docs-xai-shell .docs-toc__link--active,
+[data-theme="light"] .docs-xai-shell .docs-toc__link:hover {
+  background: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+
+[data-theme="light"] .docs-xai-shell .docs-xai-toolbar button,
+[data-theme="light"] .docs-xai-shell .docs-xai-intro__actions a:not(:first-child),
+[data-theme="light"] .docs-xai-shell .docs-toc__link,
+[data-theme="light"] .docs-search-panel__header button {
+  background: #ffffff;
+  border-color: #d4d4d8;
+  color: #111827;
+}
+
+[data-theme="light"] .docs-search-panel__header input,
+[data-theme="light"] .docs-search-panel__header input::placeholder,
+[data-theme="light"] .docs-xai-shell .docs-xai-snippet > div,
+[data-theme="light"] .docs-xai-shell .docs-xai-snippet > div span,
+[data-theme="light"] .docs-xai-shell .docs-body th,
+[data-theme="light"] .docs-xai-shell .docs-body td,
+[data-theme="light"] .docs-search-result__kind {
+  color: #52525b;
+}
+
+[data-theme="light"] .docs-xai-shell .docs-xai-snippet > div span:first-child,
+[data-theme="light"] .docs-xai-shell .docs-body strong,
+[data-theme="light"] .docs-search-panel__header input {
+  color: #111827;
+}
+
+[data-theme="light"] .docs-xai-shell .docs-body .setup-card__icon {
+  background: #ffffff;
+  border-color: #d4d4d8;
+  color: #52525b;
+}

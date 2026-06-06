@@ -11,6 +11,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import './index.css'
+import './styles/motion.css'
 
 const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || ''
 
