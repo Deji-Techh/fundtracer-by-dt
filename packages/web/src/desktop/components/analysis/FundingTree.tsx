@@ -405,7 +405,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
 	                  width: dims.nodeW, minHeight: dims.nodeH,
                   borderRadius: 'var(--radius-lg)',
                   border: pn.isTarget ? '2px solid var(--accent)' : isSelected ? '2px solid var(--fg)' : '1px solid var(--card-border)',
-                  background: pn.isTarget ? 'rgba(0,230,122,0.05)' : 'var(--card)',
+                  background: pn.isTarget ? 'var(--accent-soft)' : 'var(--card)',
                   boxShadow: isSelected ? '0 4px 16px rgba(0,0,0,0.28)' : '0 1px 2px rgba(0,0,0,0.08)',
                   cursor: 'pointer', opacity: dimmed ? 0.35 : 1,
                   transition: 'opacity 200ms, border-color 200ms, box-shadow 200ms',
@@ -439,7 +439,7 @@ export function FundingTree({ sources, destinations, targetAddress, chain = 'eth
                     {pn.isTarget && (
                       <span style={{
 	                        fontSize: 8, fontWeight: 600, padding: isMobile ? '1px 4px' : '1px 5px', borderRadius: 'var(--radius-full)',
-                        background: 'rgba(0,230,122,0.15)', color: 'var(--accent)',
+                        background: 'var(--accent-soft)', color: 'var(--accent)',
                         fontFamily: 'var(--font-sans)', flexShrink: 0,
                       }}>TARGET</span>
                     )}
@@ -555,7 +555,7 @@ function dirBtnStyle(active: boolean): React.CSSProperties {
   return {
     padding: '5px 14px', borderRadius: 'var(--radius-md)', fontSize: 11, fontWeight: 500, cursor: 'pointer',
     border: active ? '1px solid var(--accent)' : '1px solid var(--hairline)',
-    background: active ? 'rgba(0,230,122,0.08)' : 'var(--card)',
+    background: active ? 'var(--accent-soft)' : 'var(--card)',
     color: active ? 'var(--accent)' : 'var(--fg-tertiary)',
     fontFamily: 'var(--font-sans)', transition: 'all 150ms',
   };

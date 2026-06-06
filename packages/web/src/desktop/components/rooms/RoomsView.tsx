@@ -41,6 +41,7 @@ export function RoomsView() {
   const [typingUsers, setTypingUsers] = useState<Map<string, { displayName: string; timestamp: number }>>(new Map());
   const [aiTyping, setAiTyping] = useState(false);
   const typingSentRef = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
@@ -195,6 +196,10 @@ export function RoomsView() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages.length, aiTyping, typingUsers.size, activeRoom?.id]);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -468,7 +473,7 @@ export function RoomsView() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+    <div className="ft-room-panel" style={{ display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden', border: 0, borderRadius: 0 }}>
       <style>{`
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes typing-pulse {
@@ -478,7 +483,7 @@ export function RoomsView() {
 .typing-dots { animation: typing-pulse 1.2s ease-in-out infinite; }
 `}</style>
       {/* Room list */}
-      <div style={{ width: isMobile ? '100%' : 280, borderRight: isMobile ? 'none' : '1px solid var(--hairline)', display: isMobile && mobileView === 'chat' ? 'none' : 'flex', flexDirection: 'column', background: 'var(--bg-secondary)' }}>
+      <div style={{ width: isMobile ? '100%' : 300, borderRight: isMobile ? 'none' : '1px solid var(--hairline)', display: isMobile && mobileView === 'chat' ? 'none' : 'flex', flexDirection: 'column', background: 'var(--bg-secondary)' }}>
         <div style={{
           padding: '14px 16px', borderBottom: '1px solid var(--hairline)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -522,7 +527,7 @@ export function RoomsView() {
               <button onClick={handleCreateRoom}
                 style={{
                   padding: '6px 14px', borderRadius: 'var(--radius-md)', border: 'none', fontSize: 11, fontWeight: 600,
-                  background: 'var(--accent)', color: '#000', cursor: 'pointer',
+                  background: 'var(--accent)', color: 'var(--accent-ink)', cursor: 'pointer',
                 }}>Create</button>
               <button onClick={() => setShowCreate(false)}
                 style={{
@@ -546,7 +551,7 @@ export function RoomsView() {
                   <button onClick={handleConfirmJoin} disabled={joinLoading}
                     style={{
                       padding: '6px 14px', borderRadius: 'var(--radius-md)', border: 'none', fontSize: 11, fontWeight: 600,
-                      background: 'var(--accent)', color: '#000', cursor: 'pointer',
+                      background: 'var(--accent)', color: 'var(--accent-ink)', cursor: 'pointer',
                     }}>
                     {joinLoading ? 'Joining...' : 'Join'}
                   </button>
@@ -579,7 +584,7 @@ export function RoomsView() {
                     style={{
                       padding: '6px 14px', borderRadius: 'var(--radius-md)', border: 'none', fontSize: 11, fontWeight: 600,
                       background: joinCode.trim() ? 'var(--accent)' : 'var(--hover-overlay)',
-                      color: joinCode.trim() ? '#000' : 'var(--fg-tertiary)',
+                      color: joinCode.trim()  ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
                       cursor: joinCode.trim() ? 'pointer' : 'default',
                     }}>
                     {joinLoading ? 'Looking up...' : 'Look Up'}
@@ -630,7 +635,7 @@ export function RoomsView() {
                 onClick={() => selectRoom(room)}
                 style={{
                   padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--hairline)',
-                  background: activeRoom?.id === room.id ? 'rgba(0,230,122,0.1)' : 'transparent',
+                    background: activeRoom?.id === room.id ? 'var(--accent-soft)' : 'transparent',
                   borderLeft: activeRoom?.id === room.id ? '3px solid var(--accent)' : '3px solid transparent',
                 }}
                 onMouseEnter={e => { if (activeRoom?.id !== room.id) e.currentTarget.style.background = 'var(--hover-overlay)'; }}
@@ -750,7 +755,7 @@ export function RoomsView() {
                     }}
                       style={{
                         padding: '6px 10px', borderRadius: 'var(--radius-md)', border: 'none',
-                        background: 'var(--accent)', color: '#000', cursor: 'pointer',
+                        background: 'var(--accent)', color: 'var(--accent-ink)', cursor: 'pointer',
                       }}>
                       <Copy size={14} />
                     </button>
@@ -777,7 +782,7 @@ export function RoomsView() {
                     }}
                       style={{
                         padding: '6px 10px', borderRadius: 'var(--radius-md)', border: 'none',
-                        background: 'var(--accent)', color: '#000', cursor: 'pointer',
+                        background: 'var(--accent)', color: 'var(--accent-ink)', cursor: 'pointer',
                       }}>
                       <Copy size={14} />
                     </button>
@@ -830,7 +835,7 @@ export function RoomsView() {
                       <button onClick={handleUpdateDescription}
                         style={{
                           padding: '4px 12px', borderRadius: 'var(--radius-md)', border: 'none',
-                          background: 'var(--accent)', color: '#000', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          background: 'var(--accent)', color: 'var(--accent-ink)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
                         }}>Save</button>
                       <button onClick={() => setEditingDescription(false)}
                         style={{
@@ -867,7 +872,7 @@ export function RoomsView() {
                         <div key={m.uid} style={{
                           display: 'flex', alignItems: 'center', gap: 8, fontSize: 12,
                           padding: '5px 8px', borderRadius: 'var(--radius-md)',
-                          background: isSelf ? 'rgba(0,230,122,0.06)' : 'transparent',
+                          background: isSelf ? 'var(--accent-soft)' : 'transparent',
                         }}>
                           <div style={{
                             width: 24, height: 24, borderRadius: '50%', background: 'var(--hover-overlay)',
@@ -882,7 +887,7 @@ export function RoomsView() {
                           </span>
                           <span style={{
                             fontSize: 9, padding: '1px 5px', borderRadius: 'var(--radius-full)',
-                            background: isMemberOwner ? 'rgba(255,193,7,0.15)' : memberRole === 'admin' ? 'rgba(0,230,122,0.1)' : 'var(--hover-overlay)',
+                            background: isMemberOwner ? 'rgba(255,193,7,0.15)' : memberRole === 'admin' ? 'var(--accent-soft)' : 'var(--hover-overlay)',
                             color: isMemberOwner ? 'var(--warning)' : memberRole === 'admin' ? 'var(--accent)' : 'var(--fg-tertiary)',
                             fontWeight: 500,
                           }}>
@@ -930,7 +935,7 @@ export function RoomsView() {
                       }}
                         style={{
                           padding: '6px 10px', borderRadius: 'var(--radius-md)', border: 'none',
-                          background: 'var(--accent)', color: '#000', cursor: 'pointer',
+                          background: 'var(--accent)', color: 'var(--accent-ink)', cursor: 'pointer',
                         }}>
                         <Copy size={14} />
                       </button>
@@ -985,7 +990,7 @@ export function RoomsView() {
             )}
 
             {/* Messages */}
-            <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '10px 10px' : '16px 20px' }}>
+            <div className="ft-room-feed" style={{ flex: 1, overflow: 'auto', padding: isMobile ? '10px 10px' : '16px 20px' }}>
               {roomSelecting ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[1, 2, 3, 4, 5].map(i => (
@@ -999,7 +1004,7 @@ export function RoomsView() {
                       )}
                       <div style={{
                         padding: '8px 14px', borderRadius: i % 2 === 0 ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
-                        background: i % 2 === 0 ? 'rgba(0,168,132,0.15)' : 'var(--card)',
+	                        background: i % 2 === 0 ? 'var(--accent-soft)' : 'var(--card)',
                         border: '1px solid var(--hairline)',
                       }}>
                         <div style={{
@@ -1022,7 +1027,7 @@ export function RoomsView() {
                     const isMe = senderUid === profile?.uid;
                     const isAi = senderUid === 'ai' || senderName === 'FundTracer AI';
                     return (
-                      <div key={msg.id} style={{
+	                      <div key={msg.id} className="ft-room-message" style={{
                         display: 'flex', gap: 8,
                         flexDirection: isMe ? 'row-reverse' : 'row',
                         padding: isMobile ? '2px 0' : '2px 48px',
@@ -1030,7 +1035,7 @@ export function RoomsView() {
                         {!isMe && (
                           <div style={{
                             width: 28, height: 28, borderRadius: '50%',
-                            background: isAi ? 'rgba(0,230,122,0.12)' : 'var(--hover-overlay)',
+	                            background: isAi ? 'var(--accent-soft)' : 'var(--hover-overlay)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                             fontSize: 11, fontWeight: 600,
                             color: isAi ? 'var(--accent)' : 'var(--accent)',
@@ -1049,12 +1054,12 @@ export function RoomsView() {
                             </div>
                           )}
                           <div style={{
-                            padding: isMobile ? '9px 12px' : '8px 14px', fontSize: 13,
-                            borderRadius: isMe ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
-                            background: isMe ? '#00a884' : isAi ? 'rgba(0,230,122,0.05)' : 'var(--card)',
-                            border: isAi ? '1px solid rgba(0,230,122,0.3)' : '1px solid var(--hairline)',
-                            color: isMe ? '#fff' : 'var(--fg)',
-                            boxShadow: isMe ? '0 2px 12px rgba(0,168,132,0.25)' : undefined,
+	                            padding: isMobile ? '10px 13px' : '9px 15px', fontSize: 13,
+	                            borderRadius: isMe ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
+	                            background: isMe ? 'var(--fg)' : isAi ? 'var(--accent-soft)' : 'var(--card)',
+	                            border: isAi ? '1px solid var(--accent-border)' : '1px solid var(--hairline)',
+	                            color: isMe ? 'var(--bg)' : 'var(--fg)',
+	                            boxShadow: isMe ? '0 10px 26px color-mix(in srgb, var(--fg) 12%, transparent)' : undefined,
                             wordBreak: 'break-word',
                           }}>
                             {isAi || msg.type === 'ai-response' || msg.type === 'system'
@@ -1065,9 +1070,10 @@ export function RoomsView() {
                       </div>
                     );
                   })}
-                </div>
-              )}
-            </div>
+                    <div ref={messagesEndRef} />
+	                </div>
+	              )}
+	            </div>
 
             {/* Typing indicator */}
             {(aiTyping || typingUsers.size > 0) && (
@@ -1076,14 +1082,14 @@ export function RoomsView() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div style={{
                       width: 20, height: 20, borderRadius: '50%',
-                      background: 'rgba(0,230,122,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+	                      background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <Bot size={10} style={{ color: 'var(--accent)' }} />
                     </div>
                     <span style={{ fontSize: 11, color: 'var(--accent)', fontStyle: 'italic' }}>
                       FT MAVERIICK is thinking
                       <span style={{ display: 'inline-block', width: 24, textAlign: 'left' }}>
-                        <span className="typing-dots">...</span>
+	                        <span className="ft-typing-dot">.</span><span className="ft-typing-dot">.</span><span className="ft-typing-dot">.</span>
                       </span>
                     </span>
                   </div>
@@ -1093,7 +1099,7 @@ export function RoomsView() {
                     <span style={{ fontSize: 11, color: 'var(--fg-tertiary)', fontStyle: 'italic' }}>
                       {data.displayName} is typing
                       <span style={{ display: 'inline-block', width: 20, textAlign: 'left' }}>
-                        <span className="typing-dots">...</span>
+	                        <span className="ft-typing-dot">.</span><span className="ft-typing-dot">.</span><span className="ft-typing-dot">.</span>
                       </span>
                     </span>
                   </div>
@@ -1159,7 +1165,7 @@ export function RoomsView() {
                     width: isMobile ? 46 : undefined,
                     padding: isMobile ? 0 : '10px 16px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
                     background: input.trim() ? 'var(--accent)' : 'var(--hover-overlay)',
-                    color: input.trim() ? '#000' : 'var(--fg-tertiary)',
+	                    color: input.trim() ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
                     cursor: input.trim() ? 'pointer' : 'default',
                     display: 'flex',
                     alignItems: 'center',

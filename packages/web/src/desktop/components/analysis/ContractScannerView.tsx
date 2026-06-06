@@ -624,7 +624,7 @@ function ContractInlineAiAnalysis({
           placeholder="Ask follow-up..." disabled={loading}
           style={{ flex: 1, padding: '7px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--card-border)', background: 'var(--bg-secondary)', color: 'var(--fg)', fontSize: 12, outline: 'none' }} />
         <button onClick={handleFollowUp} disabled={loading || !input.trim()}
-          style={{ padding: '7px 10px', borderRadius: 'var(--radius-md)', border: 'none', background: input.trim() && !loading ? 'var(--accent)' : 'var(--card-border)', color: input.trim() && !loading ? '#000' : 'var(--fg-tertiary)', fontSize: 12, cursor: input.trim() && !loading ? 'pointer' : 'default' }}>
+          style={{ padding: '7px 10px', borderRadius: 'var(--radius-md)', border: 'none', background: input.trim() && !loading ? 'var(--accent)' : 'var(--card-border)', color: input.trim() && !loading  ? 'var(--accent-ink)' : 'var(--fg-tertiary)', fontSize: 12, cursor: input.trim() && !loading ? 'pointer' : 'default' }}>
           Ask
         </button>
       </div>

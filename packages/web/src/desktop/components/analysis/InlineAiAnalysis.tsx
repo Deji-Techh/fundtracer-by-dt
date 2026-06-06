@@ -256,7 +256,7 @@ Be direct and insightful. Use bullet points for clarity.`;
                   borderRadius: 'var(--radius-md)',
                   border: 'none',
                   background: input.trim() && !loading ? 'var(--accent)' : 'var(--card-border)',
-                  color: input.trim() && !loading ? '#000' : 'var(--fg-tertiary)',
+                  color: input.trim() && !loading  ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
                   cursor: input.trim() && !loading ? 'pointer' : 'default',
                   display: 'flex',
                   alignItems: 'center',

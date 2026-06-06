@@ -7,7 +7,7 @@ export function AnalysisTabs() {
   const isMobile = useIsMobile();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+    <div className="ft-analysis-tabs" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {/* Tab bar — admin-style segmented control (desktop only) */}
       {!isMobile && (<>
       <div style={{
@@ -39,6 +39,7 @@ export function AnalysisTabs() {
               <div
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                className="ft-analysis-tab-item"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -89,6 +90,7 @@ export function AnalysisTabs() {
         {/* New tab button */}
         <button
           onClick={() => openTab()}
+          className="ft-app-btn"
           style={{
             background: 'none',
             border: '1px solid var(--card-border)',

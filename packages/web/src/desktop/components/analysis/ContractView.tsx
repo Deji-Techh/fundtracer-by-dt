@@ -99,7 +99,7 @@ function ContractResult({ data, chain }: { data: Record<string, unknown>; chain:
 
       {/* Contract name */}
       {contractName && (
-        <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 'var(--radius-md)', background: 'rgba(0,230,122,0.1)', border: '1px solid var(--accent)', display: 'inline-block' }}>
+        <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 'var(--radius-md)', background: 'var(--accent-soft)', border: '1px solid var(--accent)', display: 'inline-block' }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--accent)' }}>{contractName}</span>
         </div>
       )}

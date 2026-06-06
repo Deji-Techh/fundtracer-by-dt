@@ -140,7 +140,7 @@ export function HistorySection() {
                     {item.riskLevel && (
                       <span style={{
                         fontSize: 10, padding: '1px 6px', borderRadius: 'var(--radius-full)',
-                        background: item.riskLevel === 'high' ? 'rgba(255,69,58,0.1)' : item.riskLevel === 'medium' ? 'rgba(255,214,0,0.1)' : 'rgba(0,230,122,0.1)',
+                        background: item.riskLevel === 'high' ? 'rgba(255,69,58,0.1)' : item.riskLevel === 'medium' ? 'rgba(255,214,0,0.1)' : 'var(--accent-soft)',
                         color: item.riskLevel === 'high' ? 'var(--destructive)' : item.riskLevel === 'medium' ? '#ffd600' : 'var(--accent)',
                         fontFamily: 'var(--font-mono)',
                       }}>

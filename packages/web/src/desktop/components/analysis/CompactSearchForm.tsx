@@ -148,7 +148,7 @@ export function CompactSearchForm({
             borderRadius: isMobile ? 10 : 'var(--radius-md)',
             border: 'none',
             background: canSubmit ? 'var(--accent)' : 'var(--bg-secondary)',
-            color: canSubmit ? '#000' : 'var(--fg-tertiary)',
+            color: canSubmit  ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
             fontSize: 12,
             fontWeight: 700,
             fontFamily: 'var(--font-sans)',

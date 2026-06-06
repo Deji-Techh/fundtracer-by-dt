@@ -371,7 +371,7 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
                   padding: '5px 9px',
                   borderRadius: 'var(--radius-full)',
                   border: '1px solid var(--accent)',
-                  background: 'rgba(0,230,122,0.08)',
+                  background: 'var(--accent-soft)',
                   color: 'var(--accent)',
                   fontSize: 10,
                   fontWeight: 600,
@@ -386,7 +386,7 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
                   onClick={() => onNavigateToSybil(result.interactors.map(ix => ix.address), chain)}
                   style={{
                     padding: '6px 12px', borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--accent)', background: 'rgba(0,230,122,0.08)',
+                    border: '1px solid var(--accent)', background: 'var(--accent-soft)',
                     color: 'var(--accent)', fontSize: 11, fontFamily: 'var(--font-sans)',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
                   }}

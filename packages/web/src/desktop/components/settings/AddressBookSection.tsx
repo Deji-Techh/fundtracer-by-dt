@@ -245,7 +245,7 @@ export function AddressBookSection() {
           style={{
             padding: '7px 20px', borderRadius: 'var(--radius-md)', border: 'none',
             background: address && label ? 'var(--accent)' : 'var(--hover-overlay)',
-            color: address && label ? '#000' : 'var(--fg-tertiary)',
+            color: address && label  ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
             fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-sans)',
             cursor: address && label ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 6,
           }}>
@@ -329,7 +329,7 @@ export function AddressBookSection() {
                       background: isSelected ? 'var(--accent)' : 'transparent',
                       cursor: 'pointer', padding: 0,
                     }}>
-                    {isSelected && <span style={{ color: '#000', fontSize: 10, lineHeight: 1 }}>✓</span>}
+                    {isSelected && <span style={{ color: 'var(--accent-ink)', fontSize: 10, lineHeight: 1 }}>✓</span>}
                   </button>
 
                   {/* Content */}
@@ -360,7 +360,7 @@ export function AddressBookSection() {
                           />
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={saveEdit} style={{ padding: '4px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--accent)', color: '#000', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>Save</button>
+                          <button onClick={saveEdit} style={{ padding: '4px 12px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--accent)', color: 'var(--accent-ink)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>Save</button>
                           <button onClick={cancelEdit} style={{ padding: '4px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--hairline)', background: 'transparent', color: 'var(--fg-tertiary)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Cancel</button>
                         </div>
                       </div>
@@ -409,7 +409,7 @@ export function AddressBookSection() {
                   <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
                     <button onClick={() => openTab(entry.address, entry.chain as ChainId, 'wallet')}
                       style={actionBtnStyle} title="Analyze"
-                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.background = 'rgba(0,230,122,0.1)'; }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-soft)'; }}
                       onMouseLeave={e => { e.currentTarget.style.color = 'var(--fg-tertiary)'; e.currentTarget.style.background = 'transparent'; }}>
                       <ExternalLink size={13} />
                     </button>

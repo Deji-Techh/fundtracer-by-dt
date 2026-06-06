@@ -59,9 +59,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map(toast => (
           <div key={toast.id} className="animate-slide-up" style={{
             background: toast.type === 'error' ? 'var(--destructive)' :
-                        toast.type === 'success' ? '#00cc6a' :
-                        toast.type === 'warning' ? 'var(--warning)' : '#00cc6a',
-            color: toast.type === 'warning' ? '#000' : '#fff',
+                        toast.type === 'success' ? 'var(--accent)' :
+                        toast.type === 'warning' ? 'var(--warning)' : 'var(--accent)',
+            color: toast.type === 'warning' ? '#000' : 'var(--accent-ink)',
             padding: '10px 16px',
             borderRadius: 'var(--radius-md)',
             fontSize: 13,

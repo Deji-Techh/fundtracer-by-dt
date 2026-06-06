@@ -275,7 +275,7 @@ export function WalletInput({ tab }: { tab: AnalysisTab }) {
       {/* Drag overlay */}
       {dragOver && (
         <div style={{
-          position: 'absolute', inset: 0, background: 'rgba(0,230,122,0.06)',
+          position: 'absolute', inset: 0, background: 'var(--accent-soft)',
           border: '2px dashed var(--accent)', borderRadius: 'var(--radius-xl)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 100, pointerEvents: 'none',

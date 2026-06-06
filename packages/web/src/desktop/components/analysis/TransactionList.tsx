@@ -14,7 +14,7 @@ function formatDestination(chain: ChainId, to?: string): string {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  transfer: 'rgba(0,230,122,0.12)', token_transfer: 'rgba(59,130,246,0.12)',
+  transfer: 'var(--accent-soft)', token_transfer: 'rgba(59,130,246,0.12)',
   contract_call: 'rgba(139,92,246,0.12)', dex_swap: 'rgba(245,158,11,0.12)',
   nft_transfer: 'rgba(236,72,153,0.12)', staking: 'rgba(6,182,212,0.12)',
   bridge: 'rgba(0,212,255,0.12)', lending: 'rgba(249,115,22,0.12)',
@@ -167,7 +167,7 @@ export function TransactionList({ transactions, chain, loading, error }: Transac
               style={{
                 padding: '4px 11px', borderRadius: 'var(--radius-full)', fontSize: 10, fontWeight: 500,
                 cursor: 'pointer', border: filterType === f.id ? '1px solid var(--accent)' : '1px solid transparent',
-                background: filterType === f.id ? 'rgba(0,230,122,0.1)' : 'transparent',
+                background: filterType === f.id ? 'var(--accent-soft)' : 'transparent',
                 color: filterType === f.id ? 'var(--accent)' : 'var(--fg-tertiary)',
                 fontFamily: 'var(--font-sans)', transition: 'all 150ms',
               }}
@@ -409,7 +409,7 @@ export function TransactionList({ transactions, chain, loading, error }: Transac
                 style={{
                   minWidth: 28, height: 26, borderRadius: 'var(--radius-md)', fontSize: 11, cursor: 'pointer',
                   border: pageNum === page ? '1px solid var(--accent)' : '1px solid transparent',
-                  background: pageNum === page ? 'rgba(0,230,122,0.1)' : 'transparent',
+                  background: pageNum === page ? 'var(--accent-soft)' : 'transparent',
                   color: pageNum === page ? 'var(--accent)' : 'var(--fg-tertiary)',
                   fontFamily: 'var(--font-mono)', fontWeight: pageNum === page ? 600 : 400,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',

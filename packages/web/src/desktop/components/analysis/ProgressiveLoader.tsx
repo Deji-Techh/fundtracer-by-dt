@@ -57,7 +57,7 @@ export function ProgressiveLoader({ title, steps, compact, message }: Progressiv
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: i === 0 ? 'rgba(0,230,122,0.12)' : 'var(--hover-overlay)',
+              background: i === 0 ? 'var(--accent-soft)' : 'var(--hover-overlay)',
               color: i === 0 ? 'var(--accent)' : 'var(--fg-tertiary)',
               fontSize: 10,
               fontWeight: 750,

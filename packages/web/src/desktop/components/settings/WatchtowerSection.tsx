@@ -212,7 +212,7 @@ export function WatchtowerSection() {
           <button type="button" onClick={handleAdd} disabled={loading}
             style={{
               padding: isMobile ? '0 12px' : '8px 16px', borderRadius: isMobile ? 12 : 'var(--radius-md)', border: 'none',
-              background: 'var(--accent)', color: '#000', fontSize: 12, fontWeight: 600,
+              background: 'var(--accent)', color: 'var(--accent-ink)', fontSize: 12, fontWeight: 600,
               cursor: 'pointer', whiteSpace: 'nowrap',
               minHeight: isMobile ? 44 : undefined,
               gridColumn: isMobile ? '2 / 3' : undefined,
@@ -269,7 +269,7 @@ export function WatchtowerSection() {
                       </span>
                       <span style={{
                         fontSize: 9, padding: '2px 6px', borderRadius: 'var(--radius-full)',
-                        background: w.paused ? 'rgba(255,159,10,0.15)' : 'rgba(0,230,122,0.15)',
+                        background: w.paused ? 'rgba(255,159,10,0.15)' : 'var(--accent-soft)',
                         color: w.paused ? '#ff9f0a' : 'var(--accent)', fontWeight: 600,
                       }}>
                         {w.paused ? 'PAUSED' : 'ACTIVE'}
@@ -323,7 +323,7 @@ export function WatchtowerSection() {
                             <div style={{
                               position: 'absolute', top: 2, left: w.notify_on_incoming ? 16 : 2,
                               width: 16, height: 16, borderRadius: '50%',
-                              background: w.notify_on_incoming ? '#000' : 'var(--fg-tertiary)',
+                              background: w.notify_on_incoming  ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
                               transition: 'left 0.15s',
                             }} />
                           </div>
@@ -345,7 +345,7 @@ export function WatchtowerSection() {
                             <div style={{
                               position: 'absolute', top: 2, left: w.notify_on_outgoing ? 16 : 2,
                               width: 16, height: 16, borderRadius: '50%',
-                              background: w.notify_on_outgoing ? '#000' : 'var(--fg-tertiary)',
+                              background: w.notify_on_outgoing  ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
                               transition: 'left 0.15s',
                             }} />
                           </div>

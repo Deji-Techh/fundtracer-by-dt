@@ -168,7 +168,7 @@ export function SettingsPage() {
                     <button onClick={handleSaveProfile} disabled={saving}
                       style={{
                         padding: '8px 16px', borderRadius: 'var(--radius-md)', border: 'none',
-                        background: '#00cc6a', color: '#000', fontSize: 12, fontWeight: 600,
+                        background: 'var(--accent)', color: 'var(--accent-ink)', fontSize: 12, fontWeight: 600,
                         fontFamily: 'var(--font-sans)', cursor: 'pointer', whiteSpace: 'nowrap',
                       }}>
                       {saving ? 'Saving...' : 'Save'}
@@ -210,7 +210,7 @@ export function SettingsPage() {
                   display: 'inline-block',
                   padding: '2px 10px',
                   borderRadius: 'var(--radius-full)',
-                  background: profile?.tier === 'pro' ? 'rgba(0,230,122,0.1)' : profile?.tier === 'max' ? 'rgba(139,92,246,0.1)' : 'var(--hover-overlay)',
+                  background: profile?.tier === 'pro' ? 'var(--accent-soft)' : profile?.tier === 'max' ? 'rgba(139,92,246,0.1)' : 'var(--hover-overlay)',
                   color: profile?.tier === 'pro' ? 'var(--accent)' : profile?.tier === 'max' ? '#8b5cf6' : 'var(--fg-secondary)',
                   fontSize: 12,
                   fontWeight: 600,
@@ -297,7 +297,7 @@ export function SettingsPage() {
                         padding: '6px 16px',
                         borderRadius: 'var(--radius-md)',
                         border: theme === t ? '1px solid var(--accent)' : '1px solid var(--card-border)',
-                        background: theme === t ? 'rgba(0,230,122,0.1)' : 'transparent',
+                        background: theme === t ? 'var(--accent-soft)' : 'transparent',
                         color: theme === t ? 'var(--accent)' : 'var(--fg-secondary)',
                         fontSize: 13,
                         fontFamily: 'var(--font-sans)',

@@ -283,13 +283,13 @@ export function AiChatView({ context }: AiChatViewProps) {
                   justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
                 }}>
                   {msg.role === 'assistant' && (
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,230,122,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Bot size={14} style={{ color: 'var(--accent)' }} />
                     </div>
                   )}
                   <div style={{
                     maxWidth: '80%', padding: '10px 14px', borderRadius: 'var(--radius-lg)',
-                    background: msg.role === 'user' ? 'rgba(0,230,122,0.1)' : 'var(--card)',
+                    background: msg.role === 'user' ? 'var(--accent-soft)' : 'var(--card)',
                     border: msg.role === 'user' ? '1px solid var(--accent)' : '1px solid var(--hairline)',
                     fontSize: 13, lineHeight: 1.6, color: 'var(--fg)',
                     whiteSpace: msg.role === 'user' ? 'pre-wrap' : 'normal',
@@ -389,7 +389,7 @@ export function AiChatView({ context }: AiChatViewProps) {
               ))}
               {loading && (
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,230,122,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Bot size={14} style={{ color: 'var(--accent)' }} />
                   </div>
                   <div style={{
@@ -415,7 +415,7 @@ export function AiChatView({ context }: AiChatViewProps) {
               {attachedFiles.map((f, i) => (
                 <div key={i} style={{
                   padding: '5px 10px', borderRadius: 'var(--radius-md)',
-                  background: 'rgba(0,230,122,0.08)', border: '1px solid var(--accent)',
+                  background: 'var(--accent-soft)', border: '1px solid var(--accent)',
                   display: 'flex', alignItems: 'center', gap: 6, fontSize: 11,
                   fontFamily: 'var(--font-sans)',
                 }}>
@@ -559,7 +559,7 @@ export function AiChatView({ context }: AiChatViewProps) {
                 width: isMobile ? 44 : undefined,
                 padding: isMobile ? 0 : '10px 16px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
                 background: (input.trim() || attachedFiles.length > 0) ? 'var(--accent)' : 'var(--hover-overlay)',
-                color: (input.trim() || attachedFiles.length > 0) ? '#000' : 'var(--fg-tertiary)',
+                color: (input.trim() || attachedFiles.length > 0)  ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
                 cursor: (input.trim() || attachedFiles.length > 0) ? 'pointer' : 'default',
                 transition: 'background 150ms, color 150ms',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

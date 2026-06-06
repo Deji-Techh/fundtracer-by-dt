@@ -86,7 +86,7 @@ export function AnalysisView({ tab }: AnalysisViewProps) {
     : tab.address;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+    <div className="ft-analysis-shell" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, overflow: 'hidden', border: '0', borderRadius: 0 }}>
       {/* Header with address and actions */}
       <div style={{
         padding: isMobile ? '6px 10px' : '14px 20px',
@@ -234,7 +234,7 @@ function ProgressiveStatusStrip({ tab, isMobile }: { tab: AnalysisTab; isMobile:
           height: 8,
           borderRadius: '50%',
           background: 'var(--accent)',
-          boxShadow: '0 0 0 4px rgba(0,230,122,0.08)',
+          boxShadow: '0 0 0 4px var(--accent-soft)',
           flexShrink: 0,
         }} />
         <span style={{
@@ -276,7 +276,7 @@ function ProgressPill({ label, state, isMobile }: { label: string; state: 'pendi
       padding: isMobile ? '4px 7px' : '4px 9px',
       borderRadius: 999,
       border: '1px solid var(--card-border)',
-      background: state === 'done' ? 'rgba(0,230,122,0.08)' : 'var(--bg-secondary)',
+      background: state === 'done' ? 'var(--accent-soft)' : 'var(--bg-secondary)',
       color,
       display: 'flex',
       alignItems: 'center',
@@ -643,7 +643,7 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
                 </div>
                 <span style={{
                   padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600,
-                  background: 'rgba(0,230,122,0.1)', color: 'var(--accent)', fontFamily: 'var(--font-sans)',
+                  background: 'var(--accent-soft)', color: 'var(--accent)', fontFamily: 'var(--font-sans)',
                   textTransform: 'uppercase', letterSpacing: '0.05em',
                 }}>
                   {entityType}
@@ -659,7 +659,7 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
                   {labels.map((l, i) => (
                     <span key={i} style={{
                       padding: '3px 10px', borderRadius: 'var(--radius-full)',
-                      background: 'rgba(0,230,122,0.1)', color: 'var(--accent)',
+                      background: 'var(--accent-soft)', color: 'var(--accent)',
                       fontSize: 11, fontFamily: 'var(--font-mono)',
                     }}>{l}</span>
                   ))}
@@ -782,7 +782,7 @@ function OverviewTab({ tab, result, isMobile }: { tab: AnalysisTab; result: NonN
                 style={{
                   padding: isMobile ? '5px 10px' : '3px 10px', borderRadius: 'var(--radius-full)', fontSize: 10, fontWeight: 500, cursor: 'pointer',
                   border: chartFilter === f.id ? '1px solid var(--accent)' : '1px solid transparent',
-                  background: chartFilter === f.id ? 'rgba(0,230,122,0.1)' : 'transparent',
+                  background: chartFilter === f.id ? 'var(--accent-soft)' : 'transparent',
                   color: chartFilter === f.id ? 'var(--accent)' : 'var(--fg-tertiary)',
                   fontFamily: 'var(--font-sans)', textTransform: 'capitalize', transition: 'background 150ms, border-color 150ms, color 150ms',
                 }}

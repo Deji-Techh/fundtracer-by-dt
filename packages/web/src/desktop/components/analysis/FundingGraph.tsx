@@ -49,8 +49,8 @@ interface EdgeDef {
 }
 
 const ENTITY_COLORS: Record<string, string> = {
-  cex: '#f59e0b', bridge: '#00d4ff', mixer: '#ff3366',
-  dex: '#9966ff', contract: '#6366f1', wallet: '#888888',
+  cex: '#d9aa36', bridge: '#7bc7ff', mixer: '#ff6b6b',
+  dex: '#ad8cff', contract: '#8b93ff', wallet: '#a1a1aa',
 };
 
 const NODE_W = 210;
@@ -398,7 +398,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
+    <div className="ft-graph-panel" style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%', minWidth: 0, maxWidth: '100%', overflow: 'hidden', padding: isMobile ? 10 : 12 }}>
       {/* Toolbar */}
       <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
@@ -434,6 +434,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
       {/* Graph viewport */}
       <div
         ref={containerRef}
+        className="ft-graph-viewport"
         onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         style={{
@@ -477,6 +478,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
               return (
                 <path
                   key={e.id}
+                  className="ft-graph-edge"
                   d={bezierPath(e.x1 + offFrom.dx, e.y1 + offFrom.dy, e.x2 + offTo.dx, e.y2 + offTo.dy)}
                   fill="none"
                   stroke={hl ? 'var(--accent)' : 'var(--hairline)'}
@@ -503,6 +505,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
               <div
                 key={n.id}
                 data-node-id={n.id}
+                className="ft-graph-node"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 style={{
                   position: 'absolute',
@@ -516,7 +519,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
                     : isSelected
                       ? '2px solid var(--fg)'
                       : '1px solid var(--card-border)',
-                  background: n.isTarget ? 'rgba(0,230,122,0.06)' : 'var(--card)',
+                  background: n.isTarget ? 'var(--accent-soft)' : 'var(--panel-bg-strong, var(--card))',
                   boxShadow: isSelected ? '0 4px 20px rgba(0,0,0,0.3)' : '0 1px 3px rgba(0,0,0,0.12)',
                   cursor: 'pointer',
                   opacity,
@@ -548,7 +551,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
                     background: n.isTarget ? 'var(--accent)' : eColor,
                   }} />
 	                  <span style={{
-	                    fontSize: isMobile ? 10 : 11, fontWeight: 600, color: n.isTarget ? 'var(--accent)' : 'var(--fg)',
+	                    fontSize: isMobile ? 10 : 11, fontWeight: 600, color: n.isTarget ? 'var(--fg)' : 'var(--fg)',
                     flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {n.label}
@@ -609,7 +612,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
             </span>
           )}
           {selected.value > 0 && (
-            <span style={{ color: 'var(--accent)' }}>{selected.value < 0.0001 ? '<0.0001' : selected.value.toFixed(6)} {ticker}</span>
+            <span style={{ color: 'var(--fg)' }}>{selected.value < 0.0001 ? '<0.0001' : selected.value.toFixed(6)} {ticker}</span>
           )}
           <span style={{ color: 'var(--fg-tertiary)' }}>{selected.txCount} txs</span>
           <span style={{ color: 'var(--fg-tertiary)' }}>depth {selected.depth}</span>
@@ -619,7 +622,7 @@ export function FundingGraph({ sources, destinations, targetAddress, chain = 'et
             </span>
           )}
           {selected.isTarget && (
-            <span style={{ color: 'var(--accent)', fontSize: 9, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
+            <span style={{ color: 'var(--fg)', fontSize: 9, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
               TARGET
             </span>
           )}
@@ -641,7 +644,7 @@ function toggleBtnStyle(active: boolean): React.CSSProperties {
   return {
     padding: '5px 14px', borderRadius: 'var(--radius-md)', fontSize: 11, fontWeight: 500, cursor: 'pointer',
     border: active ? '1px solid var(--accent)' : '1px solid var(--hairline)',
-    background: active ? 'rgba(0,230,122,0.08)' : 'var(--card)',
+    background: active ? 'var(--accent-soft)' : 'var(--card)',
     color: active ? 'var(--accent)' : 'var(--fg-tertiary)',
     fontFamily: 'var(--font-sans)',
     transition: 'all 150ms',

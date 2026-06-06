@@ -16,6 +16,7 @@ const NAV_ITEMS: { view: AppView; label: string; icon: React.ReactNode }[] = [
 export function MobileBottomNav({ currentView, onViewChange }: MobileBottomNavProps) {
   return (
     <nav
+      className="ft-mobile-nav"
       style={{
         position: 'fixed',
         bottom: 'max(4px, env(safe-area-inset-bottom, 0px))',
@@ -55,7 +56,7 @@ export function MobileBottomNav({ currentView, onViewChange }: MobileBottomNavPr
               padding: '6px 3px',
               border: 'none',
               borderRadius: 16,
-              background: active ? 'rgba(0,230,122,0.12)' : 'transparent',
+              background: active ? 'var(--accent-soft)' : 'transparent',
               color: active ? 'var(--accent)' : 'var(--fg-secondary)',
               cursor: 'pointer',
               WebkitTapHighlightColor: 'transparent',

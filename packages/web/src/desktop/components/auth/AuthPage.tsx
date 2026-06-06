@@ -303,7 +303,7 @@ input: ${tryAddress || 'waiting for wallet'}
           left: 0,
           right: 0,
           height: 1,
-          background: 'linear-gradient(90deg, transparent, rgba(0,230,122,0.3), transparent)',
+          background: 'linear-gradient(90deg, transparent, var(--accent-border), transparent)',
         }} />
 
         <div style={{ width: '100%', maxWidth: isMobile ? 440 : 400 }}>
@@ -346,7 +346,7 @@ input: ${tryAddress || 'waiting for wallet'}
             marginBottom: 10,
           }}>
             Welcome to{' '}
-            <span style={{ color: '#00cc66' }}>FundTracer</span>
+            <span style={{ color: 'var(--accent)' }}>FundTracer</span>
           </h1>
 
           <p style={{
@@ -549,7 +549,7 @@ input: ${tryAddress || 'waiting for wallet'}
                 padding: '10px 20px',
                 borderRadius: 10,
                 border: 'none',
-                background: submitting ? (theme === 'light' ? '#f5f5f7' : 'var(--bg-secondary)') : '#00cc66',
+                background: submitting ? (theme === 'light' ? '#f5f5f7' : 'var(--bg-secondary)') : 'var(--accent)',
                 color: submitting ? (theme === 'light' ? '#aeaeb2' : 'var(--fg-tertiary)') : '#fff',
                 fontSize: 13,
                 fontWeight: 600,
@@ -625,15 +625,15 @@ input: ${tryAddress || 'waiting for wallet'}
         {/* Drag overlay */}
         {tryDragOver && (
           <div style={{
-            position: 'absolute', inset: 0, background: 'rgba(0,230,122,0.06)',
-            border: '2px dashed #00cc66', borderRadius: 14,
+            position: 'absolute', inset: 0, background: 'var(--accent-soft)',
+            border: '2px dashed var(--accent)', borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             zIndex: 100, pointerEvents: 'none',
           }}>
             <div style={{
               padding: '14px 28px', borderRadius: 10,
               background: theme === 'light' ? '#ffffff' : 'var(--card)',
-              color: '#00cc66', fontSize: 13, fontWeight: 600,
+              color: 'var(--accent)', fontSize: 13, fontWeight: 600,
             }}>
               Drop address to try
             </div>
@@ -646,7 +646,7 @@ input: ${tryAddress || 'waiting for wallet'}
           width: 400,
           height: 300,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0,230,122,0.06) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, var(--accent-soft) 0%, transparent 70%)',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',

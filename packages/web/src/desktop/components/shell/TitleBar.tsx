@@ -18,8 +18,8 @@ const chainAbbr: Record<string, string> = {
 };
 
 const chainColor: Record<string, string> = {
-  ethereum: '#627eea', linea: '#61dfff', arbitrum: '#28a0f0', base: '#0052ff',
-  optimism: '#ff0420', polygon: '#8247e5', bsc: '#f0b90b', solana: '#9945ff',
+  ethereum: '#8b93ff', linea: '#d7dbe3', arbitrum: '#7bc7ff', base: '#7aa2ff',
+  optimism: '#ff6b6b', polygon: '#ad8cff', bsc: '#d9aa36', solana: '#b991ff',
 };
 
 const VIEW_LABELS: Record<string, string> = {
@@ -84,6 +84,7 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
   return (
     <div
       data-tauri-drag-region
+      className="ft-titlebar"
       style={{
         height: isMobile ? 52 : 'var(--titlebar-height)',
         minHeight: isMobile ? 52 : 'var(--titlebar-height)',
@@ -91,7 +92,7 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
         alignItems: 'center',
         padding: isMobile ? '0 10px' : '0 8px',
         background: isMobile
-          ? 'linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 94%, transparent), color-mix(in srgb, var(--bg) 92%, transparent))'
+          ? 'color-mix(in srgb, var(--bg-secondary) 94%, transparent)'
           : 'var(--bg-secondary)',
         borderBottom: '1px solid var(--hairline)',
         boxShadow: isMobile ? '0 10px 30px rgba(0,0,0,0.18)' : undefined,
@@ -274,7 +275,7 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
                       display: 'flex', alignItems: 'center', gap: 10,
                       width: '100%', padding: '7px 10px',
                       borderRadius: 'var(--radius-md)', border: 'none',
-                      background: c.id === chain ? 'var(--hover-overlay)' : 'transparent',
+                    background: c.id === chain ? 'var(--hover-overlay)' : 'transparent',
                       color: c.id === chain ? 'var(--fg)' : 'var(--fg-secondary)',
                       fontSize: 12, fontFamily: 'var(--font-sans)', cursor: 'pointer',
                       textAlign: 'left' as const,

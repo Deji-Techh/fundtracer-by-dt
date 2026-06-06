@@ -546,13 +546,13 @@ const toggleBtnStyle: React.CSSProperties = {
 
 const createBtnStyle: React.CSSProperties = {
   padding: '6px 16px', borderRadius: 'var(--radius-md)', border: 'none',
-  background: '#00cc6a', color: '#000', fontSize: 12, fontWeight: 600,
+  background: 'var(--accent)', color: 'var(--accent-ink)', fontSize: 12, fontWeight: 600,
   fontFamily: 'var(--font-sans)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
 };
 
 const submitBtnStyle: React.CSSProperties = {
   padding: '8px 20px', borderRadius: 'var(--radius-md)', border: 'none',
-  background: '#00cc6a', color: '#000', fontSize: 12, fontWeight: 600,
+  background: 'var(--accent)', color: 'var(--accent-ink)', fontSize: 12, fontWeight: 600,
   fontFamily: 'var(--font-sans)', cursor: 'pointer',
 };
 

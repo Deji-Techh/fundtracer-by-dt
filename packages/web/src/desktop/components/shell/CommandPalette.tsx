@@ -46,6 +46,7 @@ export function CommandPalette({ onClose, onNavigate }: CommandPaletteProps) {
 
   return (
     <div
+      className="ft-command-palette-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
@@ -59,7 +60,7 @@ export function CommandPalette({ onClose, onNavigate }: CommandPaletteProps) {
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="animate-slide-up"
+        className="ft-command-palette-panel"
         style={{
           width: 560,
           maxWidth: '90vw',

@@ -643,7 +643,7 @@ function CompareInlineAiAnalysis({
           style={{
             minHeight: isMobile ? 40 : undefined, minWidth: isMobile ? 44 : undefined, padding: '7px 10px', borderRadius: 'var(--radius-md)', border: 'none',
             background: input.trim() && !loading ? 'var(--accent)' : 'var(--card-border)',
-            color: input.trim() && !loading ? '#000' : 'var(--fg-tertiary)',
+            color: input.trim() && !loading  ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
             fontSize: 12, cursor: input.trim() && !loading ? 'pointer' : 'default',
           }}
         >
@@ -666,7 +666,7 @@ function MetricCard({ icon, label, value, color }: { icon: React.ReactNode; labe
 }
 
 function CompareActivityChart({ wallets, mode }: { wallets: Array<unknown>; mode?: 'analysis-like' | 'simple' }) {
-  const palette = ['#00e67a', '#28a0f0', '#f0b90b', '#ff0420', '#8247e5', '#ff8c42'];
+  const palette = ['var(--accent)', '#28a0f0', '#f0b90b', '#ff0420', '#8247e5', '#ff8c42'];
   const [chartFilter, setChartFilter] = useState<'all' | 'incoming' | 'outgoing'>('all');
 
   const chart = useMemo(() => {
@@ -760,7 +760,7 @@ function CompareActivityChart({ wallets, mode }: { wallets: Array<unknown>; mode
                     borderRadius: 'var(--radius-full)',
                     fontSize: 10,
                     border: chartFilter === f ? '1px solid var(--accent)' : '1px solid transparent',
-                    background: chartFilter === f ? 'rgba(0,230,122,0.1)' : 'transparent',
+                    background: chartFilter === f ? 'var(--accent-soft)' : 'transparent',
                     color: chartFilter === f ? 'var(--accent)' : 'var(--fg-tertiary)',
                     cursor: 'pointer',
                     textTransform: 'capitalize',

@@ -108,6 +108,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
         <button
           type="button"
           onClick={() => { onOpenCommand(); onClose?.(); }}
+          className="ft-command-trigger"
           style={{
             width: '100%',
             padding: sidebarCollapsed ? '8px 0' : isMobile ? '11px 12px' : '7px 10px',
@@ -144,13 +145,14 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
         <button
           type="button"
           onClick={() => { openTab(); onClose?.(); }}
+          className="ft-primary-action"
           style={{
             width: '100%',
             padding: isMobile ? '12px 0' : '8px 0',
             borderRadius: isMobile ? 14 : 'var(--radius-md)',
             border: 'none',
             background: 'var(--accent)',
-            color: '#000',
+            color: 'var(--accent-ink)',
             fontSize: isMobile ? 14 : 12,
             fontWeight: 600,
             fontFamily: 'var(--font-sans)',
@@ -200,8 +202,8 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
                   )}
                   <div style={{
                     width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                    background: tab.chain === 'ethereum' ? '#627eea' : tab.chain === 'base' ? '#0052ff' : tab.chain === 'arbitrum' ? '#28a0f0' : tab.chain === 'optimism' ? '#ff0420' : tab.chain === 'polygon' ? '#8247e5' : tab.chain === 'bsc' ? '#f0b90b' : tab.chain === 'linea' ? '#00e67a' : 'var(--accent)',
-                    boxShadow: isActive ? `0 0 6px ${tab.chain === 'ethereum' ? '#627eea' : tab.chain === 'base' ? '#0052ff' : tab.chain === 'arbitrum' ? '#28a0f0' : tab.chain === 'optimism' ? '#ff0420' : tab.chain === 'polygon' ? '#8247e5' : tab.chain === 'bsc' ? '#f0b90b' : tab.chain === 'linea' ? '#00e67a' : 'var(--accent)'}` : 'none',
+                    background: tab.chain === 'ethereum' ? '#8b93ff' : tab.chain === 'base' ? '#7aa2ff' : tab.chain === 'arbitrum' ? '#7bc7ff' : tab.chain === 'optimism' ? '#ff6b6b' : tab.chain === 'polygon' ? '#ad8cff' : tab.chain === 'bsc' ? '#d9aa36' : tab.chain === 'linea' ? '#d7dbe3' : 'var(--accent)',
+                    boxShadow: isActive ? `0 0 6px ${tab.chain === 'ethereum' ? '#8b93ff' : tab.chain === 'base' ? '#7aa2ff' : tab.chain === 'arbitrum' ? '#7bc7ff' : tab.chain === 'optimism' ? '#ff6b6b' : tab.chain === 'polygon' ? '#ad8cff' : tab.chain === 'bsc' ? '#d9aa36' : tab.chain === 'linea' ? '#d7dbe3' : 'var(--accent)'}` : 'none',
                   }} />
                   <span style={{
                     flex: 1, fontSize: isMobile ? 13 : 12, fontFamily: 'var(--font-mono)',
@@ -257,7 +259,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
         <div style={{ padding: '0 12px 8px' }}>
           <div style={{
             padding: '8px 10px', borderRadius: 'var(--radius-lg)',
-            background: 'rgba(0,230,122,0.06)', border: '1px solid rgba(0,230,122,0.12)',
+            background: 'color-mix(in srgb, var(--accent) 7%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 14%, transparent)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--fg-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rewards</span>
@@ -325,9 +327,9 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
             }
           }}
         />
-        <aside style={{
+        <aside className="ft-sidebar-shell ft-sidebar-shell--mobile" style={{
           position: 'fixed', top: 0, left: 0, bottom: 0, width: 'min(88vw, 340px)', zIndex: 201,
-          background: 'linear-gradient(180deg, color-mix(in srgb, var(--sidebar-bg) 96%, transparent), var(--bg))',
+          background: 'color-mix(in srgb, var(--sidebar-bg) 96%, transparent)',
           backdropFilter: 'blur(8px) saturate(190%)',
           WebkitBackdropFilter: 'blur(8px) saturate(190%)',
           borderRight: '1px solid var(--sidebar-border)',
@@ -345,7 +347,7 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
   // Desktop: inline aside
   const width = collapsed ? 64 : 240;
   return (
-    <aside style={{
+    <aside className="ft-sidebar-shell" style={{
       width,
       minWidth: width,
       transition: 'width 250ms ease',

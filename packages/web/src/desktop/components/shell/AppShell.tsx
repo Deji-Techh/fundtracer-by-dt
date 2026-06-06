@@ -169,7 +169,7 @@ export function AppShell() {
   return (
     <ChainProvider>
     <TabsProvider>
-      <div onKeyDown={handleKeyDown} tabIndex={-1} style={{
+      <div className="ft-workspace-shell" onKeyDown={handleKeyDown} tabIndex={-1} style={{
         position: 'fixed',
         inset: 0,
         display: 'flex', flexDirection: 'column', height: '100dvh', width: '100vw',
@@ -178,7 +178,7 @@ export function AppShell() {
       }}>
         <TitleBar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => isMobile ? toggleMobileSidebar() : toggleSidebar()} isMobile={isMobile} currentView={currentView} />
 
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div className="ft-workspace-body" style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <Sidebar
             currentView={currentView}
             onViewChange={setCurrentView}
@@ -190,7 +190,7 @@ export function AppShell() {
             onClose={closeMobileSidebar}
           />
 
-          <main style={{
+          <main className="ft-workspace-main" style={{
             flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden',
             background: 'var(--bg)',
             paddingBottom: 0,

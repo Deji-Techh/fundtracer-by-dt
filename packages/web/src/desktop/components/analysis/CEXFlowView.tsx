@@ -236,7 +236,7 @@ function CEXResult({
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-mono)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 8, height: 2, borderRadius: 1, background: '#00e67a', display: 'inline-block' }} />
+            <span style={{ width: 8, height: 2, borderRadius: 1, background: 'var(--accent)', display: 'inline-block' }} />
             Deposits
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
