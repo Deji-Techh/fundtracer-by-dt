@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Send, Users, Plus, Hash, Bot, Settings, X, Copy, Link, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
+import { Send, Users, Plus, Hash, Bot, Settings, X, Copy, Link, RefreshCw, Loader2, ArrowLeft, ImageIcon, Mic, Check, History } from 'lucide-react';
 import { getRooms, getRoom, getRoomMessages, sendRoomMessage, sendAiResponse, createRoom, inviteToRoom, updateRoom, deleteRoom, leaveRoom, removeRoomMember, lookupInvite, joinRoom, connectRoomSocket, disconnectRoomSocket, onRoomEvent, sendWsEvent, normalizeMessage, type InvestigationRoom, type RoomMessage } from '../../api/rooms';
 import { useIsMobile } from '../../../hooks/useIsMobile';
 import { sendChatMessage } from '../../api/chat';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotify } from '../../contexts/ToastContext';
 import { MarkdownContent } from '../analysis/MarkdownContent';
+import { getHistory, onHistoryChange } from '../../stores/history';
 
 export function RoomsView() {
   const { profile } = useAuth();
@@ -32,6 +33,12 @@ export function RoomsView() {
   const [mentionFilter, setMentionFilter] = useState('');
   const [mentionIndex, setMentionIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const plusMenuRef = useRef<HTMLDivElement>(null);
+  const historyPickerRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showJoin, setShowJoin] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [joinLoading, setJoinLoading] = useState(false);
@@ -42,10 +49,40 @@ export function RoomsView() {
   const [aiTyping, setAiTyping] = useState(false);
   const typingSentRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatFeedRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
+  // Plus menu / attachments / voice
+  const [attachedImages, setAttachedImages] = useState<Array<{ name: string; dataUrl: string; size: number }>>([]);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const [showHistoryPicker, setShowHistoryPicker] = useState(false);
+  const [scanHistory, setScanHistory] = useState<ReturnType<typeof getHistory>>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+
+  // Double-tap detection for mobile voice notes
+  const lastTapRef = useRef(0);
+  const doubleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => { loadRooms(); }, []);
+
+  // Load scan history and subscribe
+  useEffect(() => {
+    setScanHistory(getHistory());
+    return onHistoryChange(() => setScanHistory(getHistory()));
+  }, []);
+
+  // Click outside to close plus menu and history picker
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (plusMenuRef.current && !plusMenuRef.current.contains(e.target as Node)) setShowPlusMenu(false);
+      if (historyPickerRef.current && !historyPickerRef.current.contains(e.target as Node)) setShowHistoryPicker(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const loadRooms = async () => {
     setRoomsLoading(true);
@@ -117,8 +154,8 @@ export function RoomsView() {
     const unsubs: (() => void)[] = [];
 
     unsubs.push(onRoomEvent('message', (data: any) => {
-      if (data.roomId === activeRoom.id && (data.sender || data.senderId) && data.content) {
-        const msg = normalizeMessage(data);
+      const msg = normalizeMessage(data.message || data);
+      if (msg.roomId === activeRoom.id && msg.sender && msg.content) {
         setMessages(prev => {
           if (prev.find(m => m.id === msg.id)) return prev;
           return [...prev, msg];
@@ -201,50 +238,185 @@ export function RoomsView() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length, aiTyping, typingUsers.size, activeRoom?.id]);
 
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text || !activeRoom || loading) return;
-    setInput('');
+  // ─── Image attachment ────────────────────────────────────
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    setShowPlusMenu(false);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/')) continue;
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAttachedImages(prev => [...prev, {
+          name: file.name,
+          dataUrl: reader.result as string,
+          size: file.size,
+        }]);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
+
+  const removeImage = (idx: number) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  // ─── Voice recording ──────────────────────────────────────
+
+  const startRecording = async () => {
+    setShowPlusMenu(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4' });
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType });
+        setAudioBlob(blob);
+        setIsRecording(false);
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      setAudioBlob(null);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } catch {
+      notify.error('Microphone access denied');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
+      mediaRecorderRef.current = null;
+      audioChunksRef.current = [];
+      setIsRecording(false);
+      setRecordingTime(0);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    }
+  };
+
+  const sendVoiceNote = async () => {
+    if (!audioBlob || !activeRoom) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      const audioHtml = `<audio controls src="${dataUrl}" style="max-width:100%"></audio>`;
+      await sendMessageContent(audioHtml);
+      setAudioBlob(null);
+      setRecordingTime(0);
+    };
+    reader.readAsDataURL(audioBlob);
+  };
+
+  // ─── Scan history ─────────────────────────────────────────
+
+  const insertScanHistory = (entry: ReturnType<typeof getHistory>[0]) => {
+    setShowHistoryPicker(false);
+    setShowPlusMenu(false);
+    const lines = [
+      `[Scan History Entry]`,
+      `Address: ${entry.address}`,
+      `Chain: ${entry.chain}`,
+      `Type: ${entry.type || 'N/A'}`,
+      `Risk Level: ${entry.riskLevel || 'N/A'}`,
+      `Risk Score: ${entry.riskScore != null ? entry.riskScore + '/100' : 'N/A'}`,
+      `Total Transactions: ${entry.totalTransactions != null ? `${entry.totalTransactions}${entry.transactionHistoryLimited ? '+' : ''}` : 'N/A'}`,
+    ];
+    if (entry.totalValueSentEth != null) lines.push(`Total Value Sent: ${entry.totalValueSentEth} ETH`);
+    if (entry.totalValueReceivedEth != null) lines.push(`Total Value Received: ${entry.totalValueReceivedEth} ETH`);
+    if (entry.balanceInEth != null) lines.push(`Balance: ${entry.balanceInEth} ETH`);
+    if (entry.activityPeriodDays != null) lines.push(`Activity Period: ${entry.activityPeriodDays} days`);
+    sendMessageContent(lines.join('\n'));
+  };
+
+  // ─── Shared send helper ────────────────────────────────────
+
+  const sendMessageContent = async (content: string) => {
+    if (!activeRoom || loading) return;
     sendWsEvent({ type: 'typing_stop' });
     typingSentRef.current = false;
     setLoading(true);
 
-    // Optimistic message — appears immediately
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const optimistic: RoomMessage = {
       id: tempId,
       roomId: activeRoom.id,
       sender: { uid: profile?.uid || '', displayName: profile?.displayName || profile?.name || 'You' },
-      content: text,
+      content,
       timestamp: Date.now(),
       type: 'message',
     };
     setMessages(prev => [...prev, optimistic]);
 
     try {
-      const msg = await sendRoomMessage(activeRoom.id, text);
-      // Replace optimistic with real message, dedup by real ID
+      const msg = await sendRoomMessage(activeRoom.id, content);
       setMessages(prev => {
         const filtered = prev.filter(m => m.id !== msg.id);
         return filtered.map(m => m.id === tempId ? msg : m);
       });
 
-      // Check for @ai mention
-      if (/@(ai|fundtracer|assistant|ft)\b/i.test(text)) {
+      if (/@(ai|fundtracer|assistant|ft)\b/i.test(content)) {
         setAiTyping(true);
         try {
-          const aiReply = await sendChatMessage(null, text, undefined, undefined);
+          const aiReply = await sendChatMessage(null, content, undefined, undefined);
           const aiMsg = await sendAiResponse(activeRoom.id, aiReply.reply);
           setMessages(prev => [...prev, aiMsg]);
-        } catch { /* AI response failed silently */ }
+        } catch {}
         finally { setAiTyping(false); }
       }
     } catch {
-      // Remove optimistic message on failure
       setMessages(prev => prev.filter(m => m.id !== tempId));
       notify.error('Failed to send message');
     }
     finally { setLoading(false); }
+  };
+
+  const handleSend = async () => {
+    const text = input.trim();
+    if ((!text && attachedImages.length === 0 && !audioBlob) || !activeRoom || loading) return;
+
+    // If voice note is recorded, send it
+    if (audioBlob) {
+      await sendVoiceNote();
+      return;
+    }
+
+    // Build message content with images
+    let content = text;
+    if (attachedImages.length > 0) {
+      const imageLines = attachedImages.map(img => `![${img.name}](${img.dataUrl})`).join('\n');
+      content = content ? content + '\n' + imageLines : imageLines;
+    }
+
+    setInput('');
+    setAttachedImages([]);
+    await sendMessageContent(content);
   };
 
   const handleCreateRoom = async () => {
@@ -472,6 +644,21 @@ export function RoomsView() {
     }
   };
 
+  const handleChatFeedDoubleTap = () => {
+    if (!isMobile || isRecording || !activeRoom) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < 350) {
+      // Double tap detected
+      if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
+      lastTapRef.current = 0;
+      startRecording();
+    } else {
+      lastTapRef.current = now;
+      if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
+      doubleTapTimerRef.current = setTimeout(() => { lastTapRef.current = 0; }, 400);
+    }
+  };
+
   return (
     <div className="ft-room-panel" style={{ display: 'flex', height: '100%', minWidth: 0, overflow: 'hidden', border: 0, borderRadius: 0 }}>
       <style>{`
@@ -481,6 +668,22 @@ export function RoomsView() {
   50% { opacity: 1; }
 }
 .typing-dots { animation: typing-pulse 1.2s ease-in-out infinite; }
+@keyframes ft-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
+@keyframes ft-scale-in {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes ft-fade-up {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes ft-announce-in {
+  0% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 0.75; transform: translateY(0); }
+}
 `}</style>
       {/* Room list */}
       <div style={{ width: isMobile ? '100%' : 300, borderRight: isMobile ? 'none' : '1px solid var(--hairline)', display: isMobile && mobileView === 'chat' ? 'none' : 'flex', flexDirection: 'column', background: 'var(--bg-secondary)' }}>
@@ -990,7 +1193,9 @@ export function RoomsView() {
             )}
 
             {/* Messages */}
-            <div className="ft-room-feed" style={{ flex: 1, overflow: 'auto', padding: isMobile ? '10px 10px' : '16px 20px' }}>
+            <div ref={chatFeedRef} className="ft-room-feed"
+              onTouchStart={isMobile ? handleChatFeedDoubleTap : undefined}
+              style={{ flex: 1, overflow: 'auto', padding: isMobile ? '10px 10px' : '16px 20px' }}>
               {roomSelecting ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[1, 2, 3, 4, 5].map(i => (
@@ -1026,6 +1231,20 @@ export function RoomsView() {
                     const senderName = getSenderName(msg.sender);
                     const isMe = senderUid === profile?.uid;
                     const isAi = senderUid === 'ai' || senderName === 'FundTracer AI';
+                    const isSystem = msg.type === 'system' || (msg as any).contentType === 'system' || senderUid === 'system';
+
+                    if (isSystem) {
+                      return (
+                        <div key={msg.id} style={{
+                          textAlign: 'center', padding: '4px 0',
+                          fontSize: 11, color: 'var(--fg-tertiary)',
+                          fontStyle: 'italic', opacity: 0.75,
+                        }}>
+                          {msg.content}
+                        </div>
+                      );
+                    }
+
                     return (
 	                      <div key={msg.id} className="ft-room-message" style={{
                         display: 'flex', gap: 8,
@@ -1062,7 +1281,7 @@ export function RoomsView() {
 	                            boxShadow: isMe ? '0 10px 26px color-mix(in srgb, var(--fg) 12%, transparent)' : undefined,
                             wordBreak: 'break-word',
                           }}>
-                            {isAi || msg.type === 'ai-response' || msg.type === 'system'
+                            {isAi || msg.type === 'ai-response'
                               ? <MarkdownContent text={msg.content} />
                               : msg.content}
                           </div>
@@ -1142,12 +1361,82 @@ export function RoomsView() {
                   ))}
                 </div>
               )}
+              {/* Recording UI */}
+              {isRecording && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: isMobile ? '6px 0 4px' : '4px 0',
+                  animation: 'ft-scale-in 150ms ease-out',
+                }}>
+                  <span style={{
+                    width: 12, height: 12, borderRadius: '50%', background: 'var(--destructive)',
+                    animation: 'ft-pulse 1.2s ease-in-out infinite', flexShrink: 0,
+                  }} />
+                  <span style={{ fontSize: 13, color: 'var(--fg)', fontWeight: 500, flex: 1 }}>
+                    Recording {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
+                  </span>
+                  <button onClick={cancelRecording} style={{
+                    background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-md)',
+                    color: 'var(--fg-tertiary)', cursor: 'pointer', padding: '6px 12px', fontSize: 12,
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <X size={14} /> Cancel
+                  </button>
+                  <button onClick={stopRecording} style={{
+                    background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius-md)',
+                    color: 'var(--accent-ink)', cursor: 'pointer', padding: '6px 12px', fontSize: 12,
+                    fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <Check size={14} /> Send
+                  </button>
+                </div>
+              )}
+
+              {/* Image preview chips */}
+              {attachedImages.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                  {attachedImages.map((img, i) => (
+                    <div key={i} style={{
+                      position: 'relative', borderRadius: 'var(--radius-md)',
+                      overflow: 'hidden', border: '1px solid var(--card-border)',
+                      animation: 'ft-scale-in 150ms ease-out',
+                    }}>
+                      <img src={img.dataUrl} alt={img.name}
+                        style={{ width: 56, height: 56, objectFit: 'cover', display: 'block' }}
+                      />
+                      <button
+                        onClick={() => removeImage(i)}
+                        style={{
+                          position: 'absolute', top: 2, right: 2, width: 16, height: 16,
+                          borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: 'none',
+                          color: '#fff', cursor: 'pointer', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', padding: 0,
+                        }}>
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Audio preview */}
+              {audioBlob && !isRecording && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, animation: 'ft-scale-in 150ms ease-out' }}>
+                  <audio controls src={URL.createObjectURL(audioBlob)}
+                    style={{ flex: 1, height: 32, maxWidth: 300 }}
+                  />
+                  <button onClick={() => setAudioBlob(null)}
+                    style={{ background: 'none', border: 'none', color: 'var(--fg-tertiary)', cursor: 'pointer', padding: 4 }}>
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: isMobile ? 7 : 8 }}>
                 <input ref={inputRef} type="text" value={input}
                   onChange={handleInputChange}
                   onKeyDown={handleInputKeyDown}
                   placeholder={`Message ${activeRoom.name}... (use @ to mention)`}
-                  disabled={loading}
+                  disabled={loading || isRecording}
                   style={{
                     flex: 1, padding: isMobile ? '11px 12px' : '10px 14px', borderRadius: isMobile ? 10 : 'var(--radius-lg)',
                     border: '1px solid var(--card-border)', background: 'var(--card)',
@@ -1160,21 +1449,125 @@ export function RoomsView() {
                     setTimeout(() => setMentionMode('off'), 150);
                   }}
                 />
-                <button type="button" onClick={handleSend} disabled={loading || !input.trim()}
-                  style={{
-                    width: isMobile ? 46 : undefined,
-                    padding: isMobile ? 0 : '10px 16px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
-                    background: input.trim() ? 'var(--accent)' : 'var(--hover-overlay)',
-	                    color: input.trim() ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
-                    cursor: input.trim() ? 'pointer' : 'default',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                  <Send size={16} />
-                </button>
+                {/* Plus menu (when input empty) */}
+                {!input.trim() && !isRecording ? (
+                  <div ref={plusMenuRef} style={{ position: 'relative' }}>
+                    <button type="button"
+                      onClick={() => { setShowPlusMenu(!showPlusMenu); setShowHistoryPicker(false); }}
+                      disabled={loading}
+                      style={{
+                        width: isMobile ? 46 : undefined,
+                        padding: isMobile ? 0 : '10px 16px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
+                        background: 'var(--hover-overlay)', color: 'var(--fg-tertiary)',
+                        cursor: loading ? 'default' : 'pointer', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        transition: 'background 150ms, color 150ms',
+                      }}>
+                      <Plus size={18} />
+                    </button>
+                    {showPlusMenu && (
+                      <div style={{
+                        position: 'absolute', bottom: '100%', right: 0, marginBottom: 6,
+                        background: 'var(--card)', border: '1px solid var(--card-border)',
+                        borderRadius: 'var(--radius-lg)', padding: 4, minWidth: 200,
+                        boxShadow: 'var(--shadow-overlay)', zIndex: 200,
+                        animation: 'ft-fade-up 150ms ease-out',
+                      }}>
+                        <button type="button"
+                          onClick={() => { setShowPlusMenu(false); setTimeout(() => fileInputRef.current?.click(), 0); }}
+                          style={plusMenuItemStyle}>
+                          <ImageIcon size={14} />
+                          <span>Image</span>
+                        </button>
+                        <button type="button"
+                          onClick={() => { setShowHistoryPicker(!showHistoryPicker); setShowPlusMenu(false); }}
+                          style={plusMenuItemStyle}>
+                          <History size={14} />
+                          <span>Scan History</span>
+                        </button>
+                        <button type="button"
+                          onClick={startRecording}
+                          style={plusMenuItemStyle}>
+                          <Mic size={14} />
+                          <span>Voice Note</span>
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      style={{ display: 'none' }}
+                      onChange={handleImageSelect}
+                    />
+                  </div>
+                ) : isRecording ? null : (
+                  <button type="button" onClick={handleSend}
+                    disabled={loading || (!input.trim() && attachedImages.length === 0 && !audioBlob)}
+                    style={{
+                      width: isMobile ? 46 : undefined,
+                      padding: isMobile ? 0 : '10px 16px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
+                      background: (input.trim() || attachedImages.length > 0 || audioBlob) ? 'var(--accent)' : 'var(--hover-overlay)',
+                      color: (input.trim() || attachedImages.length > 0 || audioBlob) ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
+                      cursor: (input.trim() || attachedImages.length > 0 || audioBlob) ? 'pointer' : 'default',
+                      transition: 'background 150ms, color 150ms',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                    <Send size={16} />
+                  </button>
+                )}
               </div>
+
+              {/* Scan history picker */}
+              {showHistoryPicker && (
+                <div ref={historyPickerRef} style={{
+                  position: 'absolute', bottom: '100%', right: 20, marginBottom: 4,
+                  width: isMobile ? 'calc(100vw - 36px)' : 320, maxHeight: 340, overflow: 'auto',
+                  background: 'var(--card)', border: '1px solid var(--card-border)',
+                  borderRadius: 'var(--radius-lg)', padding: 4,
+                  boxShadow: 'var(--shadow-overlay)', zIndex: 200,
+                  animation: 'ft-fade-up 150ms ease-out',
+                }}>
+                  <div style={{
+                    padding: '8px 12px', fontSize: 11, fontWeight: 600,
+                    color: 'var(--fg-tertiary)', textTransform: 'uppercase',
+                    letterSpacing: '0.05em', borderBottom: '1px solid var(--hairline)',
+                    marginBottom: 4,
+                  }}>
+                    Recent Scans
+                  </div>
+                  {scanHistory.length === 0 ? (
+                    <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--fg-tertiary)', textAlign: 'center' }}>
+                      No scan history yet
+                    </div>
+                  ) : (
+                    scanHistory.slice(0, 15).map((entry, i) => (
+                      <button key={i}
+                        type="button"
+                        onClick={() => insertScanHistory(entry)}
+                        style={{
+                          width: '100%', textAlign: 'left', padding: '8px 12px',
+                          border: 'none', background: 'transparent', cursor: 'pointer',
+                          borderRadius: 'var(--radius-md)', color: 'var(--fg)',
+                          display: 'flex', flexDirection: 'column', gap: 2,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover-overlay)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--fg)' }}>
+                          {entry.address.slice(0, 10)}...{entry.address.slice(-6)}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--fg-tertiary)' }}>
+                          {entry.chain}
+                          {entry.riskLevel ? ` • Risk: ${entry.riskLevel}` : ''}
+                          {entry.totalTransactions != null ? ` • ${entry.totalTransactions}${entry.transactionHistoryLimited ? '+' : ''} txs` : ''}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}
@@ -1182,3 +1575,10 @@ export function RoomsView() {
     </div>
   );
 }
+const plusMenuItemStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 10,
+  width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-md)',
+  border: 'none', background: 'transparent', color: 'var(--fg)',
+  fontSize: 13, fontFamily: 'var(--font-sans)', cursor: 'pointer',
+  textAlign: 'left' as const,
+};
