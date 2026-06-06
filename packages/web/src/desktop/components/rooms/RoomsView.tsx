@@ -1283,15 +1283,20 @@ export function RoomsView() {
                             </div>
                           )}
                           <div style={{
-	                            padding: isMobile ? '10px 13px' : '9px 15px', fontSize: 13,
-	                            borderRadius: isMe ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
-	                            background: isMe ? 'var(--fg)' : isAi ? 'var(--accent-soft)' : 'var(--card)',
-	                            border: isAi ? '1px solid var(--accent-border)' : '1px solid var(--hairline)',
-	                            color: isMe ? 'var(--bg)' : 'var(--fg)',
-	                            boxShadow: isMe ? '0 10px 26px color-mix(in srgb, var(--fg) 12%, transparent)' : undefined,
-                            wordBreak: 'break-word',
+		                            padding: isMobile ? '10px 13px' : '9px 15px', fontSize: 13,
+		                            borderRadius: isMe ? '20px 20px 6px 20px' : '20px 20px 20px 6px',
+		                            background: isMe ? 'var(--room-out-bg)' : isAi ? 'var(--room-ai-bg)' : 'var(--room-in-bg)',
+		                            border: isMe ? '1px solid var(--room-out-border)' : isAi ? '1px solid var(--accent-border)' : '1px solid var(--hairline)',
+		                            color: isMe ? 'var(--room-out-fg)' : isAi ? 'var(--room-ai-fg)' : 'var(--room-in-fg)',
+		                            boxShadow: isMe ? '0 10px 26px color-mix(in srgb, var(--room-out-bg) 12%, transparent)' : undefined,
+                            lineHeight: 1.45,
+                            whiteSpace: 'pre-wrap',
+                            overflowWrap: 'anywhere',
+	                            wordBreak: 'break-word',
                           }}>
-                            <MarkdownContent text={msg.content} />
+                            {isAi || msg.type === 'ai-response'
+                              ? <MarkdownContent text={msg.content} />
+                              : msg.content}
                           </div>
                         </div>
                       </div>
