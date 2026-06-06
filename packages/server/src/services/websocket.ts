@@ -144,9 +144,56 @@ export class InvestigationWSS {
         case 'ping':
           client.ws.send(JSON.stringify({ type: 'pong' }));
           break;
+        case 'chat_message':
+          this.handleChatMessage(client, data);
+          break;
       }
     } catch {
       // ignore malformed messages
+    }
+  }
+
+  private async handleChatMessage(client: WSClient, data: any) {
+    const { content, tempId } = data;
+    if (!content || !content.trim()) return;
+
+    const now = Date.now();
+    const message = {
+      id: tempId,
+      senderId: client.uid,
+      senderName: client.displayName,
+      senderPhotoURL: null,
+      content: content.trim(),
+      contentType: 'text',
+      mentions: [],
+      isPinned: false,
+      createdAt: now,
+      roomId: client.roomId,
+    };
+
+    // Broadcast immediately to all other members for near-instant delivery
+    this.broadcast(client.roomId, { type: 'message', message }, client.uid);
+
+    // Persist to Firestore in background
+    try {
+      const db = getFirestore();
+      const msgRef = await db.collection('investigation_rooms').doc(client.roomId)
+        .collection('messages').add(message);
+
+      await db.collection('investigation_rooms').doc(client.roomId).update({
+        lastMessageAt: now,
+        lastMessagePreview: content.trim().slice(0, 100),
+        updatedAt: now,
+      });
+
+      // Broadcast the real ID so clients can replace tempId
+      this.broadcast(client.roomId, {
+        type: 'message_id_update',
+        tempId,
+        realId: msgRef.id,
+      });
+    } catch (err) {
+      console.error('[WS] Failed to persist chat message:', err);
     }
   }
 

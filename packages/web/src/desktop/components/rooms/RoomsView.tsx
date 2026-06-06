@@ -61,6 +61,7 @@ export function RoomsView() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioDataUrl, setAudioDataUrl] = useState<string | null>(null);
 
   // Double-tap detection for mobile voice notes
   const lastTapRef = useRef(0);
@@ -173,6 +174,13 @@ export function RoomsView() {
       }
     }));
 
+    // Handle real ID updates from server persistence
+    unsubs.push(onRoomEvent('message_id_update', (data: any) => {
+      if (data.tempId && data.realId) {
+        setMessages(prev => prev.map(m => m.id === data.tempId ? { ...m, id: data.realId } : m));
+      }
+    }));
+
     // Handle room updates (member join/leave, metadata changes)
     unsubs.push(onRoomEvent('room_update', (data: any) => {
       if (!data.roomId) return;
@@ -281,7 +289,13 @@ export function RoomsView() {
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop());
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType });
-        setAudioBlob(blob);
+        // Read as data URL so CSP doesn't block blob: URLs
+        const reader = new FileReader();
+        reader.onload = () => {
+          setAudioBlob(blob);
+          setAudioDataUrl(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
         setIsRecording(false);
         if (recordingTimerRef.current) {
           clearInterval(recordingTimerRef.current);
@@ -293,6 +307,7 @@ export function RoomsView() {
       setIsRecording(true);
       setRecordingTime(0);
       setAudioBlob(null);
+      setAudioDataUrl(null);
       recordingTimerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
@@ -314,6 +329,7 @@ export function RoomsView() {
       audioChunksRef.current = [];
       setIsRecording(false);
       setRecordingTime(0);
+      setAudioDataUrl(null);
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -322,16 +338,12 @@ export function RoomsView() {
   };
 
   const sendVoiceNote = async () => {
-    if (!audioBlob || !activeRoom) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result as string;
-      const audioHtml = `<audio controls src="${dataUrl}" style="max-width:100%"></audio>`;
-      await sendMessageContent(audioHtml);
-      setAudioBlob(null);
-      setRecordingTime(0);
-    };
-    reader.readAsDataURL(audioBlob);
+    if (!audioBlob || !audioDataUrl || !activeRoom) return;
+    const audioHtml = `<audio controls src="${audioDataUrl}" style="max-width:100%"></audio>`;
+    await sendMessageContent(audioHtml);
+    setAudioBlob(null);
+    setAudioDataUrl(null);
+    setRecordingTime(0);
   };
 
   // ─── Scan history ─────────────────────────────────────────
@@ -339,20 +351,24 @@ export function RoomsView() {
   const insertScanHistory = (entry: ReturnType<typeof getHistory>[0]) => {
     setShowHistoryPicker(false);
     setShowPlusMenu(false);
-    const lines = [
-      `[Scan History Entry]`,
-      `Address: ${entry.address}`,
-      `Chain: ${entry.chain}`,
-      `Type: ${entry.type || 'N/A'}`,
-      `Risk Level: ${entry.riskLevel || 'N/A'}`,
-      `Risk Score: ${entry.riskScore != null ? entry.riskScore + '/100' : 'N/A'}`,
-      `Total Transactions: ${entry.totalTransactions != null ? `${entry.totalTransactions}${entry.transactionHistoryLimited ? '+' : ''}` : 'N/A'}`,
+    const addressShort = `${entry.address.slice(0, 8)}...${entry.address.slice(-6)}`;
+    const riskEmoji = entry.riskLevel === 'high' ? '🔴' : entry.riskLevel === 'medium' ? '🟡' : entry.riskLevel === 'low' ? '🟢' : '⚪';
+    const table = [
+      `**Scan History** — [View on Explorer](https://etherscan.io/address/${entry.address})`,
+      '',
+      '| Field | Value |',
+      '| --- | --- |',
+      `| Address | \`${addressShort}\` |`,
+      `| Chain | ${entry.chain} |`,
+      `| Type | ${entry.type || 'N/A'} |`,
+      `| Risk | ${riskEmoji} ${entry.riskLevel || 'N/A'} (${entry.riskScore != null ? entry.riskScore + '/100' : 'N/A'}) |`,
+      `| Transactions | ${entry.totalTransactions != null ? `${entry.totalTransactions}${entry.transactionHistoryLimited ? '+' : ''}` : 'N/A'} |`,
     ];
-    if (entry.totalValueSentEth != null) lines.push(`Total Value Sent: ${entry.totalValueSentEth} ETH`);
-    if (entry.totalValueReceivedEth != null) lines.push(`Total Value Received: ${entry.totalValueReceivedEth} ETH`);
-    if (entry.balanceInEth != null) lines.push(`Balance: ${entry.balanceInEth} ETH`);
-    if (entry.activityPeriodDays != null) lines.push(`Activity Period: ${entry.activityPeriodDays} days`);
-    sendMessageContent(lines.join('\n'));
+    if (entry.totalValueSentEth != null) table.push(`| Value Sent | ${entry.totalValueSentEth} ETH |`);
+    if (entry.totalValueReceivedEth != null) table.push(`| Value Received | ${entry.totalValueReceivedEth} ETH |`);
+    if (entry.balanceInEth != null) table.push(`| Balance | ${entry.balanceInEth} ETH |`);
+    if (entry.activityPeriodDays != null) table.push(`| Activity | ${entry.activityPeriodDays} days |`);
+    sendMessageContent(table.join('\n'));
   };
 
   // ─── Shared send helper ────────────────────────────────────
@@ -373,6 +389,9 @@ export function RoomsView() {
       type: 'message',
     };
     setMessages(prev => [...prev, optimistic]);
+
+    // Fire-and-forget via WebSocket for near-instant delivery to other members
+    sendWsEvent({ type: 'chat_message', content, roomId: activeRoom.id, tempId });
 
     try {
       const msg = await sendRoomMessage(activeRoom.id, content);
@@ -1281,9 +1300,7 @@ export function RoomsView() {
 	                            boxShadow: isMe ? '0 10px 26px color-mix(in srgb, var(--fg) 12%, transparent)' : undefined,
                             wordBreak: 'break-word',
                           }}>
-                            {isAi || msg.type === 'ai-response'
-                              ? <MarkdownContent text={msg.content} />
-                              : msg.content}
+                            <MarkdownContent text={msg.content} />
                           </div>
                         </div>
                       </div>
@@ -1419,12 +1436,12 @@ export function RoomsView() {
               )}
 
               {/* Audio preview */}
-              {audioBlob && !isRecording && (
+              {audioBlob && audioDataUrl && !isRecording && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, animation: 'ft-scale-in 150ms ease-out' }}>
-                  <audio controls src={URL.createObjectURL(audioBlob)}
+                  <audio controls src={audioDataUrl}
                     style={{ flex: 1, height: 32, maxWidth: 300 }}
                   />
-                  <button onClick={() => setAudioBlob(null)}
+                  <button onClick={() => { setAudioBlob(null); setAudioDataUrl(null); }}
                     style={{ background: 'none', border: 'none', color: 'var(--fg-tertiary)', cursor: 'pointer', padding: 4 }}>
                     <X size={14} />
                   </button>
@@ -1450,13 +1467,14 @@ export function RoomsView() {
                   }}
                 />
                 {/* Plus menu (when input empty) */}
-                {!input.trim() && !isRecording ? (
+                {!input.trim() && !isRecording && attachedImages.length === 0 && !audioBlob ? (
                   <div ref={plusMenuRef} style={{ position: 'relative' }}>
                     <button type="button"
                       onClick={() => { setShowPlusMenu(!showPlusMenu); setShowHistoryPicker(false); }}
                       disabled={loading}
                       style={{
                         width: isMobile ? 46 : undefined,
+                        height: isMobile ? 46 : undefined,
                         padding: isMobile ? 0 : '10px 16px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
                         background: 'var(--hover-overlay)', color: 'var(--fg-tertiary)',
                         cursor: loading ? 'default' : 'pointer', display: 'flex',
@@ -1507,6 +1525,7 @@ export function RoomsView() {
                     disabled={loading || (!input.trim() && attachedImages.length === 0 && !audioBlob)}
                     style={{
                       width: isMobile ? 46 : undefined,
+                      height: isMobile ? 46 : undefined,
                       padding: isMobile ? 0 : '10px 16px', borderRadius: isMobile ? 10 : 'var(--radius-lg)', border: 'none',
                       background: (input.trim() || attachedImages.length > 0 || audioBlob) ? 'var(--accent)' : 'var(--hover-overlay)',
                       color: (input.trim() || attachedImages.length > 0 || audioBlob) ? 'var(--accent-ink)' : 'var(--fg-tertiary)',
