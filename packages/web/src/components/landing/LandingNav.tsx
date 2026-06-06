@@ -1,197 +1,273 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ThemeToggle } from '../common/ThemeToggle';
+import React, { useEffect, useState } from 'react';
+import {
+  Activity,
+  Bot,
+  Braces,
+  ChevronDown,
+  CircleDot,
+  Code2,
+  Command,
+  FileText,
+  GitBranch,
+  KeyRound,
+  Menu,
+  Moon,
+  Network,
+  Radar,
+  Search,
+  Shield,
+  Sun,
+  Terminal,
+  Users,
+  X,
+} from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
 import './LandingNav.css';
 
+type MegaMenu = 'products' | 'developers' | 'company' | null;
+
+const productItems = [
+  {
+    href: '/features',
+    title: 'Wallet Analyzer',
+    description: 'Risk, balances, flow history, labels, and behavioral signals.',
+    icon: <Search size={16} />,
+  },
+  {
+    href: '/docs/funding-tree-analysis',
+    title: 'Funding Tree',
+    description: 'Trace source wallets, hops, exchanges, bridges, and fund origins.',
+    icon: <GitBranch size={16} />,
+  },
+  {
+    href: '/docs/sybil-detection',
+    title: 'Sybil Detection',
+    description: 'Cluster wallets that share funding, timing, and activity patterns.',
+    icon: <Shield size={16} />,
+  },
+  {
+    href: '/docs/contract-analytics',
+    title: 'Contract Analytics',
+    description: 'Understand interactors, deployers, token flows, and suspicious links.',
+    icon: <Braces size={16} />,
+  },
+  {
+    href: '/app-evm?tab=rooms',
+    title: 'AI Investigation Rooms',
+    description: 'Collaborate with your team, pin evidence, and mention FundTracer AI.',
+    icon: <Users size={16} />,
+  },
+  {
+    href: '/telegram',
+    title: 'Alerts & Telegram',
+    description: 'Watch addresses and receive fast investigation signals.',
+    icon: <Radar size={16} />,
+  },
+];
+
+const developerItems = [
+  { href: '/api-docs', title: 'API', description: 'Wallet analysis, funding trees, compare, and risk endpoints.', icon: <Code2 size={16} /> },
+  { href: '/mcp', title: 'MCP', description: 'Let AI assistants call FundTracer tools directly.', icon: <Bot size={16} /> },
+  { href: '/cli', title: 'CLI', description: 'Run investigations from a terminal workflow.', icon: <Terminal size={16} /> },
+  { href: '/docs/getting-started', title: 'Docs', description: 'Guides for chains, contracts, risk scores, and API usage.', icon: <FileText size={16} /> },
+  { href: '/api/keys', title: 'API Keys', description: 'Manage keys, usage, and developer access.', icon: <KeyRound size={16} /> },
+];
+
+const companyItems = [
+  { href: '/about', title: 'About' },
+  { href: '/blog', title: 'Blog' },
+  { href: '/faq', title: 'FAQ' },
+  { href: '/download', title: 'Download' },
+  { href: '/rewards', title: 'Rewards' },
+];
+
 export function LandingNav() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<MegaMenu>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+    const handleScroll = () => setScrolled(window.scrollY > 18);
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActiveMenu(null);
+        setMobileOpen(false);
+      }
     };
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('keydown', handleKey);
+    };
   }, []);
 
-  const navLinks = [
-    { href: '/about', label: 'About' },
-    { href: '/blog', label: 'Blog' },
-    { href: '/docs/getting-started', label: 'Docs' },
-    { href: '/features', label: 'Features' },
-    { href: '/pricing', label: 'Pricing' },
-    { href: '/how-it-works', label: 'How It Works' },
-    { href: '/faq', label: 'FAQ' },
-    { href: '/api-docs', label: 'API' },
-  ];
+  const toggleMenu = (menu: Exclude<MegaMenu, null>) => {
+    setActiveMenu(current => (current === menu ? null : menu));
+  };
 
   return (
-    <motion.nav
-      className={`ios-nav ${scrolled ? 'scrolled' : ''}`}
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="ios-nav-container">
-        <motion.a
-          href="/"
-          className="ios-logo"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <img 
-            src="/logo.png" 
-            alt="FundTracer" 
-            className="ios-logo-img"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-          <span className="ios-logo-text">FundTracer</span>
-        </motion.a>
+    <header className={`ft-site-nav ${scrolled ? 'ft-site-nav--scrolled' : ''}`}>
+      <div className="ft-site-nav__inner" onMouseLeave={() => setActiveMenu(null)}>
+        <a className="ft-site-nav__brand" href="/" aria-label="FundTracer home">
+          <img src="/logo.png" alt="" className="ft-site-nav__logo" />
+          <span>FundTracer</span>
+        </a>
 
-        <div className="ios-nav-links desktop-only">
-          {navLinks.map((link, index) => (
-            <motion.a
-              key={link.href}
-              href={link.href}
-              className={`ios-nav-link ${link.highlight ? 'highlight' : ''}`}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}
-              whileHover={{ y: -2 }}
-            >
-              {link.label}
-            </motion.a>
-          ))}
-        </div>
-
-        <div className="ios-nav-actions">
-          <ThemeToggle size="sm" />
-          
-          <div 
-            className="ios-sign-dropdown desktop-only"
-            onMouseEnter={() => setDropdownOpen(true)}
-            onMouseLeave={() => setDropdownOpen(false)}
+        <nav className="ft-site-nav__links" aria-label="Primary navigation">
+          <button
+            className={`ft-site-nav__link ${activeMenu === 'products' ? 'is-active' : ''}`}
+            onMouseEnter={() => setActiveMenu('products')}
+            onClick={() => toggleMenu('products')}
+            aria-expanded={activeMenu === 'products'}
           >
-            <motion.button
-              className="ios-cta-button"
-              whileHover={{ scale: 1.02, y: -1 }}
-              whileTap={{ scale: 0.98 }}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.3 }}
+            Products <ChevronDown size={14} />
+          </button>
+          <a className="ft-site-nav__link" href="/pricing">Pricing</a>
+          <button
+            className={`ft-site-nav__link ${activeMenu === 'developers' ? 'is-active' : ''}`}
+            onMouseEnter={() => setActiveMenu('developers')}
+            onClick={() => toggleMenu('developers')}
+            aria-expanded={activeMenu === 'developers'}
+          >
+            Developer <ChevronDown size={14} />
+          </button>
+          <button
+            className={`ft-site-nav__link ${activeMenu === 'company' ? 'is-active' : ''}`}
+            onMouseEnter={() => setActiveMenu('company')}
+            onClick={() => toggleMenu('company')}
+            aria-expanded={activeMenu === 'company'}
+          >
+            Company <ChevronDown size={14} />
+          </button>
+          <a className="ft-site-nav__link" href="/docs/getting-started">Docs</a>
+        </nav>
+
+        <div className="ft-site-nav__actions">
+          <div className="ft-theme-switch" aria-label="Theme selection">
+            <button
+              className={theme === 'dark' ? 'is-active' : ''}
+              onClick={() => setTheme('dark')}
+              aria-label="Use dark theme"
             >
-              <span>Sign</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </motion.button>
-            
-            <AnimatePresence>
-              {dropdownOpen && (
-                <motion.div
-                  className="ios-sign-dropdown-menu"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <a href="/auth?mode=signup" className="ios-sign-dropdown-item">
-                    Sign Up
-                  </a>
-                  <a href="/auth?mode=signin" className="ios-sign-dropdown-item">
-                    Sign In
-                  </a>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <Moon size={14} />
+            </button>
+            <button
+              className={theme === 'dim' ? 'is-active' : ''}
+              onClick={() => setTheme('dim')}
+              aria-label="Use dim theme"
+            >
+              <CircleDot size={14} />
+            </button>
+            <button
+              className={theme === 'light' ? 'is-active' : ''}
+              onClick={() => setTheme('light')}
+              aria-label="Use light theme"
+            >
+              <Sun size={14} />
+            </button>
           </div>
-
-          <motion.button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="ios-mobile-menu-btn mobile-only"
-            whileTap={{ scale: 0.95 }}
+          <a className="ft-site-nav__sales" href="/api-docs">API</a>
+          <a className="ft-site-nav__cta" href="/auth?mode=signup">Try for free</a>
+          <button
+            className="ft-site-nav__mobile"
+            onClick={() => setMobileOpen(open => !open)}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
           >
-            <AnimatePresence mode="wait">
-              {mobileMenuOpen ? (
-                <motion.div
-                  key="close"
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="menu"
-                  initial={{ rotate: 90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: -90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="3" y1="12" x2="21" y2="12"/>
-                    <line x1="3" y1="6" x2="21" y2="6"/>
-                    <line x1="3" y1="18" x2="21" y2="18"/>
-                  </svg>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.button>
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
+
+        {activeMenu === 'products' && (
+          <div className="ft-mega ft-mega--products">
+            <div className="ft-mega__list">
+              {productItems.map(item => (
+                <a key={item.title} href={item.href} className="ft-mega__item">
+                  <span className="ft-mega__icon">{item.icon}</span>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>{item.description}</small>
+                  </span>
+                </a>
+              ))}
+            </div>
+            <div className="ft-mega__preview" aria-hidden="true">
+              <RoomPreviewMini />
+            </div>
+          </div>
+        )}
+
+        {activeMenu === 'developers' && (
+          <div className="ft-mega ft-mega--developers">
+            <div className="ft-mega__list">
+              {developerItems.map(item => (
+                <a key={item.title} href={item.href} className="ft-mega__item">
+                  <span className="ft-mega__icon">{item.icon}</span>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>{item.description}</small>
+                  </span>
+                </a>
+              ))}
+            </div>
+            <div className="ft-mega__terminal" aria-hidden="true">
+              <div className="ft-mini-terminal__bar">
+                <span />
+                <span>fundtracer/mcp</span>
+              </div>
+              <code>$ ft trace 0x742d...5b2a --chain ethereum</code>
+              <code className="ok">detect_sybil_clusters: 7 related wallets</code>
+              <code>export evidence --room "Treasury review"</code>
+            </div>
+          </div>
+        )}
+
+        {activeMenu === 'company' && (
+          <div className="ft-mega ft-mega--company">
+            {companyItems.map(item => (
+              <a key={item.title} href={item.href} className="ft-mega__plain">{item.title}</a>
+            ))}
+          </div>
+        )}
       </div>
 
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            className="ios-mobile-menu"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="ios-mobile-menu-content">
-              {navLinks.map((link, index) => (
-                <motion.a
-                  key={link.href}
-                  href={link.href}
-                  className="ios-mobile-menu-link"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                >
-                  {link.label}
-                </motion.a>
-              ))}
-              <motion.button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  window.location.href = '/auth';
-                }}
-                className="ios-mobile-menu-cta"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.3 }}
-              >
-                Sign In
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                  <polyline points="12 5 19 12 12 19"/>
-                </svg>
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.nav>
+      {mobileOpen && (
+        <div className="ft-mobile-panel">
+          {[...productItems, ...developerItems].map(item => (
+            <a key={item.title} href={item.href} onClick={() => setMobileOpen(false)}>
+              <span>{item.icon}</span>
+              <strong>{item.title}</strong>
+            </a>
+          ))}
+          <div className="ft-mobile-panel__links">
+            {companyItems.map(item => (
+              <a key={item.title} href={item.href} onClick={() => setMobileOpen(false)}>{item.title}</a>
+            ))}
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function RoomPreviewMini() {
+  return (
+    <div className="ft-room-mini">
+      <div className="ft-room-mini__header">
+        <span><Users size={13} /> Treasury Investigation</span>
+        <small>4 online</small>
+      </div>
+      <div className="ft-room-mini__bubble">Pin this CEX hop. It links three deposits.</div>
+      <div className="ft-room-mini__bubble is-right">@ai summarize source-of-funds risk</div>
+      <div className="ft-room-mini__bubble is-ai">
+        <Command size={12} />
+        Funding risk: elevated. Shared source detected.
+      </div>
+      <div className="ft-room-mini__status"><Activity size={12} /> FundTracer AI is typing</div>
+    </div>
   );
 }
 

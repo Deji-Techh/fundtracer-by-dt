@@ -200,6 +200,12 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
 
   const explorer = CHAIN_EXPLORERS[chain] || 'https://etherscan.io';
   const interactorChart = useMemo(() => buildInteractorsTimeline(result?.interactors || []), [result?.interactors]);
+  const chartRootStyle = typeof document !== 'undefined' ? getComputedStyle(document.documentElement) : null;
+  const chartTextColor = chartRootStyle?.getPropertyValue('--fg-tertiary').trim() || '#a1a1aa';
+  const chartTitleColor = chartRootStyle?.getPropertyValue('--fg').trim() || '#e4e4e8';
+  const chartTooltipBg = chartRootStyle?.getPropertyValue('--bg-secondary').trim() || '#1a1a20';
+  const chartBorderColor = chartRootStyle?.getPropertyValue('--hairline').trim() || '#282830';
+  const chartMonoFont = chartRootStyle?.getPropertyValue('--font-mono').trim() || 'monospace';
 
   const graphPanel = (
     <div style={{
@@ -236,16 +242,16 @@ export function InteractorsView({ onNavigateToSybil }: InteractorsViewProps) {
             plugins: {
               legend: { display: false },
               tooltip: {
-                backgroundColor: '#1a1a20',
-                titleColor: '#e4e4e8',
-                bodyColor: '#a1a1aa',
-                borderColor: '#282830',
+                backgroundColor: chartTooltipBg,
+                titleColor: chartTitleColor,
+                bodyColor: chartTextColor,
+                borderColor: chartBorderColor,
                 borderWidth: 1,
               },
             },
             scales: {
-              x: { ticks: { color: 'var(--fg-tertiary)', font: { size: 9, family: 'var(--font-mono)' }, maxTicksLimit: 14, maxRotation: 45 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
-              y: { beginAtZero: true, ticks: { color: 'var(--fg-tertiary)', precision: 0, font: { size: 9, family: 'var(--font-mono)' } }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+              x: { ticks: { color: chartTextColor, font: { size: 9, family: chartMonoFont }, maxTicksLimit: 14, maxRotation: 45 }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
+              y: { beginAtZero: true, ticks: { color: chartTextColor, precision: 0, font: { size: 9, family: chartMonoFont } }, grid: { color: 'rgba(148, 163, 184, 0.08)' } },
             },
           }}
         />

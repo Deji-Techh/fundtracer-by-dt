@@ -5,8 +5,19 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Activity,
+  Code2,
+  DollarSign,
+  Layers,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Wallet,
+} from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { Badge, Panel } from '../design-system/primitives';
+import { Badge } from '../design-system/primitives/Badge';
+import { Panel } from '../design-system/primitives/Panel';
 import './HowItWorksPage.css';
 import './PublicPageShell.css';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
@@ -22,12 +33,7 @@ const steps = [
     description: 'Simply paste any wallet address you want to analyze. We support addresses from Ethereum, Linea, Arbitrum, Base, Polygon, Optimism, and BSC.',
     badge: 'Input',
     badgeVariant: 'info' as const,
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/>
-        <path d="M6 6V4C6 2.89543 6.89543 2 8 2H16C17.1046 2 18 2.89543 18 4V6" stroke="currentColor" strokeWidth="2"/>
-      </svg>
-    ),
+    icon: <Wallet size={24} strokeWidth={1.8} />,
   },
   {
     number: '02',
@@ -35,13 +41,7 @@ const steps = [
     description: 'Choose from Wallet Analysis, Contract Analytics, Wallet Comparison, or Sybil Detection. Each mode provides specialized insights for different use cases.',
     badge: 'Configure',
     badgeVariant: 'warning' as const,
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/>
-        <path d="M19.4 15C19.8 14.1 20 13.1 20 12C20 10.9 19.8 9.9 19.4 9L22 7V17L19.4 15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M4.6 15C4.2 14.1 4 13.1 4 12C4 10.9 4.2 9.9 4.6 9L2 7V17L4.6 15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
+    icon: <SlidersHorizontal size={24} strokeWidth={1.8} />,
   },
   {
     number: '03',
@@ -49,13 +49,7 @@ const steps = [
     description: 'Select which blockchain network to analyze. Free users can analyze Linea, while Pro and Max users have access to all 7+ supported networks.',
     badge: 'Network',
     badgeVariant: 'success' as const,
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
+    icon: <Layers size={24} strokeWidth={1.8} />,
   },
   {
     number: '04',
@@ -63,11 +57,7 @@ const steps = [
     description: 'Receive comprehensive analysis within seconds. View transaction timelines, funding trees, risk scores, and detailed behavioral patterns.',
     badge: 'Output',
     badgeVariant: 'default' as const,
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M22 12H18L15 21L9 3L6 12H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
+    icon: <Activity size={24} strokeWidth={1.8} />,
   },
 ];
 
@@ -75,39 +65,22 @@ const useCases = [
   {
     title: 'For Researchers',
     description: 'Academic and independent researchers use FundTracer to study blockchain ecosystems, analyze token flows, and identify market patterns.',
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
-        <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-    ),
+    icon: <Search size={24} strokeWidth={1.8} />,
   },
   {
     title: 'For Investors',
     description: 'Investors leverage our tools for due diligence, tracking whale wallets, and identifying potential investment opportunities or risks.',
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2V22M17 5H9.5C8.12 5 7 6.12 7 7.5C7 8.88 8.12 10 9.5 10H14.5C15.88 10 17 11.12 17 12.5C17 13.88 15.88 15 14.5 15H7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
+    icon: <DollarSign size={24} strokeWidth={1.8} />,
   },
   {
     title: 'For Compliance Teams',
     description: 'Compliance professionals use FundTracer to detect suspicious activities, ensure regulatory compliance, and investigate potential fraud.',
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
+    icon: <ShieldCheck size={24} strokeWidth={1.8} />,
   },
   {
     title: 'For Developers',
     description: 'Web3 developers integrate our insights to build better dApps, analyze user behavior, and improve their protocols.',
-    icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M16 18L22 12L16 6M8 6L2 12L8 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
+    icon: <Code2 size={24} strokeWidth={1.8} />,
   },
 ];
 

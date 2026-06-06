@@ -233,7 +233,7 @@
 .blog-card__category[data-category="Tutorial"] { color: #22c55e; }
 .blog-card__category[data-category="Engineering"] { color: #a78bfa; }
 .blog-card__category[data-category="Announcement"] { color: #f59e0b; }
-.blog-card__category[data-category="Tools"] { color: #38bdf8; }
+.blog-card__category[data-category="Tools"] { color: var(--accent, #00e67a); }
 .blog-card__category[data-category="Development"] { color: #fb923c; }
 
 .blog-card__date {

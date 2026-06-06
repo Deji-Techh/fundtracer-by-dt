@@ -89,6 +89,7 @@ export function CompareView() {
       // Match web behavior: use result payload and force plain JSON-safe object shape.
       const payload = (data.result || data) as Record<string, unknown>;
       setResult(JSON.parse(JSON.stringify(payload)));
+      window.dispatchEvent(new CustomEvent('fundtracer:torque-updated'));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Comparison failed');
     } finally {
@@ -377,6 +378,7 @@ function CompareOverview({
             addresses={wallets.map(asWalletAddress).filter(Boolean)}
             cachedMessages={aiMessages}
             onMessagesChange={onAiMessagesChange}
+            isMobile={isMobile}
           />
         </div>
       </div>
@@ -485,12 +487,14 @@ function CompareInlineAiAnalysis({
   addresses,
   cachedMessages,
   onMessagesChange,
+  isMobile,
 }: {
   chain: ChainId;
   data: CompareResultData;
   addresses: string[];
   cachedMessages: AiMessage[];
   onMessagesChange: (messages: AiMessage[]) => void;
+  isMobile: boolean;
 }) {
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [input, setInput] = useState('');
@@ -585,12 +589,21 @@ function CompareInlineAiAnalysis({
     }
   };
 
+  const messagePaneStyle: React.CSSProperties = isMobile
+    ? { marginBottom: 10, overflow: 'visible' }
+    : { flex: 1, overflow: 'auto', marginBottom: 8, minHeight: 0 };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 230 }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: isMobile ? 'auto' : '100%',
+      minHeight: isMobile ? 0 : 230,
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--fg)', marginBottom: 10 }}>
         <Sparkles size={14} /> AI Analysis
       </div>
-      <div style={{ flex: 1, overflow: 'auto', marginBottom: 8 }}>
+      <div style={messagePaneStyle}>
         {loading && messages.length === 0 && !streaming && (
           <div style={{ fontSize: 12, color: 'var(--fg-tertiary)' }}>Analyzing compare result...</div>
         )}
@@ -620,7 +633,7 @@ function CompareInlineAiAnalysis({
           placeholder="Ask follow-up..."
           disabled={loading}
           style={{
-            flex: 1, padding: '7px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--card-border)',
+            flex: 1, minHeight: isMobile ? 40 : undefined, padding: '7px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--card-border)',
             background: 'var(--bg-secondary)', color: 'var(--fg)', fontSize: 12, outline: 'none',
           }}
         />
@@ -628,7 +641,7 @@ function CompareInlineAiAnalysis({
           onClick={handleFollowUp}
           disabled={loading || !input.trim()}
           style={{
-            padding: '7px 10px', borderRadius: 'var(--radius-md)', border: 'none',
+            minHeight: isMobile ? 40 : undefined, minWidth: isMobile ? 44 : undefined, padding: '7px 10px', borderRadius: 'var(--radius-md)', border: 'none',
             background: input.trim() && !loading ? 'var(--accent)' : 'var(--card-border)',
             color: input.trim() && !loading ? '#000' : 'var(--fg-tertiary)',
             fontSize: 12, cursor: input.trim() && !loading ? 'pointer' : 'default',

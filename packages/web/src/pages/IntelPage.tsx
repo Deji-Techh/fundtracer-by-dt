@@ -7,6 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuth } from '../contexts/AuthContext';
+import { Youtube, ExternalLink } from 'lucide-react';
 import {
   LandingLayout,
   LiveFeed,
@@ -530,6 +531,31 @@ export function IntelPage() {
             <button className="intel-btn intel-btn--primary intel-btn--lg" onClick={handleLaunchApp}>
               Get Started
             </button>
+          </div>
+        </section>
+
+        <section className="intel-contact">
+          <div className="intel-contact__header">
+            <span>Contact</span>
+            <p>Follow FundTracer for release notes, research drops, and live product updates.</p>
+          </div>
+          <div className="intel-contact__links">
+            <a
+              className="intel-social intel-social--x"
+              href="https://x.com/fundtracer"
+              target="_blank"
+              rel="noreferrer"
+              data-glitch="X"
+            >
+              <span>X</span>
+              <small>@fundtracer</small>
+              <ExternalLink size={14} />
+            </a>
+            <a className="intel-social intel-social--youtube" href="https://youtube.com/@fundtracer" target="_blank" rel="noreferrer">
+              <Youtube size={18} />
+              <span>YouTube</span>
+              <small>@fundtracer</small>
+            </a>
           </div>
         </section>
       </div>

@@ -1,6 +1,6 @@
 /*
- * Shared public page polish.
- * Matches the API docs/download visual system while preserving each page's content and logic.
+ * Shared public page system.
+ * Flat x.ai-inspired surfaces for marketing, docs-adjacent, CLI, MCP, and rewards pages.
  */
 
 :is(
@@ -11,13 +11,16 @@
   .faq-page,
   .blog-page,
   .cli-page,
-  .rewards-page
+  .rewards-page,
+  .docs-page,
+  .telegram-page,
+  .mcp-page,
+  .api-page,
+  .download-page
 ) {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 50% -10%, rgba(0, 230, 122, 0.08), transparent 34%),
-    var(--intel-bg-deep);
-  color: var(--intel-text-primary);
+  background: var(--bg, #0a0a0a) !important;
+  color: var(--fg, var(--intel-text-primary));
   overflow-x: hidden;
 }
 
@@ -28,9 +31,15 @@
   .about-page,
   .faq-page,
   .blog-page,
-  .cli-page
+  .cli-page,
+  .rewards-page,
+  .docs-page,
+  .telegram-page,
+  .mcp-page,
+  .api-page,
+  .download-page
 ) {
-  padding-top: 80px;
+  padding-top: 76px;
 }
 
 :is(
@@ -41,13 +50,17 @@
   .faq-hero,
   .blog-hero,
   .cli-header,
-  .rewards-hero
+  .rewards-hero,
+  .telegram-hero,
+  .api-header,
+  .download-header
 ) {
   min-height: auto !important;
-  text-align: center;
-  padding: 40px 24px 60px !important;
-  margin: 0 auto;
+  max-width: 980px !important;
+  margin: 0 auto !important;
+  padding: 54px 24px 52px !important;
   background: transparent !important;
+  text-align: center !important;
 }
 
 :is(
@@ -55,9 +68,12 @@
   .pricing-hero__grid,
   .how-hero__grid,
   .about-hero__grid,
-  .faq-hero__grid
+  .faq-hero__grid,
+  .telegram-hero__grid,
+  .hero-background,
+  .auth-preview-pattern
 ) {
-  display: none;
+  display: none !important;
 }
 
 :is(
@@ -66,10 +82,13 @@
   .how-hero__content,
   .about-hero__content,
   .faq-hero__content,
-  .cli-header
+  .telegram-hero__content,
+  .cli-header,
+  .api-header,
+  .download-header
 ) {
-  max-width: 860px;
-  margin: 0 auto;
+  max-width: 820px !important;
+  margin: 0 auto !important;
 }
 
 :is(
@@ -81,18 +100,21 @@
   .blog-hero__title,
   .cli-header h1,
   .rewards-title,
-  .hero-title
+  .telegram-hero__title,
+  .api-header h1,
+  .download-header h1,
+  .hero-title,
+  .docs-title
 ) {
-  font-size: clamp(2.4rem, 6vw, 3.7rem) !important;
-  font-weight: 700 !important;
-  line-height: 1.05 !important;
-  letter-spacing: -0.035em;
-  color: var(--intel-text-primary);
-  background: var(--gradient-green);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   margin: 0 0 16px !important;
+  color: var(--fg, var(--intel-text-primary)) !important;
+  font-size: clamp(2.2rem, 5.2vw, 4.35rem) !important;
+  font-weight: 500 !important;
+  line-height: 1.04 !important;
+  letter-spacing: 0 !important;
+  text-wrap: balance;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 :is(
@@ -100,10 +122,11 @@
   .pricing-hero__title-accent,
   .how-hero__title-accent,
   .about-hero__title-accent,
-  .faq-hero__title-accent
+  .faq-hero__title-accent,
+  .telegram-hero__title-accent
 ) {
   display: inline !important;
-  color: inherit !important;
+  color: var(--fg-secondary, var(--intel-text-secondary)) !important;
 }
 
 :is(
@@ -115,12 +138,15 @@
   .blog-hero__subtitle,
   .cli-header p,
   .rewards-subtitle,
+  .telegram-hero__subtitle,
+  .api-header p,
+  .download-header p,
   .hero-description
 ) {
-  max-width: 860px;
-  margin: 0 auto 32px !important;
-  color: var(--intel-text-secondary) !important;
-  font-size: 1.25rem !important;
+  max-width: 780px !important;
+  margin: 0 auto 30px !important;
+  color: var(--fg-secondary, var(--intel-text-secondary)) !important;
+  font-size: clamp(1rem, 1.7vw, 1.18rem) !important;
   line-height: 1.65 !important;
 }
 
@@ -145,12 +171,15 @@
   .cli-link-section,
   .campaigns-section,
   .rewards-table-section,
-  .how-it-works
+  .how-it-works,
+  .telegram-section,
+  .api-content,
+  .download-container
 ) {
-  max-width: 1400px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 0 24px 24px !important;
+  max-width: 1240px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding: 0 24px 28px !important;
   background: transparent !important;
 }
 
@@ -166,10 +195,10 @@
   .about-section__container,
   .faq-content__container,
   .cli-container,
-  .campaigns-section,
-  .rewards-table-section
+  .telegram-section__container,
+  .api-container
 ) {
-  max-width: 1200px !important;
+  max-width: 1180px !important;
 }
 
 :is(
@@ -183,9 +212,18 @@
   .faq-category__list,
   .blog-grid,
   .cli-features-grid,
-  .campaigns-grid
+  .campaigns-grid,
+  .telegram-commands__grid,
+  .telegram-features__grid,
+  .telegram-plans__grid,
+  .api-features-grid,
+  .api-sdks-grid,
+  .api-pricing-grid,
+  .download-info-grid,
+  .download-features-grid,
+  .download-package-grid
 ) {
-  gap: 20px !important;
+  gap: 12px !important;
 }
 
 :is(
@@ -214,14 +252,38 @@
   .leaderboard-card,
   .leaderboard-display,
   .rewards-table-wrapper,
-  .stats-card
+  .stats-card,
+  .telegram-step__content,
+  .telegram-command,
+  .telegram-feature,
+  .telegram-plan,
+  .telegram-code,
+  .api-section,
+  .api-feature,
+  .api-key-type,
+  .api-endpoint,
+  .api-sdk,
+  .api-openapi,
+  .api-pricing-tier,
+  .api-rate-limits,
+  .download-release-strip,
+  .download-sidebar,
+  .download-doc-section,
+  .download-info-card,
+  .download-feature,
+  .download-package-card,
+  .docs-body,
+  .docs-toc,
+  .mcp-stat,
+  .mcp-key-reveal,
+  .mcp-key-item,
+  .mcp-table-wrap,
+  .mcp-code-wrap
 ) {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
-    var(--intel-bg-surface) !important;
-  border: 1px solid var(--intel-border-subtle) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18) !important;
+  background: var(--card, #1c1c1e) !important;
+  border: 1px solid var(--card-border, var(--intel-border-subtle)) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
 }
 
 :is(
@@ -236,11 +298,14 @@
   .blog-card:hover,
   .campaign-card:hover,
   .step-card:hover,
-  .leaderboard-card:hover
+  .leaderboard-card:hover,
+  .telegram-command:hover,
+  .telegram-feature:hover,
+  .api-feature:hover,
+  .download-package-card:hover
 ) {
-  border-color: rgba(0, 230, 122, 0.45) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 20px 42px rgba(0, 230, 122, 0.12) !important;
+  border-color: color-mix(in srgb, var(--accent, #00e67a) 46%, var(--card-border, #38383a)) !important;
+  transform: translateY(-1px);
 }
 
 :is(
@@ -250,21 +315,46 @@
   .how-usecase__icon,
   .about-mission__icon,
   .about-value__icon,
+  .intel-feature__icon,
   .cli-feature .feature-icon,
+  .docs-feature .feature-icon,
+  .rate-limit-icon,
+  .doc-link-icon,
+  .auth-icon-wrapper,
+  .auth-icon-wrap,
   .blog-promo__icon,
   .campaign-icon,
-  .step-icon-wrapper
+  .step-icon-wrapper,
+  .telegram-hero__icon,
+  .telegram-feature__icon,
+  .telegram-connected__icon,
+  .auth-split-logo,
+  .api-logo,
+  .download-feature-icon
 ) {
-  width: 48px !important;
-  height: 48px !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--intel-cyan), var(--intel-green)) !important;
-  border: 0 !important;
-  border-radius: 12px !important;
-  color: #000 !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--bg-secondary, #1c1c1e) !important;
+  border: 1px solid var(--card-border, #38383a) !important;
+  border-radius: 8px !important;
+  color: var(--fg-secondary, #98989d) !important;
   flex-shrink: 0;
+}
+
+:is(
+  .api-logo svg,
+  .cli-logo svg,
+  .download-checklist svg,
+  .tier-features svg,
+  .auth-trust-item svg,
+  .pricing-check-icon,
+  .docs-body .setup-card__icon,
+  .blog-search-icon
+) {
+  color: var(--fg-secondary, #98989d) !important;
 }
 
 :is(
@@ -282,16 +372,21 @@
   .cli-cta h2,
   .rewards-section-title,
   .campaigns-section h2,
+  .telegram-section h2,
+  .telegram-features__header h2,
+  .telegram-plans__header h2,
+  .api-section h2,
+  .download-doc-section h2,
   .section-title
 ) {
-  font-size: 2rem !important;
-  font-weight: 700 !important;
   margin: 0 0 16px !important;
-  color: var(--intel-text-primary);
-  background: var(--gradient-green);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--fg, var(--intel-text-primary)) !important;
+  font-size: clamp(1.55rem, 2.4vw, 2.2rem) !important;
+  font-weight: 500 !important;
+  line-height: 1.16 !important;
+  letter-spacing: 0 !important;
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 :is(
@@ -312,9 +407,16 @@
   .cli-cta p,
   .campaign-card > p,
   .rewards-intro,
-  .step-card p
+  .step-card p,
+  .telegram-step__content p,
+  .telegram-command p,
+  .telegram-feature p,
+  .api-section p,
+  .api-feature p,
+  .download-doc-section p,
+  .download-feature p
 ) {
-  color: var(--intel-text-secondary) !important;
+  color: var(--fg-secondary, var(--intel-text-secondary)) !important;
   line-height: 1.65 !important;
 }
 
@@ -325,11 +427,11 @@
   .about-cta,
   .faq-cta
 ) {
-  max-width: 1200px;
-  margin: 0 auto 80px;
-  padding: 40px 24px !important;
-  text-align: center;
+  max-width: 1180px;
+  margin: 0 auto 70px;
+  padding: 26px 24px !important;
   background: transparent !important;
+  text-align: center;
 }
 
 :is(
@@ -340,10 +442,10 @@
   .faq-cta__content
 ) {
   max-width: none !important;
-  padding: 40px;
-  background: var(--intel-bg-surface);
-  border: 1px solid var(--intel-border-subtle);
-  border-radius: 20px;
+  padding: 34px;
+  background: var(--card, #1c1c1e);
+  border: 1px solid var(--card-border, #38383a);
+  border-radius: 8px;
 }
 
 :is(
@@ -357,42 +459,87 @@
   .btn-primary,
   .claim-btn,
   .cli-generate-btn,
-  .cli-telegram-btn
+  .cli-telegram-btn,
+  .telegram-btn--primary,
+  .api-btn.primary,
+  .download-primary-btn
 ) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 46px;
-  padding: 12px 22px !important;
-  border: 0 !important;
-  border-radius: 12px !important;
-  background: var(--gradient-green) !important;
-  color: #fff !important;
-  font-weight: 600 !important;
-  text-decoration: none;
-  transition: all 0.2s;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 44px !important;
+  padding: 0 20px !important;
+  border: 1px solid var(--fg, #f5f5f7) !important;
+  border-radius: 999px !important;
+  background: var(--fg, #f5f5f7) !important;
+  color: var(--bg, #0a0a0a) !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
 }
 
 :is(
-  .features-cta__button,
-  .pricing-cta__button,
-  .how-cta__button,
-  .about-cta__button,
-  .faq-cta__button,
-  .pricing-tier__cta--primary,
-  .campaign-join,
-  .btn-primary,
-  .claim-btn,
-  .cli-generate-btn,
-  .cli-telegram-btn
-):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(59, 189, 76, 0.3) !important;
+  .btn-secondary,
+  .pricing-tier__cta,
+  .telegram-btn--secondary,
+  .api-btn.secondary,
+  .download-secondary-btn,
+  .cli-copy-btn,
+  .api-copy-btn
+) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 40px !important;
+  padding: 0 16px !important;
+  border: 1px solid var(--card-border, #38383a) !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: var(--fg, #f5f5f7) !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+}
+
+:is(
+  .blog-search,
+  .blog-category-btn,
+  .cli-code-block,
+  .api-code-block,
+  .mcp-code-block,
+  .download-code-block,
+  .docs-section-btn,
+  .docs-sidebar__link,
+  .mcp-tab,
+  .tab-button,
+  .api-nav-tab,
+  .api-chain-badge,
+  .download-sidebar-link
+) {
+  background: var(--bg-secondary, #101011) !important;
+  border-color: var(--card-border, #38383a) !important;
+  border-radius: 8px !important;
+  color: var(--fg-secondary, #98989d) !important;
+}
+
+:is(
+  .blog-category-btn.active,
+  .docs-toc__link--active,
+  .docs-section-btn--active,
+  .docs-sidebar__link--active,
+  .mcp-tab--active,
+  .tab-button.active,
+  .api-nav-tab.active,
+  .download-sidebar-link.active
+) {
+  background: var(--fg, #f5f5f7) !important;
+  border-color: var(--fg, #f5f5f7) !important;
+  color: var(--bg, #0a0a0a) !important;
 }
 
 .blog-page {
-  max-width: 1400px !important;
+  max-width: 1240px !important;
   padding: 120px 24px 80px !important;
 }
 
@@ -402,33 +549,16 @@
 
 .blog-filters,
 .blog-promo {
-  padding: 20px 24px !important;
+  padding: 18px 20px !important;
 }
 
-.blog-search,
-.blog-category-btn,
-.cli-code-block,
-.docs-toc,
-.docs-section-btn,
-.docs-sidebar__link {
-  background: var(--intel-bg-surface) !important;
-  border-color: var(--intel-border-subtle) !important;
-  color: var(--intel-text-secondary) !important;
+.cli-page .cli-container,
+.api-container {
+  max-width: 1180px !important;
 }
 
-.blog-category-btn.active,
-.docs-toc__link--active,
-.docs-section-btn--active {
-  background: var(--intel-cyan) !important;
-  border-color: var(--intel-cyan) !important;
-  color: #000 !important;
-}
-
-.cli-page .cli-container {
-  max-width: 1200px !important;
-}
-
-.cli-logo {
+.cli-logo,
+.api-logo {
   justify-content: center;
 }
 
@@ -437,17 +567,24 @@
 .cli-usage,
 .cli-config,
 .cli-cta,
-.cli-link-section {
-  padding: 40px !important;
+.cli-link-section,
+.api-section {
+  padding: 28px !important;
 }
 
-.cli-code-block {
-  border-radius: 12px !important;
-  padding: 16px !important;
+.cli-code-block,
+.api-code-block,
+.mcp-code-block,
+.download-code-block {
+  padding: 15px 16px !important;
+  color: var(--fg, #f5f5f7) !important;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace) !important;
+  overflow-x: auto;
 }
 
 .mcp-tabs,
-.campaigns-tabs {
+.campaigns-tabs,
+.api-nav-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -455,112 +592,50 @@
   margin: 0 auto 24px;
 }
 
-.mcp-tab,
-.tab-button {
-  border: 1px solid var(--intel-border-subtle) !important;
-  background: var(--intel-bg-surface) !important;
-  color: var(--intel-text-secondary) !important;
-  border-radius: 10px !important;
-}
-
-.mcp-tab--active,
-.tab-button.active {
-  background: var(--intel-cyan) !important;
-  color: #000 !important;
-}
-
-.rewards-page {
-  background: var(--intel-bg-deep) !important;
-  padding-top: 80px;
-}
-
-.hero-background {
-  display: none !important;
-}
-
-.rewards-hero {
-  max-width: 1000px;
-}
-
 .rewards-stats,
 .hero-stats,
 .mcp-usage-stats,
 .about-hero__stats {
-  max-width: 1000px;
+  max-width: 980px;
   margin: 24px auto 0;
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px !important;
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 46px;
-  padding: 12px 22px !important;
-  border: 1px solid var(--intel-border-subtle) !important;
-  border-radius: 12px !important;
-  background: var(--intel-bg-surface) !important;
-  color: var(--intel-text-primary) !important;
-  font-weight: 600 !important;
-}
-
-.how-it-works {
-  max-width: 1200px !important;
-}
-
-.steps-grid {
-  gap: 20px !important;
-}
-
-.step-card {
-  border-radius: 20px !important;
+  gap: 12px !important;
 }
 
 .stat-card,
 .mcp-stat,
 .about-stat {
-  background: var(--intel-bg-surface) !important;
-  border: 1px solid var(--intel-border-subtle);
-  border-radius: 16px;
   padding: 18px;
 }
 
+.how-it-works,
+.steps-grid {
+  max-width: 1180px !important;
+}
+
 .docs-page {
-  max-width: 1400px !important;
-  padding: 40px 24px 80px !important;
+  display: grid !important;
+  grid-template-columns: 260px minmax(0, 1fr);
+  max-width: 1360px !important;
   gap: 40px !important;
+  padding: 42px 24px 80px !important;
 }
 
 .docs-content {
   max-width: none !important;
 }
 
-.docs-title {
-  font-size: clamp(2.25rem, 5vw, 3rem) !important;
-  font-weight: 700 !important;
-  background: var(--gradient-green);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
 .docs-body {
-  background: var(--intel-bg-surface);
-  border: 1px solid var(--intel-border-subtle);
-  border-radius: 20px;
-  padding: 40px;
+  padding: 34px !important;
 }
 
 .docs-sidebar {
   background: transparent !important;
 }
 
-.docs-sidebar__link--active {
-  background: var(--intel-cyan) !important;
-  color: #000 !important;
+.download-layout {
+  gap: 24px !important;
 }
 
 @media (max-width: 1024px) {
@@ -573,12 +648,17 @@
     .about-values__grid,
     .about-team__grid,
     .blog-grid,
-    .campaigns-grid
+    .campaigns-grid,
+    .api-features-grid,
+    .api-pricing-grid,
+    .download-package-grid
   ) {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  .about-mission {
+  .about-mission,
+  .download-layout,
+  .docs-page {
     grid-template-columns: 1fr !important;
   }
 
@@ -596,9 +676,13 @@
     .faq-page,
     .blog-page,
     .cli-page,
-    .rewards-page
+    .rewards-page,
+    .telegram-page,
+    .mcp-page,
+    .api-page,
+    .download-page
   ) {
-    padding-top: 70px;
+    padding-top: 68px;
   }
 
   :is(
@@ -609,22 +693,12 @@
     .faq-hero,
     .blog-hero,
     .cli-header,
-    .rewards-hero
+    .rewards-hero,
+    .telegram-hero,
+    .api-header,
+    .download-header
   ) {
-    padding: 28px 16px 42px !important;
-  }
-
-  :is(
-    .features-hero__subtitle,
-    .pricing-hero__subtitle,
-    .how-hero__subtitle,
-    .about-hero__subtitle,
-    .faq-hero__subtitle,
-    .blog-hero__subtitle,
-    .cli-header p,
-    .rewards-subtitle
-  ) {
-    font-size: 1.0625rem !important;
+    padding: 36px 16px 38px !important;
   }
 
   :is(
@@ -639,6 +713,15 @@
     .blog-grid,
     .cli-features-grid,
     .campaigns-grid,
+    .telegram-commands__grid,
+    .telegram-features__grid,
+    .telegram-plans__grid,
+    .api-features-grid,
+    .api-sdks-grid,
+    .api-pricing-grid,
+    .download-info-grid,
+    .download-features-grid,
+    .download-package-grid,
     .pricing-comparison__row
   ) {
     grid-template-columns: 1fr !important;
@@ -662,7 +745,10 @@
     .cli-cta,
     .cli-link-section,
     .campaigns-section,
-    .rewards-table-section
+    .rewards-table-section,
+    .telegram-section,
+    .api-content,
+    .download-container
   ) {
     padding-left: 16px !important;
     padding-right: 16px !important;
@@ -679,7 +765,8 @@
     width: 100%;
   }
 
-  .cli-code-block {
+  .cli-code-block,
+  .api-code-block {
     align-items: flex-start !important;
     flex-direction: column;
   }
@@ -694,7 +781,7 @@
   }
 
   .docs-body {
-    padding: 24px;
+    padding: 22px !important;
   }
 
   :is(
@@ -708,9 +795,10 @@
     .cli-usage,
     .cli-config,
     .cli-cta,
-    .cli-link-section
+    .cli-link-section,
+    .api-section
   ) {
-    padding: 24px !important;
+    padding: 22px !important;
   }
 }
 
@@ -725,12 +813,16 @@
     .campaign-join,
     .claim-btn,
     .cli-generate-btn,
-    .cli-telegram-btn
+    .cli-telegram-btn,
+    .telegram-btn,
+    .api-btn,
+    .download-primary-btn,
+    .download-secondary-btn
   ) {
     width: 100%;
   }
 
   .docs-body {
-    padding: 18px;
+    padding: 18px !important;
   }
 }

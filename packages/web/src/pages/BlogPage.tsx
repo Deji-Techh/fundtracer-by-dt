@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { Badge } from '../design-system/primitives';
+import { Badge } from '../design-system/primitives/Badge';
 import './BlogPage.css';
 import './PublicPageShell.css';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';

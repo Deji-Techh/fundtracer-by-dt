@@ -52,10 +52,21 @@ export function Sidebar({ currentView, onViewChange, collapsed, onOpenCommand, i
   const { profile } = useAuth();
   const [torque, setTorque] = useState<TorqueStats | null>(null);
 
-  useEffect(() => {
+  const fetchTorque = () => {
     if (profile?.uid) {
-      getTorqueStats(profile.uid).then(setTorque).catch(() => {});
+      getTorqueStats(profile.uid).then(setTorque).catch(err => console.error('[Sidebar] Torque fetch failed:', err));
     }
+  };
+
+  useEffect(() => {
+    fetchTorque();
+  }, [profile?.uid]);
+
+  // Refresh torque stats when an analysis completes
+  useEffect(() => {
+    const handler = () => fetchTorque();
+    window.addEventListener('fundtracer:torque-updated', handler);
+    return () => window.removeEventListener('fundtracer:torque-updated', handler);
   }, [profile?.uid]);
 
   const handleViewChange = (v: AppView) => {

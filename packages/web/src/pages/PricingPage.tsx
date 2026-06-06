@@ -6,7 +6,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { Badge, Panel } from '../design-system/primitives';
+import { Badge } from '../design-system/primitives/Badge';
+import { Panel } from '../design-system/primitives/Panel';
 import './PricingPage.css';
 import './PublicPageShell.css';
 import { useAuth } from '../contexts/AuthContext';

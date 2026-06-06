@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { duneSimClient, EVM_CHAIN_IDS } from '../services/DuneSimClient.js';
+import { EVM_CHAIN_IDS } from '../services/DuneSimClient.js';
 import { solanaPortfolioService } from '../services/SolanaPortfolioService.js';
+import { evmPortfolioService } from '../services/EvmPortfolioService.js';
 import { tryResolveAddress } from '../utils/nameResolver.js';
 
 const router = Router();
@@ -20,7 +21,7 @@ function isSolanaAddress(addr: string): boolean {
 }
 
 // GET /api/portfolio/:walletAddress
-// Now uses Sim API (Dune) for EVM chains and SolanaPortfolioService for Solana
+// Now uses Alchemy for EVM chains and SolanaPortfolioService for Solana
 router.get('/:walletAddress', async (req: Request, res: Response) => {
   try {
     const { walletAddress } = req.params;
@@ -80,10 +81,10 @@ router.get('/:walletAddress', async (req: Request, res: Response) => {
     // Get chain ID for Sim API
     const chainId = EVM_CHAIN_IDS[chain.toLowerCase()] || EVM_CHAIN_IDS[chain] || 59144; // Default to Linea
 
-    console.log('[Portfolio] Fetching from Sim API - chainId:', chainId);
+    console.log('[Portfolio] Fetching from Alchemy - chainId:', chainId);
 
-    // Fetch full portfolio using Sim API
-    const portfolio = await duneSimClient.getEvmPortfolio(walletAddress, chainId, {
+    // Fetch full portfolio using Alchemy
+    const portfolio = await evmPortfolioService.getEvmPortfolio(walletAddress, chainId, {
       includeNfts: true,
       includeStablecoins: true,
       includeActivity: true,
@@ -133,7 +134,7 @@ router.get('/:walletAddress', async (req: Request, res: Response) => {
       })),
       nfts,
       activitySummary: portfolio.activity_summary,
-      attribution: { text: 'Sim API (Dune)' },
+      attribution: { text: 'Alchemy API' },
       lastUpdated: portfolio.last_updated,
     });
   } catch (error: any) {
@@ -188,7 +189,7 @@ router.get('/:walletAddress/tokens', async (req: Request, res: Response) => {
 
     const chainId = EVM_CHAIN_IDS[chain.toLowerCase()] || EVM_CHAIN_IDS[chain] || 59144;
 
-    const result = await duneSimClient.getEvmBalances(walletAddress, {
+    const result = await evmPortfolioService.getEvmBalances(walletAddress, {
       chainIds: chainId,
       excludeSpamTokens: excludeSpam,
       excludeUnpriced: excludeUnpriced,
@@ -249,7 +250,7 @@ router.get('/:walletAddress/nfts', async (req: Request, res: Response) => {
 
     const chainId = EVM_CHAIN_IDS[chain.toLowerCase()] || EVM_CHAIN_IDS[chain] || 59144;
 
-    const result = await duneSimClient.getEvmCollectibles(walletAddress, {
+    const result = await evmPortfolioService.getEvmCollectibles(walletAddress, {
       chainIds: chainId,
       filterSpam: !showSpam,
       showSpamScores: showSpam,
@@ -300,7 +301,7 @@ router.get('/:walletAddress/activity', async (req: Request, res: Response) => {
 
     const chainId = EVM_CHAIN_IDS[chain.toLowerCase()] || EVM_CHAIN_IDS[chain] || 59144;
 
-    const result = await duneSimClient.getEvmActivity(walletAddress, {
+    const result = await evmPortfolioService.getEvmActivity(walletAddress, {
       chainIds: chainId,
       activityType: activityType || undefined,
       limit,
@@ -350,7 +351,7 @@ router.get('/:walletAddress/stablecoins', async (req: Request, res: Response) =>
 
     const chainId = EVM_CHAIN_IDS[chain.toLowerCase()] || EVM_CHAIN_IDS[chain] || 59144;
 
-    const result = await duneSimClient.getEvmStablecoins(walletAddress, {
+    const result = await evmPortfolioService.getEvmStablecoins(walletAddress, {
       chainIds: chainId,
       excludeUnpriced: true,
     });

@@ -335,7 +335,7 @@
 }
 
 [data-theme="light"] .telegram-header h2 {
-  color: #0f172a;
+  color: var(--fg, #1d1d1f);
 }
 
 [data-theme="light"] .telegram-header p {
@@ -352,17 +352,17 @@
 }
 
 [data-theme="light"] .chat-header {
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--bg-secondary, #f5f5f7);
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="light"] .chat-info h3 {
-  color: #0f172a;
+  color: var(--fg, #1d1d1f);
 }
 
 [data-theme="light"] .chat-message.ai .message-bubble {
   background: rgba(0, 0, 0, 0.03);
-  color: #334155;
+  color: var(--fg-secondary, #86868b);
   border-color: rgba(0, 0, 0, 0.06);
 }
 
@@ -377,13 +377,13 @@
 }
 
 [data-theme="light"] .telegram-feature h3 {
-  color: #0f172a;
+  color: var(--fg, #1d1d1f);
 }
 
 [data-theme="light"] .telegram-feature p {
-  color: #64748b;
+  color: var(--fg-secondary, #86868b);
 }
 
 [data-theme="light"] .cta-note {
-  color: #94a3b8;
+  color: var(--fg-tertiary, #aeaeb2);
 }

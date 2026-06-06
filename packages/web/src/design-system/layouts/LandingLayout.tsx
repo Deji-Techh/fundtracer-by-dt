@@ -1,17 +1,10 @@
-/**
- * LandingLayout - Minimal layout for landing/public pages
- * No sidebar, just header and content
- */
-
-import React, { useState, useEffect } from 'react';
-import { CommandBar, SearchResult } from '../primitives';
-import logoImg from '../../assets/logo.png';
-import { ThemeToggle } from '../../components/common/ThemeToggle';
+import React from 'react';
+import { LandingNav } from '../../components/landing/LandingNav';
 import './LandingLayout.css';
 
 interface LandingLayoutProps {
   children: React.ReactNode;
-  logo?: React.ReactNode;
+  className?: string;
   navItems?: Array<{
     label: string;
     href: string;
@@ -19,227 +12,32 @@ interface LandingLayoutProps {
     children?: Array<{ label: string; href: string }>;
   }>;
   headerRight?: React.ReactNode;
-  onSearch?: (query: string) => void;
-  onSearchSelect?: (result: SearchResult) => void;
-  searchResults?: SearchResult[];
-  searchLoading?: boolean;
   showSearch?: boolean;
   transparent?: boolean;
-  className?: string;
 }
 
-export function LandingLayout({
-  children,
-  logo,
-  navItems = [],
-  headerRight,
-  onSearch,
-  onSearchSelect,
-  searchResults = [],
-  searchLoading = false,
-  showSearch = true,
-  transparent = false,
-  className = ''
-}: LandingLayoutProps) {
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
+export function LandingLayout({ children, className = '' }: LandingLayoutProps) {
   return (
-    <div className={`landing-layout ${className}`}>
-      {/* Header */}
-      <header className={`landing-header ${scrolled ? 'landing-header--scrolled' : ''} ${transparent && !scrolled ? 'landing-header--transparent' : ''}`}>
-        <div className="landing-header__container">
-          {/* Logo */}
-          <a href="/" className="landing-header__logo">
-            {logo || (
-              <>
-                <img src={logoImg} alt="FundTracer" className="landing-header__logo-img" />
-                <span className="landing-header__logo-text">FUNDTRACER</span>
-              </>
-            )}
-          </a>
-
-          {/* Desktop nav */}
-          <nav className="landing-header__nav hide-mobile">
-            {navItems.map((item, i) => (
-              item.children && item.children.length > 0 ? (
-                <div
-                  key={i}
-                  className="landing-header__nav-dropdown"
-                  onMouseEnter={() => setOpenDropdown(item.label)}
-                  onMouseLeave={() => setOpenDropdown(null)}
-                >
-                  <a
-                    href={item.href}
-                    className={`landing-header__nav-link landing-header__nav-link--dropdown ${item.active ? 'landing-header__nav-link--active' : ''}`}
-                  >
-                    {item.label}
-                    <span className="landing-header__nav-caret">▾</span>
-                  </a>
-                  {openDropdown === item.label && (
-                    <div className="landing-header__dropdown-menu">
-                      {item.children.map((child, childIdx) => (
-                        <a key={childIdx} href={child.href} className="landing-header__dropdown-link">
-                          {child.label}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <a
-                  key={i}
-                  href={item.href}
-                  className={`landing-header__nav-link ${item.active ? 'landing-header__nav-link--active' : ''}`}
-                >
-                  {item.label}
-                </a>
-              )
-            ))}
-          </nav>
-
-          {/* Search */}
-          {showSearch && (
-            <div className="landing-header__search hide-mobile">
-              <CommandBar
-                placeholder="Search..."
-                onSearch={onSearch}
-                onSelect={onSearchSelect}
-                results={searchResults}
-                loading={searchLoading}
-              />
-            </div>
-          )}
-
-          {/* Right side */}
-          <div className="landing-header__right">
-            {headerRight}
-            <ThemeToggle size="sm" />
-            
-            {/* Mobile menu button */}
-            <button 
-              className="landing-header__menu-btn mobile-only"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                {mobileMenuOpen ? (
-                  <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                ) : (
-                  <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                )}
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="landing-mobile-menu">
-            <nav className="landing-mobile-menu__nav">
-              {navItems.map((item, i) => (
-                <div key={i}>
-                  <a
-                    href={item.href}
-                    className={`landing-mobile-menu__link ${item.active ? 'landing-mobile-menu__link--active' : ''}`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {item.label}
-                  </a>
-                  {item.children && item.children.length > 0 && (
-                    <div className="landing-mobile-menu__subnav">
-                      {item.children.map((child, childIdx) => (
-                        <a
-                          key={childIdx}
-                          href={child.href}
-                          className="landing-mobile-menu__sublink"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {child.label}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </nav>
-          </div>
-        )}
-      </header>
-
-      {/* Main content */}
-      <main className="landing-content">
+    <div className={`landing-layout ft-public-shell ${className}`}>
+      <LandingNav />
+      <main className="landing-content ft-public-shell__content">
         {children}
       </main>
-
-      {/* Footer */}
-      <footer className="landing-footer">
-        <div className="landing-footer__container">
-          {/* Brand */}
-          <div className="landing-footer__brand-section">
-            <div className="landing-footer__brand">
-              <img src={logoImg} alt="FundTracer" className="landing-footer__logo-img" />
-              <span>FUNDTRACER</span>
-            </div>
-            <p className="landing-footer__tagline">
-              Blockchain intelligence platform for investigating on-chain activity.
-            </p>
-          </div>
-
-          {/* Product Links */}
-          <div className="landing-footer__column">
-            <h4 className="landing-footer__column-title">Product</h4>
-            <div className="landing-footer__column-links">
-              <a href="/features">Features</a>
-              <a href="/pricing">Pricing</a>
-              <a href="/how-it-works">How It Works</a>
-            </div>
-          </div>
-
-          {/* Resources Links */}
-          <div className="landing-footer__column">
-            <h4 className="landing-footer__column-title">Resources</h4>
-            <div className="landing-footer__column-links">
-              <a href="/about">About</a>
-              <a href="/faq">FAQ</a>
-              <a href="/ext-install">Browser Extension</a>
-              <a href="/telegram">Telegram Bot</a>
-            </div>
-          </div>
-
-          {/* Legal Links */}
-          <div className="landing-footer__column">
-            <h4 className="landing-footer__column-title">Legal</h4>
-            <div className="landing-footer__column-links">
-              <a href="/terms">Terms of Service</a>
-              <a href="/privacy">Privacy Policy</a>
-            </div>
-          </div>
-
-          {/* Social Links */}
-          <div className="landing-footer__column">
-            <h4 className="landing-footer__column-title">Connect</h4>
-            <div className="landing-footer__column-links">
-              <a href="https://twitter.com/fundtracer" target="_blank" rel="noopener">Twitter</a>
-              <a href="https://t.me/fundtracer_bot" target="_blank" rel="noopener">Telegram</a>
-              <a href="https://github.com/fundtracer" target="_blank" rel="noopener">GitHub</a>
-            </div>
-          </div>
-        </div>
-        
-        {/* Copyright */}
-        <div className="landing-footer__bottom">
-          <div className="landing-footer__copy">
-            © {new Date().getFullYear()} FundTracer. All rights reserved.
-          </div>
+      <footer className="landing-footer ft-public-shell__footer">
+        <div className="ft-public-shell__footer-inner">
+          <a href="/" className="ft-public-shell__footer-brand">
+            <img src="/logo.png" alt="" />
+            <span>FundTracer</span>
+          </a>
+          <nav aria-label="Footer navigation">
+            <a href="/features">Features</a>
+            <a href="/pricing">Pricing</a>
+            <a href="/api-docs">API</a>
+            <a href="/mcp">MCP</a>
+            <a href="/cli">CLI</a>
+            <a href="/docs/getting-started">Docs</a>
+            <a href="/privacy">Privacy</a>
+          </nav>
         </div>
       </footer>
     </div>

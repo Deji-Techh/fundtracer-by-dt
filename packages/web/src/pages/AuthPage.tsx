@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
+import { LandingNav } from '../components/landing/LandingNav';
 import { handleVerifyEmail, handlePasswordReset, handleRecoverEmail, sendPasswordReset } from '../firebase';
 import {
   Mail,
@@ -204,179 +205,114 @@ export function AuthPage() {
   if (authMode === 'signin' || authMode === 'signup') {
     return (
       <motion.div
-        className="auth-split-page"
+        className="auth-xai-page"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
       >
-        <section className="auth-split-left">
-          <div className="auth-split-content">
-            <div className="auth-split-brand">
-              <span className="auth-split-logo">
-                <img src="/logo.png" alt="" />
-              </span>
-              <span>FundTracer</span>
-            </div>
+        <LandingNav />
 
-            <h1>
-              Welcome to <span>FundTracer</span>
-            </h1>
-            <p className="auth-split-copy">
-              Blockchain intelligence and forensics platform. Trace funding sources,
-              detect sybil clusters, and investigate on-chain activity.
-            </p>
-
-            <div className="auth-split-card">
-              {error && <div className="auth-error-msg">{error}</div>}
-              <button
-                className="auth-split-google"
-                onClick={() => handleGoogleLogin()}
-                disabled={loading}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                {loading ? <Loader2 size={18} className="spin" /> : 'Sign in with Google'}
-              </button>
-              <p>A sign-in window will open. Complete Google authentication and you'll be signed in automatically.</p>
-            </div>
-
-            <p className="auth-split-footer">
-              By signing in, you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>
-            </p>
+        <aside className="auth-xai-sidebar" aria-label="Authentication navigation">
+          <a className="auth-xai-sidebar__logo" href="/">
+            <img src="/logo.png" alt="" />
+          </a>
+          <div className="auth-xai-sidebar__group">
+            <strong>Get Started</strong>
+            <a className="is-active" href="/auth?mode=signin">Welcome</a>
+            <a href="/docs/getting-started">Quickstart</a>
+            <a href="/api-docs">API</a>
+            <a href="/mcp">MCP</a>
           </div>
-        </section>
+          <div className="auth-xai-sidebar__group">
+            <strong>Investigate</strong>
+            <a href="/features">Wallet Analysis</a>
+            <a href="/cli">CLI</a>
+            <a href="/download">Desktop</a>
+          </div>
+        </aside>
 
-        <section className="auth-split-right">
-          <div className="auth-preview-pattern" />
-          <div className="auth-preview-shell" aria-hidden="true">
-            <div className="auth-preview-rail">
-              <div className="auth-preview-mark">
-                <img src="/logo.png" alt="" />
-              </div>
-              <nav>
-                <Home size={21} />
-                <Network size={21} />
-                <Wallet size={21} />
-                <Users size={21} />
-                <Settings size={21} />
-              </nav>
-              <div className="auth-preview-avatar">FT</div>
-            </div>
+        <main className="auth-xai-main">
+          <section className="auth-xai-start">
+            <div className="auth-xai-start__copy">
+              <span className="auth-xai-status"><i /> Available</span>
+              <h1>
+                Get started
+                <span>with FundTracer</span>
+              </h1>
+              <p>
+                Access wallet intelligence, funding graphs, AI rooms, API keys, and
+                synced investigation history from one account.
+              </p>
 
-            <div className="auth-preview-board">
-              <div className="auth-preview-top">
-                <div>
-                  <span>Wallet Intelligence</span>
-                  <h2>Investigation cockpit</h2>
-                </div>
-                <div className="auth-preview-score">
-                  <Shield size={16} />
-                  <strong>45</strong>
-                  <span>Risk</span>
-                </div>
-              </div>
-
-              <div className="auth-preview-tabs">
-                <span className="is-active">Overview</span>
-                <span>Funding</span>
-                <span>Graph</span>
-              </div>
-
-              <div className="auth-preview-metrics">
-                <div>
-                  <span>Total traced</span>
-                  <strong>$2.43M</strong>
-                  <em>+12.4%</em>
-                </div>
-                <div>
-                  <span>Suspicious flows</span>
-                  <strong>18</strong>
-                  <em className="danger">High</em>
-                </div>
-              </div>
-
-              <section className="auth-preview-card">
-                <div className="auth-preview-card-head">
-                  <strong>Transaction flow</strong>
-                  <span><Activity size={14} /> Live</span>
-                </div>
-                <div className="auth-preview-chart">
-                  <svg className="auth-preview-chart-svg" viewBox="0 0 720 180" preserveAspectRatio="none" aria-hidden="true">
-                    <defs>
-                      <linearGradient id="authAreaIn" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#00d475" stopOpacity="0.16" />
-                        <stop offset="100%" stopColor="#00d475" stopOpacity="0" />
-                      </linearGradient>
-                      <linearGradient id="authAreaOut" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#6672ff" stopOpacity="0.13" />
-                        <stop offset="100%" stopColor="#6672ff" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <g className="auth-chart-grid">
-                      {Array.from({ length: 13 }).map((_, i) => (
-                        <line key={`v-${i}`} x1={i * 60} y1="0" x2={i * 60} y2="180" />
-                      ))}
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <line key={`h-${i}`} x1="0" y1={i * 45} x2="720" y2={i * 45} />
-                      ))}
-                    </g>
-                    <line className="auth-chart-axis" x1="0" y1="138" x2="720" y2="138" />
-                    <path
-                      d="M0 134 C 96 126, 146 88, 218 76 S 342 86, 420 66 S 552 44, 720 58 L720 180 L0 180 Z"
-                      fill="url(#authAreaIn)"
-                    />
-                    <path
-                      d="M0 152 C 88 150, 154 136, 224 126 S 352 118, 428 132 S 556 122, 720 106 L720 180 L0 180 Z"
-                      fill="url(#authAreaOut)"
-                    />
-                    <path
-                      d="M0 134 C 96 126, 146 88, 218 76 S 342 86, 420 66 S 552 44, 720 58"
-                      fill="none"
-                      stroke="#00d475"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M0 152 C 88 150, 154 136, 224 126 S 352 118, 428 132 S 556 122, 720 106"
-                      fill="none"
-                      stroke="#6672ff"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <circle className="auth-chart-node auth-chart-node--green" cx="218" cy="76" r="5" />
-                    <circle className="auth-chart-node auth-chart-node--green" cx="420" cy="66" r="5" />
-                    <circle className="auth-chart-node auth-chart-node--violet" cx="224" cy="126" r="4.5" />
-                    <circle className="auth-chart-node auth-chart-node--violet" cx="428" cy="132" r="4.5" />
+              <div className="auth-xai-actions">
+                {error && <div className="auth-error-msg">{error}</div>}
+                <button
+                  className="auth-xai-google"
+                  onClick={() => handleGoogleLogin()}
+                  disabled={loading}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                </div>
-              </section>
+                  {loading ? <Loader2 size={18} className="spin" /> : 'Continue with Google'}
+                </button>
+                <a className="auth-xai-secondary" href="/docs/getting-started">Read docs</a>
+              </div>
 
-              <section className="auth-preview-card auth-preview-bars">
-                <div className="auth-preview-card-head">
-                  <strong>Cashflow</strong>
-                  <span>30d</span>
-                </div>
-                <div className="auth-preview-bar-row">
-                  {[42, 62, 34, 78, 55, 88, 70].map((height, index) => (
-                    <i key={index} style={{ height: `${height}%` }} />
-                  ))}
-                </div>
-              </section>
+              <p className="auth-xai-legal">
+                By signing in, you agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.
+              </p>
             </div>
-          </div>
 
-        </section>
+            <div className="auth-xai-code" aria-hidden="true">
+              <div className="auth-xai-code__tabs">
+                <span className="is-active">JavaScript</span>
+                <span>Python</span>
+                <span>cURL</span>
+                <button type="button">Copy</button>
+              </div>
+              <pre>{`import { FundTracer } from "@fundtracer/sdk";
+
+const ft = new FundTracer({
+  account: "google-oauth",
+  room: "Treasury Investigation"
+});
+
+await ft.wallet("0x742d...5b2a").trace({
+  chain: "ethereum",
+  depth: 4,
+  includeRooms: true
+});
+
+// synced: room, graph, API key, CLI`}</pre>
+            </div>
+          </section>
+
+          <section className="auth-xai-models" aria-label="Account capabilities">
+            <article>
+              <div><strong>Rooms</strong><span>live</span></div>
+              <p>Stream AI summaries, analyst notes, and pinned evidence into every investigation.</p>
+              <dl><dt>History</dt><dd>Synced</dd><dt>Members</dt><dd>4 seats</dd></dl>
+            </article>
+            <article>
+              <div><strong>API Console</strong><span>New</span></div>
+              <p>Create keys, inspect usage, and connect MCP tools without leaving the account layer.</p>
+              <dl><dt>Keys</dt><dd>2 free</dd><dt>MCP</dt><dd>Enabled</dd></dl>
+            </article>
+            <article>
+              <div><strong>Desktop</strong><span>v1.0.16</span></div>
+              <p>Continue investigations across browser, CLI, and desktop with one sign-in state.</p>
+              <dl><dt>OS</dt><dd>Win/Linux</dd><dt>CLI</dt><dd>Linked</dd></dl>
+            </article>
+          </section>
+        </main>
       </motion.div>
     );
   }
-
   return (
     <LandingLayout navItems={navItems} showSearch={false}>
       <motion.div

@@ -51,7 +51,7 @@
 
 .how-hero__title-accent {
   display: block;
-  color: var(--intel-cyan);
+  color: var(--fg-secondary, #98989d);
 }
 
 .how-hero__subtitle {
@@ -120,10 +120,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--intel-cyan-bg);
-  border: 1px solid rgba(0, 255, 136, 0.2);
+  background: var(--bg-secondary, #1c1c1e);
+  border: 1px solid var(--card-border, #38383a);
   border-radius: var(--radius-md);
-  color: var(--intel-cyan);
+  color: var(--fg-secondary, #98989d);
 }
 
 .how-step__title {
@@ -240,9 +240,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--intel-bg-hover);
+  background: var(--bg-secondary, #1c1c1e);
+  border: 1px solid var(--card-border, #38383a);
   border-radius: var(--radius-md);
-  color: var(--intel-cyan);
+  color: var(--fg-secondary, #98989d);
   margin-bottom: var(--space-4);
 }
 

@@ -8,9 +8,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { usePrivy } from '@privy-io/react-auth';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { Badge, Panel } from '../design-system/primitives';
+import { Badge } from '../design-system/primitives/Badge';
+import { Panel } from '../design-system/primitives/Panel';
 import { CheckCircle, Bell, Bot, BarChart3, Lock, Infinity } from 'lucide-react';
 import './TelegramPage.css';
+import './PublicPageShell.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 

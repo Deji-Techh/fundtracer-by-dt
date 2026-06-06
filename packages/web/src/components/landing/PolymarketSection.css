@@ -252,7 +252,7 @@
 }
 
 [data-theme="light"] .polymarket-header h2 {
-  color: #0f172a;
+  color: var(--fg, #1d1d1f);
 }
 
 [data-theme="light"] .polymarket-header p {
@@ -265,11 +265,11 @@
 }
 
 [data-theme="light"] .market-question {
-  color: #0f172a;
+  color: var(--fg, #1d1d1f);
 }
 
 [data-theme="light"] .market-volume {
-  color: #64748b;
+  color: var(--fg-secondary, #86868b);
 }
 
 [data-theme="light"] .market-bar {
@@ -282,9 +282,9 @@
 }
 
 [data-theme="light"] .feature-text h4 {
-  color: #0f172a;
+  color: var(--fg, #1d1d1f);
 }
 
 [data-theme="light"] .feature-text p {
-  color: #64748b;
+  color: var(--fg-secondary, #86868b);
 }

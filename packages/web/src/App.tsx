@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
-import IntelPage from './pages/IntelPage';
+import LandingPage from './pages/LandingPage';
 import { SolanaWalletProvider } from './providers/SolanaWalletProvider';
 import AppPage from './pages/AppPage';
 import { useAuth } from './contexts/AuthContext';
@@ -244,7 +244,7 @@ function ApiKeysRoute() {
     }
     return (
       <Suspense fallback={null}>
-        <ApiKeysAuthPage />
+        <AuthPage />
       </Suspense>
     );
   }
@@ -320,7 +320,7 @@ function App() {
       )}
       {!profile?.bannedAt && (
       <Routes>
-      <Route path="/" element={<IntelPage />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/about" element={<Suspense fallback={null}><AboutPage /></Suspense>} />
       <Route path="/download" element={<Suspense fallback={null}><DownloadPage /></Suspense>} />
       <Route path="/features" element={<Suspense fallback={null}><FeaturesPage /></Suspense>} />

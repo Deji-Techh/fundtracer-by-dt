@@ -3,6 +3,7 @@ import { ArrowRight, CheckCircle, Download, MonitorDown, Package, Shield, Termin
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 import './DownloadPage.css';
+import './PublicPageShell.css';
 
 const RELEASE_VERSION = 'v1.0.16';
 const RELEASE_NUMBER = RELEASE_VERSION.replace(/^v/, '');

@@ -50,7 +50,7 @@ const ActionDelayOverlay: React.FC<ActionDelayOverlayProps> = ({
     const tierColors = {
         free: { primary: '#f59e0b', secondary: '#fbbf24', glow: 'rgba(245, 158, 11, 0.4)' },
         pro: { primary: '#8b5cf6', secondary: '#a78bfa', glow: 'rgba(139, 92, 246, 0.4)' },
-        max: { primary: '#06b6d4', secondary: '#22d3ee', glow: 'rgba(6, 182, 212, 0.4)' }
+        max: { primary: '#98989d', secondary: '#f5f5f7', glow: 'rgba(152, 152, 157, 0.34)' }
     };
 
     const colors = tierColors[tier];

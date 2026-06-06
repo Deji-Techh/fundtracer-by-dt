@@ -6,7 +6,7 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { Badge } from '../design-system/primitives';
+import { Badge } from '../design-system/primitives/Badge';
 import './BlogPostPage.css';
 
 interface BlogPost {

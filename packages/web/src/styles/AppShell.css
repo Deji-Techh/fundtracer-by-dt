@@ -21,23 +21,23 @@
   --red:      #ef4444;
 }
 
-/* Dim Theme (Twitter-style) */
+/* Dim Theme */
 [data-theme="dim"] {
-  --bg:       #15202b;
-  --surface:  #192734;
-  --surface2: #22303c;
-  --surface3: #273340;
-  --line:     #38444d;
-  --line2:    #4a5660;
-  --muted:    #5c6c7a;
-  --sub:      #8b98a5;
-  --body:     #8b98a5;
-  --primary:  #e7e9ea;
-  --white:    #e7e9ea;
-  --green:    #00ba7c;
-  --green-bg: rgba(0, 186, 124, 0.12);
-  --green-border: rgba(0, 186, 124, 0.3);
-  --amber:    #ffd400;
+  --bg:       #0a0a0a;
+  --surface:  #111111;
+  --surface2: #1c1c1e;
+  --surface3: #242426;
+  --line:     #38383a;
+  --line2:    #48484a;
+  --muted:    #636366;
+  --sub:      #98989d;
+  --body:     #98989d;
+  --primary:  #f5f5f7;
+  --white:    #f5f5f7;
+  --green:    #00e67a;
+  --green-bg: rgba(0, 230, 122, 0.1);
+  --green-border: rgba(0, 230, 122, 0.3);
+  --amber:    #ff9f0a;
   --red:      #f9364e;
 }
 

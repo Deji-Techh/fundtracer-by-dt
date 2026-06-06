@@ -6,7 +6,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
-import { Badge, Panel } from '../design-system/primitives';
+import { Badge } from '../design-system/primitives/Badge';
+import { Panel } from '../design-system/primitives/Panel';
 import './TermsPage.css';
 
 const navItems = [

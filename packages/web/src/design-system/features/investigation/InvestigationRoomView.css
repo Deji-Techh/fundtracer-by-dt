@@ -60,9 +60,16 @@
 }
 
 [data-theme="light"] .ir-panel {
-  --ir-accent: #00a884;
-  --ir-accent-hover: #06cf9c;
+  --ir-accent: #2563eb;
+  --ir-accent-hover: #1d4ed8;
   --ir-accent-text: #fff;
+  background: #ffffff;
+  border-color: #d4d4d8;
+  box-shadow: 0 22px 54px rgba(15, 23, 42, 0.14);
+}
+
+[data-theme="light"] .ir-backdrop {
+  background: rgba(255, 255, 255, 0.72);
 }
 
 /* ---- Header ---- */
@@ -2026,4 +2033,75 @@
   font-size: 14px;
   line-height: 1.5;
   margin: 0;
+}
+
+/* ---- Light theme normalization ---- */
+[data-theme="light"] .ir-header,
+[data-theme="light"] .ir-chat,
+[data-theme="light"] .ir-presence-row {
+  background: #ffffff;
+}
+
+[data-theme="light"] .ir-header,
+[data-theme="light"] .ir-presence-row {
+  border-bottom-color: #e4e4e7;
+}
+
+[data-theme="light"] .ir-room-name,
+[data-theme="light"] .ir-msg-name,
+[data-theme="light"] .ir-ai-card-summary,
+[data-theme="light"] .ir-kanban-card-content,
+[data-theme="light"] .ir-address-preview code {
+  color: #111827;
+}
+
+[data-theme="light"] .ir-msg:not(.ir-msg-own) .ir-msg-content,
+[data-theme="light"] .ir-ai-card,
+[data-theme="light"] .ir-system-msg,
+[data-theme="light"] .ir-kanban-column,
+[data-theme="light"] .ir-command-palette,
+[data-theme="light"] .ir-address-preview,
+[data-theme="light"] .ir-reaction,
+[data-theme="light"] .ir-pinned-bar {
+  background: #f9fafb;
+  border-color: #e4e4e7;
+}
+
+[data-theme="light"] .ir-msg-own .ir-msg-content {
+  background: var(--ir-accent);
+}
+
+[data-theme="light"] .ir-msg-content:hover,
+[data-theme="light"] .ir-reaction:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .ir-ai-card-data pre,
+[data-theme="light"] .ir-command-footer,
+[data-theme="light"] .ir-msg-time,
+[data-theme="light"] .ir-system-msg,
+[data-theme="light"] .ir-reply-bar,
+[data-theme="light"] .ir-presence-more,
+[data-theme="light"] .ir-typing {
+  color: #6b7280;
+}
+
+[data-theme="light"] .ir-ai-card-data pre,
+[data-theme="light"] .ir-input,
+[data-theme="light"] .ir-search-input {
+  background: #ffffff;
+  border-color: #e4e4e7;
+  color: #111827;
+}
+
+[data-theme="light"] .ir-msg-avatar {
+  background: #f3f4f6;
+  border-color: #d4d4d8;
+  color: #6b7280;
+}
+
+[data-theme="light"] .ir-scroll-fab {
+  background: #ffffff;
+  border-color: #e4e4e7;
+  color: #111827;
 }

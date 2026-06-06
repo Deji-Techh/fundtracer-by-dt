@@ -19,9 +19,8 @@ import {
   FileText,
   Code,
   Terminal,
-  ChevronDown
 } from 'lucide-react';
-import { ThemeToggle } from '../components/common/ThemeToggle';
+import { LandingNav } from '../components/landing/LandingNav';
 import './DocsLayout.css';
 
 interface DocsSection {
@@ -84,37 +83,25 @@ export function DocsLayout({
 
   return (
     <div className="docs-layout">
-      {/* Header */}
-      <header className="docs-header">
-        <div className="docs-header__container">
-          <a href="/" className="docs-header__logo">
-            <img src="/logo.png" alt="FundTracer" className="docs-header__logo-img" />
-            <span className="docs-header__logo-text">FUNDTRACER</span>
-          </a>
-
-          <nav className="docs-header__nav hide-mobile">
-            <a href="/" className="docs-header__nav-link">Intel</a>
-            <a href="/features" className="docs-header__nav-link">Features</a>
-            <a href="/pricing" className="docs-header__nav-link">Pricing</a>
-            <a href="/how-it-works" className="docs-header__nav-link">How It Works</a>
-            <a href="/faq" className="docs-header__nav-link">FAQ</a>
-            <a href="/docs/getting-started" className="docs-header__nav-link docs-header__nav-link--active">Docs</a>
-            <a href="/api-docs" className="docs-header__nav-link">API</a>
-            <a href="/cli" className="docs-header__nav-link">CLI</a>
-            <a href="/about" className="docs-header__nav-link">About</a>
-          </nav>
-
-          <div className="docs-header__right">
-            <ThemeToggle size="sm" />
-            <button 
-              className="docs-header__menu-btn mobile-only"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
+      <LandingNav />
+      <header className="docs-xai-topbar">
+        <div className="docs-xai-topbar__center">Docs</div>
+        <div className="docs-xai-topbar__actions">
+          <button type="button" className="docs-xai-search" aria-label="Search documentation">
+            <Search size={16} />
+            <span>Search</span>
+            <kbd>Ctrl K</kbd>
+          </button>
+          <a className="docs-xai-console" href="/auth?mode=signup">API Console</a>
         </div>
       </header>
+      <button 
+        className="docs-mobile-toggle"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-label={sidebarOpen ? 'Close docs navigation' : 'Open docs navigation'}
+      >
+        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
 
       <div className="docs-layout__container">
         {/* Sidebar */}
@@ -163,11 +150,37 @@ export function DocsLayout({
             <span>{title}</span>
           </nav>
 
-          {/* Page title */}
-          <div className="docs-title-section">
-            <h1 className="docs-title">{title}</h1>
-            {description && <p className="docs-description">{description}</p>}
-          </div>
+          <section className="docs-xai-hero-card">
+            <div className="docs-xai-hero-card__copy">
+              <span className="docs-xai-pill"><i /> Available</span>
+              <h1>{title}</h1>
+              {description && <p>{description}</p>}
+              <div className="docs-xai-hero-card__actions">
+                <a href="/auth?mode=signup">Manage API keys</a>
+                <a href="/docs/api-reference">API Reference</a>
+              </div>
+            </div>
+            <div className="docs-xai-code">
+              <div className="docs-xai-code__tabs">
+                <span>TypeScript</span>
+                <span>cURL</span>
+                <span>CLI</span>
+              </div>
+              <pre>{`import { FundTracer } from '@fundtracer/sdk';
+
+const ft = new FundTracer({
+  apiKey: process.env.FUNDTRACER_API_KEY,
+});
+
+const caseFile = await ft.wallets.trace({
+  address: '0x742d...5b2a',
+  chain: 'ethereum',
+  depth: 4,
+});
+
+console.log(caseFile.entities);`}</pre>
+            </div>
+          </section>
 
           {/* Sections nav (sticky) */}
           {sections.length > 0 && (

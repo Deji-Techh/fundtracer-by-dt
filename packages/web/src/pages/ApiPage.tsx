@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Code, Copy, Check, ExternalLink, Key, Zap, Shield, Database, Clock, GitBranch, X, Send, AlertCircle } from 'lucide-react';
 import { LandingLayout } from '../design-system/layouts/LandingLayout';
 import './ApiPage.css';
+import './PublicPageShell.css';
 import { LANDING_NAV_ITEMS } from '../constants/navigation';
 
 const navItems = LANDING_NAV_ITEMS.map(item => 

@@ -9,8 +9,22 @@ export interface TorqueStats {
   referrals: number;
 }
 
+interface TorqueV2Stats {
+  walletsScanned: number;
+  totalPoints: number;
+  rank: number;
+  totalScans: number;
+}
+
 export async function getTorqueStats(userId?: string): Promise<TorqueStats> {
-  const q = userId ? `?userId=${encodeURIComponent(userId)}` : '';
-  const data = await apiRequest<{ success: boolean; stats: TorqueStats }>(`/api/torque/stats/detailed${q}`);
-  return data.stats || { points: 0, rank: 0, streak: 0, walletsAnalyzed: 0, sybilsDetected: 0, referrals: 0 };
+  const data = await apiRequest<{ success: boolean; stats: TorqueV2Stats }>('/api/torque-v2/mystats');
+  const s = data.stats || { walletsScanned: 0, totalPoints: 0, rank: 0, totalScans: 0 };
+  return {
+    points: s.totalPoints,
+    rank: s.rank,
+    streak: 0,
+    walletsAnalyzed: s.walletsScanned,
+    sybilsDetected: 0,
+    referrals: 0,
+  };
 }

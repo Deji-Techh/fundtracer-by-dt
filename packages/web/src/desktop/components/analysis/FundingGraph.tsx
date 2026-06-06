@@ -225,9 +225,8 @@ function computeLayout(nodes: FNode[], targetAddr: string, dims: GraphDims): {
 }
 
 function bezierPath(x1: number, y1: number, x2: number, y2: number): string {
-  const dx = Math.abs(x2 - x1) * 0.45;
-  const cp1x = x1 + dx;
-  const cp2x = x2 - dx;
+  const cp1x = x1 + (x2 - x1) * 0.45;
+  const cp2x = x2 - (x2 - x1) * 0.45;
   return `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${x2} ${y2}`;
 }
 

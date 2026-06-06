@@ -1799,7 +1799,7 @@
 }
 
 .tier-highlight {
-    color: #06b6d4 !important;
+    color: var(--accent, #00e67a) !important;
     font-weight: 600;
     background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
     padding: var(--space-1) var(--space-2);
