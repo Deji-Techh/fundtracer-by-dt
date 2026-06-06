@@ -96,6 +96,8 @@ export function TitleBar({ onToggleSidebar, isMobile, currentView }: TitleBarPro
           : 'var(--bg-secondary)',
         borderBottom: '1px solid var(--hairline)',
         boxShadow: isMobile ? '0 10px 30px rgba(0,0,0,0.18)' : undefined,
+        position: 'relative',
+        zIndex: 10,
         userSelect: 'none',
         WebkitUserSelect: 'none',
         flexShrink: 0,
