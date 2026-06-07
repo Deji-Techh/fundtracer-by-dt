@@ -1,69 +1,61 @@
 import React, { useState } from 'react';
-import { X, Copy, CheckCircle, ArrowLeft, Loader, Mail, AlertTriangle, Check } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNotify } from '../contexts/ToastContext';
+import { ArrowLeft, Check, Loader, Mail, X } from 'lucide-react';
 import { API_BASE, getAuthToken } from '../api';
+import { useNotify } from '../contexts/ToastContext';
 
 interface PaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-type Tier = 'pro' | 'max' | null;
-type Step = 'select' | 'details' | 'payment' | 'verifying';
+type Tier = 'pro' | 'max';
+type Step = 'select' | 'details';
+
+const tiers: Record<Tier, {
+    name: string;
+    price: string;
+    badge?: string;
+    features: string[];
+}> = {
+    pro: {
+        name: 'PRO TIER',
+        price: '$15 / month',
+        features: [
+            'All chains (7+)',
+            '300 analyses/day',
+            '2s action delay',
+            'Fast API access',
+            'Priority support'
+        ]
+    },
+    max: {
+        name: 'MAX TIER',
+        price: '$25 / month',
+        badge: 'BEST VALUE',
+        features: [
+            'Access to all chains',
+            'Unlimited analyses',
+            'Sybil detection',
+            'API access',
+            'No action delay',
+            'Priority support',
+            'Advanced analytics',
+            'Export reports'
+        ]
+    }
+};
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
-    const { user, wallet } = useAuth();
-    const [selectedTier, setSelectedTier] = useState<Tier>(null);
+    const [selectedTier, setSelectedTier] = useState<Tier | null>(null);
     const [step, setStep] = useState<Step>('select');
-    const [copied, setCopied] = useState(false);
-    const [isVerifying, setIsVerifying] = useState(false);
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
     const notify = useNotify();
 
-    // SECURITY: Payment address from environment variable
-    const paymentAddress = import.meta.env.VITE_PAYMENT_ADDRESS;
-    
-    if (!paymentAddress) {
-      console.error('CRITICAL: VITE_PAYMENT_ADDRESS environment variable is not set');
-    }
-
-    const tiers = {
-        pro: {
-            name: 'PRO TIER',
-            price: '15 USDT',
-            priceValue: 15,
-            features: [
-                '30 days access',
-                'All chains (7+)',
-                '300 analyses/day',
-                '2s action delay',
-                'Fast API access',
-                'Priority support'
-            ]
-        },
-        max: {
-            name: 'MAX TIER',
-            price: '25 USDT',
-            priceValue: 25,
-            badge: 'BEST VALUE',
-            features: [
-                '30 days access',
-                'Access to All Chains',
-                'Unlimited analyses',
-                'Sybil detection',
-                'API access',
-                'No action delay',
-                'Priority support',
-                'Advanced analytics',
-                'Export reports'
-            ]
-        }
-    };
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(paymentAddress);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const handleClose = () => {
+        setStep('select');
+        setSelectedTier(null);
+        setCheckoutLoading(false);
+        onClose();
     };
 
     const handleSelectTier = (tier: Tier) => {
@@ -71,77 +63,32 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
         setStep('details');
     };
 
-    const handleGoBack = () => {
-        if (step === 'details') {
-            setStep('select');
-            setSelectedTier(null);
-        } else if (step === 'payment') {
-            setStep('details');
-        } else if (step === 'verifying') {
-            setStep('payment');
-            setIsVerifying(false);
-        }
-    };
+    const handleCheckout = async () => {
+        if (!selectedTier) return;
 
-    const handlePayNow = () => {
-        setStep('payment');
-    };
-
-    const handleVerifyPayment = async () => {
-        if (!wallet?.address || !selectedTier) return;
-
-        setIsVerifying(true);
-        setStep('verifying');
-
+        setCheckoutLoading(true);
         try {
             const token = getAuthToken();
-            if (!token) {
-                throw new Error('Please sign in before verifying payment.');
-            }
-
-            // Call backend to verify payment
-            const response = await fetch(`${API_BASE}/api/payment/verify-payment`, {
+            const response = await fetch(`${API_BASE}/api/payment/create-checkout`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 credentials: 'include',
-                body: JSON.stringify({
-                    userAddress: wallet.address,
-                    tier: selectedTier,
-                    paymentAddress
-                })
+                body: JSON.stringify({ tier: selectedTier }),
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success || !data.checkoutUrl) {
+                throw new Error(data.error || 'Checkout is temporarily unavailable.');
             }
 
-            const data = await response.json();
-
-            if (data.success) {
-                notify.success('Payment verified! Your account has been upgraded to ' + selectedTier.toUpperCase() + ' tier.', 5000);
-                onClose();
-                window.location.reload(); // Refresh to update tier
-            } else {
-                notify.warning(data.error || 'Payment not found. Please wait 2 minutes after sending, then try again.');
-                setStep('payment');
-            }
+            window.location.href = data.checkoutUrl;
         } catch (error: any) {
-            console.error('Verification error:', error);
-            notify.error('Verification failed: ' + (error.message || 'Please try again or contact support.'));
-            setStep('payment');
-        } finally {
-            setIsVerifying(false);
+            notify.error(error.message || 'Failed to start checkout. Please try again or contact support.');
+            setCheckoutLoading(false);
         }
-    };
-
-    const handleClose = () => {
-        setStep('select');
-        setSelectedTier(null);
-        setIsVerifying(false);
-        onClose();
     };
 
     if (!isOpen) return null;
@@ -149,66 +96,49 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
     return (
         <div className="modal-overlay" onClick={handleClose}>
             <div className="modal-content payment-modal" onClick={e => e.stopPropagation()}>
-                <button className="modal-close" onClick={handleClose}>
+                <button type="button" className="modal-close" onClick={handleClose}>
                     <X size={20} />
                 </button>
 
-                {/* Step 1: Select Tier */}
                 {step === 'select' && (
                     <>
                         <div className="payment-modal-header">
                             <h2>Upgrade to Premium</h2>
-                            <p className="payment-subtitle">Choose your tier to unlock advanced features</p>
+                            <p className="payment-subtitle">Choose a plan and complete secure checkout.</p>
                             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '8px', padding: '8px', background: 'var(--color-bg-tertiary)', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Mail size={16} />
-                                <span><strong>Tiers are tied to your account</strong> - You can change wallets anytime, your premium access stays with your wallet address.</span>
+                                <span><strong>Access is tied to your account.</strong> Your tier activates after checkout confirmation.</span>
                             </p>
                         </div>
 
                         <div className="payment-tiers">
-                            <div
-                                className="payment-tier animate-card-1"
-                                onClick={() => handleSelectTier('pro')}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <div className="tier-header">
-                                    <span className="tier-label">{tiers.pro.name}</span>
-                                    <span className="tier-price">{tiers.pro.price}</span>
-                                </div>
-                                <div className="tier-features">
-                                    {tiers.pro.features.slice(0, 4).map((feature, i) => (
-                                        <span key={i}><Check size={14} style={{ marginRight: '6px' }} />{feature}</span>
-                                    ))}
-                                </div>
-                                <button className="btn btn-secondary" style={{ marginTop: '16px', width: '100%' }}>
-                                    Select Pro
+                            {(Object.keys(tiers) as Tier[]).map((tier) => (
+                                <button
+                                    key={tier}
+                                    type="button"
+                                    className={`payment-tier ${tier === 'max' ? 'payment-tier-featured animate-card-2' : 'animate-card-1'}`}
+                                    onClick={() => handleSelectTier(tier)}
+                                    style={{ cursor: 'pointer', textAlign: 'left' }}
+                                >
+                                    {tiers[tier].badge && <div className="tier-badge">{tiers[tier].badge}</div>}
+                                    <div className="tier-header">
+                                        <span className="tier-label">{tiers[tier].name}</span>
+                                        <span className="tier-price">{tiers[tier].price}</span>
+                                    </div>
+                                    <div className="tier-features">
+                                        {tiers[tier].features.slice(0, tier === 'max' ? 5 : 4).map((feature) => (
+                                            <span key={feature}><Check size={14} style={{ marginRight: '6px' }} />{feature}</span>
+                                        ))}
+                                    </div>
+                                    <span className={`btn ${tier === 'max' ? 'btn-primary' : 'btn-secondary'}`} style={{ marginTop: '16px', width: '100%', justifyContent: 'center' }}>
+                                        Select {tier === 'max' ? 'Max' : 'Pro'}
+                                    </span>
                                 </button>
-                            </div>
-
-                            <div
-                                className="payment-tier payment-tier-featured animate-card-2"
-                                onClick={() => handleSelectTier('max')}
-                                style={{ cursor: 'pointer' }}
-                            >
-                                <div className="tier-badge">{tiers.max.badge}</div>
-                                <div className="tier-header">
-                                    <span className="tier-label">{tiers.max.name}</span>
-                                    <span className="tier-price">{tiers.max.price}</span>
-                                </div>
-                                <div className="tier-features">
-                                    {tiers.max.features.slice(0, 5).map((feature, i) => (
-                                        <span key={i}><Check size={14} style={{ marginRight: '6px' }} />{feature}</span>
-                                    ))}
-                                </div>
-                                <button className="btn btn-primary" style={{ marginTop: '16px', width: '100%' }}>
-                                    Select Max
-                                </button>
-                            </div>
+                            ))}
                         </div>
                     </>
                 )}
 
-                {/* Step 2: Tier Details */}
                 {step === 'details' && selectedTier && (
                     <>
                         <div className="payment-modal-header">
@@ -220,119 +150,41 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
 
                         <div style={{ marginBottom: '24px' }}>
                             <h3 style={{ fontSize: '16px', marginBottom: '16px', color: 'var(--color-text-secondary)' }}>
-                                Full Features:
+                                Included:
                             </h3>
                             <div className="tier-features" style={{ display: 'grid', gap: '8px' }}>
-                                {tiers[selectedTier].features.map((feature, i) => (
-                                    <span key={i} style={{ fontSize: '14px' }}><Check size={14} style={{ marginRight: '6px' }} />{feature}</span>
+                                {tiers[selectedTier].features.map((feature) => (
+                                    <span key={feature} style={{ fontSize: '14px' }}><Check size={14} style={{ marginRight: '6px' }} />{feature}</span>
                                 ))}
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            <button
-                                className="btn btn-secondary"
-                                onClick={handleGoBack}
-                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                            >
-                                <ArrowLeft size={18} />
-                                Go Back
-                            </button>
-                            <button
-                                className="btn btn-primary"
-                                onClick={handlePayNow}
-                                style={{ flex: 1 }}
-                            >
-                                Pay Now
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {/* Step 3: Payment */}
-                {step === 'payment' && selectedTier && (
-                    <>
-                        <div className="payment-modal-header">
-                            <h2>Complete Payment</h2>
-                            <p className="payment-subtitle">
-                                Send <strong>{tiers[selectedTier].price}</strong> to activate {tiers[selectedTier].name}
-                            </p>
-                        </div>
-
-                        <div className="payment-address-section">
-                            <label className="payment-label">Payment Address (Linea USDT)</label>
-                            <div className="payment-address-box">
-                                <code className="payment-address">{paymentAddress}</code>
-                                <button
-                                    className="copy-btn"
-                                    onClick={handleCopy}
-                                    title="Copy address"
-                                >
-                                    {copied ? <CheckCircle size={18} /> : <Copy size={18} />}
-                                </button>
-                            </div>
-                            <p className="payment-instructions">
-                                Send <strong>{tiers[selectedTier].price}</strong> on <strong>Linea Mainnet</strong> to this address.
-                                Your tier upgrades automatically after verification and is tied to your wallet address.
-                            </p>
-                        </div>
-
-                        <div className="payment-warning" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <AlertTriangle size={18} />
-                            <span><strong>Important:</strong> Only send USDT on Linea Mainnet. Sending on other networks will result in loss of funds.</span>
-                        </div>
+                        <p className="payment-warning" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            Checkout is processed securely. Premium access activates automatically after the payment webhook confirms your subscription.
+                        </p>
 
                         <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
                             <button
+                                type="button"
                                 className="btn btn-secondary"
-                                onClick={handleGoBack}
+                                onClick={() => { setStep('select'); setSelectedTier(null); }}
+                                disabled={checkoutLoading}
                                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                             >
                                 <ArrowLeft size={18} />
                                 Go Back
                             </button>
                             <button
+                                type="button"
                                 className="btn btn-primary"
-                                onClick={handleVerifyPayment}
-                                style={{ flex: 1 }}
+                                onClick={handleCheckout}
+                                disabled={checkoutLoading}
+                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                             >
-                                I've Paid
+                                {checkoutLoading ? <Loader size={18} className="loading-spinner" /> : null}
+                                Continue to Checkout
                             </button>
                         </div>
-                    </>
-                )}
-
-                {/* Step 4: Verifying */}
-                {step === 'verifying' && (
-                    <>
-                        <div className="payment-modal-header">
-                            <h2>Verifying Payment</h2>
-                            <p className="payment-subtitle">Please wait while we confirm your transaction...</p>
-                        </div>
-
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            padding: '48px 24px',
-                            gap: '24px'
-                        }}>
-                            <Loader size={48} className="loading-spinner" style={{ animation: 'spin 1s linear infinite' }} />
-                            <p style={{ color: 'var(--color-text-muted)', textAlign: 'center' }}>
-                                Checking blockchain for your payment...
-                                <br />
-                                This may take up to 2 minutes.
-                            </p>
-                        </div>
-
-                        <button
-                            className="btn btn-secondary"
-                            onClick={handleGoBack}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                        >
-                            <ArrowLeft size={18} />
-                            Cancel Verification
-                        </button>
                     </>
                 )}
             </div>

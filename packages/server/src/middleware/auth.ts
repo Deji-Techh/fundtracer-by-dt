@@ -11,6 +11,22 @@ import { torqueServiceV2 } from '../services/TorqueServiceV2.js';
 import { isRedisConnected, cacheGet, cacheSet } from '../utils/redis.js';
 import { logMcpRequest } from '../mcp/mcpLogger.js';
 
+const SESSION_COOKIE_NAME = 'fundtracer_session';
+
+function getCookieValue(req: express.Request, name: string): string | undefined {
+    const rawCookie = req.headers.cookie;
+    if (!rawCookie) return undefined;
+
+    const parts = rawCookie.split(';');
+    for (const part of parts) {
+        const [rawName, ...rawValue] = part.trim().split('=');
+        if (rawName === name) {
+            return decodeURIComponent(rawValue.join('='));
+        }
+    }
+    return undefined;
+}
+
 export type AdminRole = 'superadmin' | 'admin' | 'moderator';
 
 export interface AdminUser {
@@ -49,6 +65,7 @@ export async function authMiddleware(
     
     const authHeader = req.headers.authorization;
     const xAuthToken = req.headers['x-auth-token'] as string | undefined;
+    const sessionToken = getCookieValue(req, SESSION_COOKIE_NAME);
     const hasAuth = !!authHeader && authHeader.startsWith('Bearer ');
     // SECURITY: JWT_SECRET must be set in environment
     const JWT_SECRET = process.env.JWT_SECRET;
@@ -61,6 +78,21 @@ export async function authMiddleware(
         // Check if API key middleware already authenticated the user
         if (req.user) {
             return next();
+        }
+
+        // Preferred web session path: HttpOnly cookie set by OAuth/login routes.
+        if (sessionToken) {
+            try {
+                const decoded = jwt.verify(sessionToken, JWT_SECRET) as any;
+                if (decoded.type === 'admin') {
+                    return res.status(401).json({ error: 'Invalid auth method for admin' });
+                }
+                req.headers.authorization = `Bearer ${sessionToken}`;
+                return authMiddleware(req, res, next);
+            } catch (e) {
+                console.error('[AUTH-MIDDLEWARE] session cookie verification failed:', (e as Error).message);
+                return res.status(401).json({ error: 'Invalid authentication token' });
+            }
         }
 
         // Fallback: check x-auth-token header (workaround for Cloudflare edge stripping Authorization on /report)

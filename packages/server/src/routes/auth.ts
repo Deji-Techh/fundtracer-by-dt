@@ -24,6 +24,37 @@ const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET;
 const TWITTER_REDIRECT_URI = process.env.TWITTER_REDIRECT_URI || 'https://www.fundtracer.xyz/api/auth/twitter/callback';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://www.fundtracer.xyz';
+const SESSION_COOKIE_NAME = 'fundtracer_session';
+
+function getCookieOptions() {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+}
+
+function setSessionCookie(res: Response, token: string) {
+  res.cookie(SESSION_COOKIE_NAME, token, getCookieOptions());
+}
+
+function clearSessionCookie(res: Response) {
+  res.clearCookie(SESSION_COOKIE_NAME, {
+    ...getCookieOptions(),
+    maxAge: undefined,
+  });
+}
+
+function appendQuery(url: string, params: Record<string, string | null | undefined>) {
+  const target = new URL(url);
+  for (const [key, value] of Object.entries(params)) {
+    if (value) target.searchParams.set(key, value);
+  }
+  return target.toString();
+}
 
 // OAuth Start endpoints - redirect to provider
 router.get('/google/start', (req: Request, res: Response) => {
@@ -303,9 +334,15 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       sendWelcomeEmail(email, name || '', 'google').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
     }
     
-    // Redirect to the original page with token and ref param
-    const refQuery = refParam ? `&ref=${refParam}` : '';
-    res.redirect(`${redirectUrl}?token=${token}${refQuery}`);
+    setSessionCookie(res, token);
+
+    if (refParam === 'desktop') {
+      res.redirect(appendQuery(redirectUrl, { token, ref: refParam }));
+      return;
+    }
+
+    // Redirect without exposing the web JWT in the URL. Bearer token fallback remains for existing clients.
+    res.redirect(appendQuery(redirectUrl, { auth: 'success', ref: refParam || undefined }));
     
   } catch (err) {
     console.error('[AUTH] Google callback error:', err);
@@ -412,7 +449,8 @@ await userRef.set({
       sendWelcomeEmail(email, name || '', 'twitter').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
     }
     
-    res.redirect(`${FRONTEND_URL}/auth?token=${token}`);
+    setSessionCookie(res, token);
+    res.redirect(appendQuery(`${FRONTEND_URL}/auth`, { auth: 'success' }));
     
   } catch (err) {
     console.error('[AUTH] Twitter callback error:', err);
@@ -654,6 +692,7 @@ const userDoc = await userRef.get();
     }, getJwtSecret(), { expiresIn: '7d' });
 
     console.log('[AUTH] Wallet Login SUCCESS');
+    setSessionCookie(res, token);
     res.json({
       token,
       user: {
@@ -797,6 +836,7 @@ router.post('/google-login', async (req: Request, res: Response) => {
       sendWelcomeEmail(email, name || '', 'google').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
     }
     
+    setSessionCookie(res, token);
     res.json({
       token,
       user: {
@@ -881,7 +921,7 @@ await userRef.set({
       tier,
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
-      authProvider: 'google',
+      authProvider: 'twitter',
       onboardingCompleted: isNewUser ? false : (userDoc.data()?.onboardingCompleted ?? false)
     }, { merge: true });
 
@@ -903,6 +943,7 @@ await userRef.set({
       sendWelcomeEmail(email, twitterDisplayName || '', 'twitter').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
     }
     
+    setSessionCookie(res, token);
     res.json({
       token,
       user: {
@@ -1029,6 +1070,7 @@ router.post('/email-login', async (req: Request, res: Response) => {
       sendWelcomeEmail(email, name || '', 'email').catch(err => console.error('[EMAIL] Failed to send welcome email:', err));
     }
     
+    setSessionCookie(res, token);
     res.json({
       token,
       user: {
@@ -1106,6 +1148,7 @@ router.post('/verify-2fa', async (req: Request, res: Response) => {
 
     console.log('[AUTH] 2FA Login SUCCESS for:', tempUid);
 
+    setSessionCookie(res, token);
     res.json({
       token,
       user: {
@@ -1168,6 +1211,7 @@ router.post('/link-wallet', async (req: Request, res: Response) => {
       authProvider: 'wallet'
     }, getJwtSecret(), { expiresIn: '7d' });
 
+    setSessionCookie(res, token);
     res.json({
       success: true,
       token,
@@ -1207,6 +1251,11 @@ router.post('/unlink-wallet', async (req: Request, res: Response) => {
     console.error('[AUTH] Unlink wallet error:', error);
     res.status(500).json({ error: 'Failed to unlink wallet' });
   }
+});
+
+router.post('/logout', (_req: Request, res: Response) => {
+  clearSessionCookie(res);
+  res.json({ success: true });
 });
 
 // Privy token exchange — verifies a Privy access token and exchanges it for a FundTracer JWT
@@ -1332,6 +1381,7 @@ router.post('/privy-exchange', async (req: Request, res: Response) => {
 
     console.log('[AUTH] Privy Exchange SUCCESS');
 
+    setSessionCookie(res, token);
     res.json({
       token,
       user: {

@@ -107,10 +107,6 @@ async function apiRequestWithRetry<T>(
         endpoint.startsWith('/api/torque-v2/groups') ||
         endpoint.startsWith('/api/torque-v2/activity');
     
-    if (!token && !isPublicEndpoint) {
-        throw new Error('Not authenticated');
-    }
-
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
     };
@@ -207,6 +203,10 @@ export async function loginWithEmail(firebaseToken: string): Promise<{ token: st
     });
     setAuthToken(data.token);
     return data;
+}
+
+export async function logoutSession(): Promise<{ success: boolean }> {
+    return apiRequest('/api/auth/logout', 'POST');
 }
 
 export async function linkWalletToGoogle(

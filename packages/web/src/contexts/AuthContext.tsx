@@ -13,10 +13,10 @@ import { ethers } from 'ethers';
 import {
     getProfile,
     removeAuthToken,
-    getAuthToken,
     setAuthToken,
     loginWithWallet as apiLoginWithWallet,
     loginWithGoogle as apiLoginWithGoogle,
+    logoutSession,
     linkWalletToAccount,
     unlinkWalletFromAccount,
     UserProfile
@@ -185,48 +185,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check auth on mount
     useEffect(() => {
         const initAuth = async () => {
-            const token = getAuthToken();
-            if (token) {
-                try {
-                    const userProfile = await getProfile();
-                    // Use server profile picture or fallback to localStorage
-                    const profilePic = userProfile.profilePicture || getStoredProfilePicture();
-                    setProfile({ ...userProfile, profilePicture: profilePic, isVerified: userProfile.isVerified ?? false });
-                    
-                    if (userProfile.uid) {
-                        setUser({
-                            uid: userProfile.uid,
-                            walletAddress: userProfile.walletAddress || '',
+            try {
+                const userProfile = await getProfile();
+                // Use server profile picture or fallback to localStorage
+                const profilePic = userProfile.profilePicture || getStoredProfilePicture();
+                setProfile({ ...userProfile, profilePicture: profilePic, isVerified: userProfile.isVerified ?? false });
+
+                if (userProfile.uid) {
+                    setUser({
+                        uid: userProfile.uid,
+                        walletAddress: userProfile.walletAddress || '',
+                    });
+                    setIsAuthenticated(true);
+                    syncHistoryWithServer();
+
+                    if (userProfile.walletAddress) {
+                        setWallet({
+                            address: userProfile.walletAddress,
+                            isConnected: true
                         });
-                        setIsAuthenticated(true);
-                        syncHistoryWithServer();
-                        
-                        if (userProfile.walletAddress) {
-                            setWallet({
-                                address: userProfile.walletAddress,
-                                isConnected: true
-                            });
-                        }
-                    } else {
-                        // No user data returned, clear auth
-                        clearAuthData();
                     }
-                } catch (error: any) {
-                    console.error('Auth init error:', error);
-                    // Clear auth if token is invalid/expired
-                    // Check both the HTTP status (added by apiRequest) and known error strings
-                    const status = error.status;
-                    const msg = error.message || '';
-                    if (
-                        status === 401 ||
-                        msg.includes('Invalid authentication token') ||
-                        msg.includes('Token expired') ||
-                        msg.includes('Unauthorized') ||
-                        msg.includes('Not authenticated')
-                    ) {
-                        clearAuthData();
-                        // Don't notify on initial load — user will see the sign-in UI
-                    }
+                } else {
+                    // No user data returned, clear auth
+                    clearAuthData();
+                }
+            } catch (error: any) {
+                console.error('Auth init error:', error);
+                // Clear auth if token/session is invalid or expired.
+                const status = error.status;
+                const msg = error.message || '';
+                if (
+                    status === 401 ||
+                    msg.includes('Invalid authentication token') ||
+                    msg.includes('Token expired') ||
+                    msg.includes('Unauthorized') ||
+                    msg.includes('Not authenticated')
+                ) {
+                    clearAuthData();
+                    // Don't notify on initial load — user will see the sign-in UI
                 }
             }
             setLoading(false);
@@ -259,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sign out - disconnects wallet and clears all local data
     const signOut = useCallback(async () => {
         try {
+            await logoutSession().catch(() => null);
             await disconnect();
             clearAuthData();
             // Reset auth attempt flag so auto-auth works on next connection
@@ -272,6 +269,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sign out account - signs out of Google/X and returns to landing page
     const signOutAccount = useCallback(async () => {
         try {
+            await logoutSession().catch(() => null);
             // Sign out from Firebase (Google/X)
             if (firebaseAuth) {
                 await firebaseAuth.signOut();

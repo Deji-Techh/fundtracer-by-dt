@@ -77,6 +77,7 @@ export function AuthPage() {
   useEffect(() => {
     const token = searchParams.get('token');
     const authError = searchParams.get('error');
+    const authSuccess = searchParams.get('auth') === 'success';
     
     if (token && !tokenProcessed) {
       setTokenProcessed(true);
@@ -91,7 +92,13 @@ export function AuthPage() {
       setError(`Authentication failed: ${authError}`);
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [searchParams, tokenProcessed, setTokenFromExternal, navigate]);
+
+    if (authSuccess && isAuthenticated) {
+      const redirectTo = sessionStorage.getItem('postLoginRedirect') || '/app-evm';
+      sessionStorage.removeItem('postLoginRedirect');
+      navigate(redirectTo, { replace: true });
+    }
+  }, [searchParams, tokenProcessed, setTokenFromExternal, navigate, isAuthenticated]);
 
   const handleVerifyEmailAction = async (code: string) => {
     setActionLoading(true);

@@ -181,6 +181,8 @@ app.use((req, res, next) => {
 });
 
 // Security middleware
+const isProduction = process.env.NODE_ENV === 'production';
+
 app.use(helmet({
     crossOriginOpenerPolicy: false, // Completely disable COOP for Google Sign-In
     crossOriginResourcePolicy: false, // Allow cross-origin reads (CORS handles access control)
@@ -230,7 +232,6 @@ app.use(helmet({
                 "'self'",
                 "data:",
                 "blob:",
-                "*",
                 "https://*.ipfs.io",
                 "https://ipfs.io",
                 "https://cloudflare-ipfs.com",
@@ -249,11 +250,9 @@ app.use(helmet({
             ],
             "script-src": [
                 "'self'",
-                // TODO: Tighten CSP — unsafe-inline is required by Google OAuth SDKs,
-                // unsafe-eval by React dev mode/Vite HMR. To remove these, adopt
-                // strict-dynamic with nonce-based CSP and migrate to production builds only.
+                // TODO: remove unsafe-inline after migrating inline scripts/styles to nonce-backed CSP.
                 "'unsafe-inline'",
-                "'unsafe-eval'",
+                ...(!isProduction ? ["'unsafe-eval'"] : []),
                 "https://*.google.com",
                 "https://*.googleapis.com",
                 "https://*.gstatic.com",
@@ -463,6 +462,15 @@ const publicLimiter = rateLimit({
   skip: skipHealthCheck,
 });
 
+const cookieConsentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Too many cookie consent updates, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipHealthCheck,
+});
+
 // Apply general rate limiting to all API routes
 app.use('/api/', apiLimiter);
 
@@ -523,6 +531,7 @@ apiRouter.use('/auth', authLimiter, authRoutes); // Public auth route with stric
 apiRouter.use('/contracts', publicLimiter, contractRoutes); // Public contract lookup with rate limiting
 apiRouter.use('/payment', publicLimiter, paymentRoutes); // Payment verification with rate limiting
 apiRouter.use('/contact', publicLimiter, contactRoutes); // Contact/sales form
+apiRouter.use('/config/cookie-consent', cookieConsentLimiter);
 apiRouter.use('/config', configRoutes); // Runtime client config (no auth needed)
 apiRouter.use('/tx', apiKeyAuthMiddleware, transactionRoutes); // Transaction lookup
 apiRouter.use('/gas', apiKeyAuthMiddleware, gasRoutes); // Gas prices
