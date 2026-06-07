@@ -7,6 +7,8 @@ import { useAuth } from './contexts/AuthContext';
 import MaintenancePage from './pages/MaintenancePage';
 import BanOverlay from './components/BanOverlay';
 import ErrorBoundary from './components/ErrorBoundary';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
+import { hasCookieConsent } from './utils/cookieConsent';
 import './design-system/tokens.css';
 
 // Map of route paths to page titles for dynamic SEO
@@ -43,9 +45,9 @@ const PAGE_TITLES: Record<string, string> = {
 
 // SEO Manager - sets dynamic meta tags for each page
 function SEOManager() {
-  const location = useLocation();
-  const canonicalUrl = `https://www.fundtracer.xyz${location.pathname}`;
-  const title = PAGE_TITLES[location.pathname] || 'FundTracer | Professional Blockchain Wallet Analyzer';
+  const { pathname } = useLocation();
+  const canonicalUrl = `https://www.fundtracer.xyz${pathname}`;
+  const title = PAGE_TITLES[pathname] || 'FundTracer | Professional Blockchain Wallet Analyzer';
 
   useEffect(() => {
     // Update canonical URL
@@ -71,7 +73,7 @@ function SEOManager() {
     if (twitterUrlEl) {
       twitterUrlEl.setAttribute('content', canonicalUrl);
     }
-  }, [location.pathname, canonicalUrl, title]);
+  }, [pathname, canonicalUrl, title]);
 
   return null;
 }
@@ -177,6 +179,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <h2 style={{ margin: 0 }}>Sign in to continue</h2>
         <p style={{ color: '#888', margin: 0 }}>You need to be signed in to access FundTracer</p>
         <button
+          type="button"
           onClick={() => window.location.href = '/auth'}
           style={{
             padding: '12px 24px',
@@ -208,7 +211,7 @@ function ApiKeysRoute() {
     const refParam = searchParams.get('ref');
     
     // Store ref param for referral tracking
-    if (refParam) {
+    if (refParam && hasCookieConsent('referrals')) {
       localStorage.setItem('referral_ref', refParam);
     }
     
@@ -259,10 +262,6 @@ function ApiKeysRoute() {
 const IS_MAINTENANCE_MODE = false;
 
 function App() {
-  if (IS_MAINTENANCE_MODE) {
-    return <MaintenancePage />;
-  }
-
   // Global token URL processing - handles OAuth redirects from any page
   const { setTokenFromExternal, profile } = useAuth();
   const [searchParams] = useSearchParams();
@@ -272,9 +271,10 @@ function App() {
     const token = searchParams.get('token');
     const error = searchParams.get('error');
     const refParam = searchParams.get('ref');
+    let desktopFallbackTimer: number | undefined;
     
     // Store ref param for referral tracking
-    if (refParam) {
+    if (refParam && hasCookieConsent('referrals')) {
       localStorage.setItem('referral_ref', refParam);
     }
     
@@ -284,7 +284,7 @@ function App() {
       // Try custom protocol deep link first
       window.location.href = `fundtracer://auth?token=${encodeURIComponent(token)}`;
       // Fallback: if deep link doesn't work within 2s, show manual instructions
-      setTimeout(() => {
+      desktopFallbackTimer = window.setTimeout(() => {
         document.body.innerHTML = `
           <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f7;color:#1d1d1f;text-align:center;padding:24px;">
             <div>
@@ -296,7 +296,11 @@ function App() {
             </div>
           </div>`;
       }, 2000);
-      return;
+      return () => {
+        if (desktopFallbackTimer) {
+          window.clearTimeout(desktopFallbackTimer);
+        }
+      };
     }
 
     // Process token from URL (from OAuth callbacks like Google, etc.)
@@ -310,7 +314,17 @@ function App() {
     if (error) {
       window.history.replaceState({}, '', window.location.pathname);
     }
+
+    return () => {
+      if (desktopFallbackTimer) {
+        window.clearTimeout(desktopFallbackTimer);
+      }
+    };
   }, [searchParams, globalTokenProcessed, setTokenFromExternal]);
+
+  if (IS_MAINTENANCE_MODE) {
+    return <MaintenancePage />;
+  }
 
   return (
     <ErrorBoundary>
@@ -365,6 +379,7 @@ function App() {
       <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       )}
+      <CookieConsentBanner />
     </ErrorBoundary>
   );
 }

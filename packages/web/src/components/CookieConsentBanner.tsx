@@ -1,145 +1,71 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { API_BASE, getAuthToken } from '../api';
+import {
+  buildCookieConsentState,
+  getCookieConsent,
+  saveCookieConsent,
+  type CookieConsentChoice,
+  type CookieConsentState,
+} from '../utils/cookieConsent';
+import './CookieConsentBanner.css';
 
-const CONSENT_KEY = 'fundtracer_cookie_consent';
-const CONSENT_COOKIE = 'fundtracer_cookie_consent';
-
-type ConsentChoice = 'necessary' | 'all';
-
-function setConsentCookie(choice: ConsentChoice) {
-  const maxAge = 60 * 60 * 24 * 180; // 180 days
-  document.cookie = `${CONSENT_COOKIE}=${choice}; Max-Age=${maxAge}; Path=/; SameSite=Lax; Secure`;
-}
-
-async function recordConsent(choice: ConsentChoice) {
-  try {
-    await fetch('/api/config/cookie-consent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        choice,
-        categories: choice === 'all'
-          ? ['necessary', 'preferences', 'analytics', 'performance', 'referrals']
-          : ['necessary'],
-        path: window.location.pathname,
-      }),
-    });
-  } catch {
-    // Consent must still be honored locally if the logging request fails.
-  }
-}
-
-export function hasCookieConsent(category: 'analytics' | 'performance' | 'referrals' | 'preferences') {
-  try {
-    const stored = localStorage.getItem(CONSENT_KEY);
-    if (!stored) return false;
-    const parsed = JSON.parse(stored) as { choice?: ConsentChoice; categories?: string[] };
-    return parsed.choice === 'all' || !!parsed.categories?.includes(category);
-  } catch {
-    return false;
-  }
-}
-
-export default function CookieConsentBanner() {
+export function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    try {
-      setVisible(!localStorage.getItem(CONSENT_KEY));
-    } catch {
-      setVisible(false);
-    }
+    setVisible(!getCookieConsent());
   }, []);
 
-  const saveChoice = async (choice: ConsentChoice) => {
-    const payload = {
-      choice,
-      categories: choice === 'all'
-        ? ['necessary', 'preferences', 'analytics', 'performance', 'referrals']
-        : ['necessary'],
-      acceptedAt: Date.now(),
-      version: '2026-06-07',
-    };
-
+  const recordConsent = async (state: CookieConsentState) => {
     try {
-      localStorage.setItem(CONSENT_KEY, JSON.stringify(payload));
-      setConsentCookie(choice);
-    } catch {
-      // Ignore browser storage failures.
+      const token = getAuthToken();
+      await fetch(`${API_BASE}/api/config/cookie-consent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify(state),
+      });
+    } catch (error) {
+      console.warn('[CookieConsent] Failed to record consent:', error);
     }
+  };
 
+  const choose = (choice: CookieConsentChoice) => {
+    const state = buildCookieConsentState(choice);
+    saveCookieConsent(state);
+    if (choice === 'all') {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref) {
+        localStorage.setItem('referral_ref', ref);
+      }
+    }
     setVisible(false);
-    await recordConsent(choice);
+    void recordConsent(state);
   };
 
   if (!visible) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-live="polite"
-      aria-label="Cookie consent"
-      style={{
-        position: 'fixed',
-        left: '50%',
-        bottom: '20px',
-        transform: 'translateX(-50%)',
-        width: 'min(960px, calc(100vw - 32px))',
-        zIndex: 9999,
-        border: '1px solid rgba(255,255,255,0.12)',
-        background: 'rgba(10,10,10,0.94)',
-        color: '#fff',
-        borderRadius: '18px',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.45)',
-        backdropFilter: 'blur(18px)',
-        padding: '18px',
-        display: 'grid',
-        gap: '14px',
-      }}
-    >
-      <div style={{ display: 'grid', gap: '6px' }}>
-        <strong style={{ fontSize: '15px' }}>Cookies on FundTracer</strong>
-        <p style={{ margin: 0, color: 'rgba(255,255,255,0.72)', fontSize: '13px', lineHeight: 1.55 }}>
-          We use necessary cookies for login, security, consent storage, referrals, and basic app stability.
-          With your permission, we also use analytics and performance cookies to find broken flows,
-          improve UI, and understand feature usage.
+    <aside className="cookie-consent" aria-label="Cookie consent">
+      <div className="cookie-consent__content">
+        <span className="cookie-consent__eyebrow">Privacy choices</span>
+        <h2>Choose how FundTracer uses cookies</h2>
+        <p>
+          Necessary cookies keep login, security, consent, and core app flows working.
+          All cookies add analytics, performance diagnostics, referrals, and product improvement.
         </p>
       </div>
-
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-        <button
-          type="button"
-          onClick={() => saveChoice('necessary')}
-          style={{
-            border: '1px solid rgba(255,255,255,0.18)',
-            background: 'transparent',
-            color: '#fff',
-            borderRadius: '999px',
-            padding: '10px 14px',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: 600,
-          }}
-        >
+      <div className="cookie-consent__actions">
+        <button type="button" className="cookie-consent__btn cookie-consent__btn--ghost" onClick={() => choose('necessary')}>
           Necessary only
         </button>
-        <button
-          type="button"
-          onClick={() => saveChoice('all')}
-          style={{
-            border: '1px solid #fff',
-            background: '#fff',
-            color: '#0a0a0a',
-            borderRadius: '999px',
-            padding: '10px 14px',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: 700,
-          }}
-        >
+        <button type="button" className="cookie-consent__btn cookie-consent__btn--primary" onClick={() => choose('all')}>
           Allow all cookies
         </button>
       </div>
-    </div>
+    </aside>
   );
 }

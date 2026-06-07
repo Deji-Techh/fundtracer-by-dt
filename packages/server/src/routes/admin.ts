@@ -1167,6 +1167,64 @@ router.get('/stats/daily', authMiddleware, adminCacheMiddleware(60_000), async (
 });
 
 // ============================================================
+// COOKIE CONSENT: Consent visibility
+// ============================================================
+router.get('/stats/cookie-consent', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const db = getFirestore();
+    const snap = await db.collection('cookie_consents').orderBy('updatedAt', 'desc').limit(500).get();
+    const byChoice: Record<string, number> = { necessary: 0, all: 0 };
+    const categoryOptIns: Record<string, number> = {
+      preferences: 0,
+      analytics: 0,
+      performance: 0,
+      referrals: 0,
+    };
+    const recent: any[] = [];
+
+    snap.forEach(doc => {
+      const data = doc.data();
+      const choice = data.choice === 'all' ? 'all' : 'necessary';
+      byChoice[choice] = (byChoice[choice] || 0) + 1;
+
+      Object.keys(categoryOptIns).forEach(category => {
+        if (data.categories?.[category] === true) {
+          categoryOptIns[category]++;
+        }
+      });
+
+      if (recent.length < 25) {
+        recent.push({
+          id: doc.id,
+          userId: data.userId || null,
+          choice,
+          categories: data.categories || {},
+          decidedAt: data.decidedAt || null,
+          updatedAt: data.updatedAt || null,
+        });
+      }
+    });
+
+    res.json({
+      total: snap.size,
+      byChoice,
+      categoryOptIns,
+      recent,
+      sampled: snap.size === 500,
+    });
+  } catch (error) {
+    console.error('[ADMIN] Cookie consent stats error:', error);
+    res.json({
+      total: 0,
+      byChoice: { necessary: 0, all: 0 },
+      categoryOptIns: { preferences: 0, analytics: 0, performance: 0, referrals: 0 },
+      recent: [],
+      sampled: false,
+    });
+  }
+});
+
+// ============================================================
 // FAILED LOGINS: Auth failure monitoring
 // ============================================================
 router.get('/stats/failed-logins', authMiddleware, adminCacheMiddleware(60_000), async (req: AuthenticatedRequest, res: Response) => {

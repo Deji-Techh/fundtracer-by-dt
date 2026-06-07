@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Copy, CheckCircle, ArrowLeft, Loader, Mail, AlertTriangle, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotify } from '../contexts/ToastContext';
+import { API_BASE, getAuthToken } from '../api';
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -20,8 +21,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
     const notify = useNotify();
 
     // SECURITY: Payment address from environment variable
-    const paymentAddress = import.meta.env.VITE_PAYMENT_ADDRESS || 
-      process.env.VITE_PAYMENT_ADDRESS;
+    const paymentAddress = import.meta.env.VITE_PAYMENT_ADDRESS;
     
     if (!paymentAddress) {
       console.error('CRITICAL: VITE_PAYMENT_ADDRESS environment variable is not set');
@@ -94,11 +94,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose }) => {
         setStep('verifying');
 
         try {
-            // Get auth token from localStorage
-            const token = localStorage.getItem('authToken');
+            const token = getAuthToken();
+            if (!token) {
+                throw new Error('Please sign in before verifying payment.');
+            }
 
             // Call backend to verify payment
-            const response = await fetch('/api/payment/verify-payment', {
+            const response = await fetch(`${API_BASE}/api/payment/verify-payment`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

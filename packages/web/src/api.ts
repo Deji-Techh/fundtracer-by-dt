@@ -4,6 +4,7 @@
 
 import { ChainId, AnalysisResult, MultiWalletResult, FundingNode } from '@fundtracer/core';
 import type { ApiKeyData } from './firebase';
+import { hasCookieConsent } from './utils/cookieConsent';
 
 // Normalize chain ID from frontend format to server format
 function normalizeChainForApi(chain: ChainId): string {
@@ -96,6 +97,7 @@ async function apiRequestWithRetry<T>(
     const isPublicEndpoint = 
         endpoint.startsWith('/api/auth/') ||
         endpoint.startsWith('/api/analytics/') ||
+        endpoint.startsWith('/api/config/') ||
         endpoint.startsWith('/api/dexscreener/') ||
         endpoint.startsWith('/api/market/') ||
         endpoint.startsWith('/api/tokens/') ||
@@ -181,9 +183,11 @@ export async function loginWithWallet(address: string, signature: string, messag
     return data;
 }
 
-export async function loginWithGoogle(idToken: string): Promise<{ token: string, user: any }> {
+export async function loginWithGoogle(idToken: string, authIntent: 'signin' | 'signup' = 'signin'): Promise<{ token: string, user: any }> {
     const data = await apiRequest<{ token: string, user: any }>('/api/auth/google-login', 'POST', {
-        idToken
+        idToken,
+        authIntent,
+        ref: localStorage.getItem('referral_ref') || undefined
     });
     setAuthToken(data.token);
     return data;
@@ -262,6 +266,8 @@ export async function removeAlchemyKey(): Promise<{ success: boolean; message: s
 
 // Analytics tracking
 export async function trackVisit(userId?: string): Promise<void> {
+    if (!hasCookieConsent('analytics')) return;
+
     try {
         await apiRequest('/api/analytics/visit', 'POST', { userId });
     } catch (err) {

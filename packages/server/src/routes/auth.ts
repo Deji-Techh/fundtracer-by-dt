@@ -38,7 +38,8 @@ router.get('/google/start', (req: Request, res: Response) => {
   const redirectUrl = (req.query.redirect as string) || '/auth';
   // Include ref param in state for referral tracking
   const refParam = req.query.ref as string;
-  const state = jwt.sign({ timestamp: Date.now(), redirectUrl, ref: refParam || null }, getJwtSecret(), { expiresIn: '10m' });
+  const authIntent = req.query.intent === 'signup' ? 'signup' : 'signin';
+  const state = jwt.sign({ timestamp: Date.now(), redirectUrl, ref: refParam || null, authIntent }, getJwtSecret(), { expiresIn: '10m' });
   
   const scopes = ['openid', 'email', 'profile'].join(' ');
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -98,13 +99,15 @@ router.get('/google/callback', async (req: Request, res: Response) => {
   
   // Try to extract redirect URL and ref from state
   let refParam: string | null = null;
+  let authIntent: 'signin' | 'signup' = 'signin';
   if (state) {
     try {
-      const decoded = jwt.verify(state as string, getJwtSecret()) as { redirectUrl?: string; ref?: string | null };
+      const decoded = jwt.verify(state as string, getJwtSecret()) as { redirectUrl?: string; ref?: string | null; authIntent?: 'signin' | 'signup' };
       if (decoded.redirectUrl) {
         redirectUrl = `${FRONTEND_URL}${decoded.redirectUrl}`;
       }
       refParam = decoded.ref || null;
+      authIntent = decoded.authIntent === 'signup' ? 'signup' : 'signin';
     } catch (e) {
       console.log('[AUTH] Could not decode state redirect:', e);
     }
@@ -212,6 +215,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
       authProvider: 'google',
+      authIntent,
       onboardingCompleted: isNewUser ? false : userDoc.data()?.onboardingCompleted ?? false
     }, { merge: true });
     
@@ -670,6 +674,7 @@ const userDoc = await userRef.get();
 // Google OAuth login
 router.post('/google-login', async (req: Request, res: Response) => {
   const { idToken } = req.body;
+  const authIntent = req.body?.authIntent === 'signup' ? 'signup' : 'signin';
   console.log('[AUTH] Google Login Request');
 
   if (!idToken) {
@@ -736,11 +741,12 @@ router.post('/google-login', async (req: Request, res: Response) => {
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
       authProvider: 'google',
+      authIntent,
       onboardingCompleted: isNewUser ? false : userDoc.data()?.onboardingCompleted ?? false
     }, { merge: true });
     
     // Handle referral from ref query param for Google login (supports both new codes and legacy IDs)
-    const googleRefParam = req.query.ref as string;
+    const googleRefParam = (req.body?.ref || req.query.ref) as string;
     if (googleRefParam && isNewUser && googleRefParam !== uid) {
       let referrerId: string | null = null;
       
@@ -780,7 +786,8 @@ router.post('/google-login', async (req: Request, res: Response) => {
       profilePicture: picture,
       tier,
       walletAddress,
-      authProvider: 'google'
+      authProvider: 'google',
+      authIntent
     }, getJwtSecret(), { expiresIn: '7d' });
 
     console.log('[AUTH] Google Login SUCCESS');

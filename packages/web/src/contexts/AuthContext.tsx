@@ -24,6 +24,7 @@ import {
 import { auth as firebaseAuth } from '../firebase';
 import { useNotify } from './ToastContext';
 import { syncHistoryWithServer } from '../utils/history';
+import { COOKIE_CONSENT_STORAGE_KEY } from '../utils/cookieConsent';
 
 const TOKEN_EXPIRY_KEY = 'fundtracer_token_expiry';
 const PROFILE_PICTURE_KEY = 'fundtracer_profile_picture';
@@ -75,7 +76,7 @@ interface AuthContextType {
     refreshProfile: () => Promise<void>;
     getSigner: () => Promise<ethers.Signer>;
     loginWithWallet: () => Promise<void>;
-    loginWithGoogle: () => Promise<void>;
+    loginWithGoogle: (authIntent?: 'signin' | 'signup') => Promise<void>;
     setTokenFromExternal: (token: string) => void;
 }
 
@@ -170,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Also remove any keys starting with fundtracer_
         Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('fundtracer_')) {
+            if (key.startsWith('fundtracer_') && key !== COOKIE_CONSENT_STORAGE_KEY) {
                 localStorage.removeItem(key);
             }
         });
@@ -369,7 +370,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [notify]);
 
     // OAuth login with Google - uses backend redirect
-    const loginWithGoogle = useCallback(async () => {
+    const loginWithGoogle = useCallback(async (authIntent: 'signin' | 'signup' = 'signin') => {
         if (operationInProgress.current) return;
         operationInProgress.current = true;
         setLoading(true);
@@ -386,6 +387,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (refParam) {
               params.set('ref', refParam);
             }
+            params.set('intent', authIntent);
             const qs = params.toString();
             const oauthUrl = '/api/auth/google/start' + (qs ? '?' + qs : '');
             // Redirect to backend OAuth
