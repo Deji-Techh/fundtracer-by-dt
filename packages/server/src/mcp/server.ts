@@ -11,7 +11,7 @@ export function createFundTracerMcpServer(resolveContext: ContextResolver, optio
   const logRegistrations = options.logRegistrations ?? true;
   const server = new McpServer({
     name: 'FundTracer MCP',
-    version: '1.0.0',
+    version: '1.1.0',
   });
 
   for (const toolDef of ALL_MCP_TOOLS) {
