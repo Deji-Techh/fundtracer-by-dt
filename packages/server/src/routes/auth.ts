@@ -27,7 +27,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'https://www.fundtracer.xyz';
 const SESSION_COOKIE_NAME = 'fundtracer_session';
 
 function getCookieOptions() {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    (process.env.FRONTEND_URL || '').startsWith('https://');
   return {
     httpOnly: true,
     secure: isProduction,
@@ -221,7 +223,10 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     
     const isNewUser = !userDoc.exists;
     if (authIntent === 'signin' && isNewUser) {
-      return res.status(404).json({ error: 'No account found. Please sign up first.', code: 'ACCOUNT_NOT_FOUND' });
+      return res.redirect(appendQuery(redirectUrl, {
+        error: 'account_not_found',
+        mode: 'signup'
+      }));
     }
     const resolvedAuthIntent: 'signin' | 'signup' = isNewUser ? 'signup' : 'signin';
     
@@ -330,7 +335,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       profilePicture: picture,
       tier,
       walletAddress,
-      authProvider: 'twitter',
+      authProvider: 'google',
       authIntent: resolvedAuthIntent
     }, getJwtSecret(), { expiresIn: '7d' });
     
