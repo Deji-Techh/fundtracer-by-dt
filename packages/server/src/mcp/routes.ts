@@ -1,9 +1,77 @@
 import { Router } from 'express';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { ALL_MCP_TOOLS } from './tools.js';
 import { TOOL_HANDLERS } from './api-handlers.js';
 import { mcpApiKeyAuth, validateMcpApiKey } from './mcpAuth.js';
+import { createFundTracerMcpServer } from './server.js';
+import type { McpContext } from './types.js';
 
 const router = Router();
+
+type McpAuthedRequest = any & {
+  mcpContext?: McpContext;
+  auth?: {
+    token: string;
+    clientId: string;
+    scopes: string[];
+    extra: { mcpContext: McpContext };
+  };
+};
+
+async function mcpHttpAuth(req: McpAuthedRequest, res: any, next: any) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'MCP API key required (Authorization: Bearer ft_mcp_<key>)' });
+  }
+
+  const rawKey = authHeader.slice(7).trim();
+  if (!rawKey.startsWith('ft_')) {
+    return res.status(401).json({ error: 'Invalid MCP API key format' });
+  }
+
+  try {
+    const ctx = await validateMcpApiKey(rawKey);
+    req.mcpContext = ctx;
+    req.auth = {
+      token: rawKey,
+      clientId: ctx.userId,
+      scopes: ['mcp'],
+      extra: { mcpContext: ctx },
+    };
+    next();
+  } catch (err: any) {
+    return res.status(401).json({ error: err.message });
+  }
+}
+
+/**
+ * Streamable HTTP MCP endpoint.
+ * MCP clients should connect directly to /api/mcp with Authorization bearer auth.
+ */
+router.all('/', mcpHttpAuth, async (req: McpAuthedRequest, res) => {
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
+  const server = createFundTracerMcpServer(async (requestContext: any) => {
+    const ctx = requestContext?.authInfo?.extra?.mcpContext;
+    if (!ctx) throw new Error('MCP API key required');
+    return ctx;
+  }, {
+    logRegistrations: false,
+  });
+
+  try {
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (err: any) {
+    console.error('[MCP] HTTP transport error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'MCP transport failed', message: err.message });
+    }
+  } finally {
+    await server.close().catch(() => {});
+  }
+});
 
 /**
  * GET /api/mcp/tools

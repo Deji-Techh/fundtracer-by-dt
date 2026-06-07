@@ -13,7 +13,13 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import { McpServer, StdioServerTransport, fromJsonSchema } from '@modelcontextprotocol/server';
+// stdout is reserved for MCP JSON-RPC frames. Some shared server modules use
+// console.log during initialization, so route all stdio server logs to stderr.
+console.log = console.error.bind(console);
+process.env.FUNDTRACER_MCP_DISABLE_LOGGING = process.env.FUNDTRACER_MCP_DISABLE_LOGGING || '1';
+
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { createFundTracerMcpServer, resolveStdioMcpContext } from './server.js';
 
 async function main() {
   // Bootstrap Firestore (needed for API key validation)
@@ -27,52 +33,11 @@ async function main() {
     console.error('[MCP] Firebase not available — key validation will fail. Set Firebase credentials in env.');
   }
 
-  const { ALL_MCP_TOOLS } = await import('./tools.js');
-  const { TOOL_HANDLERS } = await import('./api-handlers.js');
-  const { validateMcpApiKey } = await import('./mcpAuth.js');
-
-  const server = new McpServer({
-    name: 'FundTracer MCP',
-    version: '1.0.0',
-  });
-
-  for (const toolDef of ALL_MCP_TOOLS) {
-    const handler = TOOL_HANDLERS[toolDef.name];
-    if (!handler) {
-      console.error(`[MCP] No handler for tool: ${toolDef.name}`);
-      continue;
-    }
-
-    server.registerTool(toolDef.name, {
-      description: toolDef.description,
-      inputSchema: fromJsonSchema(toolDef.inputSchema),
-    }, async (args: any) => {
-      const apiKey = process.env.FUNDTRACER_MCP_API_KEY;
-      if (!apiKey) {
-        return {
-          content: [{ type: 'text', text: 'FUNDTRACER_MCP_API_KEY environment variable not set' }],
-          isError: true,
-        };
-      }
-
-      let ctx;
-      try {
-        ctx = await validateMcpApiKey(apiKey);
-      } catch (err: any) {
-        return {
-          content: [{ type: 'text', text: `Authentication failed: ${err.message}` }],
-          isError: true,
-        };
-      }
-
-      return handler(args, ctx);
-    });
-
-    console.error(`[MCP] Registered tool: ${toolDef.name}`);
-  }
+  const server = createFundTracerMcpServer(resolveStdioMcpContext);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  process.stdin.resume();
   console.error('[MCP] FundTracer MCP server running on stdio');
 }
 
@@ -83,7 +48,6 @@ main().catch((err: any) => {
 
 process.on('SIGINT', async () => {
   console.error('[MCP] Shutting down...');
-  const { McpServer } = await import('@modelcontextprotocol/server');
   process.exit(0);
 });
 

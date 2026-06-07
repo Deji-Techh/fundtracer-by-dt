@@ -1,5 +1,3 @@
-import { FieldValue } from 'firebase-admin/firestore';
-
 export interface McpLogEntry {
   userId: string;
   toolName: string;
@@ -18,6 +16,10 @@ export interface McpLogEntry {
 let mcpLogWarnings = 0;
 
 export async function logMcpRequest(entry: McpLogEntry): Promise<void> {
+  if (process.env.FUNDTRACER_MCP_DISABLE_LOGGING === '1') {
+    return;
+  }
+
   try {
     const { getFirestore } = await import('../firebase.js');
     const db = getFirestore();

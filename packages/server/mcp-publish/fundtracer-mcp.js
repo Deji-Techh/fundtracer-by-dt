@@ -1,226 +1,219 @@
 #!/usr/bin/env node
-var __defProp = Object.defineProperty;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
-};
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
+
+// src/mcp/stdio.ts
+import * as dotenv from "dotenv";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+// src/mcp/server.ts
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 
 // src/mcp/tools.ts
-var tools_exports = {};
-__export(tools_exports, {
-  ALL_MCP_TOOLS: () => ALL_MCP_TOOLS,
-  getToolByName: () => getToolByName
-});
-function getToolByName(name) {
-  return ALL_MCP_TOOLS.find((t) => t.name === name);
-}
-var ALL_MCP_TOOLS;
-var init_tools = __esm({
-  "src/mcp/tools.ts"() {
-    ALL_MCP_TOOLS = [
-      {
-        name: "analyze_wallet",
-        description: "Perform a full blockchain wallet analysis including balance, transactions, risk score, suspicious indicators, and project interactions.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            address: { type: "string", description: "Wallet address to analyze (0x... for EVM, base58 for Solana)" },
-            chainId: {
-              type: "string",
-              description: "Blockchain to analyze",
-              enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
-            },
-            transactionLimit: {
-              type: "number",
-              description: "Max transactions to fetch (default: 500)",
-              default: 500
-            }
-          },
-          required: ["address", "chainId"]
+var ALL_MCP_TOOLS = [
+  {
+    name: "analyze_wallet",
+    description: "Perform a full blockchain wallet analysis including balance, transactions, risk score, suspicious indicators, and project interactions.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        address: { type: "string", description: "Wallet address to analyze (0x... for EVM, base58 for Solana)" },
+        chainId: {
+          type: "string",
+          description: "Blockchain to analyze",
+          enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
+        },
+        transactionLimit: {
+          type: "number",
+          description: "Max transactions to fetch (default: 500)",
+          default: 500
         }
       },
-      {
-        name: "trace_funds",
-        description: "Trace funding sources and destinations for a wallet address, building a recursive funding tree.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            address: { type: "string", description: "Wallet address to trace" },
-            chainId: {
-              type: "string",
-              description: "Blockchain to trace on",
-              enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
-            },
-            maxDepth: {
-              type: "number",
-              description: "How many levels deep to trace (default: 3)",
-              default: 3
-            },
-            direction: {
-              type: "string",
-              description: "Which direction to trace",
-              enum: ["sources", "destinations", "both"],
-              default: "both"
-            }
-          },
-          required: ["address", "chainId"]
+      required: ["address", "chainId"]
+    }
+  },
+  {
+    name: "trace_funds",
+    description: "Trace funding sources and destinations for a wallet address, building a recursive funding tree.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        address: { type: "string", description: "Wallet address to trace" },
+        chainId: {
+          type: "string",
+          description: "Blockchain to trace on",
+          enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
+        },
+        maxDepth: {
+          type: "number",
+          description: "How many levels deep to trace (default: 3)",
+          default: 3
+        },
+        direction: {
+          type: "string",
+          description: "Which direction to trace",
+          enum: ["sources", "destinations", "both"],
+          default: "both"
         }
       },
-      {
-        name: "compare_wallets",
-        description: "Compare multiple wallet addresses for common funding sources, shared project interactions, and sybil correlation scoring.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            addresses: {
-              type: "string",
-              description: "Comma-separated list of wallet addresses to compare (2-20 wallets)"
-            },
-            chainId: {
-              type: "string",
-              description: "Blockchain to compare on",
-              enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
-            }
-          },
-          required: ["addresses", "chainId"]
+      required: ["address", "chainId"]
+    }
+  },
+  {
+    name: "compare_wallets",
+    description: "Compare multiple wallet addresses for common funding sources, shared project interactions, and sybil correlation scoring.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        addresses: {
+          type: "string",
+          description: "Comma-separated list of wallet addresses to compare (2-20 wallets)"
+        },
+        chainId: {
+          type: "string",
+          description: "Blockchain to compare on",
+          enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
         }
       },
-      {
-        name: "analyze_contract",
-        description: "Analyze all addresses that have interacted with a smart contract, detecting sybil clusters and shared funding sources.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            contractAddress: { type: "string", description: "Smart contract address to analyze" },
-            chainId: {
-              type: "string",
-              description: "Blockchain the contract is on",
-              enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc"]
-            },
-            maxInteractors: {
-              type: "number",
-              description: "Max interactors to analyze (default: 100)",
-              default: 100
-            }
-          },
-          required: ["contractAddress", "chainId"]
+      required: ["addresses", "chainId"]
+    }
+  },
+  {
+    name: "analyze_contract",
+    description: "Analyze all addresses that have interacted with a smart contract, detecting sybil clusters and shared funding sources.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        contractAddress: { type: "string", description: "Smart contract address to analyze" },
+        chainId: {
+          type: "string",
+          description: "Blockchain the contract is on",
+          enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc"]
+        },
+        maxInteractors: {
+          type: "number",
+          description: "Max interactors to analyze (default: 100)",
+          default: 100
         }
       },
-      {
-        name: "detect_sybil_clusters",
-        description: "Detect sybil (fake) accounts by clustering wallets that share common funding sources.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            addresses: {
-              type: "string",
-              description: "Comma-separated list of wallet addresses to check for sybil clustering"
-            },
-            chainId: {
-              type: "string",
-              description: "Blockchain to analyze on",
-              enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "bsc"]
-            }
-          },
-          required: ["addresses", "chainId"]
+      required: ["contractAddress", "chainId"]
+    }
+  },
+  {
+    name: "detect_sybil_clusters",
+    description: "Detect sybil (fake) accounts by clustering wallets that share common funding sources.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        addresses: {
+          type: "string",
+          description: "Comma-separated list of wallet addresses to check for sybil clustering"
+        },
+        chainId: {
+          type: "string",
+          description: "Blockchain to analyze on",
+          enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "bsc"]
         }
       },
-      {
-        name: "get_portfolio",
-        description: "Get the token portfolio, DeFi positions, and NFT holdings for a wallet address.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            address: { type: "string", description: "Wallet address" },
-            chainId: {
-              type: "string",
-              description: "Blockchain",
-              enum: ["ethereum", "solana", "base", "arbitrum", "optimism", "polygon", "linea"]
-            }
-          },
-          required: ["address", "chainId"]
+      required: ["addresses", "chainId"]
+    }
+  },
+  {
+    name: "get_portfolio",
+    description: "Get the token portfolio, DeFi positions, and NFT holdings for a wallet address.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        address: { type: "string", description: "Wallet address" },
+        chainId: {
+          type: "string",
+          description: "Blockchain",
+          enum: ["ethereum", "solana", "base", "arbitrum", "optimism", "polygon", "linea"]
         }
       },
-      {
-        name: "get_transactions",
-        description: "Get recent transaction history for a wallet address.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            address: { type: "string", description: "Wallet address" },
-            chainId: {
-              type: "string",
-              description: "Blockchain",
-              enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
-            },
-            limit: {
-              type: "number",
-              description: "Number of transactions to return (default: 50)",
-              default: 50
-            }
-          },
-          required: ["address", "chainId"]
+      required: ["address", "chainId"]
+    }
+  },
+  {
+    name: "get_transactions",
+    description: "Get recent transaction history for a wallet address.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        address: { type: "string", description: "Wallet address" },
+        chainId: {
+          type: "string",
+          description: "Blockchain",
+          enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
+        },
+        limit: {
+          type: "number",
+          description: "Number of transactions to return (default: 50)",
+          default: 50
         }
       },
-      {
-        name: "lookup_entity",
-        description: "Look up a known blockchain entity, protocol, or address label.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            query: { type: "string", description: "Entity name, address, or label to look up" },
-            chainId: {
-              type: "string",
-              description: "Blockchain to search (optional)",
-              enum: ["ethereum", "solana", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", ""],
-              default: ""
-            }
-          },
-          required: ["query"]
+      required: ["address", "chainId"]
+    }
+  },
+  {
+    name: "lookup_entity",
+    description: "Look up a known blockchain entity, protocol, or address label.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Entity name, address, or label to look up" },
+        chainId: {
+          type: "string",
+          description: "Blockchain to search (optional)",
+          enum: ["ethereum", "solana", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", ""],
+          default: ""
         }
       },
-      {
-        name: "get_gas_prices",
-        description: "Get current gas prices across supported blockchain networks.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            chainId: {
-              type: "string",
-              description: "Specific chain (optional, returns all if omitted)",
-              enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", ""],
-              default: ""
-            }
-          },
-          required: []
+      required: ["query"]
+    }
+  },
+  {
+    name: "get_gas_prices",
+    description: "Get current gas prices across supported blockchain networks.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        chainId: {
+          type: "string",
+          description: "Specific chain (optional, returns all if omitted)",
+          enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", ""],
+          default: ""
         }
       },
-      {
-        name: "get_token_info",
-        description: "Get market data and information for a token by address or symbol.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            tokenAddress: { type: "string", description: "Token contract address" },
-            chainId: {
-              type: "string",
-              description: "Blockchain the token is on",
-              enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
-            }
-          },
-          required: ["tokenAddress", "chainId"]
+      required: []
+    }
+  },
+  {
+    name: "get_token_info",
+    description: "Get market data and information for a token by address or symbol.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tokenAddress: { type: "string", description: "Token contract address" },
+        chainId: {
+          type: "string",
+          description: "Blockchain the token is on",
+          enum: ["ethereum", "base", "arbitrum", "optimism", "polygon", "linea", "bsc", "solana"]
         }
-      }
-    ];
+      },
+      required: ["tokenAddress", "chainId"]
+    }
   }
-});
+];
+
+// src/mcp/api-handlers.ts
+import { default as axios } from "axios";
 
 // src/mcp/mcpLogger.ts
+var mcpLogWarnings = 0;
 async function logMcpRequest(entry) {
+  if (process.env.FUNDTRACER_MCP_DISABLE_LOGGING === "1") {
+    return;
+  }
   try {
     const { getFirestore } = await import("../firebase.js");
     const db = getFirestore();
@@ -237,25 +230,16 @@ async function logMcpRequest(entry) {
     }
   }
 }
-var mcpLogWarnings;
-var init_mcpLogger = __esm({
-  "src/mcp/mcpLogger.ts"() {
-    mcpLogWarnings = 0;
-  }
-});
 
 // src/mcp/api-handlers.ts
-var api_handlers_exports = {};
-__export(api_handlers_exports, {
-  TOOL_HANDLERS: () => TOOL_HANDLERS
-});
-import { default as axios } from "axios";
 function ok(text) {
   return { content: [{ type: "text", text }] };
 }
 function err(message) {
   return { content: [{ type: "text", text: message }], isError: true };
 }
+var API_BASE = process.env.FUNDTRACER_API_URL || "https://api.fundtracer.xyz";
+var _mcpCtx = null;
 function api() {
   const key = _mcpCtx?.apiKey || process.env.FUNDTRACER_MCP_API_KEY || "";
   const headers = {
@@ -272,6 +256,158 @@ function api() {
     headers
   });
 }
+var analyzeWallet = async (args, ctx) => {
+  const { address, chainId, transactionLimit } = args;
+  try {
+    const res = await api().post("/api/analyze/wallet", {
+      address,
+      chain: chainId,
+      options: { limit: transactionLimit || 500 }
+    });
+    return ok(JSON.stringify(res.data, null, 2));
+  } catch (error) {
+    const msg = error.response?.data?.error || error.message;
+    return err(`Wallet analysis failed: ${msg}`);
+  }
+};
+var traceFunds = async (args, ctx) => {
+  const { address, chainId, maxDepth = 3, direction = "both" } = args;
+  try {
+    const res = await api().post("/api/analyze/funding-tree", {
+      address,
+      chain: chainId,
+      maxDepth,
+      direction
+    });
+    return ok(JSON.stringify(res.data, null, 2));
+  } catch (error) {
+    const msg = error.response?.data?.error || error.message;
+    return err(`Fund tracing failed: ${msg}`);
+  }
+};
+var compareWallets = async (args, ctx) => {
+  const { addresses, chainId } = args;
+  const addrList = addresses.split(",").map((a) => a.trim()).filter(Boolean);
+  if (addrList.length < 2) return err("At least 2 addresses required");
+  try {
+    const res = await api().post("/api/analyze/compare", {
+      addresses: addrList,
+      chain: chainId
+    });
+    return ok(JSON.stringify(res.data, null, 2));
+  } catch (error) {
+    const msg = error.response?.data?.error || error.message;
+    return err(`Wallet comparison failed: ${msg}`);
+  }
+};
+var analyzeContract = async (args, ctx) => {
+  const { contractAddress, chainId, maxInteractors = 100 } = args;
+  try {
+    const res = await api().post("/api/analyze/contract", {
+      contractAddress,
+      chain: chainId,
+      maxInteractors
+    });
+    return ok(JSON.stringify(res.data, null, 2));
+  } catch (error) {
+    const msg = error.response?.data?.error || error.message;
+    return err(`Contract analysis failed: ${msg}`);
+  }
+};
+var detectSybilClusters = async (args, ctx) => {
+  const { addresses, chainId } = args;
+  const addrList = addresses.split(",").map((a) => a.trim()).filter(Boolean);
+  if (addrList.length < 3) return err("At least 3 addresses required for cluster detection");
+  try {
+    const res = await api().post("/api/analyze/sybil", {
+      addresses: addrList,
+      chain: chainId
+    });
+    return ok(JSON.stringify(res.data, null, 2));
+  } catch (error) {
+    const msg = error.response?.data?.error || error.message;
+    return err(`Sybil detection failed: ${msg}`);
+  }
+};
+var getPortfolio = async (args, ctx) => {
+  const { address, chainId } = args;
+  try {
+    const res = await api().get(`/api/portfolio/${address}`, {
+      params: { chain: chainId }
+    });
+    return ok(JSON.stringify(res.data, null, 2));
+  } catch (error) {
+    const msg = error.response?.data?.error || error.message;
+    return err(`Portfolio fetch failed: ${msg}`);
+  }
+};
+var getTransactions = async (args, ctx) => {
+  const { address, chainId, limit = 50 } = args;
+  try {
+    const res = await api().post("/api/history", {
+      wallet: address,
+      blockchain: chainId,
+      pageToken: null,
+      filters: {}
+    });
+    const txs = (res.data.transactions || []).slice(0, limit);
+    return ok(JSON.stringify({
+      address,
+      chainId,
+      transactions: txs,
+      totalCount: res.data.transactions?.length || 0
+    }, null, 2));
+  } catch (error) {
+    const msg = error.response?.data?.error || error.message;
+    return err(`Transaction fetch failed: ${msg}`);
+  }
+};
+var lookupEntity = async (args, ctx) => {
+  const { query, chainId } = args;
+  const chain = chainId || "ethereum";
+  try {
+    if (/^0x[a-fA-F0-9]{40}$/.test(query) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query)) {
+      const res2 = await api().get(`/api/entities/${query}`, {
+        params: { chain }
+      });
+      return ok(JSON.stringify(res2.data, null, 2));
+    }
+    const res = await api().get("/api/entities/search", {
+      params: { q: query, chain }
+    });
+    return ok(JSON.stringify(res.data, null, 2));
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return ok(JSON.stringify({ query, label: "Unknown address", chain }, null, 2));
+    }
+    const msg = error.response?.data?.error || error.message;
+    return err(`Entity lookup failed: ${msg}`);
+  }
+};
+var getGasPrices = async (args, ctx) => {
+  const { chainId } = args;
+  try {
+    const res = await api().get("/api/gas", {
+      params: chainId ? { chain: chainId } : {}
+    });
+    return ok(JSON.stringify(res.data, null, 2));
+  } catch (error) {
+    const msg = error.response?.data?.error || error.message;
+    return err(`Gas price fetch failed: ${msg}`);
+  }
+};
+var getTokenInfo = async (args, ctx) => {
+  const { tokenAddress, chainId } = args;
+  try {
+    const res = await api().get("/api/market/coins", {
+      params: { address: tokenAddress, chainId }
+    });
+    return ok(JSON.stringify(res.data, null, 2));
+  } catch (error) {
+    const msg = error.response?.data?.error || error.message;
+    return err(`Token info fetch failed: ${msg}`);
+  }
+};
 function withLogging(toolName, handler) {
   return async (args, ctx) => {
     _mcpCtx = ctx;
@@ -306,185 +442,20 @@ function withLogging(toolName, handler) {
     }
   };
 }
-var API_BASE, _mcpCtx, analyzeWallet, traceFunds, compareWallets, analyzeContract, detectSybilClusters, getPortfolio, getTransactions, lookupEntity, getGasPrices, getTokenInfo, TOOL_HANDLERS;
-var init_api_handlers = __esm({
-  "src/mcp/api-handlers.ts"() {
-    init_mcpLogger();
-    API_BASE = process.env.FUNDTRACER_API_URL || "https://api.fundtracer.xyz";
-    _mcpCtx = null;
-    analyzeWallet = async (args, ctx) => {
-      const { address, chainId, transactionLimit } = args;
-      try {
-        const res = await api().post("/api/analyze/wallet", {
-          address,
-          chain: chainId,
-          options: { limit: transactionLimit || 500 }
-        });
-        return ok(JSON.stringify(res.data, null, 2));
-      } catch (error) {
-        const msg = error.response?.data?.error || error.message;
-        return err(`Wallet analysis failed: ${msg}`);
-      }
-    };
-    traceFunds = async (args, ctx) => {
-      const { address, chainId, maxDepth = 3, direction = "both" } = args;
-      try {
-        const res = await api().post("/api/analyze/funding-tree", {
-          address,
-          chain: chainId,
-          maxDepth,
-          direction
-        });
-        return ok(JSON.stringify(res.data, null, 2));
-      } catch (error) {
-        const msg = error.response?.data?.error || error.message;
-        return err(`Fund tracing failed: ${msg}`);
-      }
-    };
-    compareWallets = async (args, ctx) => {
-      const { addresses, chainId } = args;
-      const addrList = addresses.split(",").map((a) => a.trim()).filter(Boolean);
-      if (addrList.length < 2) return err("At least 2 addresses required");
-      try {
-        const res = await api().post("/api/analyze/compare", {
-          addresses: addrList,
-          chain: chainId
-        });
-        return ok(JSON.stringify(res.data, null, 2));
-      } catch (error) {
-        const msg = error.response?.data?.error || error.message;
-        return err(`Wallet comparison failed: ${msg}`);
-      }
-    };
-    analyzeContract = async (args, ctx) => {
-      const { contractAddress, chainId, maxInteractors = 100 } = args;
-      try {
-        const res = await api().post("/api/analyze/contract", {
-          contractAddress,
-          chain: chainId,
-          maxInteractors
-        });
-        return ok(JSON.stringify(res.data, null, 2));
-      } catch (error) {
-        const msg = error.response?.data?.error || error.message;
-        return err(`Contract analysis failed: ${msg}`);
-      }
-    };
-    detectSybilClusters = async (args, ctx) => {
-      const { addresses, chainId } = args;
-      const addrList = addresses.split(",").map((a) => a.trim()).filter(Boolean);
-      if (addrList.length < 3) return err("At least 3 addresses required for cluster detection");
-      try {
-        const res = await api().post("/api/analyze/sybil", {
-          addresses: addrList,
-          chain: chainId
-        });
-        return ok(JSON.stringify(res.data, null, 2));
-      } catch (error) {
-        const msg = error.response?.data?.error || error.message;
-        return err(`Sybil detection failed: ${msg}`);
-      }
-    };
-    getPortfolio = async (args, ctx) => {
-      const { address, chainId } = args;
-      try {
-        const res = await api().get(`/api/portfolio/${address}`, {
-          params: { chain: chainId }
-        });
-        return ok(JSON.stringify(res.data, null, 2));
-      } catch (error) {
-        const msg = error.response?.data?.error || error.message;
-        return err(`Portfolio fetch failed: ${msg}`);
-      }
-    };
-    getTransactions = async (args, ctx) => {
-      const { address, chainId, limit = 50 } = args;
-      try {
-        const res = await api().post("/api/history", {
-          wallet: address,
-          blockchain: chainId,
-          pageToken: null,
-          filters: {}
-        });
-        const txs = (res.data.transactions || []).slice(0, limit);
-        return ok(JSON.stringify({
-          address,
-          chainId,
-          transactions: txs,
-          totalCount: res.data.transactions?.length || 0
-        }, null, 2));
-      } catch (error) {
-        const msg = error.response?.data?.error || error.message;
-        return err(`Transaction fetch failed: ${msg}`);
-      }
-    };
-    lookupEntity = async (args, ctx) => {
-      const { query, chainId } = args;
-      const chain = chainId || "ethereum";
-      try {
-        if (/^0x[a-fA-F0-9]{40}$/.test(query) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query)) {
-          const res2 = await api().get(`/api/entities/${query}`, {
-            params: { chain }
-          });
-          return ok(JSON.stringify(res2.data, null, 2));
-        }
-        const res = await api().get("/api/entities/search", {
-          params: { q: query, chain }
-        });
-        return ok(JSON.stringify(res.data, null, 2));
-      } catch (error) {
-        if (error.response?.status === 404) {
-          return ok(JSON.stringify({ query, label: "Unknown address", chain }, null, 2));
-        }
-        const msg = error.response?.data?.error || error.message;
-        return err(`Entity lookup failed: ${msg}`);
-      }
-    };
-    getGasPrices = async (args, ctx) => {
-      const { chainId } = args;
-      try {
-        const res = await api().get("/api/gas", {
-          params: chainId ? { chain: chainId } : {}
-        });
-        return ok(JSON.stringify(res.data, null, 2));
-      } catch (error) {
-        const msg = error.response?.data?.error || error.message;
-        return err(`Gas price fetch failed: ${msg}`);
-      }
-    };
-    getTokenInfo = async (args, ctx) => {
-      const { tokenAddress, chainId } = args;
-      try {
-        const res = await api().get("/api/market/coins", {
-          params: { address: tokenAddress, chainId }
-        });
-        return ok(JSON.stringify(res.data, null, 2));
-      } catch (error) {
-        const msg = error.response?.data?.error || error.message;
-        return err(`Token info fetch failed: ${msg}`);
-      }
-    };
-    TOOL_HANDLERS = {
-      analyze_wallet: withLogging("analyze_wallet", analyzeWallet),
-      trace_funds: withLogging("trace_funds", traceFunds),
-      compare_wallets: withLogging("compare_wallets", compareWallets),
-      analyze_contract: withLogging("analyze_contract", analyzeContract),
-      detect_sybil_clusters: withLogging("detect_sybil_clusters", detectSybilClusters),
-      get_portfolio: withLogging("get_portfolio", getPortfolio),
-      get_transactions: withLogging("get_transactions", getTransactions),
-      lookup_entity: withLogging("lookup_entity", lookupEntity),
-      get_gas_prices: withLogging("get_gas_prices", getGasPrices),
-      get_token_info: withLogging("get_token_info", getTokenInfo)
-    };
-  }
-});
+var TOOL_HANDLERS = {
+  analyze_wallet: withLogging("analyze_wallet", analyzeWallet),
+  trace_funds: withLogging("trace_funds", traceFunds),
+  compare_wallets: withLogging("compare_wallets", compareWallets),
+  analyze_contract: withLogging("analyze_contract", analyzeContract),
+  detect_sybil_clusters: withLogging("detect_sybil_clusters", detectSybilClusters),
+  get_portfolio: withLogging("get_portfolio", getPortfolio),
+  get_transactions: withLogging("get_transactions", getTransactions),
+  lookup_entity: withLogging("lookup_entity", lookupEntity),
+  get_gas_prices: withLogging("get_gas_prices", getGasPrices),
+  get_token_info: withLogging("get_token_info", getTokenInfo)
+};
 
 // src/mcp/mcpAuth.ts
-var mcpAuth_exports = {};
-__export(mcpAuth_exports, {
-  mcpApiKeyAuth: () => mcpApiKeyAuth,
-  validateMcpApiKey: () => validateMcpApiKey
-});
 async function validateMcpApiKey(rawKey) {
   if (!rawKey.startsWith("ft_")) throw new Error("Invalid MCP API key format");
   let firestoreResult = null;
@@ -569,32 +540,98 @@ async function trackUsage(userId, rawKey) {
   } catch {
   }
 }
-async function mcpApiKeyAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "MCP API key required (Authorization: Bearer ft_mcp_<key>)" });
+
+// src/mcp/server.ts
+function createFundTracerMcpServer(resolveContext, options = {}) {
+  const logRegistrations = options.logRegistrations ?? true;
+  const server = new McpServer({
+    name: "FundTracer MCP",
+    version: "1.0.0"
+  });
+  for (const toolDef of ALL_MCP_TOOLS) {
+    const handler = TOOL_HANDLERS[toolDef.name];
+    if (!handler) {
+      console.error(`[MCP] No handler for tool: ${toolDef.name}`);
+      continue;
+    }
+    server.registerTool(toolDef.name, {
+      description: toolDef.description,
+      inputSchema: jsonSchemaObjectToZodShape(toolDef.inputSchema)
+    }, async (args, requestContext) => {
+      let ctx;
+      try {
+        ctx = await resolveContext(requestContext);
+      } catch (err2) {
+        return {
+          content: [{ type: "text", text: `Authentication failed: ${err2.message}` }],
+          isError: true
+        };
+      }
+      return handler(args, ctx);
+    });
+    if (logRegistrations) {
+      console.error(`[MCP] Registered tool: ${toolDef.name}`);
+    }
   }
-  const rawKey = authHeader.slice(7).trim();
-  if (!rawKey.startsWith("ft_")) {
-    return res.status(401).json({ error: "Invalid MCP API key format" });
-  }
-  try {
-    const ctx = await validateMcpApiKey(rawKey);
-    req.mcpContext = ctx;
-    next();
-  } catch (err2) {
-    return res.status(401).json({ error: err2.message });
-  }
+  return server;
 }
-var init_mcpAuth = __esm({
-  "src/mcp/mcpAuth.ts"() {
+function jsonSchemaObjectToZodShape(schema) {
+  const required = new Set(Array.isArray(schema?.required) ? schema.required : []);
+  const properties = schema?.properties || {};
+  const shape = {};
+  for (const [name, propertySchema] of Object.entries(properties)) {
+    let field = jsonSchemaPropertyToZod(propertySchema);
+    if (!required.has(name)) field = field.optional();
+    shape[name] = field;
   }
-});
+  return shape;
+}
+function jsonSchemaPropertyToZod(schema) {
+  let field;
+  if (Array.isArray(schema?.enum) && schema.enum.length > 0) {
+    const values = schema.enum.filter((value) => typeof value === "string");
+    field = values.length > 0 ? z.enum(values) : z.string();
+  } else {
+    switch (schema?.type) {
+      case "number":
+      case "integer":
+        field = z.number();
+        break;
+      case "boolean":
+        field = z.boolean();
+        break;
+      case "array":
+        field = z.array(z.unknown());
+        break;
+      case "object":
+        field = z.record(z.unknown());
+        break;
+      case "string":
+      default:
+        field = z.string();
+        break;
+    }
+  }
+  if (schema?.description && typeof field.describe === "function") {
+    field = field.describe(schema.description);
+  }
+  if (schema?.default !== void 0) {
+    field = field.default(schema.default);
+  }
+  return field;
+}
+async function resolveStdioMcpContext() {
+  const apiKey = process.env.FUNDTRACER_MCP_API_KEY;
+  if (!apiKey) {
+    throw new Error("FUNDTRACER_MCP_API_KEY environment variable not set");
+  }
+  return validateMcpApiKey(apiKey);
+}
 
 // src/mcp/stdio.ts
-import * as dotenv from "dotenv";
-import { McpServer, StdioServerTransport, fromJsonSchema } from "@modelcontextprotocol/server";
 dotenv.config();
+console.log = console.error.bind(console);
+process.env.FUNDTRACER_MCP_DISABLE_LOGGING = process.env.FUNDTRACER_MCP_DISABLE_LOGGING || "1";
 async function main() {
   let firebaseAvailable = false;
   try {
@@ -605,45 +642,10 @@ async function main() {
   } catch (err2) {
     console.error("[MCP] Firebase not available \u2014 key validation will fail. Set Firebase credentials in env.");
   }
-  const { ALL_MCP_TOOLS: ALL_MCP_TOOLS2 } = await Promise.resolve().then(() => (init_tools(), tools_exports));
-  const { TOOL_HANDLERS: TOOL_HANDLERS2 } = await Promise.resolve().then(() => (init_api_handlers(), api_handlers_exports));
-  const { validateMcpApiKey: validateMcpApiKey2 } = await Promise.resolve().then(() => (init_mcpAuth(), mcpAuth_exports));
-  const server = new McpServer({
-    name: "FundTracer MCP",
-    version: "1.0.0"
-  });
-  for (const toolDef of ALL_MCP_TOOLS2) {
-    const handler = TOOL_HANDLERS2[toolDef.name];
-    if (!handler) {
-      console.error(`[MCP] No handler for tool: ${toolDef.name}`);
-      continue;
-    }
-    server.registerTool(toolDef.name, {
-      description: toolDef.description,
-      inputSchema: fromJsonSchema(toolDef.inputSchema)
-    }, async (args) => {
-      const apiKey = process.env.FUNDTRACER_MCP_API_KEY;
-      if (!apiKey) {
-        return {
-          content: [{ type: "text", text: "FUNDTRACER_MCP_API_KEY environment variable not set" }],
-          isError: true
-        };
-      }
-      let ctx;
-      try {
-        ctx = await validateMcpApiKey2(apiKey);
-      } catch (err2) {
-        return {
-          content: [{ type: "text", text: `Authentication failed: ${err2.message}` }],
-          isError: true
-        };
-      }
-      return handler(args, ctx);
-    });
-    console.error(`[MCP] Registered tool: ${toolDef.name}`);
-  }
+  const server = createFundTracerMcpServer(resolveStdioMcpContext);
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  process.stdin.resume();
   console.error("[MCP] FundTracer MCP server running on stdio");
 }
 main().catch((err2) => {
@@ -652,7 +654,6 @@ main().catch((err2) => {
 });
 process.on("SIGINT", async () => {
   console.error("[MCP] Shutting down...");
-  const { McpServer: McpServer2 } = await import("@modelcontextprotocol/server");
   process.exit(0);
 });
 process.on("SIGTERM", async () => {

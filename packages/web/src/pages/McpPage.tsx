@@ -359,8 +359,8 @@ export function McpPage() {
                 Add to any MCP client:
               </p>
               <div className="cli-code-block">
-                <code>{`"command": "npx", "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"]`}</code>
-                <CopyButton text={`"command": "npx", "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"]`} />
+                <code>{`"command": "npx", "args": ["-y", "@fundtracer/mcp@latest"]`}</code>
+                <CopyButton text={`"command": "npx", "args": ["-y", "@fundtracer/mcp@latest"]`} />
               </div>
               {isAuthenticated && (
                 <p style={{ textAlign: 'center', marginTop: 'var(--space-3)' }}>
@@ -705,12 +705,12 @@ export function McpPage() {
                 Add to your client's MCP server config:
               </p>
               <div className="mcp-code-wrap">
-                <CopyButton text={`{\n  "mcpServers": {\n    "fundtracer": {\n      "command": "npx",\n      "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"],\n      "env": {\n        "FUNDTRACER_MCP_API_KEY": "YOUR_FT_MCP_KEY"\n      }\n    }\n  }\n}`} />
+                <CopyButton text={`{\n  "mcpServers": {\n    "fundtracer": {\n      "command": "npx",\n      "args": ["-y", "@fundtracer/mcp@latest"],\n      "env": {\n        "FUNDTRACER_MCP_API_KEY": "YOUR_FT_MCP_KEY"\n      }\n    }\n  }\n}`} />
                 <pre className="mcp-code-block">{`{
   "mcpServers": {
     "fundtracer": {
       "command": "npx",
-      "args": ["-y", "@fundtracer/mcp", "fundtracer-mcp"],
+      "args": ["-y", "@fundtracer/mcp@latest"],
       "env": {
         "FUNDTRACER_MCP_API_KEY": "YOUR_FT_MCP_KEY"
       }
@@ -730,7 +730,7 @@ export function McpPage() {
             >
               <h2>Option B: HTTP</h2>
               <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)' }}>
-                No package needed. Point your MCP client directly at the live API:
+                No package needed. Point streamable HTTP MCP clients directly at the live API:
               </p>
               <div className="mcp-code-wrap">
                 <CopyButton text={`{\n  "mcpServers": {\n    "fundtracer": {\n      "url": "https://api.fundtracer.xyz/api/mcp",\n      "headers": {\n        "Authorization": "Bearer YOUR_FT_MCP_KEY"\n      }\n    }\n  }\n}`} />
@@ -746,7 +746,7 @@ export function McpPage() {
 }`}</pre>
               </div>
               <p style={{ color: 'var(--text-secondary)', marginTop: 'var(--space-3)' }}>
-                Or call directly with curl:
+                Or call the REST-compatible tool endpoints directly with curl:
               </p>
               <div className="mcp-code-wrap">
                 <CopyButton text={`# List available tools\ncurl https://api.fundtracer.xyz/api/mcp/tools\n\n# Analyze a wallet\ncurl -X POST https://api.fundtracer.xyz/api/mcp/tools/analyze_wallet \\\n  -H "Authorization: Bearer ft_mcp_YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045","chainId":"ethereum"}'`} />

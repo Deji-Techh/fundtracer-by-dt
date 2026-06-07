@@ -1,6 +1,6 @@
 {
     "name": "@fundtracer/mcp",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "description": "FundTracer MCP Server — blockchain analysis for AI assistants (Claude Desktop, Claude Code, Cursor, etc.)",
     "type": "module",
     "main": "fundtracer-mcp.js",
@@ -13,16 +13,17 @@
     ],
     "dependencies": {
         "@cfworker/json-schema": "^4.1.1",
-        "@modelcontextprotocol/server": "^2.0.0-alpha.2",
+        "@modelcontextprotocol/sdk": "^1.29.0",
         "axios": "^1.7.0",
         "dotenv": "^16.3.1",
-        "node-fetch": "^2.7.0"
+        "node-fetch": "^2.7.0",
+        "zod": "^3.25.76"
     },
     "keywords": ["mcp", "blockchain", "wallet-analysis", "fundtracer", "ai"],
     "license": "GPL-3.0",
     "repository": {
         "type": "git",
-        "url": "https://github.com/Deji-Tech/fundtracer-by-dt.git",
+        "url": "git+https://github.com/Deji-Tech/fundtracer-by-dt.git",
         "directory": "packages/server"
     }
 }
