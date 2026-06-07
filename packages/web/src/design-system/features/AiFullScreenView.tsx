@@ -47,7 +47,7 @@ import type { AnalysisTableData } from './AiAnalysisTable';
 import { ReportCard } from './ReportCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { getHistory, type HistoryItem } from '../../utils/history';
-import { apiRequest, getAuthToken, API_BASE } from '../../api';
+import { apiRequest, getAuthHeaders, API_BASE } from '../../api';
 import { loadHistory, saveMessage as orchestratorSaveMessage, createConversation } from '../../lib/chatOrchestrator';
 import './AiFullScreenView.css';
 
@@ -741,19 +741,19 @@ const contractSuggestions = [
           extractedText: f.extractedText,
         }));
 
-        const token = getAuthToken();
         abortControllerRef.current = new AbortController();
         const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
+            ...getAuthHeaders(),
           },
           body: JSON.stringify({
             question: inputValue,
             attachedFiles,
             history: buildHistoryWithContext()
           }),
+          credentials: 'include',
           signal: abortControllerRef.current.signal
         });
 
@@ -845,14 +845,14 @@ const contractSuggestions = [
       let contextText: string | undefined;
       if (detectedAddress) {
         try {
-          const token = getAuthToken();
           const extRes = await fetch(`${API_BASE}/api/ai-chat/analyze-wallet`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(token && { 'Authorization': `Bearer ${token}` }),
+              ...getAuthHeaders(),
             },
             body: JSON.stringify({ address: detectedAddress, chain: activeChain }),
+            credentials: 'include',
             signal: abortControllerRef.current?.signal,
           });
           const extData = await extRes.json();
@@ -890,16 +890,12 @@ const contractSuggestions = [
 
       // Still send to AI chat for the text response
       try {
-        const token = getAuthToken();
-        if (!token) {
-          throw new Error('Not authenticated - please log in again');
-        }
         abortControllerRef.current = new AbortController();
         const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            ...getAuthHeaders(),
           },
           body: JSON.stringify({
             question: inputValue,
@@ -1109,7 +1105,6 @@ const handleSelectScan = async (scan: RecentScan) => {
     try { await saveMessage(userMessage); } catch (e) { console.error('[Chat] Failed to save scan message:', e); }
 
     try {
-      const token = getAuthToken();
       abortControllerRef.current = new AbortController();
 
       let tableData: AnalysisTableData;
@@ -1120,9 +1115,10 @@ const handleSelectScan = async (scan: RecentScan) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...getAuthHeaders(),
           },
           body: JSON.stringify({ address, chain }),
+          credentials: 'include',
           signal: abortControllerRef.current.signal,
         });
 
@@ -1259,15 +1255,12 @@ const handleSelectScan = async (scan: RecentScan) => {
     setAnalysisContext({ data: null as any, contextText: '', loading: true, address, chain, type: 'wallet' });
 
     try {
-      const token = getAuthToken();
-      if (!token) throw new Error('Authentication required. Please log in to generate reports.');
-
       // Step 1: Run wallet analysis to get structured data
       const analysisResponse = await fetch(`${API_BASE}/api/analyze/wallet`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ address, chain, options: { skipFundingTree: true } }),
         credentials: 'include',
@@ -1321,8 +1314,7 @@ const handleSelectScan = async (scan: RecentScan) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'x-auth-token': token,
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ address, chain }),
         credentials: 'include',
@@ -1413,13 +1405,12 @@ const handleSelectScan = async (scan: RecentScan) => {
         extractedText: f.extractedText,
       }));
 
-      const token = getAuthToken();
       abortControllerRef.current = new AbortController();
       const response = await fetch(`${API_BASE}/api/ai-chat/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           address: walletAttachment.address,
@@ -1578,13 +1569,12 @@ if (!fullResponse) {
         });
 
         // Upload to backend
-        const token = getAuthToken();
         const uploadController = new AbortController();
         const response = await fetch(`${API_BASE}/api/upload/file`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` })
+            ...getAuthHeaders(),
           },
           body: JSON.stringify({
             fileData: base64,

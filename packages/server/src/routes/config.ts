@@ -23,12 +23,19 @@ router.get('/firebase', (_req: Request, res: Response) => {
 });
 
 function getOptionalUserId(req: Request): string | null {
-  const authHeader = req.headers.authorization;
   const secret = process.env.JWT_SECRET;
-  if (!authHeader?.startsWith('Bearer ') || !secret) return null;
+  if (!secret) return null;
 
   try {
-    const decoded = jwt.verify(authHeader.slice('Bearer '.length), secret) as any;
+    const authHeader = req.headers.authorization;
+    const sessionToken = getCookieValue(req, 'fundtracer_session');
+    const token = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice('Bearer '.length)
+      : sessionToken;
+
+    if (!token) return null;
+
+    const decoded = jwt.verify(token, secret) as any;
     return decoded?.uid || decoded?.address?.toLowerCase() || null;
   } catch {
     return null;

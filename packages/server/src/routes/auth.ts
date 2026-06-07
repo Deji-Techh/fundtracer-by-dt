@@ -220,6 +220,10 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     const userDoc = await userRef.get();
     
     const isNewUser = !userDoc.exists;
+    if (authIntent === 'signin' && isNewUser) {
+      return res.status(404).json({ error: 'No account found. Please sign up first.', code: 'ACCOUNT_NOT_FOUND' });
+    }
+    const resolvedAuthIntent: 'signin' | 'signup' = isNewUser ? 'signup' : 'signin';
     
     let tier = 'free';
     let expiry = 0;
@@ -246,7 +250,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
       authProvider: 'google',
-      authIntent,
+      authIntent: resolvedAuthIntent,
       onboardingCompleted: isNewUser ? false : userDoc.data()?.onboardingCompleted ?? false
     }, { merge: true });
     
@@ -326,7 +330,8 @@ router.get('/google/callback', async (req: Request, res: Response) => {
       profilePicture: picture,
       tier,
       walletAddress,
-      authProvider: 'google'
+      authProvider: 'twitter',
+      authIntent: resolvedAuthIntent
     }, getJwtSecret(), { expiresIn: '7d' });
     
     // Only send welcome email for NEW users
@@ -429,7 +434,7 @@ await userRef.set({
       tier,
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
-      authProvider: 'google',
+      authProvider: 'twitter',
       createdAt: isNewUser ? Date.now() : (await userRef.get()).data()?.createdAt || Date.now(),
       onboardingCompleted: isNewUser ? false : (await userRef.get()).data()?.onboardingCompleted ?? false
     }, { merge: true });
@@ -753,6 +758,10 @@ router.post('/google-login', async (req: Request, res: Response) => {
     const userDoc = await userRef.get();
     
     const isNewUser = !userDoc.exists;
+    if (authIntent === 'signin' && isNewUser) {
+      return res.redirect(`${redirectUrl}?error=account_not_found`);
+    }
+    const resolvedAuthIntent: 'signin' | 'signup' = isNewUser ? 'signup' : 'signin';
     
     let tier = 'free';
     let expiry = 0;
@@ -780,7 +789,7 @@ router.post('/google-login', async (req: Request, res: Response) => {
       subscriptionExpiry: expiry,
       lastLogin: Date.now(),
       authProvider: 'google',
-      authIntent,
+      authIntent: resolvedAuthIntent,
       onboardingCompleted: isNewUser ? false : userDoc.data()?.onboardingCompleted ?? false
     }, { merge: true });
     
@@ -826,7 +835,7 @@ router.post('/google-login', async (req: Request, res: Response) => {
       tier,
       walletAddress,
       authProvider: 'google',
-      authIntent
+      authIntent: resolvedAuthIntent
     }, getJwtSecret(), { expiresIn: '7d' });
 
     console.log('[AUTH] Google Login SUCCESS');

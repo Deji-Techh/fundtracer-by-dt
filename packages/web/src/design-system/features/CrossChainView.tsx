@@ -5,7 +5,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ChainId, CHAINS } from '@fundtracer/core';
-import { getAuthToken, API_BASE } from '../../api';
+import { API_BASE, getAuthHeaders } from '../../api';
 import './CrossChainView.css';
 import './InvestigateView.css';
 
@@ -79,16 +79,11 @@ export function CrossChainView({ selectedChain = 'linea' }: CrossChainViewProps)
     setError('');
 
     try {
-      const token = getAuthToken();
-      if (!token) {
-        throw new Error('Authentication required. Please log in to use cross-chain tracing.');
-      }
-
       const response = await fetch(`${API_BASE}/api/analyze/bridge-trace`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ address: address.trim(), chain: selectedChain }),
         credentials: 'include',

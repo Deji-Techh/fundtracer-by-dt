@@ -34,6 +34,17 @@ function getJwtSecret(): string {
   return process.env.JWT_SECRET || 'dev-secret-key-change-in-prod';
 }
 
+function getCookieValue(header: string | undefined, name: string): string | undefined {
+  if (!header) return undefined;
+  for (const part of header.split(';')) {
+    const [rawName, ...rawValue] = part.trim().split('=');
+    if (rawName === name) {
+      return decodeURIComponent(rawValue.join('='));
+    }
+  }
+  return undefined;
+}
+
 export class InvestigationWSS {
   private wss: WebSocketServer;
 
@@ -48,7 +59,7 @@ export class InvestigationWSS {
   private async handleConnection(ws: WebSocket, req: any) {
     try {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const token = url.searchParams.get('token');
+      const token = url.searchParams.get('token') || getCookieValue(req.headers.cookie, 'fundtracer_session');
       const roomId = url.searchParams.get('roomId');
 
       if (!token) {

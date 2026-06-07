@@ -78,6 +78,11 @@ export const getAuthToken = () => localStorage.getItem('fundtracer_token');
 export const setAuthToken = (token: string) => localStorage.setItem('fundtracer_token', token);
 export const removeAuthToken = () => localStorage.removeItem('fundtracer_token');
 
+export function getAuthHeaders(): Record<string, string> {
+    const token = getAuthToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // Retry configuration
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000; // 1 second
@@ -653,8 +658,7 @@ export async function getPolymarketHistory(
 
 // Create API key (server-enforced free tier limit of 2)
 export async function createApiKey(name: string, type: 'live' | 'test' = 'test', twoFactorCode?: string): Promise<{ success: boolean; key?: ApiKeyData; error?: string; limit?: number; current?: number; twoFactorEnabled?: boolean; requiresCode?: boolean }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const body: { name: string; type: string; code?: string } = { name, type };
     if (twoFactorCode) {
@@ -665,8 +669,9 @@ export async function createApiKey(name: string, type: 'live' | 'test' = 'test',
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            ...authHeaders,
         },
+        credentials: 'include',
         body: JSON.stringify(body),
     });
 
@@ -685,14 +690,14 @@ export async function createApiKey(name: string, type: 'live' | 'test' = 'test',
 
 // Delete API key
 export async function listApiKeys(): Promise<{ success: boolean; keys: ApiKeyData[] }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/user/api-keys`, {
         method: 'GET',
         headers: {
-            'Authorization': `Bearer ${token}`,
+            ...authHeaders,
         },
+        credentials: 'include',
     });
 
     const data = await response.json();
@@ -703,15 +708,15 @@ export async function listApiKeys(): Promise<{ success: boolean; keys: ApiKeyDat
 }
 
 export async function deleteApiKey(keyId: string, twoFactorCode?: string): Promise<{ success: boolean }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/user/api-keys/${keyId}`, {
         method: 'DELETE',
         headers: {
-            'Authorization': `Bearer ${token}`,
+            ...authHeaders,
             'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: twoFactorCode ? JSON.stringify({ code: twoFactorCode }) : undefined,
     });
 
@@ -730,15 +735,15 @@ export async function deleteApiKey(keyId: string, twoFactorCode?: string): Promi
 // ============================================================
 
 export async function createMcpKey(name: string): Promise<{ success: boolean; key?: ApiKeyData; error?: string; limit?: number; current?: number }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/user/mcp-keys`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            ...authHeaders,
         },
+        credentials: 'include',
         body: JSON.stringify({ name }),
     });
 
@@ -746,24 +751,24 @@ export async function createMcpKey(name: string): Promise<{ success: boolean; ke
 }
 
 export async function listMcpKeys(): Promise<{ success: boolean; keys: any[] }> {
-    const token = getAuthToken();
-    if (!token) return { success: true, keys: [] };
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/user/mcp-keys`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { ...authHeaders },
+        credentials: 'include',
     });
 
     return response.json();
 }
 
 export async function deleteMcpKey(keyId: string): Promise<{ success: boolean }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/user/mcp-keys/${encodeURIComponent(keyId)}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { ...authHeaders },
+        credentials: 'include',
     });
 
     return response.json();
@@ -790,8 +795,7 @@ export async function getMcpHistory(options?: {
   startAfter?: number;
   tool?: string;
 }): Promise<{ success: boolean; logs: McpHistoryItem[]; hasMore: boolean }> {
-  const token = getAuthToken();
-  if (!token) return { success: true, logs: [], hasMore: false };
+  const authHeaders = getAuthHeaders();
 
   const params = new URLSearchParams();
   if (options?.limit) params.append('limit', String(options.limit));
@@ -799,7 +803,8 @@ export async function getMcpHistory(options?: {
   if (options?.tool) params.append('tool', options.tool);
 
   const response = await fetch(`${API_BASE}/api/user/mcp-history?${params.toString()}`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
 
   return response.json();
@@ -840,7 +845,7 @@ export function streamWalletTimestamps(
         status === 404 && /cached transactions|run wallet analysis/i.test(message)
     );
 
-    const start = (attempt = 0) => fetch(url, { headers, signal: controller.signal })
+    const start = (attempt = 0) => fetch(url, { headers, signal: controller.signal, credentials: 'include' })
         .then(async (response) => {
             if (!response.ok) {
                 const errText = await response.text().catch(() => '');
@@ -944,11 +949,11 @@ export interface ChatMessage {
 }
 
 export async function getChatSessions(): Promise<{ sessions: ChatSession[]; source: string }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/ai-chat/sessions`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { ...authHeaders },
+        credentials: 'include',
     });
 
     if (!response.ok) {
@@ -959,11 +964,11 @@ export async function getChatSessions(): Promise<{ sessions: ChatSession[]; sour
 }
 
 export async function getChatSession(sessionId: string): Promise<{ session: ChatSession; source: string }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/ai-chat/sessions/${sessionId}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { ...authHeaders },
+        credentials: 'include',
     });
 
     if (!response.ok) {
@@ -974,15 +979,15 @@ export async function getChatSession(sessionId: string): Promise<{ session: Chat
 }
 
 export async function createChatSession(title?: string, walletAddress?: string, chain?: string): Promise<{ session: ChatSession }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/ai-chat/sessions`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${token}`,
+            ...authHeaders,
             'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ title, walletAddress, chain }),
     });
 
@@ -994,15 +999,15 @@ export async function createChatSession(title?: string, walletAddress?: string, 
 }
 
 export async function updateChatSession(sessionId: string, messages: ChatMessage[], title?: string): Promise<{ session: ChatSession }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/ai-chat/sessions/${sessionId}`, {
         method: 'PUT',
         headers: {
-            'Authorization': `Bearer ${token}`,
+            ...authHeaders,
             'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ messages, title }),
     });
 
@@ -1014,12 +1019,12 @@ export async function updateChatSession(sessionId: string, messages: ChatMessage
 }
 
 export async function deleteChatSession(sessionId: string): Promise<{ success: boolean }> {
-    const token = getAuthToken();
-    if (!token) throw new Error('Not authenticated');
+    const authHeaders = getAuthHeaders();
 
     const response = await fetch(`${API_BASE}/api/ai-chat/sessions/${sessionId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { ...authHeaders },
+        credentials: 'include',
     });
 
     if (!response.ok) {
@@ -1042,11 +1047,11 @@ export interface CreateRoomParams {
 }
 
 export async function createRoom(params: CreateRoomParams): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(params),
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to create room'); }
@@ -1054,10 +1059,10 @@ export async function createRoom(params: CreateRoomParams): Promise<any> {
 }
 
 export async function getRooms(): Promise<any[]> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
   if (!res.ok) return [];
   const d = await res.json();
@@ -1065,35 +1070,35 @@ export async function getRooms(): Promise<any[]> {
 }
 
 export async function getRoomDetails(roomId: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to get room'); }
   return res.json();
 }
 
 export async function getRoomMessages(roomId: string, limit = 50, before?: number): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const params = new URLSearchParams({ limit: String(limit) });
   if (before) params.set('before', String(before));
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages?${params}`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
   if (!res.ok) return { messages: [], hasMore: false };
   return res.json();
 }
 
 export async function sendRoomMessage(roomId: string, content: string, parentMessageId?: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const body: Record<string, any> = { content };
   if (parentMessageId) body.parentMessageId = parentMessageId;
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(body),
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to send message'); }
@@ -1101,11 +1106,11 @@ export async function sendRoomMessage(roomId: string, content: string, parentMes
 }
 
 export async function joinRoom(roomId: string, inviteCode?: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/join`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ inviteCode }),
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to join room'); }
@@ -1113,33 +1118,33 @@ export async function joinRoom(roomId: string, inviteCode?: string): Promise<any
 }
 
 export async function leaveRoom(roomId: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/leave`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to leave room'); }
   return res.json();
 }
 
 export async function removeMember(roomId: string, uid: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/members/${uid}`, {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to remove member'); }
   return res.json();
 }
 
 export async function promoteMember(roomId: string, uid: string, role: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/members/${uid}/role`, {
     method: 'PUT',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ role }),
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to update role'); }
@@ -1147,11 +1152,11 @@ export async function promoteMember(roomId: string, uid: string, role: string): 
 }
 
 export async function createInvite(roomId: string, expiresInHours?: number): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/invite`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ expiresInHours }),
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to create invite'); }
@@ -1165,11 +1170,11 @@ export async function getInvite(inviteCode: string): Promise<any> {
 }
 
 export async function pinMessage(roomId: string, messageId: string, category?: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages/${messageId}/pin`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ category }),
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to pin message'); }
@@ -1177,53 +1182,53 @@ export async function pinMessage(roomId: string, messageId: string, category?: s
 }
 
 export async function unpinMessage(roomId: string, messageId: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages/${messageId}/pin`, {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to unpin message'); }
   return res.json();
 }
 
 export async function getRoomPins(roomId: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/pins`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
   if (!res.ok) return { pins: [] };
   return res.json();
 }
 
 export async function exportRoomPdf(roomId: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/export`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to export'); }
   return res.json();
 }
 
 export async function deleteRoom(roomId: string): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}`, {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { ...authHeaders },
+    credentials: 'include',
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to delete room'); }
   return res.json();
 }
 
 export async function updateRoom(roomId: string, data: { name?: string; description?: string }): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}`, {
     method: 'PATCH',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(data),
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to update room'); }
@@ -1231,11 +1236,11 @@ export async function updateRoom(roomId: string, data: { name?: string; descript
 }
 
 export async function sendAiResponse(roomId: string, content: string, aiCard?: any): Promise<any> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const authHeaders = getAuthHeaders();
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/ai-response`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { ...authHeaders, 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ content, aiCard }),
   });
   if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed to send AI response'); }

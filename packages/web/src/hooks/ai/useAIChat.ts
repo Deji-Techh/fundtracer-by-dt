@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiRequest, getAuthToken, API_BASE } from '../../api';
+import { API_BASE, getAuthHeaders } from '../../api';
 import { getHistory, type HistoryItem } from '../../utils/history';
 
 export interface AIMessage {
@@ -69,12 +69,6 @@ RESPONSE STYLE:
   }, []);
 
   const sendMessage = useCallback(async (content: string, walletContext?: string) => {
-    const token = getAuthToken();
-    if (!token) {
-      setError('Not authenticated');
-      return null;
-    }
-
     setIsLoading(true);
     setError(null);
 
@@ -101,8 +95,9 @@ RESPONSE STYLE:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          ...getAuthHeaders(),
         },
+        credentials: 'include',
         body: JSON.stringify({
           model: config.model,
           messages: conversationMessages.map(m => ({ role: m.role, content: m.content })),
@@ -159,12 +154,6 @@ RESPONSE STYLE:
     walletContext?: string, 
     onChunk?: (chunk: string) => void
   ) => {
-    const token = getAuthToken();
-    if (!token) {
-      setError('Not authenticated');
-      throw new Error('Not authenticated');
-    }
-
     setIsLoading(true);
     setError(null);
 
@@ -195,8 +184,9 @@ RESPONSE STYLE:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          ...getAuthHeaders(),
         },
+        credentials: 'include',
         body: JSON.stringify({
           model: config.model,
           messages: conversationMessages.map(m => ({ role: m.role, content: m.content })),

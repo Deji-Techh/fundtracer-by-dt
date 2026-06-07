@@ -695,7 +695,7 @@ apiRouter.use('/watchtower', authMiddleware, watchtowerRoutes);
 
 // Investigation Rooms Routes (Team Analysis)
 import { roomRoutes } from './routes/rooms.js';
-apiRouter.use('/rooms', authMiddleware, usageMiddleware, roomRoutes);
+apiRouter.use('/rooms', apiKeyAuthMiddleware, authMiddleware, usageMiddleware, roomRoutes);
 
 // Public invite lookup — no auth required (returns room name + validity)
 apiRouter.get('/invites/:code', publicLimiter, async (req: any, res: any) => {

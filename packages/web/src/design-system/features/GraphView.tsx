@@ -5,7 +5,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { ChainId } from '@fundtracer/core';
-import { getAuthToken, API_BASE } from '../../api';
+import { API_BASE, getAuthHeaders } from '../../api';
 import { ForceGraph } from './ForceGraph';
 import './GraphView.css';
 import './ForceGraph.css';
@@ -76,16 +76,11 @@ export function GraphView({ selectedChain = 'linea' }: GraphViewProps) {
     setSelectedNode(null);
 
     try {
-      const token = getAuthToken();
-      if (!token) {
-        throw new Error('Authentication required. Please log in to use the graph view.');
-      }
-
       const response = await fetch(`${API_BASE}/api/analyze/expand-node`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           address: address.trim(),

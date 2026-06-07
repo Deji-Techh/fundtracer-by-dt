@@ -35,7 +35,9 @@ const state: SocketState = {
 function getWsUrl(roomId: string): string {
   const token = getAuthToken();
   const base = API_BASE.replace(/^https?/, (m) => m === 'https' ? 'wss' : 'ws');
-  return `${base}/ws?token=${encodeURIComponent(token || '')}&roomId=${encodeURIComponent(roomId)}`;
+  return token
+    ? `${base}/ws?token=${encodeURIComponent(token)}&roomId=${encodeURIComponent(roomId)}`
+    : `${base}/ws?roomId=${encodeURIComponent(roomId)}`;
 }
 
 export function connect(roomId: string) {
@@ -118,7 +120,8 @@ export async function catchUpMissedMessages(roomId: string): Promise<any[]> {
   try {
     const token = getAuthToken();
     const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages?limit=50`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
     });
     if (!res.ok) return [];
     const data = await res.json();
@@ -149,12 +152,13 @@ function startPolling(roomId: string) {
 
   let lastMessageId: string | null = null;
 
-  state.fallbackInterval = setInterval(async () => {
-    try {
-      const token = getAuthToken();
-      const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages?limit=20`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    state.fallbackInterval = setInterval(async () => {
+      try {
+        const token = getAuthToken();
+        const res = await fetch(`${API_BASE}/api/rooms/${roomId}/messages?limit=20`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include',
+        });
       if (res.ok) {
         const data = await res.json();
         if (data.messages?.length) {

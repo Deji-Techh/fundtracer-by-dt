@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import { getAuthToken, API_BASE } from '../../api';
+import { API_BASE, getAuthHeaders } from '../../api';
 import './ReportCard.css';
 
 interface ReportData {
@@ -46,15 +46,13 @@ export function ReportCard({ data }: { data: ReportData }) {
   const handleShareLink = useCallback(async () => {
     setShareLoading('link');
     try {
-      const token = getAuthToken();
-      if (!token) throw new Error('Not authenticated');
-
       const response = await fetch(`${API_BASE}/api/share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(),
         },
+        credentials: 'include',
         body: JSON.stringify({
           address,
           chain,
