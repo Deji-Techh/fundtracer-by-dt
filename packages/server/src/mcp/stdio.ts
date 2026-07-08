@@ -30,7 +30,7 @@ async function main() {
     firebaseAvailable = true;
     console.error('[MCP] Firebase initialized');
   } catch (err) {
-    console.error('[MCP] Firebase not available — key validation will fail. Set Firebase credentials in env.');
+    console.error('[MCP] Firebase not available — using FundTracer API for key validation.');
   }
 
   const server = createFundTracerMcpServer(resolveStdioMcpContext);
