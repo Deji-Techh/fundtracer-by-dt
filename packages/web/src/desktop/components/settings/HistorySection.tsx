@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getHistoryCached, clearHistory, removeHistory, onHistoryChange, syncHistory, getLastSync } from '../../stores/history';
-import { getAuthToken } from '../../api/client';
+import { useAuth } from '../../contexts/AuthContext';
 import type { HistoryEntry } from '../../types';
 
 function timeAgo(ts: number): string {
@@ -20,10 +20,10 @@ function formatEth(eth: number | undefined): string {
 }
 
 export function HistorySection() {
+  const { isAuthenticated } = useAuth();
   const [items, setItems] = useState<HistoryEntry[]>(() => getHistoryCached());
   const [filter, setFilter] = useState('');
   const [syncing, setSyncing] = useState(false);
-  const authenticated = !!getAuthToken();
 
   useEffect(() => {
     const unsub = onHistoryChange(() => { setItems(getHistoryCached()); });
@@ -64,7 +64,7 @@ export function HistorySection() {
           Scan History
         </h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {authenticated && (
+          {isAuthenticated && (
             <button onClick={handleSync} disabled={syncing}
               style={{
                 padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--card-border)',
@@ -90,7 +90,7 @@ export function HistorySection() {
 
       {/* Sync status */}
       <div style={{ fontSize: 10, color: 'var(--fg-tertiary)', fontFamily: 'var(--font-sans)', marginBottom: 12 }}>
-        {authenticated ? (
+        {isAuthenticated ? (
           lastSync > 0
             ? `Last synced ${timeAgo(lastSync)} — auto-syncs every 60s`
             : 'Syncing with server...'

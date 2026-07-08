@@ -4,6 +4,10 @@ import { getAuthToken, setAuthToken, removeAuthToken, apiRequest } from '../api/
 import { isTauri, tauriInvoke } from '../lib/tauri-commands';
 import { clearLocalAppSessionState } from '../stores/sessionState';
 
+const logAuthDebug = (message: string, data?: Record<string, unknown>) => {
+  console.log(`[DesktopAuth] ${message}`, data || '');
+};
+
 interface AuthContextType {
   profile: UserProfile | null;
   isAuthenticated: boolean;
@@ -47,6 +51,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(() => {
+    const shouldRedirect = !isTauri() && typeof window !== 'undefined';
+    const logoutRequest = shouldRedirect
+      ? apiRequest('/api/auth/logout', 'POST').catch((err: any) => {
+          logAuthDebug('server logout failed', {
+            status: err?.status,
+            message: err?.message,
+          });
+        })
+      : Promise.resolve();
+
     if (isTauri()) {
       tauriInvoke('watchtower_stop').catch(() => {});
     }
@@ -55,17 +69,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearApiKey();
     setProfile(null);
     setIsAuthenticated(false);
-    if (!isTauri() && typeof window !== 'undefined') {
-      window.location.assign('/');
+    if (shouldRedirect) {
+      logoutRequest.finally(() => window.location.assign('/'));
     }
   }, [clearApiKey]);
 
   const login = useCallback(async (key: string) => {
+    logAuthDebug('API key login started', { hasKey: !!key });
     saveKey(key);
     setAuthToken('');
     const p = await apiRequest<UserProfile>('/api/user/profile');
     setProfile(p);
     setIsAuthenticated(true);
+    logAuthDebug('API key login succeeded', { uid: p.uid, authProvider: p.authProvider });
   }, [saveKey]);
 
   const loginInFlightRef = useRef(false);
@@ -74,11 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (loginInFlightRef.current) throw new Error('in-flight');
     loginInFlightRef.current = true;
     try {
+      logAuthDebug('token login started', { hasToken: !!token, tauri: isTauri() });
       clearApiKey();
       setAuthToken(token);
       const p = await getProfile();
       setProfile(p);
       setIsAuthenticated(true);
+      logAuthDebug('token login succeeded', { uid: p.uid, authProvider: p.authProvider });
       if (isTauri()) {
         tauriInvoke('watchtower_start', { token }).catch((e: any) => {
           console.error('[Watchtower] Failed to start:', e?.message || e);
@@ -123,33 +141,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // On mount, validate existing credentials
   useEffect(() => {
     const init = async () => {
+      const urlParams = typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search)
+        : new URLSearchParams();
+      const authSuccess = urlParams.get('auth') === 'success';
+      const authError = urlParams.get('error');
       const key = localStorage.getItem('fdt_api_key');
+      const token = getAuthToken();
+
+      logAuthDebug('init started', {
+        path: typeof window !== 'undefined' ? window.location.pathname : '',
+        authSuccess,
+        authError,
+        hasApiKey: !!key,
+        hasBearerToken: !!token,
+        tauri: isTauri(),
+      });
+
+      if (authError) {
+        logAuthDebug('OAuth callback returned error', { authError });
+      }
+
       if (key) {
         try {
           removeAuthToken();
           const p = await apiRequest<UserProfile>('/api/user/profile');
           setProfile(p);
           setIsAuthenticated(true);
-        } catch {
+          logAuthDebug('init authenticated with API key', { uid: p.uid, authProvider: p.authProvider });
+        } catch (err: any) {
+          logAuthDebug('init API key profile failed', {
+            status: err?.status,
+            message: err?.message,
+          });
           setIsAuthenticated(false);
         }
       } else {
-        const token = getAuthToken();
         if (token) {
           try {
             const p = await getProfile();
             setProfile(p);
             setIsAuthenticated(true);
+            logAuthDebug('init authenticated with bearer token', { uid: p.uid, authProvider: p.authProvider });
             if (isTauri()) {
               tauriInvoke('watchtower_start', { token }).catch((e: any) => {
                 console.error('[Watchtower] Failed to start:', e?.message || e);
               });
             }
-          } catch {
+          } catch (err: any) {
+            logAuthDebug('init bearer profile failed', {
+              status: err?.status,
+              message: err?.message,
+            });
+            setIsAuthenticated(false);
+          }
+        } else if (!isTauri()) {
+          try {
+            const p = await getProfile();
+            setProfile(p);
+            setIsAuthenticated(true);
+            logAuthDebug('init authenticated with session cookie', {
+              uid: p.uid,
+              authProvider: p.authProvider,
+              fromOAuthCallback: authSuccess,
+            });
+            if (authSuccess && typeof window !== 'undefined') {
+              const cleanUrl = `${window.location.pathname}${window.location.hash}`;
+              window.history.replaceState({}, '', cleanUrl);
+            }
+          } catch (err: any) {
+            logAuthDebug('init session cookie profile failed', {
+              fromOAuthCallback: authSuccess,
+              status: err?.status,
+              message: err?.message,
+            });
             setIsAuthenticated(false);
           }
         }
       }
+      logAuthDebug('init completed');
       setLoading(false);
     };
     init();

@@ -1,5 +1,9 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.fundtracer.xyz';
 
+const logAuthDebug = (message: string, data?: Record<string, unknown>) => {
+  console.log(`[DesktopAuth] ${message}`, data || '');
+};
+
 export const getAuthToken = (): string | null => {
   try { return localStorage.getItem('fundtracer_token'); } catch { return null; }
 };
@@ -29,6 +33,8 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const token = getAuthToken();
   const apiKey = getApiKey();
+  const hasToken = !!token;
+  const hasApiKey = !!apiKey;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -41,10 +47,20 @@ export async function apiRequest<T>(
   }
 
   try {
+    if (endpoint === '/api/user/profile') {
+      logAuthDebug('profile request', {
+        method,
+        hasBearerToken: hasToken,
+        hasApiKey,
+        credentials: 'include',
+      });
+    }
+
     const response = await fetch(`${API_BASE}${endpoint}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -56,6 +72,14 @@ export async function apiRequest<T>(
         removeAuthToken();
       }
 
+      if (endpoint === '/api/user/profile') {
+        logAuthDebug('profile request failed', {
+          status: response.status,
+          message,
+          hint,
+        });
+      }
+
       const shouldRetry = (response.status >= 500 || response.status === 429) && retryCount < MAX_RETRIES;
       if (shouldRetry) {
         await delay(INITIAL_RETRY_DELAY * Math.pow(2, retryCount));
@@ -65,6 +89,10 @@ export async function apiRequest<T>(
       const error = new Error(hint ? `${message} ${hint}` : message) as Error & { status: number };
       error.status = response.status;
       throw error;
+    }
+
+    if (endpoint === '/api/user/profile') {
+      logAuthDebug('profile request succeeded', { status: response.status });
     }
 
     return response.json();
@@ -153,8 +181,11 @@ export function getReportDownloadUrl(scheduleId: string, outputId: string): stri
 export async function downloadReportOutput(scheduleId: string, outputId: string, filename: string): Promise<void> {
   const token = getAuthToken();
   const url = getReportDownloadUrl(scheduleId, outputId);
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(url, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers,
+    credentials: 'include',
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));

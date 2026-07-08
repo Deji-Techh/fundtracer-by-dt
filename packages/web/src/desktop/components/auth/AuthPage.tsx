@@ -7,6 +7,10 @@ import { isTauri } from '../../lib/tauri-commands';
 import { useIsMobile } from '../../../hooks/useIsMobile';
 import type { ChainId } from '../../types';
 
+const logAuthDebug = (message: string, data?: Record<string, unknown>) => {
+  console.log(`[DesktopAuth] ${message}`, data || '');
+};
+
 export function AuthPage() {
   const [submitting, setSubmitting] = useState(false);
   const { loginWithToken } = useAuth();
@@ -31,24 +35,34 @@ export function AuthPage() {
 
   const handleGoogleSignIn = async () => {
     setSubmitting(true);
+    logAuthDebug('Google sign-in clicked', {
+      tauri: isTauri(),
+      path: window.location.pathname,
+      search: window.location.search,
+    });
     if (!isTauri()) {
       const redirect = '/app-evm';
       try { sessionStorage.setItem('postLoginRedirect', redirect); } catch {}
-      window.location.href = `/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`;
+      const oauthUrl = `/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`;
+      logAuthDebug('redirecting to Google OAuth', { oauthUrl, redirect });
+      window.location.href = oauthUrl;
       return;
     }
 
     try {
       const { invoke } = await import('@tauri-apps/api/core');
+      logAuthDebug('starting Tauri OAuth popup');
       await invoke('start_oauth_popup');
     } catch {
       // Fallback: open in system browser if popup fails
       try {
         const { invoke } = await import('@tauri-apps/api/core');
+        logAuthDebug('Tauri OAuth popup failed, opening system browser');
         await invoke('open_in_browser', {
           url: 'https://www.fundtracer.xyz/api/auth/google/start?ref=desktop',
         });
       } catch {
+        logAuthDebug('Tauri browser open failed, using window.open fallback');
         window.open('https://www.fundtracer.xyz/api/auth/google/start?ref=desktop', '_blank');
       }
     }

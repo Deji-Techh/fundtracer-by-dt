@@ -1,6 +1,5 @@
 import type { HistoryEntry } from '../types';
 import { fetchScanHistory, saveScanHistoryItem, deleteScanHistoryItem, clearScanHistory as clearServerHistory } from '../api/history';
-import { getAuthToken } from '../api/client';
 
 const STORAGE_KEY = 'fundtracer_history';
 const MAX_ITEMS = 50;
@@ -35,7 +34,6 @@ function writeLocal(items: HistoryEntry[]): void {
 // Server sync
 // ---------------------------------------------------------------------------
 async function pullFromServer(): Promise<HistoryEntry[]> {
-  if (!getAuthToken()) return [];
   try {
     return await fetchScanHistory();
   } catch {
@@ -44,17 +42,14 @@ async function pullFromServer(): Promise<HistoryEntry[]> {
 }
 
 async function pushToServer(entry: HistoryEntry): Promise<void> {
-  if (!getAuthToken()) return;
   try { await saveScanHistoryItem(entry); } catch {}
 }
 
 async function removeFromServer(address: string): Promise<void> {
-  if (!getAuthToken()) return;
   try { await deleteScanHistoryItem(address); } catch {}
 }
 
 async function clearFromServer(): Promise<void> {
-  if (!getAuthToken()) return;
   try { await clearServerHistory(); } catch {}
 }
 
@@ -129,7 +124,7 @@ export async function syncHistory(): Promise<HistoryEntry[]> {
   }
   // No server items — push local to server
   const local = readLocal();
-  if (local.length > 0 && getAuthToken()) {
+  if (local.length > 0) {
     for (const item of local) await pushToServer(item);
   }
   cached = local;
@@ -154,7 +149,6 @@ export function getLastSync(): number {
 export function startHistoryPolling(intervalMs = 60_000): void {
   if (syncTimer) return;
   syncTimer = setInterval(async () => {
-    if (!getAuthToken()) return;
     await syncHistory();
   }, intervalMs);
 }

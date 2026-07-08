@@ -133,6 +133,7 @@ export function streamAnalyzeContract(
       options,
     }),
     signal: controller.signal,
+    credentials: 'include',
   })
     .then(async (response) => {
       if (!response.ok) {
@@ -251,6 +252,7 @@ export function streamDetectSybil(
       chain: normalizeChain(chain),
     }),
     signal: controller.signal,
+    credentials: 'include',
   })
     .then(async (response) => {
       if (!response.ok) {
@@ -362,6 +364,7 @@ export function streamAnalyzeCEXFlow(
       chain: normalizeChain(chain),
     }),
     signal: controller.signal,
+    credentials: 'include',
   })
     .then(async (response) => {
       if (!response.ok) {
@@ -461,7 +464,7 @@ export function streamWalletTimestamps(
     status === 404 && /cached transactions|run wallet analysis/i.test(message)
   );
 
-  const start = (attempt = 0) => fetch(url, { headers, signal: controller.signal })
+  const start = (attempt = 0) => fetch(url, { headers, signal: controller.signal, credentials: 'include' })
     .then(async (response) => {
       if (!response.ok) {
         let message = `HTTP ${response.status}`;
@@ -591,6 +594,7 @@ export function streamScanContract(
       chain: normalizeChain(chain),
     }),
     signal: controller.signal,
+    credentials: 'include',
   })
     .then(async (response) => {
       if (!response.ok) {

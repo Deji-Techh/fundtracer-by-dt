@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ChainSelector } from '../common/ChainSelector';
 import type { ChainId } from '../../types';
 import { useNotify } from '../../contexts/ToastContext';
-import { getAuthToken } from '../../api/client';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   getScheduledReports,
   createScheduledReport,
@@ -65,7 +65,7 @@ const FORMATS = [
 ];
 
 export function ScheduledReportsSection() {
-  const token = getAuthToken();
+  const { isAuthenticated } = useAuth();
   const [schedules, setSchedules] = useState<ReportSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +89,7 @@ export function ScheduledReportsSection() {
   const notify = useNotify();
 
   const loadSchedules = useCallback(async () => {
-    if (!token) { setLoading(false); return; }
+    if (!isAuthenticated) { setLoading(false); return; }
     try {
       setError(null);
       const { schedules } = await getScheduledReports();
@@ -99,7 +99,7 @@ export function ScheduledReportsSection() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [isAuthenticated]);
 
   useEffect(() => { loadSchedules(); }, [loadSchedules]);
 
@@ -125,7 +125,7 @@ export function ScheduledReportsSection() {
     if (!name.trim()) { notify.error('Enter a report name'); return; }
     if (addrList.length === 0) { notify.error('Enter at least one address'); return; }
     if (deliveryMethod === 'email' && !emailRecipient.trim()) { notify.error('Enter an email recipient'); return; }
-    if (!token) { notify.error('Sign in to create schedules'); return; }
+    if (!isAuthenticated) { notify.error('Sign in to create schedules'); return; }
 
     setSubmitting(true);
     try {
@@ -230,7 +230,7 @@ export function ScheduledReportsSection() {
   };
 
   // ── Not signed in ──
-  if (!token) {
+  if (!isAuthenticated) {
     return (
       <div style={{ maxWidth: 660 }}>
         <h2 style={headingStyle}>Scheduled Reports</h2>

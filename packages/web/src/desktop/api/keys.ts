@@ -16,10 +16,12 @@ export interface ApiKeyData {
 
 export async function listApiKeys(): Promise<{ success: boolean; keys: ApiKeyData[] }> {
   const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}/api/user/api-keys`, {
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers,
+    credentials: 'include',
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to load API keys');
@@ -34,29 +36,31 @@ export async function listApiKeys(): Promise<{ success: boolean; keys: ApiKeyDat
 
 export async function createApiKey(name: string, type: 'live' | 'test' | 'mcp' = 'test'): Promise<{ success: boolean; key?: ApiKeyData; error?: string }> {
   const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}/api/user/api-keys`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers,
     body: JSON.stringify({ name, type }),
+    credentials: 'include',
   });
   return res.json();
 }
 
 export async function deleteApiKey(keyId: string): Promise<{ success: boolean }> {
   const token = getAuthToken();
-  if (!token) throw new Error('Not authenticated');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}/api/user/api-keys/${keyId}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
+    credentials: 'include',
   });
   return res.json();
 }

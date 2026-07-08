@@ -57,6 +57,7 @@ export async function sendChatMessage(
     method: 'POST',
     headers,
     body: JSON.stringify(body),
+    credentials: 'include',
   });
 
   if (!response.ok) {
